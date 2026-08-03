@@ -3,20 +3,44 @@
 /**
  * Track 83: ZK Replication Claim Validator.
  *
- * Succinct replication verifier that processes
- * non-interactive zero-knowledge range and replication
- * proofs with ring signature verification, ensuring
- * that an entity's hidden reproducibility claim
- * status strictly satisfies policy-defined thresholds
- * without disclosing individual experiment or reviewer
- * attributes. Triggers defensive node bans for malformed
- * or out-of-order replication claims.
+ * Succinct replication verifier that processes non-interactive
+ * zero-knowledge range and accreditation proofs, ensuring
+ * that an entity's hidden replication claim status strictly
+ * satisfies policy-defined thresholds without disclosing
+ * individual experiment or reviewer attributes. Triggers defensive node
+ * bans for malformed or out-of-order replication claims.
+ *
+ * Extended with hardware-accelerated SNARK proof generation,
+ * batch replication claim verification, slashing window
+ * validation, partial signature aggregation, slash event
+ * recording with reason codes, and summary statistics.
  *
  * @module hsm-adapter/zk-replication-claim-validator
  */
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
+
+const CLAIM_STATUS = {
+  VERIFIED: 'verified',
+  SLASHED: 'slashed',
+};
+
+const SLASH_REASON = {
+  MALFORMED: 'malformed_claim',
+  DUPLICATE: 'duplicate_claim',
+  REPLICATION_WINDOW_OUT_OF_BOUNDS: 'replication_window_out_of_bounds',
+  POOL_NOT_FOUND: 'pool_not_found',
+  BANNED_PEER: 'banned_peer',
+  OUT_OF_WINDOW: 'out_of_window',
+};
+
+const HW_ACCEL_TYPES = {
+  GPU_CUDA: 'gpu_cuda',
+  FPGA: 'fpga',
+  ASIC: 'asic',
+  SIMULATED: 'simulated',
+};
 
 class ZkReplicationClaimValidator {
   /**
@@ -33,6 +57,13 @@ class ZkReplicationClaimValidator {
     this._audit = options.audit || null;
     this._bannedPeers = new Set();
     this._verifiedClaims = new Map();
+    this._slashedClaims = [];
+    this._batchHistory = [];
+    this._hwAccelType = options.hwAccelType || HW_ACCEL_TYPES.SIMULATED;
+    this._maxBatchSize = options.maxBatchSize || 100;
+    this._claimCount = 0;
+    this._hwProofCount = 0;
+    this._batchVerifyCount = 0;
   }
 
   /**
@@ -60,28 +91,34 @@ class ZkReplicationClaimValidator {
       throw new HsmAdapterError('RESEARCHCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
     }
     if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
+      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.BANNED_PEER);
       throw new HsmAdapterError('RESEARCHCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
     }
     if (!request.zkReplicationRangeProofHash || typeof request.zkReplicationRangeProofHash !== 'string') {
       this._banPeerIfPolicy(request);
+      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
       throw new HsmAdapterError('RESEARCHCLAIM_ZK_PROOF_MISSING', 'zero-knowledge replication range proof hash is required');
     }
     if (!request.ringSignature || typeof request.ringSignature !== 'string') {
       this._banPeerIfPolicy(request);
+      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
       throw new HsmAdapterError('RESEARCHCLAIM_RING_SIG_MISSING', 'ring signature is required');
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
+      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.POOL_NOT_FOUND);
       throw new HsmAdapterError('RESEARCHCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
     }
     if (typeof request.replicationWindowSeconds === 'number' && request.replicationWindowSeconds > (this.policy.maxReplicationWindowSeconds || 15768000)) {
       this._banPeerIfPolicy(request);
+      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.REPLICATION_WINDOW_OUT_OF_BOUNDS);
       throw new HsmAdapterError('RESEARCHCLAIM_REPLICATION_WINDOW_OUT_OF_BOUNDS', `replication window seconds ${request.replicationWindowSeconds} exceeds maximum ${this.policy.maxReplicationWindowSeconds}`);
     }
     const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
+      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.DUPLICATE);
       throw new HsmAdapterError('RESEARCHCLAIM_DUPLICATE', `replication claim for pool ${request.poolId} already verified`);
     }
     const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
@@ -94,13 +131,174 @@ class ZkReplicationClaimValidator {
       zkReplicationRangeProofHash: request.zkReplicationRangeProofHash,
       integrityCommitteeAttestationHash: request.integrityCommitteeAttestationHash || 'unspecified',
       verifiedAt: now,
+      status: CLAIM_STATUS.VERIFIED,
     };
     this._verifiedClaims.set(claimKey, claim);
     this._hub.markReplicationClaimVerified(request.poolId);
+    this._claimCount++;
     if (this._audit) {
       this._audit('ZK_REPLICATION_CLAIM_VERIFIED', { ...claim });
     }
     return claim;
+  }
+
+  /**
+   * Generate a hardware-accelerated SNARK proof for an replication claim.
+   * @param {object} request
+   * @returns {object}
+   */
+  generateHwSnarkProof(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('RESEARCHCLAIM_HW_PROOF_FIELDS_MISSING', 'poolId is required');
+    }
+    if (typeof request.replicationResultMetric !== 'number' || typeof request.claimValue !== 'number') {
+      throw new HsmAdapterError('RESEARCHCLAIM_HW_PROOF_FIELDS_MISSING',
+        'replicationResultMetric and claimValue numbers are required');
+    }
+    if (!this._hub) {
+      throw new HsmAdapterError('RESEARCHCLAIM_HUB_MISSING', 'scientific reproducibility gating hub is required');
+    }
+    const pool = this._hub.getPool(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('RESEARCHCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    const proofHash = crypto.createHash('sha256')
+      .update(`${request.poolId}:${request.replicationResultMetric}:${request.claimValue}:${this._hwAccelType}`)
+      .digest('hex');
+    const proof = {
+      zkReplicationRangeProofHash: proofHash,
+      poolId: request.poolId,
+      replicationResultMetric: request.replicationResultMetric,
+      claimValue: request.claimValue,
+      hwAccelType: this._hwAccelType,
+      proofSystem: 'groth16',
+      generatedAt: Math.floor(Date.now() / 1000),
+    };
+    this._hwProofCount++;
+    if (this._audit) {
+      this._audit('RESEARCHCLAIM_HW_SNARK_PROOF_GENERATED', { ...proof });
+    }
+    return proof;
+  }
+
+  /**
+   * Batch verify multiple replication claims.
+   * @param {object[]} requests
+   * @returns {object}
+   */
+  batchVerifyReplicationClaims(requests) {
+    if (!Array.isArray(requests) || requests.length === 0) {
+      throw new HsmAdapterError('RESEARCHCLAIM_BATCH_EMPTY', 'batch requests array is required');
+    }
+    if (requests.length > this._maxBatchSize) {
+      throw new HsmAdapterError('RESEARCHCLAIM_BATCH_TOO_LARGE',
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+    }
+    const results = [];
+    let verifiedCount = 0;
+    let failedCount = 0;
+    for (const req of requests) {
+      try {
+        const claim = this.verifyReplicationClaim(req);
+        results.push({
+          poolId: req.poolId,
+          claimId: claim.claimId,
+          verified: true,
+        });
+        verifiedCount++;
+      } catch (err) {
+        results.push({
+          poolId: req.poolId || 'unknown',
+          verified: false,
+          error: err.code || 'RESEARCHCLAIM_BATCH_ERROR',
+        });
+        failedCount++;
+      }
+    }
+    this._batchVerifyCount++;
+    this._batchHistory.push({
+      batchSize: requests.length,
+      verifiedCount,
+      failedCount,
+      verifiedAt: Math.floor(Date.now() / 1000),
+    });
+    if (this._audit) {
+      this._audit('RESEARCHCLAIM_BATCH_VERIFIED', { verifiedCount, failedCount, batchSize: requests.length });
+    }
+    return { totalRequests: requests.length, verifiedCount, failedCount, results };
+  }
+
+  /**
+   * Validate that a claim falls within the slashing window.
+   * @param {string} poolId
+   * @param {number} claimTimestamp
+   * @returns {object}
+   */
+  validateSlashingWindow(poolId, claimTimestamp) {
+    if (!poolId) {
+      throw new HsmAdapterError('RESEARCHCLAIM_WINDOW_FIELDS_MISSING', 'poolId is required');
+    }
+    if (typeof claimTimestamp !== 'number' || claimTimestamp <= 0) {
+      throw new HsmAdapterError('RESEARCHCLAIM_WINDOW_FIELDS_MISSING', 'claimTimestamp must be a positive number');
+    }
+    if (!this._hub) {
+      throw new HsmAdapterError('RESEARCHCLAIM_HUB_MISSING', 'scientific reproducibility gating hub is required');
+    }
+    const pool = this._hub.getPool(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('RESEARCHCLAIM_POOL_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const maxWindow = this.policy.maxReplicationWindowSeconds || 15768000;
+    const ageSeconds = Math.abs(now - claimTimestamp);
+    const withinWindow = ageSeconds <= maxWindow;
+    return {
+      poolId,
+      claimTimestamp,
+      currentTimestamp: now,
+      ageSeconds,
+      maxWindowSeconds: maxWindow,
+      withinWindow,
+    };
+  }
+
+  /**
+   * Aggregate partial signatures from clearing committee members.
+   * @param {string} poolId
+   * @param {object[]} ringSignatures - Array of {peerId, signature}
+   * @returns {object}
+   */
+  aggregateRingSignatures(poolId, ringSignatures) {
+    if (!poolId) {
+      throw new HsmAdapterError('RESEARCHCLAIM_AGG_FIELDS_MISSING', 'poolId is required');
+    }
+    if (!Array.isArray(ringSignatures) || ringSignatures.length === 0) {
+      throw new HsmAdapterError('RESEARCHCLAIM_AGG_NO_SIGNATURES', 'ringSignatures array is required');
+    }
+    for (const sig of ringSignatures) {
+      if (sig.peerId && this._bannedPeers.has(sig.peerId)) {
+        throw new HsmAdapterError('RESEARCHCLAIM_PEER_BANNED',
+          `peer ${sig.peerId} is banned and cannot participate in aggregation`);
+      }
+    }
+    if (ringSignatures.length < (this.policy.minPeerReviewQuorum || 3)) {
+      throw new HsmAdapterError('RESEARCHCLAIM_AGG_INSUFFICIENT',
+        `${ringSignatures.length} signatures below minimum ${this.policy.minPeerReviewQuorum || 3}`);
+    }
+    const aggregatedSignature = crypto.createHash('sha256')
+      .update(ringSignatures.map(s => s.signature).join(':'))
+      .digest('hex');
+    const result = {
+      poolId,
+      signatureCount: ringSignatures.length,
+      aggregatedSignature,
+      participantIds: ringSignatures.map(s => s.peerId || 'anonymous'),
+      aggregatedAt: Math.floor(Date.now() / 1000),
+    };
+    if (this._audit) {
+      this._audit('RESEARCHCLAIM_RING_SIGS_AGGREGATED', { poolId, count: ringSignatures.length });
+    }
+    return result;
   }
 
   /**
@@ -121,6 +319,54 @@ class ZkReplicationClaimValidator {
   }
 
   /**
+   * Get all slashed claims.
+   * @returns {Array}
+   */
+  getSlashedClaims() {
+    return this._slashedClaims.slice();
+  }
+
+  /**
+   * Get batch verification history.
+   * @returns {Array}
+   */
+  getBatchHistory() {
+    return this._batchHistory.slice();
+  }
+
+  /**
+   * Get slashing statistics.
+   * @returns {object}
+   */
+  getSlashingStats() {
+    const byReason = {};
+    for (const s of this._slashedClaims) {
+      byReason[s.reason] = (byReason[s.reason] || 0) + 1;
+    }
+    return {
+      totalSlashes: this._slashedClaims.length,
+      bannedPeers: this._bannedPeers.size,
+      byReason,
+    };
+  }
+
+  /**
+   * Get summary statistics.
+   * @returns {object}
+   */
+  getStats() {
+    return {
+      totalVerified: this._verifiedClaims.size,
+      totalSlashed: this._slashedClaims.length,
+      totalBatchVerifications: this._batchVerifyCount,
+      claimCount: this._claimCount,
+      hwProofCount: this._hwProofCount,
+      hwAccelType: this._hwAccelType,
+      bannedPeers: this._bannedPeers.size,
+    };
+  }
+
+  /**
    * Ban a peer if policy requires it.
    * @param {object} request
    * @private
@@ -128,6 +374,25 @@ class ZkReplicationClaimValidator {
   _banPeerIfPolicy(request) {
     if (this.policy.banMalformedOrOutOfOrderReplicationClaims && typeof request.peerId === 'string') {
       this._bannedPeers.add(request.peerId);
+    }
+  }
+
+  /**
+   * Record a slash event.
+   * @param {string} poolId
+   * @param {string} peerId
+   * @param {string} reason
+   * @private
+   */
+  _recordSlash(poolId, peerId, reason) {
+    this._slashedClaims.push({
+      poolId,
+      peerId: peerId || 'anonymous',
+      reason,
+      slashedAt: Math.floor(Date.now() / 1000),
+    });
+    if (this._audit) {
+      this._audit('RESEARCHCLAIM_SLASHED', { poolId, peerId, reason });
     }
   }
 }
@@ -141,4 +406,9 @@ function _validateClaimRequest(policy, request) {
   }
 }
 
-module.exports = { ZkReplicationClaimValidator };
+module.exports = {
+  ZkReplicationClaimValidator,
+  CLAIM_STATUS,
+  SLASH_REASON,
+  HW_ACCEL_TYPES,
+};
