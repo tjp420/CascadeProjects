@@ -1226,6 +1226,74 @@ router.get('/autonomous-drone-swarm-mesh-routing/telemetry', authorize('admin:al
   }
 });
 
+// Track 114: Swarm Robotics Kinetic Assembly Gating (unavailable — 503 guarded)
+// When the swarm robotics kinetic assembly gating hub is registered, flip SWARM_ROBOTICS_KINETIC_ASSEMBLY_GATING_ENABLED to true.
+const SWARM_ROBOTICS_KINETIC_ASSEMBLY_GATING_ENABLED = true;
+
+function requireSwarmRoboticsKineticAssemblyGating(res) {
+  if (!SWARM_ROBOTICS_KINETIC_ASSEMBLY_GATING_ENABLED) {
+    sendError(res, 503, 'swarm_robotics_kinetic_assembly_gating_unavailable', {
+      message: 'Track 114 Swarm Robotics Kinetic Assembly Gating is not yet available.',
+    });
+    return false;
+  }
+  return true;
+}
+
+// GET /api/vault/swarm-robotics-kinetic-assembly/policy — expose active Track 114 policy defaults and bounds
+router.get('/swarm-robotics-kinetic-assembly/policy', authorize('admin:all'), function (req, res) {
+  if (!requireSwarmRoboticsKineticAssemblyGating(res)) return;
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqSwarmRoboticsKineticAssemblyGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'swarm_robotics_kinetic_assembly_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/swarm-robotics-kinetic-assembly/policy/validate — validate a proposed Track 114 configuration
+router.post('/swarm-robotics-kinetic-assembly/policy/validate', authorize('admin:all'), function (req, res) {
+  if (!requireSwarmRoboticsKineticAssemblyGating(res)) return;
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqSwarmRoboticsKineticAssemblyGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'swarm_robotics_kinetic_assembly_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/swarm-robotics-kinetic-assembly/telemetry — expose Track 114 telemetry counters
+router.get('/swarm-robotics-kinetic-assembly/telemetry', authorize('admin:all'), function (req, res) {
+  if (!requireSwarmRoboticsKineticAssemblyGating(res)) return;
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_kineticgate_pool_initialized_total: allMetrics.hsm_kineticgate_pool_initialized_total || 0,
+      hsm_zk_kinetic_posture_verified_total: allMetrics.hsm_zk_kinetic_posture_verified_total || 0,
+      hsm_assembly_accreditation_completed_total: allMetrics.hsm_assembly_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'swarm_robotics_kinetic_assembly_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 // GET /api/vault/zk-decentralized-storage/telemetry — expose Track 111 telemetry counters
 router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), function (req, res) {
   if (!requireZkDecentralizedStorageGating(res)) return;
