@@ -772,6 +772,10 @@ const counters = {
   hsm_sagate_hw_snark_proofs_generated_total: 0,
   hsm_sagate_hw_snark_proofs_verified_total: 0,
   hsm_sagate_banned_peers: 0,
+  // Track 98: PQC Orbital Debris Tracking Gating counters
+  hsm_orbigo_pool_initialized_total: 0,
+  hsm_zk_debris_claim_verified_total: 0,
+  hsm_collision_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1420,6 +1424,9 @@ const META = {
   hsm_sagate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for aerosol claims.', type: 'counter' },
   hsm_sagate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for aerosol claims.', type: 'counter' },
   hsm_sagate_banned_peers: { help: 'Number of banned peers in stratospheric aerosol monitoring gating hub.', type: 'gauge' },
+  hsm_orbigo_pool_initialized_total: { help: 'Total orbital debris tracking gating pools initialized.', type: 'counter' },
+  hsm_zk_debris_claim_verified_total: { help: 'Total ZK orbital debris tracking claims verified.', type: 'counter' },
+  hsm_collision_accreditation_completed_total: { help: 'Total collision accreditation completions finalized.', type: 'counter' },
 };
 
 /**

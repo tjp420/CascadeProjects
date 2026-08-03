@@ -2360,6 +2360,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_deployment_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 98 orbital debris tracking gating telemetry hooks ────────
+
+  /**
+   * Emit an orbital debris pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitOrbitalDebrisPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('ORBITAL_DEBRIS_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_orbigo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK debris claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkDebrisClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_DEBRIS_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_debris_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a collision accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCollisionAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('COLLISION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_collision_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

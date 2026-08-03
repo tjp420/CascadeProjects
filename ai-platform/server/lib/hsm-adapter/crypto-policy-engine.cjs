@@ -800,6 +800,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderAerosolClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqOrbitalDebrisTrackingGating: {
+    minOrbitalQuorum: 5,
+    maxCollisionWindowSeconds: 15768000,
+    maxTrackingChainDepth: 18,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireSpaceSurveillanceAuthorityInitializerAttestation: true,
+    requireOrbitalDebrisOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderDebrisClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1229,6 +1240,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqStratosphericAerosolGating: {
       ...DEFAULT_POLICY.pqStratosphericAerosolGating,
       ...(tenantPolicy.pqStratosphericAerosolGating || {}),
+    },
+    pqOrbitalDebrisTrackingGating: {
+      ...DEFAULT_POLICY.pqOrbitalDebrisTrackingGating,
+      ...(tenantPolicy.pqOrbitalDebrisTrackingGating || {}),
     },
   };
 }
@@ -3242,6 +3257,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqOrbitalDebrisTrackingGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqOrbitalDebrisTrackingGating, ...(tenantPolicy.pqOrbitalDebrisTrackingGating || {}) };
+    if (typeof config.orbitalQuorum === 'number' && config.orbitalQuorum < policy.minOrbitalQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `orbital quorum ${config.orbitalQuorum} below minimum ${policy.minOrbitalQuorum}`);
+    }
+    if (typeof config.collisionWindowSeconds === 'number' && config.collisionWindowSeconds > policy.maxCollisionWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `collision window seconds ${config.collisionWindowSeconds} exceeds maximum ${policy.maxCollisionWindowSeconds}`);
+    }
+    if (typeof config.trackingChainDepth === 'number' && config.trackingChainDepth > policy.maxTrackingChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `tracking chain depth ${config.trackingChainDepth} exceeds maximum ${policy.maxTrackingChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireSpaceSurveillanceAuthorityInitializerAttestation && config.spaceSurveillanceAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'space surveillance authority initializer attestation is required');
+    }
+    if (policy.requireOrbitalDebrisOversightCommitteeAttestation && config.orbitalDebrisOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'orbital debris oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderDebrisClaims === 'boolean' && policy.banMalformedOrOutOfOrderDebrisClaims && !config.banMalformedOrOutOfOrderDebrisClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order debris claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3896,6 +3942,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqStratosphericAerosolGating') {
       this._validatePqStratosphericAerosolGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqOrbitalDebrisTrackingGating') {
+      this._validatePqOrbitalDebrisTrackingGating(tenantPolicy, config);
       return true;
     }
 
