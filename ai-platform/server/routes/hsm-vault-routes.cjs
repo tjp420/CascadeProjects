@@ -880,5 +880,111 @@ router.get('/space-based-laser-mesh/telemetry', authorize('admin:all'), function
   }
 });
 
+// Track 109: Quantum Key Distribution Link-Switch Gating policy administration and telemetry
+
+// GET /api/vault/qkd-link-switch/policy — expose active Track 109 policy defaults and bounds
+router.get('/qkd-link-switch/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqQuantumKeyDistributionLinkSwitchGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'qkd_link_switch_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/qkd-link-switch/policy/validate — validate a proposed Track 109 configuration
+router.post('/qkd-link-switch/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqQuantumKeyDistributionLinkSwitchGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'qkd_link_switch_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/qkd-link-switch/telemetry — expose Track 109 telemetry counters
+router.get('/qkd-link-switch/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_qkdswitchgate_pool_initialized_total: allMetrics.hsm_qkdswitchgate_pool_initialized_total || 0,
+      hsm_zk_qkd_link_claim_verified_total: allMetrics.hsm_zk_qkd_link_claim_verified_total || 0,
+      hsm_entanglement_accreditation_completed_total: allMetrics.hsm_entanglement_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'qkd_link_switch_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// Track 110: Holographic Storage Content-Addressable Gating policy administration and telemetry
+
+// GET /api/vault/holographic-storage/policy — expose active Track 110 policy defaults and bounds
+router.get('/holographic-storage/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqHolographicStorageContentAddressableGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'holographic_storage_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/holographic-storage/policy/validate — validate a proposed Track 110 configuration
+router.post('/holographic-storage/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqHolographicStorageContentAddressableGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'holographic_storage_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/holographic-storage/telemetry — expose Track 110 telemetry counters
+router.get('/holographic-storage/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_hologate_pool_initialized_total: allMetrics.hsm_hologate_pool_initialized_total || 0,
+      hsm_zk_holographic_claim_verified_total: allMetrics.hsm_zk_holographic_claim_verified_total || 0,
+      hsm_phase_accreditation_completed_total: allMetrics.hsm_phase_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'holographic_storage_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 
 module.exports = router;

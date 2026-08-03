@@ -8,6 +8,8 @@ import { renderEnclaveTelemetryDashboard, cleanupEnclaveTelemetryDashboard } fro
 import { renderRecursiveProofAggregationDashboard, cleanupRecursiveProofAggregationDashboard } from '../components/RecursiveProofAggregationDashboard.js';
 import { renderDecentralizedIdentityGatingDashboard, cleanupDecentralizedIdentityGatingDashboard } from '../components/DecentralizedIdentityGatingDashboard.js';
 import { renderSpaceBasedLaserCommunicationMeshGatingDashboard, cleanupSpaceBasedLaserCommunicationMeshGatingDashboard } from '../components/SpaceBasedLaserCommunicationMeshGatingDashboard.js';
+import { renderQkdLinkSwitchGatingDashboard, cleanupQkdLinkSwitchGatingDashboard } from '../components/QkdLinkSwitchGatingDashboard.js';
+import { renderHolographicStorageContentAddressableGatingDashboard, cleanupHolographicStorageContentAddressableGatingDashboard } from '../components/HolographicStorageContentAddressableGatingDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -965,6 +967,8 @@ export class AdminPanelView {
         cleanupRecursiveProofAggregationDashboard();
         cleanupDecentralizedIdentityGatingDashboard();
         cleanupSpaceBasedLaserCommunicationMeshGatingDashboard();
+        cleanupQkdLinkSwitchGatingDashboard();
+        cleanupHolographicStorageContentAddressableGatingDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -1007,6 +1011,20 @@ export class AdminPanelView {
             grid.appendChild(laserDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount space-based laser mesh gating dashboard:', e);
+        }
+        // Mount Quantum Key Distribution Link-Switch Gating (Track 109, policy + telemetry)
+        try {
+            const qkdDashboard = renderQkdLinkSwitchGatingDashboard();
+            grid.appendChild(qkdDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount QKD link-switch gating dashboard:', e);
+        }
+        // Mount Holographic Storage Content-Addressable Gating (Track 110, policy + telemetry)
+        try {
+            const holoDashboard = renderHolographicStorageContentAddressableGatingDashboard();
+            grid.appendChild(holoDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount holographic storage gating dashboard:', e);
         }
     }
 
