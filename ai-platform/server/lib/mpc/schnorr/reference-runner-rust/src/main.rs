@@ -18,11 +18,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let v: Value = serde_json::from_str(&input)?;
     let canonical = canonicalize(&v);
-    println!("canonical: {}", canonical);
+    // print canonical output as a single line for verifier compatibility
+    println!("{}", canonical);
     let mut hasher = Sha256::new();
     hasher.update(canonical.as_bytes());
     let digest = hasher.finalize();
-    println!("sha256: {}", hex::encode(digest));
+    eprintln!("sha256: {}", hex::encode(digest));
     Ok(())
 }
 
