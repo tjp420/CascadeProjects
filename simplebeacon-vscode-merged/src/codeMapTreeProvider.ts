@@ -38,7 +38,9 @@ export class CodeMapTreeProvider implements vscode.WebviewViewProvider {
         if (candidate && fs.existsSync(candidate)) {
           return path.resolve(String(candidate));
         }
-      } catch { /* try next */ }
+      } catch {
+        /* try next */
+      }
     }
     return workspace;
   }

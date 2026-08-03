@@ -8,7 +8,16 @@ const MAX_LINES = 10000;
 
 export interface AccountEvent {
   timestamp: string;
-  event: 'login' | 'logout' | 'tokenStored' | 'tokenCleared' | 'licenseStored' | 'autoToken' | 'preExisting' | 'webviewLogin' | 'webviewLogout';
+  event:
+    | 'login'
+    | 'logout'
+    | 'tokenStored'
+    | 'tokenCleared'
+    | 'licenseStored'
+    | 'autoToken'
+    | 'preExisting'
+    | 'webviewLogin'
+    | 'webviewLogout';
   source: 'extension' | 'webview';
   accountId: string;
   email: string;
@@ -55,10 +64,11 @@ export class AccountTracker {
     const payloadBase64url = parts[1];
     try {
       const base64 = payloadBase64url.replace(/-/g, '+').replace(/_/g, '/');
-      const padding = '='.repeat((4 - base64.length % 4) % 4);
+      const padding = '='.repeat((4 - (base64.length % 4)) % 4);
       const decoded = Buffer.from(base64 + padding, 'base64').toString('utf8');
       const payload = JSON.parse(decoded);
-      const email = payload.email || payload.sub || payload.username || payload.preferred_username || payload.name || '';
+      const email =
+        payload.email || payload.sub || payload.username || payload.preferred_username || payload.name || '';
       const tier = payload.tier || payload.plan || payload.product || '';
       return { email, tier };
     } catch {
@@ -70,13 +80,18 @@ export class AccountTracker {
   getTokenType(token: string): AccountEvent['tokenType'] {
     if (!token) return 'unknown';
     const parts = token.split('.');
-    if (parts.length === 3 && parts.every(p => p.length > 0)) return 'jwt';
-    if (parts.length === 2 && parts.every(p => p.length > 0)) return 'license';
+    if (parts.length === 3 && parts.every((p) => p.length > 0)) return 'jwt';
+    if (parts.length === 2 && parts.every((p) => p.length > 0)) return 'license';
     return 'unknown';
   }
 
   /** Record a login or token-storage event. */
-  async recordLogin(token: string, source: AccountEvent['source'], eventType: AccountEvent['event'], details?: string): Promise<void> {
+  async recordLogin(
+    token: string,
+    source: AccountEvent['source'],
+    eventType: AccountEvent['event'],
+    details?: string
+  ): Promise<void> {
     const accountId = this.hashToken(token);
     const jwtInfo = this.decodeJwtPayload(token);
     const tokenType = this.getTokenType(token);
@@ -114,7 +129,7 @@ export class AccountTracker {
     try {
       if (!fs.existsSync(this.logPath)) return [];
       const data = fs.readFileSync(this.logPath, 'utf8');
-      const lines = data.split('\n').filter(line => line.trim());
+      const lines = data.split('\n').filter((line) => line.trim());
       const events: AccountEvent[] = [];
       for (const line of lines) {
         try {
@@ -160,7 +175,7 @@ export class AccountTracker {
       const stats = fs.statSync(this.logPath);
       if (stats.size < 1024 * 100) return; // Skip check for small files
       const data = fs.readFileSync(this.logPath, 'utf8');
-      const lines = data.split('\n').filter(l => l.trim());
+      const lines = data.split('\n').filter((l) => l.trim());
       if (lines.length <= MAX_LINES) return;
       // Keep the newest 50% of lines
       const keep = lines.slice(Math.floor(lines.length / 2));

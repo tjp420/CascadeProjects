@@ -38,15 +38,9 @@ export class EnhancedDashboard30 {
       const fakePanel = {
         webview: { cspSource: '', onDidReceiveMessage: () => ({ dispose: () => {} }) },
         onDidDispose: () => ({ dispose: () => {} }),
-        reveal: () => {}
+        reveal: () => {},
       } as unknown as vscode.WebviewPanel;
-      const inst = new EnhancedDashboard30(
-        fakePanel,
-        extUri,
-        report,
-        highlight ?? null,
-        hasEnhancedAnalysis ?? false
-      );
+      const inst = new EnhancedDashboard30(fakePanel, extUri, report, highlight ?? null, hasEnhancedAnalysis ?? false);
       inst.syncBrowserHtml(inst.getEnhancedHtml());
     }
 
@@ -62,11 +56,16 @@ export class EnhancedDashboard30 {
         EnhancedDashboard30.currentPanel = undefined;
       }
     }
-    const panel = vscode.window.createWebviewPanel('simplebeaconEnhanced30', 'SimpleBeacon Dashboard 3.0', vscode.ViewColumn.One, {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(extUri, 'media')],
-    });
+    const panel = vscode.window.createWebviewPanel(
+      'simplebeaconEnhanced30',
+      'SimpleBeacon Dashboard 3.0',
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(extUri, 'media')],
+      }
+    );
     EnhancedDashboard30.currentPanel = new EnhancedDashboard30(
       panel,
       extUri,
@@ -115,7 +114,7 @@ export class EnhancedDashboard30 {
         }
         const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         const rawPath = msg.file;
-        const resolvedPath = path.isAbsolute(rawPath) ? rawPath : (workspace ? path.join(workspace, rawPath) : rawPath);
+        const resolvedPath = path.isAbsolute(rawPath) ? rawPath : workspace ? path.join(workspace, rawPath) : rawPath;
         const line = typeof msg.line === 'number' && msg.line > 0 ? msg.line : 1;
         const uri = vscode.Uri.file(resolvedPath);
         vscode.window.showTextDocument(uri, { selection: new vscode.Range(line - 1, 0, line - 1, 0) });
@@ -134,7 +133,9 @@ export class EnhancedDashboard30 {
         const config = getSbConfig();
         const apiUrl = config.get<string>('apiUrl', '').trim();
         if (!apiUrl) {
-          vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
+          vscode.window.showWarningMessage(
+            'SimpleBeacon API URL not configured. Run "Set API Server URL" command first.'
+          );
           return;
         }
         vscode.window.withProgress(
@@ -156,9 +157,18 @@ export class EnhancedDashboard30 {
                     },
                     (res: http.IncomingMessage) => {
                       let data = '';
-                      res.on('data', (chunk: Buffer) => { data += chunk; });
+                      res.on('data', (chunk: Buffer) => {
+                        data += chunk;
+                      });
                       res.on('end', () => {
-                        try { resolve(JSON.parse(data)); } catch { /* simplebeacon-ignore error-swallowing — JSON parse fallback */ resolve({ success: false, error: 'Invalid JSON' }); }
+                        try {
+                          resolve(JSON.parse(data));
+                        } catch {
+                          /* simplebeacon-ignore error-swallowing — JSON parse fallback */ resolve({
+                            success: false,
+                            error: 'Invalid JSON',
+                          });
+                        }
                       });
                     }
                   );
@@ -211,11 +221,7 @@ export class EnhancedDashboard30 {
   }
 
   update(report: unknown, highlight: string | null = null, hasEnhancedAnalysis: boolean = false) {
-    if (
-      this.report === report &&
-      this.highlight === highlight &&
-      this.hasEnhancedAnalysis === hasEnhancedAnalysis
-    ) {
+    if (this.report === report && this.highlight === highlight && this.hasEnhancedAnalysis === hasEnhancedAnalysis) {
       return;
     }
     this.report = report;
@@ -242,7 +248,8 @@ export class EnhancedDashboard30 {
         return { files: 0, folders: 0 };
       }
       const rootPath = workspaceFolders[0].uri.fsPath;
-      const skipDirs = /[\\/]node_modules[\\/]|[\\/]\.git[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/]\.next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]/;
+      const skipDirs =
+        /[\\/]node_modules[\\/]|[\\/]\.git[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/]\.next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]/;
       let files = 0;
       let folders = 0;
       const stack = [rootPath];
@@ -359,7 +366,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;c
 .score-ring{position:relative;width:88px;height:88px}
 .score-ring svg{transform:rotate(-90deg)}
 .score-ring-bg{fill:none;stroke:rgba(255,255,255,0.04);stroke-width:7}
-.score-ring-fill{fill:none;stroke:${score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'};stroke-width:7;stroke-linecap:round;stroke-dasharray:${(score/100)*213.6} 213.6;transition:stroke-dasharray 1.4s cubic-bezier(0.4,0,0.2,1)}
+.score-ring-fill{fill:none;stroke:${score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'};stroke-width:7;stroke-linecap:round;stroke-dasharray:${(score / 100) * 213.6} 213.6;transition:stroke-dasharray 1.4s cubic-bezier(0.4,0,0.2,1)}
 .score-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:var(--font-xl);font-weight:800;color:${score >= 80 ? '#10b981' : score >= 50 ? '#fbbf24' : '#ef4444'}}
 
 /* Actions */
@@ -516,7 +523,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;c
     </div>
   </div>
 
-  ${this.hasEnhancedAnalysis ? `
+  ${
+    this.hasEnhancedAnalysis
+      ? `
   <div class="section anim anim-d4">
     <div class="section-header"><div class="section-title">Findings Details</div><input type="text" class="search" placeholder="Search findings..." id="searchInput"></div>
     <div class="filter-row">
@@ -536,14 +545,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;c
     <div class="section-header"><div class="section-title">Files with Most Issues</div></div>
     <table class="table"><thead><tr><th>File</th><th>Issues</th><th>Breakdown</th><th>Action</th></tr></thead><tbody>${failingFilesHtml}</tbody></table>
   </div>
-  ` : `
+  `
+      : `
   <div class="section anim anim-d4" style="text-align:center;padding:48px">
     <div style="font-size:3rem;margin-bottom:16px">🤖</div>
     <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Enhanced Analysis Required</div>
     <div style="color:var(--neutral-500);margin-bottom:24px">Run Enhanced Analysis to view detailed findings.</div>
     <button class="btn btn-primary" data-command="enhancedAnalysis">⚡ Run Enhanced Analysis</button>
   </div>
-  `}
+  `
+  }
 </div>
 
 <script nonce="${nonce}">
@@ -689,7 +700,13 @@ setTimeout(()=>{
 
   private getSeverityCounts(findings: any[]): { critical: number; high: number; medium: number; low: number } {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
-    for (const f of findings) { const s = (f.sev || f.severity || 'low').toLowerCase(); if (s === 'critical') counts.critical++; else if (s === 'high') counts.high++; else if (s === 'medium') counts.medium++; else counts.low++; }
+    for (const f of findings) {
+      const s = (f.sev || f.severity || 'low').toLowerCase();
+      if (s === 'critical') counts.critical++;
+      else if (s === 'high') counts.high++;
+      else if (s === 'medium') counts.medium++;
+      else counts.low++;
+    }
     return counts;
   }
 
@@ -750,12 +767,7 @@ setTimeout(()=>{
     return categories
       .map((cat) => {
         const percentage = maxCount > 0 ? (cat.count / maxCount) * 100 : 0;
-        const color =
-          cat.severity === 'fail'
-            ? '#ef4444'
-            : cat.severity === 'warn'
-              ? '#f59e0b'
-              : '#6366f1';
+        const color = cat.severity === 'fail' ? '#ef4444' : cat.severity === 'warn' ? '#f59e0b' : '#6366f1';
 
         return `
         <div class="bar-row">
@@ -812,13 +824,19 @@ setTimeout(()=>{
         }
       }
       if (!finding && Array.isArray(report?.findings)) {
-        finding = report.findings.find((f: RawIssue) => f.file === filePath && f.line === line && (f.patternId === patternId || f.type === patternId));
+        finding = report.findings.find(
+          (f: RawIssue) => f.file === filePath && f.line === line && (f.patternId === patternId || f.type === patternId)
+        );
       }
       if (!finding && Array.isArray(report?.rawIssues)) {
-        finding = report.rawIssues.find((f: RawIssue) => f.file === filePath && f.line === line && (f.patternId === patternId || f.type === patternId));
+        finding = report.rawIssues.find(
+          (f: RawIssue) => f.file === filePath && f.line === line && (f.patternId === patternId || f.type === patternId)
+        );
       }
       if (!finding && Array.isArray(report?.detectedIssues)) {
-        finding = report.detectedIssues.find((f: RawIssue) => f.file === filePath && f.line === line && (f.patternId === patternId || f.type === patternId));
+        finding = report.detectedIssues.find(
+          (f: RawIssue) => f.file === filePath && f.line === line && (f.patternId === patternId || f.type === patternId)
+        );
       }
       if (!finding) {
         vscode.window.showInformationMessage('Finding not found in current report. Run a fresh scan.');

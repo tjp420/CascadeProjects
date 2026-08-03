@@ -23,9 +23,15 @@ function mockRes(): ServerResponse {
       body = data;
       return this;
     },
-    get statusCode() { return statusCode; },
-    get body() { return body; },
-    get headers() { return headers; },
+    get statusCode() {
+      return statusCode;
+    },
+    get body() {
+      return body;
+    },
+    get headers() {
+      return headers;
+    },
   } as unknown as ServerResponse & { statusCode: number; body: string; headers: Record<string, string> };
   return res as ServerResponse;
 }

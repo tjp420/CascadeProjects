@@ -82,10 +82,7 @@ export function calcSeverityCounts(issues: RawIssue[]): SeverityCounts {
 /**
  * Builds gate data from raw issues and severity counts.
  */
-export function buildGateData(
-  rawIssues: RawIssue[],
-  sc: SeverityCounts
-): GateData {
+export function buildGateData(rawIssues: RawIssue[], sc: SeverityCounts): GateData {
   const toGateIssue = (i: RawIssue): GateIssue => ({
     file: i.file || i.filePath || '',
     type: i.type,
@@ -97,12 +94,8 @@ export function buildGateData(
   return {
     blockingCount: (sc.critical || 0) + (sc.high || 0),
     warningCount: (sc.medium || 0) + (sc.low || 0),
-    blockingIssues: rawIssues
-      .filter((i) => i.severity === 'critical' || i.severity === 'high')
-      .map(toGateIssue),
-    warningIssues: rawIssues
-      .filter((i) => i.severity === 'medium' || i.severity === 'low')
-      .map(toGateIssue),
+    blockingIssues: rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high').map(toGateIssue),
+    warningIssues: rawIssues.filter((i) => i.severity === 'medium' || i.severity === 'low').map(toGateIssue),
   };
 }
 
@@ -114,9 +107,7 @@ export function mergeLiveIssues(report: MergedReport, liveIssues: RawIssue[]): M
   report.rawIssues = report.rawIssues || [];
 
   const fileSet = new Set(liveIssues.map((i) => i.filePath || i.file || ''));
-  report.rawIssues = report.rawIssues.filter(
-    (ri) => !fileSet.has(ri.filePath || ri.file || '')
-  );
+  report.rawIssues = report.rawIssues.filter((ri) => !fileSet.has(ri.filePath || ri.file || ''));
   report.rawIssues.push(...liveIssues);
 
   report.severityCounts = calcSeverityCounts(report.rawIssues);

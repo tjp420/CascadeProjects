@@ -7,7 +7,7 @@
  */
 export function sleep(ms: number): Promise<void> {
   const delay = Number.isFinite(ms) && ms > 0 ? ms : 0;
-  return new Promise(resolve => setTimeout(resolve, delay));
+  return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 /**
@@ -25,7 +25,10 @@ export function delay(ms: number): Promise<void> {
  * @param {number} [wait=300] Delay in milliseconds.
  * @returns {T & { cancel(): void; flush(): void; pending(): boolean }} Debounced function.
  */
-export function debounce<T extends (...args: any[]) => void>(fn: T, wait = 300): T & { cancel(): void; flush(): void; pending(): boolean } {
+export function debounce<T extends (...args: any[]) => void>(
+  fn: T,
+  wait = 300
+): T & { cancel(): void; flush(): void; pending(): boolean } {
   if (typeof fn !== 'function') throw new TypeError('debounce requires a function');
   const d = Number.isFinite(wait) && wait > 0 ? wait : 0;
   let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -72,7 +75,10 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, wait = 300):
  * @param {number} [wait=300] Delay in milliseconds.
  * @returns {T & { cancel(): void }} Debounced function with `.cancel()`.
  */
-export function debounceLeading<T extends (...args: any[]) => void>(fn: T, wait = 300): T & { cancel(): void; flush(): void; pending(): boolean } {
+export function debounceLeading<T extends (...args: any[]) => void>(
+  fn: T,
+  wait = 300
+): T & { cancel(): void; flush(): void; pending(): boolean } {
   if (typeof fn !== 'function') throw new TypeError('debounceLeading requires a function');
   const d = Number.isFinite(wait) && wait > 0 ? wait : 0;
   let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -86,10 +92,16 @@ export function debounceLeading<T extends (...args: any[]) => void>(fn: T, wait 
     } else {
       clearTimeout(timeout);
     }
-    timeout = setTimeout(() => { timeout = null; lastArgs = lastThis = null; }, d);
+    timeout = setTimeout(() => {
+      timeout = null;
+      lastArgs = lastThis = null;
+    }, d);
   } as T & { cancel(): void; flush(): void; pending(): boolean };
   debounced.cancel = () => {
-    if (timeout !== null) { clearTimeout(timeout); timeout = null; }
+    if (timeout !== null) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
     lastArgs = lastThis = null;
   };
   debounced.flush = () => {
@@ -113,7 +125,10 @@ export function debounceLeading<T extends (...args: any[]) => void>(fn: T, wait 
  * @param {number} [wait=300] Delay in milliseconds.
  * @returns {T & { cancel(): void; flush(): Promise<ReturnType<T> | undefined>; pending(): boolean }} Debounced async function.
  */
-export function debounceAsync<T extends (...args: any[]) => Promise<any>>(fn: T, wait = 300): T & { cancel(): void; flush(): Promise<ReturnType<T> | undefined>; pending(): boolean } {
+export function debounceAsync<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  wait = 300
+): T & { cancel(): void; flush(): Promise<ReturnType<T> | undefined>; pending(): boolean } {
   if (typeof fn !== 'function') throw new TypeError('debounceAsync requires a function');
   const d = Number.isFinite(wait) && wait > 0 ? wait : 0;
   let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -230,7 +245,10 @@ export function once<T extends (...args: any[]) => any>(fn: T): T {
  * @param {number} [maxSize=1000] Maximum cache entries before LRU eviction.
  * @returns {T & { clear(): void }} Memoized function.
  */
-export function memoize<T extends (...args: any[]) => any>(fn: T, maxSize = 1000): T & { clear(): void; readonly size: number; has(...args: Parameters<T>): boolean } {
+export function memoize<T extends (...args: any[]) => any>(
+  fn: T,
+  maxSize = 1000
+): T & { clear(): void; readonly size: number; has(...args: Parameters<T>): boolean } {
   if (typeof fn !== 'function') throw new TypeError('memoize requires a function');
   const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 1000;
   const cache = new Map<string, ReturnType<T>>();
@@ -277,7 +295,10 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, maxSize = 1000
  * @param {number} [wait=300] Minimum time between invocations in milliseconds.
  * @returns {T & { cancel(): void; flush(): void; pending(): boolean }} Throttled function with control methods.
  */
-export function throttle<T extends (...args: any[]) => void>(fn: T, wait = 300): T & { cancel(): void; flush(): void; pending(): boolean } {
+export function throttle<T extends (...args: any[]) => void>(
+  fn: T,
+  wait = 300
+): T & { cancel(): void; flush(): void; pending(): boolean } {
   if (typeof fn !== 'function') throw new TypeError('throttle requires a function');
   const cooldown = Number.isFinite(wait) && wait > 0 ? wait : 0;
   let lastTime = 0;
@@ -304,21 +325,36 @@ export function throttle<T extends (...args: any[]) => void>(fn: T, wait = 300):
     lastArgs = args;
     lastThis = this;
     if (now - lastTime >= cooldown) {
-      if (timer) { clearTimeout(timer); timer = null; }
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
       invoke();
     } else if (!timer) {
-      timer = setTimeout(() => { timer = null; invoke(); }, cooldown - (now - lastTime));
+      timer = setTimeout(
+        () => {
+          timer = null;
+          invoke();
+        },
+        cooldown - (now - lastTime)
+      );
     }
   } as T & { cancel(): void; flush(): void; pending(): boolean };
 
   throttled.cancel = () => {
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     lastArgs = lastThis = null;
     lastTime = 0;
   };
 
   throttled.flush = () => {
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     if (lastArgs) {
       const args2 = lastArgs;
       const self = lastThis;
@@ -452,8 +488,16 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, message = 'Opera
       if (!settled) reject(new Error(message));
     }, timeoutMs);
     promise.then(
-      (value) => { settled = true; clearTimeout(timer); resolve(value); },
-      (err) => { settled = true; clearTimeout(timer); reject(err); }
+      (value) => {
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
+      }
     );
   });
 }
@@ -554,7 +598,10 @@ export async function waitForAsync(
  * @param {number} [maxSize=100] Maximum cache entries before LRU eviction.
  * @returns {T & { clear(): void; readonly size: number; has(...args: Parameters<T>): boolean }} Memoized async function.
  */
-export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(fn: T, maxSize = 100): T & { clear(): void; readonly size: number; has(...args: Parameters<T>): boolean } {
+export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  maxSize = 100
+): T & { clear(): void; readonly size: number; has(...args: Parameters<T>): boolean } {
   if (typeof fn !== 'function') throw new TypeError('memoizeAsync requires a function');
   const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 100;
   const cache = new Map<string, Promise<ReturnType<T>>>();

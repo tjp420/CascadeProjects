@@ -25,13 +25,17 @@ export function parseJsonSafe<T>(text: string, fallback?: T): T | undefined {
 export function stringifySafe(value: unknown, space?: number | string): string {
   const seen = new WeakSet<object>();
   try {
-    return JSON.stringify(value, (_key, val) => {
-      if (val && typeof val === 'object') {
-        if (seen.has(val)) return '[Circular]';
-        seen.add(val);
-      }
-      return val;
-    }, space);
+    return JSON.stringify(
+      value,
+      (_key, val) => {
+        if (val && typeof val === 'object') {
+          if (seen.has(val)) return '[Circular]';
+          seen.add(val);
+        }
+        return val;
+      },
+      space
+    );
   } catch {
     return '';
   }

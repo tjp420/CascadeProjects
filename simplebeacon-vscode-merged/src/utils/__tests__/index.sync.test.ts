@@ -26,7 +26,11 @@ function parseNamedExports(source: string, filePath: string): Set<string> {
   const reExportBlocks = cleaned.matchAll(/export\s+(?:type\s+)?\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]/g);
   for (const block of reExportBlocks) {
     block[1].split(',').forEach((raw) => {
-      const name = raw.trim().split(/\s+as\s+/).pop()?.trim();
+      const name = raw
+        .trim()
+        .split(/\s+as\s+/)
+        .pop()
+        ?.trim();
       if (name) names.add(name);
     });
   }
@@ -49,7 +53,9 @@ function parseNamedExports(source: string, filePath: string): Set<string> {
   }
 
   // export function foo(
-  const fnMatches = cleaned.matchAll(/export\s+(?:async\s+)?(?:function|const|let|var|class|interface|type|enum)\s+(\w+)/g);
+  const fnMatches = cleaned.matchAll(
+    /export\s+(?:async\s+)?(?:function|const|let|var|class|interface|type|enum)\s+(\w+)/g
+  );
   for (const m of fnMatches) names.add(m[1]);
 
   return names;
@@ -69,7 +75,7 @@ describe('utils/index.ts sync with utils.ts', () => {
     if (missing.length > 0) {
       throw new Error(
         `The following exports from utils.ts are missing from index.ts:\n  ${missing.join(', ')}\n\n` +
-        `Add them to src/utils/index.ts to keep the barrel in sync.`
+          `Add them to src/utils/index.ts to keep the barrel in sync.`
       );
     }
   });
@@ -78,13 +84,11 @@ describe('utils/index.ts sync with utils.ts', () => {
     // We allow the default export (Utils) and namespace imports in index.ts
     // that are not direct re-exports from utils.ts.
     const allowedExtras = new Set(['default']);
-    const unexpected = [...indexExports].filter(
-      (name) => !utilsExports.has(name) && !allowedExtras.has(name)
-    );
+    const unexpected = [...indexExports].filter((name) => !utilsExports.has(name) && !allowedExtras.has(name));
     if (unexpected.length > 0) {
       throw new Error(
         `index.ts exports the following symbols not re-exported by utils.ts:\n  ${unexpected.join(', ')}\n\n` +
-        `Either add them to utils.ts or remove them from index.ts to keep the API consistent.`
+          `Either add them to utils.ts or remove them from index.ts to keep the API consistent.`
       );
     }
   });

@@ -60,9 +60,7 @@ describe('Utils namespace integrity', () => {
       for (const name of Object.keys(mod)) {
         if (name === 'default') continue;
         if (seen.has(name)) {
-          throw new Error(
-            `Export collision detected: "${name}" exists in both "${seen.get(name)}" and "${nsKey}"`
-          );
+          throw new Error(`Export collision detected: "${name}" exists in both "${seen.get(name)}" and "${nsKey}"`);
         }
         seen.set(name, nsKey);
       }

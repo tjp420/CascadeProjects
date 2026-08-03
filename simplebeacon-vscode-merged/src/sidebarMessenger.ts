@@ -3,7 +3,13 @@ import * as path from 'path';
 import * as http from 'http';
 import { getDataServerPort, getTheme } from './dataServer';
 import { getAuthManager } from './auth/authContext';
-import { getDashboardMode, refreshAuthState, setSidebarAuthState, addDownloadedFile, updateSidebarReport } from './sidebarBridge';
+import {
+  getDashboardMode,
+  refreshAuthState,
+  setSidebarAuthState,
+  addDownloadedFile,
+  updateSidebarReport,
+} from './sidebarBridge';
 
 let _sidebarView: vscode.WebviewView | undefined;
 
@@ -19,16 +25,16 @@ export function registerSidebarView(view: vscode.WebviewView | undefined) {
  */
 export function postSidebarMessage(message: any) {
   if (_sidebarView) {
-    try { _sidebarView.webview.postMessage(message); } catch { /* ignore */ }
+    try {
+      _sidebarView.webview.postMessage(message);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
 function _escapeHtmlAttr(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function stripSimplebeaconEmbedParams(url: string): string {
@@ -99,7 +105,18 @@ export function getMarketingSiteOrigin(): string {
   return 'https://simplebeacon.ai';
 }
 
-const SITE_PATHS = ['/roadmap', '/audit', '/pricing', '/contact', '/team', '/security', '/terms', '/privacy', '/refund', '/faq'];
+const SITE_PATHS = [
+  '/roadmap',
+  '/audit',
+  '/pricing',
+  '/contact',
+  '/team',
+  '/security',
+  '/terms',
+  '/privacy',
+  '/refund',
+  '/faq',
+];
 
 function isMarketingSitePath(pathname: string): boolean {
   return SITE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}?`));
@@ -109,7 +126,9 @@ function isMarketingSitePath(pathname: string): boolean {
 export function rewriteRemotePreviewUrl(url: string, localBase: string): string {
   try {
     const parsed = new URL(url);
-    const isRemote = parsed.protocol === 'https:' || (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname));
+    const isRemote =
+      parsed.protocol === 'https:' ||
+      (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname));
     if (!isRemote) return url;
     const base = localBase.replace(/\/$/, '');
     const params = new URLSearchParams(parsed.search);
@@ -151,7 +170,9 @@ export function rewriteIdePreviewUrl(url: string, localBase: string, websiteMode
   }
   try {
     const parsed = new URL(url);
-    const isRemote = parsed.protocol === 'https:' || (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname));
+    const isRemote =
+      parsed.protocol === 'https:' ||
+      (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname));
     if (!isRemote) return url;
     // Website mode: dashboard routes must be rewritten to localhost because the hosted
     // site's CSP (frame-ancestors 'none') blocks iframe embedding. Marketing pages stay
@@ -178,7 +199,9 @@ export function buildDashboardDisplayUrl(canonicalUrl: string, iframeUrl: string
     if (/^(localhost|127\.0\.0\.1)$/i.test(iframe.hostname) && iframe.pathname.startsWith('/dashboard')) {
       return `https://simplebeacon.ai${iframe.pathname}${iframe.search}${iframe.hash}`;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return canonicalUrl;
 }
 
@@ -206,8 +229,13 @@ export function resolveSiteUrlInput(raw: string, baseOrigin: string): string {
 function isDashboardEmbedUrl(url: string): boolean {
   try {
     const path = new URL(url).pathname || '';
-    return path === '/dashboard' || path.startsWith('/dashboard/') ||
-      path === '/audit' || path.startsWith('/audit/') || path.endsWith('/audit.html');
+    return (
+      path === '/dashboard' ||
+      path.startsWith('/dashboard/') ||
+      path === '/audit' ||
+      path.startsWith('/audit/') ||
+      path.endsWith('/audit.html')
+    );
   } catch {
     return url.includes('/dashboard') || url.includes('/audit');
   }
@@ -216,7 +244,10 @@ function isDashboardEmbedUrl(url: string): boolean {
 function isRemoteUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' || (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname));
+    return (
+      parsed.protocol === 'https:' ||
+      (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname))
+    );
   } catch {
     return false;
   }
@@ -267,7 +298,9 @@ export function buildDashboardUrl(baseUrl: string, route: string, extraQuery?: s
   const origin = baseUrl.replace(/\/$/, '');
   const path = normalizeDashboardPath(route);
   const parts: string[] = [];
-  if (extraQuery) { parts.push(extraQuery.replace(/^\?/, '')); }
+  if (extraQuery) {
+    parts.push(extraQuery.replace(/^\?/, ''));
+  }
   const sep = path.includes('?') ? '&' : '?';
   const query = parts.length > 0 ? `${sep}${parts.join('&')}` : '';
   return `${origin}${path}${query}`;
@@ -299,9 +332,14 @@ export function getDashboardUrlBarStyles(theme: 'dark' | 'light' = getTheme()): 
 }
 
 /** Shared Simple Browser-style address bar markup. */
-export function getDashboardUrlBarHtml(ids: { back: string; fwd: string; reload: string; input: string; external: string; scrollTop?: string }, initialUrl: string): string {
+export function getDashboardUrlBarHtml(
+  ids: { back: string; fwd: string; reload: string; input: string; external: string; scrollTop?: string },
+  initialUrl: string
+): string {
   const safeUrl = _escapeHtmlAttr(initialUrl);
-  const scrollTopBtn = ids.scrollTop ? `<button id="${ids.scrollTop}" title="Scroll to top" aria-label="Scroll to top"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3"/><path d="M3 8l5-5 5 5"/></svg></button>` : '';
+  const scrollTopBtn = ids.scrollTop
+    ? `<button id="${ids.scrollTop}" title="Scroll to top" aria-label="Scroll to top"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3"/><path d="M3 8l5-5 5 5"/></svg></button>`
+    : '';
   return `<div class="sb-url-bar">
   <button id="${ids.back}" title="Go back" disabled aria-label="Go back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg></button>
   <button id="${ids.fwd}" title="Go forward" disabled aria-label="Go forward"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
@@ -317,19 +355,28 @@ export function getDashboardUrlBarHtml(ids: { back: string; fwd: string; reload:
  * Build a minimal webview HTML wrapper that embeds a remote dashboard in an iframe
  * and forwards postMessage events from the iframe to the extension via vscode.postMessage.
  */
-function _getWebsiteDashboardWebviewHtml(url: string, scriptUri: string, cspSource: string, websiteMode = false, displayUrl?: string): string {
+function _getWebsiteDashboardWebviewHtml(
+  url: string,
+  scriptUri: string,
+  cspSource: string,
+  websiteMode = false,
+  displayUrl?: string
+): string {
   const safeIframeUrl = _escapeHtmlAttr(url);
   const safeDisplayUrl = _escapeHtmlAttr(displayUrl || url);
   const theme = getTheme();
   const localBase = `http://127.0.0.1:${getDataServerPort()}`;
-  const urlBar = getDashboardUrlBarHtml({
-    back: 'sbBackBtn',
-    fwd: 'sbFwdBtn',
-    reload: 'sbReloadBtn',
-    input: 'sbUrlInput',
-    external: 'sbExternalBtn',
-    scrollTop: 'sbScrollTopBtn'
-  }, safeDisplayUrl);
+  const urlBar = getDashboardUrlBarHtml(
+    {
+      back: 'sbBackBtn',
+      fwd: 'sbFwdBtn',
+      reload: 'sbReloadBtn',
+      input: 'sbUrlInput',
+      external: 'sbExternalBtn',
+      scrollTop: 'sbScrollTopBtn',
+    },
+    safeDisplayUrl
+  );
   return `<!DOCTYPE html>
 <html lang="en" data-theme="${theme}">
 <head>
@@ -369,7 +416,9 @@ export function isWebsiteDashboardPanelOpen(): boolean {
 
 /** Navigate the active Team Dashboard webview panel without rebuilding it. */
 export function navigateWebsiteDashboardPanel(url: string): boolean {
-  if (!_activeWebsiteDashboardPanel) { return false; }
+  if (!_activeWebsiteDashboardPanel) {
+    return false;
+  }
   try {
     _activeWebsiteDashboardPanel.reveal();
     const dataServerPort = getDataServerPort();
@@ -377,7 +426,11 @@ export function navigateWebsiteDashboardPanel(url: string): boolean {
     const notifyBase = `${localBase}/api`;
     const websiteMode = getDashboardMode() === 'website';
     const canonical = url;
-    const iframeUrl = appendDashboardEmbedParams(rewriteIdePreviewUrl(url, localBase, websiteMode), notifyBase, websiteMode);
+    const iframeUrl = appendDashboardEmbedParams(
+      rewriteIdePreviewUrl(url, localBase, websiteMode),
+      notifyBase,
+      websiteMode
+    );
     const displayUrl = buildDashboardDisplayUrl(
       appendDashboardEmbedParams(canonical, notifyBase, websiteMode),
       iframeUrl,
@@ -416,7 +469,9 @@ function _closeOrphanedDashboardPanels(): void {
         }
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
@@ -436,14 +491,15 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
 
   _closeOrphanedDashboardPanels();
 
-  const panel = vscode.window.createWebviewPanel(
-    'simplebeaconWebsiteDashboard',
-    title,
-    vscode.ViewColumn.Active,
-    { enableScripts: true, retainContextWhenHidden: true, enableDragAndDrop: true } as vscode.WebviewPanelOptions
-  );
+  const panel = vscode.window.createWebviewPanel('simplebeaconWebsiteDashboard', title, vscode.ViewColumn.Active, {
+    enableScripts: true,
+    retainContextWhenHidden: true,
+    enableDragAndDrop: true,
+  } as vscode.WebviewPanelOptions);
   _activeWebsiteDashboardPanel = panel;
-  panel.onDidDispose(() => { if (_activeWebsiteDashboardPanel === panel) _activeWebsiteDashboardPanel = undefined; });
+  panel.onDidDispose(() => {
+    if (_activeWebsiteDashboardPanel === panel) _activeWebsiteDashboardPanel = undefined;
+  });
 
   // Register the message handler before setting the HTML so no iframe messages
   // (e.g. an early setAuthState from the dashboard) are dropped between load and handler attachment.
@@ -454,7 +510,12 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
         try {
           const port = getDataServerPort();
           const res = await fetch(`http://127.0.0.1:${port}/api/auth/token`);
-          const data = await res.json() as { success?: boolean; token?: string; tier?: string; user?: { tier?: string } };
+          const data = (await res.json()) as {
+            success?: boolean;
+            token?: string;
+            tier?: string;
+            user?: { tier?: string };
+          };
           if (data?.success && data?.token) {
             panel.webview.postMessage({
               command: 'setAuthState',
@@ -462,10 +523,12 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
               token: data.token,
               tier: data.tier || data.user?.tier || '',
               isAdmin: false,
-              source: 'extensionBridge'
+              source: 'extensionBridge',
             });
           }
-        } catch { /* data server offline */ }
+        } catch {
+          /* data server offline */
+        }
         refreshAuthState('websitePanel');
       })();
       return;
@@ -479,21 +542,29 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
         const authManager = getAuthManager();
         if (signedIn && token) {
           await authManager.setToken(token);
-          if (typeof message.userEmail === 'string') { await authManager.setUserEmail(message.userEmail); }
-          if (typeof message.userName === 'string') { await authManager.setUserName(message.userName); }
+          if (typeof message.userEmail === 'string') {
+            await authManager.setUserEmail(message.userEmail);
+          }
+          if (typeof message.userName === 'string') {
+            await authManager.setUserName(message.userName);
+          }
           vscode.window.showInformationMessage('Signed in from SimpleBeacon website.');
         } else if (!signedIn) {
           await authManager.clearToken();
           vscode.window.showInformationMessage('Signed out from SimpleBeacon website.');
         }
-      } catch { /* auth manager may not be initialized */ }
+      } catch {
+        /* auth manager may not be initialized */
+      }
       postSidebarMessage({ command: 'setAuthState', signedIn, token, tier, isAdmin, source: 'websitePanel' });
       // Also update extension-side caches and trigger a refresh so the AuthManager mirrors the website token.
       setSidebarAuthState(signedIn, tier, token, 'websitePanel', isAdmin);
       setTimeout(() => refreshAuthState('websitePanel'), 50);
     }
     if (message.command === 'scanWorkspace' && message.path) {
-      Promise.resolve(vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: message.path })).catch(() => {});
+      Promise.resolve(
+        vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: message.path })
+      ).catch(() => {});
     }
     if (message.command === 'downloadComplete') {
       const filename = typeof message.filename === 'string' ? message.filename : '';
@@ -525,7 +596,11 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
       try {
         const parsed = new URL(bfUrl);
         if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
-          panel.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: 'Only localhost URLs allowed' });
+          panel.webview.postMessage({
+            command: 'bridgeFetchResponse',
+            requestId: bfReqId,
+            error: 'Only localhost URLs allowed',
+          });
           return;
         }
         const reqOpts: http.RequestOptions = {
@@ -563,7 +638,11 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
         }
         req.end();
       } catch (err: unknown) {
-        panel.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: (err as Error).message });
+        panel.webview.postMessage({
+          command: 'bridgeFetchResponse',
+          requestId: bfReqId,
+          error: (err as Error).message,
+        });
       }
     }
   });
@@ -585,7 +664,13 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
   );
   const mediaPath = vscode.Uri.file(path.join(__dirname, '..', 'media', 'dashboard-wrapper.js'));
   const scriptUri = panel.webview.asWebviewUri(mediaPath).toString();
-  panel.webview.html = _getWebsiteDashboardWebviewHtml(url, scriptUri, panel.webview.cspSource, websiteMode, displayUrl);
+  panel.webview.html = _getWebsiteDashboardWebviewHtml(
+    url,
+    scriptUri,
+    panel.webview.cspSource,
+    websiteMode,
+    displayUrl
+  );
   _pushThemeAndAuth(panel);
 }
 
@@ -594,7 +679,13 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
  * @param route Dashboard route (e.g. /dashboard).
  * @param baseUrl Optional host origin. Defaults to the local data server.
  */
-export function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard', _panelTitle = 'Team Dashboard', baseUrl?: string, extraQuery?: string) {
+export function openTeamDashboardPanel(
+  _extUri: vscode.Uri,
+  route = '/dashboard',
+  _panelTitle = 'Team Dashboard',
+  baseUrl?: string,
+  extraQuery?: string
+) {
   const dataServerPort = getDataServerPort();
   const isRemote = !!baseUrl && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(baseUrl);
   let normalizedRoute = route;
@@ -608,7 +699,9 @@ export function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard'
     ? `${baseUrl.replace(/\/$/, '')}${normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute}`
     : `http://127.0.0.1:${dataServerPort}${normalizedRoute}`;
   const parts: string[] = [];
-  if (extraQuery) { parts.push(extraQuery); }
+  if (extraQuery) {
+    parts.push(extraQuery);
+  }
   // Append a cache-buster to force the browser to fetch the latest index.html/module graph.
   parts.push(`_=${Date.now()}`);
   const sep = dashboardUrl.includes('?') ? '&' : '?';

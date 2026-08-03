@@ -40,7 +40,10 @@ export function getFileHash(filePath: string, encoding: crypto.BinaryToTextEncod
  * @param {BinaryToTextEncoding} [encoding='hex'] Output encoding.
  * @returns {Promise<string | undefined>} Hash string, or undefined if the file cannot be read.
  */
-export async function getFileHashAsync(filePath: string, encoding: crypto.BinaryToTextEncoding = 'hex'): Promise<string | undefined> {
+export async function getFileHashAsync(
+  filePath: string,
+  encoding: crypto.BinaryToTextEncoding = 'hex'
+): Promise<string | undefined> {
   if (typeof filePath !== 'string' || !filePath) return undefined;
   const enc = VALID_DIGEST_ENCODINGS.has(encoding) ? encoding : 'hex';
   try {
@@ -48,14 +51,27 @@ export async function getFileHashAsync(filePath: string, encoding: crypto.Binary
     const stream = fs.createReadStream(filePath);
     return new Promise<string | undefined>((resolve) => {
       stream.on('data', (chunk) => {
-        try { hash.update(chunk); } catch { stream.destroy(); resolve(undefined); }
+        try {
+          hash.update(chunk);
+        } catch {
+          stream.destroy();
+          resolve(undefined);
+        }
       });
       stream.on('end', () => {
-        try { stream.close(); } catch { /* ignore close errors */ }
+        try {
+          stream.close();
+        } catch {
+          /* ignore close errors */
+        }
         resolve(hash.digest(enc));
       });
       stream.on('error', () => {
-        try { stream.destroy(); } catch { /* ignore destroy errors */ }
+        try {
+          stream.destroy();
+        } catch {
+          /* ignore destroy errors */
+        }
         resolve(undefined);
       });
     });

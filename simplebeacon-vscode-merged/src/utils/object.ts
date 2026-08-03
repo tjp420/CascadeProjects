@@ -120,9 +120,7 @@ export function pick<T extends Record<string, unknown>, K extends keyof T>(sourc
  */
 export function omit<T extends Record<string, unknown>>(source: T, keys: string[]): Partial<T> {
   if (!source || typeof source !== 'object') return {} as Partial<T>;
-  const set = new Set(
-    keys && typeof keys[Symbol.iterator] === 'function' ? keys : []
-  );
+  const set = new Set(keys && typeof keys[Symbol.iterator] === 'function' ? keys : []);
   const result = {} as Partial<T>;
   for (const key of Object.keys(source)) {
     if (!set.has(key)) result[key as keyof T] = source[key] as T[keyof T];
@@ -186,7 +184,10 @@ export function deepEqual(a: unknown, b: unknown): boolean {
     for (const v of a) {
       let found = false;
       for (const w of b) {
-        if (deepEqual(v, w)) { found = true; break; }
+        if (deepEqual(v, w)) {
+          found = true;
+          break;
+        }
       }
       if (!found) return false;
     }
@@ -217,7 +218,10 @@ export function deepEqual(a: unknown, b: unknown): boolean {
  * @param {...Object} sources
  * @returns {Object}
  */
-export function defaults(target: Record<string, unknown>, ...sources: Record<string, unknown>[]): Record<string, unknown> {
+export function defaults(
+  target: Record<string, unknown>,
+  ...sources: Record<string, unknown>[]
+): Record<string, unknown> {
   if (!target || typeof target !== 'object') return {};
   const result = { ...target };
   for (const src of sources) {
@@ -242,7 +246,14 @@ export function merge(target: Record<string, unknown>, ...sources: Record<string
     if (!src || typeof src !== 'object') continue;
     for (const key of Object.keys(src)) {
       const val = src[key];
-      if (val && typeof val === 'object' && !Array.isArray(val) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
+      if (
+        val &&
+        typeof val === 'object' &&
+        !Array.isArray(val) &&
+        result[key] &&
+        typeof result[key] === 'object' &&
+        !Array.isArray(result[key])
+      ) {
         result[key] = merge(result[key] as Record<string, unknown>, val as Record<string, unknown>);
       } else {
         result[key] = val;
@@ -425,7 +436,8 @@ export function freezeNamespace<T extends Record<string, unknown>>(ns: T): T {
     if (Object.isFrozen(val)) return val;
 
     const ctor = (val as Record<string, unknown>).constructor;
-    if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet || ctor === Promise || ctor === Error) return val;
+    if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet || ctor === Promise || ctor === Error)
+      return val;
     if (ctor === BigInt) return val;
     if (ctor === URL || ctor === URLSearchParams) return val;
     if (ArrayBuffer.isView(val)) return val;
@@ -437,7 +449,11 @@ export function freezeNamespace<T extends Record<string, unknown>>(ns: T): T {
       for (const [k, v] of val as Map<unknown, unknown>) {
         frozenMap.set(k, deepFreeze(v));
       }
-      try { Object.freeze(frozenMap); } catch (_e) { /* ignore */ }
+      try {
+        Object.freeze(frozenMap);
+      } catch (_e) {
+        /* ignore */
+      }
       return frozenMap;
     }
 
@@ -447,7 +463,11 @@ export function freezeNamespace<T extends Record<string, unknown>>(ns: T): T {
       for (const v of val as Set<unknown>) {
         frozenSet.add(deepFreeze(v));
       }
-      try { Object.freeze(frozenSet); } catch (_e) { /* ignore */ }
+      try {
+        Object.freeze(frozenSet);
+      } catch (_e) {
+        /* ignore */
+      }
       return frozenSet;
     }
 
@@ -457,7 +477,11 @@ export function freezeNamespace<T extends Record<string, unknown>>(ns: T): T {
       for (let i = 0; i < val.length; i++) {
         frozenArr[i] = deepFreeze(val[i]);
       }
-      try { Object.freeze(frozenArr); } catch (_e) { /* ignore */ }
+      try {
+        Object.freeze(frozenArr);
+      } catch (_e) {
+        /* ignore */
+      }
       return frozenArr;
     }
 
@@ -466,7 +490,11 @@ export function freezeNamespace<T extends Record<string, unknown>>(ns: T): T {
     for (const key of Reflect.ownKeys(val as object)) {
       frozenObj[key] = deepFreeze((val as Record<PropertyKey, unknown>)[key]);
     }
-    try { Object.freeze(frozenObj); } catch (_e) { /* ignore */ }
+    try {
+      Object.freeze(frozenObj);
+    } catch (_e) {
+      /* ignore */
+    }
     return frozenObj;
   }
 
@@ -527,7 +555,8 @@ export function unset(obj: Record<string, unknown>, path: string): boolean {
   const parts = String(path).split('.');
   let current: unknown = obj;
   for (let i = 0; i < parts.length - 1; i++) {
-    if (current == null || typeof current !== 'object' || !(parts[i] in (current as Record<string, unknown>))) return false;
+    if (current == null || typeof current !== 'object' || !(parts[i] in (current as Record<string, unknown>)))
+      return false;
     current = (current as Record<string, unknown>)[parts[i]];
   }
   const last = parts[parts.length - 1];
@@ -544,7 +573,10 @@ export function unset(obj: Record<string, unknown>, path: string): boolean {
  * @param {...Record<string, unknown>} sources
  * @returns {Record<string, unknown>}
  */
-export function defaultsDeep(target: Record<string, unknown>, ...sources: Record<string, unknown>[]): Record<string, unknown> {
+export function defaultsDeep(
+  target: Record<string, unknown>,
+  ...sources: Record<string, unknown>[]
+): Record<string, unknown> {
   if (!target || typeof target !== 'object') return target;
   for (const source of sources) {
     if (!source || typeof source !== 'object') continue;
@@ -552,9 +584,12 @@ export function defaultsDeep(target: Record<string, unknown>, ...sources: Record
       if (target[key] === undefined) {
         target[key] = source[key];
       } else if (
-        target[key] != null && typeof target[key] === 'object' &&
-        source[key] != null && typeof source[key] === 'object' &&
-        !Array.isArray(target[key]) && !Array.isArray(source[key])
+        target[key] != null &&
+        typeof target[key] === 'object' &&
+        source[key] != null &&
+        typeof source[key] === 'object' &&
+        !Array.isArray(target[key]) &&
+        !Array.isArray(source[key])
       ) {
         defaultsDeep(target[key] as Record<string, unknown>, source[key] as Record<string, unknown>);
       }

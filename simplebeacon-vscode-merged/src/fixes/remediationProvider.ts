@@ -78,7 +78,12 @@ export class RemediationProvider {
         const originalLine = doc.lineAt(line).text;
         const fixFn = FIX_REGISTRY[msg.patternId];
         if (fixFn) {
-          const fix = fixFn(originalLine, { file: msg.file, type: msg.patternId, severity: 'low', matches: [] } as Finding);
+          const fix = fixFn(originalLine, {
+            file: msg.file,
+            type: msg.patternId,
+            severity: 'low',
+            matches: [],
+          } as Finding);
           if (fix && fix.autoFixable) {
             await editor.edit((editBuilder) => {
               editBuilder.replace(range, originalLine.replace(fix.search, fix.replace));
@@ -254,9 +259,13 @@ export class RemediationProvider {
         ${s.steps.map((step) => `<li>${step}</li>`).join('')}
       </ol>
       <div class="actions">
-        ${s.file ? `<button class="btn btn-primary" aria-label="Open file ${this.escapeHtml(s.file)} at line ${s.line}" data-cmd="openFile" data-file="${this.escapeHtml(s.file)}" data-line="${s.line}">
+        ${
+          s.file
+            ? `<button class="btn btn-primary" aria-label="Open file ${this.escapeHtml(s.file)} at line ${s.line}" data-cmd="openFile" data-file="${this.escapeHtml(s.file)}" data-line="${s.line}">
           Open File
-        </button>` : '<span style="color:var(--muted);font-size:.85rem;">No file to open</span>'}
+        </button>`
+            : '<span style="color:var(--muted);font-size:.85rem;">No file to open</span>'
+        }
         ${
           s.autoFixable && s.fix
             ? `<button class="btn btn-success" aria-label="Apply fix for ${this.escapeHtml(s.patternId)}" data-cmd="autoFix" data-file="${this.escapeHtml(s.file)}" data-line="${s.line}" data-pattern="${this.escapeHtml(s.patternId)}">
@@ -310,7 +319,10 @@ export class RemediationProvider {
 
   private static normalizeToScanResult(input: unknown): ScanResult {
     if (!input || typeof input !== 'object') {
-      return { findings: [], summary: { totalFiles: 0, filesAnalyzed: 0, totalFindings: 0, severityCounts: {}, categoryCounts: {} } };
+      return {
+        findings: [],
+        summary: { totalFiles: 0, filesAnalyzed: 0, totalFindings: 0, severityCounts: {}, categoryCounts: {} },
+      };
     }
     const r = input as Record<string, unknown>;
 
@@ -318,7 +330,9 @@ export class RemediationProvider {
     const rawCount = (r.rawIssues as unknown[])?.length || 0;
     const detCount = (r.detectedIssues as unknown[])?.length || 0;
     const findingsCount = (r.findings as unknown[])?.length || 0;
-    vscode.window.showInformationMessage(`Fix Guide input: rawIssues=${rawCount}, detectedIssues=${detCount}, findings=${findingsCount}`);
+    vscode.window.showInformationMessage(
+      `Fix Guide input: rawIssues=${rawCount}, detectedIssues=${detCount}, findings=${findingsCount}`
+    );
 
     const flattened: Finding[] = [];
 
@@ -330,7 +344,13 @@ export class RemediationProvider {
           file: (it.file as string) || (it.filePath as string) || '',
           type: (it.type as string) || 'Finding',
           severity: ((it.severity as string) || 'medium').toLowerCase() as Finding['severity'],
-          matches: [{ line: (it.line as number) || 0, snippet: (it.snippet as string) || (it.description as string) || (it.message as string) || '', context: (it.context as string[]) || [] }],
+          matches: [
+            {
+              line: (it.line as number) || 0,
+              snippet: (it.snippet as string) || (it.description as string) || (it.message as string) || '',
+              context: (it.context as string[]) || [],
+            },
+          ],
           message: (it.description as string) || (it.message as string) || (it.type as string) || '',
           patternId: (it.patternId as string) || (it.type as string) || '',
         });
@@ -345,7 +365,13 @@ export class RemediationProvider {
           file: (it.file as string) || (it.filePath as string) || '',
           type: (it.type as string) || 'Finding',
           severity: ((it.severity as string) || 'medium').toLowerCase() as Finding['severity'],
-          matches: [{ line: (it.line as number) || 0, snippet: (it.snippet as string) || (it.description as string) || (it.message as string) || '', context: (it.context as string[]) || [] }],
+          matches: [
+            {
+              line: (it.line as number) || 0,
+              snippet: (it.snippet as string) || (it.description as string) || (it.message as string) || '',
+              context: (it.context as string[]) || [],
+            },
+          ],
           message: (it.description as string) || (it.message as string) || (it.type as string) || '',
           patternId: (it.patternId as string) || (it.type as string) || '',
         });
@@ -372,7 +398,13 @@ export class RemediationProvider {
           file: (it.filePath as string) || (it.file as string) || '',
           type: (it.type as string) || 'Finding',
           severity: ((it.severity as string) || 'medium').toLowerCase() as Finding['severity'],
-          matches: [{ line: (it.line as number) || 0, snippet: (it.snippet as string) || (it.description as string) || '', context: [] }],
+          matches: [
+            {
+              line: (it.line as number) || 0,
+              snippet: (it.snippet as string) || (it.description as string) || '',
+              context: [],
+            },
+          ],
           message: (it.description as string) || (it.message as string) || (it.type as string) || '',
           patternId: (it.type as string) || '',
         });
@@ -386,10 +418,13 @@ export class RemediationProvider {
         totalFiles: (summary.totalFiles as number) || (r.totalFiles as number) || 0,
         filesAnalyzed: (summary.filesAnalyzed as number) || (r.filesAnalyzed as number) || 0,
         totalFindings: flattened.length,
-        severityCounts: flattened.reduce((acc, f) => {
-          acc[f.severity] = (acc[f.severity] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
+        severityCounts: flattened.reduce(
+          (acc, f) => {
+            acc[f.severity] = (acc[f.severity] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        ),
         categoryCounts: {},
       },
     };
@@ -397,10 +432,7 @@ export class RemediationProvider {
 
   private static isCliFalsePositive(finding: Finding): boolean {
     const file = (finding.file || '').toLowerCase();
-    const rawSnippet =
-      finding.matches?.[0]?.snippet ||
-      finding.message ||
-      '';
+    const rawSnippet = finding.matches?.[0]?.snippet || finding.message || '';
     const contextArr = finding.matches?.[0]?.context || [];
     const snippet = (rawSnippet + '\n' + contextArr.join('\n')).toLowerCase();
     const type = (finding.type || '').toLowerCase();
@@ -659,12 +691,18 @@ export class RemediationProvider {
     }
     // 48. Scanner-engine.js rule definitions are not actual configuration drift
     if (type === 'configuration drift' || /configuration drift/i.test(msg)) {
-      if (/scanner-engine\.js/i.test(file) && /CONFIG_DRIFT_PATTERN|configDriftGateFindings/i.test(snippet)) return true;
+      if (/scanner-engine\.js/i.test(file) && /CONFIG_DRIFT_PATTERN|configDriftGateFindings/i.test(snippet))
+        return true;
       if (/config files bypass environment controls/i.test(snippet)) return true;
     }
     // 48b. authManager.ts localhost default is a VS Code extension config fallback, not a deployment secret // simplebeacon-ignore config-drift — suppression rule for false positives
-    if (type === 'hardcoded url' || /hardcoded url/i.test(msg) || /hardcoded secret/i.test(msg)) { // simplebeacon-ignore config-drift — exclusion-pattern regex, not a hardcoded URL
-      if (/authmanager\.ts/i.test(file) && /getconfiguration|apiurl|default.*server.*url|127\.0\.0\.1:3000/i.test(snippet)) return true;
+    if (type === 'hardcoded url' || /hardcoded url/i.test(msg) || /hardcoded secret/i.test(msg)) {
+      // simplebeacon-ignore config-drift — exclusion-pattern regex, not a hardcoded URL
+      if (
+        /authmanager\.ts/i.test(file) &&
+        /getconfiguration|apiurl|default.*server.*url|127\.0\.0\.1:3000/i.test(snippet)
+      )
+        return true;
     }
     // 47. Type safety 'any' in HTTP callback res parameters is standard Node.js pattern
     if (type === 'type safety gap' || /type safety/i.test(msg) || /any type/i.test(msg)) {
@@ -714,11 +752,25 @@ export class RemediationProvider {
     const type = (finding.patternId || finding.type || '').toLowerCase();
     const file = (finding.file || '').toLowerCase();
     const isSelfScan = /simplebeacon-vscode(?:-merged)?\/src\//i.test(file) || /simplebeacon-cli\/src\//i.test(file);
-    const isBasenameSelfScan = /^(extension|enhancedaiprovider|roadmapprovider|remediationprovider|browserpreview)\.ts$/i.test(file);
+    const isBasenameSelfScan =
+      /^(extension|enhancedaiprovider|roadmapprovider|remediationprovider|browserpreview)\.ts$/i.test(file);
     // Self-scan false positives in scanner source files
     if (isSelfScan || isBasenameSelfScan) {
-      if (type.includes('eval') || msg.includes('eval()') || msg.includes('new function') || msg.includes('dynamic code execution')) return true;
-      if (type.includes('accessibility') || type.includes('a11y') || msg.includes('alt text') || msg.includes('unlabeled input') || msg.includes('inaccessible button')) return true;
+      if (
+        type.includes('eval') ||
+        msg.includes('eval()') ||
+        msg.includes('new function') ||
+        msg.includes('dynamic code execution')
+      )
+        return true;
+      if (
+        type.includes('accessibility') ||
+        type.includes('a11y') ||
+        msg.includes('alt text') ||
+        msg.includes('unlabeled input') ||
+        msg.includes('inaccessible button')
+      )
+        return true;
       if (type.includes('debug') || msg.includes('debug artifact')) return true;
       if (msg.includes('type safety gap') || msg.includes('any type')) return true;
       if (msg.includes('promise chain missing .catch') || msg.includes('unhandled rejection')) return true;

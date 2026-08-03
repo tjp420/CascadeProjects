@@ -1,7 +1,19 @@
 import {
-  clamp, formatBytes, formatNumber, safeParseInt, safeParseFloat,
-  roundTo, toFixedNumber, isNumeric, randomInt,
-  sum, mean, min, max, sumBy, meanBy
+  clamp,
+  formatBytes,
+  formatNumber,
+  safeParseInt,
+  safeParseFloat,
+  roundTo,
+  toFixedNumber,
+  isNumeric,
+  randomInt,
+  sum,
+  mean,
+  min,
+  max,
+  sumBy,
+  meanBy,
 } from '../number';
 
 describe('number utilities', () => {

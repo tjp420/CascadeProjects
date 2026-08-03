@@ -71,11 +71,13 @@ function proxyToOllama(req: http.IncomingMessage, res: http.ServerResponse, targ
       method,
       headers: {
         'Content-Type': req.headers['content-type'] || 'application/json',
-        'Accept': req.headers.accept || 'application/json'
-      }
+        Accept: req.headers.accept || 'application/json',
+      },
     },
     (proxyRes) => {
-      res.writeHead(proxyRes.statusCode || 502, { 'Content-Type': proxyRes.headers['content-type'] || 'application/json' });
+      res.writeHead(proxyRes.statusCode || 502, {
+        'Content-Type': proxyRes.headers['content-type'] || 'application/json',
+      });
       proxyRes.pipe(res);
     }
   );
@@ -101,12 +103,14 @@ export function handleScanConfigRoutes(
     const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
     const progress = buildScanProgressPayload(projectPath, serverState);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      projectPath,
-      progress,
-      completed: !progress.active,
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        projectPath,
+        progress,
+        completed: !progress.active,
+      })
+    );
     return true;
   }
 
@@ -114,25 +118,65 @@ export function handleScanConfigRoutes(
   if (parsed.pathname === '/api/simplebeacon/config') {
     const cfg = getSbConfig();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      apiUrl: cfg.get<string>('apiUrl', ''),
-      apiServerUrl: cfg.get<string>('apiServerUrl', ''),
-      autoScanOnOpen: cfg.get<boolean>('autoScanOnOpen', false),
-      autoOpenPreviewPanel: cfg.get<boolean>('autoOpenPreviewPanel', false),
-      maxFiles: cfg.get<number>('maxFiles', 5000),
-      dataServerPort: cfg.get<number>('dataServerPort', 54358),
-      relayPort: cfg.get<number>('relayPort', 55444),
-    }));
+    res.end(
+      JSON.stringify({
+        apiUrl: cfg.get<string>('apiUrl', ''),
+        apiServerUrl: cfg.get<string>('apiServerUrl', ''),
+        autoScanOnOpen: cfg.get<boolean>('autoScanOnOpen', false),
+        autoOpenPreviewPanel: cfg.get<boolean>('autoOpenPreviewPanel', false),
+        maxFiles: cfg.get<number>('maxFiles', 5000),
+        dataServerPort: cfg.get<number>('dataServerPort', 54358),
+        relayPort: cfg.get<number>('relayPort', 55444),
+      })
+    );
     return true;
   }
 
   // SimpleBeacon config presets endpoint
   if (parsed.pathname === '/api/simplebeacon/config/presets') {
-    const baseScanPaths = ['server/', 'src/', 'lib/', 'packages/', 'web/', 'app/', 'api/', 'components/', 'utils/', 'config/', 'shared/'];
+    const baseScanPaths = [
+      'server/',
+      'src/',
+      'lib/',
+      'packages/',
+      'web/',
+      'app/',
+      'api/',
+      'components/',
+      'utils/',
+      'config/',
+      'shared/',
+    ];
     const makeRules = (profile: 'minimal' | 'standard' | 'cascade') => {
-      const minimalIds = ['credentials', 'production-leak', 'fiction-kpi-patterns', 'web-security-risk', 'debugger-statement', 'console-log', 'eval-usage'];
-      const standardIds = [...minimalIds, 'missing-rate-limit', 'inner-html-xss', 'insecure-random', 'logging-secrets', 'prototype-pollution', 'unvalidated-redirect', 'llm-slop-patterns'];
-      const cascadeIds = [...standardIds, 'agency-handoff-patterns', 'token-bleed-patterns', 'data-access-pattern', 'json-report-drift', 'build-artifact-leak', 'unused-dependency', 'duplicate-code'];
+      const minimalIds = [
+        'credentials',
+        'production-leak',
+        'fiction-kpi-patterns',
+        'web-security-risk',
+        'debugger-statement',
+        'console-log',
+        'eval-usage',
+      ];
+      const standardIds = [
+        ...minimalIds,
+        'missing-rate-limit',
+        'inner-html-xss',
+        'insecure-random',
+        'logging-secrets',
+        'prototype-pollution',
+        'unvalidated-redirect',
+        'llm-slop-patterns',
+      ];
+      const cascadeIds = [
+        ...standardIds,
+        'agency-handoff-patterns',
+        'token-bleed-patterns',
+        'data-access-pattern',
+        'json-report-drift',
+        'build-artifact-leak',
+        'unused-dependency',
+        'duplicate-code',
+      ];
       const ids = profile === 'minimal' ? minimalIds : profile === 'cascade' ? cascadeIds : standardIds;
       const rules: Record<string, any> = {};
       for (const id of ids) {
@@ -149,7 +193,7 @@ export function handleScanConfigRoutes(
         productionPaths: p === 'minimal' ? ['server/', 'src/'] : [...baseScanPaths],
         sampleDir: 'web/data',
         rules: makeRules(p),
-        gate: { failOn: ['high'], warnOn: ['medium', 'low'] }
+        gate: { failOn: ['high'], warnOn: ['medium', 'low'] },
       };
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -198,7 +242,7 @@ export function handleScanConfigRoutes(
       ollamaBaseUrl: '',
       ollamaModel: '',
       updatedAt: null,
-      ...raw
+      ...raw,
     });
     if (req.method === 'GET') {
       const stored = cfg.get<any>('aiKeys') || {};
@@ -208,7 +252,9 @@ export function handleScanConfigRoutes(
     }
     if (req.method === 'PUT') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const payload = body ? JSON.parse(body) : {};
@@ -218,7 +264,7 @@ export function handleScanConfigRoutes(
             providers: payload.providers || {},
             ollamaBaseUrl: payload.ollamaBaseUrl || '',
             ollamaModel: payload.ollamaModel || '',
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
           };
           try {
             await cfg.update('aiKeys', updated, true);
@@ -230,7 +276,9 @@ export function handleScanConfigRoutes(
         } catch (e) {
           console.error('[scanConfig] PUT /api/simplebeacon/user/ai-keys failed:', e);
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Invalid request: ' + ((e as Error)?.message || String(e)) }));
+          res.end(
+            JSON.stringify({ success: false, error: 'Invalid request: ' + ((e as Error)?.message || String(e)) })
+          );
         }
       });
       return true;

@@ -14,10 +14,10 @@ export interface DashboardHtmlOptions {
 }
 
 export function buildDashboardHtml(options: DashboardHtmlOptions): string {
-    const nonce = options.nonce;
-    const csp = options.cspSource;
-    const showWelcomeChecked = options.showWelcome !== false ? 'checked' : '';
-    return `<!DOCTYPE html>
+  const nonce = options.nonce;
+  const csp = options.cspSource;
+  const showWelcomeChecked = options.showWelcome !== false ? 'checked' : '';
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6756,7 +6756,4 @@ vscode.postMessage({ command: 'ready' });
 </script>
 </body>
 </html>`;
-  }
-
-
-  
+}

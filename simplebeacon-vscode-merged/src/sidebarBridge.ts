@@ -10,7 +10,8 @@ let _showDashboardInSidebar: (() => void) | null = null;
 let _openSidebarInBrowserStatic: ((route: string) => void) | null = null;
 let _isSidebarReady: (() => boolean) | null = null;
 let _openSidebarPreview: (() => void) | null = null;
-let _setSidebarAuthState: ((signedIn: boolean, tier?: string, token?: string, source?: string, isAdmin?: boolean) => void) | null = null;
+let _setSidebarAuthState:
+  ((signedIn: boolean, tier?: string, token?: string, source?: string, isAdmin?: boolean) => void) | null = null;
 let _getDashboardMode: (() => string) | null = null;
 let _refreshAuthState: ((source?: string) => void) | null = null;
 let _addDownloadedFile: ((filename: string, filePath: string) => void) | null = null;
@@ -54,7 +55,13 @@ export function openSidebarPreview() {
   _openSidebarPreview?.();
 }
 
-export function setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: string, isAdmin?: boolean) {
+export function setSidebarAuthState(
+  signedIn: boolean,
+  tier?: string,
+  token?: string,
+  source?: string,
+  isAdmin?: boolean
+) {
   _setSidebarAuthState?.(signedIn, tier, token, source, isAdmin);
 }
 

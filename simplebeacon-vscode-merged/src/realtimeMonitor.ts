@@ -162,15 +162,14 @@ export class RealtimeMonitor {
       {
         regex: /\/\*\*\s*\n(?:\s*\*\s+.+\n){8,}\s*\*\//g,
         severity: 'info',
-        confidence: 0.60,
+        confidence: 0.6,
         type: 'verbose-comment',
         message: 'Excessively verbose comment block',
         suggestion: 'Keep comments concise and meaningful',
       },
       // Generic variable names (AI often uses temp, result, data)
       {
-        regex:
-          /\b(const|let|var)\s+(temp|tmp|dat|itm|val|num|str|bool|func|fn)\d*\s*[:=]/gi,
+        regex: /\b(const|let|var)\s+(temp|tmp|dat|itm|val|num|str|bool|func|fn)\d*\s*[:=]/gi,
         severity: 'info',
         confidence: 0.55,
         type: 'generic-variable',
@@ -191,7 +190,7 @@ export class RealtimeMonitor {
       {
         regex: /\/\/\s*TODO[\s:]*.{30,200}/gi,
         severity: 'warning',
-        confidence: 0.70,
+        confidence: 0.7,
         type: 'ai-todo',
         message: 'Overly detailed TODO comment (AI artifact)',
         suggestion: 'Keep TODOs short and actionable',
@@ -200,7 +199,7 @@ export class RealtimeMonitor {
       {
         regex: /^(\s{4}|\t)\1{15,}\S/gm,
         severity: 'info',
-        confidence: 0.50,
+        confidence: 0.5,
         type: 'uniform-indent',
         message: 'Suspiciously uniform code structure',
         suggestion: 'Refactor repeated patterns into reusable functions',
@@ -219,7 +218,7 @@ export class RealtimeMonitor {
         regex:
           /\b(helper|util|utility|manager|handler|service|factory|provider|controller|middleware)\d*\s*(=|:|\(|<)/gi,
         severity: 'info',
-        confidence: 0.60,
+        confidence: 0.6,
         type: 'generic-naming',
         message: 'Generic suffix pattern common in AI-generated code',
         suggestion: 'Use names that describe the actual behavior',
@@ -238,7 +237,7 @@ export class RealtimeMonitor {
       {
         regex: /^(import\s+.+from\s+['"][^'"]+['"];\n){5,}/gm,
         severity: 'info',
-        confidence: 0.50,
+        confidence: 0.5,
         type: 'import-blocks',
         message: 'Large import block (possibly AI-generated)',
         suggestion: 'Organize imports logically, not by length',
@@ -256,7 +255,7 @@ export class RealtimeMonitor {
       {
         regex: /\/\*\s*\n\s*\*\s+Copyright \(c\)\s+\d{4}\s+\[Your Name\]|\[Company Name\]|\[Author\]/gi,
         severity: 'error',
-        confidence: 0.90,
+        confidence: 0.9,
         type: 'placeholder-copyright',
         message: 'Placeholder copyright header not filled in',
         suggestion: 'Replace placeholder with actual copyright info',
@@ -599,11 +598,22 @@ export class RealtimeMonitor {
   }
 
   private isInsideStringLiteral(line: string, index: number): boolean {
-    let inDouble = false, inSingle = false, inTemplate = false, inRegex = false, inCharClass = false, escaped = false;
+    let inDouble = false,
+      inSingle = false,
+      inTemplate = false,
+      inRegex = false,
+      inCharClass = false,
+      escaped = false;
     for (let i = 0; i < index; i++) {
       const ch = line[i];
-      if (escaped) { escaped = false; continue; }
-      if (ch === '\\') { escaped = true; continue; }
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escaped = true;
+        continue;
+      }
       if (inRegex) {
         if (inCharClass) {
           if (ch === ']') inCharClass = false;
@@ -636,7 +646,10 @@ export class RealtimeMonitor {
     // Same-line suppression
     const match = lowerLine.match(/(?:\/\/|<!--|#)\s*simplebeacon-ignore\s+([a-z0-9,_\-\s]+)/);
     if (!match) return false;
-    const tags = match[1].split(/[,\s]+/).map((t) => t.trim()).filter(Boolean);
+    const tags = match[1]
+      .split(/[,\s]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
     const lowerType = type.toLowerCase();
     if (tags.includes('all') || tags.includes(lowerType)) return true;
     if (lowerType.startsWith('hardcoded-') || lowerType.includes('sensitive') || lowerType.includes('credential')) {
@@ -656,7 +669,10 @@ export class RealtimeMonitor {
     if (/all findings are false positives/.test(rest)) return true;
     if (/(scanner definitions|test fixtures|dashboard code|build scripts)/.test(rest)) return true;
     // Also honor specific/all tags in the header comment
-    const tags = rest.split(/[,\s]+/).map((t) => t.trim()).filter(Boolean);
+    const tags = rest
+      .split(/[,\s]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
     const lowerType = type.toLowerCase();
     if (tags.includes('all') || tags.includes(lowerType)) return true;
     if (lowerType.startsWith('hardcoded-') || lowerType.includes('sensitive') || lowerType.includes('credential')) {
@@ -672,10 +688,26 @@ export class RealtimeMonitor {
     const valueMatch = matchText.match(/=\s*["']([^"']+)["']/i);
     const value = (valueMatch?.[1] || '').toLowerCase();
     const allowlisted = [
-      'changeme', 'secret123', 'password', 'your-api-key-here', 'your-secret',
-      'placeholder', 'example', 'dummy', 'test', 'fake', 'sample', 'mock',
-      'insert_secret_here', 'your_api_key_here', 'insert-api-key-here',
-      'not-a-real', 'not real', 'test-secret', 'fake-token', 'sample-token'
+      'changeme',
+      'secret123',
+      'password',
+      'your-api-key-here',
+      'your-secret',
+      'placeholder',
+      'example',
+      'dummy',
+      'test',
+      'fake',
+      'sample',
+      'mock',
+      'insert_secret_here',
+      'your_api_key_here',
+      'insert-api-key-here',
+      'not-a-real',
+      'not real',
+      'test-secret',
+      'fake-token',
+      'sample-token',
     ];
     if (allowlisted.some((token) => value.includes(token))) return true;
     if (/pattern.*credential|api_key\s*=\s*["']\.\.\.|password\s*=\s*["']\.\.\./i.test(line)) return true;
@@ -723,7 +755,10 @@ export class RealtimeMonitor {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
           }
           // Respect simplebeacon-ignore / slop-cop-disable-next-line suppression
-          if (this.isSuppressed(line, lines[lineNumber - 2], pattern.type) || this.hasFileLevelSuppression(lines[0], pattern.type)) {
+          if (
+            this.isSuppressed(line, lines[lineNumber - 2], pattern.type) ||
+            this.hasFileLevelSuppression(lines[0], pattern.type)
+          ) {
             continue;
           }
           if (this.shouldSkipCredentialFinding(filePath, line, match[0], pattern.type)) {
@@ -1083,7 +1118,9 @@ export class RealtimeMonitor {
   public dismissIssue(filePath: string, line: number, type: string): void {
     const signature = `${filePath}:${line}:${type}`;
     this.dismissedSignatures.add(signature);
-    this.outputChannel.appendLine(`🚫 Dismissed ${type} at ${filePath}:${line} (will not re-alert until session resets)`);
+    this.outputChannel.appendLine(
+      `🚫 Dismissed ${type} at ${filePath}:${line} (will not re-alert until session resets)`
+    );
   }
 
   public resetDismissedIssues(): void {
@@ -1170,17 +1207,19 @@ export class RealtimeMonitor {
 export function handleScanSuccessNotification(qualityScore: number, repositoryId: string) {
   // Only trigger the referral sharing loop if the project clears all slop rules perfectly
   if (qualityScore === 100) {
-    vscode.window.showInformationMessage(
-      '🎉 100/100 Quality Score! This workspace is officially free of AI Slop.',
-      'Share Clean Badge'
-    ).then(selection => {
-      if (selection === 'Share Clean Badge') {
-        const markdownBadge = `[![AI Slop Cop Protected](https://shields.io)](https://simplebeacon.ai${repositoryId})`;
+    vscode.window
+      .showInformationMessage(
+        '🎉 100/100 Quality Score! This workspace is officially free of AI Slop.',
+        'Share Clean Badge'
+      )
+      .then((selection) => {
+        if (selection === 'Share Clean Badge') {
+          const markdownBadge = `[![AI Slop Cop Protected](https://shields.io)](https://simplebeacon.ai${repositoryId})`;
 
-        // Copy the viral markdown badge token directly to the developer's system clipboard
-        vscode.env.clipboard.writeText(markdownBadge);
-        vscode.window.showInformationMessage('🚀 Protected repository markdown badge copied to your clipboard!');
-      }
-    });
+          // Copy the viral markdown badge token directly to the developer's system clipboard
+          vscode.env.clipboard.writeText(markdownBadge);
+          vscode.window.showInformationMessage('🚀 Protected repository markdown badge copied to your clipboard!');
+        }
+      });
   }
 }

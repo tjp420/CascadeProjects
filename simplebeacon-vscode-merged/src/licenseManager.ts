@@ -1,21 +1,21 @@
 import * as crypto from 'crypto';
 
 export interface LicenseMeta {
-    companyId: string;
-    tier: string;
-    expiresAt: string;
+  companyId: string;
+  tier: string;
+  expiresAt: string;
 }
 
 /** Tier alias map: canonical -> aliases. Tokens may use alternate names. */
 const TIER_ALIASES: Record<string, string> = {
-    free: 'developer',
-    pro: 'pro',
-    enterprise: 'compliance'
+  free: 'developer',
+  pro: 'pro',
+  enterprise: 'compliance',
 };
 
 /** Reverse map: alias -> canonical. */
 const ALIAS_TO_CANONICAL: Record<string, string> = Object.fromEntries(
-    Object.entries(TIER_ALIASES).map(([k, v]) => [v, k])
+  Object.entries(TIER_ALIASES).map(([k, v]) => [v, k])
 );
 
 /**
@@ -24,8 +24,8 @@ const ALIAS_TO_CANONICAL: Record<string, string> = Object.fromEntries(
  * @returns Canonical tier name
  */
 export function normalizeTier(tier: string): string {
-    const t = (tier || 'free').toLowerCase();
-    return ALIAS_TO_CANONICAL[t] || t;
+  const t = (tier || 'free').toLowerCase();
+  return ALIAS_TO_CANONICAL[t] || t;
 }
 
 /**
@@ -38,31 +38,31 @@ export function normalizeTier(tier: string): string {
  * @returns LicenseMeta if valid and unexpired, otherwise null
  */
 export function validateLicenseLocally(licenseToken: string, publicKeyPem: string): LicenseMeta | null {
-    try {
-        const [payloadBase64, signatureBase64] = licenseToken.split('.');
-        if (!payloadBase64 || !signatureBase64) {
-            return null;
-        }
-
-        // Verify authenticity via public key signature analysis
-        const verify = crypto.createVerify('SHA256');
-        verify.update(payloadBase64);
-        const isAuthentic = verify.verify(publicKeyPem, signatureBase64, 'base64');
-
-        if (!isAuthentic) {
-            return null;
-        }
-
-        // Extract metadata structural context fields cleanly
-        const meta: LicenseMeta = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf8'));
-
-        // Check expiration threshold
-        if (new Date(meta.expiresAt) < new Date()) {
-            return null; // License has expired
-        }
-
-        return meta;
-    } catch {
-        return null; // Fallback for corrupt structural tokens
+  try {
+    const [payloadBase64, signatureBase64] = licenseToken.split('.');
+    if (!payloadBase64 || !signatureBase64) {
+      return null;
     }
+
+    // Verify authenticity via public key signature analysis
+    const verify = crypto.createVerify('SHA256');
+    verify.update(payloadBase64);
+    const isAuthentic = verify.verify(publicKeyPem, signatureBase64, 'base64');
+
+    if (!isAuthentic) {
+      return null;
+    }
+
+    // Extract metadata structural context fields cleanly
+    const meta: LicenseMeta = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf8'));
+
+    // Check expiration threshold
+    if (new Date(meta.expiresAt) < new Date()) {
+      return null; // License has expired
+    }
+
+    return meta;
+  } catch {
+    return null; // Fallback for corrupt structural tokens
+  }
 }

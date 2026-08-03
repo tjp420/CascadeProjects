@@ -1,6 +1,20 @@
 import {
-  deepClone, deepEqual, isEmpty, pick, omit, ensureArray,
-  defaults, merge, has, get, set, mapKeys, invert, values, keys, freezeDeep
+  deepClone,
+  deepEqual,
+  isEmpty,
+  pick,
+  omit,
+  ensureArray,
+  defaults,
+  merge,
+  has,
+  get,
+  set,
+  mapKeys,
+  invert,
+  values,
+  keys,
+  freezeDeep,
 } from '../object';
 
 describe('object utilities', () => {

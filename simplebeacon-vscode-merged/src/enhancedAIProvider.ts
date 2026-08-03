@@ -45,9 +45,13 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
     const hasRaw = data && (data.rawIssues || data.detectedIssues);
     if (hasRaw) {
       this.rawScanResult = result;
-      this.outputChannel.appendLine(`[EnhancedAI] rawScanResult set: ${data.rawIssues?.length || 0} rawIssues, ${data.detectedIssues?.length || 0} detectedIssues`);
+      this.outputChannel.appendLine(
+        `[EnhancedAI] rawScanResult set: ${data.rawIssues?.length || 0} rawIssues, ${data.detectedIssues?.length || 0} detectedIssues`
+      );
     } else {
-      this.outputChannel.appendLine(`[EnhancedAI] rawScanResult NOT set (no rawIssues/detectedIssues). Has findings: ${data.findings?.length || 0}`);
+      this.outputChannel.appendLine(
+        `[EnhancedAI] rawScanResult NOT set (no rawIssues/detectedIssues). Has findings: ${data.findings?.length || 0}`
+      );
     }
     // Filter out findings in build artifacts and CLI false positives
     const isBuildArtifact = (filePath: string, fallbackText?: string): boolean => {
@@ -115,7 +119,10 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       const ev = 'ev' + 'al';
       const nf = 'new ' + 'Function';
       if (type === 'dangerous ' + ev + '() usage' || new RegExp('dangerous ' + ev).test(msg)) {
-        if (/\.exec\(|\.match\(|\.test\(|\.search\(/i.test(snippet) && !(snippet.indexOf(ev + '(') >= 0 || new RegExp(nf + '\\s*\\(').test(snippet))) {
+        if (
+          /\.exec\(|\.match\(|\.test\(|\.search\(/i.test(snippet) &&
+          !(snippet.indexOf(ev + '(') >= 0 || new RegExp(nf + '\\s*\\(').test(snippet))
+        ) {
           return true;
         }
         if (/db\.exec\s*\(/i.test(snippet) || /\.exec\s*\(\s*['"`]/i.test(snippet)) return true;
@@ -180,8 +187,13 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       }
       // 12c. Hardcoded localhost URLs in scanner own files or test data are not production drift
       if (type === 'hardcoded url' || /hardcoded url/i.test(msg)) {
-        if (/127\.0\.0\.1|localhost/i.test(snippet) && (!file || /simplebeacon-vscode(?:-merged)?\/src\//i.test(file))) return true;
-        if (/127\.0\.0\.1|localhost/i.test(snippet) && /(test|tests|__tests__|test-data|fixtures|mock-data|sample-data|examples?)\//i.test(file)) return true;
+        if (/127\.0\.0\.1|localhost/i.test(snippet) && (!file || /simplebeacon-vscode(?:-merged)?\/src\//i.test(file)))
+          return true;
+        if (
+          /127\.0\.0\.1|localhost/i.test(snippet) &&
+          /(test|tests|__tests__|test-data|fixtures|mock-data|sample-data|examples?)\//i.test(file)
+        )
+          return true;
       }
       // 13. CLI internal files: bin/, src/rules/, src/analyzers/, src/proxy/, src/mcp/
       if (/(^|\/)bin\//i.test(file)) return true;
@@ -251,9 +263,19 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
         if (type === 'dangerous-eval' || /dangerous eval/i.test(msg)) return true;
         if (/eval\(\)|new Function|dynamic code execution/i.test(msg)) return true;
         if (type === 'debug-artifact' || /debug artifact/i.test(msg)) return true;
-        if (type === 'accessibility-gap' || type === 'a11yGap' || /accessibility gap|alt text|unlabeled input|inaccessible button/i.test(msg)) return true;
+        if (
+          type === 'accessibility-gap' ||
+          type === 'a11yGap' ||
+          /accessibility gap|alt text|unlabeled input|inaccessible button/i.test(msg)
+        )
+          return true;
         if (type === 'unhandled-promise' || /promise chain missing .catch|unhandled rejection/i.test(msg)) return true;
-        if (type === 'type-safety-gap' || type === 'typeSafetyAny' || /type safety gap|any type|missing PropTypes/i.test(msg)) return true;
+        if (
+          type === 'type-safety-gap' ||
+          type === 'typeSafetyAny' ||
+          /type safety gap|any type|missing PropTypes/i.test(msg)
+        )
+          return true;
       }
       // 28b. All eval-danger findings in compiled out/ files are build artifacts
       if (type === 'eval-danger' || /eval danger/i.test(msg)) {
@@ -367,7 +389,8 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
         if (/(^|\/)outreach-prospects\.js$/i.test(file)) return true;
         if (/(^|\/)checkout\.cjs$/i.test(file)) return true;
         if (/(^|\/)subscriptions-billing\.cjs$/i.test(file)) return true;
-        if (/(^|\/)site-config\.js$/i.test(file) && /subtitle|description|EU AI Act|compliance/i.test(snippet)) return true;
+        if (/(^|\/)site-config\.js$/i.test(file) && /subtitle|description|EU AI Act|compliance/i.test(snippet))
+          return true;
       }
       // 49. Maintainability Issue in SimpleBeacon scanner files: regex definitions, score formulas, module metadata
       if (type === 'maintainability issue' || /todo\/fixme marker or magic number/i.test(msg)) {
@@ -668,7 +691,14 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
   }
 
   // Enhanced Analysis Methods
-  async startEnhancedAnalysis(options?: { profile?: ScanProfile; path?: string; selectedModules?: string[]; minSeverity?: string; silent?: boolean; includeDeps?: boolean }): Promise<void> {
+  async startEnhancedAnalysis(options?: {
+    profile?: ScanProfile;
+    path?: string;
+    selectedModules?: string[];
+    minSeverity?: string;
+    silent?: boolean;
+    includeDeps?: boolean;
+  }): Promise<void> {
     if (this.isAnalyzing) {
       showQuietMessage('Enhanced analysis is already running. Please wait for it to complete.');
       return;
@@ -727,7 +757,14 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
           cancellable: true,
         },
         async (progress, token) => {
-          return await analyzeWorkspace(progress, token, selectedProfile, options?.selectedModules, scanPath, options?.includeDeps);
+          return await analyzeWorkspace(
+            progress,
+            token,
+            selectedProfile,
+            options?.selectedModules,
+            scanPath,
+            options?.includeDeps
+          );
         }
       );
       this.setScanResult(result);
@@ -749,7 +786,10 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       // Update sidebar with compatible report format
       const sidebarReport = this.convertScanResultToReport(result);
       if (this.sidebarProvider) {
-        const sp = this.sidebarProvider as unknown as { updateReport(report: unknown): void; updateStatus(status: string, message: string): void };
+        const sp = this.sidebarProvider as unknown as {
+          updateReport(report: unknown): void;
+          updateStatus(status: string, message: string): void;
+        };
         sp.updateReport(sidebarReport);
         sp.updateStatus('completed', 'Scan complete');
       }
@@ -820,9 +860,15 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
             all.push({
               severity: ((it as unknown as Record<string, unknown>).severity as string) || 'low',
               type: ((it as unknown as Record<string, unknown>).type as string) || cat,
-              description: ((it as unknown as Record<string, unknown>).message as string) || ((it as unknown as Record<string, unknown>).type as string) || `${cat} finding`,
+              description:
+                ((it as unknown as Record<string, unknown>).message as string) ||
+                ((it as unknown as Record<string, unknown>).type as string) ||
+                `${cat} finding`,
               file: ((it as unknown as Record<string, unknown>).file as string) || '',
-              line: ((it as unknown as Record<string, unknown>).line as number) || (((it as unknown as Record<string, unknown>).matches as { line?: number }[])?.[0]?.line) || 1,
+              line:
+                ((it as unknown as Record<string, unknown>).line as number) ||
+                ((it as unknown as Record<string, unknown>).matches as { line?: number }[])?.[0]?.line ||
+                1,
               patternId: ((it as unknown as Record<string, unknown>).patternId as string) || '',
             });
           }
@@ -854,10 +900,18 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       detectedIssues: rawIssues,
       rawIssues: rawIssues,
       categories: categories,
-      files: result.allFilePaths && result.allFilePaths.length ? result.allFilePaths :
-             result.findings ? [...new Set(result.findings.map((f: Finding) => f.file).filter((f: string) => f))] : [],
-      sampleFiles: result.allFilePaths && result.allFilePaths.length ? result.allFilePaths :
-                   result.findings ? [...new Set(result.findings.map((f: Finding) => f.file).filter((f: string) => f))] : [],
+      files:
+        result.allFilePaths && result.allFilePaths.length
+          ? result.allFilePaths
+          : result.findings
+            ? [...new Set(result.findings.map((f: Finding) => f.file).filter((f: string) => f))]
+            : [],
+      sampleFiles:
+        result.allFilePaths && result.allFilePaths.length
+          ? result.allFilePaths
+          : result.findings
+            ? [...new Set(result.findings.map((f: Finding) => f.file).filter((f: string) => f))]
+            : [],
       repositoryFilesTotal: s.totalFiles || 0,
       repositoryFoldersTotal: 0,
       repositoryInventory: { totalFiles: s.totalFiles || 0, totalFolders: 0 },
@@ -901,7 +955,8 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
         category: ((f as any).category || f.type || 'general').toLowerCase(),
         type: (f.patternId || f.type || 'finding').toLowerCase(),
         description: f.message || (f as any).description || 'Pattern detected',
-        confidence: f.severity === 'critical' ? 0.95 : f.severity === 'high' ? 0.8 : f.severity === 'medium' ? 0.6 : 0.4,
+        confidence:
+          f.severity === 'critical' ? 0.95 : f.severity === 'high' ? 0.8 : f.severity === 'medium' ? 0.6 : 0.4,
         location: f.file || ws.uri.fsPath,
       }));
       // Add structural patterns from scan metadata
@@ -943,7 +998,11 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
   // API Methods — wired to local AI agent / CLI where possible
   private getOllamaConfig(): { url: string | undefined; model: string } {
     const config = getSbConfig();
-    const url = config.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || process.env.LOCAL_AI_URL || 'http://localhost:11434';
+    const url =
+      config.get<string>('ollamaUrl') ||
+      process.env.OLLAMA_BASE_URL ||
+      process.env.LOCAL_AI_URL ||
+      'http://localhost:11434';
     const model = config.get<string>('agentModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
     return { url, model };
   }
@@ -1078,9 +1137,7 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       // simplebeacon-ignore error-swallowing — model health check fallback, non-critical
       return {
         overall: 'healthy',
-        models: [
-          { id: 'local-default', name: modelName, provider: 'local', available: true, confidence: 0.8 }
-        ],
+        models: [{ id: 'local-default', name: modelName, provider: 'local', available: true, confidence: 0.8 }],
       };
     }
   }
@@ -1126,13 +1183,16 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
         const filename = message.filename || 'export.txt';
         const content = message.content || '';
         const mimeType = message.mimeType || 'text/plain';
-        vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(filename) }).then(uri => {
+        vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(filename) }).then((uri) => {
           if (uri) {
-            vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8')).then(() => {
-              showQuietMessage('Saved ' + filename);
-            }, (err: any) => {
-              vscode.window.showErrorMessage('Save failed: ' + (err.message || err));
-            });
+            vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8')).then(
+              () => {
+                showQuietMessage('Saved ' + filename);
+              },
+              (err: any) => {
+                vscode.window.showErrorMessage('Save failed: ' + (err.message || err));
+              }
+            );
           }
         });
       }

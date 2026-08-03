@@ -147,7 +147,12 @@ export function extractAllFindings(report: unknown): FindingItem[] {
 
   const gateBlocking = getValueAtPath(r, 'gate.blockingIssues');
   const credSecrets = getValueAtPath(r, 'credentialHygiene.secrets');
-  if (!Array.isArray(gateBlocking) && !Array.isArray(credSecrets) && Array.isArray(r.rawIssues) && r.rawIssues.length > 0) {
+  if (
+    !Array.isArray(gateBlocking) &&
+    !Array.isArray(credSecrets) &&
+    Array.isArray(r.rawIssues) &&
+    r.rawIssues.length > 0
+  ) {
     r.rawIssues.forEach((it) => {
       all.push({
         cat: it.type || 'Finding',
@@ -257,4 +262,3 @@ export function extractFailingFiles(report: unknown): FailingFileItem[] {
     .sort((a, b) => b.issues.length - a.issues.length)
     .slice(0, 20);
 }
-

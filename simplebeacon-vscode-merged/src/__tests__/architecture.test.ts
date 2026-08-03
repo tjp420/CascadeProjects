@@ -8,14 +8,11 @@ describe('Architecture rules', () => {
   it('should have zero dependency-cruiser errors', () => {
     let output: string;
     try {
-      output = execSync(
-        'npx depcruise src --config .dependency-cruiser.js --output-type err',
-        {
-          cwd: root,
-          encoding: 'utf8',
-          stdio: ['pipe', 'pipe', 'pipe'],
-        }
-      );
+      output = execSync('npx depcruise src --config .dependency-cruiser.js --output-type err', {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
     } catch (err: any) {
       // depcruise exits non-zero when there are errors
       output = err.stdout || '';
@@ -32,14 +29,11 @@ describe('Architecture rules', () => {
   it('should report known circular dependencies as warnings only', () => {
     let output: string;
     try {
-      output = execSync(
-        'npx depcruise src --config .dependency-cruiser.js --output-type err',
-        {
-          cwd: root,
-          encoding: 'utf8',
-          stdio: ['pipe', 'pipe', 'pipe'],
-        }
-      );
+      output = execSync('npx depcruise src --config .dependency-cruiser.js --output-type err', {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
     } catch (err: any) {
       output = err.stdout || '';
     }

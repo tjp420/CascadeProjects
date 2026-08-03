@@ -5,24 +5,57 @@ import * as vscode from 'vscode';
 import { getSbConfig } from '../utils/vscode';
 import { listDirectories, ServerState } from '../serverState';
 
-export function countLocalDirectoryInventory(projectPath: string, maxFiles = 100000): { totalFiles: number; totalFolders: number; projectRoot: string } | null {
-  if (!projectPath || !fs.existsSync(projectPath)) { return null; }
+export function countLocalDirectoryInventory(
+  projectPath: string,
+  maxFiles = 100000
+): { totalFiles: number; totalFolders: number; projectRoot: string } | null {
+  if (!projectPath || !fs.existsSync(projectPath)) {
+    return null;
+  }
   const skipDirs = new Set([
-    '.git', '.github-cache', '.simplebeacon', '.vscode', '.vscode-test',
-    'node_modules', 'dist', 'build', 'out', 'coverage', '.next', '.cache',
-    '__pycache__', '.venv', 'vendor', 'archive', 'docs', 'reports', 'logs'
+    '.git',
+    '.github-cache',
+    '.simplebeacon',
+    '.vscode',
+    '.vscode-test',
+    'node_modules',
+    'dist',
+    'build',
+    'out',
+    'coverage',
+    '.next',
+    '.cache',
+    '__pycache__',
+    '.venv',
+    'vendor',
+    'archive',
+    'docs',
+    'reports',
+    'logs',
   ]);
   let totalFiles = 0;
   let totalFolders = 0;
   const visited = new Set<string>();
   function walk(dir: string) {
-    if (totalFiles >= maxFiles) { return; }
+    if (totalFiles >= maxFiles) {
+      return;
+    }
     let entries: fs.Dirent[];
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const entry of entries) {
-      if (totalFiles >= maxFiles) { break; }
-      if (entry.name.startsWith('.')) { continue; }
-      if (skipDirs.has(entry.name)) { continue; }
+      if (totalFiles >= maxFiles) {
+        break;
+      }
+      if (entry.name.startsWith('.')) {
+        continue;
+      }
+      if (skipDirs.has(entry.name)) {
+        continue;
+      }
       const full = path.join(dir, entry.name);
       try {
         if (entry.isDirectory()) {
@@ -34,7 +67,9 @@ export function countLocalDirectoryInventory(projectPath: string, maxFiles = 100
         } else if (entry.isFile()) {
           totalFiles++;
         }
-      } catch { /* skip inaccessible entry */ }
+      } catch {
+        /* skip inaccessible entry */
+      }
     }
   }
   walk(projectPath);
@@ -74,14 +109,16 @@ export function handleScanReportRoutes(
   // Extension status
   if (parsed.pathname === '/api/status' || parsed.pathname === '/api/simplebeacon/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      scanStatus: serverState.scanStatus,
-      scanMessage: serverState.scanMessage,
-      lastScanTime: serverState.lastScanTime,
-      workspaceName: serverState.workspaceName,
-      workspacePath: serverState.workspacePath,
-      version: serverState.extensionVersion,
-    }));
+    res.end(
+      JSON.stringify({
+        scanStatus: serverState.scanStatus,
+        scanMessage: serverState.scanMessage,
+        lastScanTime: serverState.lastScanTime,
+        workspaceName: serverState.workspaceName,
+        workspacePath: serverState.workspacePath,
+        version: serverState.extensionVersion,
+      })
+    );
     return true;
   }
 
@@ -89,13 +126,15 @@ export function handleScanReportRoutes(
   if (parsed.pathname === '/api/config') {
     const cfg = getSbConfig();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      apiUrl: cfg.get<string>('apiUrl', ''),
-      autoScanOnOpen: cfg.get<boolean>('autoScanOnOpen', false),
-      autoOpenPreviewPanel: cfg.get<boolean>('autoOpenPreviewPanel', false),
-      maxFiles: cfg.get<number>('maxFiles', 5000),
-      dataServerPort: cfg.get<number>('dataServerPort', 54358),
-    }));
+    res.end(
+      JSON.stringify({
+        apiUrl: cfg.get<string>('apiUrl', ''),
+        autoScanOnOpen: cfg.get<boolean>('autoScanOnOpen', false),
+        autoOpenPreviewPanel: cfg.get<boolean>('autoOpenPreviewPanel', false),
+        maxFiles: cfg.get<number>('maxFiles', 5000),
+        dataServerPort: cfg.get<number>('dataServerPort', 54358),
+      })
+    );
     return true;
   }
 
@@ -103,11 +142,13 @@ export function handleScanReportRoutes(
   if (parsed.pathname === '/api/workspace') {
     const wsFolders = vscode.workspace.workspaceFolders;
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      name: serverState.workspaceName,
-      path: serverState.workspacePath,
-      folders: wsFolders ? wsFolders.map((f) => ({ name: f.name, path: f.uri.fsPath })) : [],
-    }));
+    res.end(
+      JSON.stringify({
+        name: serverState.workspaceName,
+        path: serverState.workspacePath,
+        folders: wsFolders ? wsFolders.map((f) => ({ name: f.name, path: f.uri.fsPath })) : [],
+      })
+    );
     return true;
   }
 
@@ -137,23 +178,27 @@ export function handleScanReportRoutes(
     const inventory = projectPath ? countLocalDirectoryInventory(projectPath) : null;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     if (!inventory) {
-      res.end(JSON.stringify({
-        success: true,
-        pathMissing: true,
-        projectPath,
-        profile,
-        fullDirectoryScan,
-        scannedAt: new Date().toISOString(),
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          pathMissing: true,
+          projectPath,
+          profile,
+          fullDirectoryScan,
+          scannedAt: new Date().toISOString(),
+        })
+      );
     } else {
-      res.end(JSON.stringify({
-        success: true,
-        projectPath,
-        profile,
-        fullDirectoryScan,
-        inventory,
-        scannedAt: new Date().toISOString(),
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          projectPath,
+          profile,
+          fullDirectoryScan,
+          inventory,
+          scannedAt: new Date().toISOString(),
+        })
+      );
     }
     return true;
   }

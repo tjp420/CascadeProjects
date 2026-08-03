@@ -31,7 +31,7 @@ export function fetchHtml(url: string, options: FetchOptions = {}): Promise<stri
       method: 'GET',
       headers: {
         'User-Agent': 'SimpleBeacon-VSCode-Extension/1.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         ...headers,
       },
@@ -45,8 +45,12 @@ export function fetchHtml(url: string, options: FetchOptions = {}): Promise<stri
         }
         const redirectUrl = new URL(res.headers.location, url).toString();
         fetchHtml(redirectUrl, { ...options, maxRedirects: maxRedirects - 1 })
-          .then((result) => { resolve(result); })
-          .catch((err) => { reject(err); });
+          .then((result) => {
+            resolve(result);
+          })
+          .catch((err) => {
+            reject(err);
+          });
         return;
       }
 
@@ -141,9 +145,7 @@ export function injectPreviewScripts(html: string, origin: string, hashRoute: st
   const cspTag = buildCspTag(origin);
   const apiHostScript = `<script>window.__SB_API_HOST__ = "${origin}";<\/script>`;
   const initialView = hashRoute.replace(/^#\//, '');
-  const routeScript = initialView
-    ? `<script>window.__SB_INITIAL_ROUTE__ = "${initialView}";<\/script>`
-    : '';
+  const routeScript = initialView ? `<script>window.__SB_INITIAL_ROUTE__ = "${initialView}";<\/script>` : '';
   const projectPathScript = defaultProjectPath
     ? `<script>window.__SB_DEFAULT_PROJECT_PATH__ = ${JSON.stringify(defaultProjectPath).replace(/<\/script>/gi, '<\\/script>')};<\/script>`
     : '';
@@ -176,7 +178,16 @@ export function injectPreviewScripts(html: string, origin: string, hashRoute: st
 
   const headClose = html.indexOf('</head>');
   if (headClose > 0) {
-    return html.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + embedShimStyle + html.slice(headClose);
+    return (
+      html.slice(0, headClose) +
+      cspTag +
+      apiHostScript +
+      routeScript +
+      projectPathScript +
+      fetchInterceptorScript +
+      embedShimStyle +
+      html.slice(headClose)
+    );
   }
   return cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + html;
 }

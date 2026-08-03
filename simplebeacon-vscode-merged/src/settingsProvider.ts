@@ -96,7 +96,12 @@ export class SettingsProvider implements vscode.TreeDataProvider<SidebarNode> {
         new ConfigNode(`Auto-scan: ${autoScan ? 'On' : 'Off'}`, autoScan ? 'check' : 'x', autoScan ? 'pass' : 'fail'),
         new ConfigNode(`Max files: ${maxFiles}`, 'file', 'info'),
         new ConfigNode(`Excludes: node_modules, .git, dist...`, 'exclude', 'info'),
-        new ActionNode(`Browser Mode: ${browserModeLabel}`, 'simplebeacon.toggleBrowserOpenMode', 'globe', 'Toggle between Internet Browser and IDE'),
+        new ActionNode(
+          `Browser Mode: ${browserModeLabel}`,
+          'simplebeacon.toggleBrowserOpenMode',
+          'globe',
+          'Toggle between Internet Browser and IDE'
+        ),
       ])
     );
 

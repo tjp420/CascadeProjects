@@ -50,7 +50,9 @@ export class AuthManager {
    */
   async setToken(token: string): Promise<void> {
     await this.context.secrets.store(TOKEN_KEY, token);
-    try { await this.tracker.recordLogin(token, 'extension', 'tokenStored'); } catch {}
+    try {
+      await this.tracker.recordLogin(token, 'extension', 'tokenStored');
+    } catch {}
   }
 
   /**
@@ -60,7 +62,9 @@ export class AuthManager {
     const existing = await this.getToken();
     await this.context.secrets.delete(TOKEN_KEY);
     if (existing) {
-      try { await this.tracker.recordLogout(existing, 'extension', 'tokenCleared'); } catch {}
+      try {
+        await this.tracker.recordLogout(existing, 'extension', 'tokenCleared');
+      } catch {}
     }
   }
 
@@ -175,7 +179,9 @@ export class AuthManager {
     });
 
     const token = raw ? raw.trim() : undefined;
-    if (!token) { return undefined; }
+    if (!token) {
+      return undefined;
+    }
 
     // Check if this token is already registered on the server
     try {
@@ -186,9 +192,11 @@ export class AuthManager {
         body: JSON.stringify({ token }),
       });
       if (res.ok) {
-        const data = await res.json() as { registered?: boolean };
+        const data = (await res.json()) as { registered?: boolean };
         if (data.registered) {
-          vscode.window.showErrorMessage('This token is already registered. Use a different token or sign in with the existing one.');
+          vscode.window.showErrorMessage(
+            'This token is already registered. Use a different token or sign in with the existing one.'
+          );
           return undefined;
         }
       }
@@ -204,7 +212,9 @@ export class AuthManager {
     }
 
     await this.setToken(token);
-    vscode.window.showInformationMessage('SimpleBeacon API token saved — complete registration in the panel that opens');
+    vscode.window.showInformationMessage(
+      'SimpleBeacon API token saved — complete registration in the panel that opens'
+    );
     return token;
   }
 

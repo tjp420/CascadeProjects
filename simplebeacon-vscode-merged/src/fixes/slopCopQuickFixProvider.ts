@@ -13,9 +13,7 @@ export class SlopCopQuickFixProvider implements vscode.CodeActionProvider {
     const actions: vscode.CodeAction[] = [];
 
     const slopDiagnostics = context.diagnostics.filter(
-      (diagnostic) =>
-        diagnostic.source === 'SimpleBeacon AI Slop Cop' ||
-        diagnostic.code === 'simplebeacon-ai-slop'
+      (diagnostic) => diagnostic.source === 'SimpleBeacon AI Slop Cop' || diagnostic.code === 'simplebeacon-ai-slop'
     );
 
     for (const diagnostic of slopDiagnostics) {
@@ -28,11 +26,7 @@ export class SlopCopQuickFixProvider implements vscode.CodeActionProvider {
       const indent = document.lineAt(targetLine).text.match(/^\s*/)?.[0] || '';
 
       const edit = new vscode.WorkspaceEdit();
-      edit.insert(
-        document.uri,
-        new vscode.Position(targetLine, 0),
-        `${indent}// slop-cop-disable-next-line\n`
-      );
+      edit.insert(document.uri, new vscode.Position(targetLine, 0), `${indent}// slop-cop-disable-next-line\n`);
 
       action.edit = edit;
       action.diagnostics = [diagnostic];
@@ -40,25 +34,19 @@ export class SlopCopQuickFixProvider implements vscode.CodeActionProvider {
 
       actions.push(action);
 
-      const jumpAction = new vscode.CodeAction(
-        'Jump to this finding',
-        vscode.CodeActionKind.QuickFix
-      );
+      const jumpAction = new vscode.CodeAction('Jump to this finding', vscode.CodeActionKind.QuickFix);
       jumpAction.command = {
         title: 'Jump to this finding',
         command: 'simplebeacon.jumpToFinding',
-        arguments: [document.uri, diagnostic.range.start.line, diagnostic.range.start.character]
+        arguments: [document.uri, diagnostic.range.start.line, diagnostic.range.start.character],
       };
       jumpAction.diagnostics = [diagnostic];
       actions.push(jumpAction);
 
-      const reportAction = new vscode.CodeAction(
-        'Open SimpleBeacon remediation panel',
-        vscode.CodeActionKind.QuickFix
-      );
+      const reportAction = new vscode.CodeAction('Open SimpleBeacon remediation panel', vscode.CodeActionKind.QuickFix);
       reportAction.command = {
         title: 'Open SimpleBeacon remediation panel',
-        command: 'simplebeacon.showReport'
+        command: 'simplebeacon.showReport',
       };
       reportAction.diagnostics = [diagnostic];
       actions.push(reportAction);

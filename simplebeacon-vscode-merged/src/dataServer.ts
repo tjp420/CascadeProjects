@@ -12,15 +12,23 @@ function _hashPassword(password: string): string {
   return `pbkdf2:${salt}:${hash}`;
 }
 function _verifyPassword(password: string, stored: string): boolean {
-  if (!stored || stored.startsWith('$2')) { return false; } // stale bcrypt hash — can't verify without bcryptjs
+  if (!stored || stored.startsWith('$2')) {
+    return false;
+  } // stale bcrypt hash — can't verify without bcryptjs
   const parts = stored.split(':');
-  if (parts.length !== 3 || parts[0] !== 'pbkdf2') { return false; }
+  if (parts.length !== 3 || parts[0] !== 'pbkdf2') {
+    return false;
+  }
   const hash = crypto.pbkdf2Sync(password, parts[1], 100000, 64, 'sha256').toString('hex');
   return hash === parts[2];
 }
 
 /** Compose and send sandbox-token marketing email. Returns { sent, status }. */
-async function _sendSandboxEmail(to: string, token: string, referrer: string): Promise<{ sent: boolean; status: string }> {
+async function _sendSandboxEmail(
+  to: string,
+  token: string,
+  referrer: string
+): Promise<{ sent: boolean; status: string }> {
   const subject = 'Your SimpleBeacon Sandbox Token';
   const publicBase = getPublicBaseUrl();
   const pasteUrl = `${publicBase}/${referrer}.html?token=${encodeURIComponent(token)}`;
@@ -52,13 +60,46 @@ async function _sendSandboxEmail(to: string, token: string, referrer: string): P
     const https = require('https');
     const resendKey = process.env.RESEND_API_KEY || '';
     if (resendKey && resendKey.startsWith('re_')) {
-      const payload = JSON.stringify({ from: process.env.RESEND_FROM || 'sandbox@simplebeacon.ai', to: [to], subject, html });
+      const payload = JSON.stringify({
+        from: process.env.RESEND_FROM || 'sandbox@simplebeacon.ai',
+        to: [to],
+        subject,
+        html,
+      });
       await new Promise<void>((resolve, reject) => {
-        const req = https.request({ hostname: 'api.resend.com', path: '/emails', method: 'POST', timeout: 15000, headers: { 'Authorization': 'Bearer ' + resendKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, (res: http.IncomingMessage) => {
-          let data = ''; res.on('data', (c) => { data += c; }); res.on('end', () => { if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) { resolve(); } else { reject(new Error('Resend ' + res.statusCode + ': ' + data)); } });
+        const req = https.request(
+          {
+            hostname: 'api.resend.com',
+            path: '/emails',
+            method: 'POST',
+            timeout: 15000,
+            headers: {
+              Authorization: 'Bearer ' + resendKey,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(payload),
+            },
+          },
+          (res: http.IncomingMessage) => {
+            let data = '';
+            res.on('data', (c) => {
+              data += c;
+            });
+            res.on('end', () => {
+              if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                resolve();
+              } else {
+                reject(new Error('Resend ' + res.statusCode + ': ' + data));
+              }
+            });
+          }
+        );
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('timeout'));
         });
-        req.on('error', reject); req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-        req.write(payload); req.end();
+        req.write(payload);
+        req.end();
       });
       return { sent: true, status: 'sent' };
     }
@@ -68,10 +109,15 @@ async function _sendSandboxEmail(to: string, token: string, referrer: string): P
   // Queue to disk as fallback
   try {
     const queueDir = path.join(os.tmpdir(), 'simplebeacon-email-queue');
-    if (!fs.existsSync(queueDir)) { fs.mkdirSync(queueDir, { recursive: true }); }
+    if (!fs.existsSync(queueDir)) {
+      fs.mkdirSync(queueDir, { recursive: true });
+    }
     const id = 'sb_email_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
     const filePath = path.join(queueDir, id + '.json');
-    fs.writeFileSync(filePath, JSON.stringify({ id, to, subject, html, queuedAt: new Date().toISOString() }, null, 2) + '\n');
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({ id, to, subject, html, queuedAt: new Date().toISOString() }, null, 2) + '\n'
+    );
     return { sent: false, status: 'queued' };
   } catch {
     return { sent: false, status: 'failed' };
@@ -108,7 +154,11 @@ let latestAiContext: unknown = null;
 let aiContextCallback: ((context: unknown) => void) | null = null;
 
 // ── External-browser → VS Code notification bridge ──
-interface NotifyEntry { type: string; payload: any; ts: number; }
+interface NotifyEntry {
+  type: string;
+  payload: any;
+  ts: number;
+}
 const notificationQueue: NotifyEntry[] = [];
 let notifyCallback: ((entry: NotifyEntry) => void) | null = null;
 
@@ -532,12 +582,38 @@ function isDashboardStaticAsset(pathname: string): boolean {
 }
 
 const DASHBOARD_SPA_ROUTES = new Set([
-  '/dashboard', '/analyze', '/certificate', '/aicontext', '/audit', '/report',
-  '/security', '/trust', '/quality', '/assessments', '/platform', '/scan',
-  '/profile', '/about', '/repohealth', '/analytics', '/team', '/settings',
-  '/help', '/roadmap', '/pricing', '/upload', '/compliance', '/results',
-  '/tools', '/chatbot', '/admin', '/features', '/getting-started',
-  '/signin', '/register', '/remediation'
+  '/dashboard',
+  '/analyze',
+  '/certificate',
+  '/aicontext',
+  '/audit',
+  '/report',
+  '/security',
+  '/trust',
+  '/quality',
+  '/assessments',
+  '/platform',
+  '/scan',
+  '/profile',
+  '/about',
+  '/repohealth',
+  '/analytics',
+  '/team',
+  '/settings',
+  '/help',
+  '/roadmap',
+  '/pricing',
+  '/upload',
+  '/compliance',
+  '/results',
+  '/tools',
+  '/chatbot',
+  '/admin',
+  '/features',
+  '/getting-started',
+  '/signin',
+  '/register',
+  '/remediation',
 ]);
 
 function isDashboardSpaRoute(pathname: string): boolean {
@@ -576,7 +652,11 @@ function getTokenId(token: string): string {
   return token.slice(0, 16);
 }
 
-function recordTokenInRegistry(token: string, user: { email?: string; tier?: string; plan?: string }, authMethod: TokenRegistryEntry['authMethod']): void {
+function recordTokenInRegistry(
+  token: string,
+  user: { email?: string; tier?: string; plan?: string },
+  authMethod: TokenRegistryEntry['authMethod']
+): void {
   if (!token || token.length <= 10) return;
   const id = getTokenId(token);
   const existing = tokenRegistry.get(id);
@@ -740,7 +820,7 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
     const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const pad = '='.repeat((4 - base64.length % 4) % 4);
+    const pad = '='.repeat((4 - (base64.length % 4)) % 4);
     return JSON.parse(Buffer.from(base64 + pad, 'base64').toString('utf8'));
   } catch {
     return null;
@@ -757,9 +837,11 @@ function trustLevelFromTier(tier?: string): string {
 function normalizeAuthUser(user: any): any {
   if (!user || typeof user !== 'object') return null;
   const tier = user.tier || user.plan || 'free';
-  const isAdmin = user.role === 'admin' || user.role === 'superuser' ||
+  const isAdmin =
+    user.role === 'admin' ||
+    user.role === 'superuser' ||
     String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai';
-  const features = Array.isArray(user.features) ? user.features : (isAdmin ? ['all_modules'] : []);
+  const features = Array.isArray(user.features) ? user.features : isAdmin ? ['all_modules'] : [];
   const trustLevel = user.trustLevel || (isAdmin ? 'gold' : trustLevelFromTier(tier));
   return {
     id: user.id || 'user',
@@ -767,9 +849,9 @@ function normalizeAuthUser(user: any): any {
     name: user.name || (user.email ? user.email.split('@')[0] : 'User'),
     tier,
     plan: tier,
-    role: isAdmin ? 'admin' : (user.role || 'user'),
+    role: isAdmin ? 'admin' : user.role || 'user',
     features,
-    trustLevel
+    trustLevel,
   };
 }
 
@@ -777,14 +859,22 @@ function validateJwt(token: string): { valid: boolean; user?: any } {
   const payload = decodeJwtPayload(token);
   if (!payload) return { valid: false };
   if (payload.exp && payload.exp * 1000 < Date.now()) return { valid: false };
-  const tier = payload.tier || payload.plan || payload.product || payload.role ||
-    payload.user?.tier || payload.user?.plan ||
-    payload.data?.tier || payload.data?.plan ||
-    payload.account?.tier || payload.account?.plan ||
-    payload.subscription?.tier || payload.subscription?.plan ||
+  const tier =
+    payload.tier ||
+    payload.plan ||
+    payload.product ||
+    payload.role ||
+    payload.user?.tier ||
+    payload.user?.plan ||
+    payload.data?.tier ||
+    payload.data?.plan ||
+    payload.account?.tier ||
+    payload.account?.plan ||
+    payload.subscription?.tier ||
+    payload.subscription?.plan ||
     'free';
   const isAdmin = payload.role === 'admin' || payload.role === 'superuser';
-  const features = Array.isArray(payload.features) ? payload.features : (isAdmin ? ['all_modules'] : []);
+  const features = Array.isArray(payload.features) ? payload.features : isAdmin ? ['all_modules'] : [];
   return {
     valid: true,
     user: normalizeAuthUser({
@@ -794,15 +884,17 @@ function validateJwt(token: string): { valid: boolean; user?: any } {
       tier,
       role: payload.role,
       features,
-      trustLevel: payload.trustLevel
-    })
+      trustLevel: payload.trustLevel,
+    }),
   };
 }
 
 function getTokenPasswordsPath(): string {
   const workspacePath = serverState.workspacePath || process.cwd();
   const sbDir = path.join(workspacePath, '.simplebeacon');
-  if (!fs.existsSync(sbDir)) { fs.mkdirSync(sbDir, { recursive: true }); }
+  if (!fs.existsSync(sbDir)) {
+    fs.mkdirSync(sbDir, { recursive: true });
+  }
   return path.join(sbDir, 'token-passwords.json');
 }
 
@@ -818,7 +910,9 @@ function loadTokenPasswords(): Record<string, string> {
 function saveTokenPasswords(passwords: Record<string, string>): void {
   try {
     fs.writeFileSync(getTokenPasswordsPath(), JSON.stringify(passwords, null, 2), 'utf8');
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 }
 
 async function _getOrGeneratePepper(): Promise<string> {
@@ -826,12 +920,21 @@ async function _getOrGeneratePepper(): Promise<string> {
   if (extensionContext?.secrets) {
     try {
       const stored = await extensionContext.secrets.get('sb:token-pepper');
-      if (stored) { _tokenPepper = stored; return _tokenPepper; }
-    } catch { /* ignore — fall through to generation */ }
+      if (stored) {
+        _tokenPepper = stored;
+        return _tokenPepper;
+      }
+    } catch {
+      /* ignore — fall through to generation */
+    }
   }
   _tokenPepper = crypto.randomBytes(32).toString('hex');
   if (extensionContext?.secrets) {
-    try { await extensionContext.secrets.store('sb:token-pepper', _tokenPepper); } catch { /* ignore */ }
+    try {
+      await extensionContext.secrets.store('sb:token-pepper', _tokenPepper);
+    } catch {
+      /* ignore */
+    }
   }
   return _tokenPepper;
 }
@@ -873,7 +976,7 @@ interface LocalUser {
 
 const DEMO_LOCAL_USERS: Array<{ email: string; password: string; tier: string; name: string }> = [
   { email: 'dev@simplebeacon.ai', password: 'demo123', tier: 'silver', name: 'Dev User' },
-  { email: 'admin@simplebeacon.ai', password: 'admin123', tier: 'admin', name: 'Admin User' }
+  { email: 'admin@simplebeacon.ai', password: 'admin123', tier: 'admin', name: 'Admin User' },
 ];
 
 function ensureDemoLocalUsers(): void {
@@ -884,12 +987,15 @@ function ensureDemoLocalUsers(): void {
     const existing = users.find((u) => u.email.toLowerCase() === normalized);
     if (!existing) {
       users.push({
-        id: crypto.randomBytes(16).toString('hex').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'),
+        id: crypto
+          .randomBytes(16)
+          .toString('hex')
+          .replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'),
         email: normalized,
         passwordHash: _hashPassword(demo.password),
         createdAt: new Date().toISOString(),
         tier: demo.tier,
-        name: demo.name
+        name: demo.name,
       });
       changed = true;
       continue;
@@ -903,7 +1009,9 @@ function ensureDemoLocalUsers(): void {
       changed = true;
     }
   }
-  if (changed) { saveLocalUsers(users); }
+  if (changed) {
+    saveLocalUsers(users);
+  }
 }
 
 function localUserToAuthPayload(user: LocalUser): Record<string, unknown> {
@@ -915,14 +1023,16 @@ function localUserToAuthPayload(user: LocalUser): Record<string, unknown> {
     tier: user.tier,
     role: isAdmin ? 'admin' : 'user',
     features: isAdmin ? ['all_modules'] : [],
-    trustLevel: isAdmin ? 'gold' : trustLevelFromTier(user.tier)
+    trustLevel: isAdmin ? 'gold' : trustLevelFromTier(user.tier),
   });
 }
 
 function getLocalUsersPath(): string {
   const workspacePath = serverState.workspacePath || process.cwd();
   const sbDir = path.join(workspacePath, '.simplebeacon');
-  if (!fs.existsSync(sbDir)) { fs.mkdirSync(sbDir, { recursive: true }); }
+  if (!fs.existsSync(sbDir)) {
+    fs.mkdirSync(sbDir, { recursive: true });
+  }
   return path.join(sbDir, 'local-users.json');
 }
 
@@ -930,7 +1040,9 @@ function loadLocalUsers(): LocalUser[] {
   try {
     const raw = fs.readFileSync(getLocalUsersPath(), 'utf8');
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) { return []; }
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
     return parsed.filter((u: any) => u && typeof u.email === 'string' && typeof u.passwordHash === 'string');
   } catch {
     return [];
@@ -940,7 +1052,9 @@ function loadLocalUsers(): LocalUser[] {
 function saveLocalUsers(users: LocalUser[]): void {
   try {
     fs.writeFileSync(getLocalUsersPath(), JSON.stringify(users, null, 2), 'utf8');
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 }
 
 const webAuthnChallenges = new Map<string, { challenge: string; purpose: string; expiresAt: number }>();
@@ -960,33 +1074,52 @@ function loadWebAuthnStore(): Record<string, any> {
 function saveWebAuthnStore(store: Record<string, any>): void {
   const credPath = getWebAuthnCredPath();
   const sbDir = path.dirname(credPath);
-  if (!fs.existsSync(sbDir)) { fs.mkdirSync(sbDir, { recursive: true }); }
+  if (!fs.existsSync(sbDir)) {
+    fs.mkdirSync(sbDir, { recursive: true });
+  }
   fs.writeFileSync(credPath, JSON.stringify(store, null, 2), 'utf8');
 }
 
 function resolveWebAuthnUser(req: http.IncomingMessage): { id: string; email?: string } | null {
   const token = getAuthToken(req);
-  if (!token) { return null; }
+  if (!token) {
+    return null;
+  }
   const jwtResult = validateJwt(token);
-  if (jwtResult.valid && jwtResult.user) { return jwtResult.user; }
+  if (jwtResult.valid && jwtResult.user) {
+    return jwtResult.user;
+  }
   return null;
 }
 
-async function createLocalUser(email: string, password: string, name?: string, username?: string): Promise<LocalUser | null> {
+async function createLocalUser(
+  email: string,
+  password: string,
+  name?: string,
+  username?: string
+): Promise<LocalUser | null> {
   ensureDemoLocalUsers();
   const users = loadLocalUsers();
   const normalizedEmail = email.toLowerCase();
-  if (users.some(u => u.email.toLowerCase() === normalizedEmail || (username && u.username?.toLowerCase() === username.toLowerCase()))) {
+  if (
+    users.some(
+      (u) =>
+        u.email.toLowerCase() === normalizedEmail || (username && u.username?.toLowerCase() === username.toLowerCase())
+    )
+  ) {
     return null; // email or username already exists
   }
   const user: LocalUser = {
-    id: crypto.randomBytes(16).toString('hex').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'),
+    id: crypto
+      .randomBytes(16)
+      .toString('hex')
+      .replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'),
     email: normalizedEmail,
     passwordHash: _hashPassword(password),
     createdAt: new Date().toISOString(),
     tier: 'pro',
     ...(name ? { name } : {}),
-    ...(username ? { username: username.toLowerCase() } : {})
+    ...(username ? { username: username.toLowerCase() } : {}),
   };
   users.push(user);
   saveLocalUsers(users);
@@ -997,7 +1130,7 @@ async function validateLocalUser(emailOrUsername: string, password: string): Pro
   ensureDemoLocalUsers();
   const users = loadLocalUsers();
   const normalized = emailOrUsername.toLowerCase().trim();
-  const user = users.find(u => u.email.toLowerCase() === normalized || u.username?.toLowerCase() === normalized);
+  const user = users.find((u) => u.email.toLowerCase() === normalized || u.username?.toLowerCase() === normalized);
   if (!user) return null;
   const valid = _verifyPassword(password, user.passwordHash);
   return valid ? user : null;
@@ -1006,55 +1139,77 @@ async function validateLocalUser(emailOrUsername: string, password: string): Pro
 function issueLocalJwt(user: LocalUser): string {
   const now = Math.floor(Date.now() / 1000);
   const isAdmin = user.tier === 'admin' || user.email.toLowerCase() === 'admin@simplebeacon.ai';
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-  const payload = Buffer.from(JSON.stringify({
-    sub: user.id,
-    email: user.email,
-    tier: user.tier,
-    plan: user.tier,
-    ...(isAdmin ? { role: 'admin', features: ['all_modules'] } : {}),
-    iat: now,
-    exp: now + 60 * 60 * 24 * 30
-  })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+  const payload = Buffer.from(
+    JSON.stringify({
+      sub: user.id,
+      email: user.email,
+      tier: user.tier,
+      plan: user.tier,
+      ...(isAdmin ? { role: 'admin', features: ['all_modules'] } : {}),
+      iat: now,
+      exp: now + 60 * 60 * 24 * 30,
+    })
+  )
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
   return `${header}.${payload}.local-jwt`;
 }
 
-
-async function findDirectoryByName(rootPath: string, targetName: string, maxDepth = 8, maxResults = 10, maxDirsPerLevel = 200): Promise<string[]> {
+async function findDirectoryByName(
+  rootPath: string,
+  targetName: string,
+  maxDepth = 8,
+  maxResults = 10,
+  maxDirsPerLevel = 200
+): Promise<string[]> {
   const results: string[] = [];
   let current = [rootPath];
   for (let d = 0; d <= maxDepth && current.length > 0; d++) {
     if (results.length >= maxResults) break;
     const toProcess = current.length > maxDirsPerLevel ? current.slice(0, maxDirsPerLevel) : current;
     const next: string[] = [];
-    await Promise.all(toProcess.map(async (p) => {
-      try {
-        const names = await fs.promises.readdir(p);
-        for (const name of names) {
-          if (results.length >= maxResults) break;
-          if (name.startsWith('$') || name === 'System Volume Information') continue;
-          try {
-            const full = path.join(p, name);
-            const stat = await fs.promises.lstat(full);
-            if (stat.isDirectory() || stat.isSymbolicLink()) {
-              if (name.toLowerCase() === targetName.toLowerCase()) {
-                results.push(full);
-                if (results.length >= maxResults) break;
+    await Promise.all(
+      toProcess.map(async (p) => {
+        try {
+          const names = await fs.promises.readdir(p);
+          for (const name of names) {
+            if (results.length >= maxResults) break;
+            if (name.startsWith('$') || name === 'System Volume Information') continue;
+            try {
+              const full = path.join(p, name);
+              const stat = await fs.promises.lstat(full);
+              if (stat.isDirectory() || stat.isSymbolicLink()) {
+                if (name.toLowerCase() === targetName.toLowerCase()) {
+                  results.push(full);
+                  if (results.length >= maxResults) break;
+                }
+                next.push(full);
               }
-              next.push(full);
+            } catch {
+              /* skip inaccessible */
             }
-          } catch { /* skip inaccessible */ }
+          }
+        } catch {
+          /* skip permission denied */
         }
-      } catch { /* skip permission denied */ }
-    }));
+      })
+    );
     current = next;
   }
   return results;
 }
 
-
 function resolveRealPath(inputPath: string): string {
-  if (!inputPath) { return inputPath; }
+  if (!inputPath) {
+    return inputPath;
+  }
   const corrected = correctScanPath(inputPath);
   try {
     return fs.realpathSync(corrected);
@@ -1063,16 +1218,38 @@ function resolveRealPath(inputPath: string): string {
   }
 }
 
-function getDirectoryMetrics(scanPath: string): { totalFiles: number; totalSize: number; breakdown: Record<string, number> } {
+function getDirectoryMetrics(scanPath: string): {
+  totalFiles: number;
+  totalSize: number;
+  breakdown: Record<string, number>;
+} {
   const breakdown: Record<string, number> = {};
   let totalFiles = 0;
   let totalSize = 0;
-  const skipDirs = new Set(['node_modules', '.git', 'dist', 'build', 'out', '.next', '__pycache__', '.venv', 'vendor', 'coverage', '.nyc_output']);
+  const skipDirs = new Set([
+    'node_modules',
+    '.git',
+    'dist',
+    'build',
+    'out',
+    '.next',
+    '__pycache__',
+    '.venv',
+    'vendor',
+    'coverage',
+    '.nyc_output',
+  ]);
   function walk(dir: string) {
     let entries: fs.Dirent[];
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const entry of entries) {
-      if (skipDirs.has(entry.name)) { continue; }
+      if (skipDirs.has(entry.name)) {
+        continue;
+      }
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
@@ -1081,7 +1258,9 @@ function getDirectoryMetrics(scanPath: string): { totalFiles: number; totalSize:
         try {
           const stat = fs.statSync(fullPath);
           totalSize += stat.size;
-        } catch { /* skip inaccessible files */ }
+        } catch {
+          /* skip inaccessible files */
+        }
         const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
         breakdown[ext] = (breakdown[ext] || 0) + 1;
       }
@@ -1092,10 +1271,14 @@ function getDirectoryMetrics(scanPath: string): { totalFiles: number; totalSize:
 }
 
 function resolveFolderNameToPath(folderName: string, hintPath?: string): string | null {
-  if (!folderName) { return null; }
+  if (!folderName) {
+    return null;
+  }
   // Reject known-invalid nested paths that should never be resolved
   const badPathPattern = /ai-platform\/CascadeProjects$|google-earthenterprise/i;
-  if (badPathPattern.test(folderName)) { return null; }
+  if (badPathPattern.test(folderName)) {
+    return null;
+  }
   const roots: string[] = [];
   if (hintPath) {
     roots.push(resolveRealPath(hintPath));
@@ -1108,32 +1291,42 @@ function resolveFolderNameToPath(folderName: string, hintPath?: string): string 
     roots.push(resolveRealPath(workspaceRoot));
   }
   if (os.platform() === 'win32') {
-    roots.push(...getWindowsDrives().map(d => d + '\\'));
+    roots.push(...getWindowsDrives().map((d) => d + '\\'));
   } else {
     roots.push('/');
   }
   // Deduplicate roots.
   const seenRoots = new Set<string>();
-  const uniqueRoots = roots.filter(r => {
+  const uniqueRoots = roots.filter((r) => {
     const key = r.toLowerCase();
-    if (seenRoots.has(key)) { return false; }
+    if (seenRoots.has(key)) {
+      return false;
+    }
     seenRoots.add(key);
     return true;
   });
 
   function searchRecursive(dir: string, depth: number): string | null {
-    if (depth <= 0) { return null; }
-    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) { return null; }
+    if (depth <= 0) {
+      return null;
+    }
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+      return null;
+    }
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (!entry.isDirectory()) { continue; }
+        if (!entry.isDirectory()) {
+          continue;
+        }
         const candidate = path.join(dir, entry.name);
         if (entry.name.toLowerCase() === folderName.toLowerCase()) {
           return resolveRealPath(candidate);
         }
         const deeper = searchRecursive(candidate, depth - 1);
-        if (deeper) { return deeper; }
+        if (deeper) {
+          return deeper;
+        }
       }
     } catch {
       // ignore unreadable directories
@@ -1147,12 +1340,12 @@ function resolveFolderNameToPath(folderName: string, hintPath?: string): string 
       return resolveRealPath(exact);
     }
     const found = searchRecursive(root, 3);
-    if (found) { return found; }
+    if (found) {
+      return found;
+    }
   }
   return null;
 }
-
-
 
 export function setAiContextCallback(fn: ((context: unknown) => void) | null): void {
   aiContextCallback = fn;
@@ -1174,18 +1367,25 @@ export function buildAiContextMarkdown(context: any): string {
     '',
     '### Summary',
     '',
-    Object.entries(summary).map(([k, v]) => `- ${k}: ${v}`).join('\n') || '_No summary provided._',
+    Object.entries(summary)
+      .map(([k, v]) => `- ${k}: ${v}`)
+      .join('\n') || '_No summary provided._',
     '',
   ];
   if (issues.length > 0) {
     lines.push('### Findings');
     lines.push('');
-    lines.push(issues.slice(0, 50).map((i: any) => {
-      const sev = i.severity || i.sev || 'low';
-      const type = i.type || i.category || 'issue';
-      const desc = i.description || i.message || i.title || JSON.stringify(i).slice(0, 120);
-      return `- [${sev}] ${type}: ${desc}`;
-    }).join('\n'));
+    lines.push(
+      issues
+        .slice(0, 50)
+        .map((i: any) => {
+          const sev = i.severity || i.sev || 'low';
+          const type = i.type || i.category || 'issue';
+          const desc = i.description || i.message || i.title || JSON.stringify(i).slice(0, 120);
+          return `- [${sev}] ${type}: ${desc}`;
+        })
+        .join('\n')
+    );
     lines.push('');
   }
   lines.push('_Paste this into your AI coding agent for remediation guidance._');
@@ -1201,7 +1401,12 @@ function buildChatbotPrompt(message: string, conversationHistory: any[], data: a
     contextParts.push('Attached files:\n' + data.mentions.map((m: any) => `- ${m.filePath}`).join('\n'));
   }
   if (Array.isArray(data.findings) && data.findings.length > 0) {
-    contextParts.push('Attached findings:\n' + data.findings.map((f: any) => `- [${f.severity || 'unknown'}] ${f.type || 'issue'}: ${f.description || 'No description'}`).join('\n'));
+    contextParts.push(
+      'Attached findings:\n' +
+        data.findings
+          .map((f: any) => `- [${f.severity || 'unknown'}] ${f.type || 'issue'}: ${f.description || 'No description'}`)
+          .join('\n')
+    );
   }
   if (data.username && typeof data.username === 'string') {
     contextParts.push(`Address the user as "${data.username}" when greeting or referring to them.`);
@@ -1224,8 +1429,8 @@ function streamChatbotStub(res: http.ServerResponse, message: string, note: stri
   res.writeHead(200, {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Transfer-Encoding': 'chunked'
+    Connection: 'keep-alive',
+    'Transfer-Encoding': 'chunked',
   });
   res.write(JSON.stringify({ response }) + '\n');
   res.end();
@@ -1271,16 +1476,16 @@ let cachedDashboardRootTime = 0;
 const DASHBOARD_ROOT_CACHE_TTL = 30000; // 30 seconds
 
 function dashboardRootHasAssets(p: string): boolean {
-  return fs.existsSync(p) &&
+  return (
+    fs.existsSync(p) &&
     fs.existsSync(path.join(p, 'index.vanilla.html')) &&
     fs.existsSync(path.join(p, 'css', 'variables.css')) &&
-    fs.existsSync(path.join(p, 'js-es2018', 'main.js'));
+    fs.existsSync(path.join(p, 'js-es2018', 'main.js'))
+  );
 }
 
 function pickDashboardRoot(candidates: string[]): string {
-  return candidates.find(dashboardRootHasAssets) ||
-    candidates.find((p) => fs.existsSync(p)) ||
-    candidates[0];
+  return candidates.find(dashboardRootHasAssets) || candidates.find((p) => fs.existsSync(p)) || candidates[0];
 }
 
 /** Resolve dashboard-web directory with simple fs-cache to avoid repeated scans. */
@@ -1316,7 +1521,9 @@ let dataServer: http.Server | null = null;
 let dataServerPort = 54358;
 let modernSidebarProviderRef: { addDownloadedFile: (name: string, path: string) => void } | null = null;
 
-export function setModernSidebarProvider(provider: { addDownloadedFile: (name: string, path: string) => void } | null): void {
+export function setModernSidebarProvider(
+  provider: { addDownloadedFile: (name: string, path: string) => void } | null
+): void {
   modernSidebarProviderRef = provider;
 }
 
@@ -1324,7 +1531,8 @@ function resolveDownloadPath(urlOrPath: string, context: vscode.ExtensionContext
   try {
     const url = new URL(urlOrPath, `http://127.0.0.1:${dataServerPort}`);
     const pathname = url.pathname;
-    const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
+    const staticWorkspacePath =
+      (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
     if (pathname.startsWith('/coming-soon/')) {
       const comingSoonPath = pathname.slice('/coming-soon/'.length);
       const comingSoonCandidates = [
@@ -1371,7 +1579,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
   let requestedPort = config.get<number>('dataServerPort', 54358);
   if (typeof requestedPort !== 'number' || requestedPort < 1 || requestedPort > 65535) {
     if (outputChannel) {
-      outputChannel.appendLine(`[SimpleBeacon DataServer] Invalid port ${requestedPort}, falling back to default 54358`);
+      outputChannel.appendLine(
+        `[SimpleBeacon DataServer] Invalid port ${requestedPort}, falling back to default 54358`
+      );
     }
     requestedPort = 54358;
   }
@@ -1396,19 +1606,31 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // CORS: restrict origins to local loopback, VS Code: webviews, and sandboxed file origins.
     function isAllowedCorsOrigin(origin: string | undefined): boolean {
-      if (!origin || origin === 'null') { return true; }
+      if (!origin || origin === 'null') {
+        return true;
+      }
       const allowedLocal = [
         `http://127.0.0.1:${dataServerPort}`,
         `http://localhost:${dataServerPort}`,
         `https://127.0.0.1:${dataServerPort}`,
         `https://localhost:${dataServerPort}`,
       ];
-      if (allowedLocal.includes(origin)) { return true; }
-      if (origin.startsWith('vscode-webview://')) { return true; }
-      if (origin.startsWith('vscode-file://')) { return true; }
+      if (allowedLocal.includes(origin)) {
+        return true;
+      }
+      if (origin.startsWith('vscode-webview://')) {
+        return true;
+      }
+      if (origin.startsWith('vscode-file://')) {
+        return true;
+      }
       // Allow the hosted dashboard (simplebeacon.ai) when in extension bridge mode
-      if (origin === 'https://simplebeacon.ai' || origin === 'https://www.simplebeacon.ai') { return true; }
-      if (origin.endsWith('.simplebeacon.pages.dev')) { return true; }
+      if (origin === 'https://simplebeacon.ai' || origin === 'https://www.simplebeacon.ai') {
+        return true;
+      }
+      if (origin.endsWith('.simplebeacon.pages.dev')) {
+        return true;
+      }
       return false;
     }
     const rawOrigin = req.headers.origin;
@@ -1416,7 +1638,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     const requestOrigin = rawOrigin && rawOrigin !== 'null' && isAllowedOrigin ? rawOrigin : '*';
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With, Accept, Accept-Language, X-CSRF-Token, X-Api-Key');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Cache-Control, Authorization, X-Requested-With, Accept, Accept-Language, X-CSRF-Token, X-Api-Key'
+    );
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.setHeader('Vary', 'Origin');
@@ -1425,7 +1650,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Private-Network': 'true'
+        'Access-Control-Allow-Private-Network': 'true',
       });
       res.end();
       return;
@@ -1436,7 +1661,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       });
       res.write(':ok\n\n');
       const cid = ++sseClientId;
@@ -1445,16 +1670,30 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       // Push current state immediately
       try {
         res.write(`data: ${JSON.stringify({ type: 'state', payload: serverState })}\n\n`);
-      } catch { /* simplebeacon-ignore error-swallowing — SSE write best-effort */ }
+      } catch {
+        /* simplebeacon-ignore error-swallowing — SSE write best-effort */
+      }
       req.on('close', () => {
         const idx = sseClients.findIndex((c) => c.id === cid);
-        if (idx >= 0) { sseClients.splice(idx, 1); }
-        try { res.end(); } catch { /* ignore */ }
+        if (idx >= 0) {
+          sseClients.splice(idx, 1);
+        }
+        try {
+          res.end();
+        } catch {
+          /* ignore */
+        }
       });
       req.on('error', () => {
         const idx = sseClients.findIndex((c) => c.id === cid);
-        if (idx >= 0) { sseClients.splice(idx, 1); }
-        try { res.end(); } catch { /* ignore */ }
+        if (idx >= 0) {
+          sseClients.splice(idx, 1);
+        }
+        try {
+          res.end();
+        } catch {
+          /* ignore */
+        }
       });
       return;
     }
@@ -1464,17 +1703,19 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const addr = dataServer?.address();
       const activePort = addr && typeof addr === 'object' ? addr.port : dataServerPort;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        service: 'simplebeacon-bridge',
-        platform: 'Simplebeacon',
-        status: 'ok',
-        timestamp: Date.now(),
-        version: serverState.extensionVersion || 'unknown',
-        port: activePort,
-        workspacePath: serverState.workspacePath || '',
-        capabilities: ['pick-folder', 'find-folder', 'scan', 'report'],
-        bridgeToken: getOrCreateBridgeToken()
-      }));
+      res.end(
+        JSON.stringify({
+          service: 'simplebeacon-bridge',
+          platform: 'Simplebeacon',
+          status: 'ok',
+          timestamp: Date.now(),
+          version: serverState.extensionVersion || 'unknown',
+          port: activePort,
+          workspacePath: serverState.workspacePath || '',
+          capabilities: ['pick-folder', 'find-folder', 'scan', 'report'],
+          bridgeToken: getOrCreateBridgeToken(),
+        })
+      );
       return;
     }
 
@@ -1488,14 +1729,16 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Pricing config endpoint (used by coming-soon site pages)
     if (parsed.pathname === '/api/config/pricing') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        pricing: {
-          instant: { stripeLink: process.env.STRIPE_LINK_INSTANT || '' },
-          executive: { stripeLink: process.env.STRIPE_LINK_EXECUTIVE || '' },
-          euSprint: { stripeLink: process.env.STRIPE_LINK_EU_SPRINT || '' }
-        }
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          pricing: {
+            instant: { stripeLink: process.env.STRIPE_LINK_INSTANT || '' },
+            executive: { stripeLink: process.env.STRIPE_LINK_EXECUTIVE || '' },
+            euSprint: { stripeLink: process.env.STRIPE_LINK_EU_SPRINT || '' },
+          },
+        })
+      );
       return;
     }
 
@@ -1504,7 +1747,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const email = parsed.searchParams.get('email') || '';
       if (req.method === 'POST') {
         let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
         req.on('end', async () => {
           try {
             const data = body ? JSON.parse(body) : {};
@@ -1512,24 +1757,44 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             const sendEmailFlag = data.sendEmail === true;
             const referrer = data.referrer || 'audit';
             const now = Math.floor(Date.now() / 1000);
-            const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-            const payload = Buffer.from(JSON.stringify({ email: userEmail, tier: 'community', source: 'free-token', iat: now, exp: now + 60 * 60 * 24 * 7 })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+            const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+              .toString('base64')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_')
+              .replace(/=/g, '');
+            const payload = Buffer.from(
+              JSON.stringify({
+                email: userEmail,
+                tier: 'community',
+                source: 'free-token',
+                iat: now,
+                exp: now + 60 * 60 * 24 * 7,
+              })
+            )
+              .toString('base64')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_')
+              .replace(/=/g, '');
             const token = `${header}.${payload}.free-token`;
             let emailResult = { sent: false, status: 'skipped' };
             if (sendEmailFlag && userEmail.includes('@')) {
               emailResult = { sent: false, status: 'sandbox-missing' };
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              success: true,
-              token,
-              tier: 'community',
-              expiresInDays: 7,
-              cached: false,
-              emailSent: emailResult.sent,
-              emailStatus: emailResult.status,
-              message: emailResult.sent ? 'Token generated and emailed. Check your inbox!' : 'Free community token generated. Valid for 7 days.'
-            }));
+            res.end(
+              JSON.stringify({
+                success: true,
+                token,
+                tier: 'community',
+                expiresInDays: 7,
+                cached: false,
+                emailSent: emailResult.sent,
+                emailStatus: emailResult.status,
+                message: emailResult.sent
+                  ? 'Token generated and emailed. Check your inbox!'
+                  : 'Free community token generated. Valid for 7 days.',
+              })
+            );
           } catch {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Invalid JSON' }));
@@ -1538,18 +1803,36 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         return;
       }
       const now = Math.floor(Date.now() / 1000);
-      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-      const payload = Buffer.from(JSON.stringify({ email: email || 'community@simplebeacon.ai', tier: 'community', source: 'free-token', iat: now, exp: now + 60 * 60 * 24 * 7 })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+      const payload = Buffer.from(
+        JSON.stringify({
+          email: email || 'community@simplebeacon.ai',
+          tier: 'community',
+          source: 'free-token',
+          iat: now,
+          exp: now + 60 * 60 * 24 * 7,
+        })
+      )
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
       const token = `${header}.${payload}.free-token`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        token,
-        tier: 'community',
-        expiresInDays: 7,
-        cached: false,
-        message: 'Free community token generated. Valid for 7 days.'
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          token,
+          tier: 'community',
+          expiresInDays: 7,
+          cached: false,
+          message: 'Free community token generated. Valid for 7 days.',
+        })
+      );
       return;
     }
 
@@ -1559,7 +1842,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // Native OS folder picker for the dashboard/analyze page (canonical + legacy alias)
-    if ((parsed.pathname === '/api/analyze/pick-folder' || parsed.pathname === '/api/pick-folder') && req.method === 'POST') {
+    if (
+      (parsed.pathname === '/api/analyze/pick-folder' || parsed.pathname === '/api/pick-folder') &&
+      req.method === 'POST'
+    ) {
       if (!isBridgeTokenValid(req)) {
         rejectBridgeToken(res);
         return;
@@ -1600,14 +1886,20 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         currentFile: serverState.scanProgressFile || '',
       };
       try {
-        const progressPath = path.join(path.resolve(projectPath || serverState.workspacePath || '.'), '.simplebeacon', 'scan-progress.json');
+        const progressPath = path.join(
+          path.resolve(projectPath || serverState.workspacePath || '.'),
+          '.simplebeacon',
+          'scan-progress.json'
+        );
         if (projectPath && fs.existsSync(progressPath)) {
           const fileData = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
           if (fileData && typeof fileData === 'object' && fileData.active !== false) {
             progress = { active: true, ...fileData };
           }
         }
-      } catch { /* use serverState fallback */ }
+      } catch {
+        /* use serverState fallback */
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, progress, steps: [] }));
       return;
@@ -1656,14 +1948,16 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Platform status stub
     if (parsed.pathname === '/api/platform/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        online: true,
-        version: serverState.extensionVersion,
-        scanStatus: serverState.scanStatus,
-        scanMessage: serverState.scanMessage,
-        lastScanTime: serverState.lastScanTime,
-        authRequired: false,
-      }));
+      res.end(
+        JSON.stringify({
+          online: true,
+          version: serverState.extensionVersion,
+          scanStatus: serverState.scanStatus,
+          scanMessage: serverState.scanMessage,
+          lastScanTime: serverState.lastScanTime,
+          authRequired: false,
+        })
+      );
       return;
     }
 
@@ -1677,18 +1971,20 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Path-health metrics stub
     if (parsed.pathname === '/api/metrics/path-health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'success',
-        summary: {
-          totalFilesScanned: 0,
-          totalFilesIgnored: 0,
-          activeRuleCount: 0,
-          globalGate: 'PASS'
-        },
-        directories: [],
-        engine: { version: '0.0.0', suppressedFalsePositives: 0 },
-        timestamp: Date.now()
-      }));
+      res.end(
+        JSON.stringify({
+          status: 'success',
+          summary: {
+            totalFilesScanned: 0,
+            totalFilesIgnored: 0,
+            activeRuleCount: 0,
+            globalGate: 'PASS',
+          },
+          directories: [],
+          engine: { version: '0.0.0', suppressedFalsePositives: 0 },
+          timestamp: Date.now(),
+        })
+      );
       return;
     }
 
@@ -1699,14 +1995,16 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
+          'Access-Control-Allow-Headers': 'Content-Type',
         });
         res.end();
         return;
       }
       if (req.method === 'POST') {
         let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
         req.on('end', () => {
           try {
             const data = JSON.parse(body);
@@ -1728,13 +2026,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             }
             res.writeHead(200, {
               'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*'
+              'Access-Control-Allow-Origin': '*',
             });
             res.end(JSON.stringify({ ok: true, path: resolvedPath }));
           } catch (e) {
             res.writeHead(400, {
               'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*'
+              'Access-Control-Allow-Origin': '*',
             });
             res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
           }
@@ -1760,53 +2058,59 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         ollamaAvailable = ollamaRes.ok;
         if (ollamaRes.ok) {
           const tagsPayload = await ollamaRes.json().catch(() => ({}));
-          ollamaModels = Array.from(new Set(((tagsPayload as any)?.models || [])
-            .map((entry: any) => entry?.name || entry?.model)
-            .filter(Boolean)));
+          ollamaModels = Array.from(
+            new Set(
+              ((tagsPayload as any)?.models || []).map((entry: any) => entry?.name || entry?.model).filter(Boolean)
+            )
+          );
         }
       } catch {
         ollamaAvailable = false;
         ollamaModels = [];
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        providers: [
-          {
-            id: 'ollama',
-            label: 'Ollama',
-            available: ollamaAvailable,
-            model: cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || '',
-            models: ollamaModels,
+      res.end(
+        JSON.stringify({
+          success: true,
+          providers: [
+            {
+              id: 'ollama',
+              label: 'Ollama',
+              available: ollamaAvailable,
+              model: cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || '',
+              models: ollamaModels,
+            },
+            {
+              id: 'openai',
+              label: 'OpenAI',
+              available: Boolean((aiKeys?.providers || {}).openai?.configured),
+              model: String(aiKeys?.openaiModel || ''),
+              models: [],
+            },
+            {
+              id: 'anthropic',
+              label: 'Anthropic',
+              available: Boolean((aiKeys?.providers || {}).anthropic?.configured),
+              model: String(aiKeys?.anthropicModel || ''),
+              models: [],
+            },
+          ],
+          modelsByProvider: {
+            ollama: ollamaModels,
+            openai: [],
+            anthropic: [],
           },
-          {
-            id: 'openai',
-            label: 'OpenAI',
-            available: Boolean((aiKeys?.providers || {}).openai?.configured),
-            model: String(aiKeys?.openaiModel || ''),
-            models: []
-          },
-          {
-            id: 'anthropic',
-            label: 'Anthropic',
-            available: Boolean((aiKeys?.providers || {}).anthropic?.configured),
-            model: String(aiKeys?.anthropicModel || ''),
-            models: []
-          }
-        ],
-        modelsByProvider: {
-          ollama: ollamaModels,
-          openai: [],
-          anthropic: []
-        }
-      }));
+        })
+      );
       return;
     }
 
     // Chatbot message endpoint — proxy to Ollama when configured, otherwise stream a local stub
     if (parsed.pathname === '/api/chatbot/message' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -1825,7 +2129,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           if (provider === 'ollama') {
             const ollamaUrl = cfg.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
             const requestedModel = sanitizeModelIdentifier(data.model);
-            const modelName = requestedModel || cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
+            const modelName =
+              requestedModel || cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
             const prompt = buildChatbotPrompt(message, data.conversationHistory, data);
 
             try {
@@ -1836,8 +2141,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                   model: modelName,
                   prompt,
                   stream: true,
-                  options: { temperature: 0.7 }
-                })
+                  options: { temperature: 0.7 },
+                }),
               });
 
               if (!ollamaRes.ok) {
@@ -1847,8 +2152,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               res.writeHead(200, {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                'Transfer-Encoding': 'chunked'
+                Connection: 'keep-alive',
+                'Transfer-Encoding': 'chunked',
               });
 
               const reader = ollamaRes.body?.getReader();
@@ -1868,12 +2173,20 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               res.end();
               return;
             } catch (ollamaError) {
-              streamChatbotStub(res, message, `Ollama is not reachable (${(ollamaError as Error).message}). Falling back to local mode.`);
+              streamChatbotStub(
+                res,
+                message,
+                `Ollama is not reachable (${(ollamaError as Error).message}). Falling back to local mode.`
+              );
               return;
             }
           }
 
-          streamChatbotStub(res, message, `Provider "${provider}" is not configured in local extension mode. Configure Ollama in VS Code: settings to enable chat.`);
+          streamChatbotStub(
+            res,
+            message,
+            `Provider "${provider}" is not configured in local extension mode. Configure Ollama in VS Code: settings to enable chat.`
+          );
         } catch (e) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
@@ -1886,7 +2199,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/simplebeacon/ollama/chat' && req.method === 'POST') {
       const baseUrl = String(parsed.searchParams.get('baseUrl') || '').trim() || 'http://127.0.0.1:11434';
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const normalized = baseUrl.replace(/\/+$/, '');
@@ -1894,7 +2209,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: body || '{}',
-            signal: AbortSignal.timeout(300000)
+            signal: AbortSignal.timeout(300000),
           });
           if (!ollamaRes.ok) {
             const errText = await ollamaRes.text().catch(() => '');
@@ -1905,8 +2220,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           res.writeHead(200, {
             'Content-Type': ollamaRes.headers.get('content-type') || 'application/x-ndjson',
             'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Transfer-Encoding': 'chunked'
+            Connection: 'keep-alive',
+            'Transfer-Encoding': 'chunked',
           });
           const reader = ollamaRes.body?.getReader();
           if (!reader) {
@@ -1933,27 +2248,44 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // Ollama model list proxy — lets HTTPS/website dashboards reach local Ollama via the extension data server
-    if ((parsed.pathname === '/api/simplebeacon/ollama/models' || parsed.pathname === '/api/tags') && req.method === 'GET') {
+    if (
+      (parsed.pathname === '/api/simplebeacon/ollama/models' || parsed.pathname === '/api/tags') &&
+      req.method === 'GET'
+    ) {
       const baseUrl = String(parsed.searchParams.get('baseUrl') || '').trim() || 'http://127.0.0.1:11434';
       try {
         const normalized = baseUrl.replace(/\/+$/, '');
         const ollamaUrl = `${normalized}/api/tags`;
         const response = await fetch(ollamaUrl, {
           method: 'GET',
-          signal: AbortSignal.timeout(10000)
+          signal: AbortSignal.timeout(10000),
         });
         if (!response.ok) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, models: [], source: 'ollama-proxy', error: `Ollama returned HTTP ${response.status}` }));
+          res.end(
+            JSON.stringify({
+              success: true,
+              models: [],
+              source: 'ollama-proxy',
+              error: `Ollama returned HTTP ${response.status}`,
+            })
+          );
           return;
         }
-        const data = await response.json().catch(() => ({})) as Record<string, any>;
+        const data = (await response.json().catch(() => ({}))) as Record<string, any>;
         const models = Array.isArray(data.models) ? data.models.map((m: any) => m.name || m.model) : [];
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, models, source: 'ollama-proxy' }));
       } catch (e) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, models: [], source: 'ollama-proxy', error: (e as Error).message || 'Ollama unreachable' }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            models: [],
+            source: 'ollama-proxy',
+            error: (e as Error).message || 'Ollama unreachable',
+          })
+        );
       }
       return;
     }
@@ -1968,7 +2300,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/prompts/set' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -2004,97 +2338,116 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const aiPlatformPath = path.join(platformRoot, 'ai-platform');
       const generatedAt = report.generatedAt || report.timestamp || new Date().toISOString();
       const gatePass = gate.pass !== false;
-      const platformSnapshot = (qualityScore != null || repoFilesTotal != null || issueCount > 0) ? {
-        gatePass,
-        projectRoot: platformRoot,
-        platformRoot: fs.existsSync(aiPlatformPath) ? aiPlatformPath : platformRoot,
-        generatedAt,
-        qualityScore,
-        issueCount,
-        schemaPassed,
-        schemaChecked,
-        consistencyScore,
-        repositoryFilesTotal: repoFilesTotal,
-        ruleScopedFilesAnalyzed: ruleScopedFiles,
-        mockSampleFiles,
-        fictionJsonFilesScanned: fictionJsonFiles,
-        fictionSampleFilesScanned: fictionSampleFiles,
-        scopeNote: 'Gate rules apply to configured scanPaths and production directories — not every file in the repository tree.'
-      } : null;
-      const fictionScope = (fictionJsonFiles != null || fictionSampleFiles != null) ? {
-        mode: 'repository-json',
-        fictionJsonFilesScanned: fictionJsonFiles,
-        fictionSampleFilesScanned: fictionSampleFiles,
-        walkRoot: fs.existsSync(aiPlatformPath) ? aiPlatformPath : 'ai-platform'
-      } : null;
+      const platformSnapshot =
+        qualityScore != null || repoFilesTotal != null || issueCount > 0
+          ? {
+              gatePass,
+              projectRoot: platformRoot,
+              platformRoot: fs.existsSync(aiPlatformPath) ? aiPlatformPath : platformRoot,
+              generatedAt,
+              qualityScore,
+              issueCount,
+              schemaPassed,
+              schemaChecked,
+              consistencyScore,
+              repositoryFilesTotal: repoFilesTotal,
+              ruleScopedFilesAnalyzed: ruleScopedFiles,
+              mockSampleFiles,
+              fictionJsonFilesScanned: fictionJsonFiles,
+              fictionSampleFilesScanned: fictionSampleFiles,
+              scopeNote:
+                'Gate rules apply to configured scanPaths and production directories — not every file in the repository tree.',
+            }
+          : null;
+      const fictionScope =
+        fictionJsonFiles != null || fictionSampleFiles != null
+          ? {
+              mode: 'repository-json',
+              fictionJsonFilesScanned: fictionJsonFiles,
+              fictionSampleFilesScanned: fictionSampleFiles,
+              walkRoot: fs.existsSync(aiPlatformPath) ? aiPlatformPath : 'ai-platform',
+            }
+          : null;
       const realTrust = serverState.lastTrustData;
       if (realTrust && (realTrust.trustScore || realTrust.gate)) {
         const trustScoreNum = parseInt(String(realTrust.trustScore), 10) || 0;
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
-        res.end(JSON.stringify({
-          success: true,
-          live: {
-            verificationId: `sb-local-${realTrust.gate?.toLowerCase() || 'gate'}`,
-            score: trustScoreNum,
-            gatePass: realTrust.gate === 'PASS',
-            generatedAt: new Date().toISOString(),
-            platform: platformSnapshot || {
-              qualityScore: trustScoreNum,
-              securityScore: parseInt(String(realTrust.security), 10) || trustScoreNum,
-              complianceScore: parseInt(String(realTrust.compliance), 10) || trustScoreNum,
-              dependenciesScore: parseInt(String(realTrust.dependencies), 10) || trustScoreNum,
-              gate: realTrust.gate || 'UNKNOWN',
-              scannedAt: realTrust.lastAudit || new Date().toISOString(),
-              fileCount: realTrust.files || '--',
-              issueCounts: realTrust.severity || {}
+        res.end(
+          JSON.stringify({
+            success: true,
+            live: {
+              verificationId: `sb-local-${realTrust.gate?.toLowerCase() || 'gate'}`,
+              score: trustScoreNum,
+              gatePass: realTrust.gate === 'PASS',
+              generatedAt: new Date().toISOString(),
+              platform: platformSnapshot || {
+                qualityScore: trustScoreNum,
+                securityScore: parseInt(String(realTrust.security), 10) || trustScoreNum,
+                complianceScore: parseInt(String(realTrust.compliance), 10) || trustScoreNum,
+                dependenciesScore: parseInt(String(realTrust.dependencies), 10) || trustScoreNum,
+                gate: realTrust.gate || 'UNKNOWN',
+                scannedAt: realTrust.lastAudit || new Date().toISOString(),
+                fileCount: realTrust.files || '--',
+                issueCounts: realTrust.severity || {},
+              },
+              monorepo: null,
+              headline: {
+                primary: gatePass ? 'All configured quality gates passed.' : 'Quality gate failed.',
+                source: 'local-extension-scan',
+                reason: gatePass
+                  ? `Scan passed with trust score ${trustScoreNum}.`
+                  : `Scan failed with trust score ${trustScoreNum}. Review findings in the dashboard.`,
+              },
+              disclaimers: ['Trust snapshot generated from local VS Code extension scan.'],
+              methodology: ['Run Simplebeacon scan from the VS Code command palette to refresh.'],
+              fictionScope,
+              factors: realTrust.factors || [],
+              badges: realTrust.badges || [],
             },
-            monorepo: null,
-            headline: {
-              primary: gatePass ? 'All configured quality gates passed.' : 'Quality gate failed.',
-              source: 'local-extension-scan',
-              reason: gatePass
-                ? `Scan passed with trust score ${trustScoreNum}.`
-                : `Scan failed with trust score ${trustScoreNum}. Review findings in the dashboard.`
-            },
-            disclaimers: ['Trust snapshot generated from local VS Code extension scan.'],
-            methodology: ['Run Simplebeacon scan from the VS Code command palette to refresh.'],
-            fictionScope,
-            factors: realTrust.factors || [],
-            badges: realTrust.badges || []
-          },
-          publishedAt: null
-        }));
+            publishedAt: null,
+          })
+        );
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
-      res.end(JSON.stringify({
-        success: true,
-        live: {
-          verificationId: 'sb-local-gate',
-          score: qualityScore ?? 100,
-          gatePass,
-          generatedAt,
-          platform: platformSnapshot,
-          monorepo: null,
-          headline: { primary: null, source: null, reason: platformSnapshot ? 'Live scan data from local extension.' : 'No trust snapshots available in local extension mode.' },
-          disclaimers: platformSnapshot ? [] : ['Local extension dashboard does not publish trust snapshots.'],
-          methodology: ['Run Simplebeacon scan from the VS Code command palette to generate a real trust snapshot.'],
-          fictionScope
-        },
-        publishedAt: null
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          live: {
+            verificationId: 'sb-local-gate',
+            score: qualityScore ?? 100,
+            gatePass,
+            generatedAt,
+            platform: platformSnapshot,
+            monorepo: null,
+            headline: {
+              primary: null,
+              source: null,
+              reason: platformSnapshot
+                ? 'Live scan data from local extension.'
+                : 'No trust snapshots available in local extension mode.',
+            },
+            disclaimers: platformSnapshot ? [] : ['Local extension dashboard does not publish trust snapshots.'],
+            methodology: ['Run Simplebeacon scan from the VS Code command palette to generate a real trust snapshot.'],
+            fictionScope,
+          },
+          publishedAt: null,
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/trust/verify') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
-      res.end(JSON.stringify({
-        success: true,
-        verified: true,
-        verificationId: 'sb-local-gate',
-        score: 100,
-        gatePass: true,
-        generatedAt: new Date().toISOString()
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          verified: true,
+          verificationId: 'sb-local-gate',
+          score: 100,
+          gatePass: true,
+          generatedAt: new Date().toISOString(),
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/trust/badge.svg') {
@@ -2113,12 +2466,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Security / npm audit stub
     if (parsed.pathname === '/api/security/npm-audit') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0, info: 0 },
-        advisories: [],
-        message: 'npm audit is not available in local extension mode.'
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0, info: 0 },
+          advisories: [],
+          message: 'npm audit is not available in local extension mode.',
+        })
+      );
       return;
     }
 
@@ -2126,50 +2481,84 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/optimization/compliance' || parsed.pathname === '/optimization/compliance') {
       if (String(parsed.searchParams.get('format') || '').toLowerCase() === 'html') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<!DOCTYPE html><html><body><h1>Compliance report</h1><p>Compliance reporting is not available in local extension mode.</p></body></html>');
+        res.end(
+          '<!DOCTYPE html><html><body><h1>Compliance report</h1><p>Compliance reporting is not available in local extension mode.</p></body></html>'
+        );
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        score: 100,
-        checks: [],
-        generatedAt: new Date().toISOString()
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          score: 100,
+          checks: [],
+          generatedAt: new Date().toISOString(),
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/optimization/candidates' || parsed.pathname === '/optimization/candidates') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        projectRoot: parsed.searchParams.get('projectPath') || serverState.workspacePath || '',
-        generatedAt: null,
-        candidates: [],
-        exclusionsNote: null
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          projectRoot: parsed.searchParams.get('projectPath') || serverState.workspacePath || '',
+          generatedAt: null,
+          candidates: [],
+          exclusionsNote: null,
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/optimization/merge-preview' || parsed.pathname === '/optimization/merge-preview') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, mergePreview: [], message: 'Merge preview is not available in local extension mode.' }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          mergePreview: [],
+          message: 'Merge preview is not available in local extension mode.',
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/optimization/analyze' || parsed.pathname === '/optimization/analyze') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, optimizationAvailable: false, message: 'Optimization analysis is not available in local extension mode.' }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          optimizationAvailable: false,
+          message: 'Optimization analysis is not available in local extension mode.',
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/optimization/merge-execute' || parsed.pathname === '/optimization/merge-execute') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, applied: 0, message: 'Merge execution is not available in local extension mode.' }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          applied: 0,
+          message: 'Merge execution is not available in local extension mode.',
+        })
+      );
       return;
     }
 
     // Sandbox token generation for local dashboard sign-in
     if (parsed.pathname === '/api/tokens/sandbox' && req.method === 'POST') {
       const now = Math.floor(Date.now() / 1000);
-      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-      const payload = Buffer.from(JSON.stringify({ tier: 'sandbox', source: 'sandbox', iat: now, exp: now + 60 * 60 * 24 * 7 })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+      const payload = Buffer.from(
+        JSON.stringify({ tier: 'sandbox', source: 'sandbox', iat: now, exp: now + 60 * 60 * 24 * 7 })
+      )
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
       const token = `${header}.${payload}.sandbox`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, token }));
@@ -2179,7 +2568,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // AI summary endpoint — local server has no AI backend, so return a deterministic summary
     if (parsed.pathname === '/api/analyze/summary' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -2200,7 +2591,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           } else {
             parts.push(`Scan of ${path.basename(project)} found ${total} finding${total === 1 ? '' : 's'}.`);
             const sevOrder = ['critical', 'high', 'medium', 'low', 'info'];
-            const sevDesc = sevOrder.filter(s => counts[s]).map(s => `${counts[s]} ${s}`).join(', ');
+            const sevDesc = sevOrder
+              .filter((s) => counts[s])
+              .map((s) => `${counts[s]} ${s}`)
+              .join(', ');
             if (sevDesc) {
               parts.push(`Severity breakdown: ${sevDesc}.`);
             }
@@ -2226,7 +2620,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         return;
       }
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -2255,10 +2651,19 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               phase1Results.forEach((found) => allResults.push(...found));
               if (allResults.length < 5 && !timedOut()) {
                 const homeDir = os.homedir();
-                const commonRoots = [homeDir, path.join(homeDir, 'CascadeProjects'), path.join(homeDir, 'Documents'), path.join(homeDir, 'Desktop')];
+                const commonRoots = [
+                  homeDir,
+                  path.join(homeDir, 'CascadeProjects'),
+                  path.join(homeDir, 'Documents'),
+                  path.join(homeDir, 'Desktop'),
+                ];
                 for (const root of commonRoots) {
                   if (allResults.length >= 10 || timedOut()) break;
-                  try { await fs.promises.access(root); } catch { continue; }
+                  try {
+                    await fs.promises.access(root);
+                  } catch {
+                    continue;
+                  }
                   const found = await findDirectoryByName(root, targetName, 5, 10, 200);
                   allResults.push(...found);
                 }
@@ -2271,30 +2676,36 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                 }
               }
             }
-          } catch { /* return partial results */ }
+          } catch {
+            /* return partial results */
+          }
           const sorted = allResults
             .map((p) => ({
               p,
               depth: p.split(/[\\/]/).length,
               exact: path.basename(p) === targetName,
-              homeScore: (/\\Users\\/.test(p) || /\\Users\//.test(p)) ? 2 : (/^C:[\\/]/.test(p) || /^c:[\\/]/.test(p)) ? 1 : 0
+              homeScore:
+                /\\Users\\/.test(p) || /\\Users\//.test(p) ? 2 : /^C:[\\/]/.test(p) || /^c:[\\/]/.test(p) ? 1 : 0,
             }))
-            .sort((a, b) =>
-              (b.homeScore - a.homeScore) ||
-              (b.exact ? 1 : 0) - (a.exact ? 1 : 0) ||
-              a.depth - b.depth ||
-              a.p.localeCompare(b.p)
+            .sort(
+              (a, b) =>
+                b.homeScore - a.homeScore ||
+                (b.exact ? 1 : 0) - (a.exact ? 1 : 0) ||
+                a.depth - b.depth ||
+                a.p.localeCompare(b.p)
             )
             .map((o) => o.p);
           const results = sorted.slice(0, 15);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            folderName: targetName,
-            results,
-            matches: results.map((p: string) => ({ path: p })),
-            timedOut: timedOut()
-          }));
+          res.end(
+            JSON.stringify({
+              success: true,
+              folderName: targetName,
+              results,
+              matches: results.map((p: string) => ({ path: p })),
+              timedOut: timedOut(),
+            })
+          );
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid JSON' }));
@@ -2313,7 +2724,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Directory listing (directory browser)
     if (parsed.pathname === '/api/list-directory' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -2339,11 +2752,15 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               if (stat.isDirectory() || stat.isSymbolicLink()) {
                 entries.push({ name, type: 'directory', path: full });
               }
-            } catch { /* skip inaccessible */ }
+            } catch {
+              /* skip inaccessible */
+            }
           }
           entries.sort((a, b) => a.name.localeCompare(b.name));
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, path: targetPath, entries, truncated: skipped > 0, total: names.length }));
+          res.end(
+            JSON.stringify({ success: true, path: targetPath, entries, truncated: skipped > 0, total: names.length })
+          );
         } catch (e: any) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Failed to read directory: ' + (e && e.message) }));
@@ -2359,7 +2776,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         return;
       }
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         let payload: any = {};
         try {
@@ -2389,7 +2808,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                   lastScanTime: Date.now(),
                 });
                 if (outputChannel) {
-                  outputChannel.appendLine(`[SimpleBeacon DataServer] Background scan complete — ${rawIssues.length} issues`);
+                  outputChannel.appendLine(
+                    `[SimpleBeacon DataServer] Background scan complete — ${rawIssues.length} issues`
+                  );
                 }
               }
             })
@@ -2405,23 +2826,27 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             });
           // Return immediately so the dashboard doesn't time out
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            scanning: true,
-            message: 'Scan started — poll /api/scan/progress for status',
-            scannedPath: targetPath,
-          }));
+          res.end(
+            JSON.stringify({
+              success: true,
+              scanning: true,
+              message: 'Scan started — poll /api/scan/progress for status',
+              scannedPath: targetPath,
+            })
+          );
         } catch (err: any) {
           const fallback = serverState.currentReport || {};
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            fallback: true,
-            warning: err.message || 'Scan failed; returning cached report',
-            report: fallback,
-            scannedPath: payload.path || '',
-            metrics: { totalFiles: fallback.totalFiles || 0, totalSize: 0, breakdown: {} }
-          }));
+          res.end(
+            JSON.stringify({
+              success: true,
+              fallback: true,
+              warning: err.message || 'Scan failed; returning cached report',
+              report: fallback,
+              scannedPath: payload.path || '',
+              metrics: { totalFiles: fallback.totalFiles || 0, totalSize: 0, breakdown: {} },
+            })
+          );
         }
       });
       return;
@@ -2431,7 +2856,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/theme') {
       if (req.method === 'POST') {
         let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
         req.on('end', () => {
           try {
             const payload = body ? JSON.parse(body) : {};
@@ -2458,7 +2885,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/ai-context') {
       if (req.method === 'POST') {
         let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
         req.on('end', () => {
           try {
             const payload = body ? JSON.parse(body) : {};
@@ -2476,8 +2905,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             }
             broadcastSse({ type: 'ai-context', payload });
             try {
-              if (aiContextCallback) { aiContextCallback(payload); }
-            } catch { /* ignore callback errors */ }
+              if (aiContextCallback) {
+                aiContextCallback(payload);
+              }
+            } catch {
+              /* ignore callback errors */
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true, content: markdown }));
           } catch (err: any) {
@@ -2490,12 +2923,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       if (req.method === 'GET') {
         const markdown = buildAiContextMarkdown(latestAiContext);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          context: latestAiContext,
-          content: markdown,
-          updatedAt: latestAiContext ? new Date().toISOString() : null,
-        }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            context: latestAiContext,
+            content: markdown,
+            updatedAt: latestAiContext ? new Date().toISOString() : null,
+          })
+        );
         return;
       }
     }
@@ -2503,7 +2938,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // SimpleBeacon scan trigger — awaits scan completion and returns full report
     if (parsed.pathname === '/api/simplebeacon/scan' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const payload = body ? JSON.parse(body) : {};
@@ -2519,7 +2956,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           };
           // Await the scan so the response includes the full report (matches remote server behavior)
           try {
-            const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args) as ScanReport | undefined;
+            const report = (await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args)) as
+              ScanReport | undefined;
             if (report) {
               updateServerState({
                 currentReport: report as ScanReport | null,
@@ -2531,32 +2969,38 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                 outputChannel.appendLine('[SimpleBeacon DataServer] Scan complete — returning full report');
               }
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                success: true,
-                scanning: false,
-                message: 'Scan complete',
-                projectPath: rawProjectPath,
-                report,
-              }));
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  scanning: false,
+                  message: 'Scan complete',
+                  projectPath: rawProjectPath,
+                  report,
+                })
+              );
             } else {
               // No report returned — try fetching the cached report
               const cached = serverState.currentReport;
               if (cached && Object.keys(cached).length > 0) {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({
-                  success: true,
-                  scanning: false,
-                  message: 'Scan complete (cached report)',
-                  projectPath: rawProjectPath,
-                  report: cached,
-                }));
+                res.end(
+                  JSON.stringify({
+                    success: true,
+                    scanning: false,
+                    message: 'Scan complete (cached report)',
+                    projectPath: rawProjectPath,
+                    report: cached,
+                  })
+                );
               } else {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({
-                  success: false,
-                  error: 'Scan completed but returned no report',
-                  projectPath: rawProjectPath,
-                }));
+                res.end(
+                  JSON.stringify({
+                    success: false,
+                    error: 'Scan completed but returned no report',
+                    projectPath: rawProjectPath,
+                  })
+                );
               }
             }
           } catch (scanErr: any) {
@@ -2571,13 +3015,15 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             const fallback = serverState.currentReport;
             if (fallback && Object.keys(fallback).length > 0) {
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                success: true,
-                fallback: true,
-                warning: `${scanErr?.message || 'Scan failed'} — returning cached report`,
-                report: fallback,
-                projectPath: rawProjectPath,
-              }));
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  fallback: true,
+                  warning: `${scanErr?.message || 'Scan failed'} — returning cached report`,
+                  report: fallback,
+                  projectPath: rawProjectPath,
+                })
+              );
             } else {
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ success: false, error: scanErr?.message || 'Scan failed' }));
@@ -2587,17 +3033,21 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           const msg = err.message || 'Scan failed';
           if (outputChannel) {
             outputChannel.appendLine(`[SimpleBeacon DataServer] Scan endpoint error: ${msg}`);
-            if (err.stack) { outputChannel.appendLine(err.stack); }
+            if (err.stack) {
+              outputChannel.appendLine(err.stack);
+            }
           }
           const fallback = serverState.currentReport;
           if (fallback && Object.keys(fallback).length > 0) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              success: true,
-              fallback: true,
-              warning: `${msg} — returning cached report`,
-              report: fallback
-            }));
+            res.end(
+              JSON.stringify({
+                success: true,
+                fallback: true,
+                warning: `${msg} — returning cached report`,
+                report: fallback,
+              })
+            );
           } else {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: msg }));
@@ -2611,18 +3061,20 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/simplebeacon/audit') {
       const report = serverState.currentReport || {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        status: 'complete',
-        data: {
-          findings: report.rawIssues || report.findings || report.detectedIssues || [],
-          severityCounts: report.severityCounts || {},
-          qualityScore: report.qualityScore ?? report.score ?? null,
-          fileCount: report.totalFiles ?? report.fileCount ?? 0,
-          filesAnalyzed: report.filesAnalyzed ?? 0,
-          scannedAt: report.generatedAt ?? new Date().toISOString(),
-        }
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          status: 'complete',
+          data: {
+            findings: report.rawIssues || report.findings || report.detectedIssues || [],
+            severityCounts: report.severityCounts || {},
+            qualityScore: report.qualityScore ?? report.score ?? null,
+            fileCount: report.totalFiles ?? report.fileCount ?? 0,
+            filesAnalyzed: report.filesAnalyzed ?? 0,
+            scannedAt: report.generatedAt ?? new Date().toISOString(),
+          },
+        })
+      );
       return;
     }
 
@@ -2644,7 +3096,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                 searchPaths.push(path.join(wsPath, entry.name));
               }
             }
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
           for (const basePath of searchPaths) {
             const configJsonPath = path.join(basePath, '.simplebeacon', 'config.json');
             if (fs.existsSync(configJsonPath)) {
@@ -2671,16 +3125,18 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         }
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        providers: [
-          { id: 'simplebeacon', name: 'SimpleBeacon', configured: true },
-          { id: 'openai', name: 'OpenAI', configured: false },
-          { id: 'ollama', name: 'Ollama', configured: false },
-        ],
-        allowedAnalysisRoots: allowedRoots,
-        allowedAnalysisRootsSummary: rootsSummary,
-        defaultProjectPath: defaultPath,
-      }));
+      res.end(
+        JSON.stringify({
+          providers: [
+            { id: 'simplebeacon', name: 'SimpleBeacon', configured: true },
+            { id: 'openai', name: 'OpenAI', configured: false },
+            { id: 'ollama', name: 'Ollama', configured: false },
+          ],
+          allowedAnalysisRoots: allowedRoots,
+          allowedAnalysisRootsSummary: rootsSummary,
+          defaultProjectPath: defaultPath,
+        })
+      );
       return;
     }
 
@@ -2701,75 +3157,89 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const filesAnalyzed = report.filesAnalyzed ?? 0;
       const qualityScore = report.qualityScore ?? report.score ?? null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        status: 'complete',
-        data: {
-          summary: {
-            repositoryFilesTotal: totalFiles,
-            codeFilesAnalyzed: filesAnalyzed,
-            healthScore: qualityScore ?? 100,
-            findingsTotal: findings.length,
+      res.end(
+        JSON.stringify({
+          success: true,
+          status: 'complete',
+          data: {
+            summary: {
+              repositoryFilesTotal: totalFiles,
+              codeFilesAnalyzed: filesAnalyzed,
+              healthScore: qualityScore ?? 100,
+              findingsTotal: findings.length,
+              severityCounts,
+              eslintErrors: 0,
+              eslintWarnings: 0,
+            },
+            findings,
+            categories: [],
             severityCounts,
-            eslintErrors: 0,
-            eslintWarnings: 0
+            qualityScore,
+            fileCount: totalFiles,
+            filesAnalyzed,
+            scannedAt: report.generatedAt ?? new Date().toISOString(),
           },
-          findings,
-          categories: [],
-          severityCounts,
-          qualityScore,
-          fileCount: totalFiles,
-          filesAnalyzed,
-          scannedAt: report.generatedAt ?? new Date().toISOString()
-        }
-      }));
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/analyze/flexible') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', () => {
         let payload: any = {};
-        try { payload = body ? JSON.parse(body) : {}; } catch { /* ignore */ }
+        try {
+          payload = body ? JSON.parse(body) : {};
+        } catch {
+          /* ignore */
+        }
         const isRoadmap = payload.analysisType === 'roadmap';
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          status: 'complete',
-          result: serverState.currentReport || {},
-          report: serverState.currentReport || {},
-          ...(isRoadmap ? {
-            roadmap: {
-              phases: [],
-              milestones: [],
-              metrics: { totalFiles: 0, codeFiles: 0, testFiles: 0 },
-              conclusion: 'No roadmap data available in extension mode.'
-            }
-          } : {})
-        }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            status: 'complete',
+            result: serverState.currentReport || {},
+            report: serverState.currentReport || {},
+            ...(isRoadmap
+              ? {
+                  roadmap: {
+                    phases: [],
+                    milestones: [],
+                    metrics: { totalFiles: 0, codeFiles: 0, testFiles: 0 },
+                    conclusion: 'No roadmap data available in extension mode.',
+                  },
+                }
+              : {}),
+          })
+        );
       });
       return;
     }
     if (parsed.pathname === '/api/analyze/data-cleanup') {
       const profile = parsed.searchParams.get('profile') || 'all';
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        status: 'complete',
-        data: {
-          scanProfile: profile,
-          summary: { totalFindings: 0, fixed: 0, remaining: 0 },
-          fileReductionPlan: {
-            totals: { safeToDeleteBytes: 0, safeToDeleteCount: 0 },
-            safeToDelete: { topDirectories: [] },
+      res.end(
+        JSON.stringify({
+          success: true,
+          status: 'complete',
+          data: {
+            scanProfile: profile,
+            summary: { totalFindings: 0, fixed: 0, remaining: 0 },
+            fileReductionPlan: {
+              totals: { safeToDeleteBytes: 0, safeToDeleteCount: 0 },
+              safeToDelete: { topDirectories: [] },
+            },
+            scanners: { 'build-artifacts': { safeToDeleteBytes: 0, findings: [] } },
+            executiveSummary: 'No cleanup issues found in this workspace.',
+            findings: [],
+            removed: 0,
+            recommendations: [],
           },
-          scanners: { 'build-artifacts': { safeToDeleteBytes: 0, findings: [] } },
-          executiveSummary: 'No cleanup issues found in this workspace.',
-          findings: [],
-          removed: 0,
-          recommendations: [],
-        }
-      }));
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/analyze/npm-audit') {
@@ -2780,21 +3250,23 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/merger-tool/reduction-scan') {
       const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        status: 'complete',
-        files: [],
-        reducedCount: 0,
-        savedBytes: 0,
-        summary: {
-          repositoryFilesTotal: 0,
-          repositoryFoldersTotal: 0,
-          filesAnalyzed: 0,
+      res.end(
+        JSON.stringify({
+          success: true,
+          status: 'complete',
+          files: [],
           reducedCount: 0,
           savedBytes: 0,
-        },
-        repositoryInventory: { totalFiles: 0, totalFolders: 0 },
-      }));
+          summary: {
+            repositoryFilesTotal: 0,
+            repositoryFoldersTotal: 0,
+            filesAnalyzed: 0,
+            reducedCount: 0,
+            savedBytes: 0,
+          },
+          repositoryInventory: { totalFiles: 0, totalFolders: 0 },
+        })
+      );
       return;
     }
 
@@ -2803,7 +3275,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const token = getAuthToken(req);
       const signedOut = token && token.length > 10 && isTokenSignedOut(token);
       if (signedOut) {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax' });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax',
+        });
         res.end(JSON.stringify({ signedIn: false, tokenPresent: false, clearSession: true }));
         return;
       }
@@ -2817,14 +3292,19 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/auth/session' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
           const token = (data.token || data.licenseToken || '').trim();
           const signedOut = token && token.length > 10 && isTokenSignedOut(token);
           if (signedOut) {
-            res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax' });
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax',
+            });
             res.end(JSON.stringify({ signedIn: false, clearSession: true }));
             return;
           }
@@ -2841,7 +3321,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/auth/signout' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
@@ -2850,14 +3332,19 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         } catch {
           recordBrowserSignOut(lastBrowserSessionToken);
         }
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax' });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax',
+        });
         res.end(JSON.stringify({ signedIn: false, clearSession: true }));
       });
       return;
     }
     if (parsed.pathname === '/api/auth/login' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', async () => {
         try {
           const data = JSON.parse(body);
@@ -2883,12 +3370,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               lastBrowserSessionToken = token;
               lastBrowserSessionTime = Date.now();
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                success: true,
-                token,
-                user: localUserToAuthPayload(user),
-                authMethod: 'email'
-              }));
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  token,
+                  user: localUserToAuthPayload(user),
+                  authMethod: 'email',
+                })
+              );
             } else {
               res.writeHead(401, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ success: false, error: 'Invalid email or password' }));
@@ -2904,7 +3393,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             return;
           }
           // Rate limiting: keyed by token + IP
-          const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+          const clientIp =
+            req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
           const rateKey = `${clientIp}:${token.slice(0, 8)}`;
           const now = Date.now();
           const attempts = loginAttempts.get(rateKey);
@@ -2917,8 +3407,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           const passwordValid = await validateTokenPassword(token, tokenPassword);
           if (!passwordValid) {
             const entry = loginAttempts.get(rateKey) || { count: 0, lastReset: now };
-            if (now - entry.lastReset >= LOGIN_WINDOW_MS) { entry.count = 1; entry.lastReset = now; }
-            else { entry.count++; }
+            if (now - entry.lastReset >= LOGIN_WINDOW_MS) {
+              entry.count = 1;
+              entry.lastReset = now;
+            } else {
+              entry.count++;
+            }
             loginAttempts.set(rateKey, entry);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Incorrect token password' }));
@@ -2932,12 +3426,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               lastBrowserSessionTime = Date.now();
               recordTokenInRegistry(token, jwtResult.user, 'jwt');
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                success: true,
-                token,
-                user: jwtResult.user,
-                requiresPasswordSetup: !(await hasTokenPassword(token))
-              }));
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  token,
+                  user: jwtResult.user,
+                  requiresPasswordSetup: !(await hasTokenPassword(token)),
+                })
+              );
               return;
             }
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -2949,15 +3445,21 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           if (licenseMeta) {
             lastBrowserSessionToken = token;
             lastBrowserSessionTime = Date.now();
-            const user = { id: 'licensed', email: data.email || 'user@simplebeacon.ai', plan: licenseMeta.tier || 'licensed' };
+            const user = {
+              id: 'licensed',
+              email: data.email || 'user@simplebeacon.ai',
+              plan: licenseMeta.tier || 'licensed',
+            };
             recordTokenInRegistry(token, user, 'license');
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              success: true,
-              token,
-              user,
-              requiresPasswordSetup: !(await hasTokenPassword(token))
-            }));
+            res.end(
+              JSON.stringify({
+                success: true,
+                token,
+                user,
+                requiresPasswordSetup: !(await hasTokenPassword(token)),
+              })
+            );
           } else {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Invalid or expired license token' }));
@@ -2971,7 +3473,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/auth/set-token-password' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', async () => {
         try {
           const data = JSON.parse(body);
@@ -2994,7 +3498,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/auth/check-token-password' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', async () => {
         try {
           const data = JSON.parse(body);
@@ -3011,7 +3517,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/auth/register' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', async () => {
         try {
           const data = JSON.parse(body);
@@ -3048,11 +3556,19 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           }
           const token = issueLocalJwt(user);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            token,
-            user: { id: user.id, email: user.email, name: name || email.split('@')[0], tier: user.tier, plan: user.tier }
-          }));
+          res.end(
+            JSON.stringify({
+              success: true,
+              token,
+              user: {
+                id: user.id,
+                email: user.email,
+                name: name || email.split('@')[0],
+                tier: user.tier,
+                plan: user.tier,
+              },
+            })
+          );
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'Bad request' }));
@@ -3067,11 +3583,15 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/auth/recover' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
-          const email = String(data.email || '').trim().toLowerCase();
+          const email = String(data.email || '')
+            .trim()
+            .toLowerCase();
           if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Valid email required' }));
@@ -3079,11 +3599,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           }
           // Check if user exists
           const users = loadLocalUsers();
-          const user = users.find(u => u.email.toLowerCase() === email);
+          const user = users.find((u) => u.email.toLowerCase() === email);
           if (!user) {
             // Return success even if user not found to prevent email enumeration
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, message: 'If an account exists, recovery instructions have been sent.' }));
+            res.end(
+              JSON.stringify({ success: true, message: 'If an account exists, recovery instructions have been sent.' })
+            );
             return;
           }
           // In production, send an actual email with a reset token
@@ -3099,31 +3621,41 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/tokens/sandbox' && req.method === 'POST') {
       res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Sandbox tokens are not available. Please use a valid license token.' }));
+      res.end(
+        JSON.stringify({ success: false, error: 'Sandbox tokens are not available. Please use a valid license token.' })
+      );
       return;
     }
 
     // ─── WebAuthn / Security Key Endpoints ───
     if (parsed.pathname === '/api/webauthn/challenge' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         let purpose = 'register';
         try {
           const data = body ? JSON.parse(body) : {};
-          if (data.purpose) { purpose = String(data.purpose); }
-        } catch { /* ignore */ }
+          if (data.purpose) {
+            purpose = String(data.purpose);
+          }
+        } catch {
+          /* ignore */
+        }
         const challenge = crypto.randomBytes(32).toString('base64url');
         const challengeId = crypto.randomBytes(16).toString('hex');
         webAuthnChallenges.set(challengeId, { challenge, purpose, expiresAt: Date.now() + 120000 });
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          challenge,
-          challengeId,
-          rpId: 'simplebeacon.ai',
-          rpName: 'SimpleBeacon'
-        }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            challenge,
+            challengeId,
+            rpId: 'simplebeacon.ai',
+            rpName: 'SimpleBeacon',
+          })
+        );
       });
       return;
     }
@@ -3140,7 +3672,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         .map(([id, entry]) => ({
           id,
           label: entry.label || 'Security key',
-          createdAt: entry.createdAt || null
+          createdAt: entry.createdAt || null,
         }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, credentials }));
@@ -3170,7 +3702,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/webauthn/register' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
@@ -3190,10 +3724,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             publicKey: credential.response?.publicKey || null,
             rawId: credential.rawId,
             type: credential.type,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
           };
           saveWebAuthnStore(store);
-          if (data.challengeId) { webAuthnChallenges.delete(String(data.challengeId)); }
+          if (data.challengeId) {
+            webAuthnChallenges.delete(String(data.challengeId));
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
         } catch {
@@ -3205,7 +3741,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/webauthn/authenticate' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', async () => {
         try {
           const data = JSON.parse(body);
@@ -3217,9 +3755,11 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             res.end(JSON.stringify({ success: false, error: 'Unknown credential' }));
             return;
           }
-          if (data.challengeId) { webAuthnChallenges.delete(String(data.challengeId)); }
+          if (data.challengeId) {
+            webAuthnChallenges.delete(String(data.challengeId));
+          }
           const users = loadLocalUsers();
-          let user = users.find(u => u.id === stored.userId);
+          let user = users.find((u) => u.id === stored.userId);
           if (!user) {
             const email = stored.email || `webauthn-${stored.userId.slice(0, 8)}@simplebeacon.local`;
             user = {
@@ -3227,19 +3767,21 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               email: email.toLowerCase(),
               passwordHash: _hashPassword(crypto.randomBytes(32).toString('hex')),
               createdAt: new Date().toISOString(),
-              tier: 'pro'
+              tier: 'pro',
             };
             users.push(user);
             saveLocalUsers(users);
           }
           const token = issueLocalJwt(user);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            token,
-            user: { id: user.id, email: user.email, tier: user.tier, plan: user.tier },
-            authMethod: 'webauthn'
-          }));
+          res.end(
+            JSON.stringify({
+              success: true,
+              token,
+              user: { id: user.id, email: user.email, tier: user.tier, plan: user.tier },
+              authMethod: 'webauthn',
+            })
+          );
         } catch {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'Authentication failed' }));
@@ -3253,7 +3795,11 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       let token = getBearerToken(req);
       // Fall back to VS Code: secret storage if no bearer token
       if (!token && extensionContext) {
-        try { token = await extensionContext.secrets.get('simplebeacon.apiToken'); } catch { /* ignore */ }
+        try {
+          token = await extensionContext.secrets.get('simplebeacon.apiToken');
+        } catch {
+          /* ignore */
+        }
       }
       if (!token) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -3275,7 +3821,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       // License tokens (2 parts)
       const valid = validateLicenseLocally(token, PUBLIC_KEY_PEM);
       if (valid) {
-        const licenseUser = normalizeAuthUser({ id: 'licensed', email: 'user@simplebeacon.ai', tier: valid.tier || 'licensed', trustLevel: 'gold' });
+        const licenseUser = normalizeAuthUser({
+          id: 'licensed',
+          email: 'user@simplebeacon.ai',
+          tier: valid.tier || 'licensed',
+          trustLevel: 'gold',
+        });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, authenticated: true, user: licenseUser }));
       } else {
@@ -3289,7 +3840,11 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/auth/token') {
       let token: string | undefined;
       if (extensionContext) {
-        try { token = await extensionContext.secrets.get('simplebeacon.apiToken'); } catch { /* ignore */ }
+        try {
+          token = await extensionContext.secrets.get('simplebeacon.apiToken');
+        } catch {
+          /* ignore */
+        }
       }
       const valid = token && validateLicenseLocally(token, PUBLIC_KEY_PEM);
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -3312,7 +3867,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Verify any valid token (JWT or license) as the admin key
     if (parsed.pathname === '/api/admin/verify' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
@@ -3338,22 +3895,24 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       }
       const now = Date.now();
       const entries = Array.from(tokenRegistry.values());
-      const active = entries.filter(e => !e.revoked && (now - e.lastSeenAt < BROWSER_SESSION_TTL_MS)).length;
-      const expired = entries.filter(e => !e.revoked && (now - e.lastSeenAt >= BROWSER_SESSION_TTL_MS)).length;
-      const revoked = entries.filter(e => e.revoked).length;
+      const active = entries.filter((e) => !e.revoked && now - e.lastSeenAt < BROWSER_SESSION_TTL_MS).length;
+      const expired = entries.filter((e) => !e.revoked && now - e.lastSeenAt >= BROWSER_SESSION_TTL_MS).length;
+      const revoked = entries.filter((e) => e.revoked).length;
       const total = entries.length;
-      const customers = new Set(entries.map(e => e.email)).size;
+      const customers = new Set(entries.map((e) => e.email)).size;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        stats: {
-          totalTokens: total,
-          activeTokens: active,
-          expiredTokens: expired,
-          revokedTokens: revoked,
-          customers
-        }
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          stats: {
+            totalTokens: total,
+            activeTokens: active,
+            expiredTokens: expired,
+            revokedTokens: revoked,
+            customers,
+          },
+        })
+      );
       return;
     }
 
@@ -3379,7 +3938,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
         return;
       }
-      const entries = Array.from(tokenRegistry.values()).map(e => ({
+      const entries = Array.from(tokenRegistry.values()).map((e) => ({
         id: getTokenId(e.token),
         masked: e.masked,
         email: e.email,
@@ -3388,7 +3947,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         createdAt: e.createdAt,
         lastSeenAt: e.lastSeenAt,
         revoked: e.revoked,
-        revokedAt: e.revokedAt
+        revokedAt: e.revokedAt,
       }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, tokens: entries }));
@@ -3404,7 +3963,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         return;
       }
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
@@ -3442,7 +4003,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // ─── OAuth 2.0 PKCE Endpoints ───
-    const OAUTH_PROVIDERS: Record<string, { clientId?: string; clientSecret?: string; authorizeUrl: string; tokenUrl: string; scope: string; userInfoUrl?: string }> = {
+    const OAUTH_PROVIDERS: Record<
+      string,
+      {
+        clientId?: string;
+        clientSecret?: string;
+        authorizeUrl: string;
+        tokenUrl: string;
+        scope: string;
+        userInfoUrl?: string;
+      }
+    > = {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -3469,13 +4040,18 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       },
     };
 
-    const oauthSessions = new Map<string, { codeChallenge: string; provider: string; redirectUri: string; timestamp: number }>();
+    const oauthSessions = new Map<
+      string,
+      { codeChallenge: string; provider: string; redirectUri: string; timestamp: number }
+    >();
     const OAUTH_SESSION_TTL = 10 * 60 * 1000;
 
     function cleanupOAuthSessions(): void {
       const now = Date.now();
       for (const [state, s] of oauthSessions) {
-        if (now - s.timestamp > OAUTH_SESSION_TTL) { oauthSessions.delete(state); }
+        if (now - s.timestamp > OAUTH_SESSION_TTL) {
+          oauthSessions.delete(state);
+        }
       }
     }
 
@@ -3502,7 +4078,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const redirectUri = parsed.searchParams.get('redirect_uri') || `${getPublicBaseUrl(req)}/api/auth/oauth/callback`;
       oauthSessions.set(state, { codeChallenge, provider, redirectUri, timestamp: Date.now() });
       const authorizeUrl = `${cfg.authorizeUrl}?client_id=${encodeURIComponent(cfg.clientId)}&response_type=code&scope=${encodeURIComponent(cfg.scope)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
-      res.writeHead(302, { 'Location': authorizeUrl });
+      res.writeHead(302, { Location: authorizeUrl });
       res.end();
       return;
     }
@@ -3523,7 +4099,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       try {
         const tokenRes = await fetch(cfg.tokenUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
           body: new URLSearchParams({
             client_id: cfg.clientId || '',
             client_secret: cfg.clientSecret || '',
@@ -3532,7 +4108,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             redirect_uri: session.redirectUri,
           }).toString(),
         });
-        const tokenData = await tokenRes.json() as any;
+        const tokenData = (await tokenRes.json()) as any;
         const accessToken = tokenData.access_token;
         if (!accessToken) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3545,20 +4121,30 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           const userRes = await fetch(cfg.userInfoUrl || '', { headers: { Authorization: `Bearer ${accessToken}` } });
           if (userRes.ok) {
-            const userData = await userRes.json() as any;
+            const userData = (await userRes.json()) as any;
             email = userData.email || userData.mail || email;
             name = userData.name || userData.displayName || name;
           }
-        } catch { /* ignore userinfo failure */ }
-        // Create or update local user and issue JWT
-        let user = loadLocalUsers().find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (!user) {
-          user = await createLocalUser(email, crypto.randomBytes(16).toString('hex'), name) || undefined;
+        } catch {
+          /* ignore userinfo failure */
         }
-        const token = user ? issueLocalJwt(user) : issueLocalJwt({ id: 'oauth-' + email, email, passwordHash: '', createdAt: new Date().toISOString(), tier: 'pro' });
+        // Create or update local user and issue JWT
+        let user = loadLocalUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+        if (!user) {
+          user = (await createLocalUser(email, crypto.randomBytes(16).toString('hex'), name)) || undefined;
+        }
+        const token = user
+          ? issueLocalJwt(user)
+          : issueLocalJwt({
+              id: 'oauth-' + email,
+              email,
+              passwordHash: '',
+              createdAt: new Date().toISOString(),
+              tier: 'pro',
+            });
         // Redirect back to VS Code extension URI handler
         const vscodeRedirect = `vscode://simplebeacon.simplebeacon-vscode/auth-callback?code=${encodeURIComponent(token)}&state=${encodeURIComponent(state)}`;
-        res.writeHead(302, { 'Location': vscodeRedirect });
+        res.writeHead(302, { Location: vscodeRedirect });
         res.end();
       } catch (e: any) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -3569,7 +4155,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     if (parsed.pathname === '/api/auth/oauth/token' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -3583,7 +4171,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             return;
           }
           // PKCE verification: hash code_verifier with SHA-256 and compare to stored codeChallenge
-          const computedChallenge = crypto.createHash('sha256').update(codeVerifier).digest().toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+          const computedChallenge = crypto
+            .createHash('sha256')
+            .update(codeVerifier)
+            .digest()
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
           if (computedChallenge !== session.codeChallenge) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'PKCE verification failed' }));
@@ -3608,21 +4203,38 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     if (parsed.pathname === '/api/platform/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, authRequired: false, mode: 'vscode-extension', user: { id: 'local', email: 'local@simplebeacon.ai' } }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          authRequired: false,
+          mode: 'vscode-extension',
+          user: { id: 'local', email: 'local@simplebeacon.ai' },
+        })
+      );
       return;
     }
 
     // ── External-browser → VS Code notification bridge ──
     if ((parsed.pathname === '/api/notify' || parsed.pathname === '/notify') && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
           const entry: NotifyEntry = { type: data.type || 'unknown', payload: data.payload || data, ts: Date.now() };
-          if (outputChannel) { outputChannel.appendLine(`[DataServer] /api/notify received type=${entry.type}`); }
+          if (outputChannel) {
+            outputChannel.appendLine(`[DataServer] /api/notify received type=${entry.type}`);
+          }
           notificationQueue.push(entry);
-          if (notifyCallback) { try { notifyCallback(entry); } catch { /* ignore */ } }
+          if (notifyCallback) {
+            try {
+              notifyCallback(entry);
+            } catch {
+              /* ignore */
+            }
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
         } catch {
@@ -3646,9 +4258,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         const payloadRaw = parsed.searchParams.get('payload') || '{}';
         const payload = JSON.parse(decodeURIComponent(payloadRaw));
         const entry: NotifyEntry = { type, payload, ts: Date.now() };
-        if (outputChannel) { outputChannel.appendLine(`[DataServer] /api/notify/beacon received type=${entry.type}`); }
+        if (outputChannel) {
+          outputChannel.appendLine(`[DataServer] /api/notify/beacon received type=${entry.type}`);
+        }
         notificationQueue.push(entry);
-        if (notifyCallback) { try { notifyCallback(entry); } catch { /* ignore */ } }
+        if (notifyCallback) {
+          try {
+            notifyCallback(entry);
+          } catch {
+            /* ignore */
+          }
+        }
         res.writeHead(200, { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store, must-revalidate' });
         res.end(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'));
       } catch {
@@ -3662,46 +4282,52 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const workspacePath = serverState.workspacePath || '';
       const roots = workspacePath ? [workspacePath] : [];
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        defaultProjectPath: workspacePath,
-        allowedAnalysisRoots: roots,
-        allowedAnalysisRootsSummary: roots.slice(0, 8).map((r) => String(r).replace(/\\/g, '/')).join('; ') || '(none)',
-        providers: [
-          { id: 'demo', label: 'Filesystem scan', configured: true, statusMessage: 'Built-in filesystem scan' },
-          { id: 'active', label: 'Active model', configured: false },
-          { id: 'ollama', label: 'Ollama', configured: false },
-          { id: 'openai', label: 'OpenAI', configured: false },
-          { id: 'anthropic', label: 'Anthropic', configured: false }
-        ],
-        analysisTypes: [
-          { id: 'auto', label: 'Auto-detect' },
-          { id: 'roadmap', label: 'Project roadmap' },
-          { id: 'codebase', label: 'Codebase analysis' },
-          { id: 'complete', label: 'Complete scan' }
-        ],
-        roadmapInsightsModes: [
-          { id: 'off', label: 'Filesystem only' },
-          { id: 'deterministic', label: 'Deterministic insights' },
-          { id: 'llm', label: 'LLM strategic layer' }
-        ],
-        understandingModes: [
-          { id: 'off', label: 'Static only' },
-          { id: 'deterministic', label: 'Semantic + context' },
-          { id: 'llm', label: 'AI-enhanced understanding' }
-        ],
-        analysisProfiles: [
-          { id: 'quick', label: 'Quick analysis' },
-          { id: 'balanced', label: 'Balanced analysis' },
-          { id: 'comprehensive', label: 'Comprehensive analysis' },
-          { id: 'realtime', label: 'Real-time streaming' }
-        ],
-        scanProfiles: [
-          { id: 'default', label: 'Web + ZScript' },
-          { id: 'universal', label: 'Universal' }
-        ],
-        sources: []
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          defaultProjectPath: workspacePath,
+          allowedAnalysisRoots: roots,
+          allowedAnalysisRootsSummary:
+            roots
+              .slice(0, 8)
+              .map((r) => String(r).replace(/\\/g, '/'))
+              .join('; ') || '(none)',
+          providers: [
+            { id: 'demo', label: 'Filesystem scan', configured: true, statusMessage: 'Built-in filesystem scan' },
+            { id: 'active', label: 'Active model', configured: false },
+            { id: 'ollama', label: 'Ollama', configured: false },
+            { id: 'openai', label: 'OpenAI', configured: false },
+            { id: 'anthropic', label: 'Anthropic', configured: false },
+          ],
+          analysisTypes: [
+            { id: 'auto', label: 'Auto-detect' },
+            { id: 'roadmap', label: 'Project roadmap' },
+            { id: 'codebase', label: 'Codebase analysis' },
+            { id: 'complete', label: 'Complete scan' },
+          ],
+          roadmapInsightsModes: [
+            { id: 'off', label: 'Filesystem only' },
+            { id: 'deterministic', label: 'Deterministic insights' },
+            { id: 'llm', label: 'LLM strategic layer' },
+          ],
+          understandingModes: [
+            { id: 'off', label: 'Static only' },
+            { id: 'deterministic', label: 'Semantic + context' },
+            { id: 'llm', label: 'AI-enhanced understanding' },
+          ],
+          analysisProfiles: [
+            { id: 'quick', label: 'Quick analysis' },
+            { id: 'balanced', label: 'Balanced analysis' },
+            { id: 'comprehensive', label: 'Comprehensive analysis' },
+            { id: 'realtime', label: 'Real-time streaming' },
+          ],
+          scanProfiles: [
+            { id: 'default', label: 'Web + ZScript' },
+            { id: 'universal', label: 'Universal' },
+          ],
+          sources: [],
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/simplebeacon/baseline') {
@@ -3732,30 +4358,34 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/coverage-reports/overview') {
       const report = serverState.currentReport || {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        overallCoverage: null,
-        lineCoverage: null,
-        branchCoverage: null,
-        functionCoverage: null,
-        statementCoverage: null,
-        passedTests: null,
-        totalTests: null,
-        notes: 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.',
-        reports: []
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          overallCoverage: null,
+          lineCoverage: null,
+          branchCoverage: null,
+          functionCoverage: null,
+          statementCoverage: null,
+          passedTests: null,
+          totalTests: null,
+          notes: 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.',
+          reports: [],
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/quality/overview') {
       const report = serverState.currentReport || {};
       const qScore = report.qualityScore ?? null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        overallScore: qScore,
-        qualityScore: qScore,
-        metrics: {}
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          overallScore: qScore,
+          qualityScore: qScore,
+          metrics: {},
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/security/overview') {
@@ -3765,19 +4395,21 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       const securityIssues = rawIssues.filter((i: any) => /credential|production leak/i.test(String(i.type || '')));
       const openEng = securityIssues.reduce((sum: number, i: any) => sum + (i.count || 1), 0);
       const gate = report.gate || {};
-      const complianceRate = gate.pass ? 100 : (sev.critical || sev.high ? 0 : 100);
+      const complianceRate = gate.pass ? 100 : sev.critical || sev.high ? 0 : 100;
       const secScore = report.qualityScore ?? null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        score: secScore,
-        securityScore: secScore,
-        openEngineeringFindings: openEng,
-        openVulnerabilities: 0,
-        complianceRate,
-        npmAuditTotal: 0,
-        findings: securityIssues.slice(0, 50)
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          score: secScore,
+          securityScore: secScore,
+          openEngineeringFindings: openEng,
+          openVulnerabilities: 0,
+          complianceRate,
+          npmAuditTotal: 0,
+          findings: securityIssues.slice(0, 50),
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/help') {
@@ -3787,14 +4419,16 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/certificate/download' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
           const report = data.reportJson || data;
           const gate = report.gate || {};
           const pass = gate.pass ? true : false;
-          const score = report.qualityScore != null ? report.qualityScore : (gate.score || 0);
+          const score = report.qualityScore != null ? report.qualityScore : gate.score || 0;
           const totalFiles = report.filesAnalyzed || report.totalFiles || 0;
           const issues = report.issueCount || 0;
           const sev = report.severityCounts || {};
@@ -3847,7 +4481,10 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
 </div>
 </body>
 </html>`;
-          res.writeHead(200, { 'Content-Type': 'text/html', 'Content-Disposition': 'attachment; filename="simplebeacon-certificate.html"' });
+          res.writeHead(200, {
+            'Content-Type': 'text/html',
+            'Content-Disposition': 'attachment; filename="simplebeacon-certificate.html"',
+          });
           res.end(certHtml);
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3858,7 +4495,16 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
     }
     if (parsed.pathname === '/api/simplebeacon/entitlements') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, publicGateLocked: false, closedVaultMode: false, hasAuditDeliverableAccess: true, auditCheckoutUrl: '', auditPriceLabel: '$0' }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          publicGateLocked: false,
+          closedVaultMode: false,
+          hasAuditDeliverableAccess: true,
+          auditCheckoutUrl: '',
+          auditPriceLabel: '$0',
+        })
+      );
       return;
     }
     if (parsed.pathname === '/api/analyze/compliance-checklist') {
@@ -3866,9 +4512,15 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
       res.end(JSON.stringify({ success: true, checklist: [] }));
       return;
     }
-    if ((parsed.pathname === '/api/analyze/complete-audit-report' || parsed.pathname === '/api/analyze/eu-ai-act-audit-report') && req.method === 'POST') {
+    if (
+      (parsed.pathname === '/api/analyze/complete-audit-report' ||
+        parsed.pathname === '/api/analyze/eu-ai-act-audit-report') &&
+      req.method === 'POST'
+    ) {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -3885,14 +4537,17 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
           const client = data.client || projectName;
           const tier = gate.pass ? 'PASS' : 'FAIL';
           const rawIssues = sb.rawIssues || sb.detectedIssues || [];
-          const issueRows = rawIssues.slice(0, 200).map((issue: any, idx: number) => {
-            const sev = String(issue.severity || 'low').toUpperCase();
-            const file = escapeHtml(issue.filePath || issue.file || 'N/A');
-            const line = issue.line || '';
-            const desc = escapeHtml(issue.description || issue.message || '');
-            const type = escapeHtml(issue.type || issue.category || '');
-            return `<tr><td>${idx + 1}</td><td>${sev}</td><td>${type}</td><td>${file}${line ? ':' + line : ''}</td><td>${desc}</td></tr>`;
-          }).join('');
+          const issueRows = rawIssues
+            .slice(0, 200)
+            .map((issue: any, idx: number) => {
+              const sev = String(issue.severity || 'low').toUpperCase();
+              const file = escapeHtml(issue.filePath || issue.file || 'N/A');
+              const line = issue.line || '';
+              const desc = escapeHtml(issue.description || issue.message || '');
+              const type = escapeHtml(issue.type || issue.category || '');
+              return `<tr><td>${idx + 1}</td><td>${sev}</td><td>${type}</td><td>${file}${line ? ':' + line : ''}</td><td>${desc}</td></tr>`;
+            })
+            .join('');
           const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3932,9 +4587,13 @@ tr:nth-child(even){background:#f8fafc}
   <div class="metric"><div class="metric-label">Medium</div><div class="metric-value" style="color:#d97706;">${sev.medium || 0}</div></div>
   <div class="metric"><div class="metric-label">Low</div><div class="metric-value" style="color:#64748b;">${sev.low || 0}</div></div>
 </div>
-${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.length})</h2>
+${
+  issueRows
+    ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.length})</h2>
 <table><thead><tr><th>#</th><th>Severity</th><th>Type</th><th>Location</th><th>Description</th></tr></thead>
-<tbody>${issueRows}</tbody></table>` : '<p>No findings to display.</p>'}
+<tbody>${issueRows}</tbody></table>`
+    : '<p>No findings to display.</p>'
+}
 <div class="footer">
   <p>Generated by SimpleBeacon Local Server — This is a deterministic local report. No AI provider was used.</p>
   <p>Project path: ${escapeHtml(projectPath)}</p>
@@ -3943,7 +4602,9 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
 </html>`;
           const filename = `simplebeacon-audit-${projectName}-${Date.now()}.html`;
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, html, filename, tier: 'local', exportTierLabel: 'Local audit report' }));
+          res.end(
+            JSON.stringify({ success: true, html, filename, tier: 'local', exportTierLabel: 'Local audit report' })
+          );
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'Invalid request body' }));
@@ -3955,7 +4616,9 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
     // CI telemetry summary stub — local server has no CI data
     if (parsed.pathname === '/api/simplebeacon/ci/telemetry/summary') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, summary: { days: 7, scans: [], totalScans: 0, passRate: 0, avgScore: null } }));
+      res.end(
+        JSON.stringify({ success: true, summary: { days: 7, scans: [], totalScans: 0, passRate: 0, avgScore: null } })
+      );
       return;
     }
 
@@ -3965,16 +4628,18 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
       const gate = report.gate || {};
       const sev = report.severityCounts || {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        assessmentId: 'local-' + Date.now(),
-        gatePass: gate.pass ?? false,
-        qualityScore: report.qualityScore ?? null,
-        issueCount: report.issueCount ?? 0,
-        severityCounts: sev,
-        summary: 'Local assessment completed from current scan report.',
-        reportUrl: '/api/report'
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          assessmentId: 'local-' + Date.now(),
+          gatePass: gate.pass ?? false,
+          qualityScore: report.qualityScore ?? null,
+          issueCount: report.issueCount ?? 0,
+          severityCounts: sev,
+          summary: 'Local assessment completed from current scan report.',
+          reportUrl: '/api/report',
+        })
+      );
       return;
     }
 
@@ -3994,7 +4659,11 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         return;
       }
       const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
-      const resolvedPath = path.isAbsolute(requestedPath) ? requestedPath : (workspace ? path.join(workspace, requestedPath) : requestedPath);
+      const resolvedPath = path.isAbsolute(requestedPath)
+        ? requestedPath
+        : workspace
+          ? path.join(workspace, requestedPath)
+          : requestedPath;
       if (workspace && !resolvedPath.startsWith(workspace)) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Path outside workspace' }));
@@ -4036,29 +4705,39 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
 
     // Redirect root to dashboard SPA
     if (parsed.pathname === '/') {
-      res.writeHead(302, { 'Location': '/dashboard' });
+      res.writeHead(302, { Location: '/dashboard' });
       res.end();
       return;
     }
 
     // Redirect legacy dashboard URL path used by older extension builds
-    if (parsed.pathname === '/ai-platform/web/simplebeacon-dashboard/' || parsed.pathname === '/ai-platform/web/simplebeacon-dashboard') {
-      res.writeHead(302, { 'Location': '/dashboard' + (parsed.search || '') + (parsed.hash || '') });
+    if (
+      parsed.pathname === '/ai-platform/web/simplebeacon-dashboard/' ||
+      parsed.pathname === '/ai-platform/web/simplebeacon-dashboard'
+    ) {
+      res.writeHead(302, { Location: '/dashboard' + (parsed.search || '') + (parsed.hash || '') });
       res.end();
       return;
     }
 
     // Redirect malformed concatenated URLs (e.g. upload.htmlpricing.html → pricing.html)
     if (parsed.pathname === '/coming-soon/upload.htmlpricing.html') {
-      res.writeHead(302, { 'Location': '/coming-soon/pricing.html' });
+      res.writeHead(302, { Location: '/coming-soon/pricing.html' });
       res.end();
       return;
     }
 
     // Redirect /simplebeacon-dashboard (ai-platform canonical path) to /dashboard (extension canonical path)
-    if (parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/simplebeacon-dashboard/' || parsed.pathname.startsWith('/simplebeacon-dashboard/')) {
-      const remaining = parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/simplebeacon-dashboard/' ? '' : parsed.pathname.slice('/simplebeacon-dashboard'.length);
-      res.writeHead(302, { 'Location': '/dashboard' + remaining + (parsed.search || '') + (parsed.hash || '') });
+    if (
+      parsed.pathname === '/simplebeacon-dashboard' ||
+      parsed.pathname === '/simplebeacon-dashboard/' ||
+      parsed.pathname.startsWith('/simplebeacon-dashboard/')
+    ) {
+      const remaining =
+        parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/simplebeacon-dashboard/'
+          ? ''
+          : parsed.pathname.slice('/simplebeacon-dashboard'.length);
+      res.writeHead(302, { Location: '/dashboard' + remaining + (parsed.search || '') + (parsed.hash || '') });
       res.end();
       return;
     }
@@ -4072,14 +4751,21 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.writeHead(200, {
           'Content-Type': 'text/html',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         });
         let html = fs.readFileSync(indexPath, 'utf8');
         html = html.replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1');
         const dataPort = getDataServerPort();
         const publicBase = getPublicBaseUrl(req);
-        const envScript = '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"' + publicBase + '",API_BASE_URL:"' + publicBase + '/api",DATA_SERVER_PORT:' + dataPort + ',DEMO_MODE:true};<\/script>';
+        const envScript =
+          '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"' +
+          publicBase +
+          '",API_BASE_URL:"' +
+          publicBase +
+          '/api",DATA_SERVER_PORT:' +
+          dataPort +
+          ',DEMO_MODE:true};<\/script>';
         html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
@@ -4090,21 +4776,30 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.end(html);
         return;
       }
-      console.error(`[SimpleBeacon] 503 (demo): index.html not found. dashboardRoot=${dashboardRoot}, indexPath=${indexPath}, extensionPath=${context.extensionPath}, __dirname=${__dirname}`);
+      console.error(
+        `[SimpleBeacon] 503 (demo): index.html not found. dashboardRoot=${dashboardRoot}, indexPath=${indexPath}, extensionPath=${context.extensionPath}, __dirname=${__dirname}`
+      );
       res.writeHead(503, { 'Content-Type': 'text/html' });
-      res.end('<!DOCTYPE html><html><body><h2>Dashboard not available</h2><p>Dashboard files not found.</p></body></html>');
+      res.end(
+        '<!DOCTYPE html><html><body><h2>Dashboard not available</h2><p>Dashboard files not found.</p></body></html>'
+      );
       return;
     }
 
     // Dashboard route (Open Browser button navigates here)
     if (isDashboardSpaRoute(parsed.pathname)) {
-      const isPublicDashboardPath = parsed.pathname === '/dashboard/signin'
-        || parsed.pathname === '/dashboard/register'
-        || parsed.pathname === '/dashboard/signup';
+      const isPublicDashboardPath =
+        parsed.pathname === '/dashboard/signin' ||
+        parsed.pathname === '/dashboard/register' ||
+        parsed.pathname === '/dashboard/signup';
       const remoteAddr = (req.socket && (req.socket as any).remoteAddress) || '';
-      const isLocalhost = remoteAddr === '127.0.0.1' || remoteAddr === '::1' || remoteAddr === '::ffff:127.0.0.1' || remoteAddr === 'localhost';
+      const isLocalhost =
+        remoteAddr === '127.0.0.1' ||
+        remoteAddr === '::1' ||
+        remoteAddr === '::ffff:127.0.0.1' ||
+        remoteAddr === 'localhost';
       if (!isPublicDashboardPath && !isDashboardStaticAsset(parsed.pathname) && !isLocalhost && !isAuthenticated(req)) {
-        res.writeHead(302, { 'Location': '/dashboard/signin' + (parsed.search || '') + (parsed.hash || '') });
+        res.writeHead(302, { Location: '/dashboard/signin' + (parsed.search || '') + (parsed.hash || '') });
         res.end();
         return;
       }
@@ -4121,8 +4816,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.writeHead(200, {
           'Content-Type': getMimeType(requestedPath),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         });
         res.end(fs.readFileSync(requestedPath));
         return;
@@ -4133,8 +4828,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.writeHead(200, {
           'Content-Type': 'text/html',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         });
         let html = fs.readFileSync(indexPath, 'utf8');
         // Convert any hardcoded file:// coming-soon links to relative HTTP paths
@@ -4144,7 +4839,14 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         // Inject env flag so client knows it's being served by the real data server
         const dataPort = getDataServerPort();
         const publicBase = getPublicBaseUrl(req);
-        const envScript = '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"' + publicBase + '",API_BASE_URL:"' + publicBase + '/api",DATA_SERVER_PORT:' + dataPort + '};<\/script>';
+        const envScript =
+          '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"' +
+          publicBase +
+          '",API_BASE_URL:"' +
+          publicBase +
+          '/api",DATA_SERVER_PORT:' +
+          dataPort +
+          '};<\/script>';
         html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
@@ -4155,9 +4857,13 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.end(html);
         return;
       }
-      console.error(`[SimpleBeacon] 503: index.html not found. dashboardRoot=${dashboardRoot}, indexPath=${indexPath}, extensionPath=${context.extensionPath}, __dirname=${__dirname}`);
+      console.error(
+        `[SimpleBeacon] 503: index.html not found. dashboardRoot=${dashboardRoot}, indexPath=${indexPath}, extensionPath=${context.extensionPath}, __dirname=${__dirname}`
+      );
       res.writeHead(503, { 'Content-Type': 'text/html' });
-      res.end('<!DOCTYPE html><html><body><h2>Dashboard not available</h2><p>Dashboard files not found.</p></body></html>');
+      res.end(
+        '<!DOCTYPE html><html><body><h2>Dashboard not available</h2><p>Dashboard files not found.</p></body></html>'
+      );
       return;
     }
 
@@ -4169,7 +4875,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
     // Static coming-soon site files
     if (parsed.pathname.startsWith('/coming-soon/')) {
       const comingSoonPath = parsed.pathname.slice('/coming-soon/'.length);
-      const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
+      const staticWorkspacePath =
+        (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
       const comingSoonCandidates = [
         path.join(context.extensionPath, '..', 'coming-soon'),
         path.join(context.extensionPath, '..', '..', 'coming-soon'),
@@ -4187,17 +4894,34 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.writeHead(200, {
           'Content-Type': getMimeType(filePath),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         });
         let content = fs.readFileSync(filePath);
         if (getMimeType(filePath) === 'text/html') {
           const html = content.toString('utf8');
           const bodyClose = html.lastIndexOf('</body>');
           if (bodyClose > 0) {
-            content = Buffer.from(html.slice(0, bodyClose) + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SIGNIN_MODAL_SCRIPT + SESSION_REGISTRATION_SCRIPT + html.slice(bodyClose), 'utf8');
+            content = Buffer.from(
+              html.slice(0, bodyClose) +
+                HIDE_PRICING_SCRIPT +
+                DOWNLOAD_NOTIFY_SCRIPT +
+                THEME_SCRIPT +
+                SIGNIN_MODAL_SCRIPT +
+                SESSION_REGISTRATION_SCRIPT +
+                html.slice(bodyClose),
+              'utf8'
+            );
           } else {
-            content = Buffer.from(html + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SIGNIN_MODAL_SCRIPT + SESSION_REGISTRATION_SCRIPT, 'utf8');
+            content = Buffer.from(
+              html +
+                HIDE_PRICING_SCRIPT +
+                DOWNLOAD_NOTIFY_SCRIPT +
+                THEME_SCRIPT +
+                SIGNIN_MODAL_SCRIPT +
+                SESSION_REGISTRATION_SCRIPT,
+              'utf8'
+            );
           }
         }
         res.end(content);
@@ -4206,7 +4930,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
     }
 
     // Static dashboard files: bundled copy in dashboard-web, or dev path
-    const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
+    const staticWorkspacePath =
+      (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
     const staticDashboardCandidates = [
       path.join(context.extensionPath, 'dashboard-web'),
       path.join(context.extensionPath, '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
@@ -4236,8 +4961,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
       res.writeHead(200, {
         'Content-Type': getMimeType(filePath),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       });
       let content = fs.readFileSync(filePath);
       if (getMimeType(filePath) === 'text/html') {
@@ -4246,7 +4971,14 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         html = html.replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
-          content = Buffer.from(html.slice(0, bodyClose) + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT + html.slice(bodyClose), 'utf8');
+          content = Buffer.from(
+            html.slice(0, bodyClose) +
+              DOWNLOAD_NOTIFY_SCRIPT +
+              THEME_SCRIPT +
+              SESSION_REGISTRATION_SCRIPT +
+              html.slice(bodyClose),
+            'utf8'
+          );
         } else {
           content = Buffer.from(html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT, 'utf8');
         }
@@ -4278,7 +5010,7 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
     };
     const spaRedirect = htmlToRoute[parsed.pathname];
     if (spaRedirect) {
-      res.writeHead(302, { 'Location': spaRedirect });
+      res.writeHead(302, { Location: spaRedirect });
       res.end();
       return;
     }
@@ -4343,51 +5075,55 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
     // Root info
     if (parsed.pathname === '/api') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        name: 'SimpleBeacon Extension Data Server',
-        version: serverState.extensionVersion,
-        endpoints: [
-          '/api/health',
-          '/api/ping',
-          '/api/report',
-          '/api/findings',
-          '/api/status',
-          '/api/config',
-          '/api/workspace',
-          '/api/data',
-          '/api/stream',
-          '/api/trigger-scan (POST)',
-          '/api/analyze/inventory',
-          '/api/analyze/codebase',
-          '/api/analyze/flexible',
-          '/api/analyze/data-cleanup',
-          '/api/analyze/npm-audit',
-          '/api/analyze/providers',
-          '/api/analyze/complete-audit-report (POST)',
-          '/api/analyze/eu-ai-act-audit-report (POST)',
-          '/api/simplebeacon/ci/telemetry/summary',
-          '/api/simplebeacon/assess (POST)',
-          '/api/webauthn/status',
-          '/api/merger-tool/reduction-scan',
-          '/api/platform/status',
-          '/api/simplebeacon/config',
-          '/api/simplebeacon/scan (POST)',
-          '/api/simplebeacon/scan/progress',
-        ],
-      }));
+      res.end(
+        JSON.stringify({
+          name: 'SimpleBeacon Extension Data Server',
+          version: serverState.extensionVersion,
+          endpoints: [
+            '/api/health',
+            '/api/ping',
+            '/api/report',
+            '/api/findings',
+            '/api/status',
+            '/api/config',
+            '/api/workspace',
+            '/api/data',
+            '/api/stream',
+            '/api/trigger-scan (POST)',
+            '/api/analyze/inventory',
+            '/api/analyze/codebase',
+            '/api/analyze/flexible',
+            '/api/analyze/data-cleanup',
+            '/api/analyze/npm-audit',
+            '/api/analyze/providers',
+            '/api/analyze/complete-audit-report (POST)',
+            '/api/analyze/eu-ai-act-audit-report (POST)',
+            '/api/simplebeacon/ci/telemetry/summary',
+            '/api/simplebeacon/assess (POST)',
+            '/api/webauthn/status',
+            '/api/merger-tool/reduction-scan',
+            '/api/platform/status',
+            '/api/simplebeacon/config',
+            '/api/simplebeacon/scan (POST)',
+            '/api/simplebeacon/scan/progress',
+          ],
+        })
+      );
       return;
     }
 
     // Status endpoint used by browser preview to check connectivity
     if (parsed.pathname === '/api/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        online: true,
-        timestamp: Date.now(),
-        version: serverState.extensionVersion,
-        workspace: serverState.workspacePath,
-        reportAvailable: !!serverState.currentReport,
-      }));
+      res.end(
+        JSON.stringify({
+          online: true,
+          timestamp: Date.now(),
+          version: serverState.extensionVersion,
+          workspace: serverState.workspacePath,
+          reportAvailable: !!serverState.currentReport,
+        })
+      );
       return;
     }
 
@@ -4401,57 +5137,89 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
     // Command endpoint for browser preview to relay sidebar button clicks
     if (parsed.pathname === '/api/command' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const msg = body ? JSON.parse(body) : {};
           const allowedCommands = new Set([
-            'simplebeacon.scanWorkspace', 'simplebeacon.showReport', 'simplebeacon.openSettings',
-            'simplebeacon.runAnalysis', 'simplebeacon.clearResults', 'simplebeacon.exportReport',
-            'simplebeacon.generateCodeMap', 'simplebeacon.openRoadmapHtml', 'simplebeacon.exportRoadmap',
-            'simplebeacon.showRemediationGuide', 'simplebeacon.runAdvancedAnalytics',
-            'simplebeacon.signOut', 'simplebeacon.refreshRelayPort', 'simplebeacon.diagnoseSidebar',
-            'simplebeacon.showPaneIfOpen', 'simplebeacon.setMonitorDirectory',
-            'simplebeacon.openAnalyze', 'simplebeacon.showReport', 'simplebeacon.generateCertificate',
-            'simplebeacon.showRemediationGuide', 'simplebeacon.openSidebarInBrowser',
-            'simplebeacon.openTeamDashboard', 'simplebeacon.showCertificate',
+            'simplebeacon.scanWorkspace',
+            'simplebeacon.showReport',
+            'simplebeacon.openSettings',
+            'simplebeacon.runAnalysis',
+            'simplebeacon.clearResults',
+            'simplebeacon.exportReport',
+            'simplebeacon.generateCodeMap',
+            'simplebeacon.openRoadmapHtml',
+            'simplebeacon.exportRoadmap',
+            'simplebeacon.showRemediationGuide',
+            'simplebeacon.runAdvancedAnalytics',
+            'simplebeacon.signOut',
+            'simplebeacon.refreshRelayPort',
+            'simplebeacon.diagnoseSidebar',
+            'simplebeacon.showPaneIfOpen',
+            'simplebeacon.setMonitorDirectory',
+            'simplebeacon.openAnalyze',
+            'simplebeacon.showReport',
+            'simplebeacon.generateCertificate',
+            'simplebeacon.showRemediationGuide',
+            'simplebeacon.openSidebarInBrowser',
+            'simplebeacon.openTeamDashboard',
+            'simplebeacon.showCertificate',
             // Sidebar pane commands forwarded from browser preview
-            'simplebeacon.openDashboard', 'simplebeacon.openAnalyze', 'simplebeacon.openReport',
-            'simplebeacon.openSecurityPane', 'simplebeacon.openTrustPane', 'simplebeacon.openQualityPane',
-            'simplebeacon.openAuditPane', 'simplebeacon.openCompliancePane', 'simplebeacon.openAnalyticsPane',
-            'simplebeacon.openRepoHealthPane', 'simplebeacon.openTeamPane', 'simplebeacon.openCertificate',
-            'simplebeacon.openCodeMap', 'simplebeacon.showCodeMap', 'simplebeacon.openUploadPane',
-            'simplebeacon.showAiContextPane', 'simplebeacon.openRoadmap', 'simplebeacon.openAssessmentsPane',
-            'simplebeacon.openPlatformPane', 'simplebeacon.openProfilePane', 'simplebeacon.openScanPane',
+            'simplebeacon.openDashboard',
+            'simplebeacon.openAnalyze',
+            'simplebeacon.openReport',
+            'simplebeacon.openSecurityPane',
+            'simplebeacon.openTrustPane',
+            'simplebeacon.openQualityPane',
+            'simplebeacon.openAuditPane',
+            'simplebeacon.openCompliancePane',
+            'simplebeacon.openAnalyticsPane',
+            'simplebeacon.openRepoHealthPane',
+            'simplebeacon.openTeamPane',
+            'simplebeacon.openCertificate',
+            'simplebeacon.openCodeMap',
+            'simplebeacon.showCodeMap',
+            'simplebeacon.openUploadPane',
+            'simplebeacon.showAiContextPane',
+            'simplebeacon.openRoadmap',
+            'simplebeacon.openAssessmentsPane',
+            'simplebeacon.openPlatformPane',
+            'simplebeacon.openProfilePane',
+            'simplebeacon.openScanPane',
             // Sign-in UI commands forwarded from browser preview sidebar
-            'simplebeacon.signIn', 'simplebeacon.signInWithProvider', 'simplebeacon.signOut',
+            'simplebeacon.signIn',
+            'simplebeacon.signInWithProvider',
+            'simplebeacon.signOut',
           ]);
           const commandAliasMap: Record<string, string> = {
-            'scan': 'simplebeacon.scanWorkspace',
-            'scanWorkspace': 'simplebeacon.scanWorkspace',
-            'openScanWorkspace': 'simplebeacon.scanWorkspace',
+            scan: 'simplebeacon.scanWorkspace',
+            scanWorkspace: 'simplebeacon.scanWorkspace',
+            openScanWorkspace: 'simplebeacon.scanWorkspace',
             // Sidebar pane names from browser preview → registered VS Code: commands
-            'showDashboardPane': 'simplebeacon.openDashboard',
-            'showAnalyzePane': 'simplebeacon.openAnalyze',
-            'showReportPane': 'simplebeacon.openReport',
-            'showSecurityPane': 'simplebeacon.openSecurityPane',
-            'showTrustPane': 'simplebeacon.openTrustPane',
-            'showQualityPane': 'simplebeacon.openQualityPane',
-            'showAuditPane': 'simplebeacon.openAuditPane',
-            'showCompliancePane': 'simplebeacon.openCompliancePane',
-            'showAnalyticsPane': 'simplebeacon.openAnalyticsPane',
-            'showSettingsPane': 'simplebeacon.openSettings',
-            'showRepoHealthPane': 'simplebeacon.openRepoHealthPane',
-            'showTeamPane': 'simplebeacon.openTeamPane',
-            'showCertificatePane': 'simplebeacon.openCertificate',
-            'showCodeMapPane': 'simplebeacon.openCodeMap',
-            'showUploadPane': 'simplebeacon.openUploadPane',
-            'showAiContextPane': 'simplebeacon.showAiContextPane',
-            'showRoadmapPane': 'simplebeacon.openRoadmap',
-            'showAssessmentsPane': 'simplebeacon.openAssessmentsPane',
-            'showPlatformPane': 'simplebeacon.openPlatformPane',
-            'showProfilePane': 'simplebeacon.openProfilePane',
-            'showScanPane': 'simplebeacon.openScanPane',
+            showDashboardPane: 'simplebeacon.openDashboard',
+            showAnalyzePane: 'simplebeacon.openAnalyze',
+            showReportPane: 'simplebeacon.openReport',
+            showSecurityPane: 'simplebeacon.openSecurityPane',
+            showTrustPane: 'simplebeacon.openTrustPane',
+            showQualityPane: 'simplebeacon.openQualityPane',
+            showAuditPane: 'simplebeacon.openAuditPane',
+            showCompliancePane: 'simplebeacon.openCompliancePane',
+            showAnalyticsPane: 'simplebeacon.openAnalyticsPane',
+            showSettingsPane: 'simplebeacon.openSettings',
+            showRepoHealthPane: 'simplebeacon.openRepoHealthPane',
+            showTeamPane: 'simplebeacon.openTeamPane',
+            showCertificatePane: 'simplebeacon.openCertificate',
+            showCodeMapPane: 'simplebeacon.openCodeMap',
+            showUploadPane: 'simplebeacon.openUploadPane',
+            showAiContextPane: 'simplebeacon.showAiContextPane',
+            showRoadmapPane: 'simplebeacon.openRoadmap',
+            showAssessmentsPane: 'simplebeacon.openAssessmentsPane',
+            showPlatformPane: 'simplebeacon.openPlatformPane',
+            showProfilePane: 'simplebeacon.openProfilePane',
+            showScanPane: 'simplebeacon.openScanPane',
           };
           const rawCmd = msg.command;
           const cmd = commandAliasMap[rawCmd] || rawCmd;
@@ -4485,9 +5253,15 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
   dataServer.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
       if (outputChannel) {
-        outputChannel.appendLine(`[SimpleBeacon DataServer] Port ${dataServerPort} in use, creating new server on random port...`);
+        outputChannel.appendLine(
+          `[SimpleBeacon DataServer] Port ${dataServerPort} in use, creating new server on random port...`
+        );
       }
-      try { dataServer?.close(); } catch { /* ignore */ }
+      try {
+        dataServer?.close();
+      } catch {
+        /* ignore */
+      }
       dataServer = null;
       dataServerPort = 0;
       // Recreate server on random port with full handler
@@ -4505,7 +5279,9 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         dataServerPort = actualPort;
         dataServer = fallbackServer;
         if (outputChannel) {
-          outputChannel.appendLine(`[SimpleBeacon DataServer] Fallback server listening on http://127.0.0.1:${actualPort}`);
+          outputChannel.appendLine(
+            `[SimpleBeacon DataServer] Fallback server listening on http://127.0.0.1:${actualPort}`
+          );
         }
         vscode.window.showInformationMessage(`SimpleBeacon data server running at http://127.0.0.1:${actualPort}`);
       });
@@ -4515,7 +5291,11 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         outputChannel.appendLine(`[SimpleBeacon DataServer] ERROR: ${err.message}`);
       }
       vscode.window.showErrorMessage(`SimpleBeacon data server error: ${err.message}`);
-      try { dataServer?.close(); } catch { /* ignore */ }
+      try {
+        dataServer?.close();
+      } catch {
+        /* ignore */
+      }
       dataServer = null;
       dataServerPort = 0;
     }
@@ -4533,8 +5313,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
 
   try {
     const listenHost = '127.0.0.1';
-  const listenPort = process.env.PORT ? parseInt(process.env.PORT, 10) : dataServerPort;
-  dataServer.listen(listenPort, listenHost, () => {
+    const listenPort = process.env.PORT ? parseInt(process.env.PORT, 10) : dataServerPort;
+    dataServer.listen(listenPort, listenHost, () => {
       if (outputChannel) {
         const addr = dataServer?.address();
         const actualPort = addr && typeof addr === 'object' ? addr.port : listenPort;
@@ -4551,7 +5331,10 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
   }
 }
 
-export function restartDataServer(context: vscode.ExtensionContext, outputChannel?: vscode.OutputChannel): Promise<void> {
+export function restartDataServer(
+  context: vscode.ExtensionContext,
+  outputChannel?: vscode.OutputChannel
+): Promise<void> {
   return new Promise((resolve) => {
     if (dataServer) {
       const oldServer = dataServer;
@@ -4559,7 +5342,11 @@ export function restartDataServer(context: vscode.ExtensionContext, outputChanne
       dataServerPort = 0;
       oldServer.close(() => {
         sseClients.forEach((c) => {
-          try { c.res.end(); } catch { /* simplebeacon-ignore error-swallowing — SSE cleanup best-effort */ }
+          try {
+            c.res.end();
+          } catch {
+            /* simplebeacon-ignore error-swallowing — SSE cleanup best-effort */
+          }
         });
         sseClients.length = 0;
         startDataServer(context, outputChannel);
@@ -4578,11 +5365,19 @@ export function isDataServerRunning(): boolean {
 
 export function stopDataServer(): void {
   if (dataServer) {
-    try { (dataServer as any).closeAllConnections?.(); } catch { /* ignore */ }
+    try {
+      (dataServer as any).closeAllConnections?.();
+    } catch {
+      /* ignore */
+    }
     dataServer.close();
     dataServer = null;
     sseClients.forEach((c) => {
-      try { c.res.end(); } catch { /* simplebeacon-ignore error-swallowing — SSE cleanup best-effort */ }
+      try {
+        c.res.end();
+      } catch {
+        /* simplebeacon-ignore error-swallowing — SSE cleanup best-effort */
+      }
     });
     sseClients.length = 0;
   }
