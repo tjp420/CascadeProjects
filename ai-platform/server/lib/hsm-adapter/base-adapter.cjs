@@ -1782,6 +1782,35 @@ class BaseHsmAdapter {
     this._audit('ROUTING_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 86 PQ health insurance claim auditing gating telemetry hooks ──
+
+  /**
+   * Emit an insurance gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitInsuranceGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('INSURANCE_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK claim audit verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkClaimAuditVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_CLAIM_AUDIT_VERIFIED', info);
+  }
+
+  /**
+   * Emit an actuarial accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitActuarialAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('ACTUARIAL_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

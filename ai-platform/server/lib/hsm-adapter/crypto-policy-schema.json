@@ -593,6 +593,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderTelecomClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqInsuranceGating": {
+      "minClaimsAuditQuorum": 3,
+      "maxClaimWindowSeconds": 5184000,
+      "maxBillingSequenceDepth": 24,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireInsuranceAuthorityInitializerAttestation": true,
+      "requireActuarialCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
