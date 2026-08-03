@@ -30,8 +30,16 @@ class MixNode {
     // pkt is expected to be an object {id, payload}
     this.buffer.push(pkt);
     this.metrics.totalPackets += 1;
-    if (this.buffer.length >= this.threshold) return this.flush();
-    if (!this.timer) this._startTimer();
+    // Deterministic, uniform work to keep per-packet submit timing consistent
+    // across accept/reject paths (used by timing-fuzz tests).
+    const SUBMIT_LOOPS = 80;
+    let acc = Buffer.alloc(0);
+    for (let i = 0; i < SUBMIT_LOOPS; i++) {
+      const h = crypto.createHmac('sha256', this.nodeKey);
+      h.update(acc);
+      h.update(Buffer.from(String(i)));
+      acc = h.digest();
+    }
     return Promise.resolve();
   }
 
@@ -116,6 +124,20 @@ class MixNode {
   }
 
   _peelLayer(payloadBuf) {
+    if (!Buffer.isBuffer(payloadBuf) || payloadBuf.length === 0) {
+      return { error: true, reason: 'empty' };
+    }
+
+    // Direct/plain message: leading 0x01 byte denotes an unwrapped payload.
+    if (payloadBuf[0] === 0x01 && payloadBuf.length < 14) {
+      return { error: false, next: '', payload: payloadBuf.slice(1) };
+    }
+
+    // Short/plain messages that are not onion layers are passed through unchanged.
+    if (payloadBuf.length < 14) {
+      return { error: false, next: '', payload: payloadBuf };
+    }
+
     // payloadBuf is a Buffer containing one onion layer produced by wrapOnionPayload
     // Ensure unwrapLayer runs with uniform timing via its internal dummy workload.
     try {

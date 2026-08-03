@@ -13,23 +13,32 @@ function deriveNodeKey(seed) {
  *
  * The function pads the inner payload to achieve roughly consistent layer sizes and
  * produces an outer Buffer representing the onion-encrypted packet.
+ *
+ * Buffers are length-prefixed so the sink can slice the original message out of padding.
+ * Strings are written verbatim and padded with nulls so trailing padding can be stripped.
  */
 function wrapOnionPayload(plaintext, routeNodes, options = {}) {
   const outerSize = options.outerSize || options.paddingSize || 1024;
-  const pt = Buffer.isBuffer(plaintext) ? plaintext : Buffer.from(String(plaintext), 'utf8');
+  const isBuffer = Buffer.isBuffer(plaintext);
+  const pt = isBuffer ? plaintext : Buffer.from(String(plaintext), 'utf8');
   // overhead estimate: nonce(12) + nextLen(2) + maxNext(64) + tag(16)
   const overhead = 12 + 2 + 64 + 16;
-  const innerSize = Math.max(pt.length + 4, outerSize - overhead);
 
-  // inner payload layout: 4-byte origLen | message | padding
-  const origLenBuf = Buffer.alloc(4);
-  origLenBuf.writeUInt32BE(pt.length, 0);
-  let padded = Buffer.concat([origLenBuf, pt]);
-  if (padded.length < innerSize) {
-    padded = Buffer.concat([padded, crypto.randomBytes(innerSize - padded.length)]);
+  let inner;
+  if (isBuffer) {
+    // length-prefixed layout for Buffer payloads
+    const origLenBuf = Buffer.alloc(4);
+    origLenBuf.writeUInt32BE(pt.length, 0);
+    inner = Buffer.concat([origLenBuf, pt]);
+  } else {
+    // string payloads are written verbatim
+    inner = pt;
   }
 
-  let inner = padded;
+  const innerSize = Math.max(inner.length, outerSize - overhead);
+  if (inner.length < innerSize) {
+    inner = Buffer.concat([inner, Buffer.alloc(innerSize - inner.length)]);
+  }
 
   // wrap from last to first
   for (let i = routeNodes.length - 1; i >= 0; i--) {
