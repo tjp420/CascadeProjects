@@ -117,6 +117,7 @@ class MixNode {
 
   _peelLayer(payloadBuf) {
     // payloadBuf is a Buffer containing one onion layer produced by wrapOnionPayload
+    // Ensure unwrapLayer runs with uniform timing via its internal dummy workload.
     try {
       const res = unwrapLayer(payloadBuf, this.nodeKey);
       if (!res.ok) {
@@ -126,6 +127,7 @@ class MixNode {
       // res contains { next, payload }
       return { error: false, next: res.next, payload: res.payload };
     } catch (err) {
+      // unwrapLayer already performs dummy work on error paths; maintain contract.
       return { error: true, reason: 'parse_error' };
     }
   }
