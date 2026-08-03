@@ -925,6 +925,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderAutonomousClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSupplyChainResilienceIntegrityGating": {
+      "minResilienceQuorum": 10,
+      "maxResilienceWindowSeconds": 172800,
+      "maxResilienceChainDepth": 28,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireSupplyChainResilienceAuthorityInitializerAttestation": true,
+      "requireSupplyChainEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderResilienceClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

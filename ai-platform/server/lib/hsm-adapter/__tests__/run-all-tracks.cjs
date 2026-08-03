@@ -94,6 +94,7 @@ const SUITES = [
   'pq-quantum-sensor-calibration-gating',
   'pq-neural-network-inference-integrity-gating',
   'pq-autonomous-vehicle-fleet-coordination-gating',
+  'pq-supply-chain-resilience-integrity-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
