@@ -986,5 +986,62 @@ router.get('/holographic-storage/telemetry', authorize('admin:all'), function (r
   }
 });
 
+// Track 76: Supply Chain Provenance Gating v2 policy administration and telemetry
+
+// GET /api/vault/supply-chain-provenance/policy — expose active Track 76 policy defaults and bounds
+router.get('/supply-chain-provenance/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqSupplyChainProvenanceGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'supply_chain_provenance_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/supply-chain-provenance/policy/validate — validate a proposed Track 76 configuration
+router.post('/supply-chain-provenance/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqSupplyChainProvenanceGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'supply_chain_provenance_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/supply-chain-provenance/telemetry — expose Track 76 telemetry counters
+router.get('/supply-chain-provenance/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_supplygate_pool_initialized_total: allMetrics.hsm_supplygate_pool_initialized_total || 0,
+      hsm_zk_provenance_claim_verified_total: allMetrics.hsm_zk_provenance_claim_verified_total || 0,
+      hsm_lineage_accreditation_completed_total: allMetrics.hsm_lineage_accreditation_completed_total || 0,
+      hsm_supplygate_settled_total: allMetrics.hsm_supplygate_settled_total || 0,
+      hsm_supplygate_rebalanced_total: allMetrics.hsm_supplygate_rebalanced_total || 0,
+      hsm_supplygate_slash_recorded_total: allMetrics.hsm_supplygate_slash_recorded_total || 0,
+      hsm_provenance_batch_verified_total: allMetrics.hsm_provenance_batch_verified_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'supply_chain_provenance_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 
 module.exports = router;

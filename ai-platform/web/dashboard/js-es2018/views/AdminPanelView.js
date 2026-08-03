@@ -10,6 +10,7 @@ import { renderDecentralizedIdentityGatingDashboard, cleanupDecentralizedIdentit
 import { renderSpaceBasedLaserCommunicationMeshGatingDashboard, cleanupSpaceBasedLaserCommunicationMeshGatingDashboard } from '../components/SpaceBasedLaserCommunicationMeshGatingDashboard.js';
 import { renderQkdLinkSwitchGatingDashboard, cleanupQkdLinkSwitchGatingDashboard } from '../components/QkdLinkSwitchGatingDashboard.js';
 import { renderHolographicStorageContentAddressableGatingDashboard, cleanupHolographicStorageContentAddressableGatingDashboard } from '../components/HolographicStorageContentAddressableGatingDashboard.js';
+import { renderSupplyChainProvenanceGatingDashboard, cleanupSupplyChainProvenanceGatingDashboard } from '../components/SupplyChainProvenanceGatingDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -969,6 +970,7 @@ export class AdminPanelView {
         cleanupSpaceBasedLaserCommunicationMeshGatingDashboard();
         cleanupQkdLinkSwitchGatingDashboard();
         cleanupHolographicStorageContentAddressableGatingDashboard();
+        cleanupSupplyChainProvenanceGatingDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -1025,6 +1027,13 @@ export class AdminPanelView {
             grid.appendChild(holoDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount holographic storage gating dashboard:', e);
+        }
+        // Mount Supply Chain Provenance Gating (Track 76 v2, policy + telemetry)
+        try {
+            const supplyDashboard = renderSupplyChainProvenanceGatingDashboard();
+            grid.appendChild(supplyDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount supply chain provenance gating dashboard:', e);
         }
     }
 

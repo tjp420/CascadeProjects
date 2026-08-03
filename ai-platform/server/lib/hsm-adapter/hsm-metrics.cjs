@@ -818,6 +818,16 @@ const counters = {
   hsm_hologate_pool_initialized_total: 0,
   hsm_zk_holographic_claim_verified_total: 0,
   hsm_phase_accreditation_completed_total: 0,
+  hsm_supplygate_pool_initialized_total: 0,
+  hsm_zk_provenance_claim_verified_total: 0,
+  hsm_lineage_accreditation_completed_total: 0,
+  hsm_supplygate_settled_total: 0,
+  hsm_supplygate_rebalanced_total: 0,
+  hsm_supplygate_slash_recorded_total: 0,
+  hsm_provenance_batch_verified_total: 0,
+  hsm_primitive_pool_authorized_total: 0,
+  hsm_primitive_pool_synced_total: 0,
+  hsm_primitive_authorization_revoked_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1508,6 +1518,16 @@ const META = {
   hsm_hologate_pool_initialized_total: { help: 'Total holographic storage content-addressable gating pools initialized.', type: 'counter' },
   hsm_zk_holographic_claim_verified_total: { help: 'Total ZK holographic storage claims verified.', type: 'counter' },
   hsm_phase_accreditation_completed_total: { help: 'Total holographic storage phase accreditation completions finalized.', type: 'counter' },
+  hsm_supplygate_pool_initialized_total: { help: 'Total supply chain provenance gating pools initialized.', type: 'counter' },
+  hsm_zk_provenance_claim_verified_total: { help: 'Total ZK supply chain provenance claims verified.', type: 'counter' },
+  hsm_lineage_accreditation_completed_total: { help: 'Total supply chain provenance lineage accreditation completions finalized.', type: 'counter' },
+  hsm_supplygate_settled_total: { help: 'Total supply chain provenance gating pools settled.', type: 'counter' },
+  hsm_supplygate_rebalanced_total: { help: 'Total supply chain provenance gating pool rebalances completed.', type: 'counter' },
+  hsm_supplygate_slash_recorded_total: { help: 'Total supply chain provenance claim slashes recorded.', type: 'counter' },
+  hsm_provenance_batch_verified_total: { help: 'Total supply chain provenance claim batch verifications completed.', type: 'counter' },
+  hsm_primitive_pool_authorized_total: { help: 'Total primitive pools authorized for cluster keyring sync.', type: 'counter' },
+  hsm_primitive_pool_synced_total: { help: 'Total primitive pools synced across enclaves.', type: 'counter' },
+  hsm_primitive_authorization_revoked_total: { help: 'Total primitive pool authorizations revoked.', type: 'counter' },
 };
 
 /**
