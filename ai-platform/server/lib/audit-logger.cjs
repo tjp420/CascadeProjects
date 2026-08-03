@@ -280,6 +280,7 @@ function log(params) {
   // Fire-and-forget SIEM export for high-priority events
   try {
     const siem = require('./siem-exporter.cjs');
+    const tamperDetector = require('./tamper-detector.cjs');
     // map our entry to a SIEM-friendly event
     const siemEvent = {
       id: entry.id,
@@ -295,6 +296,53 @@ function log(params) {
     // Only ship quota and rate-limit related events by default
     if (['AGENTIC_QUOTA_EXHAUSTED', 'AGENTIC_RATE_LIMIT_TRIPPED', 'AGENTIC_EXECUTE_REQUEST'].includes(entry.action)) {
       siem.enqueue(siemEvent);
+    }
+    // Inline tamper detection: when a PROOF_VERIFY_FAILED is logged,
+    // check for repeated failures with the same payloadHash and emit a
+    // PROOF_TAMPER_ALERT when configured thresholds are met.
+    try {
+      if (entry.action === 'PROOF_VERIFY_FAILED' && entry.metadata && entry.metadata.payloadHash) {
+        const alert = tamperDetector.check(entry.metadata.payloadHash, { threshold: process.env.TAMPER_ALERT_THRESHOLD ? parseInt(process.env.TAMPER_ALERT_THRESHOLD, 10) : 3, windowHours: process.env.TAMPER_ALERT_WINDOW_HOURS ? parseInt(process.env.TAMPER_ALERT_WINDOW_HOURS, 10) : 24 });
+        if (alert) {
+          // compose alert entry and write directly to store (avoid recursion)
+          const alertId = `audit-${crypto.randomBytes(6).toString('hex')}`;
+          const alertEntry = {
+            id: alertId,
+            orgId: entry.orgId,
+            timestamp: new Date().toISOString(),
+            actorId: 'system',
+            actorEmail: 'system',
+            action: 'PROOF_TAMPER_ALERT',
+            entity: 'partial_share_proof',
+            entityId: entry.metadata.payloadHash || '',
+            changes: [],
+            metadata: {
+              payloadHash: alert.payloadHash,
+              count: alert.count,
+              windowStart: alert.windowStart,
+              windowEnd: alert.windowEnd,
+              sampleEntries: alert.sampleEntries,
+            },
+          };
+
+          // Scrub and compute hash like log() does
+          try { scrubAuditEntry(alertEntry, alertEntry.orgId); } catch (e) {}
+          try {
+            const prevHash = getLatestHash(store, alertEntry.orgId);
+            alertEntry.prevHash = prevHash;
+            alertEntry.hash = computeEntryHash(alertEntry, prevHash);
+            const key = makeKey(alertEntry.orgId, alertId);
+            store.entries[key] = alertEntry;
+            writeStore(store);
+            // send to SIEM too
+            try { siem.enqueue({ id: alertEntry.id, orgId: alertEntry.orgId, timestamp: alertEntry.timestamp, action: alertEntry.action, entity: alertEntry.entity, entityId: alertEntry.entityId, actorId: alertEntry.actorId, metadata: alertEntry.metadata }); } catch (e) {}
+          } catch (e) {
+            // non-fatal
+          }
+        }
+      }
+    } catch (e) {
+      // don't let detection failures impact core logic
     }
   } catch (e) {
     // don't let SIEM errors affect core logic
