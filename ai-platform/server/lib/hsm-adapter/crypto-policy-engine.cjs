@@ -921,6 +921,28 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderLaserMeshClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqQuantumKeyDistributionLinkSwitchGating: {
+    minQkdQuorum: 18,
+    maxEntanglementWindowSeconds: 60,
+    maxQkdSwitchChainDepth: 42,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireQkdLinkAuthorityInitializerAttestation: true,
+    requireQkdEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderQkdLinkClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqHolographicStorageContentAddressableGating: {
+    minHolographicQuorum: 20,
+    maxPhaseValidationWindowSeconds: 10,
+    maxVolumetricChainDepth: 50,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireHolographicStorageAuthorityInitializerAttestation: true,
+    requireHolographicEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderHolographicClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1394,6 +1416,14 @@ function _mergeWithDefault(tenantPolicy) {
     pqSpaceBasedLaserCommunicationMeshGating: {
       ...DEFAULT_POLICY.pqSpaceBasedLaserCommunicationMeshGating,
       ...(tenantPolicy.pqSpaceBasedLaserCommunicationMeshGating || {}),
+    },
+    pqQuantumKeyDistributionLinkSwitchGating: {
+      ...DEFAULT_POLICY.pqQuantumKeyDistributionLinkSwitchGating,
+      ...(tenantPolicy.pqQuantumKeyDistributionLinkSwitchGating || {}),
+    },
+    pqHolographicStorageContentAddressableGating: {
+      ...DEFAULT_POLICY.pqHolographicStorageContentAddressableGating,
+      ...(tenantPolicy.pqHolographicStorageContentAddressableGating || {}),
     },
   };
 }
@@ -3748,6 +3778,68 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqQuantumKeyDistributionLinkSwitchGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqQuantumKeyDistributionLinkSwitchGating, ...(tenantPolicy.pqQuantumKeyDistributionLinkSwitchGating || {}) };
+    if (typeof config.qkdQuorum === 'number' && config.qkdQuorum < policy.minQkdQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `qkd quorum ${config.qkdQuorum} below minimum ${policy.minQkdQuorum}`);
+    }
+    if (typeof config.entanglementWindowSeconds === 'number' && config.entanglementWindowSeconds > policy.maxEntanglementWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `entanglement window seconds ${config.entanglementWindowSeconds} exceeds maximum ${policy.maxEntanglementWindowSeconds}`);
+    }
+    if (typeof config.qkdSwitchChainDepth === 'number' && config.qkdSwitchChainDepth > policy.maxQkdSwitchChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `qkd switch chain depth ${config.qkdSwitchChainDepth} exceeds maximum ${policy.maxQkdSwitchChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireQkdLinkAuthorityInitializerAttestation && config.qkdLinkAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'qkd link authority initializer attestation is required');
+    }
+    if (policy.requireQkdEthicsOversightCommitteeAttestation && config.qkdEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'qkd ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderQkdLinkClaims === 'boolean' && policy.banMalformedOrOutOfOrderQkdLinkClaims && !config.banMalformedOrOutOfOrderQkdLinkClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order qkd link claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqHolographicStorageContentAddressableGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqHolographicStorageContentAddressableGating, ...(tenantPolicy.pqHolographicStorageContentAddressableGating || {}) };
+    if (typeof config.holographicQuorum === 'number' && config.holographicQuorum < policy.minHolographicQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `holographic quorum ${config.holographicQuorum} below minimum ${policy.minHolographicQuorum}`);
+    }
+    if (typeof config.phaseValidationWindowSeconds === 'number' && config.phaseValidationWindowSeconds > policy.maxPhaseValidationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `phase validation window seconds ${config.phaseValidationWindowSeconds} exceeds maximum ${policy.maxPhaseValidationWindowSeconds}`);
+    }
+    if (typeof config.volumetricChainDepth === 'number' && config.volumetricChainDepth > policy.maxVolumetricChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `volumetric chain depth ${config.volumetricChainDepth} exceeds maximum ${policy.maxVolumetricChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireHolographicStorageAuthorityInitializerAttestation && config.holographicStorageAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'holographic storage authority initializer attestation is required');
+    }
+    if (policy.requireHolographicEthicsOversightCommitteeAttestation && config.holographicEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'holographic ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderHolographicClaims === 'boolean' && policy.banMalformedOrOutOfOrderHolographicClaims && !config.banMalformedOrOutOfOrderHolographicClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order holographic claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -4457,6 +4549,16 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSpaceBasedLaserCommunicationMeshGating') {
       this._validatePqSpaceBasedLaserCommunicationMeshGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqQuantumKeyDistributionLinkSwitchGating') {
+      this._validatePqQuantumKeyDistributionLinkSwitchGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqHolographicStorageContentAddressableGating') {
+      this._validatePqHolographicStorageContentAddressableGating(tenantPolicy, config);
       return true;
     }
 

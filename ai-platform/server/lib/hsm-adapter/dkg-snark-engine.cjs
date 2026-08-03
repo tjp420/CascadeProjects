@@ -231,6 +231,101 @@ class DkgSnarkEngine {
     this._masterPublicKey = null;
     this._zkParameters = null;
     this._completed = false;
+
+    // Numeric guards: mapping from commitmentGroup (curve id) to max field bits.
+    // Default mapping can be overridden via options.bitLengthMap for testing or policy.
+    this._defaultBitLengthMap = Object.assign({
+      secp256k1: 256,
+      'P-256': 256,
+      bn254: 254,
+      'BLS12-381': 381,
+    }, options.bitLengthMap || {});
+    // Active commitment group identifier for produced commitments (optional)
+    this._commitmentGroup = options.commitmentGroup || 'secp256k1';
+    // Optional audit hook: function(entry) for rejected persistence events
+    this._auditHook = typeof options.auditHook === 'function' ? options.auditHook : null;
+    this._auditOnReject = options.auditOnReject === true;
+  }
+
+  /**
+   * Normalize various numeric values to BigInt where possible.
+   * Accepts BigInt, number, or hex/decimal string. Throws on invalid.
+   */
+  _normalizeToBigInt(v) {
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') {
+      if (!Number.isFinite(v) || Math.floor(v) !== v) throw new HsmAdapterError('NUMERIC_PARSE_ERROR', 'not an integer');
+      return BigInt(v);
+    }
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (s.length === 0) throw new HsmAdapterError('NUMERIC_PARSE_ERROR', 'empty string');
+      const neg = s[0] === '-';
+      const abs = neg ? s.slice(1) : s;
+      if (/^0x[0-9a-fA-F]+$/.test(abs)) return neg ? -BigInt(abs) : BigInt(abs);
+      if (/^-?[0-9]+$/.test(s)) return BigInt(s);
+      throw new HsmAdapterError('NUMERIC_PARSE_ERROR', `unsupported numeric string: ${s}`);
+    }
+    throw new HsmAdapterError('NUMERIC_PARSE_ERROR', 'unsupported type for BigInt conversion');
+  }
+
+  /**
+   * Recursively check numeric fields in an object for bit-length exceeding
+   * the configured max for the current commitmentGroup. Returns reason string
+   * or null when OK.
+   */
+  _numericOversizeCheck(obj, maxBits, path = '') {
+    if (obj === null || typeof obj === 'undefined') return null;
+    if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'bigint') {
+      try {
+        const v = this._normalizeToBigInt(obj);
+        const absV = v < 0n ? -v : v;
+        const bits = absV === 0n ? 1 : BigInt(absV).toString(2).length;
+        if (Number(bits) > maxBits) return `${path || '(root)'} numeric value exceeds ${maxBits} bits (${bits} bits)`;
+      } catch (e) {
+        return null;
+      }
+      return null;
+    }
+    if (Array.isArray(obj)) {
+      for (let i = 0; i < obj.length; i++) {
+        const res = this._numericOversizeCheck(obj[i], maxBits, `${path}[${i}]`);
+        if (res) return res;
+      }
+      return null;
+    }
+    if (typeof obj === 'object') {
+      for (const k of Object.keys(obj)) {
+        const res = this._numericOversizeCheck(obj[k], maxBits, path ? `${path}.${k}` : k);
+        if (res) return res;
+      }
+      return null;
+    }
+    return null;
+  }
+
+  /**
+   * Public guard: validate a `DkgNodeContribution` for persistence. Throws
+   * HsmAdapterError('NUMERIC_OVERSIZE', ...) on violation.
+   */
+  validateContributionForPersistence(contribution) {
+    if (!contribution || typeof contribution !== 'object') throw new HsmAdapterError('INVALID_INPUT', 'contribution required');
+    const maxBits = Number(this._defaultBitLengthMap[this._commitmentGroup] || 521);
+    // Check polynomial coefficients
+    const polyReason = this._numericOversizeCheck(contribution.polynomial, maxBits, 'polynomial');
+    if (polyReason) throw new HsmAdapterError('NUMERIC_OVERSIZE', polyReason);
+    // Check commitments: ensure they are valid group elements in [1, p-1].
+    for (let i = 0; i < contribution.commitments.length; i++) {
+      const c = contribution.commitments[i];
+      try {
+        const cv = this._normalizeToBigInt(c);
+        if (cv < 1n || cv >= this._prime) throw new HsmAdapterError('NUMERIC_OVERSIZE', `commitments[${i}] out of group range`);
+      } catch (e) {
+        if (e && e.code === 'NUMERIC_PARSE_ERROR') throw e;
+        throw new HsmAdapterError('NUMERIC_OVERSIZE', `invalid commitment at index ${i}`);
+      }
+    }
+    return true;
   }
 
   /**
@@ -267,8 +362,82 @@ class DkgSnarkEngine {
     }
 
     const contribution = new DkgNodeContribution(nodeId, polynomial, commitments, shares);
+    // Validate before adding to in-memory store to ensure persistence-safe state
+    try {
+      this.validateContributionForPersistence(contribution);
+    } catch (e) {
+      // If audit hook configured, emit a DKG_PERSISTENCE_REJECT entry
+      if (this._auditOnReject && this._auditHook) {
+        try {
+          this._auditHook({ action: 'DKG_PERSISTENCE_REJECT', entity: 'dkg_contribution', entityId: nodeId, reason: e.message });
+        } catch (_) {
+          // swallow audit errors
+        }
+      }
+      throw e;
+    }
+
     this._contributions.set(nodeId, contribution);
     return contribution;
+  }
+
+  /**
+   * Add an externally-provided contribution (e.g., from persistence restore).
+   * Validates before inserting to prevent out-of-bounds data from reaching storage adapters.
+   * @param {DkgNodeContribution} contribution
+   */
+  addContribution(contribution) {
+    if (!(contribution instanceof DkgNodeContribution)) {
+      throw new HsmAdapterError('INVALID_INPUT', 'contribution must be DkgNodeContribution');
+    }
+    // Validate and insert
+    try {
+      this.validateContributionForPersistence(contribution);
+    } catch (e) {
+      if (this._auditOnReject && this._auditHook) {
+        try {
+          this._auditHook({ action: 'DKG_PERSISTENCE_REJECT', entity: 'dkg_contribution', entityId: contribution.nodeId, reason: e.message });
+        } catch (_) {}
+      }
+      throw e;
+    }
+    this._contributions.set(contribution.nodeId, contribution);
+    return true;
+  }
+
+  /**
+   * Validate and return a snapshot-safe serializable state for persistence.
+   * Throws if any contribution is invalid.
+   */
+  captureStateForPersistence() {
+    // Validate all contributions before snapshotting
+    for (const [nodeId, contribution] of this._contributions) {
+      try {
+        this.validateContributionForPersistence(contribution);
+      } catch (e) {
+        if (this._auditOnReject && this._auditHook) {
+          try {
+            this._auditHook({ action: 'DKG_PERSISTENCE_REJECT', entity: 'dkg_contribution', entityId: nodeId, reason: e.message });
+          } catch (_) {}
+        }
+        throw e;
+      }
+    }
+
+    // Build a serializable snapshot (avoid serializing private shares)
+    const contributions = {};
+    for (const [nodeId, contribution] of this._contributions) {
+      contributions[nodeId] = {
+        nodeId: contribution.nodeId,
+        polynomial: contribution.polynomial.map((c) => c.toString(16)),
+        commitments: contribution.commitments.map((c) => c.toString(16)),
+        // shares intentionally omitted from snapshot for secrecy
+      };
+    }
+    return {
+      meta: { totalNodes: this._totalNodes, threshold: this._threshold, timestamp: Date.now() },
+      contributions,
+    };
   }
 
   /**
