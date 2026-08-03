@@ -2392,6 +2392,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_collision_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 99 genomic privacy compliance gating telemetry hooks ────
+
+  /**
+   * Emit a genomic compliance pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitGenomicCompliancePoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('GENOMIC_COMPLIANCE_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_genogo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK genomic claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkGenomicClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_GENOMIC_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_genomic_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a consent accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitConsentAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CONSENT_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_consent_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
