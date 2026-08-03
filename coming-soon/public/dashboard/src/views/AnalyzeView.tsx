@@ -1308,6 +1308,21 @@ export function AnalyzeView() {
     const dtFiles = Array.from(e.dataTransfer.files);
     const firstItem = e.dataTransfer.items?.[0] as DataTransferItem & { getAsFileSystemHandle?: () => Promise<FileSystemHandle> };
 
+    // Firefox invalidates DataTransfer (and all derived FileSystemEntry/File
+    // objects) after the drop event handler yields on its first await. The
+    // modern getAsFileSystemHandle() API returns a stable FileSystemDirectoryHandle
+    // that survives after the event, but the call itself MUST be initiated
+    // synchronously before any await — otherwise the DataTransferItem is already
+    // stale. Capture the Promise here; await it later as the primary path.
+    let fsHandlePromise: Promise<FileSystemHandle | null> | null = null;
+    if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
+      try {
+        fsHandlePromise = firstItem.getAsFileSystemHandle();
+      } catch {
+        /* getAsFileSystemHandle not available or DataTransferItem stale */
+      }
+    }
+
     if (dtFiles.length > 0 && (dtFiles[0] as any).path) {
       const filePath = String((dtFiles[0] as any).path).replace(/\\/g, '/');
       const folderName = (dtFiles[0] as any).webkitRelativePath?.split('/')[0] || dtFiles[0].name;
@@ -1322,6 +1337,31 @@ export function AnalyzeView() {
       }
     }
 
+    // Primary path: use the modern File System Access API handle. This is
+    // stable across event yields and supports recursive directory traversal
+    // without DataTransfer invalidation issues in Firefox.
+    if (fsHandlePromise) {
+      try {
+        const handle = await fsHandlePromise;
+        if (handle && handle.kind === 'directory') {
+          const dirHandle = handle as FileSystemDirectoryHandle;
+          toast.info(`Scanning dropped folder "${dirHandle.name}"...`);
+          await runBrowserLocalScan({
+            dirHandle,
+            projectPath: dirHandle.name,
+            logLabel: `Browser local scan via directory handle (${dirHandle.name})`,
+          });
+          return;
+        }
+      } catch (dropErr: any) {
+        appendLog(`[SimpleBeacon] getAsFileSystemHandle failed: ${dropErr?.message || dropErr}`);
+      }
+    }
+
+    // Fallback: webkitGetAsEntry traversal. In Firefox this may fail with
+    // DOMException if the DataTransfer was invalidated between capture and
+    // traversal. The preReadContent flag pre-reads File contents while still
+    // valid to mitigate postMessage serialization failures.
     if (capturedEntries.length > 0) {
       try {
         const isFirefox = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('firefox');
@@ -1358,24 +1398,6 @@ export function AnalyzeView() {
       } catch (traverseErr: any) {
         appendLog(`[SimpleBeacon] Drop traversal failed: ${traverseErr?.message || traverseErr}`);
         console.warn('[SimpleBeacon] Drop traversal error:', traverseErr);
-      }
-    }
-
-    if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
-      try {
-        const handle = await firstItem.getAsFileSystemHandle();
-        if (handle && handle.kind === 'directory') {
-          const dirHandle = handle as FileSystemDirectoryHandle;
-          toast.info(`Scanning dropped folder "${dirHandle.name}"...`);
-          await runBrowserLocalScan({
-            dirHandle,
-            projectPath: dirHandle.name,
-            logLabel: `Browser local scan via directory handle (${dirHandle.name})`,
-          });
-          return;
-        }
-      } catch (dropErr: any) {
-        appendLog(`[SimpleBeacon] getAsFileSystemHandle failed: ${dropErr?.message || dropErr}`);
       }
     }
 
