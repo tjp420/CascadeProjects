@@ -81,6 +81,7 @@ const SUITES = [
   'pq-nuclear-safeguards-monitoring-gating',
   'pq-wildlife-conservation-tracking-gating',
   'pq-smart-grid-micro-transaction-gating',
+  'pq-global-health-epidemiological-surveillance-gating',
 ];
 
 function runSuite(pattern) {

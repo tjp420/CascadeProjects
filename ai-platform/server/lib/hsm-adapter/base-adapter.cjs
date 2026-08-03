@@ -1956,6 +1956,35 @@ class BaseHsmAdapter {
     this._audit('LOAD_BALANCE_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 92 PQ global health epidemiological surveillance hooks ────
+
+  /**
+   * Emit an epidemiology gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEpidemiologyGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('EPIDEMIOLOGY_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK epidemiological claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkEpidemiologicalClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_EPIDEMIOLOGICAL_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit an outbreak accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitOutbreakAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('OUTBREAK_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

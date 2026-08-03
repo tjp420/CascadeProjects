@@ -659,6 +659,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderMicroTransactionClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqEpidemiologyGating": {
+      "minEpidemiologyQuorum": 5,
+      "maxSurveillanceWindowSeconds": 604800,
+      "maxGenomicChainDepth": 16,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireWhoAuthorityInitializerAttestation": true,
+      "requireEpidemiologyOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderEpidemiologicalClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
