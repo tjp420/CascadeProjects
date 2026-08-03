@@ -33,7 +33,7 @@ class WorkerPool extends EventEmitter {
           .then((res) => { this.active -= 1; this.emit('taskDone', null, res); this._drain(); })
           .catch((err) => { this.active -= 1; this.emit('taskDone', err); this._drain(); });
       }
-      if (this.stopping && this.active === 0 && this.queue.length === 0) this.emit('drained');
+      if (this.active === 0 && this.queue.length === 0) this.emit('drained');
     });
   }
 
