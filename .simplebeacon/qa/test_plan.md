@@ -1,34 +1,33 @@
 # test_plan.md
 
-> High-throughput cross-enclave simulation for Track 115.
+> Post-Mortem Broom Strategy Review & Boundary Verification
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | High-Throughput Cross-Enclave Mesh Saturation Simulation |
+| Feature / change | Post-mortem Broom Strategy review for Tracks 91-115 PQC upgrade |
 | Author (Builder) | Devin |
 | Date | 2026-08-03 |
-| Branch | main (post Track 115 convergence @ bab8d644c) |
-| Packages touched | ai-platform |
+| Branch | main |
+| Packages touched | ai-platform (analytical pass only) |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/hsm-adapter/__tests__/mesh-saturation-simulation.cjs` (new)
-- `ai-platform/server/lib/hsm-adapter/__tests__/mesh-load-worker.cjs` (new)
+- All Track 91-115 source components under `ai-platform/server/lib/hsm-adapter/`
+- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json`
+- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs`
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs`
+- `ai-platform/server/routes/hsm-vault-routes.cjs`
+- `ai-platform/server/lib/hsm-adapter/__tests__/run-all-tracks.cjs`
 
 ### APIs / routes
 
-- `PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub.initializePool`
-- `PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub.reconcileMeshState`
-- `ZkMeshReconciliationClaimValidator.validateClaim`
-- `hsm-metrics.cjs` counters:
-  - `hsm_meshgate_pool_initialized_total`
-  - `hsm_zk_mesh_state_reconciled_total`
-  - `hsm_epoch_finality_completed_total`
-  - `hsm_meshgate_challenge_issued_total`
+- `/api/vault/*/policy`
+- `/api/vault/*/policy/validate`
+- `/api/vault/*/telemetry`
 
 ### UI / IDE surfaces
 
@@ -43,11 +42,11 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on new JS/CJS | `node -c __tests__/mesh-saturation-simulation.cjs` | [ ] |
-| L1-02 | Syntax on new worker | `node -c __tests__/mesh-load-worker.cjs` | [ ] |
-| L1-03 | ai-platform tests unchanged | `cd ai-platform && npx jest pq-multi-enclave...` | [ ] |
-| L1-04 | No production files modified | `git diff --name-only` must only show test files | [ ] |
-| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
+| L1-01 | Working tree clean | `git status --short` | [ ] |
+| L1-02 | Stash containment | `git stash list` | [ ] |
+| L1-03 | No `console.log` in new gating hubs | `grep -R "console\." ai-platform/server/lib/hsm-adapter/pqc-*.cjs` | [ ] |
+| L1-04 | Master test matrix green | `node run-all-tracks.cjs --all` | [ ] |
+| L1-05 | SimpleBeacon gate | `npx simplebeacon scan --gate` | [ ] |
 
 ---
 
@@ -55,8 +54,8 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| SIM-L2-01 | Baseline throughput | Run Stage 1: 1,000 sequential pool init + validation ops | Throughput > 500 ops/sec | [ ] |
-| SIM-L2-02 | Telemetry path separation | Run Stage 2: 5,000 concurrent reconcile ops | `hsm_zk_mesh_state_reconciled_total` and `hsm_meshgate_challenge_issued_total` reflect valid vs dropped claims | [ ] |
+| L2-01 | No legacy coupling in GroupReshardEngine | `grep GroupReshardEngine` in gating hubs | No references | [ ] |
+| L2-02 | All 115 tracks registered in runner | Count `pq-` / `zk-` / `hsm-` entries in `run-all-tracks.cjs` | >= 115 | [ ] |
 
 ---
 
@@ -64,10 +63,9 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| SIM-L3-01 | Concurrency stress | Stage 2 with `os.cpus().length` workers; process exits cleanly | No unhandled handles, no crash | [ ] |
-| SIM-L3-02 | Memory reclaim | Measure pre/post RSS under Stage 2 burst | Memory returns to baseline after worker termination | [ ] |
-| SIM-L3-03 | Boundary drift | Stage 3 with `Date.now() - timestampMs` of 9,500ms, 10,000ms, and 10,001ms | 9,500/10,000 pass; 10,001+ throws `MESHCLAIM_EPOCH_FINALITY_WINDOW_EXCEEDED` | [ ] |
-| SIM-L3-04 | Timestamp isolation | Late valid item in a batch does not inherit timeout of timed-out predecessor | Each claim evaluated independently | [ ] |
+| L3-01 | No ghost schemas in `crypto-policy-schema.json` | Every top-level `pq*Gating` key has a matching validator in `crypto-policy-engine.cjs` | [ ] |
+| L3-02 | No cross-track state contamination | Each hub uses isolated `Map`/`Set` and unique error prefixes | [ ] |
+| L3-03 | No experimental `fix-*.cjs` files committed | `git ls-files "ai-platform/fix-*.cjs"` returns empty | [ ] |
 
 ---
 
@@ -75,8 +73,8 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials / PII in simulation or logs | [ ] |
-| S-02 | No modifications to production security controls | [ ] |
+| S-01 | No credentials / PII in runbook or ledger | [ ] |
+| S-02 | No modifications to security controls during review | [ ] |
 
 ---
 
