@@ -1294,6 +1294,73 @@ router.get('/swarm-robotics-kinetic-assembly/telemetry', authorize('admin:all'),
   }
 });
 
+// Track 115: Multi-Enclave Confidential Mesh State-Reconciliation Gating (unavailable — 503 guarded)
+const MULTI_ENCLAVE_CONFIDENTIAL_MESH_STATE_RECONCILIATION_GATING_ENABLED = false;
+
+function requireMultiEnclaveConfidentialMeshStateReconciliationGating(res) {
+  if (!MULTI_ENCLAVE_CONFIDENTIAL_MESH_STATE_RECONCILIATION_GATING_ENABLED) {
+    sendError(res, 503, 'multi_enclave_confidential_mesh_state_reconciliation_gating_unavailable', {
+      message: 'Track 115 Multi-Enclave Confidential Mesh State-Reconciliation Gating is not yet available.',
+    });
+    return false;
+  }
+  return true;
+}
+
+// GET /api/vault/multi-enclave-confidential-mesh-state-reconciliation/policy — expose active Track 115 policy defaults and bounds
+router.get('/multi-enclave-confidential-mesh-state-reconciliation/policy', authorize('admin:all'), function (req, res) {
+  if (!requireMultiEnclaveConfidentialMeshStateReconciliationGating(res)) return;
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqMultiEnclaveConfidentialMeshStateReconciliationGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'multi_enclave_confidential_mesh_state_reconciliation_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/multi-enclave-confidential-mesh-state-reconciliation/policy/validate — validate a proposed Track 115 configuration
+router.post('/multi-enclave-confidential-mesh-state-reconciliation/policy/validate', authorize('admin:all'), function (req, res) {
+  if (!requireMultiEnclaveConfidentialMeshStateReconciliationGating(res)) return;
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqMultiEnclaveConfidentialMeshStateReconciliationGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'multi_enclave_confidential_mesh_state_reconciliation_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/multi-enclave-confidential-mesh-state-reconciliation/telemetry — expose Track 115 telemetry counters
+router.get('/multi-enclave-confidential-mesh-state-reconciliation/telemetry', authorize('admin:all'), function (req, res) {
+  if (!requireMultiEnclaveConfidentialMeshStateReconciliationGating(res)) return;
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_meshgate_pool_initialized_total: allMetrics.hsm_meshgate_pool_initialized_total || 0,
+      hsm_zk_mesh_state_reconciled_total: allMetrics.hsm_zk_mesh_state_reconciled_total || 0,
+      hsm_epoch_finality_completed_total: allMetrics.hsm_epoch_finality_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'multi_enclave_confidential_mesh_state_reconciliation_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 // GET /api/vault/zk-decentralized-storage/telemetry — expose Track 111 telemetry counters
 router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), function (req, res) {
   if (!requireZkDecentralizedStorageGating(res)) return;

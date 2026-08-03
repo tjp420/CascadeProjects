@@ -1513,6 +1513,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.pqSwarmRoboticsKineticAssemblyGating,
       ...(tenantPolicy.pqSwarmRoboticsKineticAssemblyGating || {}),
     },
+    pqMultiEnclaveConfidentialMeshStateReconciliationGating: {
+      ...DEFAULT_POLICY.pqMultiEnclaveConfidentialMeshStateReconciliationGating,
+      ...(tenantPolicy.pqMultiEnclaveConfidentialMeshStateReconciliationGating || {}),
+    },
     clusterKeyringPrimitiveAuthorization: {
       ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization,
       ...(tenantPolicy.clusterKeyringPrimitiveAuthorization || {}),
@@ -4090,6 +4094,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqMultiEnclaveConfidentialMeshStateReconciliationGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqMultiEnclaveConfidentialMeshStateReconciliationGating, ...(tenantPolicy.pqMultiEnclaveConfidentialMeshStateReconciliationGating || {}) };
+    if (typeof config.meshQuorum === 'number' && config.meshQuorum < policy.minMeshQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `mesh quorum ${config.meshQuorum} below minimum ${policy.minMeshQuorum}`);
+    }
+    if (typeof config.epochFinalityWindowSeconds === 'number' && config.epochFinalityWindowSeconds > policy.maxEpochFinalityWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `epoch finality window seconds ${config.epochFinalityWindowSeconds} exceeds maximum ${policy.maxEpochFinalityWindowSeconds}`);
+    }
+    if (typeof config.reconciliationChainDepth === 'number' && config.reconciliationChainDepth > policy.maxReconciliationChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `reconciliation chain depth ${config.reconciliationChainDepth} exceeds maximum ${policy.maxReconciliationChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireMeshReconciliationAuthorityInitializerAttestation && config.meshReconciliationAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'mesh reconciliation authority initializer attestation is required');
+    }
+    if (policy.requireMeshEthicsOversightCommitteeAttestation && config.meshEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'mesh ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderMeshStateReconciliationClaims === 'boolean' && policy.banMalformedOrOutOfOrderMeshStateReconciliationClaims && !config.banMalformedOrOutOfOrderMeshStateReconciliationClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order mesh state reconciliation claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateClusterKeyringPrimitiveAuthorization(tenantPolicy, config) {
     const policy = { ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization, ...(tenantPolicy.clusterKeyringPrimitiveAuthorization || {}) };
     if (typeof config.authorizationQuorum === 'number' && config.authorizationQuorum < policy.minAuthorizationQuorum) {
@@ -4865,6 +4900,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSwarmRoboticsKineticAssemblyGating') {
       this._validatePqSwarmRoboticsKineticAssemblyGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqMultiEnclaveConfidentialMeshStateReconciliationGating') {
+      this._validatePqMultiEnclaveConfidentialMeshStateReconciliationGating(tenantPolicy, config);
       return true;
     }
 
