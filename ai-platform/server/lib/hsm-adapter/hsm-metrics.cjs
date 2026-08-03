@@ -788,6 +788,23 @@ const counters = {
   hsm_execgate_pool_initialized_total: 0,
   hsm_zk_execution_claim_verified_total: 0,
   hsm_execution_accreditation_completed_total: 0,
+  hsm_didgate_pool_initialized_total: 0,
+  hsm_zk_identity_claim_verified_total: 0,
+  hsm_revocation_accreditation_completed_total: 0,
+  hsm_teleportgate_pool_initialized_total: 0,
+  hsm_zk_teleport_claim_verified_total: 0,
+  hsm_finality_accreditation_completed_total: 0,
+  // Track 61: Recursive Proof Aggregation counters
+  hsm_recursive_proof_submitted_total: 0,
+  hsm_recursive_proofs_folded_total: 0,
+  hsm_recursive_chain_aggregations_total: 0,
+  hsm_recursive_tree_aggregations_total: 0,
+  hsm_recursive_vdf_aggregations_total: 0,
+  hsm_recursive_mixnet_compressions_total: 0,
+  hsm_recursive_aggregations_verified_total: 0,
+  hsm_recursive_aggregations_failed_total: 0,
+  hsm_recursive_proofs_active: 0,
+  hsm_recursive_aggregations_active: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1448,6 +1465,23 @@ const META = {
   hsm_execgate_pool_initialized_total: { help: 'Total smart-contract verifiable execution gating pools initialized.', type: 'counter' },
   hsm_zk_execution_claim_verified_total: { help: 'Total ZK smart-contract verifiable execution claims verified.', type: 'counter' },
   hsm_execution_accreditation_completed_total: { help: 'Total execution accreditation completions finalized.', type: 'counter' },
+  hsm_didgate_pool_initialized_total: { help: 'Total decentralized identity proof gating pools initialized.', type: 'counter' },
+  hsm_zk_identity_claim_verified_total: { help: 'Total ZK decentralized identity claims verified.', type: 'counter' },
+  hsm_revocation_accreditation_completed_total: { help: 'Total decentralized identity revocation accreditation completions finalized.', type: 'counter' },
+  hsm_teleportgate_pool_initialized_total: { help: 'Total cross-shard asset teleportation gating pools initialized.', type: 'counter' },
+  hsm_zk_teleport_claim_verified_total: { help: 'Total ZK cross-shard teleport claims verified.', type: 'counter' },
+  hsm_finality_accreditation_completed_total: { help: 'Total cross-shard finality accreditation completions finalized.', type: 'counter' },
+  // Track 61: Recursive Proof Aggregation metadata
+  hsm_recursive_proof_submitted_total: { help: 'Total recursive proofs submitted.', type: 'counter' },
+  hsm_recursive_proofs_folded_total: { help: 'Total recursive proof fold operations.', type: 'counter' },
+  hsm_recursive_chain_aggregations_total: { help: 'Total chain aggregations completed.', type: 'counter' },
+  hsm_recursive_tree_aggregations_total: { help: 'Total tree aggregations completed.', type: 'counter' },
+  hsm_recursive_vdf_aggregations_total: { help: 'Total VDF proof aggregations completed.', type: 'counter' },
+  hsm_recursive_mixnet_compressions_total: { help: 'Total mixnet state compressions completed.', type: 'counter' },
+  hsm_recursive_aggregations_verified_total: { help: 'Total recursive aggregation verifications.', type: 'counter' },
+  hsm_recursive_aggregations_failed_total: { help: 'Total failed recursive aggregation operations.', type: 'counter' },
+  hsm_recursive_proofs_active: { help: 'Number of active recursive proofs.', type: 'gauge' },
+  hsm_recursive_aggregations_active: { help: 'Number of active recursive aggregations.', type: 'gauge' },
 };
 
 /**

@@ -1,59 +1,90 @@
-# Test Plan — Track 61 Recursive Proof Aggregation Engine
+# test_plan.md — Track 61 Recursive Proof Aggregation API & Dashboard
 
-**Branch:** `feature/track61-recursive-zk-vdf`
-**Date:** 2026-08-02
-**Status:** Active
+## Metadata
 
-## Objective
+| Field | Value |
+|-------|-------|
+| Feature / change | Wire RecursiveProofAggregationEngine into the REST API and dashboard telemetry |
+| Author (Builder) | Devin |
+| Date | 2026-08-03 |
+| Branch | `feat/track61-recursive-proof-api` |
+| Packages touched | ai-platform |
 
-Compress multi-hop mixnet states and VDF proofs using recursive SNARK composition. A "proof of proofs" that folds multiple proofs into a single succinct proof, enabling O(log N) verification of arbitrarily long computation chains.
+## Scope
 
-## Change Set
+### Files in scope
 
-| File | Change |
-|------|--------|
-| server/lib/hsm-adapter/recursive-proof-aggregation-engine.cjs | New — RecursiveProofAggregationEngine class (604 lines) |
-| server/lib/hsm-adapter/hsm-metrics.cjs | Added 8 Track 61 counters |
-| server/lib/hsm-adapter/__tests__/recursive-proof-aggregation-engine.test.cjs | New — 41 tests |
-| .simplebeacon/qa/test_plan.md | Updated |
-| .simplebeacon/qa/software_health_report.md | Updated |
+- `ai-platform/server/routes/hsm-vault-routes.cjs` — new `/api/vault/recursive-aggregation/*` endpoints
+- `ai-platform/server/lib/hsm-adapter/base-adapter.cjs` — `getRecursiveProofAggregationEngine()` getter / registry
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` — add `hsm_recursive_*` counters and Prometheus section
+- `ai-platform/server/lib/hsm-adapter/__tests__/hsm-vault-routes.test.cjs` or `recursive-proof-aggregation-routes.test.cjs` — new Supertest routes tests
+- `ai-platform/web/dashboard/js-es2018/components/RecursiveProofAggregationDashboard.js` — new dashboard card
+- `ai-platform/web/dashboard/js-es2018/services/recursiveProofService.js` — fetch service
+- `ai-platform/web/dashboard/index.html` — add dashboard card container
 
-## Architecture
+### APIs / routes
 
-- **RecursiveProofFolder**: Folds two proofs into one via recursion
-- **ProofChainBuilder**: Builds chains of recursively composed proofs
-- **VdfRecursiveAggregator**: Aggregates VDF proofs recursively
-- **MixnetStateCompressor**: Compresses multi-hop mixnet states
-- **SuccinctVerifier**: Verifies recursive proofs in constant time
-- **ProofTreeBuilder**: Builds tree-structured proof aggregation
-- **RecursiveCircuitCompiler**: Compiles recursion circuits
-- **AggregationScheduler**: Schedules batch aggregation rounds
+- `POST /api/vault/recursive-aggregation/proof` — submitProof
+- `POST /api/vault/recursive-aggregation/fold` — foldProofs
+- `POST /api/vault/recursive-aggregation/aggregate/chain` — aggregateChain
+- `POST /api/vault/recursive-aggregation/aggregate/tree` — aggregateTree
+- `POST /api/vault/recursive-aggregation/verify` — verifyAggregation
+- `GET /api/vault/recursive-aggregation/aggregations/:aggId` — getAggregation
+- `GET /api/vault/recursive-aggregation/status` — expose `hsm_recursive_*` counters
 
-## Check Items
+### UI / IDE surfaces
 
-### Level 1 - Deterministic
-- [x] L1.1 node -c all modified JS files - PASS
-- [x] L1.2 41 new Track 61 tests pass
-- [x] L1.3 741 existing tests pass (no regression)
-- [x] L1.4 No new dependencies
+- [ ] Main dashboard iframe / card
 
-### Level 2 - Functional
-- [x] L2.01 submitProof (7 tests)
-- [x] L2.02 foldProofs (5 tests)
-- [x] L2.03 aggregateChain (4 tests)
-- [x] L2.04 aggregateTree (4 tests)
-- [x] L2.05 aggregateVdfProofs (3 tests)
-- [x] L2.06 compressMixnetState (3 tests)
-- [x] L2.07 verifyAggregation (4 tests)
-- [x] L2.08 getProof (2 tests)
-- [x] L2.09 getAggregation (2 tests)
-- [x] L2.10 getAggregations (1 test)
-- [x] L2.11 getCompletedAggregations (1 test)
-- [x] L2.12 getStats (1 test)
-- [x] L2.13 reset (1 test)
-- [x] L2.14 full recursive aggregation flow (3 tests)
+---
 
-### Level 3 - Security
-- [x] L3.01 No secrets exposed
-- [x] L3.02 No scope creep
-- [x] L3.03 No regression
+## Level 1 — Deterministic
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed JS/CJS | `node -c <file>` | [ ] |
+| L1-02 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
+| L1-03 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
+| L1-04 | No secrets in diff | Manual / gate token rules | [ ] |
+| L1-05 | npm audit | `npm audit` | [ ] |
+
+---
+
+## Level 2 — Behavioral (Supertest)
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Submit a proof | `POST /api/vault/recursive-aggregation/proof` with `{ proofId, proofData }` | returns `success: true` and `proofId` | [ ] |
+| L2-02 | Fold two proofs | `POST .../fold` with two previously submitted proofIds | returns folded `proofId` | [ ] |
+| L2-03 | Chain aggregate | `POST .../aggregate/chain` with `proofIds` | returns `aggId` with status `COMPLETED` | [ ] |
+| L2-04 | Tree aggregate | `POST .../aggregate/tree` with `proofIds` | returns `aggId` with status `COMPLETED` | [ ] |
+| L2-05 | Verify aggregation | `POST .../verify` with `aggId` | returns `valid: true` | [ ] |
+| L2-06 | Get aggregation | `GET .../aggregations/:aggId` | returns aggregation metadata | [ ] |
+| L2-07 | Status endpoint | `GET .../status` | returns `hsm_recursive_*` counters grouped | [ ] |
+| L2-08 | Missing engine | any endpoint with no registered engine | returns `503 coordinator_not_registered` style error | [ ] |
+
+---
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Invalid proof ID | `submitProof` with empty `proofId` | `400 invalid_proof_id` | [ ] |
+| L3-02 | Duplicate proof | `submitProof` same `proofId` twice | `400 proof_already_exists` | [ ] |
+| L3-03 | Missing auth | endpoint without `admin:all` token | `401` or `403` | [ ] |
+| L3-04 | Dashboard fetch | service polls status endpoint without leaking secrets | counters rendered | [ ] |
+
+---
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | No credentials / PII in logs or commits | [ ] |
+| S-02 | Admin-only auth on all aggregation endpoints | [ ] |
+
+---
+
+## Approval
+
+- [x] User approved this plan ("Implement the plan" in prior message)
