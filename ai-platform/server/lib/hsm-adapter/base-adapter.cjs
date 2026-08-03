@@ -2704,6 +2704,26 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_phase_accreditation_completed_total'); } catch { }
   }
 
+  // ── Cluster keyring primitive authorization telemetry hooks
+
+  emitPrimitivePoolAuthorized(info = {}) {
+    this._ensureInitialized();
+    this._audit('PRIMITIVE_POOL_AUTHORIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_primitive_pool_authorized_total'); } catch { }
+  }
+
+  emitPrimitivePoolSynced(info = {}) {
+    this._ensureInitialized();
+    this._audit('PRIMITIVE_POOL_SYNCED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_primitive_pool_synced_total'); } catch { }
+  }
+
+  emitPrimitiveAuthorizationRevoked(info = {}) {
+    this._ensureInitialized();
+    this._audit('PRIMITIVE_AUTHORIZATION_REVOKED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_primitive_authorization_revoked_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

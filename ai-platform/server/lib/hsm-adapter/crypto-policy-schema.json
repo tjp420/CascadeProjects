@@ -1013,6 +1013,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderHolographicClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "clusterKeyringPrimitiveAuthorization": {
+      "minAuthorizationQuorum": 3,
+      "maxSyncWindowSeconds": 300,
+      "maxAuthorizedPoolRetentionSeconds": 86400,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireNodeAttestation": true,
+      "requireAccreditedPoolStatus": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banUnauthorizedShareDispersal": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
