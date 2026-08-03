@@ -6,10 +6,10 @@ const crypto = require('crypto');
 function highResNs() { return Number(process.hrtime.bigint()); }
 
 describe('mixnet timing fuzz', () => {
-  jest.setTimeout(120000);
+  jest.setTimeout(300000);
 
   test('rejection vs accept timing distributions', async () => {
-    const ITER = 500; // sample size, adjust as needed
+    const ITER = 1000; // sample size per profile
     const nodes = new Mixnet(3, { seed: 'timing-test-seed', epochMs: 1000, jitterMs: 10 });
     // create a route of 3 node names matching Mixnet constructor
     const route = ['node-0', 'node-1', 'node-2'];
@@ -33,34 +33,39 @@ describe('mixnet timing fuzz', () => {
       // submit to first node directly as simulate
       const res = await nodes.submitPacket(packet);
       const end = process.hrtime.bigint();
-      const dur = Number(end - start);
+      const dur = end - start; // BigInt nanoseconds
       if (isGood) acceptTimes.push(dur); else rejectTimes.push(dur);
     }
 
     // compute basic stats
-    function stats(arr) {
-      const sorted = arr.slice().sort((a,b)=>a-b);
-      const sum = arr.reduce((s,v)=>s+v,0);
-      const mean = sum/arr.length;
-      const median = sorted[Math.floor(arr.length/2)];
-      const variance = arr.reduce((s,v)=>s+Math.pow(v-mean,2),0)/arr.length;
-      return { mean, median, variance };
+    // Convert BigInt arrays to sorted order for percentile computation
+    function sortedCopy(arr) {
+      return arr.slice().sort((a,b)=> (a>b?1:(a<b?-1:0)));
     }
 
-    const sAccept = stats(acceptTimes);
-    const sReject = stats(rejectTimes);
+    const sAcceptSorted = sortedCopy(acceptTimes);
+    const sRejectSorted = sortedCopy(rejectTimes);
 
-    // allow some tolerance — mean and median should be close
-    const meanDiff = Math.abs(sAccept.mean - sReject.mean);
-    const medianDiff = Math.abs(sAccept.median - sReject.median);
+    function percentile(sortedArr, p) {
+      if (sortedArr.length === 0) return 0n;
+      const idx = Math.floor((sortedArr.length - 1) * p);
+      return sortedArr[idx];
+    }
 
-    // Fail if mean or median differ by > 30% or variance ratio > 4
-    const meanTol = Math.max(1, sAccept.mean * 0.3);
-    const medianTol = Math.max(1, sAccept.median * 0.3);
-    const varRatio = (sAccept.variance + 1) / (sReject.variance + 1);
+    const validP95 = percentile(sAcceptSorted, 0.95);
+    const validP99 = percentile(sAcceptSorted, 0.99);
+    const badP95 = percentile(sRejectSorted, 0.95);
+    const badP99 = percentile(sRejectSorted, 0.99);
 
-    expect(meanDiff).toBeLessThanOrEqual(meanTol);
-    expect(medianDiff).toBeLessThanOrEqual(medianTol);
-    expect(varRatio).toBeLessThanOrEqual(4);
+    // compute absolute deltas as BigInt
+    const deltaP95 = validP95 > badP95 ? validP95 - badP95 : badP95 - validP95;
+    const deltaP99 = validP99 > badP99 ? validP99 - badP99 : badP99 - validP99;
+
+    // enforce delta/valid <= 0.05 using integer arithmetic: delta*100 <= valid*5
+    const okP95 = (deltaP95 * 100n) <= (validP95 * 5n);
+    const okP99 = (deltaP99 * 100n) <= (validP99 * 5n);
+
+    expect(okP95).toBeTruthy();
+    expect(okP99).toBeTruthy();
   });
 });

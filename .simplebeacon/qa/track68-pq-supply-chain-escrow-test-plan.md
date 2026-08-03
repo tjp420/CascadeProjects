@@ -99,6 +99,82 @@ ESCROWRELEASE:<releaseId>:<orderId>:<milestoneSignatureCount>:<pqcSignatureSchem
 - `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
 - `ai-platform/server/lib/hsm-adapter/__tests__/pq-supply-chain-escrow.test.cjs` *(new)*
 
+## Extension scope (Track 68 Phase 2)
+
+### New capabilities added
+
+- **Delivery epoch rebalancing** — rebalance delivery epochs with increase/decrease directions, epoch tracking, and optional new delivery epoch updates.
+- **Batch order initialization** — initialize multiple supply chain orders in a single batch call with per-order results.
+- **Committee signature aggregation** — BLS-style aggregate signature from partial committee signatures.
+- **Order cancellation** — cancel open orders (rejects if released/settled).
+- **Cross-chain settlement coordination** — settle released orders on the target chain with settlement proof hashes.
+- **Hardware-accelerated SNARK proof generation** — generate Groth16 SNARK proofs with configurable HW acceleration (GPU CUDA, FPGA, ASIC, simulated).
+- **Batch milestone verification** — verify multiple delivery milestone proofs in a single batch call with per-milestone results.
+- **Partial signature aggregation** — aggregate partial signatures from clearing committee members with banned-peer rejection.
+- **Slashing window validation** — validate milestone timestamps within configurable slashing window.
+- **Slashing event recording** — record slash events with reason codes (malformed_milestone, duplicate_milestone, epoch_out_of_bounds, order_not_found, banned_peer, out_of_window).
+- **Summary statistics** — both hub and validator expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Delivery epoch rebalance with increase direction.
+- [x] Delivery epoch rebalance with decrease direction.
+- [x] Delivery epoch updates on rebalance.
+- [x] Batch initialization creates multiple orders.
+- [x] Cross-chain settlement works for released orders.
+- [x] Committee signatures can be aggregated.
+- [x] Orders can be cancelled.
+- [x] HW-SNARK proof generation produces Groth16 proofs.
+- [x] Batch milestone verification processes multiple proofs.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window milestones.
+- [x] Full init → rebalance → milestone → release → settle flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject rebalance with invalid direction.
+- [x] Reject rebalance with non-positive amount.
+- [x] Reject rebalance with missing orderId.
+- [x] Reject rebalance on released order.
+- [x] Reject batch init with empty array.
+- [x] Reject batch init exceeding max size.
+- [x] Reject settlement of non-released order.
+- [x] Reject settlement with mismatched chain.
+- [x] Reject settlement with missing orderId.
+- [x] Reject settlement with missing targetChainId.
+- [x] Reject committee aggregation with insufficient signatures.
+- [x] Reject committee aggregation with no signatures.
+- [x] Reject committee aggregation for unknown order.
+- [x] Reject cancelling released order.
+- [x] Reject double cancellation.
+- [x] Reject cancelling unknown order.
+- [x] Reject HW-SNARK proof generation with missing orderId.
+- [x] Reject HW-SNARK proof generation with missing values.
+- [x] Reject HW-SNARK proof generation for unknown order.
+- [x] Reject empty batch milestone verification.
+- [x] Reject batch milestone verification exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with insufficient signatures.
+- [x] Reject partial signature aggregation with missing orderId.
+- [x] Detect milestone outside slashing window.
+- [x] Reject slashing window validation for unknown order.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Reject slashing window validation with missing orderId.
+- [x] Record slashes for malformed milestones.
+- [x] Record slashes for out-of-bounds epoch.
+- [x] Record slashes for duplicate milestones.
+- [x] MILESTONE_STATUS, SLASH_REASON, HW_ACCEL_TYPES, ORDER_STATUS, REBALANCE_DIRECTION constants exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-supply-chain-escrow-hub.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/zk-order-milestone-validator.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(14 new counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pq-supply-chain-escrow-extensions.test.cjs` *(new, 54 tests)*
+
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
