@@ -10,6 +10,9 @@ on:
 jobs:
   verify-artifact:
     runs-on: ubuntu-latest
+    outputs:
+      asset-id: ${{ steps.find-asset.outputs.asset-id }}
+      asset-name: ${{ steps.find-asset.outputs.asset-name }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -20,6 +23,7 @@ jobs:
           node-version: '18'
 
       - name: Download named release asset
+        id: find-asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
@@ -34,13 +38,23 @@ jobs:
           const pat=/.*-nizk-artifact\.tar\.gz$/;
           const match=assets.find(a=>pat.test(a.name));
           if(!match){ console.error('No release asset matching *-nizk-artifact.tar.gz found'); process.exit(2); }
-          console.log(match.id);
+          // write asset id and name for downstream steps
           fs.writeFileSync('asset_id.txt',String(match.id));
+          fs.writeFileSync('asset_name.txt',String(match.name));
+          // also emit to GITHUB_OUTPUT for job outputs
+          const out = `asset-id=${match.id}\nasset-name=${match.name}\n`;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, out);
           "
           ASSET_ID=$(cat asset_id.txt)
-          echo "Downloading asset id=$ASSET_ID"
+          ASSET_NAME=$(cat asset_name.txt)
+          echo "Downloading asset id=$ASSET_ID name=$ASSET_NAME"
           curl -L -H "Accept: application/octet-stream" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$REPO/releases/assets/$ASSET_ID" -o artifact.tar.gz
           mkdir -p artifact && tar -xzf artifact.tar.gz -C artifact || unzip -qq artifact.tar.gz -d artifact || true
+
+      - name: Print chosen asset
+        run: |
+          echo "Chosen asset-id: ${{ steps.find-asset.outputs.asset-id }}"
+          echo "Chosen asset-name: ${{ steps.find-asset.outputs.asset-name }}"
 
       - name: Run verification
         run: |
