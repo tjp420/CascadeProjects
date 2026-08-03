@@ -26,6 +26,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install build tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3 make g++ build-essential
+
+      - name: Cache npm and node-gyp
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/node-gyp
+          key: ${{ runner.os }}-node-18-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-18-
+
+      - name: Build native shuffle addon (strict)
+        run: |
+          set -euo pipefail
+          cd ai-platform/server/lib/mixnet/native
+          # install node-addon-api locally for headers
+          npm install node-addon-api --no-audit --no-fund --no-save
+          # build using node-gyp; fail the job immediately on compilation errors
+          npx node-gyp configure build
+
+      - name: Run native benchmark
+        run: |
+          node ai-platform/server/lib/mixnet/bench/benchmark-native.cjs
+
       - name: Run Mixnet Jest tests
         run: npx jest "ai-platform/server/lib/mixnet/__tests__/*.test.cjs" --runInBand --colors
 
