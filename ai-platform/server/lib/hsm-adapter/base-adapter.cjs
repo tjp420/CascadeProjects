@@ -2520,6 +2520,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_coordination_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 103 supply chain resilience integrity gating telemetry hooks
+
+  /**
+   * Emit a supply chain resilience pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSupplyChainResiliencePoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('SUPPLY_CHAIN_RESILIENCE_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_resiliogate_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK resilience claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkResilienceClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_RESILIENCE_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_resilience_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a resilience accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitResilienceAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('RESILIENCE_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_resilience_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
