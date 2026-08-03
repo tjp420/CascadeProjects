@@ -723,6 +723,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderConservationClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqSmartGridGating: {
+    minGridOperatorQuorum: 5,
+    maxTransactionWindowSeconds: 86400,
+    maxConsumptionChainDepth: 18,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireGridAuthorityInitializerAttestation: true,
+    requireLoadBalanceOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderMicroTransactionClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1124,6 +1135,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqWildlifeGating: {
       ...DEFAULT_POLICY.pqWildlifeGating,
       ...(tenantPolicy.pqWildlifeGating || {}),
+    },
+    pqSmartGridGating: {
+      ...DEFAULT_POLICY.pqSmartGridGating,
+      ...(tenantPolicy.pqSmartGridGating || {}),
     },
   };
 }
@@ -2920,6 +2935,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqSmartGridGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqSmartGridGating, ...(tenantPolicy.pqSmartGridGating || {}) };
+    if (typeof config.gridOperatorQuorum === 'number' && config.gridOperatorQuorum < policy.minGridOperatorQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `grid operator quorum ${config.gridOperatorQuorum} below minimum ${policy.minGridOperatorQuorum}`);
+    }
+    if (typeof config.transactionWindowSeconds === 'number' && config.transactionWindowSeconds > policy.maxTransactionWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `transaction window seconds ${config.transactionWindowSeconds} exceeds maximum ${policy.maxTransactionWindowSeconds}`);
+    }
+    if (typeof config.consumptionChainDepth === 'number' && config.consumptionChainDepth > policy.maxConsumptionChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `consumption chain depth ${config.consumptionChainDepth} exceeds maximum ${policy.maxConsumptionChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireGridAuthorityInitializerAttestation && config.gridAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'grid authority initializer attestation is required');
+    }
+    if (policy.requireLoadBalanceOversightCommitteeAttestation && config.loadBalanceOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'load balance oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderMicroTransactionClaims === 'boolean' && policy.banMalformedOrOutOfOrderMicroTransactionClaims && !config.banMalformedOrOutOfOrderMicroTransactionClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order micro-transaction claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3539,6 +3585,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqWildlifeGating') {
       this._validatePqWildlifeGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqSmartGridGating') {
+      this._validatePqSmartGridGating(tenantPolicy, config);
       return true;
     }
 

@@ -80,6 +80,7 @@ const SUITES = [
   'pq-water-rights-allocation-gating',
   'pq-nuclear-safeguards-monitoring-gating',
   'pq-wildlife-conservation-tracking-gating',
+  'pq-smart-grid-micro-transaction-gating',
 ];
 
 function runSuite(pattern) {
