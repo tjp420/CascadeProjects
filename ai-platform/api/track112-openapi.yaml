@@ -1,0 +1,50 @@
+openapi: 3.0.1
+info:
+  title: Track 112 Structural Reconnaissance API
+  version: 0.1.0
+paths:
+  /api/track112/health:
+    get:
+      summary: Health check for track112 service
+      responses:
+        '200':
+          description: Service health
+  /api/track112/ingest:
+    post:
+      summary: Ingest a canonicalized payload for structural reconnaissance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: string
+      responses:
+        '200':
+          description: Accepted
+        '413':
+          description: Payload too large
+  /api/track112/scan:
+    post:
+      summary: Trigger structural scan (admin only)
+      responses:
+        '200':
+          description: Job queued
+        '403':
+          description: Insufficient permissions
+  /api/track112/proof:
+    post:
+      summary: Submit a proof artifact (admin only)
+      responses:
+        '200':
+          description: Proof stored
+        '400':
+          description: Missing proof
+  /api/track112/metrics:
+    get:
+      summary: Expose basic metrics (admin only)
+      responses:
+        '200':
+          description: Metrics snapshot
