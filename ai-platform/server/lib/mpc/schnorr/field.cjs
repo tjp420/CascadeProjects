@@ -4,8 +4,13 @@ class PrimeField {
     this.q = BigInt(modulus);
   }
 
+  /**
+   * Normalize various numeric input forms into a BigInt.
+   * Accepts: bigint, integer number, decimal string, hex string (with or without 0x).
+   * Rejects floats, scientific notation, and non-integer values.
+   */
   toBig(a) {
-    return BigInt(a);
+    return normalizeToBigInt(a);
   }
 
   add(a, b) {
@@ -47,3 +52,34 @@ class PrimeField {
 }
 
 module.exports = { PrimeField };
+
+// Export a normalization helper for other modules to use
+function normalizeToBigInt(v) {
+  if (typeof v === 'bigint') return v;
+  if (typeof v === 'number') {
+    if (!Number.isInteger(v)) throw new TypeError('numeric value must be integer');
+    return BigInt(v);
+  }
+  if (typeof v === 'string') {
+    const s = v.trim();
+    // allow optional leading - for negatives
+    const neg = s.startsWith('-');
+    const core = neg ? s.slice(1) : s;
+    if (/^[0-9]+$/.test(core)) {
+      const vBig = BigInt((neg ? '-' : '') + core);
+      return vBig;
+    }
+    if (/^0x[0-9a-fA-F]+$/.test(core) || /^0x[0-9a-fA-F]+$/.test(s)) {
+      // BigInt accepts 0x prefix
+      return BigInt(s);
+    }
+    if (/^[0-9a-fA-F]+$/.test(core)) {
+      // hex without 0x prefix -> interpret as hex
+      return BigInt((neg ? '-' : '') + '0x' + core);
+    }
+    throw new TypeError('invalid numeric string format');
+  }
+  throw new TypeError('unsupported numeric type for BigInt conversion');
+}
+
+module.exports.normalizeToBigInt = normalizeToBigInt;
