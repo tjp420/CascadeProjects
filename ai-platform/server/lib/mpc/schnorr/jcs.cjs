@@ -33,7 +33,15 @@ class JcsCanonicalizer {
       s = s.replace(/e\+/, 'e');
       return s;
     }
-    if (t === 'string') return JSON.stringify(obj);
+    if (t === 'string') {
+      // normalize string values to NFC for cross-language parity
+      try {
+        const n = obj.normalize && obj.normalize('NFC') || obj;
+        return JSON.stringify(n);
+      } catch (e) {
+        return JSON.stringify(obj);
+      }
+    }
     if (t === 'bigint') return JSON.stringify(obj.toString(16)); // hex string
 
     if (Array.isArray(obj)) {
@@ -42,12 +50,28 @@ class JcsCanonicalizer {
     }
 
     if (t === 'object') {
-      const keys = Object.keys(obj).sort();
+      // sort keys by NFC-normalized Unicode codepoint order
+      const keys = Object.keys(obj).slice();
+      const codepointCompare = (A, B) => {
+        const a = (A && A.normalize) ? A.normalize('NFC') : A;
+        const b = (B && B.normalize) ? B.normalize('NFC') : B;
+        const arrA = Array.from(a);
+        const arrB = Array.from(b);
+        const L = Math.min(arrA.length, arrB.length);
+        for (let i = 0; i < L; i++) {
+          const ca = arrA[i].codePointAt(0);
+          const cb = arrB[i].codePointAt(0);
+          if (ca !== cb) return ca - cb;
+        }
+        return arrA.length - arrB.length;
+      };
+      keys.sort(codepointCompare);
       const kv = [];
       for (const k of keys) {
         const v = obj[k];
         if (v === undefined) continue; // prune undefined
-        kv.push(`${JSON.stringify(k)}:${this.canonicalize(v)}`);
+        const nk = (k && k.normalize) ? k.normalize('NFC') : k;
+        kv.push(`${JSON.stringify(nk)}:${this.canonicalize(v)}`);
       }
       return `{${kv.join(',')}}`;
     }
