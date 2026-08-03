@@ -32,6 +32,17 @@ const _metrics = {
 function enqueue(event) {
   try {
     if (!event || typeof event !== 'object') return;
+    // If no SIEM endpoint is configured, emit events to stderr for CI visibility
+    if (!SIEM_ENDPOINT) {
+      try {
+        // print a compact line to stderr so CI logs capture alerts
+        console.error('[SIEM][FALLBACK]', JSON.stringify(event));
+      } catch (e) {
+        // fall through
+      }
+      return;
+    }
+
     queue.push(event);
     if (queue.length >= getBatchSize()) flush().catch(() => {});
   } catch (e) {
