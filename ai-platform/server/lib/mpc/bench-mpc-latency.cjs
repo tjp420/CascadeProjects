@@ -1,4 +1,4 @@
-const { performance } = require('perf_hooks');
+﻿const { performance } = require('perf_hooks');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
