@@ -1,9 +1,9 @@
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
+use unicode_normalization::UnicodeNormalization;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -18,11 +18,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let v: Value = serde_json::from_str(&input)?;
     let canonical = canonicalize(&v);
-    println!("canonical: {}", canonical);
+    // print canonical output as a single line for verifier compatibility
+    println!("{}", canonical);
     let mut hasher = Sha256::new();
     hasher.update(canonical.as_bytes());
     let digest = hasher.finalize();
-    println!("sha256: {}", hex::encode(digest));
+    eprintln!("sha256: {}", hex::encode(digest));
     Ok(())
 }
 
@@ -33,7 +34,11 @@ fn canonicalize(v: &Value) -> String {
             if *b { "true".to_string() } else { "false".to_string() }
         }
         Value::Number(n) => format_number(n),
-        Value::String(s) => serde_json::to_string(s).unwrap(),
+        Value::String(s) => {
+            // normalize to NFC before serializing
+            let n = s.nfc().collect::<String>();
+            serde_json::to_string(&n).unwrap()
+        }
         Value::Array(arr) => {
             let mut parts = Vec::with_capacity(arr.len());
             for el in arr {
@@ -49,13 +54,15 @@ fn canonicalize(v: &Value) -> String {
                 }
             }
 
-            // Sort keys lexicographically
-            let mut tree: BTreeMap<&String, &Value> = BTreeMap::new();
+            // Normalize keys to NFC and sort by codepoint order
+            let mut pairs: Vec<(String, &Value)> = Vec::with_capacity(map.len());
             for (k, v) in map.iter() {
-                tree.insert(k, v);
+                let nk = k.nfc().collect::<String>();
+                pairs.push((nk, v));
             }
-            let mut parts = Vec::with_capacity(tree.len());
-            for (k, v) in tree.iter() {
+            pairs.sort_by(|a, b| a.0.cmp(&b.0));
+            let mut parts = Vec::with_capacity(pairs.len());
+            for (k, v) in pairs.iter() {
                 let key = serde_json::to_string(k).unwrap();
                 let val = canonicalize(v);
                 parts.push(format!("{}:{}", key, val));

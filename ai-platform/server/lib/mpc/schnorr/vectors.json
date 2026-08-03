@@ -1,0 +1,59 @@
+[
+  {
+    "name": "A-ring NFC equivalence",
+    "equivalents": [
+      { "s": "A\u030A" },
+      { "s": "Å" }
+    ]
+  },
+  {
+    "name": "e-acute NFC equivalence",
+    "equivalents": [
+      { "s": "e\u0301" },
+      { "s": "é" }
+    ]
+  },
+  {
+    "name": "n-tilde NFC equivalence",
+    "equivalents": [
+      { "s": "n\u0303" },
+      { "s": "ñ" }
+    ]
+  },
+  {
+    "name": "Emoji surrogate pair in object key ordering",
+    "orderVariants": [
+      { "obj": { "a": 1, "👨‍👩‍👧‍👦": 2 } },
+      { "obj": { "👨‍👩‍👧‍👦": 2, "a": 1 } }
+    ]
+  },
+  {
+    "name": "Latin vs Cyrillic visual similarity should differ",
+    "shouldDiffer": [
+      { "obj": { "A": 1 } },
+      { "obj": { "\u0410": 1 } } 
+    ]
+  },
+  {
+    "name": "Combining mark permutations (ordering preserved)",
+    "equivalents": [
+      { "s": "\u006E\u0303" },
+      { "s": "n\u0303" },
+      { "s": "ñ" }
+    ]
+  },
+  {
+    "name": "Leading/trailing combining marks",
+    "equivalents": [
+      { "s": "\u0301a" },
+      { "s": "\u0301a" }
+    ]
+  },
+  {
+    "name": "RTL script key ordering",
+    "orderVariants": [
+      { "obj": { "א": 1, "A": 2, "ב": 3 } },
+      { "obj": { "A": 2, "ב": 3, "א": 1 } }
+    ]
+  }
+]

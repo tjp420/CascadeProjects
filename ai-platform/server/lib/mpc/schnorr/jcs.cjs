@@ -7,6 +7,17 @@ const MAX_SIGNIFICANT = 21; // bound significant digits for numeric normalizatio
 
 class JcsCanonicalizer {
   /**
+   * @param {object} [options]
+   * @param {boolean} [options.allowBigIntMarker=false] - set to true to allow the
+   *        internal `{"__bigint_hex":"..."}` marker. By default this is
+   *        disabled to reject the marker on untrusted external inputs.
+   */
+  constructor(options) {
+    options = options || {};
+    this.allowBigIntMarker = Boolean(options.allowBigIntMarker) || (process && process.env && process.env.ALLOW_BIGINT_MARKER === '1');
+  }
+
+  /**
    * Deterministically stringifies an object following RFC 8785 rules.
    * Includes numeric normalization to ensure cross-language deterministic
    * representations (handles -0, bounded significant digits, exponent
@@ -33,7 +44,15 @@ class JcsCanonicalizer {
       s = s.replace(/e\+/, 'e');
       return s;
     }
-    if (t === 'string') return JSON.stringify(obj);
+    if (t === 'string') {
+      // normalize string values to NFC for cross-language parity
+      try {
+        const n = obj.normalize && obj.normalize('NFC') || obj;
+        return JSON.stringify(n);
+      } catch (e) {
+        return JSON.stringify(obj);
+      }
+    }
     if (t === 'bigint') return JSON.stringify(obj.toString(16)); // hex string
 
     if (Array.isArray(obj)) {
@@ -42,12 +61,41 @@ class JcsCanonicalizer {
     }
 
     if (t === 'object') {
-      const keys = Object.keys(obj).sort();
+      // Reject BigInt marker on untrusted inputs unless explicitly allowed.
+      const ownKeys = Object.keys(obj);
+      if (ownKeys.length === 1 && ownKeys[0] === '__bigint_hex') {
+        const val = obj['__bigint_hex'];
+        if (!this.allowBigIntMarker) {
+          throw new Error('Refusing __bigint_hex marker from untrusted input');
+        }
+        if (typeof val !== 'string') {
+          throw new Error('Invalid __bigint_hex marker: expected string');
+        }
+        return JSON.stringify(val);
+      }
+
+      // sort keys by NFC-normalized Unicode codepoint order
+      const keys = Object.keys(obj).slice();
+      const codepointCompare = (A, B) => {
+        const a = (A && A.normalize) ? A.normalize('NFC') : A;
+        const b = (B && B.normalize) ? B.normalize('NFC') : B;
+        const arrA = Array.from(a);
+        const arrB = Array.from(b);
+        const L = Math.min(arrA.length, arrB.length);
+        for (let i = 0; i < L; i++) {
+          const ca = arrA[i].codePointAt(0);
+          const cb = arrB[i].codePointAt(0);
+          if (ca !== cb) return ca - cb;
+        }
+        return arrA.length - arrB.length;
+      };
+      keys.sort(codepointCompare);
       const kv = [];
       for (const k of keys) {
         const v = obj[k];
         if (v === undefined) continue; // prune undefined
-        kv.push(`${JSON.stringify(k)}:${this.canonicalize(v)}`);
+        const nk = (k && k.normalize) ? k.normalize('NFC') : k;
+        kv.push(`${JSON.stringify(nk)}:${this.canonicalize(v)}`);
       }
       return `{${kv.join(',')}}`;
     }

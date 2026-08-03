@@ -34,8 +34,11 @@ function run() {
 
     let goCanon = null;
     try {
-      // run 'go run main.go' in the Go runner directory
-      const proc = spawnSync(goPath, ['run', 'ai-platform/server/lib/mpc/schnorr/reference-runner-go/main.go'], { input: JSON.stringify(s), encoding: 'utf8' });
+      const fs = require('fs');
+      console.log('PWD:', process.cwd());
+      console.log('Go runner dir listing:', fs.readdirSync('ai-platform/server/lib/mpc/schnorr/reference-runner-go'));
+      // run 'go run main.go' in the Go runner directory so local go.mod is used
+      const proc = spawnSync(goPath, ['run', 'main.go'], { cwd: 'ai-platform/server/lib/mpc/schnorr/reference-runner-go', input: JSON.stringify(s), encoding: 'utf8' });
       if (proc.error) throw proc.error;
       if (proc.status !== 0) throw new Error(`exit ${proc.status}: ${proc.stderr}`);
       goCanon = (proc.stdout || '').trim().split(/\r?\n/)[0] || '';
