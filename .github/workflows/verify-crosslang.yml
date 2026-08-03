@@ -51,7 +51,8 @@ jobs:
       - name: Build Go reference runner
         working-directory: ai-platform/server/lib/mpc/schnorr/reference-runner-go
         run: |
-          go build -o reference-runner-go
+          # Build the single-file Go runner without requiring a module
+          go build -o reference-runner-go main.go
 
       - name: Build Rust reference runner
         working-directory: ai-platform/server/lib/mpc/schnorr/reference-runner-rust
