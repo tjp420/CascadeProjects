@@ -15,6 +15,13 @@ class MockAttestationClient {
     if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
     return { verified: true };
   }
+  isVerified(nodeId) {
+    return this._verifiedNodes && this._verifiedNodes.has(nodeId);
+  }
+  markVerified(nodeId) {
+    if (!this._verifiedNodes) this._verifiedNodes = new Set();
+    this._verifiedNodes.add(nodeId);
+  }
 }
 
 const POLICY = {
