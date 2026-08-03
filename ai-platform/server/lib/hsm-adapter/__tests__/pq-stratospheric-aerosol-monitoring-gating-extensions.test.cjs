@@ -25,14 +25,6 @@ const {
 const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
-class MockAttestationClient {
-  verify(attestation) {
-    if (!attestation || typeof attestation !== 'object') return { verified: false };
-    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
-    return { verified: true };
-  }
-}
-
 const POLICY = {
   minClimateQuorum: 4,
   maxDeploymentWindowSeconds: 31536000,
@@ -97,7 +89,10 @@ function baseCompleteRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new MockAttestationClient();
+  const attestationClient = new EnclaveAttestationClient({
+    allowedAuthorities: ['mock-authority'],
+    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
+  });
   const hub = new PqcStratosphericAerosolMonitoringGatingHub({
     policy: POLICY,
     attestationClient,
@@ -261,7 +256,10 @@ describe('Track 97 PQC Stratospheric Aerosol Monitoring Gating extensions', () =
     });
 
     test('batch init rejects array exceeding max batch size', () => {
-      const attestationClient = new MockAttestationClient();
+      const attestationClient = new EnclaveAttestationClient({
+        allowedAuthorities: ['mock-authority'],
+        allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
+      });
       const hub = new PqcStratosphericAerosolMonitoringGatingHub({
         policy: POLICY,
         attestationClient,
