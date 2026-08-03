@@ -23,7 +23,7 @@ function run() {
   // same values but as mixed-format strings
   const resMixed = evaluator.evaluatePartialShare({
     challenge: '0x' + challengeNum.toString(16), // hex with 0x
-    secretKeyShare: '64', // decimal string 100
+    secretKeyShare: '0x64', // hex 0x64 == 100
     lagrangeWeight: '1',
     secretNonces: { k1: '5', k2: '7' },
     bindingFactor: '0x3' // hex small

@@ -69,9 +69,9 @@ function normalizeToBigInt(v) {
       const vBig = BigInt((neg ? '-' : '') + core);
       return vBig;
     }
-    if (/^0x[0-9a-fA-F]+$/.test(core) || /^0x[0-9a-fA-F]+$/.test(s)) {
-      // BigInt accepts 0x prefix
-      return BigInt(s);
+    if (/^0x[0-9a-fA-F]+$/i.test(core)) {
+      // normalize to lower-case 0x prefix; BigInt does not accept 0X
+      return BigInt((neg ? '-' : '') + '0x' + core.slice(2).toLowerCase());
     }
     if (/^[0-9a-fA-F]+$/.test(core)) {
       // hex without 0x prefix -> interpret as hex
