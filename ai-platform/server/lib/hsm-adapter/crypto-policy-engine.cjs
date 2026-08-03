@@ -657,6 +657,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderProposalClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqTelecomGating: {
+    minTelecomPeeringQuorum: 3,
+    maxAllocationWindowSeconds: 2592000,
+    maxNetworkRoutingDepth: 32,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireCarrierEndpointInitializerAttestation: true,
+    requireRoutingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderTelecomClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1034,6 +1045,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqTreasuryGating: {
       ...DEFAULT_POLICY.pqTreasuryGating,
       ...(tenantPolicy.pqTreasuryGating || {}),
+    },
+    pqTelecomGating: {
+      ...DEFAULT_POLICY.pqTelecomGating,
+      ...(tenantPolicy.pqTelecomGating || {}),
     },
   };
 }
@@ -2644,6 +2659,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqTelecomGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqTelecomGating, ...(tenantPolicy.pqTelecomGating || {}) };
+    if (typeof config.telecomPeeringQuorum === 'number' && config.telecomPeeringQuorum < policy.minTelecomPeeringQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `telecom peering quorum ${config.telecomPeeringQuorum} below minimum ${policy.minTelecomPeeringQuorum}`);
+    }
+    if (typeof config.allocationWindowSeconds === 'number' && config.allocationWindowSeconds > policy.maxAllocationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `allocation window seconds ${config.allocationWindowSeconds} exceeds maximum ${policy.maxAllocationWindowSeconds}`);
+    }
+    if (typeof config.networkRoutingDepth === 'number' && config.networkRoutingDepth > policy.maxNetworkRoutingDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `network routing depth ${config.networkRoutingDepth} exceeds maximum ${policy.maxNetworkRoutingDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireCarrierEndpointInitializerAttestation && config.carrierEndpointInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'carrier endpoint initializer attestation is required');
+    }
+    if (policy.requireRoutingCommitteeAttestation && config.routingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'routing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderTelecomClaims === 'boolean' && policy.banMalformedOrOutOfOrderTelecomClaims && !config.banMalformedOrOutOfOrderTelecomClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order telecom claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3233,6 +3279,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqTreasuryGating') {
       this._validatePqTreasuryGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqTelecomGating') {
+      this._validatePqTelecomGating(tenantPolicy, config);
       return true;
     }
 
