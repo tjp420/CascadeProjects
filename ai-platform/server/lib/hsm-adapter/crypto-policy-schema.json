@@ -648,6 +648,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderConservationClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSmartGridGating": {
+      "minGridOperatorQuorum": 5,
+      "maxTransactionWindowSeconds": 86400,
+      "maxConsumptionChainDepth": 18,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireGridAuthorityInitializerAttestation": true,
+      "requireLoadBalanceOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderMicroTransactionClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

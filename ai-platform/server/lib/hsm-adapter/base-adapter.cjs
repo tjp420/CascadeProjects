@@ -1927,6 +1927,35 @@ class BaseHsmAdapter {
     this._audit('BIODIVERSITY_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 91 PQ smart-grid micro-transaction gating telemetry hooks ─
+
+  /**
+   * Emit a smart-grid gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSmartGridGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('SMARTGRID_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK micro-transaction claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkMicroTransactionClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_MICRO_TRANSACTION_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a load balance accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitLoadBalanceAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('LOAD_BALANCE_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
