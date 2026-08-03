@@ -25,9 +25,10 @@ class HardwareEnclaveAdapter {
    * @param {object} [options.attestationClient]
    */
   constructor(options = {}) {
-    this.enclaveType = options.enclaveType || 'mock';
-    this.mrenclave = options.mrenclave || null;
-    this.allowedAuthorities = options.allowedAuthorities || ['mock-authority'];
+    this.enclaveType = options.enclaveType || options.backend || 'mock';
+    this.backend = options.backend || this.enclaveType;
+    this.mrenclave = options.mrenclave || (options.policy && options.policy.requiredMRENCLAVEHashes && options.policy.requiredMRENCLAVEHashes[0]) || null;
+    this.allowedAuthorities = options.allowedAuthorities || (options.policy && options.policy.allowedAttestationAuthorities) || ['mock-authority'];
     this.requireRemoteAttestation = options.requireRemoteAttestation !== false;
     this._audit = options.audit || null;
     this._sealedKeys = new Map();
@@ -43,18 +44,25 @@ class HardwareEnclaveAdapter {
    */
   async initialize(attestationDoc = null) {
     if (this._initialized) {
-      return { initialized: true, mrenclave: this.mrenclave };
+      return { initialized: true, ok: true, backend: this.backend, mrenclave: this.mrenclave };
     }
 
     if (this.requireRemoteAttestation) {
-      const client = this._attestationClient || new EnclaveAttestationClient({
+      this._attestationClient = this._attestationClient || new EnclaveAttestationClient({
         allowedAuthorities: this.allowedAuthorities,
         expectedMrenclave: this.mrenclave,
         audit: this._audit,
       });
+      const client = this._attestationClient;
       const result = await client.verify(attestationDoc || _mockAttestationFor(this.mrenclave));
       if (!result.valid) {
-        throw new HsmAdapterError('ENCLAVE_ATTESTATION_FAILED', result.reason);
+        // Map verification reason to specific error codes expected by routes
+        const reason = result.reason || 'attestation_failed';
+        if (reason.includes('authority')) throw new HsmAdapterError('ATTESTATION_UNTRUSTED_AUTHORITY', reason);
+        if (reason.includes('MRENCLAVE') || reason.includes('measurement')) throw new HsmAdapterError('ATTESTATION_UNTRUSTED_MEASUREMENT', reason);
+        if (reason.includes('expired')) throw new HsmAdapterError('ATTESTATION_EXPIRED', reason);
+        if (reason.includes('signature')) throw new HsmAdapterError('ATTESTATION_SIGNATURE_INVALID', reason);
+        throw new HsmAdapterError('ENCLAVE_ATTESTATION_FAILED', reason);
       }
       this._attested = true;
       this.mrenclave = result.mrenclave;
@@ -71,7 +79,43 @@ class HardwareEnclaveAdapter {
       mrenclave: this.mrenclave,
       attested: this._attested,
     });
-    return { initialized: true, enclaveType: this.enclaveType, mrenclave: this.mrenclave };
+    return { initialized: true, ok: true, backend: this.backend, enclaveType: this.enclaveType, mrenclave: this.mrenclave };
+  }
+
+  /**
+   * Convenience: seal plaintext and return a ciphertext handle used for unseal.
+   * For the mock adapter this returns a keyId-like handle that can be passed
+   * to `unseal` to recover the plaintext.
+   * @param {Buffer|string} plaintext
+   */
+  async seal(plaintext) {
+    const keyId = `enc-${crypto.randomBytes(6).toString('hex')}`;
+    const buf = Buffer.isBuffer(plaintext) ? plaintext : Buffer.from(String(plaintext), 'utf8');
+    await this.sealKey(keyId, buf);
+    return { ciphertext: keyId, backend: this.backend };
+  }
+
+  /**
+   * Convenience unseal by accepting the keyId returned from `seal`.
+   * @param {string} ciphertext
+   */
+  async unseal(ciphertext) {
+    return this.unsealKey(ciphertext);
+  }
+
+  /**
+   * Provision key material by sealing it and returning a keyId.
+   * @param {object} keyMaterial
+   * @returns {object}
+   */
+  async provisionKey(keyMaterial) {
+    this._ensureInitialized();
+    const keyId = `enc-${crypto.randomBytes(6).toString('hex')}`;
+    const raw = typeof keyMaterial === 'string' ? keyMaterial : JSON.stringify(keyMaterial);
+    const buf = Buffer.from(raw, 'utf8');
+    await this.sealKey(keyId, buf);
+    if (this._audit) this._audit('ENCLAVE_KEY_PROVISIONED', { keyId, backend: this.backend });
+    return { provisioned: true, keyId, backend: this.backend, enclaveType: this.enclaveType };
   }
 
   /**
