@@ -811,6 +811,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderDebrisClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqGenomicPrivacyComplianceGating: {
+    minGenomicQuorum: 6,
+    maxConsentWindowSeconds: 31536000,
+    maxComplianceChainDepth: 20,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireGenomicPrivacyAuthorityInitializerAttestation: true,
+    requireGenomicEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderGenomicClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1244,6 +1255,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqOrbitalDebrisTrackingGating: {
       ...DEFAULT_POLICY.pqOrbitalDebrisTrackingGating,
       ...(tenantPolicy.pqOrbitalDebrisTrackingGating || {}),
+    },
+    pqGenomicPrivacyComplianceGating: {
+      ...DEFAULT_POLICY.pqGenomicPrivacyComplianceGating,
+      ...(tenantPolicy.pqGenomicPrivacyComplianceGating || {}),
     },
   };
 }
@@ -3288,6 +3303,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqGenomicPrivacyComplianceGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqGenomicPrivacyComplianceGating, ...(tenantPolicy.pqGenomicPrivacyComplianceGating || {}) };
+    if (typeof config.genomicQuorum === 'number' && config.genomicQuorum < policy.minGenomicQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `genomic quorum ${config.genomicQuorum} below minimum ${policy.minGenomicQuorum}`);
+    }
+    if (typeof config.consentWindowSeconds === 'number' && config.consentWindowSeconds > policy.maxConsentWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `consent window seconds ${config.consentWindowSeconds} exceeds maximum ${policy.maxConsentWindowSeconds}`);
+    }
+    if (typeof config.complianceChainDepth === 'number' && config.complianceChainDepth > policy.maxComplianceChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `compliance chain depth ${config.complianceChainDepth} exceeds maximum ${policy.maxComplianceChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireGenomicPrivacyAuthorityInitializerAttestation && config.genomicPrivacyAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'genomic privacy authority initializer attestation is required');
+    }
+    if (policy.requireGenomicEthicsOversightCommitteeAttestation && config.genomicEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'genomic ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderGenomicClaims === 'boolean' && policy.banMalformedOrOutOfOrderGenomicClaims && !config.banMalformedOrOutOfOrderGenomicClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order genomic claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3947,6 +3993,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqOrbitalDebrisTrackingGating') {
       this._validatePqOrbitalDebrisTrackingGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqGenomicPrivacyComplianceGating') {
+      this._validatePqGenomicPrivacyComplianceGating(tenantPolicy, config);
       return true;
     }
 

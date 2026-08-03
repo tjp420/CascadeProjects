@@ -90,6 +90,7 @@ const SUITES = [
   'pq-polar-research-data-gating',
   'pq-stratospheric-aerosol-monitoring-gating',
   'pq-orbital-debris-tracking-gating',
+  'pq-genomic-privacy-compliance-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',

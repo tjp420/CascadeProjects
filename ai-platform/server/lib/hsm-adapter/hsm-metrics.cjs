@@ -776,6 +776,10 @@ const counters = {
   hsm_orbigo_pool_initialized_total: 0,
   hsm_zk_debris_claim_verified_total: 0,
   hsm_collision_accreditation_completed_total: 0,
+  // Track 99: PQC Genomic Privacy Compliance Gating counters
+  hsm_genogo_pool_initialized_total: 0,
+  hsm_zk_genomic_claim_verified_total: 0,
+  hsm_consent_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1427,6 +1431,9 @@ const META = {
   hsm_orbigo_pool_initialized_total: { help: 'Total orbital debris tracking gating pools initialized.', type: 'counter' },
   hsm_zk_debris_claim_verified_total: { help: 'Total ZK orbital debris tracking claims verified.', type: 'counter' },
   hsm_collision_accreditation_completed_total: { help: 'Total collision accreditation completions finalized.', type: 'counter' },
+  hsm_genogo_pool_initialized_total: { help: 'Total genomic privacy compliance gating pools initialized.', type: 'counter' },
+  hsm_zk_genomic_claim_verified_total: { help: 'Total ZK genomic privacy compliance claims verified.', type: 'counter' },
+  hsm_consent_accreditation_completed_total: { help: 'Total consent accreditation completions finalized.', type: 'counter' },
 };
 
 /**
