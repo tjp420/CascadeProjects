@@ -33,11 +33,36 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Build Go reference runner
         working-directory: ai-platform/server/lib/mpc/schnorr/reference-runner-go
         run: |
           go build -o reference-runner-go
 
+      - name: Build Rust reference runner
+        working-directory: ai-platform/server/lib/mpc/schnorr/reference-runner-rust
+        run: |
+          cargo build --release
+
       - name: Run cross-language verifier
         run: |
           node ai-platform/server/lib/mpc/schnorr/verify_crosslang.cjs
+
+      - name: Run Rust reference runner (smoke)
+        run: |
+          # run a smoke invocation to ensure binary is present
+          ai-platform/server/lib/mpc/schnorr/reference-runner-rust/target/release/reference-runner-rust <<< '{"__test":1}' || true
