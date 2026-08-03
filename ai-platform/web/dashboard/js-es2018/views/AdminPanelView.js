@@ -11,6 +11,7 @@ import { renderSpaceBasedLaserCommunicationMeshGatingDashboard, cleanupSpaceBase
 import { renderQkdLinkSwitchGatingDashboard, cleanupQkdLinkSwitchGatingDashboard } from '../components/QkdLinkSwitchGatingDashboard.js';
 import { renderHolographicStorageContentAddressableGatingDashboard, cleanupHolographicStorageContentAddressableGatingDashboard } from '../components/HolographicStorageContentAddressableGatingDashboard.js';
 import { renderSupplyChainProvenanceGatingDashboard, cleanupSupplyChainProvenanceGatingDashboard } from '../components/SupplyChainProvenanceGatingDashboard.js';
+import { renderZkDecentralizedStorageAttestationGatingDashboard, cleanupZkDecentralizedStorageAttestationGatingDashboard } from '../components/ZkDecentralizedStorageAttestationGatingDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -971,6 +972,7 @@ export class AdminPanelView {
         cleanupQkdLinkSwitchGatingDashboard();
         cleanupHolographicStorageContentAddressableGatingDashboard();
         cleanupSupplyChainProvenanceGatingDashboard();
+        cleanupZkDecentralizedStorageAttestationGatingDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
