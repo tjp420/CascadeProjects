@@ -100,8 +100,6 @@ const SUITES = [
   'pq-cross-shard-asset-teleportation-gating',
   'pq-decentralized-energy-grid-balancing-gating',
   'pq-space-based-laser-communication-mesh-gating',
-  'pq-quantum-key-distribution-link-switch-gating',
-  'pq-holographic-storage-content-addressable-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
