@@ -1,4 +1,4 @@
-const { PrimeField } = require('./field.cjs');
+const { PrimeField, normalizeToBigInt } = require('./field.cjs');
 
 class SchnorrShareEvaluator {
   constructor(modulus) {
@@ -9,18 +9,18 @@ class SchnorrShareEvaluator {
    * Evaluates a localized partial signature share: s_i = (c * x_i * lambda_i) + k_i1 + (b_i * k_i2) mod q
    */
   evaluatePartialShare({ challenge, secretKeyShare, lagrangeWeight, secretNonces, bindingFactor }) {
-    const c = BigInt(challenge);
-    const x = BigInt(secretKeyShare);
-    const lambda = BigInt(lagrangeWeight);
+    const c = normalizeToBigInt(challenge);
+    const x = normalizeToBigInt(secretKeyShare);
+    const lambda = normalizeToBigInt(lagrangeWeight);
 
     // effective secret component: (c * x * lambda) mod q
     const keyProduct = this.field.mul(c, x);
     const effectiveSecret = this.field.mul(keyProduct, lambda);
 
     // blended nonce: k1 + b * k2
-    const k1 = BigInt(secretNonces.k1);
-    const k2 = BigInt(secretNonces.k2);
-    const b = BigInt(bindingFactor);
+    const k1 = normalizeToBigInt(secretNonces.k1);
+    const k2 = normalizeToBigInt(secretNonces.k2);
+    const b = normalizeToBigInt(bindingFactor);
     const blended = this.field.add(k1, this.field.mul(b, k2));
 
     return this.field.add(effectiveSecret, blended);
