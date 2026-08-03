@@ -668,6 +668,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderTelecomClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqInsuranceGating: {
+    minClaimsAuditQuorum: 3,
+    maxClaimWindowSeconds: 5184000,
+    maxBillingSequenceDepth: 24,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireInsuranceAuthorityInitializerAttestation: true,
+    requireActuarialCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1049,6 +1060,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqTelecomGating: {
       ...DEFAULT_POLICY.pqTelecomGating,
       ...(tenantPolicy.pqTelecomGating || {}),
+    },
+    pqInsuranceGating: {
+      ...DEFAULT_POLICY.pqInsuranceGating,
+      ...(tenantPolicy.pqInsuranceGating || {}),
     },
   };
 }
@@ -2690,6 +2705,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqInsuranceGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqInsuranceGating, ...(tenantPolicy.pqInsuranceGating || {}) };
+    if (typeof config.claimsAuditQuorum === 'number' && config.claimsAuditQuorum < policy.minClaimsAuditQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `claims audit quorum ${config.claimsAuditQuorum} below minimum ${policy.minClaimsAuditQuorum}`);
+    }
+    if (typeof config.claimWindowSeconds === 'number' && config.claimWindowSeconds > policy.maxClaimWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `claim window seconds ${config.claimWindowSeconds} exceeds maximum ${policy.maxClaimWindowSeconds}`);
+    }
+    if (typeof config.billingSequenceDepth === 'number' && config.billingSequenceDepth > policy.maxBillingSequenceDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `billing sequence depth ${config.billingSequenceDepth} exceeds maximum ${policy.maxBillingSequenceDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireInsuranceAuthorityInitializerAttestation && config.insuranceAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'insurance authority initializer attestation is required');
+    }
+    if (policy.requireActuarialCommitteeAttestation && config.actuarialCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'actuarial committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderClaims === 'boolean' && policy.banMalformedOrOutOfOrderClaims && !config.banMalformedOrOutOfOrderClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3284,6 +3330,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqTelecomGating') {
       this._validatePqTelecomGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqInsuranceGating') {
+      this._validatePqInsuranceGating(tenantPolicy, config);
       return true;
     }
 
