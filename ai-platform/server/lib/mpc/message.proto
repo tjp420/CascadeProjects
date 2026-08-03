@@ -1,0 +1,14 @@
+syntax = "proto3";
+package simplebeacon.mpc;
+
+message MpcEnvelope {
+  string session_id = 1;
+  uint32 round_number = 2;
+  uint32 step_index = 3;
+  uint32 sequence_counter = 4;
+  uint64 timestamp_ms = 5;
+  string sender_id = 6;
+  bytes payload_digest = 7;
+  bytes cleartext_payload = 8;
+  bytes detached_signature = 9;
+}
