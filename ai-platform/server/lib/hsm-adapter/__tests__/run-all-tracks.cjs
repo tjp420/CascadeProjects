@@ -84,6 +84,7 @@ const SUITES = [
   'pq-global-health-epidemiological-surveillance-gating',
   'pq-cultural-heritage-provenance-gating',
   'pq-ocean-fisheries-allocation-gating',
+  'pq-deep-sea-mineral-rights-gating',
 ];
 
 function runSuite(pattern) {

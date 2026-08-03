@@ -692,6 +692,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderCatchClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSeabedGating": {
+      "minSovereignQuorum": 6,
+      "maxLeaseWindowSeconds": 31536000,
+      "maxExtractionChainDepth": 15,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireIsaAuthorityInitializerAttestation": true,
+      "requireSeabedOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderExtractionClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

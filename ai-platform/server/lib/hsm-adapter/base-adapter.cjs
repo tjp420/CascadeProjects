@@ -2043,6 +2043,38 @@ class BaseHsmAdapter {
     this._audit('QUOTA_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 95 PQ deep-sea mineral rights gating telemetry hooks ──
+
+  /**
+   * Emit a seabed gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSeabedGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('SEABED_GATING_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_seabed_gating_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK extraction claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkExtractionClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_EXTRACTION_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_extraction_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a lease accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitLeaseAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('LEASE_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_lease_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
