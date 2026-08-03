@@ -1840,6 +1840,35 @@ class BaseHsmAdapter {
     this._audit('ORBITAL_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 88 PQ water rights allocation gating telemetry hooks ───────
+
+  /**
+   * Emit a water gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitWaterGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('WATER_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK water claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkWaterClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_WATER_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a watershed accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitWatershedAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('WATERSHED_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

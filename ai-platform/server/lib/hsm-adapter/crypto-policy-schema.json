@@ -615,6 +615,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderOrbitalClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqWaterGating": {
+      "minWatershedQuorum": 4,
+      "maxAllocationWindowSeconds": 31536000,
+      "maxFlowChainDepth": 20,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireWaterAuthorityInitializerAttestation": true,
+      "requireWatershedOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderWaterClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
