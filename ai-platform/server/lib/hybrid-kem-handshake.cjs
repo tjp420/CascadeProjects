@@ -27,6 +27,13 @@
 const crypto = require('crypto');
 const mlkem = require('./vendor/mlkem.cjs');
 const resumption = require('./hybrid-kem-resumption.cjs');
+// Use JCS canonicalizer for transport-level canonicalization when available
+let JcsCanonicalizer = null;
+try {
+  JcsCanonicalizer = require('./mpc/schnorr/jcs.cjs').JcsCanonicalizer;
+} catch (e) {
+  // optional: leave null and fall back to JSON.stringify
+}
 
 const HKDF_SALT = 'simplebeacon:hybrid:v1';
 const HKDF_INFO = 'session:keyring';
@@ -148,7 +155,20 @@ function _readMessage(socket, timeoutMs) {
  * Send a length-prefixed JSON message over a socket.
  */
 function _sendMessage(socket, obj) {
-  const json = JSON.stringify(obj);
+  // Prefer RFC-8785 JCS canonicalization when available so signatures
+  // and frame hashes are consistent across runtimes.
+  let json;
+  if (JcsCanonicalizer) {
+    try {
+      const jcs = new JcsCanonicalizer();
+      json = jcs.canonicalize(obj);
+    } catch (e) {
+      // fallback to normal stringify on failure
+      json = JSON.stringify(obj);
+    }
+  } else {
+    json = JSON.stringify(obj);
+  }
   const body = Buffer.from(json, 'utf8');
   const header = Buffer.alloc(4);
   header.writeUInt32BE(body.length, 0);
