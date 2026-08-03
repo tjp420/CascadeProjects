@@ -10,11 +10,29 @@
  * enforces maxCredentialDepth, and tracks state transitions
  * alongside the minAttestationQuorum boundary.
  *
+ * Extended with batch pool initialization, credential depth
+ * rebalancing, committee signature aggregation, pool
+ * cancellation, cross-chain settlement, and summary
+ * statistics.
+ *
  * @module hsm-adapter/pqc-identity-gating-hub
  */
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
+
+const POOL_STATUS = {
+  OPEN: 'open',
+  REBALANCING: 'rebalancing',
+  COMPLETED: 'completed',
+  SETTLED: 'settled',
+  CANCELLED: 'cancelled',
+};
+
+const REBALANCE_DIRECTION = {
+  INCREASE: 'increase',
+  DECREASE: 'decrease',
+};
 
 class PqcIdentityGatingHub {
   /**
@@ -28,6 +46,15 @@ class PqcIdentityGatingHub {
     this._attestationClient = options.attestationClient || null;
     this._audit = options.audit || null;
     this._pools = new Map();
+    this._settlements = new Map();
+    this._rebalances = new Map();
+    this._maxPools = options.maxPools || 1000;
+    this._maxBatchSize = options.maxBatchSize || 50;
+    this._initCount = 0;
+    this._completeCount = 0;
+    this._settleCount = 0;
+    this._rebalanceCount = 0;
+    this._cancelCount = 0;
   }
 
   /**
@@ -37,6 +64,10 @@ class PqcIdentityGatingHub {
    */
   initializePool(request) {
     _validateInitRequest(this.policy, request);
+    if (this._pools.size >= this._maxPools) {
+      throw new HsmAdapterError('IDGATE_MAX_POOLS',
+        `maximum ${this._maxPools} pools reached`);
+    }
     if (this.policy.requireIdentityInitializerAttestation && this._attestationClient) {
       try {
         const result = this._attestationClient.verify(request.identityInitializerAttestation);
@@ -76,15 +107,56 @@ class PqcIdentityGatingHub {
       credentialDepth: request.credentialDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: POOL_STATUS.OPEN,
       attributeClaimVerified: false,
       gatingCompletedAt: null,
+      rebalanceEpoch: 0,
+      settlementStatus: null,
+      settledAt: null,
+      cancelledAt: null,
     };
     this._pools.set(poolId, pool);
+    this._initCount++;
     if (this._audit) {
       this._audit('IDENTITY_GATING_POOL_INITIALIZED', { ...pool });
     }
     return pool;
+  }
+
+  /**
+   * Batch initialize multiple identity gating pools.
+   * @param {object[]} requests
+   * @returns {object}
+   */
+  batchInitializePools(requests) {
+    if (!Array.isArray(requests) || requests.length === 0) {
+      throw new HsmAdapterError('IDGATE_BATCH_EMPTY', 'batch requests array is required');
+    }
+    if (requests.length > this._maxBatchSize) {
+      throw new HsmAdapterError('IDGATE_BATCH_TOO_LARGE',
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+    }
+    const results = [];
+    let successCount = 0;
+    let failedCount = 0;
+    for (const req of requests) {
+      try {
+        const pool = this.initializePool(req);
+        results.push({ poolId: pool.poolId, initialized: true });
+        successCount++;
+      } catch (err) {
+        results.push({
+          poolId: req.poolId || 'auto',
+          initialized: false,
+          error: err.code || 'IDGATE_BATCH_ERROR',
+        });
+        failedCount++;
+      }
+    }
+    if (this._audit) {
+      this._audit('IDGATE_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
+    }
+    return { totalRequests: requests.length, successCount, failedCount, results };
   }
 
   /**
@@ -108,6 +180,69 @@ class PqcIdentityGatingHub {
     }
     pool.attributeClaimVerified = true;
     return pool;
+  }
+
+  /**
+   * Rebalance credential depth for a pool.
+   * @param {object} request
+   * @returns {object}
+   */
+  rebalanceCredentialDepth(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('IDGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
+      throw new HsmAdapterError('IDGATE_NOT_REBALANCEABLE',
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    }
+    const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
+    if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
+      throw new HsmAdapterError('IDGATE_REBALANCE_DIRECTION_INVALID',
+        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(', ')}`);
+    }
+    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
+      throw new HsmAdapterError('IDGATE_REBALANCE_AMOUNT_INVALID',
+        'rebalanceAmount must be a positive number');
+    }
+    const newEpoch = pool.rebalanceEpoch + 1;
+    pool.rebalanceEpoch = newEpoch;
+    pool.status = POOL_STATUS.REBALANCING;
+    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalance = {
+      rebalanceId,
+      poolId: request.poolId,
+      direction,
+      rebalanceAmount: request.rebalanceAmount,
+      rebalanceEpoch: newEpoch,
+      newCredentialDepth: request.newCredentialDepth !== undefined ? request.newCredentialDepth : pool.credentialDepth,
+      rebalancedAt: Math.floor(Date.now() / 1000),
+    };
+    this._rebalances.set(rebalanceId, rebalance);
+    this._rebalanceCount++;
+    if (request.newCredentialDepth !== undefined) {
+      if (request.newCredentialDepth > (this.policy.maxCredentialDepth || 16)) {
+        throw new HsmAdapterError('IDGATE_CREDENTIAL_DEPTH_EXCEEDED',
+          `new credential depth ${request.newCredentialDepth} exceeds maximum ${this.policy.maxCredentialDepth}`);
+      }
+      pool.credentialDepth = request.newCredentialDepth;
+    }
+    if (this._audit) {
+      this._audit('IDGATE_CREDENTIAL_DEPTH_REBALANCED', { ...rebalance });
+    }
+    return rebalance;
+  }
+
+  /**
+   * Get a rebalance record by id.
+   * @param {string} rebalanceId
+   * @returns {object|null}
+   */
+  getRebalance(rebalanceId) {
+    return this._rebalances.get(rebalanceId) || null;
   }
 
   /**
@@ -140,7 +275,7 @@ class PqcIdentityGatingHub {
       throw new HsmAdapterError('IDGATE_COMPLETION_QUORUM_INSUFFICIENT', `attestation signatures ${signatures.length} below minimum ${this.policy.minAttestationQuorum}`);
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'completed';
+    pool.status = POOL_STATUS.COMPLETED;
     pool.gatingCompletedAt = now;
     const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
     const completion = {
@@ -149,10 +284,143 @@ class PqcIdentityGatingHub {
       claimSignatureCount: signatures.length,
       completedAt: now,
     };
+    this._completeCount++;
     if (this._audit) {
       this._audit('SOVEREIGN_IDENTITY_GATING_COMPLETED', { ...completion });
     }
     return completion;
+  }
+
+  /**
+   * Settle a completed pool cross-chain.
+   * @param {object} request
+   * @returns {object}
+   */
+  settlePool(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('IDGATE_SETTLE_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status !== POOL_STATUS.COMPLETED) {
+      throw new HsmAdapterError('IDGATE_NOT_COMPLETED',
+        `pool ${request.poolId} status is ${pool.status}, expected completed`);
+    }
+    if (!request.targetChainId || typeof request.targetChainId !== 'string') {
+      throw new HsmAdapterError('IDGATE_SETTLE_CHAIN_MISSING', 'targetChainId is required for settlement');
+    }
+    if (request.targetChainId !== pool.targetChainId) {
+      throw new HsmAdapterError('IDGATE_SETTLE_CHAIN_MISMATCH',
+        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`);
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
+    const settlement = {
+      settlementId,
+      poolId: request.poolId,
+      targetChainId: request.targetChainId,
+      settlementProofHash: request.settlementProofHash || crypto.createHash('sha256')
+        .update(`${request.poolId}:${request.targetChainId}:${now}`)
+        .digest('hex'),
+      settledAt: now,
+    };
+    pool.status = POOL_STATUS.SETTLED;
+    pool.settlementStatus = 'settled';
+    pool.settledAt = now;
+    this._settlements.set(request.poolId, settlement);
+    this._settleCount++;
+    if (this._audit) {
+      this._audit('IDGATE_SETTLED', { ...settlement });
+    }
+    return settlement;
+  }
+
+  /**
+   * Aggregate committee signatures for gating completion.
+   * @param {string} poolId
+   * @param {object[]} partialSignatures - Array of {peerId, signature}
+   * @returns {object}
+   */
+  aggregateCommitteeSignatures(poolId, partialSignatures) {
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
+      throw new HsmAdapterError('IDGATE_NO_SIGNATURES', 'partialSignatures array is required');
+    }
+    if (partialSignatures.length < (this.policy.minAttestationQuorum || 3)) {
+      throw new HsmAdapterError('IDGATE_COMPLETION_QUORUM_INSUFFICIENT',
+        `${partialSignatures.length} signatures below minimum ${this.policy.minAttestationQuorum || 3}`);
+    }
+    const aggregatedSig = crypto.createHash('sha256')
+      .update(partialSignatures.map(s => s.signature).join(':'))
+      .digest('hex');
+    const result = {
+      poolId,
+      signatureCount: partialSignatures.length,
+      aggregatedSignature: aggregatedSig,
+      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      aggregatedAt: Math.floor(Date.now() / 1000),
+    };
+    if (this._audit) {
+      this._audit('IDGATE_SIGNATURES_AGGREGATED', { poolId, count: partialSignatures.length });
+    }
+    return result;
+  }
+
+  /**
+   * Cancel a pool (only if not yet completed).
+   * @param {string} poolId
+   * @returns {object}
+   */
+  cancelPool(poolId) {
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    if (pool.status === POOL_STATUS.COMPLETED || pool.status === POOL_STATUS.SETTLED) {
+      throw new HsmAdapterError('IDGATE_ALREADY_COMPLETED',
+        `pool ${poolId} has been completed/settled and cannot be cancelled`);
+    }
+    if (pool.status === POOL_STATUS.CANCELLED) {
+      throw new HsmAdapterError('IDGATE_ALREADY_CANCELLED',
+        `pool ${poolId} is already cancelled`);
+    }
+    pool.status = POOL_STATUS.CANCELLED;
+    pool.cancelledAt = Math.floor(Date.now() / 1000);
+    this._cancelCount++;
+    if (this._audit) {
+      this._audit('IDGATE_CANCELLED', { poolId });
+    }
+    return { poolId, cancelled: true };
+  }
+
+  /**
+   * Get a settlement record by pool id.
+   * @param {string} poolId
+   * @returns {object|null}
+   */
+  getSettlement(poolId) {
+    return this._settlements.get(poolId) || null;
+  }
+
+  /**
+   * Get all pools (metadata only).
+   * @returns {object[]}
+   */
+  getPools() {
+    return Array.from(this._pools.values()).map(p => ({
+      poolId: p.poolId,
+      sourceTenantId: p.sourceTenantId,
+      targetChainId: p.targetChainId,
+      status: p.status,
+      credentialDepth: p.credentialDepth,
+      attestationContractLifetimeSeconds: p.attestationContractLifetimeSeconds,
+      attributeClaimVerified: p.attributeClaimVerified,
+    }));
   }
 
   /**
@@ -161,6 +429,28 @@ class PqcIdentityGatingHub {
    */
   getPoolCount() {
     return this._pools.size;
+  }
+
+  /**
+   * Get summary statistics.
+   * @returns {object}
+   */
+  getStats() {
+    const poolsByStatus = {};
+    for (const p of this._pools.values()) {
+      poolsByStatus[p.status] = (poolsByStatus[p.status] || 0) + 1;
+    }
+    return {
+      totalPools: this._pools.size,
+      totalSettlements: this._settlements.size,
+      totalRebalances: this._rebalances.size,
+      poolsByStatus,
+      initCount: this._initCount,
+      completeCount: this._completeCount,
+      settleCount: this._settleCount,
+      rebalanceCount: this._rebalanceCount,
+      cancelCount: this._cancelCount,
+    };
   }
 }
 
@@ -191,4 +481,8 @@ function _validateCompleteRequest(policy, request) {
   }
 }
 
-module.exports = { PqcIdentityGatingHub };
+module.exports = {
+  PqcIdentityGatingHub,
+  POOL_STATUS,
+  REBALANCE_DIRECTION,
+};
