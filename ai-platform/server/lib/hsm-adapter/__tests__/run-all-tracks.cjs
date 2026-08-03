@@ -108,6 +108,7 @@ const SUITES = [
   'pq-bio-digital-interface-neural-telemetry-gating',
   'pq-autonomous-drone-swarm-mesh-routing-gating',
   'pq-swarm-robotics-kinetic-assembly-gating',
+  'pq-multi-enclave-confidential-mesh-state-reconciliation-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
