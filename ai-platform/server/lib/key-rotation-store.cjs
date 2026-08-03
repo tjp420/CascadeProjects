@@ -296,9 +296,31 @@ function getKeyRingHex() {
  * @param {number} rotatedAt — Date.now() of the leader's rotation
  * @param {number|null} graceMs — Optional grace override
  */
+
+/**
+ * Validate that a hex string is strictly lowercase [0-9a-f] and exactly 64 chars.
+ * Enforces JCS canonicalization policy for BigInt-derived key material.
+ * @param {string} hex
+ * @param {string} fieldName
+ * @throws {TypeError} if the hex is invalid, uppercase, or wrong length
+ */
+function _validateStrictLowercaseHex(hex, fieldName) {
+  if (!hex || typeof hex !== 'string') {
+    throw new TypeError(fieldName + ' must be a non-empty hex string');
+  }
+  if (hex.length !== 64) {
+    throw new TypeError(fieldName + ' must be exactly 64 hex characters (32 bytes), got ' + hex.length);
+  }
+  // Strict lowercase hex: only [0-9a-f], rejects [A-F] and non-hex chars
+  if (!/^[0-9a-f]+$/.test(hex)) {
+    throw new TypeError(fieldName + ' must be strictly lowercase hex [0-9a-f]; uppercase or non-hex characters are rejected for JCS canonicalization');
+  }
+}
+
 function applyKeyringCommit(activeHex, previousHex, rotatedAt, graceMs) {
-  if (!activeHex || typeof activeHex !== 'string' || activeHex.length !== 64) {
-    throw new TypeError('applyKeyringCommit requires a 64-character active key hex');
+  _validateStrictLowercaseHex(activeHex, 'activeHex');
+  if (previousHex !== null && previousHex !== undefined) {
+    _validateStrictLowercaseHex(previousHex, 'previousHex');
   }
   _keyRing.active = Buffer.from(activeHex, 'hex');
   _keyRing.previous = previousHex ? Buffer.from(previousHex, 'hex') : null;

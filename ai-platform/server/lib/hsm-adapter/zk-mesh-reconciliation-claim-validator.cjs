@@ -27,6 +27,7 @@ class ZkMeshReconciliationClaimValidator {
       const ageMs = Date.now() - request.timestampMs;
       const maxWindowMs = (this.policy.maxEpochFinalityWindowSeconds || 10) * 1000;
       if (ageMs > maxWindowMs) {
+        hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
         throw new HsmAdapterError('MESHCLAIM_EPOCH_FINALITY_WINDOW_EXCEEDED', `claim age ${ageMs}ms exceeds maximum window ${maxWindowMs}ms`);
       }
     }
@@ -34,15 +35,18 @@ class ZkMeshReconciliationClaimValidator {
     if (typeof request.reconciliationChainDepth === 'number') {
       const maxDepth = this.policy.maxReconciliationChainDepth || 100;
       if (request.reconciliationChainDepth > maxDepth) {
+        hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
         throw new HsmAdapterError('MESHCLAIM_RECONCILIATION_CHAIN_DEPTH_EXCEEDED', `reconciliation chain depth ${request.reconciliationChainDepth} exceeds maximum ${maxDepth}`);
       }
     }
 
     if (typeof request.pqcSignatureScheme === 'string' && this.policy.allowedPqcSignatureSchemes && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
+      hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
       throw new HsmAdapterError('MESHCLAIM_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted`);
     }
 
     if (request.proofValid === false) {
+      hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
       throw new HsmAdapterError('MESHCLAIM_PROOF_INVALID', 'mesh reconciliation proof is invalid');
     }
 
@@ -54,6 +58,7 @@ class ZkMeshReconciliationClaimValidator {
 
     if (this.policy.banMalformedOrOutOfOrderMeshReconciliationClaims && this._verifiedClaims.has(claimHash)) {
       if (request.peerId) this._bannedPeers.add(request.peerId);
+      hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
       throw new HsmAdapterError('MESHCLAIM_DUPLICATE', `duplicate mesh reconciliation claim for pool ${request.poolId}`);
     }
 
@@ -87,12 +92,15 @@ class ZkMeshReconciliationClaimValidator {
 
 function _validateClaimRequest(policy, request, bannedPeers) {
   if (!request.poolId) {
+    hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
     throw new HsmAdapterError('MESHCLAIM_FIELDS_MISSING', 'poolId is required');
   }
   if (!request.confidentialStateReconciliationDigest) {
+    hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
     throw new HsmAdapterError('MESHCLAIM_FIELDS_MISSING', 'confidentialStateReconciliationDigest is required');
   }
   if (typeof request.timestampMs !== 'number') {
+    hsmMetrics.incrementCounter('hsm_meshgate_challenge_issued_total', 1);
     throw new HsmAdapterError('MESHCLAIM_FIELDS_MISSING', 'timestampMs is required');
   }
 }

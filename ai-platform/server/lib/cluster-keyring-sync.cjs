@@ -300,6 +300,26 @@ function _isSelf(host, port) {
   return port === CLUSTER_KEYRING_PORT;
 }
 
+function _isKnownClusterPeer(host, port) {
+  for (const { host: h, port: p2 } of CLUSTER_NODES) {
+    if (h === host && p2 === port) return true;
+  }
+  return false;
+}
+
+function _validateStrictLowercaseHex(hex, fieldName) {
+  if (!hex || typeof hex !== 'string' || hex.length !== 64 || !/^[0-9a-f]+$/.test(hex)) {
+    _recordEvent(EVENT_TYPES.KEY_REJECT, NODE_ID, {
+      reason: 'invalid_hex_format',
+      field: fieldName,
+      length: hex ? hex.length : 0,
+    });
+    return false;
+  }
+  return true;
+}
+
+
 function _frameMessage(payload) {
   const json = JSON.stringify(payload);
   const body = Buffer.from(json, 'utf8');
@@ -485,6 +505,29 @@ function _handleMessage(msg, socket) {
   }
 
   if (msg.type === 'HEARTBEAT' || msg.type === 'KEY_COMMIT') {
+    // Reject messages from unknown cluster peers
+    const remoteHost = socket.remoteAddress;
+    const remotePort = socket.remotePort;
+    if (!_isKnownClusterPeer(remoteHost, remotePort) && !_isSelf(remoteHost, remotePort)) {
+      _log('warn', 'Rejected message from unknown cluster peer', { peer: peerKey, type: msg.type });
+      _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type });
+      socket.destroy();
+      return;
+    }
+    // Reject KEY_COMMIT from non-leader nodes
+    if (msg.type === 'KEY_COMMIT') {
+      if (msg.from && _state.leaderId && msg.from !== _state.leaderId) {
+        _log('warn', 'Rejected KEY_COMMIT from non-leader node', { from: msg.from, currentLeader: _state.leaderId });
+        _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, {
+          reason: 'not_leader',
+          currentLeader: _state.leaderId,
+        });
+        return;
+      }
+      // Validate hex format before applying
+      if (!_validateStrictLowercaseHex(msg.activeHex, 'activeHex')) return;
+      if (msg.previousHex && !_validateStrictLowercaseHex(msg.previousHex, 'previousHex')) return;
+    }
     const peer = _peerState.get(peerKey) || {};
     peer.lastSeen = Date.now();
     peer.leaderId = msg.leaderId;
