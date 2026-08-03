@@ -1043,5 +1043,73 @@ router.get('/supply-chain-provenance/telemetry', authorize('admin:all'), functio
   }
 });
 
+// Track 111: Zero-Knowledge Decentralized Storage Attestation Gating (unavailable — 503 guarded)
+// When the ZK decentralized storage gating hub is registered, flip ZK_DECENTRALIZED_STORAGE_GATING_ENABLED to true.
+const ZK_DECENTRALIZED_STORAGE_GATING_ENABLED = false;
+
+function requireZkDecentralizedStorageGating(res) {
+  if (!ZK_DECENTRALIZED_STORAGE_GATING_ENABLED) {
+    sendError(res, 503, 'zk_decentralized_storage_gating_unavailable', {
+      message: 'Track 111 Zero-Knowledge Decentralized Storage Attestation Gating is not yet available.',
+    });
+    return false;
+  }
+  return true;
+}
+
+// GET /api/vault/zk-decentralized-storage/policy — expose active Track 111 policy defaults and bounds
+router.get('/zk-decentralized-storage/policy', authorize('admin:all'), function (req, res) {
+  if (!requireZkDecentralizedStorageGating(res)) return;
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqZkDecentralizedStorageAttestationGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'zk_decentralized_storage_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/zk-decentralized-storage/policy/validate — validate a proposed Track 111 configuration
+router.post('/zk-decentralized-storage/policy/validate', authorize('admin:all'), function (req, res) {
+  if (!requireZkDecentralizedStorageGating(res)) return;
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqZkDecentralizedStorageAttestationGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'zk_decentralized_storage_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/zk-decentralized-storage/telemetry — expose Track 111 telemetry counters
+router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), function (req, res) {
+  if (!requireZkDecentralizedStorageGating(res)) return;
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_zkstoragegate_pool_initialized_total: allMetrics.hsm_zkstoragegate_pool_initialized_total || 0,
+      hsm_zk_decentralized_storage_claim_verified_total: allMetrics.hsm_zk_decentralized_storage_claim_verified_total || 0,
+      hsm_storage_attestation_accreditation_completed_total: allMetrics.hsm_storage_attestation_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'zk_decentralized_storage_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 
 module.exports = router;

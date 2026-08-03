@@ -1014,6 +1014,17 @@
       "banMalformedOrOutOfOrderHolographicClaims": true,
       "requireCanonicalPayloadLayout": true
     },
+    "pqZkDecentralizedStorageAttestationGating": {
+      "minZkStorageQuorum": 22,
+      "maxAttestationWindowSeconds": 120,
+      "maxStorageProofChainDepth": 55,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireZkStorageAuthorityInitializerAttestation": true,
+      "requireZkStorageEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderZkStorageClaims": true,
+      "requireCanonicalPayloadLayout": true
+    },
     "clusterKeyringPrimitiveAuthorization": {
       "minAuthorizationQuorum": 3,
       "maxSyncWindowSeconds": 300,
