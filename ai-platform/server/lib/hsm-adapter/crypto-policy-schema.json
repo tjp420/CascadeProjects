@@ -914,6 +914,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderNeuralClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqAutonomousVehicleFleetCoordinationGating": {
+      "minAutonomousQuorum": 9,
+      "maxCoordinationWindowSeconds": 86400,
+      "maxCoordinationChainDepth": 26,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireAutonomousMobilityAuthorityInitializerAttestation": true,
+      "requireAutonomousEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderAutonomousClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

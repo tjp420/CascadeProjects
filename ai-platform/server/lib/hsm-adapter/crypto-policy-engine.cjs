@@ -844,6 +844,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderNeuralClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqAutonomousVehicleFleetCoordinationGating: {
+    minAutonomousQuorum: 9,
+    maxCoordinationWindowSeconds: 86400,
+    maxCoordinationChainDepth: 26,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireAutonomousMobilityAuthorityInitializerAttestation: true,
+    requireAutonomousEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderAutonomousClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1289,6 +1300,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqNeuralNetworkInferenceIntegrityGating: {
       ...DEFAULT_POLICY.pqNeuralNetworkInferenceIntegrityGating,
       ...(tenantPolicy.pqNeuralNetworkInferenceIntegrityGating || {}),
+    },
+    pqAutonomousVehicleFleetCoordinationGating: {
+      ...DEFAULT_POLICY.pqAutonomousVehicleFleetCoordinationGating,
+      ...(tenantPolicy.pqAutonomousVehicleFleetCoordinationGating || {}),
     },
   };
 }
@@ -3426,6 +3441,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqAutonomousVehicleFleetCoordinationGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqAutonomousVehicleFleetCoordinationGating, ...(tenantPolicy.pqAutonomousVehicleFleetCoordinationGating || {}) };
+    if (typeof config.autonomousQuorum === 'number' && config.autonomousQuorum < policy.minAutonomousQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `autonomous quorum ${config.autonomousQuorum} below minimum ${policy.minAutonomousQuorum}`);
+    }
+    if (typeof config.coordinationWindowSeconds === 'number' && config.coordinationWindowSeconds > policy.maxCoordinationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `coordination window seconds ${config.coordinationWindowSeconds} exceeds maximum ${policy.maxCoordinationWindowSeconds}`);
+    }
+    if (typeof config.coordinationChainDepth === 'number' && config.coordinationChainDepth > policy.maxCoordinationChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `coordination chain depth ${config.coordinationChainDepth} exceeds maximum ${policy.maxCoordinationChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireAutonomousMobilityAuthorityInitializerAttestation && config.autonomousMobilityAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'autonomous mobility authority initializer attestation is required');
+    }
+    if (policy.requireAutonomousEthicsOversightCommitteeAttestation && config.autonomousEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'autonomous ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderAutonomousClaims === 'boolean' && policy.banMalformedOrOutOfOrderAutonomousClaims && !config.banMalformedOrOutOfOrderAutonomousClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order autonomous claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -4100,6 +4146,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqNeuralNetworkInferenceIntegrityGating') {
       this._validatePqNeuralNetworkInferenceIntegrityGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqAutonomousVehicleFleetCoordinationGating') {
+      this._validatePqAutonomousVehicleFleetCoordinationGating(tenantPolicy, config);
       return true;
     }
 
