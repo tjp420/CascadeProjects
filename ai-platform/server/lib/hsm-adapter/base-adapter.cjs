@@ -2552,6 +2552,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_resilience_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 104 smart-contract verifiable execution gating telemetry hooks
+
+  /**
+   * Emit an execution pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitExecutionPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('EXECUTION_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_execgate_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK execution claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkExecutionClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_EXECUTION_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_execution_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit an execution accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitExecutionAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('EXECUTION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_execution_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
