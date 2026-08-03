@@ -1092,7 +1092,7 @@ router.post('/zk-decentralized-storage/policy/validate', authorize('admin:all'),
 
 // Track 112: Bio-Digital Interface Neural-Telemetry Gating (unavailable — 503 guarded)
 // When the bio-digital neural telemetry gating hub is registered, flip BIO_DIGITAL_NEURAL_TELEMETRY_GATING_ENABLED to true.
-const BIO_DIGITAL_NEURAL_TELEMETRY_GATING_ENABLED = false;
+const BIO_DIGITAL_NEURAL_TELEMETRY_GATING_ENABLED = true;
 
 function requireBioDigitalNeuralTelemetryGating(res) {
   if (!BIO_DIGITAL_NEURAL_TELEMETRY_GATING_ENABLED) {

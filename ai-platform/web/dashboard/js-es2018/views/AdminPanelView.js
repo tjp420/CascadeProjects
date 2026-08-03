@@ -12,6 +12,7 @@ import { renderQkdLinkSwitchGatingDashboard, cleanupQkdLinkSwitchGatingDashboard
 import { renderHolographicStorageContentAddressableGatingDashboard, cleanupHolographicStorageContentAddressableGatingDashboard } from '../components/HolographicStorageContentAddressableGatingDashboard.js';
 import { renderSupplyChainProvenanceGatingDashboard, cleanupSupplyChainProvenanceGatingDashboard } from '../components/SupplyChainProvenanceGatingDashboard.js';
 import { renderZkDecentralizedStorageAttestationGatingDashboard, cleanupZkDecentralizedStorageAttestationGatingDashboard } from '../components/ZkDecentralizedStorageAttestationGatingDashboard.js';
+import { renderBioDigitalInterfaceNeuralTelemetryDashboard, cleanupBioDigitalInterfaceNeuralTelemetryDashboard } from '../components/ZkBioDigitalInterfaceNeuralTelemetryDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -973,6 +974,7 @@ export class AdminPanelView {
         cleanupHolographicStorageContentAddressableGatingDashboard();
         cleanupSupplyChainProvenanceGatingDashboard();
         cleanupZkDecentralizedStorageAttestationGatingDashboard();
+        cleanupBioDigitalInterfaceNeuralTelemetryDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -1043,6 +1045,13 @@ export class AdminPanelView {
             grid.appendChild(zkStorageDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount ZK decentralized storage gating dashboard:', e);
+        }
+        // Mount Bio-Digital Interface Neural Telemetry Gating (Track 112, policy + telemetry)
+        try {
+            const neuroDashboard = renderBioDigitalInterfaceNeuralTelemetryDashboard();
+            grid.appendChild(neuroDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount bio-digital neural telemetry gating dashboard:', e);
         }
     }
 
