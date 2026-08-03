@@ -1,0 +1,79 @@
+## Prometheus alert rules for Track 115 Multi-Enclave Confidential Mesh
+## State-Reconciliation Gating Hub.
+##
+## These rules assume the ai-platform metrics endpoint is scraped with the
+## `ai-platform-agentic-orchestration` job defined in prometheus-agentic-scrape.yml.
+##
+## Apply with the Prometheus Operator by wrapping this in a PrometheusRule CR,
+## or load it directly into the Prometheus server's rule_files section.
+
+groups:
+  - name: mesh_reconciliation_boundary
+    interval: 15s
+    rules:
+      - alert: MeshReconciliationBoundaryDrift
+        expr: |
+          (
+            rate(hsm_meshgate_challenge_issued_total[5m])
+            /
+            (
+              rate(hsm_zk_mesh_state_reconciled_total[5m])
+              +
+              rate(hsm_meshgate_challenge_issued_total[5m])
+            )
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          track: "115"
+          service: "hsm-vault-mesh"
+        annotations:
+          summary: "Track 115 mesh claim drop ratio is above 10%"
+          description: "{{ $value | humanizePercentage }} of mesh state-reconciliation claims are being dropped over the last 5 minutes, indicating possible clock drift or latency at the 10s boundary."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MESH_BOUNDARY_DRIFT.md"
+
+      - alert: MeshReconciliationHighDropRate
+        expr: |
+          rate(hsm_meshgate_challenge_issued_total[2m]) > 100
+        for: 2m
+        labels:
+          severity: critical
+          track: "115"
+          service: "hsm-vault-mesh"
+        annotations:
+          summary: "Track 115 mesh challenge rate is critically high"
+          description: "{{ $value }} challenges/second are being issued over the last 2 minutes, possibly due to replay, stale clients, or enclave attestation failure."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MESH_HIGH_DROP_RATE.md"
+
+  - name: mesh_reconciliation_flow
+    interval: 30s
+    rules:
+      - alert: MeshStateReconciliationStall
+        expr: |
+          rate(hsm_zk_mesh_state_reconciled_total[10m]) == 0
+          and
+          rate(hsm_meshgate_pool_initialized_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "115"
+          service: "hsm-vault-mesh"
+        annotations:
+          summary: "Track 115 mesh state reconciliations have stalled"
+          description: "New pools are being initialized but no state reconciliations are completing over the last 10 minutes."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MESH_RECONCILIATION_STALL.md"
+
+      - alert: MeshEpochFinalityStall
+        expr: |
+          rate(hsm_epoch_finality_completed_total[15m]) == 0
+          and
+          rate(hsm_zk_mesh_state_reconciled_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          track: "115"
+          service: "hsm-vault-mesh"
+        annotations:
+          summary: "Track 115 epoch finality completions have stalled"
+          description: "Mesh state reconciliations are occurring but no epoch finality completions are observed over the last 15 minutes."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MESH_EPOCH_FINALITY_STALL.md"

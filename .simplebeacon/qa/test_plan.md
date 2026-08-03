@@ -1,45 +1,53 @@
-# test_plan.md — Track 105: Decentralized Identity Proof Gating UI
+# test_plan.md
+
+> High-throughput cross-enclave simulation for Track 115.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Add dashboard UI and REST endpoints for `pqDecentralizedIdentityProofGating` policy administration and telemetry |
+| Feature / change | High-Throughput Cross-Enclave Mesh Saturation Simulation |
 | Author (Builder) | Devin |
 | Date | 2026-08-03 |
-| Branch | `feat/track105-decentralized-identity-gating-ui` |
+| Branch | main (post Track 115 convergence @ bab8d644c) |
 | Packages touched | ai-platform |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/routes/hsm-vault-routes.cjs`
-- `ai-platform/web/dashboard/js-es2018/components/DecentralizedIdentityGatingDashboard.js` (new)
-- `ai-platform/web/dashboard/js-es2018/views/AdminPanelView.js`
-- `ai-platform/server/lib/__tests__/hsm-vault-decentralized-identity-routes.test.cjs` (new)
+- `ai-platform/server/lib/hsm-adapter/__tests__/mesh-saturation-simulation.cjs` (new)
+- `ai-platform/server/lib/hsm-adapter/__tests__/mesh-load-worker.cjs` (new)
 
 ### APIs / routes
 
-- `GET  /api/hsm/vault/decentralized-identity/policy`
-- `POST /api/hsm/vault/decentralized-identity/policy/validate`
-- `GET  /api/hsm/vault/decentralized-identity/telemetry`
+- `PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub.initializePool`
+- `PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub.reconcileMeshState`
+- `ZkMeshReconciliationClaimValidator.validateClaim`
+- `hsm-metrics.cjs` counters:
+  - `hsm_meshgate_pool_initialized_total`
+  - `hsm_zk_mesh_state_reconciled_total`
+  - `hsm_epoch_finality_completed_total`
+  - `hsm_meshgate_challenge_issued_total`
 
 ### UI / IDE surfaces
 
-- HSM dashboard admin panel telemetry grid (`#admin-telemetry-grid`)
-- New `DecentralizedIdentityGatingDashboard` card with policy form and telemetry counters
+- [ ] Sidebar webview
+- [ ] Main dashboard iframe / address bar
+- [ ] Welcome / main window panel
+- [ ] Simple Browser / external browser
 
 ---
 
-## Level 1 — Deterministic
+## Level 1 — Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on new/changed `.cjs` | `node -c <file>` | [ ] |
-| L1-02 | New route tests | `cd ai-platform && npx jest hsm-vault-decentralized-identity-routes` | [ ] |
-| L1-03 | Existing HSM route tests still pass | `cd ai-platform && npx jest hsm-vault` | [ ] |
-| L1-04 | SimpleBeacon gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
+| L1-01 | Syntax on new JS/CJS | `node -c __tests__/mesh-saturation-simulation.cjs` | [ ] |
+| L1-02 | Syntax on new worker | `node -c __tests__/mesh-load-worker.cjs` | [ ] |
+| L1-03 | ai-platform tests unchanged | `cd ai-platform && npx jest pq-multi-enclave...` | [ ] |
+| L1-04 | No production files modified | `git diff --name-only` must only show test files | [ ] |
+| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
 
 ---
 
@@ -47,13 +55,8 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | GET policy returns defaults | `GET /api/hsm/vault/decentralized-identity/policy` | JSON with all Track 105 policy fields and bounds | [ ] |
-| L2-02 | POST valid policy returns 200 | `POST .../policy/validate` with valid fields | `{ valid: true }` | [ ] |
-| L2-03 | POST invalid `identityQuorum` returns 400 | `POST .../policy/validate` with `identityQuorum: 5` | `400 Bad Request` with `POLICY_VIOLATION_BLOCKED` | [ ] |
-| L2-04 | POST invalid `pqcSignatureScheme` returns 400 | `POST .../policy/validate` with `pqcSignatureScheme: 'falcon-512'` | `400 Bad Request` with `POLICY_VIOLATION_BLOCKED` | [ ] |
-| L2-05 | GET telemetry returns counters | `GET /api/hsm/vault/decentralized-identity/telemetry` | JSON with `hsm_didgate_*` values | [ ] |
-| L2-06 | Dashboard card renders | Open `/dashboard/admin` grid | Card with form and telemetry tiles visible | [ ] |
-| L2-07 | Form validation reflects backend | Submit invalid form values | Error message from `POLICY_VIOLATION_BLOCKED` shown | [ ] |
+| SIM-L2-01 | Baseline throughput | Run Stage 1: 1,000 sequential pool init + validation ops | Throughput > 500 ops/sec | [ ] |
+| SIM-L2-02 | Telemetry path separation | Run Stage 2: 5,000 concurrent reconcile ops | `hsm_zk_mesh_state_reconciled_total` and `hsm_meshgate_challenge_issued_total` reflect valid vs dropped claims | [ ] |
 
 ---
 
@@ -61,9 +64,10 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Missing `majorityFingerprint` — not applicable (policy-only) | N/A | [ ] |
-| L3-02 | Admin panel still mounts other telemetry cards | Other dashboard cards load | [ ] |
-| L3-03 | Form field names match `crypto-policy-schema.json` | `identityQuorum`, `revocationWindowSeconds`, etc. | [ ] |
+| SIM-L3-01 | Concurrency stress | Stage 2 with `os.cpus().length` workers; process exits cleanly | No unhandled handles, no crash | [ ] |
+| SIM-L3-02 | Memory reclaim | Measure pre/post RSS under Stage 2 burst | Memory returns to baseline after worker termination | [ ] |
+| SIM-L3-03 | Boundary drift | Stage 3 with `Date.now() - timestampMs` of 9,500ms, 10,000ms, and 10,001ms | 9,500/10,000 pass; 10,001+ throws `MESHCLAIM_EPOCH_FINALITY_WINDOW_EXCEEDED` | [ ] |
+| SIM-L3-04 | Timestamp isolation | Late valid item in a batch does not inherit timeout of timed-out predecessor | Each claim evaluated independently | [ ] |
 
 ---
 
@@ -71,11 +75,12 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No secrets in form defaults or mock payloads | [ ] |
-| S-02 | Only admin-authenticated requests served (existing auth middleware) | [ ] |
+| S-01 | No credentials / PII in simulation or logs | [ ] |
+| S-02 | No modifications to production security controls | [ ] |
 
 ---
 
 ## Approval
 
-- [x] User approved this plan (prior message)
+- [x] User approved this plan (task explicitly included an approved scope)
+- Approved by: user  Date: 2026-08-03
