@@ -1,0 +1,9 @@
+extends:
+  - "spectral:oas"
+  - "spectral:recommended"
+
+# Minimal overrides for CI-friendly linting: keep default rules but allow some leniency
+rules:
+  operation-2xx-response: off
+  info-contact: off
+  operation-operationId: off
