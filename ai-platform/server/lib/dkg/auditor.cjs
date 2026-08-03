@@ -22,8 +22,22 @@ async function getTranscript(fileName) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+/**
+ * Append a VDF proof to the audit store.
+ * This creates a proof file under the audit dir for durable record.
+ */
+async function appendProof(epochId, taskId, vdfObject) {
+  const safeEpoch = epochId || 'unknown';
+  const safeTask = taskId || Date.now();
+  const file = path.join(AUDIT_DIR, `proof-${safeEpoch}-${safeTask}-${Date.now()}.json`);
+  const payload = { epochId: safeEpoch, taskId: safeTask, proof: vdfObject, ts: new Date().toISOString() };
+  fs.writeFileSync(file, JSON.stringify(payload, null, 2));
+  return { file };
+}
+
 module.exports = {
   recordTranscript,
   listTranscripts,
   getTranscript,
+  appendProof,
 };
