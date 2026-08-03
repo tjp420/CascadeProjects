@@ -90,15 +90,82 @@ VAULTLIQ:<liquidationId>:<vaultId>:<releasedFractionSum>:<pqcSignatureScheme>:<c
 - **L2 Behavioral**: Simulate a three-custodian quorum with attested claimant and custodian relay, verify fractional release signature authentication and vault liquidation after reconciliation.
 - **L3 Reflection**: Spec alignment, minimal file count, no ghost modules.
 
-## Files expected to change
+## Extension scope (Track 65 Phase 2)
 
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json`
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs`
-- `ai-platform/server/lib/hsm-adapter/pqc-fractional-custody-hub.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/zk-fractional-release-verifier.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
-- `ai-platform/server/lib/hsm-adapter/__tests__/pq-fractional-custody.test.cjs` *(new)*
+### New capabilities added
+
+- **Cross-chain liquidity bridge support** — vaults can carry bridge parameters (source/target chain IDs, bridge type, capacity, fee BPS) with validation.
+- **Escrow locking** — lock vault assets in escrow with three lock types: time-lock, hash-lock, quorum-lock. Escrowed vaults still accept fractional releases.
+- **Batch vault initialization** — initialize multiple vaults in a single batch call with per-vault results.
+- **Custodian committee signature aggregation** — BLS-style aggregate signature from partial custodian signatures.
+- **Vault cancellation** — cancel open vaults (rejects if liquidated/settled).
+- **Cross-chain settlement coordination** — settle liquidated vaults on the target chain with settlement proof hashes.
+- **Hardware-accelerated SNARK proof generation** — generate Groth16 SNARK proofs with configurable HW acceleration (GPU CUDA, FPGA, ASIC, simulated).
+- **Batch release verification** — verify multiple fractional release signatures in a single batch call with per-release results.
+- **Partial signature aggregation** — aggregate partial signatures from custodian committee members with banned-peer rejection.
+- **Slashing window validation** — validate release timestamps within configurable slashing window.
+- **Slashing event recording** — record slash events with reason codes (malformed, duplicate, vault not open, banned peer, out of order).
+- **Summary statistics** — both hub and verifier expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Vault initialization with liquidity bridge parameters.
+- [x] Escrow locking with time-lock, hash-lock, and quorum-lock types.
+- [x] Escrow release restores vault to open status.
+- [x] Release recording on escrowed vaults.
+- [x] Batch initialization creates multiple vaults.
+- [x] Cross-chain settlement works for liquidated vaults.
+- [x] Committee signatures can be aggregated.
+- [x] Vaults can be cancelled.
+- [x] HW-SNARK proof generation produces Groth16 proofs.
+- [x] Batch release verification processes multiple releases.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window releases.
+- [x] Full init → escrow → release → liquidate → settle flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject liquidity bridge with missing chain IDs.
+- [x] Reject invalid liquidity bridge object.
+- [x] Reject escrow on non-open vault.
+- [x] Reject escrow with invalid lock type.
+- [x] Reject escrow with missing vaultId.
+- [x] Reject release of unknown escrow.
+- [x] Reject batch init with empty array.
+- [x] Reject batch init exceeding max size.
+- [x] Reject settlement of non-liquidated vault.
+- [x] Reject settlement with mismatched chain.
+- [x] Reject settlement with missing vaultId.
+- [x] Reject committee aggregation with insufficient signatures.
+- [x] Reject committee aggregation with no signatures.
+- [x] Reject committee aggregation for unknown vault.
+- [x] Reject cancelling liquidated vault.
+- [x] Reject double cancellation.
+- [x] Reject cancelling unknown vault.
+- [x] Reject HW-SNARK proof generation with missing vaultId.
+- [x] Reject HW-SNARK proof generation with missing fractionValue.
+- [x] Reject HW-SNARK proof generation for unknown vault.
+- [x] Reject empty batch release verification.
+- [x] Reject batch release verification exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with insufficient signatures.
+- [x] Reject partial signature aggregation with missing vaultId.
+- [x] Detect release outside slashing window.
+- [x] Reject slashing window validation for unknown vault.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Record slashes for malformed releases.
+- [x] RELEASE_STATUS, SLASH_REASON, HW_ACCEL_TYPES, VAULT_STATUS, ESCROW_LOCK_TYPES constants exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-fractional-custody-hub.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/zk-fractional-release-verifier.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(16 new counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pq-fractional-custody-extensions.test.cjs` *(new, 53 tests)*
 
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
