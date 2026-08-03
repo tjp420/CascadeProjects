@@ -13,7 +13,7 @@
  *   7. Does not leak internal metadata in 423 responses
  */
 
-const { describe, it, beforeEach, afterEach } = require('node:test');
+// Jest-compatible: describe/it/beforeEach/afterEach are globals; assert uses node:assert shim
 const assert = require('node:assert');
 const path = require('path');
 
