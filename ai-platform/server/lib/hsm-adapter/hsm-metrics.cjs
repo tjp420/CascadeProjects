@@ -788,6 +788,10 @@ const counters = {
   hsm_neurgo_pool_initialized_total: 0,
   hsm_zk_neural_claim_verified_total: 0,
   hsm_inference_accreditation_completed_total: 0,
+  // Track 102: PQC Autonomous Vehicle Fleet Coordination Gating counters
+  hsm_autogo_pool_initialized_total: 0,
+  hsm_zk_autonomous_claim_verified_total: 0,
+  hsm_coordination_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1448,6 +1452,9 @@ const META = {
   hsm_neurgo_pool_initialized_total: { help: 'Total neural network inference integrity gating pools initialized.', type: 'counter' },
   hsm_zk_neural_claim_verified_total: { help: 'Total ZK neural network inference claims verified.', type: 'counter' },
   hsm_inference_accreditation_completed_total: { help: 'Total inference accreditation completions finalized.', type: 'counter' },
+  hsm_autogo_pool_initialized_total: { help: 'Total autonomous vehicle fleet coordination gating pools initialized.', type: 'counter' },
+  hsm_zk_autonomous_claim_verified_total: { help: 'Total ZK autonomous vehicle fleet coordination claims verified.', type: 'counter' },
+  hsm_coordination_accreditation_completed_total: { help: 'Total coordination accreditation completions finalized.', type: 'counter' },
 };
 
 /**

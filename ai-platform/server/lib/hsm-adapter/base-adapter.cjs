@@ -2488,6 +2488,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_inference_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 102 autonomous vehicle fleet coordination gating telemetry hooks
+
+  /**
+   * Emit an autonomous coordination pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitAutonomousCoordinationPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('AUTONOMOUS_COORDINATION_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_autogo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK autonomous claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkAutonomousClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_AUTONOMOUS_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_autonomous_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a coordination accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCoordinationAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('COORDINATION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_coordination_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
