@@ -16,6 +16,7 @@ const { sendError } = require('../lib/response-helpers.cjs');
 const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 const { RecursiveProofAggregationEngine } = require('../lib/hsm-adapter/recursive-proof-aggregation-engine.cjs');
 const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
 
 const router = express.Router();
 
@@ -594,44 +595,55 @@ router.post('/enclave/attestation/clear-cache', authorize('admin:all'), function
 
 // ── Track 61: Recursive Proof Aggregation endpoints ────────────────────────────
 
-let recursiveProofEngine = null;
-
 function getRecursiveProofEngine() {
-  if (!recursiveProofEngine) {
-    recursiveProofEngine = new RecursiveProofAggregationEngine({
-      audit: (event) => {
-        switch (event) {
-          case 'PROOF_SUBMITTED':
-            hsmMetrics.incrementCounter('hsm_recursive_proof_submitted_total');
-            hsmMetrics.incrementCounter('hsm_recursive_proofs_active');
-            break;
-          case 'PROOFS_FOLDED':
-            hsmMetrics.incrementCounter('hsm_recursive_proofs_folded_total');
-            break;
-          case 'CHAIN_AGGREGATED':
-            hsmMetrics.incrementCounter('hsm_recursive_chain_aggregations_total');
-            hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
-            break;
-          case 'TREE_AGGREGATED':
-            hsmMetrics.incrementCounter('hsm_recursive_tree_aggregations_total');
-            hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
-            break;
-          case 'VDF_PROOFS_AGGREGATED':
-            hsmMetrics.incrementCounter('hsm_recursive_vdf_aggregations_total');
-            hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
-            break;
-          case 'MIXNET_STATE_COMPRESSED':
-            hsmMetrics.incrementCounter('hsm_recursive_mixnet_compressions_total');
-            hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
-            break;
-          case 'AGG_VERIFIED':
-            hsmMetrics.incrementCounter('hsm_recursive_aggregations_verified_total');
-            break;
-        }
-      },
+  return baseAdapter.getRecursiveProofAggregationEngine();
+}
+
+function requireRecursiveProofEngine(res) {
+  const engine = getRecursiveProofEngine();
+  if (!engine) {
+    sendError(res, 503, 'recursive_proof_engine_unavailable', {
+      message: 'No RecursiveProofAggregationEngine is registered with the HSM adapter.',
     });
+    return null;
   }
-  return recursiveProofEngine;
+  return engine;
+}
+
+// Register a default engine for this process if none is provided by the adapter.
+if (!baseAdapter.getRecursiveProofAggregationEngine()) {
+  baseAdapter.registerRecursiveProofAggregationEngine(new RecursiveProofAggregationEngine({
+    audit: (event) => {
+      switch (event) {
+        case 'PROOF_SUBMITTED':
+          hsmMetrics.incrementCounter('hsm_recursive_proof_submitted_total');
+          hsmMetrics.incrementCounter('hsm_recursive_proofs_active');
+          break;
+        case 'PROOFS_FOLDED':
+          hsmMetrics.incrementCounter('hsm_recursive_proofs_folded_total');
+          break;
+        case 'CHAIN_AGGREGATED':
+          hsmMetrics.incrementCounter('hsm_recursive_chain_aggregations_total');
+          hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
+          break;
+        case 'TREE_AGGREGATED':
+          hsmMetrics.incrementCounter('hsm_recursive_tree_aggregations_total');
+          hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
+          break;
+        case 'VDF_PROOFS_AGGREGATED':
+          hsmMetrics.incrementCounter('hsm_recursive_vdf_aggregations_total');
+          hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
+          break;
+        case 'MIXNET_STATE_COMPRESSED':
+          hsmMetrics.incrementCounter('hsm_recursive_mixnet_compressions_total');
+          hsmMetrics.incrementCounter('hsm_recursive_aggregations_active');
+          break;
+        case 'AGG_VERIFIED':
+          hsmMetrics.incrementCounter('hsm_recursive_aggregations_verified_total');
+          break;
+      }
+    },
+  }));
 }
 
 function handleHsmError(res, err) {
@@ -642,7 +654,8 @@ function handleHsmError(res, err) {
 // POST /api/vault/recursive-aggregation/proof
 router.post('/recursive-aggregation/proof', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const result = engine.submitProof(req.body);
     res.json({ success: true, ...result });
   } catch (err) {
@@ -653,7 +666,8 @@ router.post('/recursive-aggregation/proof', authorize('admin:all'), function (re
 // POST /api/vault/recursive-aggregation/fold
 router.post('/recursive-aggregation/fold', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const { proofId1, proofId2, foldedProofId } = req.body || {};
     const result = engine.foldProofs(proofId1, proofId2, foldedProofId);
     res.json({ success: true, ...result });
@@ -665,7 +679,8 @@ router.post('/recursive-aggregation/fold', authorize('admin:all'), function (req
 // POST /api/vault/recursive-aggregation/aggregate/chain
 router.post('/recursive-aggregation/aggregate/chain', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const { proofIds, aggId } = req.body || {};
     const result = engine.aggregateChain(proofIds, aggId);
     res.json({ success: true, ...result });
@@ -677,7 +692,8 @@ router.post('/recursive-aggregation/aggregate/chain', authorize('admin:all'), fu
 // POST /api/vault/recursive-aggregation/aggregate/tree
 router.post('/recursive-aggregation/aggregate/tree', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const { proofIds, aggId } = req.body || {};
     const result = engine.aggregateTree(proofIds, aggId);
     res.json({ success: true, ...result });
@@ -689,7 +705,8 @@ router.post('/recursive-aggregation/aggregate/tree', authorize('admin:all'), fun
 // POST /api/vault/recursive-aggregation/aggregate/vdf
 router.post('/recursive-aggregation/aggregate/vdf', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const { proofIds } = req.body || {};
     const result = engine.aggregateVdfProofs(proofIds);
     res.json({ success: true, ...result });
@@ -701,7 +718,8 @@ router.post('/recursive-aggregation/aggregate/vdf', authorize('admin:all'), func
 // POST /api/vault/recursive-aggregation/compress/mixnet
 router.post('/recursive-aggregation/compress/mixnet', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const { proofIds } = req.body || {};
     const result = engine.compressMixnetState(proofIds);
     res.json({ success: true, ...result });
@@ -713,7 +731,8 @@ router.post('/recursive-aggregation/compress/mixnet', authorize('admin:all'), fu
 // POST /api/vault/recursive-aggregation/verify
 router.post('/recursive-aggregation/verify', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const { aggId } = req.body || {};
     const result = engine.verifyAggregation(aggId);
     res.json({ success: true, ...result });
@@ -725,7 +744,8 @@ router.post('/recursive-aggregation/verify', authorize('admin:all'), function (r
 // GET /api/vault/recursive-aggregation/aggregations/:aggId
 router.get('/recursive-aggregation/aggregations/:aggId', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const result = engine.getAggregation(req.params.aggId);
     if (!result) return sendError(res, 404, 'aggregation_not_found', { message: `aggregation ${req.params.aggId} not found` });
     res.json({ success: true, ...result });
@@ -737,7 +757,8 @@ router.get('/recursive-aggregation/aggregations/:aggId', authorize('admin:all'),
 // GET /api/vault/recursive-aggregation/status
 router.get('/recursive-aggregation/status', authorize('admin:all'), function (req, res) {
   try {
-    const engine = getRecursiveProofEngine();
+    const engine = requireRecursiveProofEngine(res);
+    if (!engine) return;
     const all = hsmMetrics.getMetrics();
     const counters = {};
     for (const [key, value] of Object.entries(all)) {
