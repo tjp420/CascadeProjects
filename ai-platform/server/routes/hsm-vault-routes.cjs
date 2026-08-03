@@ -1160,7 +1160,7 @@ router.get('/bio-digital-neural-telemetry/telemetry', authorize('admin:all'), fu
 
 // Track 113: Autonomous Drone Swarm Mesh-Routing Gating (unavailable — 503 guarded)
 // When the drone swarm mesh-routing gating hub is registered, flip DRONE_SWARM_MESH_ROUTING_GATING_ENABLED to true.
-const DRONE_SWARM_MESH_ROUTING_GATING_ENABLED = false;
+const DRONE_SWARM_MESH_ROUTING_GATING_ENABLED = true;
 
 function requireAutonomousDroneSwarmMeshRoutingGating(res) {
   if (!DRONE_SWARM_MESH_ROUTING_GATING_ENABLED) {
