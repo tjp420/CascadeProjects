@@ -870,6 +870,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderAerosolClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqOrbitalDebrisTrackingGating": {
+      "minOrbitalQuorum": 5,
+      "maxCollisionWindowSeconds": 15768000,
+      "maxTrackingChainDepth": 18,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireSpaceSurveillanceAuthorityInitializerAttestation": true,
+      "requireOrbitalDebrisOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderDebrisClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
