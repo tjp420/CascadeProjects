@@ -63,8 +63,6 @@ async function readTextFileWithLimit(filePath, maxBytes = 256 * 1024) {
             await handle.read(buffer, 0, toRead, 0);
         }
         return buffer.toString('utf8');
-    } catch (err) {
-        throw err;
     } finally {
         if (handle) await handle.close();
     }

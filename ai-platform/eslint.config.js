@@ -18,6 +18,7 @@ export default [
         ...globals.node,
         ...globals.browser,
         ...globals.jest,
+        fail: 'readonly',
         escapeHtml: 'readonly',
         formatPercent: 'readonly',
         formatNumber: 'readonly',
@@ -66,7 +67,9 @@ export default [
       'web/simplebeacon-dashboard/pages-publish/**',
       'web/dashboard/dist/**',
       'web/dashboard/pages-publish/**',
-      'local-agent/**'
+      'local-agent/**',
+      'simplebeacon-vscode/out/**',
+      'server/lib/code-understanding/ml-pattern-detector.cjs'
     ]
   }
 ];

@@ -32,7 +32,8 @@ jobs:
 
       - name: Run Isolated Jest Verification
         run: |
-          npx jest --config=ai-platform/jest.cjs --runInBand --rootDir=ai-platform
+          cd ai-platform
+          npx jest --config=jest.config.cjs --runInBand
 
 
   validate-shard-telemetry:
@@ -61,12 +62,12 @@ jobs:
       - name: Validate Shard Telemetry Counters
         run: |
           cd ai-platform
-          npx jest --config=jest.cjs --runInBand server/lib/storage/__tests__/telemetry-pipeline.test.cjs --coverage=false
+          npx jest --config=jest.config.cjs --runInBand server/lib/storage/__tests__/telemetry-pipeline.test.cjs --coverage=false
 
       - name: Validate Alertmanager Routing
         run: |
           cd ai-platform
-          npx jest --config=jest.cjs --runInBand monitoring/__tests__/alertmanager-routing.test.cjs --coverage=false
+          npx jest --config=jest.config.cjs --runInBand monitoring/__tests__/alertmanager-routing.test.cjs --coverage=false
 
   compile-staging:
     name: Execute Staging Build Compression
