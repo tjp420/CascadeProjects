@@ -968,6 +968,11 @@
             "info"
           ],
           "description": "Minimum severity level for inline editor diagnostics (squiggles). 'all' shows every finding from critical down to low-severity AI slop patterns."
+        },
+        "simplebeacon.teamTelemetry.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Send anonymized team scan summaries to SimpleBeacon (paid/team tiers only). Never sends source code or file paths."
         }
       }
     }

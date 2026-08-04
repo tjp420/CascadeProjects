@@ -865,17 +865,27 @@ async function executeOneScan(options, networkGuard) {
             writeStdoutLine(payload);
         }
 
-        if (options.paidLicense && !airGapped) {
+        if (options.paidLicense && !airGapped && !options.offline) {
             try {
-                const { postCiTelemetry } = require('../src/lib/ci-telemetry');
-                const telemetryResult = await postCiTelemetry(jsonReport, {
+                const { postTeamTelemetry } = require('../src/lib/ci-telemetry');
+                const telemetryResult = await postTeamTelemetry(jsonReport, {
                     paid: true,
                     tier: options.tier || 'developer'
-                }, { airGapped });
-                if (telemetryResult.ok && !options.quiet) {
-                    console.error('[simplebeacon] Team CI telemetry recorded.');
-                } else if (telemetryResult.networkError && !options.quiet) {
-                    console.error('[simplebeacon] Team telemetry skipped (license server unreachable).');
+                }, {
+                    airGapped,
+                    offline: options.offline,
+                    scanSource: 'ci',
+                    context: { projectRoot: sanitizedScanRoot, scanSource: 'ci' }
+                });
+                if (!telemetryResult.skipped && !options.quiet) {
+                    if (telemetryResult.ok) {
+                        console.error('[simplebeacon] Team telemetry recorded.');
+                    } else {
+                        const detail = telemetryResult.networkError
+                            ? 'endpoint unreachable'
+                            : `POST failed (${telemetryResult.status || 'error'})`;
+                        console.error(`[simplebeacon] Warning: Team telemetry ${detail}.`);
+                    }
                 }
             } catch {
                 /* non-blocking */
