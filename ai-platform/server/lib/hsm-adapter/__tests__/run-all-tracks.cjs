@@ -122,6 +122,7 @@ const SUITES = [
   'vdf-time-lock-engine',
   'mixnet-blind-transaction-engine',
   'recursive-proof-aggregation-engine',
+  'lookup-gating',
 ];
 
 function resolveBaseTestFile(pattern) {

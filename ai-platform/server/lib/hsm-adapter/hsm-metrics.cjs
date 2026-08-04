@@ -880,6 +880,10 @@ const counters = {
   hsm_musig2_orch_session_completed_total: 0,
   hsm_musig2_orch_session_failed_total: 0,
   hsm_musig2_orch_key_share_wrapped_total: 0,
+  // Track 31: Homomorphic Database Lookup Gating Hub counters
+  hsm_lookupgate_pool_initialized_total: 0,
+  hsm_zk_lookup_claim_verified_total: 0,
+  hsm_lookup_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1634,6 +1638,10 @@ const META = {
   hsm_musig2_orch_session_completed_total: { help: 'Total MuSig2 orchestrator sessions completed successfully.', type: 'counter' },
   hsm_musig2_orch_session_failed_total: { help: 'Total MuSig2 orchestrator sessions that failed.', type: 'counter' },
   hsm_musig2_orch_key_share_wrapped_total: { help: 'Total MuSig2 key shares wrapped via HSM adapter.', type: 'counter' },
+  // Track 31: Homomorphic Database Lookup Gating Hub metadata
+  hsm_lookupgate_pool_initialized_total: { help: 'Total Track 31 lookup gating pools initialized.', type: 'counter' },
+  hsm_zk_lookup_claim_verified_total: { help: 'Total Track 31 ZK lookup claims verified.', type: 'counter' },
+  hsm_lookup_accreditation_completed_total: { help: 'Total Track 31 lookup accreditations completed.', type: 'counter' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };

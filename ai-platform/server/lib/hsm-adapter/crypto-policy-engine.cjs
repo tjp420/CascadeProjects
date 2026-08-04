@@ -247,6 +247,15 @@ const DEFAULT_POLICY = {
     allowCrossTenantTables: true,
     requireCanonicalPayloadLayout: true,
   },
+  lookupGating: {
+    minLookupQuorum: 12,
+    maxLookupDepth: 32,
+    requireEncryptedQueryAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedBlindingTypes: ['pedersen', 'exponential-elgamal'],
+    maxQueryAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
@@ -1216,6 +1225,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.homomorphicDbLookup,
       ...(tenantPolicy.homomorphicDbLookup || {}),
     },
+    lookupGating: {
+      ...DEFAULT_POLICY.lookupGating,
+      ...(tenantPolicy.lookupGating || {}),
+    },
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
       ...(tenantPolicy.zkSettlement || {}),
@@ -1999,6 +2012,31 @@ class CryptoPolicyEngine {
     }
     if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validateLookupGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.lookupGating, ...(tenantPolicy.lookupGating || {}) };
+    if (typeof config.lookupQuorum === 'number' && config.lookupQuorum < policy.minLookupQuorum) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `lookup quorum ${config.lookupQuorum} below minimum ${policy.minLookupQuorum}`);
+    }
+    if (typeof config.lookupDepth === 'number' && config.lookupDepth > policy.maxLookupDepth) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `lookup depth ${config.lookupDepth} exceeds maximum ${policy.maxLookupDepth}`);
+    }
+    if (policy.requireEncryptedQueryAttestation && config.encryptedQueryAttestation === false) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', 'encrypted query attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.blindingType === 'string' && !policy.allowedBlindingTypes.includes(config.blindingType)) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `blinding type ${config.blindingType} is not allowed; permitted: ${policy.allowedBlindingTypes.join(', ')}`);
+    }
+    if (typeof config.queryAgeSeconds === 'number' && config.queryAgeSeconds > policy.maxQueryAgeSeconds) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `query age ${config.queryAgeSeconds}s exceeds maximum ${policy.maxQueryAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', 'canonical payload layout is required');
     }
   }
 
@@ -4566,6 +4604,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphicDbLookup') {
       this._validateHomomorphicDbLookup(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'lookupGating') {
+      this._validateLookupGating(tenantPolicy, config);
       return true;
     }
 
