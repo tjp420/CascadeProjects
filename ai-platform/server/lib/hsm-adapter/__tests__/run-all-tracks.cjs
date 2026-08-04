@@ -127,6 +127,7 @@ const SUITES = [
   'track113-endpoint-integration',
   'shard-reconciler',
   'track32-primitive-groundwork',
+  'track32-core-gating',
 ];
 
 function resolveBaseTestFile(pattern) {
