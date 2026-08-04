@@ -274,3 +274,39 @@ groups:
           summary: "Track 113 envelope decryption failures are occurring"
           description: "Session persistence blocks are failing AES-256-GCM authenticated decryption over the last 5 minutes, indicating possible key degradation, disk corruption, or active tampering."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK113_HIGH_DECRYPTION_FAILURE_RATE.md"
+
+  # ── Track 32: PQC Blinded Ring-Signature Gating Hub alerts ──────────
+  - name: track32_ring_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track32RingSignatureReconciliationStall
+        expr: |
+          rate(hsm_ringgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_ring_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "32"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-ring-gating"
+        annotations:
+          summary: "Track 32 ring-signature accreditation has stalled"
+          description: "New ring gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK32_RING_SIGNATURE_RECONCILIATION_STALL.md"
+
+      - alert: Track32HighValidationFailureRate
+        expr: |
+          rate(hsm_ringgate_challenge_issued_total[5m]) / rate(hsm_ringgate_pool_initialized_total[5m]) > 0.15
+        for: 2m
+        labels:
+          severity: warning
+          track: "32"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-ring-gating"
+        annotations:
+          summary: "Track 32 ring validation failure rate is above 15%"
+          description: "More than 15% of initialized ring-signature sessions are failing ZK proof evaluation or anonymity set size rejection over the last 5 minutes, indicating possible brute-force or linkability double-spending attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK32_HIGH_VALIDATION_FAILURE_RATE.md"
