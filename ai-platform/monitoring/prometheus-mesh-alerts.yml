@@ -469,3 +469,38 @@ groups:
           summary: "Track 115 lattice VFHSS validation failure rate is above 15%"
           description: "More than 15% of initialized lattice VFHSS sessions are failing ZK proof evaluation, homomorphic depth bound rejection, or share threshold rejection over the last 5 minutes, indicating possible rogue-share or malformed polynomial injection attacks."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK115_HIGH_VALIDATION_FAILURE_RATE.md"
+
+
+  # ── Track 116: Cluster Isolation Hardening alerts ──────────────────────────
+  - name: track116_cluster_isolation_hardening_alerts
+    interval: 15s
+    rules:
+      - alert: Track116ClusterIsolationViolationSpike
+        expr: |
+          rate(hsm_isolation_violation_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          track: "116"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-cluster-isolation"
+        annotations:
+          summary: "Track 116 cluster isolation violation rate is critically high"
+          description: "More than 10 isolation violations per second are being recorded over the last 5 minutes, indicating active network split anomaly or node impersonation attempt with unauthorized peers injecting traffic."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK116_CLUSTER_ISOLATION_VIOLATION_SPIKE.md"
+
+      - alert: Track116HighKeyRejectionRate
+        expr: |
+          rate(hsm_key_reject_total[5m]) > 2
+        for: 3m
+        labels:
+          severity: warning
+          track: "116"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-cluster-isolation"
+        annotations:
+          summary: "Track 116 non-leader key commit rejection rate is high"
+          description: "More than 2 non-leader key commit rejections per second are being recorded over the last 5 minutes, indicating non-leader nodes are executing split-brain adjustments or unauthorized key commit attempts."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK116_HIGH_KEY_REJECTION_RATE.md"
