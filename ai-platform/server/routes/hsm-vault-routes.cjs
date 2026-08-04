@@ -17,8 +17,12 @@ const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 const { RecursiveProofAggregationEngine } = require('../lib/hsm-adapter/recursive-proof-aggregation-engine.cjs');
 const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
 const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
+const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
 
 const router = express.Router();
+
+// In-memory registry for Track 31 lookup gating pools (per-process; persistent storage out of scope)
+const lookupGatingPools = new Map();
 
 // Apply token-bucket defense to all admin HSM vault routes, after auth
 function authBeforeThrottle(req, res, next) {
@@ -1382,6 +1386,118 @@ router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), functi
     });
   } catch (err) {
     sendError(res, 500, 'zk_decentralized_storage_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+function resolveLookupGatingPool(poolId) {
+  const pool = lookupGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/lookup-gating/pool — create a Track 31 lookup gating pool
+router.post('/lookup-gating/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const policy = (req.body && req.body.policy) || {};
+  const hub = new PqcHomomorphicDatabaseLookupGatingHub({ policy });
+  lookupGatingPools.set(hub.poolId, { hub, orgId, createdAt: Date.now() });
+  res.json({
+    success: true,
+    orgId,
+    poolId: hub.poolId,
+    state: hub.state,
+  });
+}));
+
+// GET /api/vault/lookup-gating/telemetry — expose Track 31 telemetry counters
+router.get('/lookup-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_lookupgate_pool_initialized_total: allMetrics.hsm_lookupgate_pool_initialized_total || 0,
+      hsm_zk_lookup_claim_verified_total: allMetrics.hsm_zk_lookup_claim_verified_total || 0,
+      hsm_lookup_accreditation_completed_total: allMetrics.hsm_lookup_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lookup_gating_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/lookup-gating/:poolId — get pool status
+router.get('/lookup-gating/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: entry.hub.poolId,
+    state: entry.hub.state,
+  });
+}));
+
+// POST /api/vault/lookup-gating/:poolId/query — submit a blinded query
+router.post('/lookup-gating/:poolId/query', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  const query = (req.body && req.body.query) || {};
+  try {
+    const state = entry.hub.submitQuery(query);
+    res.json({ success: true, orgId, poolId: entry.hub.poolId, state });
+  } catch (err) {
+    sendError(res, 400, err.code || 'LOOKUPGATE_INVALID_INPUT', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lookup-gating/:poolId/validate — validate a ZK lookup claim
+router.post('/lookup-gating/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  try {
+    const state = entry.hub.validateProof(claim);
+    res.json({ success: true, orgId, poolId: entry.hub.poolId, state });
+  } catch (err) {
+    sendError(res, 400, err.code || 'LOOKUPCLAIM_INVALID_INPUT', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lookup-gating/:poolId/accredit — finalize accreditation
+router.post('/lookup-gating/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  try {
+    const state = entry.hub.accredit();
+    res.json({ success: true, orgId, poolId: entry.hub.poolId, state });
+  } catch (err) {
+    sendError(res, 400, err.code || 'LOOKUPGATE_INVALID_STATE', { message: err.message });
+  }
+}));
+
+// GET /api/vault/lookup-gating/telemetry — expose Track 31 telemetry counters
+router.get('/lookup-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_lookupgate_pool_initialized_total: allMetrics.hsm_lookupgate_pool_initialized_total || 0,
+      hsm_zk_lookup_claim_verified_total: allMetrics.hsm_zk_lookup_claim_verified_total || 0,
+      hsm_lookup_accreditation_completed_total: allMetrics.hsm_lookup_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lookup_gating_telemetry_fetch_failed', { message: err.message });
   }
 });
 
