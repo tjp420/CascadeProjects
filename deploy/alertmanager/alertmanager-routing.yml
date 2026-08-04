@@ -23,6 +23,17 @@ route:
         severity: "warning"
       receiver: 'hsm-warning-ops-triage'
 
+    # Route Post-Quantum Mesh / Cryptographic Track Anomalies to Dedicated Crypto Ops
+    - match_re:
+        alertname: "MeshReconciliationBoundaryDrift|MeshReconciliationHighDropRate|MeshStateReconciliationStall|MeshEpochFinalityStall"
+      receiver: 'hsm-crypto-ops-pager'
+      continue: true
+
+    - match:
+        component: "hsm-mesh-vault"
+      receiver: 'hsm-crypto-ops-pager'
+      continue: true
+
 # Receivers (placeholders) — configure these to match your Alertmanager secrets/integrations
 receivers:
   - name: 'default-ops-pager'
@@ -37,6 +48,10 @@ receivers:
     email_configs:
       - to: 'ops@example.com'
         send_resolved: true
+
+  - name: 'hsm-crypto-ops-pager'
+    pagerduty_configs:
+      - service_key: '<REPLACE_WITH_HSM_CRYPTO_OPS_PAGERDUTY_KEY>'
 
 # Notes:
 # - Replace placeholder keys and receivers with your production integrations (PagerDuty, OpsGenie, Slack, email, etc.).
