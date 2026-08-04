@@ -79,15 +79,26 @@ describe('Track 116 core integration', () => {
   test('CORE-116-01: unknown peer triggers ISOLATION_VIOLATION and increments hsm_isolation_violation_total', () => {
     const before = counters.hsm_isolation_violation_total;
     const socket = createMockSocket('192.168.99.99', 9999);
-    clusterSync._handleMessage({
-      type: 'HEARTBEAT', from: 'rogue', leaderId: 'rogue', epoch: 0,
-      activeFingerprint: 'xyz', previousFingerprint: null, rotatedAt: null,
-    }, socket);
+    let thrown = null;
+    try {
+      clusterSync._handleMessage({
+        type: 'HEARTBEAT', from: 'rogue', leaderId: 'rogue', epoch: 0,
+        activeFingerprint: 'xyz', previousFingerprint: null, rotatedAt: null,
+      }, socket);
+    } catch (e) { thrown = e; }
 
     const events = clusterSync.queryEvents({ eventType: clusterSync.EVENT_TYPES.ISOLATION_VIOLATION });
     expect(events.events.length).toBe(1);
     expect(events.events[0].details.reason).toBe('unknown_cluster_peer');
     const after = counters.hsm_isolation_violation_total;
+    // Diagnostic: check if incrementCounter and counters share the same module
+    const hsmMetrics2 = require('../hsm-metrics.cjs');
+    const sameRef = hsmMetrics2.counters === counters;
+    // Try calling incrementCounter directly
+    const beforeDirect = counters.hsm_isolation_violation_total;
+    hsmMetrics2.incrementCounter('hsm_isolation_violation_total');
+    const afterDirect = counters.hsm_isolation_violation_total;
+    process.stderr.write('DIAG: sameRef=' + sameRef + ' before=' + before + ' after=' + after + ' hsmMetrics2.counters.iso=' + hsmMetrics2.counters.hsm_isolation_violation_total + ' directBefore=' + beforeDirect + ' directAfter=' + afterDirect + ' thrown=' + (thrown ? thrown.message : 'null') + '\n');
     expect(after).toBe(before + 1);
   });
 
