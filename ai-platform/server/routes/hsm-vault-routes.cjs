@@ -20,6 +20,7 @@ const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
 const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
 const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
 const { PqcBlindedRingSignatureGatingHub } = require('../lib/hsm-adapter/pqc-blinded-ring-signature-gating-hub.cjs');
+const { PqcDirectAccumulatorMembershipGatingHub } = require('../lib/hsm-adapter/pqc-direct-accumulator-membership-gating-hub.cjs');
 const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
 const SessionStore = require('../lib/crypto/ratchet/session-store.cjs');
 const { encryptEnvelope } = require('../lib/crypto/ratchet/envelope-crypto.cjs');
@@ -34,6 +35,12 @@ const ringGatingPools = new Map();
 
 // Shared policy engine instance for Track 32 ring gating
 const ringGatingPolicyEngine = new CryptoPolicyEngine();
+
+// In-memory registry for Track 33 accumulator gating pools (per-process; persistent storage out of scope)
+const accumulatorGatingPools = new Map();
+
+// Shared policy engine instance for Track 33 accumulator gating
+const accumulatorGatingPolicyEngine = new CryptoPolicyEngine();
 
 // Apply token-bucket defense to all admin HSM vault routes, after auth
 function authBeforeThrottle(req, res, next) {
@@ -1729,5 +1736,131 @@ router.get('/ring-gating/:poolId', authorize('admin:all'), runAsync(async (req, 
   });
 }));
 
+
+// ── Track 33: PQC Direct Accumulator Membership Proof Gating Hub endpoints ────
+
+function resolveAccumulatorGatingPool(poolId) {
+  const pool = accumulatorGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/accumulator-gating/pool — initialize a Track 33 accumulator gating pool
+router.post('/accumulator-gating/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcDirectAccumulatorMembershipGatingHub(orgId, accumulatorGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  accumulatorGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/accumulator-gating/:poolId/witnesses — collect witness set
+router.post('/accumulator-gating/:poolId/witnesses', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  const witnesses = (req.body && req.body.witnesses) || [];
+  if (!Array.isArray(witnesses)) return sendError(res, 400, 'ACCUMULATORGATE_INVALID_WITNESSES');
+  try {
+    const status = entry.hub.collectWitnesses(witnesses);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      witnessCount: entry.hub.witnesses.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'ACCUMULATORGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/accumulator-gating/:poolId/validate — validate ZK accumulator membership claim
+router.post('/accumulator-gating/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const manifest = (req.body && req.body.manifest) || {};
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      accumulatorSize: manifest.accumulatorSize || claim.accumulatorSize,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const msg = err.message || '';
+    const code = msg.includes('ACCUMULATORCLAIM_TREE_SIZE_EXCEEDED')
+      ? 'ACCUMULATORCLAIM_TREE_SIZE_EXCEEDED'
+      : msg.includes('ACCUMULATORCLAIM_INSUFFICIENT_WITNESS_QUORUM')
+        ? 'ACCUMULATORCLAIM_INSUFFICIENT_WITNESS_QUORUM'
+        : msg.includes('ACCUMULATORCLAIM_UNATTESTED_MEMBERSHIP')
+          ? 'ACCUMULATORCLAIM_UNATTESTED_MEMBERSHIP'
+          : err.code || 'ACCUMULATORGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/accumulator-gating/:poolId/accredit — finalize accreditation
+router.post('/accumulator-gating/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'ACCUMULATORGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/accumulator-gating/telemetry — expose Track 33 telemetry counters (no raw witness tokens or digests)
+router.get('/accumulator-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_accumulatorgate_pool_initialized_total: allMetrics.hsm_accumulatorgate_pool_initialized_total || 0,
+      hsm_zk_accumulator_claim_verified_total: allMetrics.hsm_zk_accumulator_claim_verified_total || 0,
+      hsm_accumulator_accreditation_completed_total: allMetrics.hsm_accumulator_accreditation_completed_total || 0,
+      activePools: accumulatorGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'accumulator_gating_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/accumulator-gating/:poolId — get pool status (no raw witness tokens or digests)
+router.get('/accumulator-gating/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    witnessCount: entry.hub.witnesses.length,
+  });
+}));
 
 module.exports = router;
