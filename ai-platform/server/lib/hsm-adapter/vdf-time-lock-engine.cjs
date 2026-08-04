@@ -289,7 +289,7 @@ class VdfTimeLockEngine {
     }
     // Generate puzzle seed
     const seed = crypto.randomBytes(32);
-    const seedInt = _bytesToBigInt(seed) % this.fieldPrime;
+    let seedInt = _bytesToBigInt(seed) % this.fieldPrime;
     if (seedInt === 0n) seedInt = 1n; // Ensure non-zero
     // Encrypt secret with VDF-derived key
     const vdfKey = this._deriveVdfKey(seedInt, difficulty);

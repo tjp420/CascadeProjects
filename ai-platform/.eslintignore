@@ -1,5 +1,0 @@
-# Build output
-simplebeacon-vscode/out/
-
-# Complex legacy file with many no-case-declarations errors
-server/lib/code-understanding/ml-pattern-detector.cjs
