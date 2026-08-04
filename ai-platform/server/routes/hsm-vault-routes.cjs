@@ -2367,4 +2367,59 @@ router.get('/distributed-consensus-coordinator/telemetry', authorize('admin:all'
   }
 });
 
+
+// GET /api/vault/cross-cluster-migration/policy — expose active Track 119 policy defaults
+router.get('/cross-cluster-migration/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.crossClusterMigration,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cross_cluster_migration_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/cross-cluster-migration/policy/validate — validate a proposed Track 119 configuration
+router.post('/cross-cluster-migration/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'crossClusterMigration', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'cross_cluster_migration_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/cross-cluster-migration/telemetry — expose Track 119 telemetry counters
+router.get('/cross-cluster-migration/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_migration_initiated_total: allMetrics.hsm_migration_initiated_total || 0,
+      hsm_migration_attested_total: allMetrics.hsm_migration_attested_total || 0,
+      hsm_migration_committed_total: allMetrics.hsm_migration_committed_total || 0,
+      hsm_migration_rolled_back_total: allMetrics.hsm_migration_rolled_back_total || 0,
+      hsm_migration_ack_total: allMetrics.hsm_migration_ack_total || 0,
+      hsm_migration_verification_failed_total: allMetrics.hsm_migration_verification_failed_total || 0,
+      hsm_migration_active: allMetrics.hsm_migration_active || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cross_cluster_migration_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 module.exports = router;
