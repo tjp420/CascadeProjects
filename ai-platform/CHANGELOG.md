@@ -24,6 +24,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable validation
 - Path safety validation improvements
 
+## [3.1.0] - 2026-08-03
+
+### Added
+- **JCS Canonicalization**: Implemented RFC 8785 JSON Canonicalization (JCS) canonicalizer to generate deterministic JSON digests used for PoRep verification and upload commit signature validation. (See: ai-platform/server/lib/canonical/jcs.cjs)
+- **Distributed Request Tracing**: Added Track112 request tracing propagation through HTTP middleware, ingest queue envelopes, and worker pool logs to correlate background work with incoming requests.
+- **Disk-backed UploadManager**: Introduced a durable, disk-backed `UploadManager` for multipart uploads with chunking, root computation, and commit verification.
+
+### Changed
+- **Purger & Forensics**: Added a background `Purger` that scans and purges expired uncommitted upload sessions; purger now falls back to directory mtime when metadata is missing. Forensic sparse events are recorded to `.simplebeacon/forensic-events.log`.
+- **Verification Hardening**: PoRep verifier now uses canonical digests for root comparisons and emits sparse forensic events on verification failures (low-cardinality telemetry).
+
+### Fixed
+- Corrected module resolution issues for the forensic events adapter and hardened purger TTL handling (accepts `ttlHours=0` for immediate evaluation).
+
+### Notes
+- PR: https://github.com/tjp420/CascadeProjects/pull/402 — **feat/v3.1.0-upload-cleanup**
+- Full parallel test sweep: **103/103** passing suites (90.8s)
+
+
 ## [1.0.0-internal] - 2026-06-03
 
 ### Added
