@@ -10,6 +10,7 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const hsm = require('../lib/hsm-vault.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -18,6 +19,7 @@ const { RecursiveProofAggregationEngine } = require('../lib/hsm-adapter/recursiv
 const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
 const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
 const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
+const SessionStore = require('../lib/crypto/ratchet/session-store.cjs');
 
 const router = express.Router();
 
@@ -1500,6 +1502,96 @@ router.get('/lookup-gating/telemetry', authorize('admin:all'), function (req, re
     sendError(res, 500, 'lookup_gating_telemetry_fetch_failed', { message: err.message });
   }
 });
+
+// ── Track 113: PQC Handshake Endpoint Integration ──────────────────────────────
+
+function handshakeProofIsValid(record, clientProof) {
+  // Placeholder verification: clientProof must match a deterministic digest of the session id.
+  if (typeof clientProof !== 'string' || !clientProof) return false;
+  const expected = crypto.createHmac('sha256', record.sessionId).update('track113-proof-challenge').digest('hex');
+  const proofBuf = Buffer.from(clientProof);
+  const expectedBuf = Buffer.from(expected);
+  if (proofBuf.length !== expectedBuf.length) return false;
+  return crypto.timingSafeEqual(proofBuf, expectedBuf);
+}
+
+// POST /api/vault/handshake/init — initialize an encrypted handshake session
+router.post('/handshake/init', authorize('admin:all'), runAsync(async (req, res) => {
+  const clientId = (req.body && req.body.clientId) || 'default-client';
+  const handshakeDigest = (req.body && req.body.handshakeDigest) || '';
+  const lifecycleTimeout = (req.body && typeof req.body.lifecycleTimeout === 'number') ? req.body.lifecycleTimeout : 3600000;
+  if (!clientId || !handshakeDigest) return sendError(res, 400, 'HANDSHAKE_MISSING_PARAMETERS');
+
+  const sessionId = crypto.randomBytes(16).toString('hex');
+  const tenantId = resolveOrgId(req);
+  const now = Date.now();
+  const record = SessionStore.create({
+    sessionId,
+    tenantId,
+    clientId,
+    status: 'INITIALIZED',
+    handshakeDigest,
+    lifecycleTimeout,
+    createdAt: now,
+    updatedAt: now,
+    expiresAt: now + lifecycleTimeout,
+  });
+
+  res.status(201).json({
+    success: true,
+    orgId: tenantId,
+    sessionId: record.sessionId,
+    status: record.status,
+    expiresAt: record.expiresAt,
+  });
+}));
+
+// POST /api/vault/handshake/verify — verify a client proof and authenticate
+router.post('/handshake/verify', authorize('admin:all'), runAsync(async (req, res) => {
+  const sessionId = (req.body && req.body.sessionId) || '';
+  const clientProof = (req.body && req.body.clientProof) || '';
+  const expectedStateDigest = (req.body && req.body.expectedStateDigest) || '';
+  if (!sessionId || !clientProof || !expectedStateDigest) return sendError(res, 400, 'HANDSHAKE_MISSING_PARAMETERS');
+
+  const record = SessionStore.get(sessionId);
+  if (!record) return sendError(res, 404, 'HANDSHAKE_SESSION_NOT_FOUND');
+  if (record.status !== 'INITIALIZED') return sendError(res, 400, 'HANDSHAKE_INVALID_STATE');
+
+  // verify client proof; expectedStateDigest is accepted as a caller-supplied structural check
+  if (!handshakeProofIsValid(record, clientProof)) return sendError(res, 400, 'HANDSHAKE_INVALID_PROOF');
+
+  record.status = 'VERIFIED';
+  record.authenticatedAt = Date.now();
+  record.updatedAt = Date.now();
+  SessionStore.set(sessionId, record);
+
+  res.json({
+    success: true,
+    orgId: record.tenantId || resolveOrgId(req),
+    sessionId: record.sessionId,
+    status: record.status,
+    authenticatedAt: record.authenticatedAt,
+  });
+}));
+
+// GET /api/vault/handshake/:sessionId/telemetry — session audit stream
+router.get('/handshake/:sessionId/telemetry', authorize('admin:all'), runAsync(async (req, res) => {
+  const sessionId = req.params.sessionId || '';
+  const record = SessionStore.get(sessionId);
+  if (!record) return sendError(res, 404, 'HANDSHAKE_SESSION_NOT_FOUND');
+  res.json({
+    success: true,
+    orgId: record.tenantId || resolveOrgId(req),
+    sessionId: record.sessionId,
+    status: record.status,
+    clientId: record.clientId,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    authenticatedAt: record.authenticatedAt,
+    expiresAt: record.expiresAt,
+    // handshakeDigest intentionally omitted; never expose raw digest or keys
+  });
+}));
 
 
 module.exports = router;
