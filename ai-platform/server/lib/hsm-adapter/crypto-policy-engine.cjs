@@ -4444,6 +4444,42 @@ class CryptoPolicyEngine {
     }
     return true;
   }
+  _validateCrossClusterMigration(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.crossClusterMigration, ...(tenantPolicy.crossClusterMigration || {}) };
+    if (typeof config.minQuorumNodes === 'number' && config.minQuorumNodes < policy.minQuorumNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `min quorum nodes ${config.minQuorumNodes} below minimum ${policy.minQuorumNodes}`);
+    }
+    if (typeof config.requireAttestation === 'boolean' && policy.requireAttestation && !config.requireAttestation) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'attestation cannot be disabled when policy enforces it');
+    }
+    if (Array.isArray(config.allowedAttestationAuthorities)) {
+      for (const authority of config.allowedAttestationAuthorities) {
+        if (!policy.allowedAttestationAuthorities.includes(authority)) {
+          throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+            `attestation authority not in allowed list`);
+        }
+      }
+    }
+    if (typeof config.maxConcurrentMigrations === 'number' && config.maxConcurrentMigrations > policy.maxConcurrentMigrations) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max concurrent migrations ${config.maxConcurrentMigrations} exceeds maximum ${policy.maxConcurrentMigrations}`);
+    }
+    if (typeof config.requireQuorumCommit === 'boolean' && policy.requireQuorumCommit && !config.requireQuorumCommit) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quorum commit cannot be disabled when policy enforces it');
+    }
+    if (typeof config.requireRollbackOnFailure === 'boolean' && policy.requireRollbackOnFailure && !config.requireRollbackOnFailure) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'rollback on failure cannot be disabled when policy enforces it');
+    }
+    if (typeof config.maxShardsPerMigration === 'number' && config.maxShardsPerMigration > policy.maxShardsPerMigration) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max shards per migration ${config.maxShardsPerMigration} exceeds maximum ${policy.maxShardsPerMigration}`);
+    }
+    return true;
+  }
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -5205,6 +5241,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'distributedConsensusCoordinator') {
       this._validateDistributedConsensusCoordinator(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'crossClusterMigration') {
+      this._validateCrossClusterMigration(tenantPolicy, config);
       return true;
     }
 
