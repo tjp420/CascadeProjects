@@ -88,7 +88,7 @@ describe('Track 119 cross-cluster-migration REST route integration', () => {
       .expect(200);
     expect(res.body.success).toBe(true);
     const policy = res.body.policy;
-    expect(Object.keys(policy).sort()).toEqual(POLICY_KEYS);
+    expect(Object.keys(policy).sort()).toEqual([...POLICY_KEYS].sort());
     expect(Object.keys(policy)).toHaveLength(7);
   });
 
