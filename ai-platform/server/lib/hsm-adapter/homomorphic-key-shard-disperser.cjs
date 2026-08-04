@@ -12,9 +12,10 @@
  */
 
 const crypto = require('crypto');
+const EventEmitter = require('events');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 
-class HomomorphicKeyShardDisperser {
+class HomomorphicKeyShardDisperser extends EventEmitter {
   /**
    * @param {object} options
    * @param {object} options.policy
@@ -22,6 +23,7 @@ class HomomorphicKeyShardDisperser {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
+    super();
     this.policy = options.policy || {};
     this._attestationClient = options.attestationClient || null;
     this._audit = options.audit || null;
@@ -102,6 +104,7 @@ class HomomorphicKeyShardDisperser {
       }
       return shard;
     });
+    this.emit('dispersed', { request, shards });
     return { dispersed: shards.length, shards };
   }
 

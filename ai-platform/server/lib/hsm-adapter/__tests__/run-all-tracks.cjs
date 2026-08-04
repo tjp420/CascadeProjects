@@ -125,6 +125,7 @@ const SUITES = [
   'lookup-gating',
   'tenant-boundary-saturation',
   'track113-endpoint-integration',
+  'shard-reconciler',
 ];
 
 function resolveBaseTestFile(pattern) {
