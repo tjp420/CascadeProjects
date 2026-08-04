@@ -1,27 +1,30 @@
-# Test Plan: Track 31 Core Gating Hub & ZK Validator
+# Test Plan: Track 31 REST Route Integration
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Implement Track 31 hub state machine and ZK lookup claim validator |
+| Feature / change | Expose Track 31 primitives via HSM vault REST routes |
 | Author (Builder) | Devin |
 | Date | 2026-08-03 |
-| Branch | `feat/track31-core-gating` |
+| Branch | `feat/track31-rest-routes` |
 | Packages touched | ai-platform |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/zk-lookup-claim-validator.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/__tests__/track31-lookup-gating.test.cjs` *(extend)*
-- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(telemetry integration if needed)*
+- `ai-platform/server/routes/hsm-vault-routes.cjs` *(append endpoints)*
+- `ai-platform/server/lib/__tests__/hsm-vault-lookup-gating-routes.test.cjs` *(new)*
 
 ### APIs / routes
 
-N/A — internal adapter layer.
+- `POST /api/vault/lookup-gating/pool` — create a lookup gating pool
+- `POST /api/vault/lookup-gating/:poolId/query` — submit a blinded query
+- `POST /api/vault/lookup-gating/:poolId/validate` — validate a ZK lookup claim
+- `POST /api/vault/lookup-gating/:poolId/accredit` — finalize accreditation
+- `GET /api/vault/lookup-gating/:poolId` — get pool status
+- `GET /api/vault/lookup-gating/telemetry` — expose Track 31 telemetry counters
 
 ### UI / IDE surfaces
 
@@ -33,12 +36,11 @@ None.
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on hub | `node -c ai-platform/server/lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs` | [ ] |
-| L1-02 | Syntax on validator | `node -c ai-platform/server/lib/hsm-adapter/zk-lookup-claim-validator.cjs` | [ ] |
-| L1-03 | Syntax on test | `node -c ai-platform/server/lib/hsm-adapter/__tests__/track31-lookup-gating.test.cjs` | [ ] |
-| L1-04 | Track 31 tests | `cd ai-platform && npx jest track31-lookup-gating --coverage=false` | [ ] |
-| L1-05 | Parallel orchestrator | `cd ai-platform && npm run test:parallel` | [ ] |
-| L1-06 | Full SimpleBeacon gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate` | [ ] |
+| L1-01 | Syntax on route file | `node -c ai-platform/server/routes/hsm-vault-routes.cjs` | [ ] |
+| L1-02 | Syntax on test file | `node -c ai-platform/server/lib/__tests__/hsm-vault-lookup-gating-routes.test.cjs` | [ ] |
+| L1-03 | Track 31 route tests | `cd ai-platform && npx jest hsm-vault-lookup-gating-routes --coverage=false` | [ ] |
+| L1-04 | Parallel orchestrator | `cd ai-platform && npm run test:parallel` | [ ] |
+| L1-05 | Full SimpleBeacon gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate` | [ ] |
 
 ---
 
@@ -46,12 +48,12 @@ None.
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Valid query advances through state machine | `createPool` → `submitQuery` → `validateProof` → `accredit` | State ends `ACCREDITED` | [ ] |
-| L2-02 | Telemetry counters increment | Hub methods invoked | Counter values increase | [ ] |
-| L2-03 | Out-of-order transition blocked | `accredit` before `validateProof` | Throws `LOOKUPGATE_INVALID_STATE` | [ ] |
-| L2-04 | Validator rejects low quorum | quorum < 12 | Throws `LOOKUPCLAIM_QUORUM_TOO_LOW` | [ ] |
-| L2-05 | Validator rejects deep query tree | depth > 32 | Throws `LOOKUPCLAIM_MAX_DEPTH_EXCEEDED` | [ ] |
-| L2-06 | Validator rejects unattested query | attestation false, required | Throws `LOOKUPCLAIM_UNATTESTED_QUERY` | [ ] |
+| L2-01 | Create pool | POST `/api/vault/lookup-gating/pool` | Returns `poolId` and `state: OPEN` | [ ] |
+| L2-02 | Submit query | POST `.../:poolId/query` | Returns `state: QUERY_BLINDED` | [ ] |
+| L2-03 | Validate proof | POST `.../:poolId/validate` with valid claim | Returns `state: PROOF_VALIDATED` | [ ] |
+| L2-04 | Accredit | POST `.../:poolId/accredit` | Returns `state: ACCREDITED` | [ ] |
+| L2-05 | Out-of-order blocked | `accredit` before validate | 400 LOOKUPGATE_INVALID_STATE | [ ] |
+| L2-06 | Telemetry endpoint | GET `/api/vault/lookup-gating/telemetry` | Returns Track 31 counters | [ ] |
 
 ---
 
@@ -59,9 +61,9 @@ None.
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | No state mutation on failed transition | Invalid transition leaves pool in original state | [ ] |
-| L3-02 | Repeat validation idempotent | Second `validateProof` on accredited pool is no-op or safe | [ ] |
-| L3-03 | No new dependencies | Native crypto + existing big-integer only | [ ] |
+| L3-01 | Unknown pool | GET/POST on missing `poolId` | 404 not_found | [ ] |
+| L3-02 | Validator rejects bad claim | POST validate with bad claim | 400 LOOKUPCLAIM_* | [ ] |
+| L3-03 | No legacy route regressions | Existing `/api/vault` tests pass | [ ] |
 
 ---
 
@@ -70,7 +72,7 @@ None.
 | ID | Requirement | Pass |
 |----|-------------|------|
 | S-01 | No credentials / PII in logs or commits | [ ] |
-| S-02 | Error codes use isolated LOOKUPGATE/LOOKUPCLAIM prefixes | [ ] |
+| S-02 | Admin authorization applied | [ ] |
 
 ---
 
