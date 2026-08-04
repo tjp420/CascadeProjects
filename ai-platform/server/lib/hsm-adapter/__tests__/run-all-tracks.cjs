@@ -128,6 +128,7 @@ const SUITES = [
   'shard-reconciler',
   'track32-primitive-groundwork',
   'track32-core-gating',
+  'hsm-vault-ring-gating-routes',
 ];
 
 function resolveBaseTestFile(pattern) {
