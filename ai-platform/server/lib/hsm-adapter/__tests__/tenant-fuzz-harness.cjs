@@ -321,6 +321,21 @@ exports.cleanupPrototypePollution = function () {
     'bftShardCtorLevel4',
     'bftShardDeepMinQuorumNodes',
     'bftShardDeepMaxCatchUpBatchSize',
+    // Track 118: Distributed consensus coordinator pollution cleanup keys
+    'consensusGatePolluted',
+    'consensusConstructorPolluted',
+    'consensusProtoLevel0',
+    'consensusProtoLevel1',
+    'consensusProtoLevel2',
+    'consensusProtoLevel3',
+    'consensusProtoLevel4',
+    'consensusCtorLevel0',
+    'consensusCtorLevel1',
+    'consensusCtorLevel2',
+    'consensusCtorLevel3',
+    'consensusCtorLevel4',
+    'consensusDeepMaxGroups',
+    'consensusDeepFaultTimeoutMs',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -1375,6 +1390,179 @@ exports.makeTrack117ConcurrentValidationCall = function (prng) {
       requireQuorumCommit: prng.nextChoice([true, false, 'true', 1, 0]),
       requireAntiReplay: prng.nextChoice([true, false, 'false', 1, 0]),
       maxShardsPerCluster: prng.nextChoice([0, 64, 128, 129, 9999, -1]),
+    },
+  };
+};
+
+// ── Track 118: Distributed Consensus Coordinator mutators ────────────────────
+
+exports.makeTrack118ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track118-polluter': {
+        distributedConsensusCoordinator: {
+          __proto__: { consensusGatePolluted: true },
+          maxGroups: 64,
+          faultTimeoutMs: 3000,
+          faultCheckIntervalMs: 1000,
+          viewChangeTimeoutMs: 5000,
+          requireQuorumForProposals: true,
+          allowDynamicGroupCreation: true,
+          allowCrossGroupRouting: true,
+        },
+        constructor: {
+          prototype: { consensusConstructorPolluted: true },
+        },
+      },
+      'track118-clean': {
+        distributedConsensusCoordinator: {
+          maxGroups: 64,
+          faultTimeoutMs: 3000,
+          faultCheckIntervalMs: 1000,
+          viewChangeTimeoutMs: 5000,
+          requireQuorumForProposals: true,
+          allowDynamicGroupCreation: true,
+          allowCrossGroupRouting: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack118TypeConfusionConfigs = function () {
+  return [
+    { value: { maxGroups: '64', faultTimeoutMs: '3000' }, label: 'string-numbers' },
+    { value: { faultCheckIntervalMs: [], viewChangeTimeoutMs: {} }, label: 'array-object-values' },
+    { value: { requireQuorumForProposals: null, allowDynamicGroupCreation: undefined }, label: 'null-undefined-values' },
+    { value: { requireQuorumForProposals: 'true' }, label: 'string-boolean-quorum' },
+    { value: { allowDynamicGroupCreation: 'false' }, label: 'string-boolean-dynamic' },
+    { value: { maxGroups: true }, label: 'boolean-number-maxgroups' },
+  ];
+};
+
+exports.makeTrack118PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track118-polluter', 'track118-clean']);
+  const maxGroups = prng.nextChoice([0, 32, 64, 65, 128, 999, -1, NaN, '64', Number.MAX_SAFE_INTEGER]);
+  const faultTimeoutMs = prng.nextChoice([0, 1000, 3000, 3001, 9999, -1, '3000', Number.MAX_SAFE_INTEGER]);
+  const faultCheckIntervalMs = prng.nextChoice([0, 500, 1000, 1001, 9999, -1, '1000']);
+  const viewChangeTimeoutMs = prng.nextChoice([0, 1000, 5000, 5001, 9999, -1, '5000']);
+  const requireQuorumForProposals = prng.nextChoice([true, false, 'true', 1, 0, null]);
+  const allowDynamicGroupCreation = prng.nextChoice([true, false, 'false', 1, 0, null]);
+  const allowCrossGroupRouting = prng.nextChoice([true, false, 'true', 1, 0, null]);
+  return {
+    tenantId,
+    operation: 'distributedConsensusCoordinator',
+    config: {
+      maxGroups,
+      faultTimeoutMs,
+      faultCheckIntervalMs,
+      viewChangeTimeoutMs,
+      requireQuorumForProposals,
+      allowDynamicGroupCreation,
+      allowCrossGroupRouting,
+    },
+  };
+};
+
+// ── Track 118: Deep nested multi-layer policy mutation (5-level) ──────────────
+
+function attachConsensusDeepPollution(node, depth, prng) {
+  const protoMarker = `consensusProtoLevel${depth}`;
+  const ctorMarker = `consensusCtorLevel${depth}`;
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  const proto = Object.getPrototypeOf(node);
+  proto.consensusDeepMaxGroups = prng ? prng.nextChoice([0, -1, 999, 1]) : 999;
+  proto.consensusDeepFaultTimeoutMs = prng ? prng.nextChoice([0, 9999, -1]) : 9999;
+  return node;
+}
+
+exports.makeTrack118DeepNestedPollutionPolicy = function () {
+  const pollutedConsensus = { distributedConsensusCoordinator: {} };
+  let current = pollutedConsensus.distributedConsensusCoordinator;
+  for (let i = 0; i < 5; i++) {
+    attachConsensusDeepPollution(current, i);
+    if (i < 4) {
+      current.distributedConsensusCoordinator = {};
+      current = current.distributedConsensusCoordinator;
+    }
+  }
+  current.maxGroups = 999;
+  current.faultTimeoutMs = 1;
+  current.faultCheckIntervalMs = 99999;
+  current.viewChangeTimeoutMs = 1;
+  current.requireQuorumForProposals = false;
+  current.allowDynamicGroupCreation = false;
+  current.allowCrossGroupRouting = false;
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track118-deep-polluter': pollutedConsensus,
+      'track118-clean': {
+        distributedConsensusCoordinator: {
+          maxGroups: 64,
+          faultTimeoutMs: 3000,
+          faultCheckIntervalMs: 1000,
+          viewChangeTimeoutMs: 5000,
+          requireQuorumForProposals: true,
+          allowDynamicGroupCreation: true,
+          allowCrossGroupRouting: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack118PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const CONSENSUS_KEYS = ['distributedConsensusCoordinator', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track118-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = CONSENSUS_KEYS[prng.nextInt(CONSENSUS_KEYS.length)];
+      const block = {};
+      attachConsensusDeepPollution(block, l % 5, prng);
+      if (key === 'distributedConsensusCoordinator' && prng.nextInt(3) === 0) {
+        block.maxGroups = prng.nextChoice([0, 32, 64, 65, 128, 999, -1]);
+        block.faultTimeoutMs = prng.nextChoice([0, 1000, 3000, 3001, 9999, -1]);
+        block.faultCheckIntervalMs = prng.nextChoice([0, 500, 1000, 1001, 9999, -1]);
+        block.viewChangeTimeoutMs = prng.nextChoice([0, 1000, 5000, 5001, 9999, -1]);
+        block.requireQuorumForProposals = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.allowDynamicGroupCreation = prng.nextChoice([true, false, 'false', 1, 0]);
+        block.allowCrossGroupRouting = prng.nextChoice([true, false, 'true', 1, 0]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack118ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track118-clean',
+    'track118-deep-polluter',
+    'track118-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'distributedConsensusCoordinator',
+    config: {
+      maxGroups: prng.nextChoice([0, 32, 64, 65, 128, 999, -1, NaN]),
+      faultTimeoutMs: prng.nextChoice([0, 1000, 3000, 3001, 9999, -1]),
+      faultCheckIntervalMs: prng.nextChoice([0, 500, 1000, 1001, 9999, -1]),
+      viewChangeTimeoutMs: prng.nextChoice([0, 1000, 5000, 5001, 9999, -1]),
+      requireQuorumForProposals: prng.nextChoice([true, false, 'true', 1, 0]),
+      allowDynamicGroupCreation: prng.nextChoice([true, false, 'false', 1, 0]),
+      allowCrossGroupRouting: prng.nextChoice([true, false, 'true', 1, 0]),
     },
   };
 };
