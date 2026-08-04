@@ -147,6 +147,7 @@ const SUITES = [
   'track116-core-integration',
   'track116-multi-tenant-fuzz',
   'hsm-vault-cluster-isolation-routes',
+  'track116-prometheus-alerts',
 ];
 
 function resolveBaseTestFile(pattern) {
