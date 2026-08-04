@@ -62,9 +62,24 @@ jobs:
         if: always()
         run: docker rm -f prism-mock || true
 
-      - name: Upload test artifacts
+      - name: Diagnostics - list test-results directories
+        if: always()
+        run: |
+          echo "Workspace root: $GITHUB_WORKSPACE"
+          echo '--- ls workspace root ---'
+          ls -la || true
+          echo '--- ls test-results ---'
+          ls -la test-results || true
+          echo '--- ls ai-platform/test-results ---'
+          ls -la ai-platform/test-results || true
+          echo '--- find jest-results.json ---'
+          find . -maxdepth 4 -type f -name 'jest-results.json' -print || true
+
+      - name: Upload test artifacts (both locations)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ai-platform-test-results
-          path: test-results/**
+          path: |
+            test-results/**
+            ai-platform/test-results/**
