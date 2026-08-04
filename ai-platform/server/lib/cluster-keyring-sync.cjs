@@ -8,6 +8,8 @@ const logger = require('./app-logger.cjs');
 const keyRotationStore = require('./key-rotation-store.cjs');
 const hybridKem = require('./hybrid-kem-handshake.cjs');
 const resumption = require('./hybrid-kem-resumption.cjs');
+const { ClusterKeyringPrimitiveAuthorization } = require('./hsm-adapter/cluster-keyring-primitive-authorization.cjs');
+const { CryptoPolicyEngine } = require('./hsm-adapter/crypto-policy-engine.cjs');
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;
@@ -30,6 +32,7 @@ let _server = null;
 let _heartbeatTimer = null;
 let _electionTimer = null;
 let _running = false;
+let _primitiveAuth = null;
 
 // ── Event Timeline (Sync.com-style audit trail) ─────────────────────────────
 //   Each event has: eventId, timestamp, eventType, node, details
@@ -205,6 +208,17 @@ function _resetEvents() {
 // out-of-order (stale) commit and MUST NOT be re-applied — otherwise an
 // older key could regress the keyring after a newer one has been installed.
 let _lastAppliedRotatedAt = 0;
+
+function _ensurePrimitiveAuth() {
+  if (_primitiveAuth) return _primitiveAuth;
+  const engine = new CryptoPolicyEngine({});
+  const policy = engine.getPolicy().clusterKeyringPrimitiveAuthorization || {};
+  _primitiveAuth = new ClusterKeyringPrimitiveAuthorization({
+    policy,
+    keyringSync: { recordTelemetry },
+  });
+  return _primitiveAuth;
+}
 
 const _state = {
   nodeId: NODE_ID,
@@ -751,6 +765,26 @@ function getStatus() {
   };
 }
 
+function registerPrimitiveGate(trackType, hub, validator) {
+  return _ensurePrimitiveAuth().registerGate(trackType, hub, validator);
+}
+
+function authorizePrimitivePool(trackType, poolId, request) {
+  return _ensurePrimitiveAuth().authorizeAccreditedPool(trackType, poolId, request);
+}
+
+function revokePrimitiveAuthorization(poolId, reason) {
+  return _ensurePrimitiveAuth().revokeAuthorization(poolId, reason);
+}
+
+function isPrimitivePoolAuthorized(poolId) {
+  return _ensurePrimitiveAuth().isPoolAuthorized(poolId);
+}
+
+function syncPrimitivePool(poolId, targetEnclaveId) {
+  return _ensurePrimitiveAuth().syncAuthorizedPool(poolId, targetEnclaveId);
+}
+
 function proposeRotate(newKeyRaw, graceMs) {
   if (!isLeader()) {
     const err = new Error('not_leader');
@@ -808,6 +842,11 @@ module.exports = {
   stopStekRotation,
   getStekState,
   _resetStek,
+  registerPrimitiveGate,
+  authorizePrimitivePool,
+  revokePrimitiveAuthorization,
+  isPrimitivePoolAuthorized,
+  syncPrimitivePool,
   // Test helpers
   _resetEvents,
   _recordEvent,
