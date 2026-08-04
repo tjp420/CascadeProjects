@@ -7,8 +7,9 @@ const MAX_DISCOVERED_FILES = 999999999; // Effectively unlimited — scan all fi
 const FOLDER_SIZE_WARN_CHROME_CAP = 1200;
 const FOLDER_SIZE_WARN_LARGE = 50000;
 const FOLDER_SIZE_WARN_SERVER_LIMIT = 500000;
-const FOLDER_SIZE_ERROR_SAMPLE_LIMIT = 300000;
-const FOLDER_SIZE_ERROR_DISCOVERY_CAP = 500000;
+const FOLDER_SIZE_ERROR_SAMPLE_LIMIT = 100000; // Hard-stop browser deep scan — prevents tab OOM
+const FOLDER_SIZE_ERROR_DISCOVERY_CAP = 100000;
+const BROWSER_SCAN_CLI_HINT = 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
 /**
  * Simple non-crypto hash for duplicate detection.
  * @param {string} str
@@ -103,14 +104,12 @@ function analyzeFolderSize(files) {
     let severity = 'ok';
     let message = '';
     let blocked = false;
-    if (fileCount > FOLDER_SIZE_ERROR_DISCOVERY_CAP) {
+    if (fileCount >= FOLDER_SIZE_ERROR_DISCOVERY_CAP) {
         severity = 'error';
-        message = 'File count (' + fileCount.toLocaleString() + ') exceeds discovery cap of ' + FOLDER_SIZE_ERROR_DISCOVERY_CAP.toLocaleString() + '. Use CLI scan for complete analysis.';
+        message = 'Browser scan stops at ' + FOLDER_SIZE_ERROR_DISCOVERY_CAP.toLocaleString()
+            + ' files to protect this tab (' + fileCount.toLocaleString() + ' discovered). '
+            + 'Run the CLI instead: ' + BROWSER_SCAN_CLI_HINT;
         blocked = true;
-    }
-    else if (fileCount > FOLDER_SIZE_ERROR_SAMPLE_LIMIT) {
-        severity = 'warn';
-        message = 'Very large folder (' + fileCount.toLocaleString() + ' files). Deep scan will process all files — expect longer runtime. Use CLI for faster batch analysis.';
     }
     else if (fileCount > FOLDER_SIZE_WARN_SERVER_LIMIT) {
         severity = 'warn';
@@ -124,7 +123,7 @@ function analyzeFolderSize(files) {
         severity = 'info';
         message = 'Chrome may cap the folder picker at ~' + FOLDER_SIZE_WARN_CHROME_CAP.toLocaleString() + ' files. Use drag-and-drop for full coverage.';
     }
-    return { fileCount, totalSizeBytes, maxDepth, hasNodeModules, severity, message, blocked };
+    return { fileCount, totalSizeBytes, maxDepth, hasNodeModules, severity, message, blocked, cliHint: BROWSER_SCAN_CLI_HINT };
 }
 // Browser-compatible export (global) or CommonJS
 if (typeof module !== 'undefined' && module.exports) {

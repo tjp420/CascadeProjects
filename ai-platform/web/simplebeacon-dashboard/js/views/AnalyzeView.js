@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi, isIncompleteFolderDrop, incompleteFolderDropMessage } from '../utils-lib/dom.js';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
@@ -5502,7 +5502,7 @@ export class AnalyzeView {
                                                 prog.textContent = `${processed} / ${total} files`;
                                         }
                                     });
-                                    if (sandboxReport && sandboxReport.discoveredFiles >= 1) {
+                                    if (sandboxReport && sandboxReport.discoveredFiles > 2) {
                                         const cert = sandboxReport.certificate || {};
                                         const stats = el.querySelector('#analyze-dropzone-result-stats');
                                         if (stats)
@@ -5514,6 +5514,12 @@ export class AnalyzeView {
                                         }
                                         this.applySandboxScanResult(sandboxReport);
                                         showToast(`Scanned "${folderName}" — ${sandboxReport.discoveredFiles} files found`, 'success');
+                                        return;
+                                    }
+                                    if (sandboxReport && isIncompleteFolderDrop(sandboxReport.discoveredFiles || 0, { isDirectoryDrop: true })) {
+                                        showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
+                                        const nativePicker = el.querySelector('#trigger-native-picker');
+                                        if (nativePicker) setTimeout(() => nativePicker.click(), 100);
                                         return;
                                     }
                                 }
@@ -5984,6 +5990,22 @@ export class AnalyzeView {
                         if (analyzeTerminal)
                             analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
                         showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                        setAnalyzeDropzoneState('idle');
+                        const nativePicker = el.querySelector('#trigger-native-picker');
+                        if (nativePicker) {
+                            setTimeout(() => nativePicker.click(), 100);
+                        }
+                        return;
+                    }
+                    // Also guard against 1-2 file drops that DO have webkitRelativePath but
+                    // are clearly incomplete (e.g., OS Explorer drop of a protected directory
+                    // like C:\Windows that only exposes 1 file). The gate logic in
+                    // localScanService will refuse to PASS, but we warn here too to guide
+                    // the user toward Select Folder or CLI before the scan runs.
+                    if (fileArray.length <= 2 && looksLikeDirDrop) {
+                        if (analyzeTerminal)
+                            analyzeTerminal.textContent = 'Drop exposed only ' + fileArray.length + ' file' + (fileArray.length === 1 ? '' : 's') + ' — likely incomplete access. Use Select Folder for full scan.';
+                        showToast('Folder drop exposed only ' + fileArray.length + ' file' + (fileArray.length === 1 ? '' : 's') + ' (incomplete access — common for OS/system directories). Click Select Folder or run: npx simplebeacon scan --full --gate --format json', 'warning', { duration: 10000 });
                         setAnalyzeDropzoneState('idle');
                         const nativePicker = el.querySelector('#trigger-native-picker');
                         if (nativePicker) {
