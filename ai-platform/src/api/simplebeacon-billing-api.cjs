@@ -930,6 +930,13 @@ function setupSimplebeaconBillingRoutes(app) {
       return res.status(403).json({ error: 'invalid_token', message: 'License token is invalid or not registered.' });
     }
     const subscription = await getSubscriptionByEmail(email);
+    // D-02: mirror GET team routes — community/free cannot ingest team telemetry.
+    if (!hasTeamComplianceLicense(subscription)) {
+      return res.status(403).json({
+        error: 'team_license_required',
+        message: 'Team telemetry requires a team or compliance license.'
+      });
+    }
     const legacyFields = process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === '1'
       || process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === 'true';
     const { payload, stripped, rejected } = sanitizeTeamTelemetryPayload(req.body || {}, { legacyFields });

@@ -198,10 +198,13 @@ function recordCiTelemetryEvent(email, payload, options = {}) {
     id: `ci_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
     accountKey: accountKey(email),
     orgKey: options.orgKey || resolveOrgKey(email, options.subscription || null),
-    email: String(email || '').toLowerCase(),
     recordedAt: new Date().toISOString(),
     ...sanitized
   };
+  // Privacy (D-03): never persist raw email — accountKey + orgKey only.
+  if (Object.prototype.hasOwnProperty.call(event, 'email')) {
+    delete event.email;
+  }
   store.events.push(event);
   store.events = purgeExpiredEvents(store.events);
   if (store.events.length > MAX_EVENTS) {

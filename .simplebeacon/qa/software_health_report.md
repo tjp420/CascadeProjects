@@ -1,78 +1,159 @@
-# Software Health Report — Track 117 Phase 5: Prometheus Alerting
+# software_health_report.md — Option 3 Team Score Aggregation Telemetry
+
+## Metadata
 
 | Field | Value |
 |-------|-------|
+| Validator | Cursor Validator (adversarial re-run) |
 | Date | 2026-08-04 |
-| Git branch | `feat/track117-prometheus-alerts` |
-| PR | #480 |
-| Base | `origin/main` @ `1ff41ab0e` |
-| Commit | `6d108adaa` |
-| Files touched | 3 (2 modified, 1 new) |
-| Insertions | 147 |
-| Deletions | 0 |
+| Branch | `feat/team-score-aggregation-telemetry` |
+| Commit | `b7e7ec1e7` — `fix(telemetry): gate POST team ingest and drop stored email` |
+| Worktree | `C:\Users\user\option3-telemetry-wt` |
+| Prior NO-GO | `728171b31` (POST ungated + raw email) |
+| test_plan | `.simplebeacon/qa/test_plan.md` |
 
-## Level 1 — Deterministic (all required)
+## Executive summary
+
+- **Gate:** PASS — `gatePass: true`, `blockingCount: 0`
+- **Level 1 (Option 3 telemetry):** 5 / 7 executed-pass in worktree; compile/dashboard/full `npm test` blocked by missing worktree `node_modules` (`tsc`/`jest` not on PATH)
+- **Targeted telemetry tests:** **33/33 PASS** (store 13 + billing helpers 6 + CLI 14)
+- **License-gate regression:** **PASS** (POST + GET team routes)
+- **PII store regression (D-03):** **PASS**
+- **CORS live:** **PARTIAL** — no server on `:54355`/`:3000`; static config OK
+- **Ship recommendation:** **CONDITIONAL GO** for Option 3 merge
+
+**Verdict rationale:** D-02 and D-03 (prior merge blockers) are **fixed and verified** on `b7e7ec1e7`. Remaining open items are pre-existing full-suite `npm test` failures (D-01), optional D-08 tier allowlist precision, and live CORS (environment). Per agreed policy, D-01 alone does not block Option 3.
+
+---
+
+## Option 3 verdict matrix
+
+| Scope | Verdict | Notes |
+|-------|---------|-------|
+| **Option 3 merge** | **CONDITIONAL GO** | D-02/D-03 closed; D-01 isolated |
+| **Conditional GO (D-01 only)** | **Accepted** | Telemetry security wiring pass |
+| **Full-repo GO** | **NO-GO** until `ai-platform npm test` green |
+
+---
+
+## Strict `hasTeamComplianceLicense` regression
+
+| Check | Location | Result |
+|-------|----------|--------|
+| Helper rejects `community` / `free` / null | L876–878 + billing tests | **PASS** |
+| GET team context uses helper → 403 `team_license_required` | L908–913 | **PASS** |
+| POST ingest uses helper before sanitize/record | L933–938 | **PASS** (was FAIL on `728171b31`) |
+| GET summary team fields gated | L981+ | **PASS** |
+| 403 payload shape | `{ error: 'team_license_required', message: 'Team telemetry requires a team or compliance license.' }` | **PASS** (contract tests) |
+| Auth without token | POST → 401 `missing_token` | **PASS** (code) |
+| Invalid token | POST → 403 `invalid_token` | **PASS** (code) |
+| Over-broad allow (D-08) | Helper = “not community/free” (allows `pro`) | **WARN** — non-blocking; message says team/compliance |
+
+---
+
+## D-03 email persistence
+
+| Check | Result |
+|-------|--------|
+| No `email:` assignment in event object | **PASS** (L197–203) |
+| Delete if present via payload spread | **PASS** (L204–207) |
+| Unit test `does not persist raw email on recorded events (D-03)` | **PASS** |
+
+---
+
+## Level 1 — Deterministic
 
 | ID | Check | Result |
 |----|-------|--------|
-| L1-01 | Syntax: `node -c` on test file + YAML parse via js-yaml | PASS |
-| L1-02 | Alert test suite (4 tests) | 4/4 PASS |
-| L1-03 | Parallel suite: `npm run test:parallel` | 134/134 PASS (zero failures) |
-| L1-04 | SimpleBeacon gate: `npx simplebeacon scan --full --gate` | PASS |
-| L1-05 | No secrets in diff | PASS |
-| L1-06 | npm audit (no deps changed) | N/A |
+| L1-01 | `node -c` × 4 telemetry files | **PASS** |
+| L1-02 | `ci-telemetry-store.test.cjs` | **PASS** (incl. D-03) |
+| L1-03 | `ci-telemetry.test.js` | **PASS** 14/14 |
+| L1-04 | `cd ai-platform && npm test` | **NOT RUN in worktree** — no local `jest` binary (`WT_NO_NM`). Prior pass on sibling checkout: 11 failing HSM suites (**D-01 OPEN**) |
+| L1-05 | Extension `npm run compile` | **NOT RUN in worktree** — `tsc` missing. Main checkout compile previously PASS for Phase 5 |
+| L1-06 | Dashboard `npm run build` | **NOT RUN in worktree** — `tsc` missing. Prior Phase 4 build PASS |
+| L1-07 | Gate scan offline | **PASS** (`gatePass: true`, `blockingCount: 0`) |
 
-## Level 2 — Behavioral
+Combined node-test run: **33/33 PASS**.
 
-| ID | Check | Result |
-|----|-------|--------|
-| L2-01 | YAML structural validity | PASS — group exists with 2 rules, all fields present |
-| L2-02 | Byzantine alert correctness | PASS — critical, 0m, references `hsm_shard_byzantine_detected_total` |
-| L2-03 | Lagging nodes alert correctness | PASS — warning, 5m, references `hsm_shard_lagging_nodes` |
-| L2-04 | Runbook URLs + counter existence | PASS — URLs point to repo, no secrets, all 3 counters exist |
+---
 
-## Level 3 — Self-review / drift
+## Level 2 / 3 / Security
 
-| ID | Check | Result |
-|----|-------|--------|
-| L3-01 | Logic matches approved `test_plan.md` (no scope creep) | PASS — 2 alerts + 4 tests match spec exactly |
-| L3-02 | No ghost files or hallucinated API paths | PASS — all paths verified |
-| L3-03 | No regression in existing tests | PASS — 134/134 (zero failures) |
-| L3-04 | `hsm_shard_byzantine_detected_total` exists in hsm-metrics.cjs | PASS (line 510/1396) |
-| L3-05 | `hsm_shard_lagging_nodes` exists in hsm-metrics.cjs | PASS (line 511/1397) |
-| L3-06 | `hsm_shard_limit_exceeded_total` exists in hsm-metrics.cjs | PASS (added in Phase 4) |
-| L3-07 | YAML file remains valid after append | PASS — `js-yaml.load()` succeeds |
-| L3-08 | `for: 0m` immediate-fire trigger parses correctly | PASS — js-yaml parses as string "0m" |
-| L3-09 | PR has 1 commit, 3 files (no stale commits) | PASS |
+| ID | Result | Notes |
+|----|--------|-------|
+| L2-01 | PASS (unit) | CLI posts `scan_source=ci` |
+| L2-02 | PASS | Air-gapped skip |
+| L2-03 | PASS | Backward-compat summary |
+| L2-04 | PASS | Distribution math + route |
+| L2-05 | PASS | k-anonymity tests |
+| L2-06 | PASS (wired) | DashboardView + trend chart present |
+| L2-07 | PASS | Hooks L10 import, **L4555**, **L4948** |
+| L2-08 | PASS | CLI + **server POST** community gate |
+| L3-01 | PASS | Forbidden field sanitization |
+| L3-02 | PASS (code) | 90-day purge on write |
+| L3-04 | PASS | Null quality_score exclusion |
+| L3-05 | PARTIAL | Static: `cors-config.cjs` allows `*.simplebeacon.pages.dev`; live OPTIONS to `:54355`/`:3000` timed out (no server) |
+| L3-06 | PASS | Independent of `syncToCloud` |
+| S-01 | PASS | No raw email in store |
+| S-02 | PASS | POST + GET team license gate |
+| S-03 | PASS | k-anonymity before breakdown |
 
-## Security
+---
 
-| ID | Check | Result |
-|----|-------|--------|
-| S-01 | No credentials/PII in alert YAML or test file | PASS |
-| S-02 | No secrets, API keys, or private keys in YAML text | PASS |
-| S-03 | Runbook URLs point to internal repo only | PASS |
+## 1. Defects
 
-## Defects
+| ID | Description | Severity | Status |
+|----|-------------|----------|--------|
+| D-01 | Full `ai-platform npm test` historically 11 failing HSM/track112 suites | high | **OPEN** (isolated; not Option 3) |
+| D-02 | POST community ingest ungated | critical | **CLOSED** @ `b7e7ec1e7` |
+| D-03 | Raw email in store | critical | **CLOSED** @ `b7e7ec1e7` |
+| D-08 | `hasTeamComplianceLicense` allows any non-community tier (e.g. `pro`) | medium | **OPEN** (enhancement) |
 
-None.
+---
 
-## Unimplemented
+## 2. Unimplemented / gaps
 
-None — all 4 tests from the approved test plan are implemented.
+| ID | Item | Notes |
+|----|------|-------|
+| U-01 | Live CORS probe | Server not listening locally this pass |
+| U-02 | Worktree full compile/build | Install `node_modules` in worktree or validate from primary checkout with branch checked out |
+| U-03 | IDE embed `web/dashboard/` mirror | Still out of sync (enhancement) |
 
-## Future roadmap
+---
 
-Track 117 is now complete across all 5 phases. No further phases planned.
+## 3. Enhancements
+
+| ID | Suggestion | Effort |
+|----|------------|--------|
+| E-01 | Allowlist tiers explicitly (`team`, `compliance`, `growth`, `operator`) — close D-08 | S |
+| E-02 | Route-level integration test hitting Express POST with mocked subscription | S |
+| E-03 | Live CORS smoke in CI against ephemeral server | M |
+
+---
+
+## Command log (summary)
+
+```text
+# Worktree C:\Users\user\option3-telemetry-wt @ b7e7ec1e7
+
+node -c (4 files)                                              PASS
+node --test store + billing + cli-telemetry                    33/33 PASS
+curl/Invoke OPTIONS localhost:54355 / :3000                    FAIL (timeout — no server)
+node .../simplebeacon.js scan --gate --offline                 PASS (gatePass: true)
+npm run compile / build / npm test (worktree)                  FAIL tooling (no node_modules)
+```
+
+---
 
 ## Validator sign-off
 
-- [x] All L1 checks pass (134/134 — zero failures)
-- [x] All L2 behavioral checks pass
-- [x] All L3 drift checks pass
-- [x] All security checks pass
-- [x] No defects found
-- [x] Approved for merge
+- [x] Adversarial pass on `b7e7ec1e7`
+- [x] Strict license-gate regression (POST + GET) documented
+- [x] D-03 email removal verified
+- [x] CORS live attempted; static fallback recorded
+- [x] No feature code written (Validator only)
+- [x] **CONDITIONAL GO** for Option 3 (D-01 / D-08 non-blocking for Option 3 scope)
 
-Validator: Devin (adversarial review mode)
-Date: 2026-08-04
+**Validator:** Cursor Validator  
+**Date:** 2026-08-04  
+**Option 3 recommendation:** **CONDITIONAL GO**

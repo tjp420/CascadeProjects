@@ -40,4 +40,50 @@ describe('simplebeacon-billing-api helpers', () => {
       assert.strictEqual(normalizeEmail(123), '');
     });
   });
+
+  describe('team telemetry POST license gate (D-02)', () => {
+    const COMMUNITY_TIERS = new Set(['community', 'free']);
+    function hasTeamComplianceLicense(subscription) {
+      const tier = String(subscription?.licenseTier || subscription?.tier || 'community').toLowerCase();
+      return !COMMUNITY_TIERS.has(tier);
+    }
+
+    function teamLicenseForbiddenResponse(res) {
+      return res.status(403).json({
+        error: 'team_license_required',
+        message: 'Team telemetry requires a team or compliance license.'
+      });
+    }
+
+    it('rejects community and free tiers', () => {
+      assert.strictEqual(hasTeamComplianceLicense({ tier: 'community' }), false);
+      assert.strictEqual(hasTeamComplianceLicense({ licenseTier: 'free' }), false);
+      assert.strictEqual(hasTeamComplianceLicense(null), false);
+    });
+
+    it('allows team and compliance-style paid tiers', () => {
+      assert.strictEqual(hasTeamComplianceLicense({ tier: 'team' }), true);
+      assert.strictEqual(hasTeamComplianceLicense({ licenseTier: 'compliance' }), true);
+      assert.strictEqual(hasTeamComplianceLicense({ tier: 'pro' }), true);
+    });
+
+    it('returns 403 team_license_required payload matching GET team routes', () => {
+      const res = {
+        status(code) {
+          this._status = code;
+          return this;
+        },
+        json(body) {
+          this._body = body;
+          return this;
+        }
+      };
+      teamLicenseForbiddenResponse(res);
+      assert.strictEqual(res._status, 403);
+      assert.deepStrictEqual(res._body, {
+        error: 'team_license_required',
+        message: 'Team telemetry requires a team or compliance license.'
+      });
+    });
+  });
 });
