@@ -10,6 +10,7 @@ class WorkerPool extends EventEmitter {
     this.queue = [];
     this.active = 0;
     this.stopping = false;
+    this.logger = require('../../app-logger.cjs').child('worker-pool');
   }
 
   submit(task) {
@@ -30,8 +31,24 @@ class WorkerPool extends EventEmitter {
         this.active += 1;
         Promise.resolve()
           .then(() => task())
-          .then((res) => { this.active -= 1; this.emit('taskDone', null, res); this._drain(); })
-          .catch((err) => { this.active -= 1; this.emit('taskDone', err); this._drain(); });
+          .then((res) => {
+            this.active -= 1;
+            try {
+              const trace = res && res.meta && res.meta.traceId ? res.meta.traceId : (res && res.traceId) || null;
+              const jobId = res && res.meta && res.meta.jobId ? res.meta.jobId : null;
+              this.logger.info(`[Trace ID: ${trace || '—'}] [Job: ${jobId || '—'}] task completed`, { traceId: trace, jobId });
+            } catch (e) {}
+            this.emit('taskDone', null, res);
+            this._drain();
+          })
+          .catch((err) => {
+            this.active -= 1;
+            try {
+              this.logger.error('task error', err && err.stack ? err.stack : err);
+            } catch (e) {}
+            this.emit('taskDone', err);
+            this._drain();
+          });
       }
       if (this.active === 0 && this.queue.length === 0) this.emit('drained');
     });

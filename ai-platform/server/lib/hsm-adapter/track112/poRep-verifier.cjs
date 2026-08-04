@@ -1,9 +1,5 @@
 "use strict";
 
-<<<<<<< HEAD
-class PoRepVerifier {
-  constructor() {
-=======
 const crypto = require('crypto');
 const hsmMetrics = require('../hsm-metrics.cjs');
 
@@ -36,18 +32,12 @@ function computeRootFromPath(leafHashBuf, index, pathArray) {
 class PoRepVerifier {
   constructor(opts = {}) {
     this.leafSize = opts.leafSize || 4096; // 4 KiB default
->>>>>>> a0d369dd0 (feat(track112-operational): PoRep verifier internals, telemetry hooks, and concurrency bench)
     this.metrics = { verifications: 0, failures: 0 };
   }
 
   async verify(proof, options = {}) {
     this.metrics.verifications += 1;
-<<<<<<< HEAD
-    await new Promise((r) => setTimeout(r, 15));
-    if (proof && proof.valid) return { valid: true };
-    this.metrics.failures += 1;
-    return { valid: false, reason: 'invalid' };
-=======
+
     try {
       if (!hsmMetrics.counters.hsm_track112_proofs_verified_total) hsmMetrics.counters.hsm_track112_proofs_verified_total = 0;
       if (!hsmMetrics.counters.hsm_track112_proofs_failed_total) hsmMetrics.counters.hsm_track112_proofs_failed_total = 0;
@@ -67,13 +57,19 @@ class PoRepVerifier {
       if (computedRoot.toLowerCase() !== rootHex) {
         try { hsmMetrics.incrementCounter('hsm_track112_proofs_failed_total'); } catch (e) {}
         this.metrics.failures += 1;
+        // Emit sparse forensic event for correlation (do not label metrics with traceId)
+        try {
+          const ev = require('../events.cjs');
+          if (ev && ev.recordSparseEvent) {
+            ev.recordSparseEvent('hsm_track112_proof_failure', { reason: 'challenge_mismatch', index: ch.index, root: rootHex });
+          }
+        } catch (e) {}
         return { valid: false, reason: 'challenge_mismatch', index: ch.index };
       }
     }
 
     try { hsmMetrics.incrementCounter('hsm_track112_proofs_verified_total'); } catch (e) {}
     return { valid: true };
->>>>>>> a0d369dd0 (feat(track112-operational): PoRep verifier internals, telemetry hooks, and concurrency bench)
   }
 }
 

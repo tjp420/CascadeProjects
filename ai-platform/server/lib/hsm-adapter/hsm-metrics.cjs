@@ -850,6 +850,31 @@ const counters = {
   hsm_primitive_pool_authorized_total: 0,
   hsm_primitive_pool_synced_total: 0,
   hsm_primitive_authorization_revoked_total: 0,
+  // DKG Gossip Protocol counters (PR #391 — cluster-keyring-sync.cjs)
+  hsm_dkg_session_initiated_total: 0,
+  hsm_dkg_session_completed_total: 0,
+  hsm_dkg_session_timeout_total: 0,
+  hsm_dkg_commit_received_total: 0,
+  hsm_dkg_share_received_total: 0,
+  hsm_dkg_share_rejected_total: 0,
+  hsm_dkg_complaint_filed_total: 0,
+  hsm_dkg_node_disqualified_total: 0,
+  hsm_dkg_invalid_message_total: 0,
+  hsm_dkg_isolation_violation_total: 0,
+  // STEK Rotation counters and gauges (cluster-keyring-sync.cjs)
+  hsm_stek_rotation_total: 0,
+  hsm_stek_validation_total: 0,
+  hsm_stek_validation_failed_total: 0,
+  hsm_stek_active_count: 0,
+  hsm_stek_retired_count: 0,
+  // MuSig2 Protocol counters (PR #398 — mpc/schnorr/protocol.cjs)
+  hsm_musig2_challenge_computed_total: 0,
+  hsm_musig2_binding_factor_computed_total: 0,
+  hsm_musig2_key_aggregation_total: 0,
+  hsm_musig2_nonce_aggregation_total: 0,
+  hsm_musig2_signature_assembled_total: 0,
+  hsm_musig2_signature_verified_total: 0,
+  hsm_musig2_signature_verification_failed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -861,6 +886,9 @@ const histograms = {
   hsm_wrap_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
   hsm_unwrap_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
   hsm_create_kek_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
+  // DKG round duration histogram (PR #391 — DKG gossip protocol)
+  // DKG rounds typically take 100ms to 60s depending on cluster size.
+  hsm_dkg_round_duration_ms: { buckets: [100, 500, 1000, 5000, 10000, 30000, 60000], counts: new Array(8).fill(0), sum: 0, count: 0 },
 };
 
 // Metadata for Prometheus exposition
@@ -1572,6 +1600,33 @@ const META = {
   hsm_primitive_pool_authorized_total: { help: 'Total primitive pools authorized for cluster keyring sync.', type: 'counter' },
   hsm_primitive_pool_synced_total: { help: 'Total primitive pools synced across enclaves.', type: 'counter' },
   hsm_primitive_authorization_revoked_total: { help: 'Total primitive pool authorizations revoked.', type: 'counter' },
+  // DKG Gossip Protocol metadata (PR #391)
+  hsm_dkg_session_initiated_total: { help: 'Total DKG gossip sessions initiated.', type: 'counter' },
+  hsm_dkg_session_completed_total: { help: 'Total DKG gossip sessions completed successfully.', type: 'counter' },
+  hsm_dkg_session_timeout_total: { help: 'Total DKG gossip sessions that timed out.', type: 'counter' },
+  hsm_dkg_commit_received_total: { help: 'Total DKG_COMMIT messages received from peers.', type: 'counter' },
+  hsm_dkg_share_received_total: { help: 'Total DKG_SHARE messages received from peers.', type: 'counter' },
+  hsm_dkg_share_rejected_total: { help: 'Total DKG_SHARE messages rejected due to verification failure.', type: 'counter' },
+  hsm_dkg_complaint_filed_total: { help: 'Total DKG_COMPLAINT messages filed against peers.', type: 'counter' },
+  hsm_dkg_node_disqualified_total: { help: 'Total nodes disqualified during DKG sessions.', type: 'counter' },
+  hsm_dkg_invalid_message_total: { help: 'Total invalid DKG messages rejected by the transport layer.', type: 'counter' },
+  hsm_dkg_isolation_violation_total: { help: 'Total DKG messages received from unknown or unauthorized peers.', type: 'counter' },
+  // STEK Rotation metadata
+  hsm_stek_rotation_total: { help: 'Total STEK (Session Token Encryption Key) rotations performed.', type: 'counter' },
+  hsm_stek_validation_total: { help: 'Total STEK validations performed.', type: 'counter' },
+  hsm_stek_validation_failed_total: { help: 'Total STEK validations that failed.', type: 'counter' },
+  hsm_stek_active_count: { help: 'Number of active STEKs (0 or 1).', type: 'gauge' },
+  hsm_stek_retired_count: { help: 'Number of retired STEKs still within the retention window.', type: 'gauge' },
+  // MuSig2 Protocol metadata (PR #398)
+  hsm_musig2_challenge_computed_total: { help: 'Total MuSig2 challenge computations performed.', type: 'counter' },
+  hsm_musig2_binding_factor_computed_total: { help: 'Total MuSig2 binding factor computations performed.', type: 'counter' },
+  hsm_musig2_key_aggregation_total: { help: 'Total MuSig2 public key aggregations performed.', type: 'counter' },
+  hsm_musig2_nonce_aggregation_total: { help: 'Total MuSig2 nonce aggregations performed.', type: 'counter' },
+  hsm_musig2_signature_assembled_total: { help: 'Total MuSig2 threshold signatures assembled.', type: 'counter' },
+  hsm_musig2_signature_verified_total: { help: 'Total MuSig2 signatures verified successfully.', type: 'counter' },
+  hsm_musig2_signature_verification_failed_total: { help: 'Total MuSig2 signature verifications that failed.', type: 'counter' },
+  // DKG histogram metadata
+  hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };
 
 /**

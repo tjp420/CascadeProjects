@@ -14,7 +14,10 @@ class IngestQueue {
       this.pool.emit('backpressure', payload, meta);
       throw err;
     }
-    this.pool.submit(() => this._process(payload, meta));
+    // Ensure traceId propagation inside the job envelope
+    const jobMeta = Object.assign({}, meta);
+    if (meta && meta.traceId) jobMeta.traceId = meta.traceId;
+    this.pool.submit(() => this._process(payload, jobMeta));
   }
 
   async _process(payload, meta) {
