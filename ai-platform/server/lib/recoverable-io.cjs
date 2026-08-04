@@ -52,28 +52,22 @@ function statMtimeMsOrNull(filePath, contextLabel = filePath) {
  * Read a text file via stream with a maximum byte limit to avoid large in-memory reads.
  * Returns the joined string (may be truncated) or throws on stream error.
  */
-function readTextFileWithLimit(filePath, maxBytes = 256 * 1024) {
-    return new Promise((resolve, reject) => {
-        try {
-            const chunks = [];
-            let received = 0;
-            const rs = fs.createReadStream(filePath, { encoding: 'utf8', highWaterMark: 64 * 1024 });
-            rs.on('data', (c) => {
-                received += c.length;
-                if (received > maxBytes) {
-                    rs.destroy();
-                    // Resolve with truncated content
-                    chunks.push(c.slice(0, Math.max(0, c.length - (received - maxBytes))));
-                    return resolve(chunks.join(''));
-                }
-                chunks.push(c);
-            });
-            rs.on('error', (err) => reject(err));
-            rs.on('end', () => resolve(chunks.join('')));
-        } catch (err) {
-            reject(err);
+async function readTextFileWithLimit(filePath, maxBytes = 256 * 1024) {
+    let handle;
+    try {
+        handle = await fs.promises.open(filePath, 'r');
+        const { size } = await handle.stat();
+        const toRead = Math.min(maxBytes, Math.max(0, size));
+        const buffer = Buffer.alloc(toRead);
+        if (toRead > 0) {
+            await handle.read(buffer, 0, toRead, 0);
         }
-    });
+        return buffer.toString('utf8');
+    } catch (err) {
+        throw err;
+    } finally {
+        if (handle) await handle.close();
+    }
 }
 
 /**
