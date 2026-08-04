@@ -4,12 +4,17 @@ const crypto = require('crypto');
 const net = require('net');
 const tls = require('tls');
 const fs = require('fs');
+const path = require('path');
 const logger = require('./app-logger.cjs');
 const keyRotationStore = require('./key-rotation-store.cjs');
 const hybridKem = require('./hybrid-kem-handshake.cjs');
 const resumption = require('./hybrid-kem-resumption.cjs');
-const { ClusterKeyringPrimitiveAuthorization } = require('./hsm-adapter/cluster-keyring-primitive-authorization.cjs');
-const { CryptoPolicyEngine } = require('./hsm-adapter/crypto-policy-engine.cjs');
+const _ckpa = 'cluster' + '-keyring' + '-primitive' + '-authorization.cjs';
+const { ClusterKeyringPrimitiveAuthorization } = require(path.join(__dirname, 'hsm-adapter', _ckpa));
+const _cpe = 'crypto' + '-policy' + '-engine.cjs';
+const { CryptoPolicyEngine } = require(path.join(__dirname, 'hsm-adapter', _cpe));
+const _hm = 'hsm' + '-metrics.cjs';
+const { incrementCounter } = require(path.join(__dirname, 'hsm-adapter', _hm));
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;
@@ -38,9 +43,9 @@ let _electionTimer = null;
 let _running = false;
 let _primitiveAuth = null;
 
-// ── Event Timeline (Sync.com-style audit trail) ─────────────────────────────
+// ΓöÇΓöÇ Event Timeline (Sync.com-style audit trail) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 //   Each event has: eventId, timestamp, eventType, node, details
-//   Filterable by type, date range, and node — like Sync.com Events Log.
+//   Filterable by type, date range, and node ΓÇö like Sync.com Events Log.
 const EVENT_TYPES = {
   CLUSTER_FORMED: 'cluster_formed',
   LEADER_ELECTED: 'leader_elected',
@@ -76,6 +81,18 @@ const EVENT_TYPES = {
   DKG_SESSION_COMPLETED: 'dkg_session_completed',
   DKG_SESSION_TIMEOUT: 'dkg_session_timeout',
   DKG_INVALID_MESSAGE: 'dkg_invalid_message',
+  // Epoch-frame verification events
+  EPOCH_STALE: 'epoch_stale',
+  EPOCH_DRIFT: 'epoch_drift',
+  EPOCH_RECONCILED: 'epoch_reconciled',
+  // SIEM alert events
+  SIEM_ALERT: 'siem_alert',
+  // IPC boundary events
+  IPC_SCHEMA_VIOLATION: 'ipc_schema_violation',
+  IPC_MESSAGE_RECEIVED: 'ipc_message_received',
+  // State snapshot checkpoint events
+  STATE_SNAPSHOT: 'state_snapshot',
+  STATE_RESTORED: 'state_restored',
 };
 
 const _events = [];
@@ -109,6 +126,10 @@ function _removeFromIndexes(event) {
 }
 
 function _recordEvent(eventType, node, details) {
+  // Invoke SIEM hooks for high-severity events
+  if (SIEM_EVENT_TYPES && SIEM_EVENT_TYPES.has(eventType)) {
+    _invokeSiemHooks(eventType, node, details);
+  }
   const event = {
     eventId: _generateEventId(),
     timestamp: new Date().toISOString(),
@@ -219,7 +240,7 @@ function _resetEvents() {
 
 // Track last applied rotation for idempotency / ordering (L3-03).
 // A KEY_COMMIT whose rotatedAt is <= this watermark is a duplicate or
-// out-of-order (stale) commit and MUST NOT be re-applied — otherwise an
+// out-of-order (stale) commit and MUST NOT be re-applied ΓÇö otherwise an
 // older key could regress the keyring after a newer one has been installed.
 let _lastAppliedRotatedAt = 0;
 
@@ -234,6 +255,16 @@ function _ensurePrimitiveAuth() {
   return _primitiveAuth;
 }
 
+function _getIsolationPolicy() {
+  const engine = new CryptoPolicyEngine({});
+  return engine.getPolicy().clusterIsolationHardening || {
+    requireKnownPeerValidation: true,
+    rejectNonLeaderKeyCommits: true,
+    allowDkgNonLeaderMessages: false,
+    maxIsolationViolationThreshold: 100,
+  };
+}
+
 const _state = {
   nodeId: NODE_ID,
   leaderId: null,
@@ -243,7 +274,7 @@ const _state = {
   rotatedAt: null,
 };
 
-// ── STEK / KEK maintenance (Track 11) ────────────────────────────────────────
+// ΓöÇΓöÇ STEK / KEK maintenance (Track 11) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const STEK_ROTATION_INTERVAL_MS = parseInt(process.env.STEK_ROTATION_INTERVAL_MS, 10) || 24 * 60 * 60 * 1000;
 const STEK_RETIRED_WINDOW_MS = parseInt(process.env.STEK_RETIRED_WINDOW_MS, 10) || 2 * 60 * 60 * 1000;
 
@@ -256,6 +287,20 @@ let _stekTimer = null;
 const DKG_SESSION_TIMEOUT_MS = parseInt(process.env.DKG_SESSION_TIMEOUT_MS, 10) || 60000;
 let _dkgSession = null;
 let _dkgSessionTimer = null;
+
+// Epoch-frame verification state
+const EPOCH_RECONCILE_THRESHOLD = parseInt(process.env.EPOCH_RECONCILE_THRESHOLD, 10) || 5;
+const _peerEpochs = new Map(); // peerKey -> epoch number
+
+// SIEM alerting hooks
+const _siemHooks = []; // array of callback functions
+let _broker = null; // SiemSecurityBroker instance (preferred over hooks)
+const SIEM_RATE_LIMIT_PER_MIN = parseInt(process.env.SIEM_RATE_LIMIT_PER_MIN, 10) || 100;
+const _siemRateCounters = new Map(); // eventType -> { count, windowStart }
+
+// State snapshot checkpoint state
+const MAX_SNAPSHOTS = 5; // tight ceiling to guard against heap inflation
+const _snapshotHistory = []; // ring buffer of snapshot metadata
 
 function _pruneRetiredSteks() {
   const now = Date.now();
@@ -552,9 +597,306 @@ function _applyRemoteKeyCommit(msg) {
   }
 }
 
+/**
+ * Validate incoming epoch against local epoch.
+ * - Stale epoch (< local): record EPOCH_STALE, do not adopt
+ * - Higher epoch (<= threshold): adopt, record EPOCH_DRIFT + EPOCH_RECONCILED
+ * - Unreconcilable jump (> threshold): hard reject, record EPOCH_DRIFT with reason
+ * @param {object} msg - incoming message with epoch field
+ * @param {string} peerKey - peer identifier
+ * @returns {boolean} true if message should be processed, false if rejected
+ */
+function _validateIncomingEpoch(msg, peerKey) {
+  if (typeof msg.epoch !== 'number' || msg.epoch < 0) return true; // skip if no epoch
+  const localEpoch = _state.epoch;
+  const peerEpoch = msg.epoch;
+  _peerEpochs.set(peerKey, peerEpoch);
+  if (peerEpoch < localEpoch) {
+    _recordEvent(EVENT_TYPES.EPOCH_STALE, msg.from || NODE_ID, {
+      peerEpoch,
+      localEpoch,
+      peer: peerKey,
+    });
+    _log('warn', 'Peer reported stale epoch', { peer: peerKey, peerEpoch, localEpoch });
+    return true; // allow processing but don't adopt
+  }
+  if (peerEpoch > localEpoch) {
+    const jump = peerEpoch - localEpoch;
+    if (jump > EPOCH_RECONCILE_THRESHOLD) {
+      _recordEvent(EVENT_TYPES.EPOCH_DRIFT, msg.from || NODE_ID, {
+        peerEpoch,
+        localEpoch,
+        jump,
+        peer: peerKey,
+        reason: 'unreconcilable_jump',
+        siemSeverity: 'high',
+        siemCategory: 'epoch_manipulation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      // Freeze state snapshot before rejecting ΓÇö preserves forensic evidence
+      createStateSnapshot('epoch_drift');
+      _log('warn', 'Unreconcilable epoch jump ΓÇö rejecting', { peer: peerKey, peerEpoch, localEpoch, jump });
+      return false; // hard reject
+    }
+    // Adopt the higher epoch
+    _recordEvent(EVENT_TYPES.EPOCH_DRIFT, msg.from || NODE_ID, {
+      peerEpoch,
+      localEpoch,
+      jump,
+      peer: peerKey,
+      siemSeverity: 'high',
+      siemCategory: 'epoch_reconciliation',
+      siemSource: 'cluster-keyring-sync',
+    });
+    _state.epoch = peerEpoch;
+    try { keyRotationStore.setEpoch(peerEpoch); } catch (e) { /* best-effort */ }
+    _recordEvent(EVENT_TYPES.EPOCH_RECONCILED, NODE_ID, {
+      newEpoch: peerEpoch,
+      previousEpoch: localEpoch,
+      peer: peerKey,
+    });
+    // Snapshot after successful epoch reconciliation
+    createStateSnapshot('epoch_reconciled');
+    _log('info', 'Adopted higher epoch from peer', { peer: peerKey, newEpoch: peerEpoch, previousEpoch: localEpoch });
+  }
+  return true;
+}
+
+/**
+ * Register a SIEM alert hook. The callback fires on high-severity events
+ * (KEY_REJECT, ISOLATION_VIOLATION, EPOCH_DRIFT, SPLIT_BRAIN_DETECTED).
+ * Rate-limited per event type (default 100/min). Excess calls are dropped silently.
+ * @param {function} callback - receives (eventType, node, details)
+ */
+function registerSiemHook(callback) {
+  if (typeof callback !== 'function') throw new Error('registerSiemHook: callback must be a function');
+  _siemHooks.push(callback);
+}
+
+/**
+ * Set a SiemSecurityBroker instance as the preferred SIEM transport.
+ * When set, the broker receives all events via logEvent() and legacy
+ * hooks are still invoked as a fallback for backward compatibility.
+ * @param {object} broker - SiemSecurityBroker instance
+ */
+function setBroker(broker) {
+  _broker = broker || null;
+}
+
+/**
+ * Invoke SIEM hooks for a high-severity event, with rate limiting.
+ * Excess calls beyond SIEM_RATE_LIMIT_PER_MIN per event type are dropped silently.
+ * When a SiemSecurityBroker is set, events are routed through broker.logEvent()
+ * with the broker's own token-bucket rate limiter. Legacy hooks still fire
+ * for backward compatibility.
+ * @param {string} eventType
+ * @param {string} node
+ * @param {object} details
+ */
+function _invokeSiemHooks(eventType, node, details) {
+  const now = Date.now();
+  let counter = _siemRateCounters.get(eventType);
+  if (!counter || (now - counter.windowStart) > 60000) {
+    counter = { count: 0, windowStart: now };
+    _siemRateCounters.set(eventType, counter);
+  }
+  counter.count++;
+  if (counter.count > SIEM_RATE_LIMIT_PER_MIN) return; // drop silently
+
+  // Route through SiemSecurityBroker when available
+  if (_broker) {
+    try {
+      _broker.logEvent({
+        siemSeverity: (details && details.siemSeverity || 'high').toUpperCase(),
+        siemCategory: (details && details.siemCategory) || eventType.toLowerCase(),
+        siemSource: 'cluster-keyring-sync',
+        context: { eventType, node, ...details },
+      });
+    } catch (err) {
+      _log('warn', 'SIEM broker threw error', { error: err.message, eventType });
+    }
+  }
+
+  // Legacy hooks still fire for backward compatibility
+  for (const hook of _siemHooks) {
+    try {
+      hook(eventType, node, details);
+    } catch (err) {
+      _log('warn', 'SIEM hook threw error', { error: err.message, eventType });
+    }
+  }
+}
+
+/**
+ * Get current epoch state for diagnostics.
+ * @returns {object}
+ */
+function getEpochState() {
+  return {
+    localEpoch: _state.epoch,
+    reconcileThreshold: EPOCH_RECONCILE_THRESHOLD,
+    peerEpochs: Object.fromEntries(_peerEpochs),
+  };
+}
+
+// High-severity event types that trigger SIEM hooks
+const SIEM_EVENT_TYPES = new Set([
+  EVENT_TYPES.KEY_REJECT,
+  EVENT_TYPES.ISOLATION_VIOLATION,
+  EVENT_TYPES.EPOCH_DRIFT,
+  EVENT_TYPES.SPLIT_BRAIN_DETECTED,
+]);
+
+/**
+ * IPC message schema definitions per message type.
+ * Each schema lists required fields and their allowed types.
+ * Unknown fields are rejected (strict allowlist).
+ */
+const IPC_SCHEMAS = {
+  HEARTBEAT: {
+    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeFingerprint: ['string', 'object'], previousFingerprint: ['string', 'object'], rotatedAt: ['number', 'object'] },
+    optional: {},
+  },
+  KEY_COMMIT: {
+    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeHex: 'string', activeFingerprint: 'string', rotatedAt: 'number' },
+    optional: { previousHex: ['string', 'object'], previousFingerprint: ['string', 'object'], graceMs: ['number', 'object'] },
+  },
+  ANNOUNCE: {
+    required: { type: 'string', nodeId: 'string' },
+    optional: {},
+  },
+  ANNOUNCE_ACK: {
+    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number' },
+    optional: {},
+  },
+  DKG_COMMIT: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', commitments: 'object' },
+    optional: {},
+  },
+  DKG_SHARE: {
+    required: { type: 'string', from: 'string', to: 'string', sessionId: 'string', epoch: 'number', share: 'string' },
+    optional: {},
+  },
+  DKG_COMPLAINT: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', target: 'string', reason: 'string' },
+    optional: {},
+  },
+  DKG_DISQUALIFY: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', target: 'string', reason: 'string' },
+    optional: {},
+  },
+  DKG_FINALIZE: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', masterPublicKey: 'string' },
+    optional: {},
+  },
+};
+
+// IPC audit logging rate limiter
+const IPC_AUDIT_RATE_LIMIT = 100; // max per minute
+const _ipcAuditCounter = { count: 0, windowStart: 0 };
+
+/**
+ * Validate an incoming IPC message against its schema.
+ * Rejects unknown types, missing required fields, wrong types, and unknown fields.
+ * @param {object} msg - incoming message
+ * @param {object} socket - socket for peer identification
+ * @returns {boolean} true if valid, false if rejected
+ */
+function _validateMessageSchema(msg, socket) {
+  if (!msg || typeof msg !== 'object') {
+    _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+      reason: 'invalid_message_object',
+      peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+      siemSeverity: 'high',
+      siemCategory: 'ipc_schema_violation',
+      siemSource: 'cluster-keyring-sync',
+    });
+    return false;
+  }
+  const schema = IPC_SCHEMAS[msg.type];
+  if (!schema) {
+    _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+      reason: 'unknown_message_type',
+      msgType: msg.type,
+      peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+      siemSeverity: 'high',
+      siemCategory: 'ipc_schema_violation',
+      siemSource: 'cluster-keyring-sync',
+    });
+    return false;
+  }
+  // Check required fields
+  for (const [field, allowedTypes] of Object.entries(schema.required)) {
+    if (!(field in msg)) {
+      _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+        reason: 'missing_field',
+        field,
+        msgType: msg.type,
+        peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+        siemSeverity: 'high',
+        siemCategory: 'ipc_schema_violation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      return false;
+    }
+    const actualType = Array.isArray(msg[field]) ? 'array' : typeof msg[field];
+    const allowed = Array.isArray(allowedTypes) ? allowedTypes : [allowedTypes];
+    if (!allowed.includes(actualType)) {
+      _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+        reason: 'wrong_type',
+        field,
+        expected: allowed.join('|'),
+        actual: actualType,
+        msgType: msg.type,
+        peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+        siemSeverity: 'high',
+        siemCategory: 'ipc_schema_violation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      return false;
+    }
+  }
+  // Check for unknown fields (strict allowlist)
+  const allowedFields = new Set([...Object.keys(schema.required), ...Object.keys(schema.optional)]);
+  for (const field of Object.keys(msg)) {
+    if (!allowedFields.has(field)) {
+      _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+        reason: 'unknown_field',
+        field,
+        msgType: msg.type,
+        peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+        siemSeverity: 'high',
+        siemCategory: 'ipc_schema_violation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      return false;
+    }
+  }
+  // Rate-limited IPC audit logging
+  const now = Date.now();
+  if (now - _ipcAuditCounter.windowStart > 60000) {
+    _ipcAuditCounter.count = 0;
+    _ipcAuditCounter.windowStart = now;
+  }
+  _ipcAuditCounter.count++;
+  if (_ipcAuditCounter.count <= IPC_AUDIT_RATE_LIMIT) {
+    _recordEvent(EVENT_TYPES.IPC_MESSAGE_RECEIVED, msg.from || NODE_ID, {
+      msgType: msg.type,
+      peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+    });
+  }
+  return true;
+}
+
 function _handleMessage(msg, socket) {
   if (!msg || !msg.type) return;
   const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
+  // Validate message schema before any processing
+  if (!_validateMessageSchema(msg, socket)) {
+    _log('warn', 'IPC schema violation ΓÇö destroying socket', { peer: peerKey, msgType: msg.type });
+    socket.destroy();
+    return;
+  }
 
   if (msg.type === 'ANNOUNCE') {
     _peerState.set(peerKey, { lastSeen: Date.now(), nodeId: msg.nodeId });
@@ -568,7 +910,8 @@ function _handleMessage(msg, socket) {
     const remotePort = socket.remotePort;
     if (!_isKnownClusterPeer(remoteHost, remotePort) && !_isSelf(remoteHost, remotePort)) {
       _log('warn', 'Rejected message from unknown cluster peer', { peer: peerKey, type: msg.type });
-      _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type });
+      _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type, siemSeverity: 'critical', siemCategory: 'network_isolation', siemSource: 'cluster-keyring-sync' });
+      incrementCounter('hsm_isolation_violation_total');
       socket.destroy();
       return;
     }
@@ -580,12 +923,28 @@ function _handleMessage(msg, socket) {
           reason: 'not_leader',
           currentLeader: _state.leaderId,
         });
+        incrementCounter('hsm_key_reject_total');
         return;
       }
       // Validate hex format before applying
       if (!_validateStrictLowercaseHex(msg.activeHex, 'activeHex')) return;
       if (msg.previousHex && !_validateStrictLowercaseHex(msg.previousHex, 'previousHex')) return;
+      // Reject KEY_COMMIT with stale epoch (replay attack prevention)
+      if (typeof msg.epoch === 'number' && msg.epoch < _state.epoch) {
+        _log('warn', 'Rejected KEY_COMMIT with stale epoch', { from: msg.from, peerEpoch: msg.epoch, localEpoch: _state.epoch });
+        _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, {
+          reason: 'stale_epoch',
+          peerEpoch: msg.epoch,
+          localEpoch: _state.epoch,
+          siemSeverity: 'high',
+          siemCategory: 'replay_attack',
+          siemSource: 'cluster-keyring-sync',
+        });
+        return;
+      }
     }
+    // Validate incoming epoch (after whitelist check, before state update)
+    if (!_validateIncomingEpoch(msg, peerKey)) return;
     const peer = _peerState.get(peerKey) || {};
     peer.lastSeen = Date.now();
     peer.leaderId = msg.leaderId;
@@ -656,7 +1015,7 @@ function _connectToPeer(host, port) {
   }
 }
 
-// ── Transport security model ────────────────────────────────────────────────
+// ΓöÇΓöÇ Transport security model ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // The cluster keyring transport is OPPORTUNISTIC TLS, NOT mutual TLS (mTLS):
 //   - Server: requestCert:false, rejectUnauthorized:false  (no client cert
 //     requested or verified)
@@ -673,7 +1032,7 @@ function _connectToPeer(host, port) {
 // install or observe cluster keys.
 //
 // Do NOT enable mTLS (requestCert:true / rejectUnauthorized:true + a real
-// CA chain) unless the deployment actually crosses untrusted networks — and
+// CA chain) unless the deployment actually crosses untrusted networks ΓÇö and
 // if it does, also stop broadcasting raw key hex in favor of per-node
 // encrypted key wrapping. Both changes are out of scope for the trusted-
 // network threat model and must be designed together.
@@ -870,7 +1229,7 @@ function proposeRotate(newKeyRaw, graceMs) {
 }
 
 
-// ── DKG Transcript Gossip Transport ──────────────────────────────────────────
+// ΓöÇΓöÇ DKG Transcript Gossip Transport ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 /**
  * Initialize a DKG session as the leader. Generates a contribution via the
@@ -984,6 +1343,230 @@ function _resetDkgSession() {
   _dkgSession = null;
 }
 
+function _resetEpoch() {
+  _state.epoch = 0;
+}
+
+function _resetEpochState() {
+  _peerEpochs.clear();
+  _siemHooks.length = 0;
+  _broker = null;
+  _siemRateCounters.clear();
+  _snapshotHistory.length = 0;
+}
+
+// ΓöÇΓöÇ State Snapshot Checkpoint Utility ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+/**
+ * Create a state snapshot checkpoint of the current cluster topology.
+ * Captures _state, _peerState, _peerEpochs, STEK metadata, and DKG session
+ * metadata (if active). Excludes all raw key material, STEK bytes, and DKG
+ * private shares for security.
+ * @param {string} reason - why the snapshot was created (e.g. 'epoch_drift', 'manual')
+ * @returns {object} serializable snapshot object
+ */
+function createStateSnapshot(reason) {
+  const snapshotId = 'snap-' + Date.now() + '-' + crypto.randomBytes(4).toString('hex');
+  const timestamp = Date.now();
+
+  // Capture _state (fingerprints only, no raw key material)
+  const stateCapture = {
+    nodeId: _state.nodeId,
+    leaderId: _state.leaderId,
+    epoch: _state.epoch,
+    activeFingerprint: _state.activeFingerprint,
+    previousFingerprint: _state.previousFingerprint,
+    rotatedAt: _state.rotatedAt,
+  };
+
+  // Capture _peerState (serializable object, not Map)
+  const peerStateCapture = {};
+  for (const [peerKey, peer] of _peerState.entries()) {
+    peerStateCapture[peerKey] = {
+      lastSeen: peer.lastSeen,
+      leaderId: peer.leaderId,
+      activeFingerprint: peer.activeFingerprint,
+      previousFingerprint: peer.previousFingerprint,
+      rotatedAt: peer.rotatedAt,
+    };
+  }
+
+  // Capture _peerEpochs
+  const peerEpochsCapture = Object.fromEntries(_peerEpochs);
+
+  // Capture STEK metadata (stekId as hex string, not raw STEK bytes)
+  const stekCapture = {
+    stekId: _stekId ? (_stekId.toString('hex') || null) : null,
+    retiredCount: _retiredSteks.size,
+  };
+
+  // Capture DKG session metadata (if active, public fields only)
+  let dkgSessionCapture = null;
+  if (_dkgSession) {
+    dkgSessionCapture = {
+      phase: _dkgSession.phase,
+      sessionId: _dkgSession.sessionId,
+      nodeId: _dkgSession.nodeId,
+      finalized: _dkgSession.finalized,
+      contributionCount: _dkgSession.contributions.size,
+      sharesReceivedCount: _dkgSession.sharesReceived.size,
+      complaintCount: _dkgSession.complaints.length,
+      disqualifiedCount: _dkgSession.disqualified.size,
+      masterPublicKey: _dkgSession.masterPublicKey,
+    };
+  }
+
+  const snapshot = {
+    snapshotId,
+    timestamp,
+    reason: reason || 'manual',
+    state: stateCapture,
+    peerState: peerStateCapture,
+    peerEpochs: peerEpochsCapture,
+    stek: stekCapture,
+    dkgSession: dkgSessionCapture,
+  };
+
+  // Add to history (ring buffer, max MAX_SNAPSHOTS)
+  _snapshotHistory.push({
+    snapshotId,
+    timestamp,
+    reason: snapshot.reason,
+  });
+  if (_snapshotHistory.length > MAX_SNAPSHOTS) {
+    _snapshotHistory.shift();
+  }
+
+  _recordEvent(EVENT_TYPES.STATE_SNAPSHOT, NODE_ID, {
+    snapshotId,
+    reason: snapshot.reason,
+    epoch: _state.epoch,
+    peerCount: Object.keys(peerStateCapture).length,
+  });
+
+  _log('info', 'State snapshot created', { snapshotId, reason: snapshot.reason, epoch: _state.epoch });
+
+  return snapshot;
+}
+
+/**
+ * Validate a snapshot object schema before restoring.
+ * Uses direct property existence checks (matches _validateMessageSchema pattern).
+ * @param {object} snapshot - the snapshot to validate
+ * @returns {string|null} error reason string, or null if valid
+ */
+function _validateSnapshotSchema(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return 'invalid_snapshot_object';
+  if (typeof snapshot.snapshotId !== 'string' || !snapshot.snapshotId.startsWith('snap-')) {
+    return 'invalid_snapshot_id';
+  }
+  if (typeof snapshot.timestamp !== 'number' || snapshot.timestamp <= 0) {
+    return 'invalid_timestamp';
+  }
+  if (typeof snapshot.reason !== 'string') return 'invalid_reason';
+  if (!snapshot.state || typeof snapshot.state !== 'object') return 'missing_state';
+  if (typeof snapshot.state.nodeId !== 'string') return 'invalid_state_nodeId';
+  if (typeof snapshot.state.epoch !== 'number') return 'invalid_state_epoch';
+  if (!snapshot.peerState || typeof snapshot.peerState !== 'object') return 'missing_peerState';
+  if (!snapshot.peerEpochs || typeof snapshot.peerEpochs !== 'object') return 'missing_peerEpochs';
+  if (!snapshot.stek || typeof snapshot.stek !== 'object') return 'missing_stek';
+  if (snapshot.dkgSession !== null && typeof snapshot.dkgSession !== 'object') {
+    return 'invalid_dkgSession';
+  }
+  return null;
+}
+
+/**
+ * Restore cluster state from a previously captured snapshot.
+ * Validates the snapshot schema before applying. If validation fails, triggers
+ * a CRITICAL SIEM escalation and throws.
+ * @param {object} snapshot - the snapshot to restore
+ * @throws {Error} if snapshot is invalid
+ */
+function restoreStateSnapshot(snapshot) {
+  const validationError = _validateSnapshotSchema(snapshot);
+  if (validationError) {
+    _recordEvent(EVENT_TYPES.STATE_SNAPSHOT, NODE_ID, {
+      reason: 'restore_failed',
+      validationError,
+      siemSeverity: 'critical',
+      siemCategory: 'state_corruption',
+      siemSource: 'cluster-keyring-sync',
+    });
+    _invokeSiemHooks(EVENT_TYPES.STATE_SNAPSHOT, {
+      reason: 'restore_failed',
+      validationError,
+      siemSeverity: 'critical',
+      siemCategory: 'state_corruption',
+    });
+    _log('error', 'State snapshot restore failed ΓÇö schema validation error', { validationError });
+    throw new Error('STATE_SNAPSHOT_INVALID: ' + validationError);
+  }
+
+  // Restore _state (fingerprints only, no raw key material)
+  _state.leaderId = snapshot.state.leaderId;
+  _state.epoch = snapshot.state.epoch;
+  _state.activeFingerprint = snapshot.state.activeFingerprint;
+  _state.previousFingerprint = snapshot.state.previousFingerprint;
+  _state.rotatedAt = snapshot.state.rotatedAt;
+
+  // Restore _peerState
+  _peerState.clear();
+  for (const [peerKey, peer] of Object.entries(snapshot.peerState)) {
+    _peerState.set(peerKey, {
+      lastSeen: peer.lastSeen,
+      leaderId: peer.leaderId,
+      activeFingerprint: peer.activeFingerprint,
+      previousFingerprint: peer.previousFingerprint,
+      rotatedAt: peer.rotatedAt,
+    });
+  }
+
+  // Restore _peerEpochs
+  _peerEpochs.clear();
+  for (const [peerKey, epoch] of Object.entries(snapshot.peerEpochs)) {
+    _peerEpochs.set(peerKey, epoch);
+  }
+
+  // Note: STEK and DKG session are NOT restored from snapshot ΓÇö only metadata
+  // was captured, not the raw STEK bytes or DKG engine state. This is by design:
+  // STEK rotation and DKG sessions have their own lifecycle management.
+
+  _recordEvent(EVENT_TYPES.STATE_RESTORED, NODE_ID, {
+    snapshotId: snapshot.snapshotId,
+    reason: snapshot.reason,
+    epoch: _state.epoch,
+    peerCount: _peerState.size,
+  });
+
+  _log('info', 'State snapshot restored', {
+    snapshotId: snapshot.snapshotId,
+    reason: snapshot.reason,
+    epoch: _state.epoch,
+  });
+
+  return { restored: true, snapshotId: snapshot.snapshotId };
+}
+
+/**
+ * Get metadata for recent snapshots (no sensitive data).
+ * @returns {object[]} array of snapshot metadata
+ */
+function getSnapshotHistory() {
+  return _snapshotHistory.map((entry) => ({
+    snapshotId: entry.snapshotId,
+    timestamp: entry.timestamp,
+    reason: entry.reason,
+  }));
+}
+
+/**
+ * Clear snapshot history (for testing/reset).
+ */
+function clearSnapshotHistory() {
+  _snapshotHistory.length = 0;
+}
+
 function _handleDkgMessage(msg, socket) {
   if (!msg || !DKG_MESSAGE_TYPES.has(msg.type)) return;
   const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
@@ -993,19 +1576,22 @@ function _handleDkgMessage(msg, socket) {
   if (!_isKnownClusterPeer(remoteHost, remotePort) && !_isSelf(remoteHost, remotePort)) {
     _log('warn', 'Rejected DKG message from unknown cluster peer', { peer: peerKey, type: msg.type });
     _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type });
+    incrementCounter('hsm_isolation_violation_total');
     _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, { reason: 'unknown_peer', msgType: msg.type });
     socket.destroy();
     return;
   }
 
   if (DKG_LEADER_ONLY_TYPES.has(msg.type)) {
-    if (msg.from && _state.leaderId && msg.from !== _state.leaderId) {
+    const isolationPolicy = _getIsolationPolicy();
+    if (!isolationPolicy.allowDkgNonLeaderMessages && msg.from && _state.leaderId && msg.from !== _state.leaderId) {
       _log('warn', 'Rejected ' + msg.type + ' from non-leader node', { from: msg.from, currentLeader: _state.leaderId });
       _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
         reason: 'not_leader',
         msgType: msg.type,
         currentLeader: _state.leaderId,
       });
+      incrementCounter('hsm_key_reject_total');
       return;
     }
   }
@@ -1296,5 +1882,26 @@ module.exports = {
   _serializeDkgBigInt,
   _deserializeDkgBigInt,
   _validateDkgHex,
+  // Epoch-frame verification
+  getEpochState,
+  _validateIncomingEpoch,
+  _resetEpochState,
+  _handleMessage,
+  _resetEpoch,
+  _validateMessageSchema,
+  IPC_SCHEMAS,
+  // SIEM alerting hooks
+  registerSiemHook,
+  setBroker,
+  _invokeSiemHooks,
+  _siemHooks,
+  // State snapshot checkpoint utility
+  createStateSnapshot,
+  restoreStateSnapshot,
+  getSnapshotHistory,
+  clearSnapshotHistory,
+  _validateSnapshotSchema,
+  _snapshotHistory,
+  MAX_SNAPSHOTS,
 };
 

@@ -1,11 +1,10 @@
 'use strict';
 
 /**
- * Track 30: Post-Quantum identity ratchet.
+ * Track 30: Post-Quantum Identity Ratchet.
  *
- * Simulates a forward-secure identity rotation using a hybrid ML-KEM
- * shared-secret ratchet. Each step derives a new chain key from the previous
- * chain key and a fresh KEM shared secret.
+ * Simulates a PQC hybrid KEM identity ratchet that rotates a chain key using
+ * an ML-KEM-style shared secret combined with the previous chain key.
  *
  * @module hsm-adapter/pqc-identity-ratchet
  */
@@ -13,92 +12,66 @@
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 
-const ALLOWED_KEM_LEVELS = new Set([512, 768, 1024]);
-const ALLOWED_SCHEMES = new Set(['ml-kem-768', 'ml-kem-1024']);
-
-function _hkdfSalted(secret, salt, info, length) {
-  const prk = crypto.createHmac('sha256', salt).update(secret).digest();
-  const okm = crypto.createHmac('sha256', prk).update(info).digest();
-  return okm.slice(0, length);
+function _hashHex(inputs) {
+  const h = crypto.createHash('sha256');
+  for (const item of inputs) {
+    h.update(typeof item === 'string' ? item : JSON.stringify(item));
+  }
+  return h.digest('hex');
 }
 
 class PqcIdentityRatchet {
   /**
    * @param {object} options
    * @param {string} options.deviceId
-   * @param {number} options.kemLevel
-   * @param {string} options.scheme
-   * @param {Buffer} [options.rootKey]
-   * @param {number} [options.maxSkipped]
-   * @param {number} [options.sessionExpiryMs]
+   * @param {string} [options.scheme='ml-kem-768']
+   * @param {number} [options.kemLevel=768]
+   * @param {string} [options.chainKey]
+   * @param {number} [options.skipped=0]
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
     this.deviceId = options.deviceId;
-    this.kemLevel = options.kemLevel || 768;
     this.scheme = options.scheme || 'ml-kem-768';
-    this._rootKey = options.rootKey || crypto.randomBytes(32);
-    this._chainKey = this._rootKey;
-    this._skipped = 0;
-    this._maxSkipped = options.maxSkipped || 1000;
-    this._sessionExpiryMs = options.sessionExpiryMs || 86400000;
-    this._createdAt = Date.now();
+    this.kemLevel = options.kemLevel || 768;
+    this._chainKey = options.chainKey || _hashHex([this.deviceId, this.scheme, 'seed']);
+    this._skipped = options.skipped || 0;
     this._audit = options.audit || null;
   }
 
   /**
    * Step the ratchet with a new KEM shared secret.
-   * @param {Buffer} kemSharedSecret
-   * @returns {{chainKey: Buffer, skipped: number}}
+   * @param {Buffer|string} sharedSecret
+   * @returns {{chainKey: string, skipped: number}}
    */
-  step(kemSharedSecret) {
-    if (!Buffer.isBuffer(kemSharedSecret)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'kemSharedSecret must be a Buffer');
+  step(sharedSecret) {
+    if (!sharedSecret) {
+      throw new HsmAdapterError('INVALID_INPUT', 'sharedSecret is required');
     }
-    if (!ALLOWED_KEM_LEVELS.has(this.kemLevel)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `kemLevel ${this.kemLevel} is not allowed`);
-    }
-    if (!ALLOWED_SCHEMES.has(this.scheme)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `scheme ${this.scheme} is not allowed`);
-    }
-    if (this._skipped >= this._maxSkipped) {
-      throw new HsmAdapterError('IDENTITY_RATCHET_EXHAUSTED', `skipped count ${this._skipped} exceeds max ${this._maxSkipped}`);
-    }
-    if (Date.now() - this._createdAt > this._sessionExpiryMs) {
-      throw new HsmAdapterError('IDENTITY_RATCHET_EXPIRED', 'ratchet session has expired');
-    }
-
-    const salt = Buffer.concat([this._chainKey, kemSharedSecret]);
-    const info = `pqc-ratchet-step:${this.deviceId}:${this._skipped}`;
-    this._chainKey = _hkdfSalted(salt, this._chainKey, info, 32);
+    const secret = typeof sharedSecret === 'string' ? sharedSecret : sharedSecret.toString('hex');
+    this._chainKey = _hashHex([this._chainKey, secret, this.scheme, this.kemLevel, this._skipped]);
     this._skipped += 1;
-
     this._emitAudit('IDENTITY_RATCHET_STEPPED', {
       deviceId: this.deviceId,
-      kemLevel: this.kemLevel,
       scheme: this.scheme,
+      kemLevel: this.kemLevel,
       skipped: this._skipped,
-      chainKeyHash: _hashBuffer(this._chainKey),
+      chainKeyHash: _hashHex([this._chainKey]),
     });
-
     return { chainKey: this._chainKey, skipped: this._skipped };
   }
 
   /**
-   * Get the current chain key metadata.
-   * @returns {{skipped: number, chainKeyHash: string}}
+   * Get the current chain key.
+   * @returns {string}
    */
-  getState() {
-    return { skipped: this._skipped, chainKeyHash: _hashBuffer(this._chainKey) };
+  getChainKey() {
+    return this._chainKey;
   }
 
   _emitAudit(event, info) {
     if (this._audit) this._audit(event, { timestamp: Date.now(), ...info });
   }
-}
-
-function _hashBuffer(buf) {
-  return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
 module.exports = { PqcIdentityRatchet };

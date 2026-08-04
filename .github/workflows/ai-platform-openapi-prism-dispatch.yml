@@ -1,0 +1,91 @@
+name: ai-platform — OpenAPI lint, Prism mock, tests (dispatch)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: |
+          npm ci
+
+      - name: Prepare test-results dir
+        run: mkdir -p ai-platform/test-results
+
+      - name: Start Prism mock (Docker) in background
+        run: |
+          docker pull stoplight/prism:4 || true
+          docker run -d --rm --name prism-mock -p 4010:4010 -v $GITHUB_WORKSPACE/ai-platform/api/openapi.yaml:/spec/openapi.yaml:ro stoplight/prism:4 mock /spec/openapi.yaml -h 0.0.0.0 -p 4010 || true
+
+      - name: Wait for Prism readiness
+        run: |
+          echo 'Waiting for Prism at http://localhost:4010/ ...'
+          for i in {1..60}; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4010/policies 2>/dev/null || echo "000")
+            if [ "$code" != "000" ]; then
+              echo "Prism is ready (HTTP $code)"; exit 0
+            fi
+            sleep 1
+          done
+          echo 'Prism did not become ready in time'; docker logs prism-mock || true; exit 1
+
+      - name: Run ai-platform tests (capture JSON + console log)
+        env:
+          CI: true
+        run: |
+          mkdir -p ai-platform/test-results
+          npm --prefix ai-platform test -- --runInBand --json --outputFile=test-results/jest-results.json 2>&1 | tee ai-platform/test-results/jest-console.log
+
+      - name: Run integration tests against Prism mock
+        env:
+          CI: true
+          PRISM_BASE: http://localhost:4010
+        run: |
+          npm --prefix ai-platform test -- tests/integration --runInBand || true
+
+      - name: Collect Prism logs (on failure)
+        if: failure()
+        run: docker logs prism-mock || true
+
+      - name: Stop Prism mock
+        if: always()
+        run: docker rm -f prism-mock || true
+
+      - name: Diagnostics - list test-results directories
+        if: always()
+        run: |
+          echo "Workspace root: $GITHUB_WORKSPACE"
+          echo '--- ls workspace root ---'
+          ls -la || true
+          echo '--- ls test-results ---'
+          ls -la test-results || true
+          echo '--- ls ai-platform/test-results ---'
+          ls -la ai-platform/test-results || true
+          echo '--- find jest-results.json ---'
+          find . -maxdepth 4 -type f -name 'jest-results.json' -print || true
+
+      - name: Parse Jest results to Prom + JSON
+        if: always()
+        run: |
+          echo 'Parsing Jest JSON to Prom metrics and summary...'
+          node ai-platform/tools/ci-telemetry/parse-jest-results.cjs ai-platform/test-results/jest-results.json ai-platform/test-results || true
+
+      - name: Upload test artifacts (both locations)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-platform-test-results
+          path: |
+            test-results/**
+            ai-platform/test-results/**

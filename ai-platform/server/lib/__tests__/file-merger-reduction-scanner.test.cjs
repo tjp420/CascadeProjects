@@ -56,8 +56,13 @@ describe('file-merger-reduction-scanner', () => {
       expect(files.length).toBeGreaterThan(0);
       expect(files[0]).toHaveProperty('path');
     } finally {
-      fs.unlinkSync(path.join(tmpDir, 'test.json'));
-      fs.rmdirSync(tmpDir);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  test('collectRepositoryFiles handles missing directory gracefully', async () => {
+    const result = await collectRepositoryFiles('/non-existent-fmrs-path');
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBe(0);
   });
 });

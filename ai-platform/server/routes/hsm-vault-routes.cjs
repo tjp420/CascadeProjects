@@ -10,6 +10,7 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const hsm = require('../lib/hsm-vault.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -17,8 +18,42 @@ const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 const { RecursiveProofAggregationEngine } = require('../lib/hsm-adapter/recursive-proof-aggregation-engine.cjs');
 const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
 const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
+const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
+const { PqcBlindedRingSignatureGatingHub } = require('../lib/hsm-adapter/pqc-blinded-ring-signature-gating-hub.cjs');
+const { PqcDirectAccumulatorMembershipGatingHub } = require('../lib/hsm-adapter/pqc-direct-accumulator-membership-gating-hub.cjs');
+const { PqcLatticeVssGatingHub } = require('../lib/hsm-adapter/pqc-lattice-vss-gating-hub.cjs');
+const { PqcLatticeVfhssGatingHub } = require('../lib/hsm-adapter/pqc-lattice-vfhss-gating-hub.cjs');
+const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+const SessionStore = require('../lib/crypto/ratchet/session-store.cjs');
+const { encryptEnvelope } = require('../lib/crypto/ratchet/envelope-crypto.cjs');
 
 const router = express.Router();
+
+// In-memory registry for Track 31 lookup gating pools (per-process; persistent storage out of scope)
+const lookupGatingPools = new Map();
+
+// In-memory registry for Track 32 ring gating pools (per-process; persistent storage out of scope)
+const ringGatingPools = new Map();
+
+// Shared policy engine instance for Track 32 ring gating
+const ringGatingPolicyEngine = new CryptoPolicyEngine();
+
+// In-memory registry for Track 33 accumulator gating pools (per-process; persistent storage out of scope)
+const accumulatorGatingPools = new Map();
+
+// Shared policy engine instance for Track 33 accumulator gating
+const accumulatorGatingPolicyEngine = new CryptoPolicyEngine();
+
+// In-memory registry for Track 114 lattice VSS gating pools (per-process; persistent storage out of scope)
+const latticeVssGatingPools = new Map();
+
+// Shared policy engine instance for Track 114 lattice VSS gating
+const latticeVssGatingPolicyEngine = new CryptoPolicyEngine();
+// In-memory registry for Track 115 lattice VFHSS gating pools (per-process; persistent storage out of scope)
+const latticeVfhssGatingPools = new Map();
+
+// Shared policy engine instance for Track 115 lattice VFHSS gating
+const latticeVfhssGatingPolicyEngine = new CryptoPolicyEngine();
 
 // Apply token-bucket defense to all admin HSM vault routes, after auth
 function authBeforeThrottle(req, res, next) {
@@ -30,7 +65,7 @@ function authBeforeThrottle(req, res, next) {
 router.use(authBeforeThrottle);
 
 function resolveOrgId(req) {
-  return req.orgId || req.query.orgId || req.body.orgId || 'default';
+  return req.orgId || req.query.orgId || (req.body && req.body.orgId) || 'default';
 }
 
 function runAsync(fn) {
@@ -1385,6 +1420,821 @@ router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), functi
   }
 });
 
+function resolveLookupGatingPool(poolId) {
+  const pool = lookupGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/lookup-gating/pool — create a Track 31 lookup gating pool
+router.post('/lookup-gating/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const policy = (req.body && req.body.policy) || {};
+  const hub = new PqcHomomorphicDatabaseLookupGatingHub({ policy });
+  lookupGatingPools.set(hub.poolId, { hub, orgId, createdAt: Date.now() });
+  res.json({
+    success: true,
+    orgId,
+    poolId: hub.poolId,
+    state: hub.state,
+  });
+}));
+
+// GET /api/vault/lookup-gating/telemetry — expose Track 31 telemetry counters
+router.get('/lookup-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_lookupgate_pool_initialized_total: allMetrics.hsm_lookupgate_pool_initialized_total || 0,
+      hsm_zk_lookup_claim_verified_total: allMetrics.hsm_zk_lookup_claim_verified_total || 0,
+      hsm_lookup_accreditation_completed_total: allMetrics.hsm_lookup_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lookup_gating_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/lookup-gating/:poolId — get pool status
+router.get('/lookup-gating/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: entry.hub.poolId,
+    state: entry.hub.state,
+  });
+}));
+
+// POST /api/vault/lookup-gating/:poolId/query — submit a blinded query
+router.post('/lookup-gating/:poolId/query', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  const query = (req.body && req.body.query) || {};
+  try {
+    const state = entry.hub.submitQuery(query);
+    res.json({ success: true, orgId, poolId: entry.hub.poolId, state });
+  } catch (err) {
+    sendError(res, 400, err.code || 'LOOKUPGATE_INVALID_INPUT', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lookup-gating/:poolId/validate — validate a ZK lookup claim
+router.post('/lookup-gating/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  try {
+    const state = entry.hub.validateProof(claim);
+    res.json({ success: true, orgId, poolId: entry.hub.poolId, state });
+  } catch (err) {
+    sendError(res, 400, err.code || 'LOOKUPCLAIM_INVALID_INPUT', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lookup-gating/:poolId/accredit — finalize accreditation
+router.post('/lookup-gating/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLookupGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lookup_pool_not_found');
+  try {
+    const state = entry.hub.accredit();
+    res.json({ success: true, orgId, poolId: entry.hub.poolId, state });
+  } catch (err) {
+    sendError(res, 400, err.code || 'LOOKUPGATE_INVALID_STATE', { message: err.message });
+  }
+}));
+
+// GET /api/vault/lookup-gating/telemetry — expose Track 31 telemetry counters
+router.get('/lookup-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_lookupgate_pool_initialized_total: allMetrics.hsm_lookupgate_pool_initialized_total || 0,
+      hsm_zk_lookup_claim_verified_total: allMetrics.hsm_zk_lookup_claim_verified_total || 0,
+      hsm_lookup_accreditation_completed_total: allMetrics.hsm_lookup_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lookup_gating_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// ── Track 113: PQC Handshake Endpoint Integration ──────────────────────────────
+
+function handshakeProofIsValid(record, clientProof) {
+  // Placeholder verification: clientProof must match a deterministic digest of the session id.
+  if (typeof clientProof !== 'string' || !clientProof) return false;
+  const expected = crypto.createHmac('sha256', record.sessionId).update('track113-proof-challenge').digest('hex');
+  const proofBuf = Buffer.from(clientProof);
+  const expectedBuf = Buffer.from(expected);
+  if (proofBuf.length !== expectedBuf.length) return false;
+  return crypto.timingSafeEqual(proofBuf, expectedBuf);
+}
+
+// POST /api/vault/handshake/init — initialize an encrypted handshake session
+router.post('/handshake/init', authorize('admin:all'), runAsync(async (req, res) => {
+  const clientId = (req.body && req.body.clientId) || 'default-client';
+  const handshakeDigest = (req.body && req.body.handshakeDigest) || '';
+  const lifecycleTimeout = (req.body && typeof req.body.lifecycleTimeout === 'number') ? req.body.lifecycleTimeout : 3600000;
+  if (!clientId || !handshakeDigest) return sendError(res, 400, 'HANDSHAKE_MISSING_PARAMETERS');
+
+  const sessionId = crypto.randomBytes(16).toString('hex');
+  const tenantId = resolveOrgId(req);
+  const now = Date.now();
+  const handshakeDigestEncrypted = encryptEnvelope(handshakeDigest, process.env.TRACK113_KEK);
+  const record = SessionStore.create({
+    sessionId,
+    tenantId,
+    clientId,
+    status: 'INITIALIZED',
+    handshakeDigestEncrypted,
+    lifecycleTimeout,
+    createdAt: now,
+    updatedAt: now,
+    expiresAt: now + lifecycleTimeout,
+  });
+
+  res.status(201).json({
+    success: true,
+    orgId: tenantId,
+    sessionId: record.sessionId,
+    status: record.status,
+    expiresAt: record.expiresAt,
+  });
+}));
+
+// POST /api/vault/handshake/verify — verify a client proof and authenticate
+router.post('/handshake/verify', authorize('admin:all'), runAsync(async (req, res) => {
+  const sessionId = (req.body && req.body.sessionId) || '';
+  const clientProof = (req.body && req.body.clientProof) || '';
+  const expectedStateDigest = (req.body && req.body.expectedStateDigest) || '';
+  if (!sessionId || !clientProof || !expectedStateDigest) return sendError(res, 400, 'HANDSHAKE_MISSING_PARAMETERS');
+
+  const record = SessionStore.get(sessionId);
+  if (!record) return sendError(res, 404, 'HANDSHAKE_SESSION_NOT_FOUND');
+  if (record.status !== 'INITIALIZED') return sendError(res, 400, 'HANDSHAKE_INVALID_STATE');
+
+  // verify client proof; expectedStateDigest is accepted as a caller-supplied structural check
+  if (!handshakeProofIsValid(record, clientProof)) return sendError(res, 400, 'HANDSHAKE_INVALID_PROOF');
+
+  record.status = 'VERIFIED';
+  record.authenticatedAt = Date.now();
+  record.updatedAt = Date.now();
+  SessionStore.set(sessionId, record);
+
+  res.json({
+    success: true,
+    orgId: record.tenantId || resolveOrgId(req),
+    sessionId: record.sessionId,
+    status: record.status,
+    authenticatedAt: record.authenticatedAt,
+  });
+}));
+
+// GET /api/vault/handshake/:sessionId/telemetry — session audit stream
+router.get('/handshake/:sessionId/telemetry', authorize('admin:all'), runAsync(async (req, res) => {
+  const sessionId = req.params.sessionId || '';
+  const record = SessionStore.get(sessionId);
+  if (!record) return sendError(res, 404, 'HANDSHAKE_SESSION_NOT_FOUND');
+  res.json({
+    success: true,
+    orgId: record.tenantId || resolveOrgId(req),
+    sessionId: record.sessionId,
+    status: record.status,
+    clientId: record.clientId,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    authenticatedAt: record.authenticatedAt,
+    expiresAt: record.expiresAt,
+    // handshakeDigest intentionally omitted; never expose raw digest or keys
+  });
+}));
+
+
+// ── Track 32: PQC Blinded Ring-Signature Gating Hub endpoints ─────────────────
+
+function resolveRingGatingPool(poolId) {
+  const pool = ringGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/ring-gating/pool — initialize a Track 32 ring gating pool
+router.post('/ring-gating/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcBlindedRingSignatureGatingHub(orgId, ringGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  ringGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/ring-gating/:poolId/keys — collect anonymity set
+router.post('/ring-gating/:poolId/keys', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  const anonymitySet = (req.body && req.body.anonymitySet) || [];
+  if (!Array.isArray(anonymitySet)) return sendError(res, 400, 'RINGGATE_INVALID_KEYS');
+  try {
+    const status = entry.hub.collectKeys(anonymitySet);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      ringSize: entry.hub.keys.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'RINGGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/ring-gating/:poolId/validate — validate ZK ring proof
+router.post('/ring-gating/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const linkabilityToken = (req.body && req.body.linkabilityToken) || undefined;
+  const blindedLinkabilityAttestation = (req.body && req.body.blindedLinkabilityAttestation) || undefined;
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      linkabilityToken,
+      blindedLinkabilityAttestation,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const code = err.message && err.message.includes('RINGCLAIM_INVALID_ANONYMITY_SET_SIZE')
+      ? 'RINGCLAIM_INVALID_ANONYMITY_SET_SIZE'
+      : err.message && err.message.includes('RINGCLAIM_UNATTESTED_LINKABILITY')
+        ? 'RINGCLAIM_UNATTESTED_LINKABILITY'
+        : err.code || 'RINGGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/ring-gating/:poolId/accredit — finalize accreditation
+router.post('/ring-gating/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'RINGGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/ring-gating/telemetry — expose Track 32 telemetry counters (no raw keys/tokens)
+router.get('/ring-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_ringgate_pool_initialized_total: allMetrics.hsm_ringgate_pool_initialized_total || 0,
+      hsm_zk_ring_claim_verified_total: allMetrics.hsm_zk_ring_claim_verified_total || 0,
+      hsm_ring_accreditation_completed_total: allMetrics.hsm_ring_accreditation_completed_total || 0,
+      activePools: ringGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'ring_gating_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/ring-gating/:poolId — get pool status (no raw keys or tokens)
+router.get('/ring-gating/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    ringSize: entry.hub.keys.length,
+  });
+}));
+
+
+// ── Track 33: PQC Direct Accumulator Membership Proof Gating Hub endpoints ────
+
+function resolveAccumulatorGatingPool(poolId) {
+  const pool = accumulatorGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/accumulator-gating/pool — initialize a Track 33 accumulator gating pool
+router.post('/accumulator-gating/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcDirectAccumulatorMembershipGatingHub(orgId, accumulatorGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  accumulatorGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/accumulator-gating/:poolId/witnesses — collect witness set
+router.post('/accumulator-gating/:poolId/witnesses', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  const witnesses = (req.body && req.body.witnesses) || [];
+  if (!Array.isArray(witnesses)) return sendError(res, 400, 'ACCUMULATORGATE_INVALID_WITNESSES');
+  try {
+    const status = entry.hub.collectWitnesses(witnesses);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      witnessCount: entry.hub.witnesses.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'ACCUMULATORGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/accumulator-gating/:poolId/validate — validate ZK accumulator membership claim
+router.post('/accumulator-gating/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const manifest = (req.body && req.body.manifest) || {};
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      accumulatorSize: manifest.accumulatorSize || claim.accumulatorSize,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const msg = err.message || '';
+    const code = msg.includes('ACCUMULATORCLAIM_TREE_SIZE_EXCEEDED')
+      ? 'ACCUMULATORCLAIM_TREE_SIZE_EXCEEDED'
+      : msg.includes('ACCUMULATORCLAIM_INSUFFICIENT_WITNESS_QUORUM')
+        ? 'ACCUMULATORCLAIM_INSUFFICIENT_WITNESS_QUORUM'
+        : msg.includes('ACCUMULATORCLAIM_UNATTESTED_MEMBERSHIP')
+          ? 'ACCUMULATORCLAIM_UNATTESTED_MEMBERSHIP'
+          : err.code || 'ACCUMULATORGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/accumulator-gating/:poolId/accredit — finalize accreditation
+router.post('/accumulator-gating/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'ACCUMULATORGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/accumulator-gating/telemetry — expose Track 33 telemetry counters (no raw witness tokens or digests)
+router.get('/accumulator-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_accumulatorgate_pool_initialized_total: allMetrics.hsm_accumulatorgate_pool_initialized_total || 0,
+      hsm_zk_accumulator_claim_verified_total: allMetrics.hsm_zk_accumulator_claim_verified_total || 0,
+      hsm_accumulator_accreditation_completed_total: allMetrics.hsm_accumulator_accreditation_completed_total || 0,
+      activePools: accumulatorGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'accumulator_gating_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/accumulator-gating/:poolId — get pool status (no raw witness tokens or digests)
+router.get('/accumulator-gating/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveAccumulatorGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'accumulator_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    witnessCount: entry.hub.witnesses.length,
+  });
+}));
+
+// ── Track 114: PQC Lattice-Based Multi-Message VSS Gating Hub endpoints ──────
+
+function resolveLatticeVssGatingPool(poolId) {
+  const pool = latticeVssGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/lattice-vss/pool — initialize a Track 114 lattice VSS gating pool
+router.post('/lattice-vss/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcLatticeVssGatingHub(orgId, latticeVssGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  latticeVssGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/lattice-vss/:poolId/shares — collect lattice secret shares
+router.post('/lattice-vss/:poolId/shares', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  const shares = (req.body && req.body.shares) || [];
+  if (!Array.isArray(shares)) return sendError(res, 400, 'VSSGATE_INVALID_SHARES');
+  try {
+    const status = entry.hub.collectShares(shares);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      shareCount: entry.hub.shares.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vss/:poolId/validate — validate ZK lattice VSS claim
+router.post('/lattice-vss/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const manifest = (req.body && req.body.manifest) || {};
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      degreeBound: manifest.degreeBound || claim.degreeBound,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const msg = err.message || '';
+    const code = msg.includes('VSSCLAIM_DEGREE_BOUND_EXCEEDED')
+      ? 'VSSCLAIM_DEGREE_BOUND_EXCEEDED'
+      : msg.includes('VSSCLAIM_INSUFFICIENT_SHARES')
+        ? 'VSSCLAIM_INSUFFICIENT_SHARES'
+        : msg.includes('VSSCLAIM_UNATTESTED_BINDING')
+          ? 'VSSCLAIM_UNATTESTED_BINDING'
+          : err.code || 'VSSGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vss/:poolId/accredit — finalize accreditation
+router.post('/lattice-vss/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/lattice-vss/telemetry — expose Track 114 telemetry counters (no raw share tokens or polynomial data)
+router.get('/lattice-vss/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_vssgate_pool_initialized_total: allMetrics.hsm_vssgate_pool_initialized_total || 0,
+      hsm_zk_vss_claim_verified_total: allMetrics.hsm_zk_vss_claim_verified_total || 0,
+      hsm_vss_accreditation_completed_total: allMetrics.hsm_vss_accreditation_completed_total || 0,
+      activePools: latticeVssGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lattice_vss_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/lattice-vss/:poolId — get pool status (no raw share tokens or polynomial data)
+router.get('/lattice-vss/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    shareCount: entry.hub.shares.length,
+  });
+}));
+
+// ── Track 115: PQC Lattice-Based Multi-Message VFHSS Gating Hub endpoints ─────
+
+function resolveLatticeVfhssGatingPool(poolId) {
+  const pool = latticeVfhssGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/lattice-vfhss/pool — initialize a Track 115 lattice VFHSS gating pool
+router.post('/lattice-vfhss/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcLatticeVfhssGatingHub(orgId, latticeVfhssGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  latticeVfhssGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/lattice-vfhss/:poolId/shares — collect lattice VFHSS shares
+router.post('/lattice-vfhss/:poolId/shares', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
+  const shares = (req.body && req.body.shares) || [];
+  if (!Array.isArray(shares)) return sendError(res, 400, 'VFHSSGATE_INVALID_SHARES');
+  try {
+    const status = entry.hub.collectShares(shares);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      shareCount: entry.hub.shares.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VFHSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vfhss/:poolId/validate — validate ZK lattice VFHSS claim
+router.post('/lattice-vfhss/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const manifest = (req.body && req.body.manifest) || {};
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      homomorphicDepth: manifest.homomorphicDepth !== undefined ? manifest.homomorphicDepth : claim.homomorphicDepth,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const msg = err.message || '';
+    const code = msg.includes('VFHSSCLAIM_HOMOMORPHIC_DEPTH_EXCEEDED')
+      ? 'VFHSSCLAIM_HOMOMORPHIC_DEPTH_EXCEEDED'
+      : msg.includes('VFHSSCLAIM_INSUFFICIENT_SHARES')
+        ? 'VFHSSCLAIM_INSUFFICIENT_SHARES'
+        : msg.includes('VFHSSCLAIM_UNATTESTED_EVALUATION')
+          ? 'VFHSSCLAIM_UNATTESTED_EVALUATION'
+          : err.code || 'VFHSSGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vfhss/:poolId/accredit — finalize accreditation
+router.post('/lattice-vfhss/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VFHSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/lattice-vfhss/telemetry — expose Track 115 telemetry counters (no raw share tokens or polynomial data)
+router.get('/lattice-vfhss/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_vfhssgate_pool_initialized_total: allMetrics.hsm_vfhssgate_pool_initialized_total || 0,
+      hsm_zk_vfhss_claim_verified_total: allMetrics.hsm_zk_vfhss_claim_verified_total || 0,
+      hsm_vfhss_accreditation_completed_total: allMetrics.hsm_vfhss_accreditation_completed_total || 0,
+      activePools: latticeVfhssGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lattice_vfhss_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/lattice-vfhss/:poolId — get pool status (no raw share tokens or polynomial data)
+router.get('/lattice-vfhss/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    shareCount: entry.hub.shares.length,
+  });
+}));
+
+// ── Track 116: Cluster Isolation Hardening REST endpoints ─────────────────────
+
+// GET /api/vault/cluster-isolation/policy — return default clusterIsolationHardening policy
+router.get('/cluster-isolation/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.clusterIsolationHardening,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cluster_isolation_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/cluster-isolation/policy/validate — validate a proposed Track 116 configuration
+router.post('/cluster-isolation/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'clusterIsolationHardening', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'cluster_isolation_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/cluster-isolation/telemetry — expose Track 116 telemetry counters
+router.get('/cluster-isolation/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_isolation_violation_total: allMetrics.hsm_isolation_violation_total || 0,
+      hsm_key_reject_total: allMetrics.hsm_key_reject_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cluster_isolation_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// ── Track 117: BFT Shard Sync REST endpoints ────────────────────────────────
+
+// GET /api/vault/bft-shard-sync/policy — return default bftShardSync policy
+router.get('/bft-shard-sync/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.bftShardSync,
+    });
+  } catch (err) {
+    sendError(res, 500, 'bft_shard_sync_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/bft-shard-sync/policy/validate — validate a proposed Track 117 configuration
+router.post('/bft-shard-sync/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'bftShardSync', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'bft_shard_sync_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/bft-shard-sync/telemetry — expose Track 117 telemetry counters
+router.get('/bft-shard-sync/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_shard_append_total: allMetrics.hsm_shard_append_total || 0,
+      hsm_shard_ack_total: allMetrics.hsm_shard_ack_total || 0,
+      hsm_shard_commit_total: allMetrics.hsm_shard_commit_total || 0,
+      hsm_shard_catchup_batch_total: allMetrics.hsm_shard_catchup_batch_total || 0,
+      hsm_shard_byzantine_detected_total: allMetrics.hsm_shard_byzantine_detected_total || 0,
+      hsm_shard_limit_exceeded_total: allMetrics.hsm_shard_limit_exceeded_total || 0,
+      hsm_shard_lagging_nodes: allMetrics.hsm_shard_lagging_nodes || 0,
+      hsm_shard_active: allMetrics.hsm_shard_active || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'bft_shard_sync_telemetry_fetch_failed', { message: err.message });
+  }
+});
 
 // ── MuSig2 HSM Orchestrator endpoints (Option G) ───────────────────────
 

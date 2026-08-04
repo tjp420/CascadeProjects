@@ -1,0 +1,14 @@
+apiVersion: v2
+name: simplebeacon
+description: SimpleBeacon ai-platform server with parameterized security thresholds, Envoy egress sidecar, and mesh worker isolation
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - security
+  - cryptographic
+  - hsm
+  - sandbox
+  - siem
+maintainers:
+  - name: SimpleBeacon Engineering

@@ -232,7 +232,7 @@ jest.mock('redis', () => ({
     quit: jest.fn().mockResolvedValue(true),
     disconnect: jest.fn().mockResolvedValue(true)
   }))
-}));
+}), { virtual: true });
 
 // Mock PostgreSQL client
 jest.mock('pg', () => ({
@@ -248,7 +248,7 @@ jest.mock('pg', () => ({
     }),
     end: jest.fn().mockResolvedValue(true)
   }))
-}));
+}), { virtual: true });
 
 // Export setup for use in other files
 module.exports = {

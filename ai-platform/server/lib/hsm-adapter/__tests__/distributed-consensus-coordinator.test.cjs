@@ -15,10 +15,29 @@
 
 const { DistributedConsensusCoordinator, GROUP_STATE, COORDINATOR_EVENT } = require('../distributed-consensus-coordinator.cjs');
 const hsmMetrics = require('../../hsm-adapter/hsm-metrics.cjs');
+const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 
 describe('DistributedConsensusCoordinator', () => {
   let coordinator;
   let auditLog;
+
+  // Permissive policy engine for testing (allows low timeouts)
+  const permissivePolicyEngine = new CryptoPolicyEngine({
+    default: {},
+    tenants: {
+      default: {
+        distributedConsensusCoordinator: {
+          maxGroups: 64,
+          faultTimeoutMs: 1,
+          faultCheckIntervalMs: 100000,
+          viewChangeTimeoutMs: 1,
+          requireQuorumForProposals: true,
+          allowDynamicGroupCreation: true,
+          allowCrossGroupRouting: true,
+        },
+      },
+    },
+  });
 
   beforeEach(() => {
     hsmMetrics.reset();
@@ -31,6 +50,7 @@ describe('DistributedConsensusCoordinator', () => {
       faultCheckIntervalMs: 50,
       viewChangeTimeoutMs: 200,
       audit: (event, info) => auditLog.push({ event, info }),
+      policyEngine: permissivePolicyEngine,
     });
   });
 
@@ -81,6 +101,7 @@ describe('DistributedConsensusCoordinator', () => {
         coordinatorId: 'coord-small',
         nodeId: 'node-A',
         maxGroups: 2,
+        policyEngine: permissivePolicyEngine,
       });
       smallCoord.createGroup({ groupId: 'g1', clusterNodes: ['node-A', 'node-B'] });
       smallCoord.createGroup({ groupId: 'g2', clusterNodes: ['node-A', 'node-B'] });

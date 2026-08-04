@@ -2,7 +2,6 @@
 web/data/*-sample.json
 coming-soon/sample-report.html
 server/lib/fixtures/
-tests/
 tests/fixtures/
 
 # Build artifacts

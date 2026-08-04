@@ -247,6 +247,51 @@ const DEFAULT_POLICY = {
     allowCrossTenantTables: true,
     requireCanonicalPayloadLayout: true,
   },
+  lookupGating: {
+    minLookupQuorum: 12,
+    maxLookupDepth: 32,
+    requireEncryptedQueryAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedBlindingTypes: ['pedersen', 'exponential-elgamal'],
+    maxQueryAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
+  ringGating: {
+    minRingSize: 16,
+    maxRingSize: 128,
+    requireBlindedLinkabilityAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedBlindingTypes: ['pedersen', 'borromean'],
+    maxSignatureAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
+  accumulatorGating: {
+    maxAccumulatorSize: 65536,
+    minWitnessQuorum: 8,
+    requireEnclaveMembershipAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedAccumulatorTypes: ['rsa-accumulator', 'bilinear-pairing'],
+    maxWitnessAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
+  latticeVssGating: {
+    minVssShares: 5,
+    maxDegreeBound: 16,
+    requireEnclaveBindingAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedLatticeSchemes: ['module-lwr', 'module-lwe', 'nist-kyber'],
+    maxShareAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
+  latticeVfhssGating: {
+    minVfhssShares: 7,
+    maxHomomorphicDepth: 8,
+    requireEnclaveEvaluationAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedLatticeSchemes: ['module-lwr', 'module-lwe', 'nist-kyber'],
+    maxShareAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
@@ -1022,6 +1067,13 @@ const DEFAULT_POLICY = {
     banUnauthorizedShareDispersal: true,
     requireCanonicalPayloadLayout: true,
   },
+  // Track 116: Cluster Isolation Hardening policy
+  clusterIsolationHardening: {
+    requireKnownPeerValidation: true,
+    rejectNonLeaderKeyCommits: true,
+    allowDkgNonLeaderMessages: false,
+    maxIsolationViolationThreshold: 100,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1141,14 +1193,6 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.time,
       ...(tenantPolicy.time || {}),
     },
-    fips: {
-      ...DEFAULT_POLICY.fips,
-      ...(tenantPolicy.fips || {}),
-    },
-    escrow: {
-      ...DEFAULT_POLICY.escrow,
-      ...(tenantPolicy.escrow || {}),
-    },
     privacy: {
       ...DEFAULT_POLICY.privacy,
       blindSignature: {
@@ -1215,6 +1259,26 @@ function _mergeWithDefault(tenantPolicy) {
     homomorphicDbLookup: {
       ...DEFAULT_POLICY.homomorphicDbLookup,
       ...(tenantPolicy.homomorphicDbLookup || {}),
+    },
+    lookupGating: {
+      ...DEFAULT_POLICY.lookupGating,
+      ...(tenantPolicy.lookupGating || {}),
+    },
+    ringGating: {
+      ...DEFAULT_POLICY.ringGating,
+      ...(tenantPolicy.ringGating || {}),
+    },
+    accumulatorGating: {
+      ...DEFAULT_POLICY.accumulatorGating,
+      ...(tenantPolicy.accumulatorGating || {}),
+    },
+    latticeVssGating: {
+      ...DEFAULT_POLICY.latticeVssGating,
+      ...(tenantPolicy.latticeVssGating || {}),
+    },
+    latticeVfhssGating: {
+      ...DEFAULT_POLICY.latticeVfhssGating,
+      ...(tenantPolicy.latticeVfhssGating || {}),
     },
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
@@ -1531,6 +1595,10 @@ function _mergeWithDefault(tenantPolicy) {
     clusterKeyringPrimitiveAuthorization: {
       ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization,
       ...(tenantPolicy.clusterKeyringPrimitiveAuthorization || {}),
+    },
+    clusterIsolationHardening: {
+      ...DEFAULT_POLICY.clusterIsolationHardening,
+      ...(tenantPolicy.clusterIsolationHardening || {}),
     },
   };
 }
@@ -1999,6 +2067,131 @@ class CryptoPolicyEngine {
     }
     if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validateLookupGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.lookupGating, ...(tenantPolicy.lookupGating || {}) };
+    if (typeof config.lookupQuorum === 'number' && config.lookupQuorum < policy.minLookupQuorum) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `lookup quorum ${config.lookupQuorum} below minimum ${policy.minLookupQuorum}`);
+    }
+    if (typeof config.lookupDepth === 'number' && config.lookupDepth > policy.maxLookupDepth) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `lookup depth ${config.lookupDepth} exceeds maximum ${policy.maxLookupDepth}`);
+    }
+    if (policy.requireEncryptedQueryAttestation && config.encryptedQueryAttestation === false) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', 'encrypted query attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.blindingType === 'string' && !policy.allowedBlindingTypes.includes(config.blindingType)) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `blinding type ${config.blindingType} is not allowed; permitted: ${policy.allowedBlindingTypes.join(', ')}`);
+    }
+    if (typeof config.queryAgeSeconds === 'number' && config.queryAgeSeconds > policy.maxQueryAgeSeconds) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', `query age ${config.queryAgeSeconds}s exceeds maximum ${policy.maxQueryAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateRingGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.ringGating, ...(tenantPolicy.ringGating || {}) };
+    if (typeof config.ringSize === 'number' && config.ringSize < policy.minRingSize) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `ring size ${config.ringSize} below minimum ${policy.minRingSize}`);
+    }
+    if (typeof config.ringSize === 'number' && config.ringSize > policy.maxRingSize) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `ring size ${config.ringSize} exceeds maximum ${policy.maxRingSize}`);
+    }
+    if (policy.requireBlindedLinkabilityAttestation && config.blindedLinkabilityAttestation === false) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', 'blinded linkability attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.blindingType === 'string' && !policy.allowedBlindingTypes.includes(config.blindingType)) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `blinding type ${config.blindingType} is not allowed; permitted: ${policy.allowedBlindingTypes.join(', ')}`);
+    }
+    if (typeof config.signatureAgeSeconds === 'number' && config.signatureAgeSeconds > policy.maxSignatureAgeSeconds) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `signature age ${config.signatureAgeSeconds}s exceeds maximum ${policy.maxSignatureAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateAccumulatorGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.accumulatorGating, ...(tenantPolicy.accumulatorGating || {}) };
+    if (typeof config.accumulatorSize === 'number' && config.accumulatorSize > policy.maxAccumulatorSize) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `accumulator size ${config.accumulatorSize} exceeds maximum ${policy.maxAccumulatorSize}`);
+    }
+    if (typeof config.witnessQuorum === 'number' && config.witnessQuorum < policy.minWitnessQuorum) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `witness quorum ${config.witnessQuorum} below minimum ${policy.minWitnessQuorum}`);
+    }
+    if (policy.requireEnclaveMembershipAttestation && config.enclaveMembershipAttestation === false) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', 'enclave membership attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.accumulatorType === 'string' && !policy.allowedAccumulatorTypes.includes(config.accumulatorType)) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `accumulator type ${config.accumulatorType} is not allowed; permitted: ${policy.allowedAccumulatorTypes.join(', ')}`);
+    }
+    if (typeof config.witnessAgeSeconds === 'number' && config.witnessAgeSeconds > policy.maxWitnessAgeSeconds) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `witness age ${config.witnessAgeSeconds}s exceeds maximum ${policy.maxWitnessAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateLatticeVssGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.latticeVssGating, ...(tenantPolicy.latticeVssGating || {}) };
+    if (typeof config.vssShares === 'number' && config.vssShares < policy.minVssShares) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `vss shares ${config.vssShares} below minimum ${policy.minVssShares}`);
+    }
+    if (typeof config.degreeBound === 'number' && config.degreeBound > policy.maxDegreeBound) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `degree bound ${config.degreeBound} exceeds maximum ${policy.maxDegreeBound}`);
+    }
+    if (policy.requireEnclaveBindingAttestation && config.enclaveBindingAttestation === false) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', 'enclave binding attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.latticeScheme === 'string' && !policy.allowedLatticeSchemes.includes(config.latticeScheme)) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `lattice scheme ${config.latticeScheme} is not allowed; permitted: ${policy.allowedLatticeSchemes.join(', ')}`);
+    }
+    if (typeof config.shareAgeSeconds === 'number' && config.shareAgeSeconds > policy.maxShareAgeSeconds) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `share age ${config.shareAgeSeconds}s exceeds maximum ${policy.maxShareAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateLatticeVfhssGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.latticeVfhssGating, ...(tenantPolicy.latticeVfhssGating || {}) };
+    if (typeof config.vfhssShares === 'number' && config.vfhssShares < policy.minVfhssShares) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `vfhss shares ${config.vfhssShares} below minimum ${policy.minVfhssShares}`);
+    }
+    if (typeof config.homomorphicDepth === 'number' && config.homomorphicDepth > policy.maxHomomorphicDepth) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `homomorphic depth ${config.homomorphicDepth} exceeds maximum ${policy.maxHomomorphicDepth}`);
+    }
+    if (policy.requireEnclaveEvaluationAttestation && config.enclaveEvaluationAttestation === false) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', 'enclave evaluation attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.latticeScheme === 'string' && !policy.allowedLatticeSchemes.includes(config.latticeScheme)) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `lattice scheme ${config.latticeScheme} is not allowed; permitted: ${policy.allowedLatticeSchemes.join(', ')}`);
+    }
+    if (typeof config.shareAgeSeconds === 'number' && config.shareAgeSeconds > policy.maxShareAgeSeconds) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `share age ${config.shareAgeSeconds}s exceeds maximum ${policy.maxShareAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', 'canonical payload layout is required');
     }
   }
 
@@ -4167,6 +4360,90 @@ class CryptoPolicyEngine {
     }
   }
 
+
+  _validateClusterIsolationHardening(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.clusterIsolationHardening, ...(tenantPolicy.clusterIsolationHardening || {}) };
+    if (typeof config.requireKnownPeerValidation === 'boolean' && config.requireKnownPeerValidation !== policy.requireKnownPeerValidation) {
+      if (!config.requireKnownPeerValidation && policy.requireKnownPeerValidation) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'known peer validation cannot be disabled when policy enforces it');
+      }
+    }
+    if (typeof config.rejectNonLeaderKeyCommits === 'boolean' && config.rejectNonLeaderKeyCommits !== policy.rejectNonLeaderKeyCommits) {
+      if (!config.rejectNonLeaderKeyCommits && policy.rejectNonLeaderKeyCommits) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'non-leader key commit rejection cannot be disabled when policy enforces it');
+      }
+    }
+    if (typeof config.maxIsolationViolationThreshold === 'number' && config.maxIsolationViolationThreshold > policy.maxIsolationViolationThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `isolation violation threshold ${config.maxIsolationViolationThreshold} exceeds maximum ${policy.maxIsolationViolationThreshold}`);
+    }
+    return true;
+  }
+
+  _validateBftShardSync(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.bftShardSync, ...(tenantPolicy.bftShardSync || {}) };
+    if (typeof config.minQuorumNodes === 'number' && config.minQuorumNodes < policy.minQuorumNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `quorum nodes ${config.minQuorumNodes} below minimum ${policy.minQuorumNodes}`);
+    }
+    if (typeof config.maxCatchUpBatchSize === 'number' && config.maxCatchUpBatchSize > policy.maxCatchUpBatchSize) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `catch-up batch size ${config.maxCatchUpBatchSize} exceeds maximum ${policy.maxCatchUpBatchSize}`);
+    }
+    if (typeof config.lagThreshold === 'number' && config.lagThreshold > policy.lagThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `lag threshold ${config.lagThreshold} exceeds maximum ${policy.lagThreshold}`);
+    }
+    if (typeof config.byzantineDivergenceThreshold === 'number' &&
+        config.byzantineDivergenceThreshold > policy.byzantineDivergenceThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `byzantine divergence threshold ${config.byzantineDivergenceThreshold} exceeds maximum ${policy.byzantineDivergenceThreshold}`);
+    }
+    if (typeof config.requireQuorumCommit === 'boolean' && policy.requireQuorumCommit && !config.requireQuorumCommit) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quorum commit cannot be disabled when policy enforces it');
+    }
+    if (typeof config.requireAntiReplay === 'boolean' && policy.requireAntiReplay && !config.requireAntiReplay) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'anti-replay cannot be disabled when policy enforces it');
+    }
+    if (typeof config.maxShardsPerCluster === 'number' && config.maxShardsPerCluster > policy.maxShardsPerCluster) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `shards per cluster ${config.maxShardsPerCluster} exceeds maximum ${policy.maxShardsPerCluster}`);
+    }
+    return true;
+  }
+  _validateDistributedConsensusCoordinator(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.distributedConsensusCoordinator, ...(tenantPolicy.distributedConsensusCoordinator || {}) };
+    if (typeof config.maxGroups === 'number' && config.maxGroups > policy.maxGroups) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max groups ${config.maxGroups} exceeds maximum ${policy.maxGroups}`);
+    }
+    if (typeof config.faultTimeoutMs === 'number' && config.faultTimeoutMs < policy.faultTimeoutMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `fault timeout ${config.faultTimeoutMs} below minimum ${policy.faultTimeoutMs}`);
+    }
+    if (typeof config.faultCheckIntervalMs === 'number' && config.faultCheckIntervalMs > policy.faultCheckIntervalMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `fault check interval ${config.faultCheckIntervalMs} exceeds maximum ${policy.faultCheckIntervalMs}`);
+    }
+    if (typeof config.viewChangeTimeoutMs === 'number' && config.viewChangeTimeoutMs < policy.viewChangeTimeoutMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `view change timeout ${config.viewChangeTimeoutMs} below minimum ${policy.viewChangeTimeoutMs}`);
+    }
+    if (typeof config.requireQuorumForProposals === 'boolean' && policy.requireQuorumForProposals && !config.requireQuorumForProposals) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quorum for proposals cannot be disabled when policy enforces it');
+    }
+    if (typeof config.allowDynamicGroupCreation === 'boolean' && !policy.allowDynamicGroupCreation && config.allowDynamicGroupCreation) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'dynamic group creation cannot be enabled when policy restricts it');
+    }
+    if (typeof config.allowCrossGroupRouting === 'boolean' && !policy.allowCrossGroupRouting && config.allowCrossGroupRouting) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'cross-group routing cannot be enabled when policy restricts it');
+    }
+    return true;
+  }
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -4369,39 +4646,6 @@ class CryptoPolicyEngine {
     }
   }
 
-  _validateFips(tenantPolicy, config) {
-    const policy = { ...DEFAULT_POLICY.fips, ...(tenantPolicy.fips || {}) };
-    if (!policy.enabled) return;
-
-    if (config.algorithm === 'ecdh') {
-      const curve = typeof config.keySize === 'number' ? `P-${config.keySize}` : config.keySize;
-      if (typeof curve === 'string' && !policy.allowedCurves.includes(curve)) {
-        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: ECDH curve ${curve} is not approved; permitted: ${policy.allowedCurves.join(', ')}`);
-      }
-    }
-
-    if (config.algorithm === 'pqc' || config.algorithm === 'hybrid-kem') {
-      const kemLevel = config.kemLevel;
-      if (typeof kemLevel === 'number' && !policy.allowedKemLevels.includes(kemLevel)) {
-        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: KEM level ${kemLevel} is not approved; permitted: ${policy.allowedKemLevels.join(', ')}`);
-      }
-    }
-
-    if (config.algorithm === 'homomorphic' || config.algorithm === 'blinding') {
-      if (config.allowBlinding && !policy.allowBlinding) {
-        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'FIPS mode: homomorphic blinding is not approved');
-      }
-      if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.graceTokenExpiryMs) {
-        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: token expiry grace window ${config.tokenExpiryMs}ms exceeds approved ${policy.graceTokenExpiryMs}ms`);
-      }
-    }
-
-    if (config.algorithm === 'zkp') {
-      if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.graceTokenExpiryMs) {
-        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: ZKP token grace window ${config.tokenExpiryMs}ms exceeds approved ${policy.graceTokenExpiryMs}ms`);
-      }
-    }
-  }
 
   _validateThreshold(tenantPolicy, threshold, total) {
     const policy = tenantPolicy.threshold || DEFAULT_POLICY.threshold;
@@ -4566,6 +4810,31 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphicDbLookup') {
       this._validateHomomorphicDbLookup(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'lookupGating') {
+      this._validateLookupGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'ringGating') {
+      this._validateRingGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'accumulatorGating') {
+      this._validateAccumulatorGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'latticeVssGating') {
+      this._validateLatticeVssGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'latticeVfhssGating') {
+      this._validateLatticeVfhssGating(tenantPolicy, config);
       return true;
     }
 
@@ -4921,6 +5190,21 @@ class CryptoPolicyEngine {
 
     if (operation === 'clusterKeyringPrimitiveAuthorization') {
       this._validateClusterKeyringPrimitiveAuthorization(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'clusterIsolationHardening') {
+      this._validateClusterIsolationHardening(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'bftShardSync') {
+      this._validateBftShardSync(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'distributedConsensusCoordinator') {
+      this._validateDistributedConsensusCoordinator(tenantPolicy, config);
       return true;
     }
 

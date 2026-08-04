@@ -712,7 +712,7 @@ class MixnetBlindTransactionEngine {
    * @private
    */
   _selectShard(asset) {
-    const hash = crypto.createHash('md5').update(asset).digest();
+    const hash = crypto.createHash('sha256').update(asset).digest();
     const shardIndex = hash[0] % this.maxShards;
     const shardId = `shard-${shardIndex}`;
     this._ensureShard(shardId);

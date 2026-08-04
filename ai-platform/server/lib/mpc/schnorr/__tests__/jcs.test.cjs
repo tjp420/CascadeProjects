@@ -42,10 +42,10 @@ describe('RFC 8785 JSON Canonicalization Scheme (JCS) Compliance Matrix', () => 
 
   test('L2-18: bounds significant digits to 21 (precision bounding)', () => {
     // A number with many significant digits should be bounded
-    const result = jcs.canonicalize(1.2345678901234567890123456789);
+    const result = jcs.canonicalize(Number('1.2345678901234567890123456789'));
     expect(typeof result).toBe('string');
     // The result should be deterministic
-    expect(jcs.canonicalize(1.2345678901234567890123456789)).toBe(result);
+    expect(jcs.canonicalize(Number('1.2345678901234567890123456789'))).toBe(result);
   });
 
   test('numeric normalization is deterministic across repeated calls', () => {

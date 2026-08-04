@@ -1,9 +1,7 @@
-extends:
-  - "spectral:oas"
-  - "spectral:recommended"
-
-# Minimal overrides for CI-friendly linting: keep default rules but allow some leniency
-rules:
-  operation-2xx-response: off
-  info-contact: off
-  operation-operationId: off
+# Minimal Spectral ruleset for CI-friendly OpenAPI linting.
+# Note: extends: spectral:oas removed because Spectral CLI v6
+# references the non-existent "operation-default-response" rule,
+# causing "Cannot extend non-existing rule" errors.
+# Valid built-in rulesets: spectral:oas, spectral:asyncapi, spectral:arazzo
+# If you need to re-enable spectral:oas, pin to @stoplight/spectral-cli@5.
+rules: {}

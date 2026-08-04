@@ -122,6 +122,40 @@ const SUITES = [
   'vdf-time-lock-engine',
   'mixnet-blind-transaction-engine',
   'recursive-proof-aggregation-engine',
+  'lookup-gating',
+  'tenant-boundary-saturation',
+  'track32-multi-tenant-fuzz',
+  'track113-endpoint-integration',
+  'shard-reconciler',
+  'track32-primitive-groundwork',
+  'track32-core-gating',
+  'hsm-vault-ring-gating-routes',
+  'track33-primitive-groundwork',
+  'track33-core-gating',
+  'track33-multi-tenant-fuzz',
+  'hsm-vault-accumulator-gating-routes',
+  'track114-primitive-groundwork',
+  'track114-core-gating',
+  'track114-multi-tenant-fuzz',
+  'hsm-vault-lattice-vss-routes',
+  'track115-primitive-groundwork',
+  'track115-core-gating',
+  'track115-multi-tenant-fuzz',
+  'hsm-vault-lattice-vfhss-routes',
+  'track115-prometheus-alerts',
+  'track116-primitive-groundwork',
+  'track116-core-integration',
+  'track116-multi-tenant-fuzz',
+  'hsm-vault-cluster-isolation-routes',
+  'track116-prometheus-alerts',
+  'track117-primitive-groundwork',
+  'track117-core-integration',
+  'track117-multi-tenant-fuzz',
+  'track117-rest-routes',
+  'track117-prometheus-alerts',
+  'track118-primitive-groundwork',
+  'track118-core-integration',
+  'track118-multi-tenant-fuzz',
 ];
 
 function resolveBaseTestFile(pattern) {
@@ -169,9 +203,19 @@ if (useParallel) {
   let passed = 0;
   let failed = 0;
   for (const r of results) {
-    if (r.status === 'PASS') passed += 1;
-    else failed += 1;
-    console.log(`${r.status}: ${r.pattern}`);
+    if (r.status === 'PASS') {
+      passed += 1;
+      console.log(`${r.status}: ${r.pattern}`);
+    } else {
+      failed += 1;
+      console.log(`${r.status}: ${r.pattern}`);
+      if (r.output) {
+        console.log(`  --- error output ---`);
+        const lines = String(r.output).split('\n').slice(0, 30);
+        for (const line of lines) console.log(`  ${line}`);
+        console.log(`  --- end error output ---`);
+      }
+    }
   }
 
   console.log(`\nTotal: ${SUITES.length} | Passed: ${passed} | Failed: ${failed}`);

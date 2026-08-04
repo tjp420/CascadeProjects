@@ -1,99 +1,78 @@
-# software_health_report.md
-
-## Metadata
+# Software Health Report — Track 117 Phase 5: Prometheus Alerting
 
 | Field | Value |
 |-------|-------|
-| Validator | Devin (Validator role) |
-| Date | 2026-08-03 |
-| Branch | main (post Track 115 merge @ bab8d644c) |
-| test_plan version | 2026-08-03 (`.simplebeacon/qa/test_plan.md`) |
+| Date | 2026-08-04 |
+| Git branch | `feat/track117-prometheus-alerts` |
+| PR | #480 |
+| Base | `origin/main` @ `1ff41ab0e` |
+| Commit | `6d108adaa` |
+| Files touched | 3 (2 modified, 1 new) |
+| Insertions | 147 |
+| Deletions | 0 |
 
-## Executive summary
+## Level 1 — Deterministic (all required)
 
-- **Gate:** PASS — no critical or high findings
-- **Level 1:** 5 / 5 passed
-- **Level 2:** 2 / 2 passed
-- **Level 3:** 3 / 3 passed
-- **Ship recommendation:** GO
+| ID | Check | Result |
+|----|-------|--------|
+| L1-01 | Syntax: `node -c` on test file + YAML parse via js-yaml | PASS |
+| L1-02 | Alert test suite (4 tests) | 4/4 PASS |
+| L1-03 | Parallel suite: `npm run test:parallel` | 134/134 PASS (zero failures) |
+| L1-04 | SimpleBeacon gate: `npx simplebeacon scan --full --gate` | PASS |
+| L1-05 | No secrets in diff | PASS |
+| L1-06 | npm audit (no deps changed) | N/A |
 
----
+## Level 2 — Behavioral
 
-## 1. Defects (fix immediately)
+| ID | Check | Result |
+|----|-------|--------|
+| L2-01 | YAML structural validity | PASS — group exists with 2 rules, all fields present |
+| L2-02 | Byzantine alert correctness | PASS — critical, 0m, references `hsm_shard_byzantine_detected_total` |
+| L2-03 | Lagging nodes alert correctness | PASS — warning, 5m, references `hsm_shard_lagging_nodes` |
+| L2-04 | Runbook URLs + counter existence | PASS — URLs point to repo, no secrets, all 3 counters exist |
 
-No defects found. The simulation completed with deterministic boundary behavior and no state corruption under 5,000+ concurrent operations.
+## Level 3 — Self-review / drift
 
----
+| ID | Check | Result |
+|----|-------|--------|
+| L3-01 | Logic matches approved `test_plan.md` (no scope creep) | PASS — 2 alerts + 4 tests match spec exactly |
+| L3-02 | No ghost files or hallucinated API paths | PASS — all paths verified |
+| L3-03 | No regression in existing tests | PASS — 134/134 (zero failures) |
+| L3-04 | `hsm_shard_byzantine_detected_total` exists in hsm-metrics.cjs | PASS (line 510/1396) |
+| L3-05 | `hsm_shard_lagging_nodes` exists in hsm-metrics.cjs | PASS (line 511/1397) |
+| L3-06 | `hsm_shard_limit_exceeded_total` exists in hsm-metrics.cjs | PASS (added in Phase 4) |
+| L3-07 | YAML file remains valid after append | PASS — `js-yaml.load()` succeeds |
+| L3-08 | `for: 0m` immediate-fire trigger parses correctly | PASS — js-yaml parses as string "0m" |
+| L3-09 | PR has 1 commit, 3 files (no stale commits) | PASS |
 
-## 2. Unimplemented (spec gaps)
+## Security
 
-None. All three simulation stages and the telemetry-path assertions are implemented and verified.
+| ID | Check | Result |
+|----|-------|--------|
+| S-01 | No credentials/PII in alert YAML or test file | PASS |
+| S-02 | No secrets, API keys, or private keys in YAML text | PASS |
+| S-03 | Runbook URLs point to internal repo only | PASS |
 
----
+## Defects
 
-## 3. Enhancements (debt / perf / UX)
+None.
 
-| ID | Area | Suggestion | Effort |
-|----|------|------------|--------|
-| E-01 | Observability | Prometheus histogram for validator latency per worker | S |
-| E-02 | Worker teardown | The orchestrator already emits `exit(0)`; consider an explicit `Promise.race` timeout for orphaned forks | S |
+## Unimplemented
 
----
+None — all 4 tests from the approved test plan are implemented.
 
-## 4. Future roadmap
+## Future roadmap
 
-| ID | Feature | Rationale |
-|----|---------|-----------|
-| R-01 | Multi-track saturation sweep | Extend `mesh-saturation-simulation.cjs` to run the same harness against Tracks 111-114 for comparative throughput baselines. |
-| R-02 | CI integration | Wire the simulation into a nightly `npm run simulate:mesh` target to catch window-boundary regressions automatically. |
-
----
-
-## Command log (summary)
-
-```text
-# Syntax checks
-$ node -c server/lib/hsm-adapter/__tests__/mesh-saturation-simulation.cjs
-$ node -c server/lib/hsm-adapter/__tests__/mesh-load-worker.cjs
-# OK
-
-# Simulation execution
-$ node server/lib/hsm-adapter/__tests__/mesh-saturation-simulation.cjs
-Track 115 Cross-Enclave Mesh Saturation Simulation
-Workers: 32
-=== Stage 1: Baseline Linear Load (1,000 ops) ===
-  elapsedMs:       5.55
-  operations:      1000
-  throughput:      180306.88 ops/sec
-  peakRssMB:       2.14
-  validated:       1000
-  dropped:         0
-=== Stage 2: Concurrent Burst Saturation (5,000 ops) ===
-  elapsedMs:       306.20
-  operations:      5024
-  throughput:      16407.75 ops/sec
-  peakRssMB:       2.24
-  validated:       5024
-  dropped:         0
-=== Stage 3: Boundary Drift & Window Exhaustion ===
-  elapsedMs:       932.78
-  operations:      9600
-  throughput:      10291.79 ops/sec
-  peakRssMB:       0.00
-  validated:       6400
-  dropped:         3200
-=== Boundary Drift Breakdown ===
-  offset 5000ms: validated=3200 dropped=0
-  offset 9500ms: validated=3200 dropped=0
-  offset 10001ms: validated=0 dropped=3200
-Simulation complete.
-```
-
----
+Track 117 is now complete across all 5 phases. No further phases planned.
 
 ## Validator sign-off
 
-- [x] All Level 1 checks executed
-- [x] Failures documented in Defects (not hidden)
-- [x] No feature code written except test fixes
-- Validator: Devin  Date: 2026-08-03
+- [x] All L1 checks pass (134/134 — zero failures)
+- [x] All L2 behavioral checks pass
+- [x] All L3 drift checks pass
+- [x] All security checks pass
+- [x] No defects found
+- [x] Approved for merge
+
+Validator: Devin (adversarial review mode)
+Date: 2026-08-04

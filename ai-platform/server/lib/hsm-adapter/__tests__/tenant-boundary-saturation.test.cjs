@@ -15,6 +15,15 @@ const {
   makeHashChainPrng,
   cleanupPrototypePollution,
   FUZZ_SEED,
+  makeTrack31ProtoPollutionPolicy,
+  makeTrack31TypeConfusionConfigs,
+  makeTrack31PrngDrivenValidateCall,
+  makeTrack113ProtoPollutionPolicy,
+  makeTrack113TypeConfusionConfigs,
+  makeTrack113PrngDrivenValidateCall,
+  makeTrack32ProtoPollutionPolicy,
+  makeTrack32TypeConfusionConfigs,
+  makeTrack32PrngDrivenValidateCall,
 } = require('./tenant-fuzz-harness.cjs');
 
 afterEach(() => {
@@ -222,6 +231,186 @@ describe('Tenant boundary saturation (15-test deterministic fuzzing matrix)', ()
 
     for (let i = 0; i < 100; i++) {
       const { tenantId, operation, config } = makePrngDrivenValidateCall(prng);
+      try {
+        const result = engine.validate(tenantId, operation, config);
+        expect(result).toBe(true);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-31: Track 31 lookup gating __proto__ pollution is blocked', () => {
+    const policy = makeTrack31ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    expect(Object.prototype).not.toHaveProperty('lookupGatePolluted');
+    expect(Object.prototype).not.toHaveProperty('lookupConstructorPolluted');
+
+    const clean = engine.getPolicy('track31-clean');
+    expect(clean).toBeDefined();
+    expect(clean.lookupGating).toBeDefined();
+
+    const polluted = engine.getPolicy('track31-polluter');
+    expect(polluted).toBeDefined();
+    expect(polluted.lookupGating).not.toHaveProperty('lookupGatePolluted');
+  });
+
+  test('FUZZ-32: Track 31 lookup gating cross-tenant isolation', () => {
+    const policy = makeTrack31ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    const policyA = engine.getPolicy('track31-polluter');
+    const originalBQuorum = engine.getPolicy('track31-clean').lookupGating.minLookupQuorum;
+
+    policyA.lookupGating.minLookupQuorum = 1;
+
+    const policyB = engine.getPolicy('track31-clean');
+    expect(policyB.lookupGating.minLookupQuorum).toBe(originalBQuorum);
+    expect(policyB.lookupGating.minLookupQuorum).not.toBe(1);
+  });
+
+  test('FUZZ-33: Track 31 type confusion fails closed', () => {
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const inputs = makeTrack31TypeConfusionConfigs();
+    for (const { value } of inputs) {
+      try {
+        engine.validate('t1', 'lookupGating', value);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-34: Track 31 PRNG-driven lookup gating validation — 100 calls, no unhandled crash', () => {
+    const prng = makeHashChainPrng(FUZZ_SEED);
+    const engine = new CryptoPolicyEngine();
+
+    for (let i = 0; i < 100; i++) {
+      const { tenantId, operation, config } = makeTrack31PrngDrivenValidateCall(prng);
+      try {
+        const result = engine.validate(tenantId, operation, config);
+        expect(result).toBe(true);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-113: Track 113 handshake __proto__ pollution does not pollute Object.prototype or clean tenants', () => {
+    const policy = makeTrack113ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    expect(Object.prototype).not.toHaveProperty('handshakePolluted');
+    expect(Object.prototype).not.toHaveProperty('handshakeConstructorPolluted');
+
+    const clean = engine.getPolicy('track113-clean');
+    expect(clean).toBeDefined();
+    expect(clean.handshake).toBeDefined();
+    expect(clean.handshake.handshakePolluted).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(clean.handshake, 'handshakePolluted')).toBe(false);
+
+    const polluted = engine.getPolicy('track113-polluter');
+    expect(polluted).toBeDefined();
+    expect(polluted.handshake).toBeDefined();
+    expect(Object.prototype.hasOwnProperty.call(polluted.handshake, 'handshakePolluted')).toBe(false);
+    expect(polluted.handshake).toBeDefined();
+    expect(polluted.handshake.__proto__ === Object.prototype).toBe(false);
+  });
+
+  test('FUZZ-114: Track 113 handshake cross-tenant isolation', () => {
+    const policy = makeTrack113ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    const policyA = engine.getPolicy('track113-polluter');
+    const originalBTimeout = engine.getPolicy('track113-clean').handshake.lifecycleTimeout;
+
+    policyA.handshake.lifecycleTimeout = 1;
+
+    const policyB = engine.getPolicy('track113-clean');
+    expect(policyB.handshake.lifecycleTimeout).toBe(originalBTimeout);
+    expect(policyB.handshake.lifecycleTimeout).not.toBe(1);
+  });
+
+  test('FUZZ-115: Track 113 type confusion fails closed', () => {
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const inputs = makeTrack113TypeConfusionConfigs();
+    for (const { value } of inputs) {
+      try {
+        engine.validate('t1', 'handshakeInit', value);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-116: Track 113 PRNG-driven handshake validation — 100 calls, no unhandled crash', () => {
+    const prng = makeHashChainPrng(FUZZ_SEED);
+    const engine = new CryptoPolicyEngine();
+
+    for (let i = 0; i < 100; i++) {
+      const { tenantId, operation, config } = makeTrack113PrngDrivenValidateCall(prng);
+      try {
+        const result = engine.validate(tenantId, operation, config);
+        expect(result).toBe(true);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-32-1: Track 32 ring gating __proto__ pollution is blocked', () => {
+    const policy = makeTrack32ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    expect(Object.prototype).not.toHaveProperty('ringGatePolluted');
+    expect(Object.prototype).not.toHaveProperty('ringConstructorPolluted');
+
+    const clean = engine.getPolicy('track32-clean');
+    expect(clean).toBeDefined();
+    expect(clean.ringGating).toBeDefined();
+
+    const polluted = engine.getPolicy('track32-polluter');
+    expect(polluted).toBeDefined();
+    expect(polluted.ringGating).not.toHaveProperty('ringGatePolluted');
+  });
+
+  test('FUZZ-32-2: Track 32 ring gating cross-tenant isolation', () => {
+    const policy = makeTrack32ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    const policyA = engine.getPolicy('track32-polluter');
+    const originalBMinRing = engine.getPolicy('track32-clean').ringGating.minRingSize;
+
+    policyA.ringGating.minRingSize = 1;
+
+    const policyB = engine.getPolicy('track32-clean');
+    expect(policyB.ringGating.minRingSize).toBe(originalBMinRing);
+    expect(policyB.ringGating.minRingSize).not.toBe(1);
+  });
+
+  test('FUZZ-32-3: Track 32 type confusion fails closed', () => {
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const inputs = makeTrack32TypeConfusionConfigs();
+    for (const { value } of inputs) {
+      try {
+        engine.validate('t1', 'ringGating', value);
+      } catch (e) {
+        expect(e).toBeDefined();
+        // Must be a structured HsmAdapterError, not a raw TypeError
+        if (e instanceof HsmAdapterError) {
+          expect(e.code).toMatch(/RINGGATE|POLICY/);
+        }
+      }
+    }
+  });
+
+  test('FUZZ-32-4: Track 32 PRNG-driven ring gating validation — 100 calls, no unhandled crash', () => {
+    const prng = makeHashChainPrng(FUZZ_SEED);
+    const engine = new CryptoPolicyEngine();
+
+    for (let i = 0; i < 100; i++) {
+      const { tenantId, operation, config } = makeTrack32PrngDrivenValidateCall(prng);
       try {
         const result = engine.validate(tenantId, operation, config);
         expect(result).toBe(true);

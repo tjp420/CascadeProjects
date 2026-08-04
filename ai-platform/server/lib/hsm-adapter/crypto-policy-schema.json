@@ -178,6 +178,51 @@
       "allowCrossTenantTables": true,
       "requireCanonicalPayloadLayout": true
     },
+    "lookupGating": {
+      "minLookupQuorum": 12,
+      "maxLookupDepth": 32,
+      "requireEncryptedQueryAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedBlindingTypes": ["pedersen", "exponential-elgamal"],
+      "maxQueryAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
+    "ringGating": {
+      "minRingSize": 16,
+      "maxRingSize": 128,
+      "requireBlindedLinkabilityAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedBlindingTypes": ["pedersen", "borromean"],
+      "maxSignatureAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
+    "accumulatorGating": {
+      "maxAccumulatorSize": 65536,
+      "minWitnessQuorum": 8,
+      "requireEnclaveMembershipAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedAccumulatorTypes": ["rsa-accumulator", "bilinear-pairing"],
+      "maxWitnessAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
+    "latticeVssGating": {
+      "minVssShares": 5,
+      "maxDegreeBound": 16,
+      "requireEnclaveBindingAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedLatticeSchemes": ["module-lwr", "module-lwe", "nist-kyber"],
+      "maxShareAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
+    "latticeVfhssGating": {
+      "minVfhssShares": 7,
+      "maxHomomorphicDepth": 8,
+      "requireEnclaveEvaluationAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedLatticeSchemes": ["module-lwr", "module-lwe", "nist-kyber"],
+      "maxShareAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
     "zkSettlement": {
       "minClearingNodeQuorum": 3,
       "maxSettlementTimeoutSeconds": 300,

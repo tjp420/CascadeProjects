@@ -188,6 +188,42 @@ groups:
           description: "MuSig2 signature verifications are failing at a rate of more than 5 per 5 minutes, indicating possible key mismatch or Byzantine share submission."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MUSIG2_VERIFICATION_FAILURE_SPIKE.md"
 
+  # ── Track 31: Homomorphic Database Lookup Gating Hub alerts ───────
+  - name: track31_lookup_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track31HomomorphicLookupStall
+        expr: |
+          rate(hsm_lookupgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_lookup_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "31"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lookup-gating"
+        annotations:
+          summary: "Track 31 homomorphic lookup accreditations have stalled"
+          description: "New lookup gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK31_HOMOMORPHIC_LOOKUP_STALL.md"
+
+      - alert: Track31HighValidationFailureRate
+        expr: |
+          rate(hsm_lookupgate_challenge_issued_total[5m]) / rate(hsm_lookupgate_pool_initialized_total[5m]) > 0.15
+        for: 2m
+        labels:
+          severity: warning
+          track: "31"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lookup-gating"
+        annotations:
+          summary: "Track 31 lookup validation failure rate is above 15%"
+          description: "More than 15% of initialized homomorphic lookup sessions are failing ZK proof evaluation or recursive depth rejection over the last 5 minutes, indicating possible brute-force or stale claim injection."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK31_HIGH_VALIDATION_FAILURE_RATE.md"
+
       - alert: Musig2SigningStall
         expr: |
           rate(hsm_musig2_signature_assembled_total[10m]) == 0
@@ -202,3 +238,303 @@ groups:
           summary: "MuSig2 signing has stalled"
           description: "Challenges are being computed but no signatures are being assembled over the last 10 minutes, indicating possible share collection failure or aggregator deadlock."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MUSIG2_SIGNING_STALL.md"
+
+  # ── Track 113: PQC Handshake Endpoint Integration alerts ───────────────
+  - name: track113_handshake_alerts
+    interval: 30s
+    rules:
+      - alert: Track113PqcHandshakeStall
+        expr: |
+          rate(hsm_handshake_init_total[5m]) > 0
+          and
+          rate(hsm_handshake_verify_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "113"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-handshake"
+        annotations:
+          summary: "Track 113 PQC handshake verifications have stalled"
+          description: "New post-quantum handshake sessions are being initialized but no verifications are completing over the last 5 minutes, indicating possible token pool lock contention or asymmetric deadlock."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK113_PQC_HANDSHAKE_STALL.md"
+
+      - alert: Track113HighDecryptionFailureRate
+        expr: |
+          rate(hsm_handshake_envelope_decryption_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          track: "113"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-handshake"
+        annotations:
+          summary: "Track 113 envelope decryption failures are occurring"
+          description: "Session persistence blocks are failing AES-256-GCM authenticated decryption over the last 5 minutes, indicating possible key degradation, disk corruption, or active tampering."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK113_HIGH_DECRYPTION_FAILURE_RATE.md"
+
+  # ── Track 32: PQC Blinded Ring-Signature Gating Hub alerts ──────────
+  - name: track32_ring_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track32RingSignatureReconciliationStall
+        expr: |
+          rate(hsm_ringgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_ring_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "32"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-ring-gating"
+        annotations:
+          summary: "Track 32 ring-signature accreditation has stalled"
+          description: "New ring gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK32_RING_SIGNATURE_RECONCILIATION_STALL.md"
+
+      - alert: Track32HighValidationFailureRate
+        expr: |
+          rate(hsm_ringgate_challenge_issued_total[5m]) / rate(hsm_ringgate_pool_initialized_total[5m]) > 0.15
+        for: 2m
+        labels:
+          severity: warning
+          track: "32"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-ring-gating"
+        annotations:
+          summary: "Track 32 ring validation failure rate is above 15%"
+          description: "More than 15% of initialized ring-signature sessions are failing ZK proof evaluation or anonymity set size rejection over the last 5 minutes, indicating possible brute-force or linkability double-spending attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK32_HIGH_VALIDATION_FAILURE_RATE.md"
+
+  # ── Track 33: PQC Direct Accumulator Membership Proof Gating Hub alerts ──
+  - name: track33_accumulator_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track33AccumulatorMembershipReconciliationStall
+        expr: |
+          rate(hsm_accumulatorgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_accumulator_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "33"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-accumulator-gating"
+        annotations:
+          summary: "Track 33 accumulator membership accreditation has stalled"
+          description: "New accumulator gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK33_ACCUMULATOR_MEMBERSHIP_RECONCILIATION_STALL.md"
+
+      - alert: Track33HighValidationFailureRate
+        expr: |
+          rate(hsm_zk_accumulator_claim_verified_total[5m]) / rate(hsm_accumulatorgate_pool_initialized_total[5m]) < 0.85
+        for: 2m
+        labels:
+          severity: warning
+          track: "33"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-accumulator-gating"
+        annotations:
+          summary: "Track 33 accumulator validation failure rate is above 15%"
+          description: "More than 15% of initialized accumulator membership sessions are failing ZK proof evaluation, tree size threshold rejection, or witness quorum rejection over the last 5 minutes, indicating possible rogue-witness or fake-membership injection attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK33_HIGH_VALIDATION_FAILURE_RATE.md"
+
+  # ── CI Telemetry Pipeline: Shard Repair & Reassembly alerts ───────────────
+  - name: shard_repair_pipeline
+    interval: 30s
+    rules:
+      - alert: ShardRepairStallDetected
+        expr: |
+          rate(hsm_shard_reconciler_repair_requested_total[10m]) > 0
+          and
+          rate(hsm_repair_worker_completed_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "shard-repair-pipeline"
+        annotations:
+          summary: "Shard repair pipeline stall detected"
+          description: "Shard reconciler is requesting repairs but no repair-worker completions are observed over the last 10 minutes, indicating possible worker deadlock, crash loop, or queue saturation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SHARD_REPAIR_STALL_DETECTED.md"
+
+      - alert: ShardReassemblyHighFailureRate
+        expr: |
+          (
+            rate(hsm_shard_reassembly_attempts_total{outcome="failed"}[5m])
+            /
+            clamp_min(rate(hsm_shard_reassembly_attempts_total[5m]), 1)
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "shard-repair-pipeline"
+        annotations:
+          summary: "Shard reassembly failure rate is above 10%"
+          description: "More than 10% of shard reassembly attempts are failing over the last 5 minutes, indicating possible hash mismatch, manifest corruption, or storage path traversal issues."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SHARD_REASSEMBLY_HIGH_FAILURE_RATE.md"
+
+      - alert: ShardOutOfSyncFlood
+        expr: rate(hsm_shard_out_of_sync_total[2m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "shard-repair-pipeline"
+        annotations:
+          summary: "Shard out-of-sync event flood detected"
+          description: "More than 50 out-of-sync events per minute are being detected over the last 2 minutes, indicating possible cascading shard divergence, byzantine node behavior, or storage layer degradation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SHARD_OUT_OF_SYNC_FLOOD.md"
+
+  # ── Track 114: PQC Lattice-Based Multi-Message VSS Gating alerts ──────────
+  - name: track114_lattice_vss_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track114LatticeVssReconciliationStall
+        expr: |
+          rate(hsm_vssgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_vss_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "114"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vss-gating"
+        annotations:
+          summary: "Track 114 lattice VSS accreditation has stalled"
+          description: "New lattice VSS gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK114_LATTICE_VSS_RECONCILIATION_STALL.md"
+
+      - alert: Track114HighValidationFailureRate
+        expr: |
+          rate(hsm_zk_vss_claim_verified_total[5m]) / rate(hsm_vssgate_pool_initialized_total[5m]) < 0.85
+        for: 2m
+        labels:
+          severity: warning
+          track: "114"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vss-gating"
+        annotations:
+          summary: "Track 114 lattice VSS validation failure rate is above 15%"
+          description: "More than 15% of initialized lattice VSS sessions are failing ZK proof evaluation, polynomial degree bound rejection, or share threshold rejection over the last 5 minutes, indicating possible rogue-share or malformed polynomial injection attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK114_HIGH_VALIDATION_FAILURE_RATE.md"
+
+  # ── Track 115: PQC Lattice-Based Multi-Message VFHSS Gating alerts ──────────
+  - name: track115_lattice_vfhss_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track115LatticeVfhssReconciliationStall
+        expr: |
+          rate(hsm_vfhssgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_vfhss_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "115"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vfhss-gating"
+        annotations:
+          summary: "Track 115 lattice VFHSS accreditation has stalled"
+          description: "New lattice VFHSS gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK115_LATTICE_VFHSS_RECONCILIATION_STALL.md"
+
+      - alert: Track115HighValidationFailureRate
+        expr: |
+          rate(hsm_zk_vfhss_claim_verified_total[5m]) / rate(hsm_vfhssgate_pool_initialized_total[5m]) < 0.85
+        for: 2m
+        labels:
+          severity: warning
+          track: "115"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vfhss-gating"
+        annotations:
+          summary: "Track 115 lattice VFHSS validation failure rate is above 15%"
+          description: "More than 15% of initialized lattice VFHSS sessions are failing ZK proof evaluation, homomorphic depth bound rejection, or share threshold rejection over the last 5 minutes, indicating possible rogue-share or malformed polynomial injection attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK115_HIGH_VALIDATION_FAILURE_RATE.md"
+
+
+  # ── Track 116: Cluster Isolation Hardening alerts ──────────────────────────
+  - name: track116_cluster_isolation_hardening_alerts
+    interval: 15s
+    rules:
+      - alert: Track116ClusterIsolationViolationSpike
+        expr: |
+          rate(hsm_isolation_violation_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          track: "116"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-cluster-isolation"
+        annotations:
+          summary: "Track 116 cluster isolation violation rate is critically high"
+          description: "More than 10 isolation violations per second are being recorded over the last 5 minutes, indicating active network split anomaly or node impersonation attempt with unauthorized peers injecting traffic."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK116_CLUSTER_ISOLATION_VIOLATION_SPIKE.md"
+
+      - alert: Track116HighKeyRejectionRate
+        expr: |
+          rate(hsm_key_reject_total[5m]) > 2
+        for: 3m
+        labels:
+          severity: warning
+          track: "116"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-cluster-isolation"
+        annotations:
+          summary: "Track 116 non-leader key commit rejection rate is high"
+          description: "More than 2 non-leader key commit rejections per second are being recorded over the last 5 minutes, indicating non-leader nodes are executing split-brain adjustments or unauthorized key commit attempts."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK116_HIGH_KEY_REJECTION_RATE.md"
+
+  # ── Track 117: BFT Shard Sync alerts ─────────────────────────────
+  - name: track117_bft_shard_sync_alerts
+    interval: 15s
+    rules:
+      - alert: Track117ByzantineShardDivergenceDetected
+        expr: |
+          rate(hsm_shard_byzantine_detected_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          track: "117"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-bft-shard-sync
+        annotations:
+          summary: "Track 117 Byzantine shard divergence detected"
+          description: "Active Byzantine divergence or cryptographic manipulation detected among cluster shards. Immediate investigation required."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK117_BYZANTINE_SHARD_DIVERGENCE_DETECTED.md"
+
+      - alert: Track117ShardSyncLaggingNodesSpike
+        expr: |
+          hsm_shard_lagging_nodes > 4
+        for: 5m
+        labels:
+          severity: warning
+          track: "117"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-bft-shard-sync
+        annotations:
+          summary: "Track 117 shard sync lagging nodes spike"
+          description: "More than 4 nodes are persistently trailing behind the active BFT shard synchronization baseline over the last 5 minutes, indicating possible network degradation or node overload."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK117_SHARD_SYNC_LAGGING_NODES_SPIKE.md"

@@ -97,4 +97,65 @@ describe('Alertmanager routing (synthetic validation)', () => {
     const rs = receiversForAlert(routes, labels);
     expect(rs).toContain('hsm-crypto-ops-pager');
   });
+
+  test('Track 31 lookup gating alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', tier: 'post-quantum-crypto', track: '31' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('Track 113 handshake alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', tier: 'post-quantum-crypto', track: '113' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('Track 32 ring gating alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', tier: 'post-quantum-crypto', track: '32' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('Track 33 accumulator gating alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', tier: 'post-quantum-crypto', track: '33' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('ShardRepairStallDetected alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'ShardRepairStallDetected', component: 'hsm-mesh-vault', severity: 'critical' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('ShardReassemblyHighFailureRate alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'ShardReassemblyHighFailureRate', component: 'hsm-mesh-vault', severity: 'warning' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('ShardOutOfSyncFlood alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'ShardOutOfSyncFlood', component: 'hsm-mesh-vault', severity: 'warning' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+
+  test('Track 114 lattice VSS gating alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', tier: 'post-quantum-crypto', track: '114' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('Track114LatticeVssReconciliationStall alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'Track114LatticeVssReconciliationStall', component: 'hsm-mesh-vault', severity: 'critical' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('Track114HighValidationFailureRate alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'Track114HighValidationFailureRate', component: 'hsm-mesh-vault', severity: 'warning' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
 });

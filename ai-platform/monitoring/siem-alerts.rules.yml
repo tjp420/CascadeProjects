@@ -1,0 +1,110 @@
+## Prometheus alert rules for the unified SIEM security event broker.
+##
+## These rules monitor the SiemSecurityBroker's token-bucket rate limiter
+## and event routing pipeline. The broker exposes the following counters
+## through the hsm-metrics.cjs Prometheus registry:
+##
+##   siem_events_processed_total  — events accepted and routed to transports
+##   siem_events_dropped_total    — events dropped by the rate limiter
+##   siem_events_bypassed_total   — CRITICAL/FATAL events that bypassed throttling
+##   siem_tokens_consumed_total   — token-bucket tokens consumed
+##   siem_token_bucket_current    — current available tokens (gauge)
+##
+## Apply with the Prometheus Operator by wrapping this in a PrometheusRule CR,
+## or load it directly into the Prometheus server's rule_files section.
+
+groups:
+  - name: siem_broker_alerts
+    interval: 15s
+    rules:
+      # ── P1: CRITICAL/FATAL event detected ───────────────────────────
+      # Fires immediately (for: 0s) when any CRITICAL or FATAL security
+      # event bypasses the rate limiter. These events represent the most
+      # severe threats (state corruption, attestation failures, isolation
+      # violations) and require immediate operator attention.
+      - alert: SiemCriticalEventDetected
+        expr: increase(siem_events_bypassed_total[1m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          priority: P1
+          service: siem-broker
+          component: siem-security-broker
+        annotations:
+          summary: "SIEM CRITICAL/FATAL security event detected"
+          description: "{{ $value }} CRITICAL or FATAL security event(s) bypassed the rate limiter in the last minute. These represent severe threats such as state corruption, attestation failures, or isolation violations. Investigate immediately."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SIEM_CRITICAL_EVENT_DETECTED.md"
+
+      # ── P1: High drop rate — possible log-blinding attack ───────────
+      # Fires when the rate limiter is dropping more than 10 events per
+      # second over a 5-minute window. This indicates either a misconfigured
+      # rate limit (too low) or a deliberate log-blinding attack flooding
+      # the SIEM pipeline to suppress legitimate security events.
+      - alert: SiemHighDropRate
+        expr: rate(siem_events_dropped_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: critical
+          priority: P1
+          service: siem-broker
+          component: siem-security-broker
+        annotations:
+          summary: "SIEM event drop rate exceeds acceptable ceiling"
+          description: "The SIEM broker is dropping {{ $value }} events/second over the last 5 minutes. This indicates either a log-blinding attack or a misconfigured rate limit. Check siem_token_bucket_current to verify token exhaustion."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SIEM_HIGH_DROP_RATE.md"
+
+      # ── P2: Token bucket exhaustion — sustained high event volume ───
+      # Fires when the token bucket has been below 10% capacity for 10
+      # minutes. This is a warning that the broker is operating near its
+      # rate limit capacity, which could lead to event drops.
+      - alert: SiemTokenBucketExhaustion
+        expr: siem_token_bucket_current < 1
+        for: 10m
+        labels:
+          severity: warning
+          priority: P2
+          service: siem-broker
+          component: siem-security-broker
+        annotations:
+          summary: "SIEM token bucket is exhausted"
+          description: "The SIEM broker token bucket has been at 0 tokens for 10 minutes. All non-CRITICAL events are being dropped. Increase rateLimitMaxTokens or investigate the event source."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SIEM_TOKEN_BUCKET_EXHAUSTION.md"
+
+      # ── P2: No events processed — possible pipeline stall ───────────
+      # Fires when no events have been processed in the last 30 minutes.
+      # This could indicate that producers are not emitting events, the
+      # broker is not receiving them, or the metrics sync is not running.
+      - alert: SiemPipelineStall
+        expr: rate(siem_events_processed_total[30m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          priority: P2
+          service: siem-broker
+          component: siem-security-broker
+        annotations:
+          summary: "SIEM event processing has stalled"
+          description: "No SIEM events have been processed in the last 30 minutes. Verify that producers (hardware-attestation-verify, cluster-keyring-sync) are operational and the broker is receiving events."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SIEM_PIPELINE_STALL.md"
+
+      # ── P3: High drop ratio — tuning needed ─────────────────────────
+      # Fires when more than 5% of events are being dropped over a 15-minute
+      # window. This is a tuning alert — the rate limit may need adjustment
+      # or the event volume may be higher than expected.
+      - alert: SiemHighDropRatio
+        expr: |
+          (
+            rate(siem_events_dropped_total[15m])
+            /
+            (rate(siem_events_processed_total[15m]) + rate(siem_events_dropped_total[15m]) + 1)
+          ) > 0.05
+        for: 15m
+        labels:
+          severity: info
+          priority: P3
+          service: siem-broker
+          component: siem-security-broker
+        annotations:
+          summary: "SIEM event drop ratio above 5%"
+          description: "More than 5% of SIEM events are being dropped over the last 15 minutes. Consider increasing rateLimitMaxTokens or investigating the event source volume."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SIEM_HIGH_DROP_RATIO.md"

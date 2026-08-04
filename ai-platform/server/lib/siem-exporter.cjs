@@ -109,6 +109,33 @@ if (_timer.unref) _timer.unref();
 
 function close() {
   try { clearInterval(_timer); } catch {}
+  if (_brokerListener) {
+    try { _brokerListener.broker.removeListener('transport_batch_queue', _brokerListener.fn); } catch {}
+    _brokerListener = null;
+  }
+}
+
+// ── SiemSecurityBroker integration ──────────────────────────────────
+let _brokerListener = null;
+
+/**
+ * Connect a SiemSecurityBroker to the exporter.
+ * The broker's `transport_batch_queue` events are enqueued for batch HTTPS delivery.
+ * @param {object} broker - SiemSecurityBroker instance
+ */
+function connectBroker(broker) {
+  if (!broker || typeof broker.on !== 'function') return;
+  // Remove any previous listener
+  if (_brokerListener) {
+    try { _brokerListener.broker.removeListener('transport_batch_queue', _brokerListener.fn); } catch {}
+  }
+  const fn = (event) => {
+    try { enqueue(event); } catch (e) {
+      try { logger.warn('[SIEM Exporter] broker enqueue failed', { error: e && e.message }); } catch {}
+    }
+  };
+  broker.on('transport_batch_queue', fn);
+  _brokerListener = { broker, fn };
 }
 
 module.exports = {
@@ -116,6 +143,7 @@ module.exports = {
   flush,
   close,
   sendBatch,
+  connectBroker,
   _debug: {
     getQueue: () => queue,
     isFlushing: () => flushing,
