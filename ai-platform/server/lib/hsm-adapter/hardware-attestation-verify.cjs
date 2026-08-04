@@ -36,12 +36,14 @@ class HardwareAttestationVerifier {
    * @param {object} options
    * @param {object} [options.expectedMeasurements] — { tpm2: { pcrs }, 'sev-snp': { mrenclave }, sgx: { mrenclave } }
    * @param {string[]} [options.allowedAuthorities] — default: all supported profiles
-   * @param {Function} [options.audit] — SIEM audit callback
+   * @param {Function} [options.audit] — SIEM audit callback (legacy, still supported)
+   * @param {object} [options.broker] — SiemSecurityBroker instance (preferred over audit)
    */
   constructor(options = {}) {
     this._expectedMeasurements = options.expectedMeasurements || {};
     this._allowedAuthorities = options.allowedAuthorities || ['tpm2', 'sev-snp', 'sgx', 'mock-authority'];
     this._audit = options.audit || null;
+    this._broker = options.broker || null;
     this._pendingChallenges = new Map();
     this._seenNonces = new Map();
   }
@@ -230,11 +232,20 @@ class HardwareAttestationVerifier {
 
   /**
    * Emit a SIEM alert.
+   * Routes through SiemSecurityBroker when available (preferred),
+   * falls back to legacy audit callback for backward compatibility.
    * @param {string} event
-   * @param {object} data
+   * @param {object} data — must include siemSeverity and siemCategory
    */
   _emitSIEM(event, data) {
-    if (this._audit) {
+    if (this._broker) {
+      this._broker.logEvent({
+        siemSeverity: (data.siemSeverity || 'high').toUpperCase(),
+        siemCategory: data.siemCategory || event.toLowerCase(),
+        siemSource: 'hardware-attestation-verify',
+        context: { event, sandboxId: data.sandboxId, ...data },
+      });
+    } else if (this._audit) {
       this._audit(event, { timestamp: Date.now(), ...data });
     }
   }

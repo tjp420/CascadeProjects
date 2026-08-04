@@ -294,6 +294,7 @@ const _peerEpochs = new Map(); // peerKey -> epoch number
 
 // SIEM alerting hooks
 const _siemHooks = []; // array of callback functions
+let _broker = null; // SiemSecurityBroker instance (preferred over hooks)
 const SIEM_RATE_LIMIT_PER_MIN = parseInt(process.env.SIEM_RATE_LIMIT_PER_MIN, 10) || 100;
 const _siemRateCounters = new Map(); // eventType -> { count, windowStart }
 
@@ -673,8 +674,21 @@ function registerSiemHook(callback) {
 }
 
 /**
+ * Set a SiemSecurityBroker instance as the preferred SIEM transport.
+ * When set, the broker receives all events via logEvent() and legacy
+ * hooks are still invoked as a fallback for backward compatibility.
+ * @param {object} broker - SiemSecurityBroker instance
+ */
+function setBroker(broker) {
+  _broker = broker || null;
+}
+
+/**
  * Invoke SIEM hooks for a high-severity event, with rate limiting.
  * Excess calls beyond SIEM_RATE_LIMIT_PER_MIN per event type are dropped silently.
+ * When a SiemSecurityBroker is set, events are routed through broker.logEvent()
+ * with the broker's own token-bucket rate limiter. Legacy hooks still fire
+ * for backward compatibility.
  * @param {string} eventType
  * @param {string} node
  * @param {object} details
@@ -688,6 +702,22 @@ function _invokeSiemHooks(eventType, node, details) {
   }
   counter.count++;
   if (counter.count > SIEM_RATE_LIMIT_PER_MIN) return; // drop silently
+
+  // Route through SiemSecurityBroker when available
+  if (_broker) {
+    try {
+      _broker.logEvent({
+        siemSeverity: (details && details.siemSeverity || 'high').toUpperCase(),
+        siemCategory: (details && details.siemCategory) || eventType.toLowerCase(),
+        siemSource: 'cluster-keyring-sync',
+        context: { eventType, node, ...details },
+      });
+    } catch (err) {
+      _log('warn', 'SIEM broker threw error', { error: err.message, eventType });
+    }
+  }
+
+  // Legacy hooks still fire for backward compatibility
   for (const hook of _siemHooks) {
     try {
       hook(eventType, node, details);
@@ -1320,6 +1350,7 @@ function _resetEpoch() {
 function _resetEpochState() {
   _peerEpochs.clear();
   _siemHooks.length = 0;
+  _broker = null;
   _siemRateCounters.clear();
   _snapshotHistory.length = 0;
 }
@@ -1861,6 +1892,7 @@ module.exports = {
   IPC_SCHEMAS,
   // SIEM alerting hooks
   registerSiemHook,
+  setBroker,
   _invokeSiemHooks,
   _siemHooks,
   // State snapshot checkpoint utility
