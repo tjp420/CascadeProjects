@@ -223,6 +223,7 @@ class BftShardSyncEngine {
       throw new HsmAdapterError('SHARD_ALREADY_REGISTERED', `shard ${shardId} already registered`);
     }
     if (this._shards.size >= this.maxShardsPerCluster) {
+      incrementCounter('hsm_shard_limit_exceeded_total');
       throw new HsmAdapterError('SHARD_LIMIT_EXCEEDED',
         `shard count ${this._shards.size} exceeds max ${this.maxShardsPerCluster}`);
     }
