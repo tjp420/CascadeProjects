@@ -21,6 +21,7 @@ const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
 const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
 const { PqcBlindedRingSignatureGatingHub } = require('../lib/hsm-adapter/pqc-blinded-ring-signature-gating-hub.cjs');
 const { PqcDirectAccumulatorMembershipGatingHub } = require('../lib/hsm-adapter/pqc-direct-accumulator-membership-gating-hub.cjs');
+const { PqcLatticeVssGatingHub } = require('../lib/hsm-adapter/pqc-lattice-vss-gating-hub.cjs');
 const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
 const SessionStore = require('../lib/crypto/ratchet/session-store.cjs');
 const { encryptEnvelope } = require('../lib/crypto/ratchet/envelope-crypto.cjs');
@@ -41,6 +42,12 @@ const accumulatorGatingPools = new Map();
 
 // Shared policy engine instance for Track 33 accumulator gating
 const accumulatorGatingPolicyEngine = new CryptoPolicyEngine();
+
+// In-memory registry for Track 114 lattice VSS gating pools (per-process; persistent storage out of scope)
+const latticeVssGatingPools = new Map();
+
+// Shared policy engine instance for Track 114 lattice VSS gating
+const latticeVssGatingPolicyEngine = new CryptoPolicyEngine();
 
 // Apply token-bucket defense to all admin HSM vault routes, after auth
 function authBeforeThrottle(req, res, next) {
@@ -1860,6 +1867,132 @@ router.get('/accumulator-gating/:poolId', authorize('admin:all'), runAsync(async
     poolId: req.params.poolId,
     status: entry.hub.state,
     witnessCount: entry.hub.witnesses.length,
+  });
+}));
+
+// ── Track 114: PQC Lattice-Based Multi-Message VSS Gating Hub endpoints ──────
+
+function resolveLatticeVssGatingPool(poolId) {
+  const pool = latticeVssGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/lattice-vss/pool — initialize a Track 114 lattice VSS gating pool
+router.post('/lattice-vss/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcLatticeVssGatingHub(orgId, latticeVssGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  latticeVssGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/lattice-vss/:poolId/shares — collect lattice secret shares
+router.post('/lattice-vss/:poolId/shares', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  const shares = (req.body && req.body.shares) || [];
+  if (!Array.isArray(shares)) return sendError(res, 400, 'VSSGATE_INVALID_SHARES');
+  try {
+    const status = entry.hub.collectShares(shares);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      shareCount: entry.hub.shares.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vss/:poolId/validate — validate ZK lattice VSS claim
+router.post('/lattice-vss/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const manifest = (req.body && req.body.manifest) || {};
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      degreeBound: manifest.degreeBound || claim.degreeBound,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const msg = err.message || '';
+    const code = msg.includes('VSSCLAIM_DEGREE_BOUND_EXCEEDED')
+      ? 'VSSCLAIM_DEGREE_BOUND_EXCEEDED'
+      : msg.includes('VSSCLAIM_INSUFFICIENT_SHARES')
+        ? 'VSSCLAIM_INSUFFICIENT_SHARES'
+        : msg.includes('VSSCLAIM_UNATTESTED_BINDING')
+          ? 'VSSCLAIM_UNATTESTED_BINDING'
+          : err.code || 'VSSGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vss/:poolId/accredit — finalize accreditation
+router.post('/lattice-vss/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/lattice-vss/telemetry — expose Track 114 telemetry counters (no raw share tokens or polynomial data)
+router.get('/lattice-vss/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_vssgate_pool_initialized_total: allMetrics.hsm_vssgate_pool_initialized_total || 0,
+      hsm_zk_vss_claim_verified_total: allMetrics.hsm_zk_vss_claim_verified_total || 0,
+      hsm_vss_accreditation_completed_total: allMetrics.hsm_vss_accreditation_completed_total || 0,
+      activePools: latticeVssGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lattice_vss_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/lattice-vss/:poolId — get pool status (no raw share tokens or polynomial data)
+router.get('/lattice-vss/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    shareCount: entry.hub.shares.length,
   });
 }));
 
