@@ -27,82 +27,43 @@ router.use((req, res, next) => {
   next();
 });
 
-// Sessions persisted in-memory metadata; chunk data stored on disk under server/.data/track112/<sessionId>
-const sessions = new Map();
-
-function makeId() {
-  return `upload-${Date.now()}-${Math.floor(Math.random()*10000)}`;
-}
-
-function sessionDir(sessionId) {
-  return path.join(__dirname, '..', '..', '.data', 'track112', sessionId);
-}
+// Disk-backed upload manager for multipart sessions
+const UploadManager = require('../lib/storage/upload-manager.cjs');
+const uploadBase = path.join(__dirname, '..', '..', '.data', 'track112');
+const uploadManager = new UploadManager({ baseDir: uploadBase, defaultTenant: 'dev' });
 
 router.post('/uploads', express.json(), (req, res) => {
   const { tenant, maxBytes } = req.body || {};
-  const id = makeId();
-  const dir = sessionDir(id);
-  fs.mkdirSync(dir, { recursive: true });
-  sessions.set(id, { tenant: tenant || 'dev', maxBytes: maxBytes || 0, dir, createdAt: Date.now(), traceId: req.track112TraceId });
+  const id = uploadManager.createSession({ tenant, maxBytes, traceId: req.track112TraceId });
   res.status(201).json({ sessionId: id, traceId: req.track112TraceId });
 });
 
 // Write incoming chunk data directly to a file named by its offset
-router.post('/uploads/:id/chunk', (req, res) => {
+router.post('/uploads/:id/chunk', async (req, res) => {
   const id = req.params.id;
   const q = req.query || {};
   const offset = Number(q.offset || 0);
-  const sess = sessions.get(id);
-  if (!sess) return res.status(404).json({ error: 'session_not_found' });
-  const filePath = path.join(sess.dir, `${offset}.chunk`);
-  const ws = fs.createWriteStream(filePath, { flags: 'w' });
-  req.pipe(ws);
-  ws.on('finish', () => {
-    // echo trace id for correlation
-    res.setHeader('x-track112-trace-id', req.track112TraceId || sess.traceId);
+  try {
+    await uploadManager.writeChunkFromStream(id, offset, req);
+    res.setHeader('x-track112-trace-id', req.track112TraceId);
     res.status(204).end();
-  });
-  ws.on('error', (err) => {
-    res.status(500).json({ error: 'write_failed', message: err.message });
-  });
+  } catch (e) {
+    res.status(500).json({ error: 'write_failed', message: e.message });
+  }
 });
 
 // Commit: compute root over persisted chunk files, verify Ed25519 signature, then remove session data
 router.post('/uploads/:id/commit', express.json(), (req, res) => {
   const id = req.params.id;
   const { publicKeyPem, signature } = req.body || {};
-  const sess = sessions.get(id);
-  if (!sess) return res.status(404).json({ error: 'session_not_found' });
   if (!publicKeyPem || !signature) return res.status(400).json({ error: 'missing_publicKey_or_signature' });
-
-  // Read chunk files sorted by numeric offset
-  const files = fs.readdirSync(sess.dir).filter(f => f.endsWith('.chunk'));
-  const offsets = files.map(f => Number(f.replace('.chunk', ''))).sort((a,b)=>a-b);
-  const bufs = offsets.map(o => fs.readFileSync(path.join(sess.dir, `${o}.chunk`)));
-  const total = Buffer.concat(bufs.length ? bufs : [Buffer.alloc(0)]);
-  const rootBuf = crypto.createHash('sha256').update(total).digest();
-  const rootHex = rootBuf.toString('hex');
-
   try {
-    // Accept PEM public key (SPKI). Signature is expected base64.
-    const pubKeyObj = crypto.createPublicKey(publicKeyPem);
-    const sigBuf = Buffer.from(signature, 'base64');
-    const ok = crypto.verify(null, rootBuf, pubKeyObj, sigBuf);
-    if (!ok) {
-      return res.status(401).json({ error: 'invalid_signature' });
-    }
+    const result = uploadManager.verifyAndCommitSession(id, publicKeyPem, signature);
+    if (!result.ok) return res.status(401).json({ error: result.reason, message: result.message });
+    return res.json({ status: 'committed', root: result.root, traceId: req.track112TraceId });
   } catch (e) {
-    return res.status(400).json({ error: 'signature_verification_failed', message: e.message });
+    return res.status(404).json({ error: 'session_not_found' });
   }
-
-  // On success, cleanup persisted data
-  try {
-    fs.rmSync(sess.dir, { recursive: true, force: true });
-  } catch (e) {
-    // ignore cleanup failures
-  }
-  sessions.delete(id);
-  res.json({ status: 'committed', root: rootHex, traceId: req.track112TraceId || sess.traceId });
 });
 
 module.exports = router;
