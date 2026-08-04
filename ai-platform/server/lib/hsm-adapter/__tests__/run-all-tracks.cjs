@@ -123,6 +123,7 @@ const SUITES = [
   'mixnet-blind-transaction-engine',
   'recursive-proof-aggregation-engine',
   'lookup-gating',
+  'tenant-boundary-saturation',
 ];
 
 function resolveBaseTestFile(pattern) {

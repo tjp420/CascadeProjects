@@ -230,10 +230,75 @@ exports.cleanupPrototypePollution = function () {
     'nestedThresholdPolluted',
     'prngPolluted',
     'prngConstructorPolluted',
+    'lookupGatePolluted',
+    'lookupConstructorPolluted',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
   }
+};
+
+// ── Track 31: Homomorphic Database Lookup Gating Hub mutators ────────────────
+
+exports.makeTrack31ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track31-polluter': {
+        lookupGating: {
+          __proto__: { lookupGatePolluted: true },
+          minLookupQuorum: 12,
+          maxLookupDepth: 32,
+          requireEncryptedQueryAttestation: true,
+        },
+        constructor: {
+          prototype: { lookupConstructorPolluted: true },
+        },
+      },
+      'track31-clean': {
+        lookupGating: {
+          minLookupQuorum: 12,
+          maxLookupDepth: 32,
+          requireEncryptedQueryAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack31TypeConfusionConfigs = function () {
+  return [
+    { value: { lookupQuorum: '12', lookupDepth: '32' }, label: 'string-numbers' },
+    { value: { lookupQuorum: [], lookupDepth: {} }, label: 'array-object-values' },
+    { value: { lookupQuorum: null, lookupDepth: undefined }, label: 'null-undefined-values' },
+    { value: { encryptedQueryAttestation: 'true' }, label: 'string-boolean' },
+    { value: { blindingType: 42 }, label: 'number-string' },
+    { value: { queryAgeSeconds: true }, label: 'boolean-number' },
+  ];
+};
+
+exports.makeTrack31PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track31-polluter', 'track31-clean']);
+  const lookupQuorum = prng.nextChoice([1, 5, 11, 12, 13, 100]);
+  const lookupDepth = prng.nextChoice([1, 16, 32, 33, 1000]);
+  const attestation = prng.nextChoice([true, false, 'true', 1, 0]);
+  const auth = prng.nextChoice(['mock-authority', 'untrusted-authority', null, 123]);
+  const blinding = prng.nextChoice(['pedersen', 'exponential-elgamal', 'unsupported', 42, null]);
+  const canonical = prng.nextChoice([true, false, 'yes', 1, 0]);
+  return {
+    tenantId,
+    operation: 'lookupGating',
+    config: {
+      lookupQuorum,
+      lookupDepth,
+      encryptedQueryAttestation: attestation,
+      attestationAuthority: auth,
+      blindingType: blinding,
+      queryAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+      canonicalPayloadLayout: canonical,
+    },
+  };
 };
 
 // ── Exports ──────────────────────────────────────────────────────────────────

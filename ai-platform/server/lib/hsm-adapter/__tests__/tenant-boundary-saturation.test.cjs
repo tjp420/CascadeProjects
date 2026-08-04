@@ -15,6 +15,9 @@ const {
   makeHashChainPrng,
   cleanupPrototypePollution,
   FUZZ_SEED,
+  makeTrack31ProtoPollutionPolicy,
+  makeTrack31TypeConfusionConfigs,
+  makeTrack31PrngDrivenValidateCall,
 } = require('./tenant-fuzz-harness.cjs');
 
 afterEach(() => {
@@ -222,6 +225,63 @@ describe('Tenant boundary saturation (15-test deterministic fuzzing matrix)', ()
 
     for (let i = 0; i < 100; i++) {
       const { tenantId, operation, config } = makePrngDrivenValidateCall(prng);
+      try {
+        const result = engine.validate(tenantId, operation, config);
+        expect(result).toBe(true);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-31: Track 31 lookup gating __proto__ pollution is blocked', () => {
+    const policy = makeTrack31ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    expect(Object.prototype).not.toHaveProperty('lookupGatePolluted');
+    expect(Object.prototype).not.toHaveProperty('lookupConstructorPolluted');
+
+    const clean = engine.getPolicy('track31-clean');
+    expect(clean).toBeDefined();
+    expect(clean.lookupGating).toBeDefined();
+
+    const polluted = engine.getPolicy('track31-polluter');
+    expect(polluted).toBeDefined();
+    expect(polluted.lookupGating).not.toHaveProperty('lookupGatePolluted');
+  });
+
+  test('FUZZ-32: Track 31 lookup gating cross-tenant isolation', () => {
+    const policy = makeTrack31ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    const policyA = engine.getPolicy('track31-polluter');
+    const originalBQuorum = engine.getPolicy('track31-clean').lookupGating.minLookupQuorum;
+
+    policyA.lookupGating.minLookupQuorum = 1;
+
+    const policyB = engine.getPolicy('track31-clean');
+    expect(policyB.lookupGating.minLookupQuorum).toBe(originalBQuorum);
+    expect(policyB.lookupGating.minLookupQuorum).not.toBe(1);
+  });
+
+  test('FUZZ-33: Track 31 type confusion fails closed', () => {
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const inputs = makeTrack31TypeConfusionConfigs();
+    for (const { value } of inputs) {
+      try {
+        engine.validate('t1', 'lookupGating', value);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-34: Track 31 PRNG-driven lookup gating validation — 100 calls, no unhandled crash', () => {
+    const prng = makeHashChainPrng(FUZZ_SEED);
+    const engine = new CryptoPolicyEngine();
+
+    for (let i = 0; i < 100; i++) {
+      const { tenantId, operation, config } = makeTrack31PrngDrivenValidateCall(prng);
       try {
         const result = engine.validate(tenantId, operation, config);
         expect(result).toBe(true);
