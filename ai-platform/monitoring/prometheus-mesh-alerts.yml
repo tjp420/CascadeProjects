@@ -433,3 +433,39 @@ groups:
           summary: "Track 114 lattice VSS validation failure rate is above 15%"
           description: "More than 15% of initialized lattice VSS sessions are failing ZK proof evaluation, polynomial degree bound rejection, or share threshold rejection over the last 5 minutes, indicating possible rogue-share or malformed polynomial injection attacks."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK114_HIGH_VALIDATION_FAILURE_RATE.md"
+
+  # ── Track 115: PQC Lattice-Based Multi-Message VFHSS Gating alerts ──────────
+  - name: track115_lattice_vfhss_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track115LatticeVfhssReconciliationStall
+        expr: |
+          rate(hsm_vfhssgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_vfhss_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "115"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vfhss-gating"
+        annotations:
+          summary: "Track 115 lattice VFHSS accreditation has stalled"
+          description: "New lattice VFHSS gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK115_LATTICE_VFHSS_RECONCILIATION_STALL.md"
+
+      - alert: Track115HighValidationFailureRate
+        expr: |
+          rate(hsm_zk_vfhss_claim_verified_total[5m]) / rate(hsm_vfhssgate_pool_initialized_total[5m]) < 0.85
+        for: 2m
+        labels:
+          severity: warning
+          track: "115"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vfhss-gating"
+        annotations:
+          summary: "Track 115 lattice VFHSS validation failure rate is above 15%"
+          description: "More than 15% of initialized lattice VFHSS sessions are failing ZK proof evaluation, homomorphic depth bound rejection, or share threshold rejection over the last 5 minutes, indicating possible rogue-share or malformed polynomial injection attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK115_HIGH_VALIDATION_FAILURE_RATE.md"
