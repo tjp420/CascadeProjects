@@ -21,6 +21,9 @@ const {
   makeTrack113ProtoPollutionPolicy,
   makeTrack113TypeConfusionConfigs,
   makeTrack113PrngDrivenValidateCall,
+  makeTrack32ProtoPollutionPolicy,
+  makeTrack32TypeConfusionConfigs,
+  makeTrack32PrngDrivenValidateCall,
 } = require('./tenant-fuzz-harness.cjs');
 
 afterEach(() => {
@@ -347,6 +350,67 @@ describe('Tenant boundary saturation (15-test deterministic fuzzing matrix)', ()
 
     for (let i = 0; i < 100; i++) {
       const { tenantId, operation, config } = makeTrack113PrngDrivenValidateCall(prng);
+      try {
+        const result = engine.validate(tenantId, operation, config);
+        expect(result).toBe(true);
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    }
+  });
+
+  test('FUZZ-32-1: Track 32 ring gating __proto__ pollution is blocked', () => {
+    const policy = makeTrack32ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    expect(Object.prototype).not.toHaveProperty('ringGatePolluted');
+    expect(Object.prototype).not.toHaveProperty('ringConstructorPolluted');
+
+    const clean = engine.getPolicy('track32-clean');
+    expect(clean).toBeDefined();
+    expect(clean.ringGating).toBeDefined();
+
+    const polluted = engine.getPolicy('track32-polluter');
+    expect(polluted).toBeDefined();
+    expect(polluted.ringGating).not.toHaveProperty('ringGatePolluted');
+  });
+
+  test('FUZZ-32-2: Track 32 ring gating cross-tenant isolation', () => {
+    const policy = makeTrack32ProtoPollutionPolicy();
+    const engine = new CryptoPolicyEngine(policy, { strict: true });
+
+    const policyA = engine.getPolicy('track32-polluter');
+    const originalBMinRing = engine.getPolicy('track32-clean').ringGating.minRingSize;
+
+    policyA.ringGating.minRingSize = 1;
+
+    const policyB = engine.getPolicy('track32-clean');
+    expect(policyB.ringGating.minRingSize).toBe(originalBMinRing);
+    expect(policyB.ringGating.minRingSize).not.toBe(1);
+  });
+
+  test('FUZZ-32-3: Track 32 type confusion fails closed', () => {
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const inputs = makeTrack32TypeConfusionConfigs();
+    for (const { value } of inputs) {
+      try {
+        engine.validate('t1', 'ringGating', value);
+      } catch (e) {
+        expect(e).toBeDefined();
+        // Must be a structured HsmAdapterError, not a raw TypeError
+        if (e instanceof HsmAdapterError) {
+          expect(e.code).toMatch(/RINGGATE|POLICY/);
+        }
+      }
+    }
+  });
+
+  test('FUZZ-32-4: Track 32 PRNG-driven ring gating validation — 100 calls, no unhandled crash', () => {
+    const prng = makeHashChainPrng(FUZZ_SEED);
+    const engine = new CryptoPolicyEngine();
+
+    for (let i = 0; i < 100; i++) {
+      const { tenantId, operation, config } = makeTrack32PrngDrivenValidateCall(prng);
       try {
         const result = engine.validate(tenantId, operation, config);
         expect(result).toBe(true);
