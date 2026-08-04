@@ -7,13 +7,6 @@ on:
       - '.github/workflows/ai-platform-openapi-prism.yml'
   push:
     branches:
-
-        - name: Verify Node/npm versions
-          run: |
-            echo "Debug: before install - node and npm versions"
-            node -v
-            npm -v
-
       - 'feature/**'
   workflow_dispatch: {}
 
@@ -111,6 +104,9 @@ jobs:
       - name: Run ai-platform tests
         env:
           CI: true
+          run: |
+            mkdir -p ai-platform/test-results
+            npm test -w ai-platform -- --runInBand --json --outputFile=test-results/jest-results.json 2>&1 | tee ai-platform/test-results/jest-console.log
         run: |
           npm --prefix ai-platform test -- --runInBand
 
@@ -118,6 +114,9 @@ jobs:
         env:
           CI: true
           PRISM_BASE: http://localhost:4010
+          run: |
+            echo 'Running integration tests against Prism mock...'
+            npx jest --config=ai-platform/jest.config.cjs ai-platform/tests/integration --runInBand
         run: |
           echo 'Running integration tests against Prism mock...'
           npm --prefix ai-platform test -- tests/integration --runInBand
