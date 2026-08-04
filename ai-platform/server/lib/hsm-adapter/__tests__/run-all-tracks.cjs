@@ -131,6 +131,7 @@ const SUITES = [
   'track32-core-gating',
   'hsm-vault-ring-gating-routes',
   'track33-primitive-groundwork',
+  'track33-core-gating',
 ];
 
 function resolveBaseTestFile(pattern) {
