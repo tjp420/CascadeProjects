@@ -1461,6 +1461,8 @@ module.exports = {
   getEpochState,
   _validateIncomingEpoch,
   _resetEpochState,
+  _handleMessage,
+  _resetEpoch,
   // SIEM alerting hooks
   registerSiemHook,
   _invokeSiemHooks,

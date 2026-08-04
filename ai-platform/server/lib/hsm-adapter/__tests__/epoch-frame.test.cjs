@@ -2,33 +2,9 @@
 
 /**
  * Epoch-Frame Verification Hardening + SIEM Alerting Hooks — Test Suite
- *
- * Coverage map (from test_plan.md):
- *   L2-01: HEARTBEAT with matching epoch
- *   L2-02: HEARTBEAT with stale epoch
- *   L2-03: HEARTBEAT with higher epoch (reconciliation)
- *   L2-04: KEY_COMMIT with stale epoch (rejected)
- *   L2-05: KEY_COMMIT with matching epoch (accepted)
- *   L2-06: SIEM hook fires on KEY_REJECT
- *   L2-07: SIEM hook fires on ISOLATION_VIOLATION
- *   L2-08: SIEM hook rate limiting
- *   L3-01: Epoch persistence across restart
- *   L3-02: Epoch reconciliation after partition
- *   L3-03: DKG messages with stale epoch (not applicable — DKG uses session IDs)
- *   L3-04: Existing keyring sync unaffected
- *   L3-05: SIEM hook doesn't fire on info events
- *   L3-06: Multiple SIEM hooks
- *   L3-07: SIEM hook error isolation
- *   S-02: Epoch from unknown peers is ignored
- *   S-03: Stale-epoch KEY_COMMIT is rejected
- *   S-04: Epoch persistence prevents restart-to-epoch-0 downgrade
- *   S-05: SIEM hook callbacks cannot throw into event recording path
- *   S-06: SIEM hook rate limiting prevents alert storms
- *   S-07: Epoch reconciliation only adopts higher epochs (never lower)
  */
 
 const crypto = require('crypto');
-const { DkgSnarkEngine } = require('../dkg-snark-engine.cjs');
 
 // Set up env before requiring the module
 process.env.NODE_ID = 'node-1';
@@ -85,7 +61,7 @@ describe('Epoch-Frame Verification Hardening', () => {
         type: 'HEARTBEAT',
         from: 'node-2',
         leaderId: 'node-1',
-        epoch: 0, // matches local epoch 0
+        epoch: 0,
         activeFingerprint: 'abc',
         previousFingerprint: null,
         rotatedAt: null,
@@ -104,39 +80,25 @@ describe('Epoch-Frame Verification Hardening', () => {
 
   describe('L2-02: HEARTBEAT with stale epoch', () => {
     test('EPOCH_STALE recorded, local epoch unchanged', () => {
-      // First, advance local epoch by simulating a higher-epoch heartbeat
+      // First, advance local epoch
       const socket1 = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
-        type: 'HEARTBEAT',
-        from: 'node-2',
-        leaderId: 'node-1',
-        epoch: 3,
-        activeFingerprint: 'abc',
-        previousFingerprint: null,
-        rotatedAt: null,
+        type: 'HEARTBEAT', from: 'node-2', leaderId: 'node-1', epoch: 3,
+        activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, socket1);
 
-      // Now local epoch should be 3. Send a stale epoch from another peer.
-      clusterSync._resetEvents(); // clear events from first step
+      clusterSync._resetEvents();
       const socket2 = createMockSocket('127.0.0.1', 7002);
       clusterSync._handleMessage({
-        type: 'HEARTBEAT',
-        from: 'node-3',
-        leaderId: 'node-1',
-        epoch: 1, // stale — less than local epoch 3
-        activeFingerprint: 'abc',
-        previousFingerprint: null,
-        rotatedAt: null,
+        type: 'HEARTBEAT', from: 'node-3', leaderId: 'node-1', epoch: 1,
+        activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, socket2);
 
       const staleEvents = clusterSync.queryEvents({ eventType: 'epoch_stale' });
       expect(staleEvents.events.length).toBe(1);
       expect(staleEvents.events[0].details.peerEpoch).toBe(1);
       expect(staleEvents.events[0].details.localEpoch).toBe(3);
-
-      // Local epoch should still be 3
-      const epochState = clusterSync.getEpochState();
-      expect(epochState.localEpoch).toBe(3);
+      expect(clusterSync.getEpochState().localEpoch).toBe(3);
     });
   });
 
@@ -146,13 +108,8 @@ describe('Epoch-Frame Verification Hardening', () => {
     test('EPOCH_DRIFT + EPOCH_RECONCILED recorded, local epoch adopted', () => {
       const socket = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
-        type: 'HEARTBEAT',
-        from: 'node-2',
-        leaderId: 'node-1',
-        epoch: 5, // higher than local epoch 0
-        activeFingerprint: 'abc',
-        previousFingerprint: null,
-        rotatedAt: null,
+        type: 'HEARTBEAT', from: 'node-2', leaderId: 'node-1', epoch: 5,
+        activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, socket);
 
       const driftEvents = clusterSync.queryEvents({ eventType: 'epoch_drift' });
@@ -177,31 +134,19 @@ describe('Epoch-Frame Verification Hardening', () => {
       // First advance local epoch
       const socket1 = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
-        type: 'HEARTBEAT',
-        from: 'node-2',
-        leaderId: 'node-1',
-        epoch: 5,
-        activeFingerprint: 'abc',
-        previousFingerprint: null,
-        rotatedAt: null,
+        type: 'HEARTBEAT', from: 'node-2', leaderId: 'node-1', epoch: 5,
+        activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, socket1);
 
       clusterSync._resetEvents();
 
-      // Send KEY_COMMIT with stale epoch
       const validHex = 'a'.repeat(64);
       const socket2 = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
-        type: 'KEY_COMMIT',
-        from: 'node-1',
-        leaderId: 'node-1',
-        epoch: 2, // stale — less than local epoch 5
-        activeHex: validHex,
-        previousHex: null,
-        activeFingerprint: 'abc',
-        previousFingerprint: null,
-        rotatedAt: Date.now(),
-        graceMs: null,
+        type: 'KEY_COMMIT', from: 'node-1', leaderId: 'node-1', epoch: 2,
+        activeHex: validHex, previousHex: null,
+        activeFingerprint: 'abc', previousFingerprint: null,
+        rotatedAt: Date.now(), graceMs: null,
       }, socket2);
 
       const rejectEvents = clusterSync.queryEvents({ eventType: 'key_reject' });
@@ -219,23 +164,14 @@ describe('Epoch-Frame Verification Hardening', () => {
       const validHex = 'b'.repeat(64);
       const socket = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
-        type: 'KEY_COMMIT',
-        from: 'node-1',
-        leaderId: 'node-1',
-        epoch: 0, // matches local epoch 0
-        activeHex: validHex,
-        previousHex: null,
-        activeFingerprint: 'def',
-        previousFingerprint: null,
-        rotatedAt: Date.now(),
-        graceMs: null,
+        type: 'KEY_COMMIT', from: 'node-1', leaderId: 'node-1', epoch: 0,
+        activeHex: validHex, previousHex: null,
+        activeFingerprint: 'def', previousFingerprint: null,
+        rotatedAt: Date.now(), graceMs: null,
       }, socket);
 
-      // Should NOT have a KEY_REJECT event
       const rejectEvents = clusterSync.queryEvents({ eventType: 'key_reject' });
       expect(rejectEvents.events.length).toBe(0);
-
-      // Should have a KEY_COMMIT event (applied successfully)
       const commitEvents = clusterSync.queryEvents({ eventType: 'key_commit' });
       expect(commitEvents.events.length).toBe(1);
     });
@@ -250,7 +186,7 @@ describe('Epoch-Frame Verification Hardening', () => {
         hookCalls.push({ eventType, node, details });
       });
 
-      // Advance local epoch to 3 via HEARTBEAT (this triggers EPOCH_DRIFT SIEM hook)
+      // Advance local epoch to 3 via HEARTBEAT (triggers EPOCH_DRIFT SIEM hook)
       const validHex = 'c'.repeat(64);
       const s1 = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
@@ -258,7 +194,6 @@ describe('Epoch-Frame Verification Hardening', () => {
         activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, s1);
 
-      // Clear events but keep SIEM hooks registered
       clusterSync._resetEvents();
 
       // Send stale-epoch KEY_COMMIT (epoch 1 < local epoch 3)
@@ -270,7 +205,6 @@ describe('Epoch-Frame Verification Hardening', () => {
         rotatedAt: Date.now(), graceMs: null,
       }, s2);
 
-      // The KEY_REJECT should have triggered a SIEM hook call
       const keyRejectCalls = hookCalls.filter((c) => c.eventType === 'key_reject');
       expect(keyRejectCalls.length).toBeGreaterThan(0);
     });
@@ -285,16 +219,10 @@ describe('Epoch-Frame Verification Hardening', () => {
         hookCalls.push({ eventType, node, details });
       });
 
-      // Trigger ISOLATION_VIOLATION by sending from unknown peer
       const socket = createMockSocket('192.168.99.99', 9999);
       clusterSync._handleMessage({
-        type: 'HEARTBEAT',
-        from: 'rogue',
-        leaderId: 'rogue',
-        epoch: 0,
-        activeFingerprint: 'xyz',
-        previousFingerprint: null,
-        rotatedAt: null,
+        type: 'HEARTBEAT', from: 'rogue', leaderId: 'rogue', epoch: 0,
+        activeFingerprint: 'xyz', previousFingerprint: null, rotatedAt: null,
       }, socket);
 
       expect(hookCalls.length).toBe(1);
@@ -312,21 +240,14 @@ describe('Epoch-Frame Verification Hardening', () => {
         hookCalls.push({ eventType });
       });
 
-      // Trigger 200 ISOLATION_VIOLATION events rapidly
       for (let i = 0; i < 200; i++) {
         const socket = createMockSocket('192.168.99.99', 9999 + i);
         clusterSync._handleMessage({
-          type: 'HEARTBEAT',
-          from: 'rogue-' + i,
-          leaderId: 'rogue',
-          epoch: 0,
-          activeFingerprint: 'xyz',
-          previousFingerprint: null,
-          rotatedAt: null,
+          type: 'HEARTBEAT', from: 'rogue-' + i, leaderId: 'rogue', epoch: 0,
+          activeFingerprint: 'xyz', previousFingerprint: null, rotatedAt: null,
         }, socket);
       }
 
-      // Default rate limit is 100/min — should be capped
       expect(hookCalls.length).toBeLessThanOrEqual(100);
     });
   });
@@ -336,8 +257,6 @@ describe('Epoch-Frame Verification Hardening', () => {
   describe('L3-01 / S-04: Epoch persistence across restart', () => {
     test('epoch restored from persisted state', () => {
       keyRotationStore.setEpoch(7);
-      // In a real restart, the module would be re-required and loadState() called.
-      // Here we test that loadState reads the persisted epoch.
       const result = keyRotationStore.loadState();
       expect(result).not.toBeNull();
       expect(result.epoch).toBe(7);
@@ -354,14 +273,12 @@ describe('Epoch-Frame Verification Hardening', () => {
 
   describe('L3-02 / S-07: Epoch reconciliation after partition', () => {
     test('node adopts higher epoch from peer', () => {
-      // Local epoch is 3
       const s1 = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
         type: 'HEARTBEAT', from: 'node-2', leaderId: 'node-1', epoch: 3,
         activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, s1);
 
-      // Peer at epoch 5 sends HEARTBEAT
       clusterSync._resetEvents();
       const s2 = createMockSocket('127.0.0.1', 7002);
       clusterSync._handleMessage({
@@ -375,14 +292,12 @@ describe('Epoch-Frame Verification Hardening', () => {
     });
 
     test('node does NOT adopt lower epoch', () => {
-      // Local epoch is 5
       const s1 = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
         type: 'HEARTBEAT', from: 'node-2', leaderId: 'node-1', epoch: 5,
         activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, s1);
 
-      // Peer at epoch 3 sends HEARTBEAT
       clusterSync._resetEvents();
       const s2 = createMockSocket('127.0.0.1', 7002);
       clusterSync._handleMessage({
@@ -390,7 +305,6 @@ describe('Epoch-Frame Verification Hardening', () => {
         activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, s2);
 
-      // Local epoch should still be 5
       expect(clusterSync.getEpochState().localEpoch).toBe(5);
       const stale = clusterSync.queryEvents({ eventType: 'epoch_stale' });
       expect(stale.events.length).toBe(1);
@@ -405,16 +319,10 @@ describe('Epoch-Frame Verification Hardening', () => {
     test('epoch validation does not break normal HEARTBEAT processing', () => {
       const socket = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
-        type: 'HEARTBEAT',
-        from: 'node-2',
-        leaderId: 'node-1',
-        epoch: 0,
-        activeFingerprint: 'abc',
-        previousFingerprint: null,
-        rotatedAt: null,
+        type: 'HEARTBEAT', from: 'node-2', leaderId: 'node-1', epoch: 0,
+        activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, socket);
 
-      // Peer state should be updated
       const status = clusterSync.getStatus();
       expect(status).toBeDefined();
     });
@@ -429,9 +337,7 @@ describe('Epoch-Frame Verification Hardening', () => {
         hookCalls.push({ eventType });
       });
 
-      // Record a leader_elected event directly
       clusterSync._recordEvent('leader_elected', 'node-1', { leader: 'node-1' });
-
       expect(hookCalls.length).toBe(0);
     });
   });
@@ -443,11 +349,10 @@ describe('Epoch-Frame Verification Hardening', () => {
       const calls1 = [];
       const calls2 = [];
       const calls3 = [];
-      clusterSync.registerSiemHook((et, n, d) => calls1.push(et));
-      clusterSync.registerSiemHook((et, n, d) => calls2.push(et));
-      clusterSync.registerSiemHook((et, n, d) => calls3.push(et));
+      clusterSync.registerSiemHook((et) => calls1.push(et));
+      clusterSync.registerSiemHook((et) => calls2.push(et));
+      clusterSync.registerSiemHook((et) => calls3.push(et));
 
-      // Trigger ISOLATION_VIOLATION
       const socket = createMockSocket('192.168.99.99', 9999);
       clusterSync._handleMessage({
         type: 'HEARTBEAT', from: 'rogue', leaderId: 'rogue', epoch: 0,
@@ -466,19 +371,15 @@ describe('Epoch-Frame Verification Hardening', () => {
     test('hook that throws does not break event recording', () => {
       const goodCalls = [];
       clusterSync.registerSiemHook(() => { throw new Error('SIEM hook broken'); });
-      clusterSync.registerSiemHook((et, n, d) => goodCalls.push(et));
+      clusterSync.registerSiemHook((et) => goodCalls.push(et));
 
-      // Trigger ISOLATION_VIOLATION
       const socket = createMockSocket('192.168.99.99', 9999);
       clusterSync._handleMessage({
         type: 'HEARTBEAT', from: 'rogue', leaderId: 'rogue', epoch: 0,
         activeFingerprint: 'xyz', previousFingerprint: null, rotatedAt: null,
       }, socket);
 
-      // The good hook should still have been called
       expect(goodCalls.length).toBe(1);
-
-      // The event should still have been recorded
       const events = clusterSync.queryEvents({ eventType: 'isolation_violation' });
       expect(events.events.length).toBe(1);
     });
@@ -490,24 +391,16 @@ describe('Epoch-Frame Verification Hardening', () => {
     test('hard reject when peer epoch is >5 ahead', () => {
       const socket = createMockSocket('127.0.0.1', 7001);
       clusterSync._handleMessage({
-        type: 'HEARTBEAT',
-        from: 'node-2',
-        leaderId: 'node-1',
-        epoch: 10, // local is 0, jump is 10 > threshold 5
-        activeFingerprint: 'abc',
-        previousFingerprint: null,
-        rotatedAt: null,
+        type: 'HEARTBEAT', from: 'node-2', leaderId: 'node-1', epoch: 10,
+        activeFingerprint: 'abc', previousFingerprint: null, rotatedAt: null,
       }, socket);
 
       const driftEvents = clusterSync.queryEvents({ eventType: 'epoch_drift' });
       expect(driftEvents.events.length).toBe(1);
       expect(driftEvents.events[0].details.reason).toBe('unreconcilable_jump');
       expect(driftEvents.events[0].details.jump).toBe(10);
-
-      // Local epoch should NOT have been adopted
       expect(clusterSync.getEpochState().localEpoch).toBe(0);
 
-      // No reconciliation event
       const reconciled = clusterSync.queryEvents({ eventType: 'epoch_reconciled' });
       expect(reconciled.events.length).toBe(0);
     });
