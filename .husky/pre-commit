@@ -10,6 +10,9 @@ if [ $RESULT -ne 0 ]; then
   exit $RESULT
 fi
 echo "SimpleBeacon pre-commit passed. Proceeding with commit."
+# Run local secret scanner to prevent hardcoded KEKs/secrets from being committed
+echo "Running Track113 secret scanner..."
+node ai-platform/server/lib/crypto/ratchet/secret-scanner.cjs || { echo "Secret scanner detected potential secrets. Commit aborted." >&2; exit 2; }
 #!/usr/bin/env sh
 # Simplebeacon pre-commit — syntax check + gate scan
 # https://www.npmjs.com/package/simplebeacon
