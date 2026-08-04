@@ -274,15 +274,6 @@ const DEFAULT_POLICY = {
     maxWitnessAgeSeconds: 60,
     requireCanonicalPayloadLayout: true,
   },
-  accumulatorGating: {
-    maxAccumulatorSize: 65536,
-    minWitnessQuorum: 8,
-    requireEnclaveMembershipAttestation: true,
-    allowedAttestationAuthorities: ['mock-authority'],
-    allowedAccumulatorTypes: ['rsa-accumulator', 'bilinear-pairing'],
-    maxWitnessAgeSeconds: 60,
-    requireCanonicalPayloadLayout: true,
-  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
