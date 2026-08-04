@@ -1,34 +1,46 @@
-"use strict";
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const logger = require('../app-logger.cjs').child('hsm-events');
 
-const FOR_DIR = path.join(process.cwd(), '.simplebeacon');
-const LOG_FILE = path.join(FOR_DIR, 'forensic-events.log');
-
-function ensureDir() {
-  try { if (!fs.existsSync(FOR_DIR)) fs.mkdirSync(FOR_DIR, { recursive: true }); } catch (e) {}
-}
-
-function safeWrite(obj) {
-  try {
-    ensureDir();
-    const line = JSON.stringify(Object.assign({ time: new Date().toISOString() }, obj)) + '\n';
-    fs.appendFileSync(LOG_FILE, line, { encoding: 'utf8' });
-  } catch (e) {
-    try { logger.warn('forensic write failed', e && e.message ? e.message : String(e)); } catch (e2) {}
+// Locate the repo-root .simplebeacon directory from anywhere under ai-platform/
+function findRepoRoot(start) {
+  let dir = start;
+  while (dir.length > 3) {
+    const marker = path.join(dir, '.simplebeacon');
+    if (fs.existsSync(marker)) return marker;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
+  return path.join(start, '.simplebeacon');
 }
 
-module.exports = {
-  recordSparseEvent: function(name, payload = {}) {
+const LOG_DIR = findRepoRoot(__dirname);
+const LOG_FILE = path.join(LOG_DIR, 'forensic-events.log');
+
+function ensureLogDir() {
+  if (!fs.existsSync(LOG_DIR)) {
     try {
-      const entry = { event: name, payload };
-      logger.info('forensic event', entry);
-      safeWrite(entry);
+      fs.mkdirSync(LOG_DIR, { recursive: true });
     } catch (e) {
-      try { logger.warn('recordSparseEvent failed', e && e.message ? e.message : String(e)); } catch (e2) {}
+      // ignore if unable to create
     }
   }
-};
+}
+
+function recordSparseEvent(type, info = {}) {
+  try {
+    ensureLogDir();
+    const entry = {
+      timestamp: new Date().toISOString(),
+      type,
+      info,
+    };
+    fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', { mode: 0o600 });
+  } catch (e) {
+    // Forensic logging must never crash the runtime
+  }
+}
+
+module.exports = { recordSparseEvent };
