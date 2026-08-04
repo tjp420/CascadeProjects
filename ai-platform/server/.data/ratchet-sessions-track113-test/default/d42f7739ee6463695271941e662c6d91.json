@@ -1,0 +1,11 @@
+{
+  "sessionId": "d42f7739ee6463695271941e662c6d91",
+  "tenantId": "default",
+  "createdAt": 1785816239025,
+  "updatedAt": 1785816239025,
+  "clientId": "client-a",
+  "status": "INITIALIZED",
+  "lifecycleTimeout": 3600000,
+  "expiresAt": 1785819839025,
+  "handshakeDigestEncrypted": "pUi0+uZ5r/WdCWXM:jCUekrZ2/SmgWtyu3CLCVw==:vkFrq4RJ3FvT5MiJ5m2zEJhg3g=="
+}
