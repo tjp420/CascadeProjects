@@ -504,3 +504,37 @@ groups:
           summary: "Track 116 non-leader key commit rejection rate is high"
           description: "More than 2 non-leader key commit rejections per second are being recorded over the last 5 minutes, indicating non-leader nodes are executing split-brain adjustments or unauthorized key commit attempts."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK116_HIGH_KEY_REJECTION_RATE.md"
+
+  # ── Track 117: BFT Shard Sync alerts ─────────────────────────────
+  - name: track117_bft_shard_sync_alerts
+    interval: 15s
+    rules:
+      - alert: Track117ByzantineShardDivergenceDetected
+        expr: |
+          rate(hsm_shard_byzantine_detected_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          track: "117"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-bft-shard-sync
+        annotations:
+          summary: "Track 117 Byzantine shard divergence detected"
+          description: "Active Byzantine divergence or cryptographic manipulation detected among cluster shards. Immediate investigation required."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK117_BYZANTINE_SHARD_DIVERGENCE_DETECTED.md"
+
+      - alert: Track117ShardSyncLaggingNodesSpike
+        expr: |
+          hsm_shard_lagging_nodes > 4
+        for: 5m
+        labels:
+          severity: warning
+          track: "117"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-bft-shard-sync
+        annotations:
+          summary: "Track 117 shard sync lagging nodes spike"
+          description: "More than 4 nodes are persistently trailing behind the active BFT shard synchronization baseline over the last 5 minutes, indicating possible network degradation or node overload."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK117_SHARD_SYNC_LAGGING_NODES_SPIKE.md"
