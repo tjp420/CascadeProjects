@@ -265,6 +265,24 @@ const DEFAULT_POLICY = {
     maxSignatureAgeSeconds: 60,
     requireCanonicalPayloadLayout: true,
   },
+  accumulatorGating: {
+    maxAccumulatorSize: 65536,
+    minWitnessQuorum: 8,
+    requireEnclaveMembershipAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedAccumulatorTypes: ['rsa-accumulator', 'bilinear-pairing'],
+    maxWitnessAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
+  accumulatorGating: {
+    maxAccumulatorSize: 65536,
+    minWitnessQuorum: 8,
+    requireEnclaveMembershipAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedAccumulatorTypes: ['rsa-accumulator', 'bilinear-pairing'],
+    maxWitnessAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
@@ -1242,6 +1260,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.ringGating,
       ...(tenantPolicy.ringGating || {}),
     },
+    accumulatorGating: {
+      ...DEFAULT_POLICY.accumulatorGating,
+      ...(tenantPolicy.accumulatorGating || {}),
+    },
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
       ...(tenantPolicy.zkSettlement || {}),
@@ -2075,6 +2097,31 @@ class CryptoPolicyEngine {
     }
     if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
       throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateAccumulatorGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.accumulatorGating, ...(tenantPolicy.accumulatorGating || {}) };
+    if (typeof config.accumulatorSize === 'number' && config.accumulatorSize > policy.maxAccumulatorSize) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `accumulator size ${config.accumulatorSize} exceeds maximum ${policy.maxAccumulatorSize}`);
+    }
+    if (typeof config.witnessQuorum === 'number' && config.witnessQuorum < policy.minWitnessQuorum) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `witness quorum ${config.witnessQuorum} below minimum ${policy.minWitnessQuorum}`);
+    }
+    if (policy.requireEnclaveMembershipAttestation && config.enclaveMembershipAttestation === false) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', 'enclave membership attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.accumulatorType === 'string' && !policy.allowedAccumulatorTypes.includes(config.accumulatorType)) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `accumulator type ${config.accumulatorType} is not allowed; permitted: ${policy.allowedAccumulatorTypes.join(', ')}`);
+    }
+    if (typeof config.witnessAgeSeconds === 'number' && config.witnessAgeSeconds > policy.maxWitnessAgeSeconds) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', `witness age ${config.witnessAgeSeconds}s exceeds maximum ${policy.maxWitnessAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', 'canonical payload layout is required');
     }
   }
 
@@ -4652,6 +4699,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'ringGating') {
       this._validateRingGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'accumulatorGating') {
+      this._validateAccumulatorGating(tenantPolicy, config);
       return true;
     }
 
