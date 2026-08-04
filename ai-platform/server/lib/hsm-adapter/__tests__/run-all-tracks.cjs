@@ -138,6 +138,7 @@ const SUITES = [
   'track114-core-gating',
   'track114-multi-tenant-fuzz',
   'hsm-vault-lattice-vss-routes',
+  'track115-primitive-groundwork',
 ];
 
 function resolveBaseTestFile(pattern) {

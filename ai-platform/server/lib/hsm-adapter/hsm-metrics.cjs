@@ -903,6 +903,10 @@ const counters = {
   hsm_vssgate_pool_initialized_total: 0,
   hsm_zk_vss_claim_verified_total: 0,
   hsm_vss_accreditation_completed_total: 0,
+  // Track 115: PQC Lattice-Based Multi-Message Verifiable Fully Homomorphic Secret Sharing counters
+  hsm_vfhssgate_pool_initialized_total: 0,
+  hsm_zk_vfhss_claim_verified_total: 0,
+  hsm_vfhss_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1679,6 +1683,10 @@ const META = {
   hsm_vssgate_pool_initialized_total: { help: 'Total Track 114 lattice VSS gating pools initialized.', type: 'counter' },
   hsm_zk_vss_claim_verified_total: { help: 'Total Track 114 ZK VSS claims verified.', type: 'counter' },
   hsm_vss_accreditation_completed_total: { help: 'Total Track 114 VSS accreditations completed.', type: 'counter' },
+  // Track 115: PQC Lattice-Based Multi-Message VFHSS Gating Hub metadata
+  hsm_vfhssgate_pool_initialized_total: { help: 'Total Track 115 lattice VFHSS gating pools initialized.', type: 'counter' },
+  hsm_zk_vfhss_claim_verified_total: { help: 'Total Track 115 ZK VFHSS claims verified.', type: 'counter' },
+  hsm_vfhss_accreditation_completed_total: { help: 'Total Track 115 VFHSS accreditations completed.', type: 'counter' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };
