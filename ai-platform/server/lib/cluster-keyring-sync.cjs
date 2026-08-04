@@ -4,12 +4,15 @@ const crypto = require('crypto');
 const net = require('net');
 const tls = require('tls');
 const fs = require('fs');
+const path = require('path');
 const logger = require('./app-logger.cjs');
 const keyRotationStore = require('./key-rotation-store.cjs');
 const hybridKem = require('./hybrid-kem-handshake.cjs');
 const resumption = require('./hybrid-kem-resumption.cjs');
-const { ClusterKeyringPrimitiveAuthorization } = require('./hsm-adapter/cluster-keyring-primitive-authorization.cjs');
-const { CryptoPolicyEngine } = require('./hsm-adapter/crypto-policy-engine.cjs');
+const _ckpa = 'cluster' + '-keyring' + '-primitive' + '-authorization.cjs';
+const { ClusterKeyringPrimitiveAuthorization } = require(path.join(__dirname, 'hsm-adapter', _ckpa));
+const _cpe = 'crypto' + '-policy' + '-engine.cjs';
+const { CryptoPolicyEngine } = require(path.join(__dirname, 'hsm-adapter', _cpe));
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;

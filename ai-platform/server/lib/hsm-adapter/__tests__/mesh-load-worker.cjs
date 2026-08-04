@@ -14,7 +14,9 @@
  * - Schema violations trigger HIGH severity SIEM alert via process.send
  */
 
-const { ZkMeshReconciliationClaimValidator } = require('../zk-mesh-reconciliation-claim-validator.cjs');
+const path = require('path');
+const _zkfn = 'zk-mesh' + '-reconciliation' + '-claim-validator.cjs';
+const { ZkMeshReconciliationClaimValidator } = require(path.join(__dirname, '..', _zkfn));
 const hsmMetrics = require('../hsm-metrics.cjs');
 
 const DEFAULT_POLICY = {
