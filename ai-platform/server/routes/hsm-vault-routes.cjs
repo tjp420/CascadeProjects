@@ -2128,4 +2128,55 @@ router.get('/lattice-vfhss/:poolId', authorize('admin:all'), runAsync(async (req
   });
 }));
 
+// ── Track 116: Cluster Isolation Hardening REST endpoints ─────────────────────
+
+// GET /api/vault/cluster-isolation/policy — return default clusterIsolationHardening policy
+router.get('/cluster-isolation/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.clusterIsolationHardening,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cluster_isolation_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/cluster-isolation/policy/validate — validate a proposed Track 116 configuration
+router.post('/cluster-isolation/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'clusterIsolationHardening', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'cluster_isolation_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/cluster-isolation/telemetry — expose Track 116 telemetry counters
+router.get('/cluster-isolation/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_isolation_violation_total: allMetrics.hsm_isolation_violation_total || 0,
+      hsm_key_reject_total: allMetrics.hsm_key_reject_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cluster_isolation_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

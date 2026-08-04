@@ -146,6 +146,7 @@ const SUITES = [
   'track116-primitive-groundwork',
   'track116-core-integration',
   'track116-multi-tenant-fuzz',
+  'hsm-vault-cluster-isolation-routes',
 ];
 
 function resolveBaseTestFile(pattern) {
