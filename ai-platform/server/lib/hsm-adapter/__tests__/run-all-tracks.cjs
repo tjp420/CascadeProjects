@@ -192,9 +192,19 @@ if (useParallel) {
   let passed = 0;
   let failed = 0;
   for (const r of results) {
-    if (r.status === 'PASS') passed += 1;
-    else failed += 1;
-    console.log(`${r.status}: ${r.pattern}`);
+    if (r.status === 'PASS') {
+      passed += 1;
+      console.log(`${r.status}: ${r.pattern}`);
+    } else {
+      failed += 1;
+      console.log(`${r.status}: ${r.pattern}`);
+      if (r.output) {
+        console.log(`  --- error output ---`);
+        const lines = String(r.output).split('\n').slice(0, 30);
+        for (const line of lines) console.log(`  ${line}`);
+        console.log(`  --- end error output ---`);
+      }
+    }
   }
 
   console.log(`\nTotal: ${SUITES.length} | Passed: ${passed} | Failed: ${failed}`);

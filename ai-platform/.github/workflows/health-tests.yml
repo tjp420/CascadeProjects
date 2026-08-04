@@ -13,24 +13,30 @@ jobs:
     steps:
       - name: Checkout Source Tree
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: ai-platform/package-json
 
-      - name: Install Scoped Dependencies
+      - name: Install Dependencies and Run Jest
+        working-directory: ai-platform
         run: |
-          cd ai-platform
+          set -e
+          echo "Installing scoped dependencies"
           npm ci
           npm install prom-client supertest --save-dev
-
-      - name: Run Isolated Jest Verification and Emit JSON
-        run: |
-          cd ai-platform
-          npx jest --config=jest.cjs --runInBand --json --outputFile=./test-results/jest-results.json || true
+          echo "Node: $(node -v), npm: $(npm -v)"
+          echo "Listing local binaries"
+          ls -la node_modules/.bin || true
+          echo "Ensuring test-results dir"
+          mkdir -p test-results
+          echo "Running jest via local binary"
+          ./node_modules/.bin/jest --config=jest.config.ci.cjs --rootDir=. --runInBand --json --outputFile=./test-results/jest-results.json || true
 
       - name: Parse Jest JSON to telemetry
         run: |
@@ -71,15 +77,17 @@ jobs:
     steps:
       - name: Checkout Source Tree
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Compile and Bundle Production Assets
+        working-directory: ai-platform
         run: |
-          cd ai-platform
           npm ci
           npm run build --if-present

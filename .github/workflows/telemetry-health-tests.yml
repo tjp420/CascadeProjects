@@ -26,14 +26,15 @@ jobs:
 
       - name: Install Scoped Dependencies
         run: |
+          npm install --ignore-scripts
           cd ai-platform
-          npm ci
-          npm install prom-client supertest --save-dev
+          npm install prom-client supertest --save-dev --no-save
+          ls node_modules/jest-circus/build/runner.js || npm install jest-circus --no-save
 
       - name: Run Isolated Jest Verification
+        working-directory: ai-platform
         run: |
-          cd ai-platform
-          npx jest --config=jest.config.cjs --runInBand
+          node ./node_modules/jest/bin/jest.js --config=jest.config.cjs --runInBand
 
 
   validate-shard-telemetry:
