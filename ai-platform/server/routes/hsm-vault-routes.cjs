@@ -22,6 +22,7 @@ const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pq
 const { PqcBlindedRingSignatureGatingHub } = require('../lib/hsm-adapter/pqc-blinded-ring-signature-gating-hub.cjs');
 const { PqcDirectAccumulatorMembershipGatingHub } = require('../lib/hsm-adapter/pqc-direct-accumulator-membership-gating-hub.cjs');
 const { PqcLatticeVssGatingHub } = require('../lib/hsm-adapter/pqc-lattice-vss-gating-hub.cjs');
+const { PqcLatticeVfhssGatingHub } = require('../lib/hsm-adapter/pqc-lattice-vfhss-gating-hub.cjs');
 const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
 const SessionStore = require('../lib/crypto/ratchet/session-store.cjs');
 const { encryptEnvelope } = require('../lib/crypto/ratchet/envelope-crypto.cjs');
@@ -48,6 +49,11 @@ const latticeVssGatingPools = new Map();
 
 // Shared policy engine instance for Track 114 lattice VSS gating
 const latticeVssGatingPolicyEngine = new CryptoPolicyEngine();
+// In-memory registry for Track 115 lattice VFHSS gating pools (per-process; persistent storage out of scope)
+const latticeVfhssGatingPools = new Map();
+
+// Shared policy engine instance for Track 115 lattice VFHSS gating
+const latticeVfhssGatingPolicyEngine = new CryptoPolicyEngine();
 
 // Apply token-bucket defense to all admin HSM vault routes, after auth
 function authBeforeThrottle(req, res, next) {
@@ -1987,6 +1993,132 @@ router.get('/lattice-vss/:poolId', authorize('admin:all'), runAsync(async (req, 
   const orgId = resolveOrgId(req);
   const entry = resolveLatticeVssGatingPool(req.params.poolId);
   if (!entry) return sendError(res, 404, 'lattice_vss_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    shareCount: entry.hub.shares.length,
+  });
+}));
+
+// ── Track 115: PQC Lattice-Based Multi-Message VFHSS Gating Hub endpoints ─────
+
+function resolveLatticeVfhssGatingPool(poolId) {
+  const pool = latticeVfhssGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/lattice-vfhss/pool — initialize a Track 115 lattice VFHSS gating pool
+router.post('/lattice-vfhss/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcLatticeVfhssGatingHub(orgId, latticeVfhssGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  latticeVfhssGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/lattice-vfhss/:poolId/shares — collect lattice VFHSS shares
+router.post('/lattice-vfhss/:poolId/shares', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
+  const shares = (req.body && req.body.shares) || [];
+  if (!Array.isArray(shares)) return sendError(res, 400, 'VFHSSGATE_INVALID_SHARES');
+  try {
+    const status = entry.hub.collectShares(shares);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      shareCount: entry.hub.shares.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VFHSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vfhss/:poolId/validate — validate ZK lattice VFHSS claim
+router.post('/lattice-vfhss/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const manifest = (req.body && req.body.manifest) || {};
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      homomorphicDepth: manifest.homomorphicDepth !== undefined ? manifest.homomorphicDepth : claim.homomorphicDepth,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const msg = err.message || '';
+    const code = msg.includes('VFHSSCLAIM_HOMOMORPHIC_DEPTH_EXCEEDED')
+      ? 'VFHSSCLAIM_HOMOMORPHIC_DEPTH_EXCEEDED'
+      : msg.includes('VFHSSCLAIM_INSUFFICIENT_SHARES')
+        ? 'VFHSSCLAIM_INSUFFICIENT_SHARES'
+        : msg.includes('VFHSSCLAIM_UNATTESTED_EVALUATION')
+          ? 'VFHSSCLAIM_UNATTESTED_EVALUATION'
+          : err.code || 'VFHSSGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/lattice-vfhss/:poolId/accredit — finalize accreditation
+router.post('/lattice-vfhss/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'VFHSSGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/lattice-vfhss/telemetry — expose Track 115 telemetry counters (no raw share tokens or polynomial data)
+router.get('/lattice-vfhss/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_vfhssgate_pool_initialized_total: allMetrics.hsm_vfhssgate_pool_initialized_total || 0,
+      hsm_zk_vfhss_claim_verified_total: allMetrics.hsm_zk_vfhss_claim_verified_total || 0,
+      hsm_vfhss_accreditation_completed_total: allMetrics.hsm_vfhss_accreditation_completed_total || 0,
+      activePools: latticeVfhssGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'lattice_vfhss_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/lattice-vfhss/:poolId — get pool status (no raw share tokens or polynomial data)
+router.get('/lattice-vfhss/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveLatticeVfhssGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'lattice_vfhss_pool_not_found');
   res.json({
     success: true,
     orgId,
