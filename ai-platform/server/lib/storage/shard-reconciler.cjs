@@ -1,5 +1,6 @@
 const EventEmitter = require('events');
 const { setTimeout } = require('timers');
+const { incrementCounter } = require('../hsm-adapter/hsm-metrics.cjs');
 
 // Simple worker skeleton for shard reconciliation
 class ShardReconciler extends EventEmitter {
@@ -76,6 +77,7 @@ class ShardReconciler extends EventEmitter {
         if (seq === lastSeq) {
           // duplicate sequence detected
           this.metrics.hsm_shard_out_of_sync_total += 1;
+          incrementCounter('hsm_shard_out_of_sync_total');
           const dup = { tenantId, shardId, reason: 'duplicate_sequence', expected: lastSeq + 1, found: seq };
           issues.push(dup);
           // Emit legacy and reconciler-prefixed audit events
@@ -88,6 +90,7 @@ class ShardReconciler extends EventEmitter {
         if (seq !== lastSeq + 1) {
           // gap or out-of-order detected
           this.metrics.hsm_shard_out_of_sync_total += 1;
+          incrementCounter('hsm_shard_out_of_sync_total');
           const issue = { tenantId, shardId, reason: 'sequence_gap', expected: lastSeq + 1, found: seq };
           issues.push(issue);
           // Emit legacy and reconciler-prefixed audit events
@@ -102,6 +105,7 @@ class ShardReconciler extends EventEmitter {
             this.activeSyncs.set(key, now);
             // fire-and-forget repair; include from/to in opts
             this.metrics.hsm_shard_reconciler_repair_requested_total += 1;
+            incrementCounter('hsm_shard_reconciler_repair_requested_total');
             this.triggerSync({ tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1 }).catch((e) => this.emit('error', e));
             // emit both legacy and reconciler-prefixed reconciliation request
             this.emit('reconcile:requested', { tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1 });
@@ -109,6 +113,7 @@ class ShardReconciler extends EventEmitter {
           } else {
             // cooldown active - skip triggering
             this.metrics.hsm_shard_reconciler_repair_skipped_total += 1;
+            incrementCounter('hsm_shard_reconciler_repair_skipped_total');
             const skipped = { tenantId, shardId, cooldownRemainingMs: this.repairCooldownMs - (now - lastTriggered) };
             this.emit('shard:repair_skipped', skipped);
             this.emit('shard:reconciler:repair_skipped', skipped);
@@ -142,6 +147,7 @@ class ShardReconciler extends EventEmitter {
     this.emit('reconcile:requested', payload);
     // increment metric once per repair job
     this.metrics.hsm_shard_out_of_sync_total += 1;
+          incrementCounter('hsm_shard_out_of_sync_total');
     // placeholder: actual repair logic should be implemented here or by listeners
     return { ok: true, repair: payload };
   }
@@ -202,6 +208,7 @@ class ShardReconciler extends EventEmitter {
     this.emit('reconcile:requested', reconPayload);
     this.emit('shard:reconciler:reconcile_requested', reconPayload);
     this.metrics.hsm_shard_reconciler_repair_requested_total += 1;
+            incrementCounter('hsm_shard_reconciler_repair_requested_total');
 
     const result = {
       ok: true,

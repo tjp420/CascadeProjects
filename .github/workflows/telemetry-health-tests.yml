@@ -34,6 +34,40 @@ jobs:
         run: |
           npx jest --config=ai-platform/jest.cjs --runInBand --rootDir=ai-platform
 
+
+  validate-shard-telemetry:
+    name: Validate Shard Repair Telemetry Pipeline
+    needs: validate-telemetry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Tree
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ai-platform/package.json
+
+      - name: Install Scoped Dependencies
+        run: |
+          cd ai-platform
+          npm ci
+          npm install prom-client supertest --save-dev
+
+      - name: Validate Shard Telemetry Counters
+        run: |
+          cd ai-platform
+          npx jest --config=jest.cjs --runInBand server/lib/storage/__tests__/telemetry-pipeline.test.cjs --coverage=false
+
+      - name: Validate Alertmanager Routing
+        run: |
+          cd ai-platform
+          npx jest --config=jest.cjs --runInBand monitoring/__tests__/alertmanager-routing.test.cjs --coverage=false
+
   compile-staging:
     name: Execute Staging Build Compression
     needs: validate-telemetry

@@ -1,4 +1,5 @@
 const EventEmitter = require('events');
+const { incrementCounter } = require('../hsm-adapter/hsm-metrics.cjs');
 
 class RepairWorker extends EventEmitter {
   constructor(opts = {}) {
@@ -43,6 +44,7 @@ class RepairWorker extends EventEmitter {
         await this.executeRepair(payload);
         this.processed.push({ key, payload });
         this.emit('repair:done', { key, payload });
+        incrementCounter('hsm_repair_worker_completed_total');
       } catch (err) {
         this.emit('error', err);
       } finally {
