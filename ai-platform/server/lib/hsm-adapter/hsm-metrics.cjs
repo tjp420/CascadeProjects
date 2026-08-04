@@ -894,6 +894,12 @@ const counters = {
   hsm_accumulator_accreditation_completed_total: 0,
 };
 
+// Reassembler and repair worker counters
+counters.hsm_shard_reconstructed_blocks_total = 0;
+counters.hsm_shard_reassembly_attempts_total = 0;
+counters.hsm_repair_requests_total = 0;
+counters.hsm_repair_retries_total = 0;
+
 // ── Histograms (bucketed) ───────────────────────────────────────
 // Latency histograms with buckets in milliseconds.
 // Bucket boundaries chosen for HSM operations (typically 10-500ms).
@@ -905,6 +911,9 @@ const histograms = {
   hsm_create_kek_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
   // DKG round duration histogram (PR #391 — DKG gossip protocol)
   hsm_dkg_round_duration_ms: { buckets: [100, 500, 1000, 5000, 10000, 30000, 60000], counts: new Array(8).fill(0), sum: 0, count: 0 },
+  // Reassembler and repair worker histograms
+  hsm_shard_reassembly_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
+  hsm_repair_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
 };
 
 // Metadata for Prometheus exposition
@@ -935,6 +944,10 @@ const META = {
   hsm_consensus_signature_invalid_total: { help: 'Total inbound RPC frames with invalid signatures.', type: 'counter' },
   hsm_consensus_peer_key_unknown_total: { help: 'Total inbound RPC frames from peers with no registered public key.', type: 'counter' },
   hsm_consensus_replay_detected_total: { help: 'Total RPC frames rejected as replayed (stale nonce or expired timestamp).', type: 'counter' },
+  hsm_shard_reconstructed_blocks_total: { help: 'Total number of shard blocks reconstructed during reassembly.', type: 'counter' },
+  hsm_shard_reassembly_attempts_total: { help: 'Total reassembly attempts for shards (success/failed labelled externally).', type: 'counter' },
+  hsm_repair_requests_total: { help: 'Total repair requests queued/started by repair workers.', type: 'counter' },
+  hsm_repair_retries_total: { help: 'Total repair retries attempted by repair workers.', type: 'counter' },
   hsm_consensus_nonce_stale_total: { help: 'Total RPC frames rejected with stale nonce (non-monotonic).', type: 'counter' },
   hsm_consensus_timestamp_expired_total: { help: 'Total RPC frames rejected due to expired timestamp.', type: 'counter' },
   hsm_consensus_peer_key_added_total: { help: 'Total peer public keys added via quorum-gated rotation.', type: 'counter' },
@@ -1660,6 +1673,8 @@ const META = {
   hsm_accumulator_accreditation_completed_total: { help: 'Total Track 33 accumulator accreditations completed.', type: 'counter' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
+  hsm_shard_reassembly_duration_ms: { help: 'Shard reassembly duration in milliseconds.', type: 'histogram' },
+  hsm_repair_duration_ms: { help: 'Repair worker duration in milliseconds.', type: 'histogram' },
 };
 
 /**

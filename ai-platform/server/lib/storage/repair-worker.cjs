@@ -25,7 +25,10 @@ class RepairWorker extends EventEmitter {
   }
 
   handle(payload = {}) {
+    const hsmMetrics = require('../hsm-adapter/hsm-metrics.cjs');
     const key = this.keyFor(payload);
+    // record repair request
+    try { hsmMetrics.incrementCounter('hsm_repair_requests_total', 1); } catch (e) {}
     if (this.activeRepairs.has(key)) {
       this.emit('repair:skipped', { key, payload });
       return;
@@ -52,8 +55,15 @@ class RepairWorker extends EventEmitter {
   }
 
   async executeRepair(payload) {
+    const hsmMetrics = require('../hsm-adapter/hsm-metrics.cjs');
+    const start = Date.now();
     // Placeholder: simulate repair work duration and return success
     await new Promise((res) => setTimeout(res, this.processingTimeMs));
+    const dur = Date.now() - start;
+    try { hsmMetrics.observeHistogram('hsm_repair_duration_ms', dur); } catch (e) {}
+    if (payload && payload.retryCount) {
+      try { hsmMetrics.incrementCounter('hsm_repair_retries_total', Number(payload.retryCount) || 0); } catch (e) {}
+    }
     return { ok: true };
   }
 }
