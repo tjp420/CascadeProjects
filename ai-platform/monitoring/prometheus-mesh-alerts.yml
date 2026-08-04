@@ -310,3 +310,39 @@ groups:
           summary: "Track 32 ring validation failure rate is above 15%"
           description: "More than 15% of initialized ring-signature sessions are failing ZK proof evaluation or anonymity set size rejection over the last 5 minutes, indicating possible brute-force or linkability double-spending attacks."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK32_HIGH_VALIDATION_FAILURE_RATE.md"
+
+  # ── Track 33: PQC Direct Accumulator Membership Proof Gating Hub alerts ──
+  - name: track33_accumulator_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track33AccumulatorMembershipReconciliationStall
+        expr: |
+          rate(hsm_accumulatorgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_accumulator_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "33"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-accumulator-gating"
+        annotations:
+          summary: "Track 33 accumulator membership accreditation has stalled"
+          description: "New accumulator gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK33_ACCUMULATOR_MEMBERSHIP_RECONCILIATION_STALL.md"
+
+      - alert: Track33HighValidationFailureRate
+        expr: |
+          rate(hsm_zk_accumulator_claim_verified_total[5m]) / rate(hsm_accumulatorgate_pool_initialized_total[5m]) < 0.85
+        for: 2m
+        labels:
+          severity: warning
+          track: "33"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-accumulator-gating"
+        annotations:
+          summary: "Track 33 accumulator validation failure rate is above 15%"
+          description: "More than 15% of initialized accumulator membership sessions are failing ZK proof evaluation, tree size threshold rejection, or witness quorum rejection over the last 5 minutes, indicating possible rogue-witness or fake-membership injection attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK33_HIGH_VALIDATION_FAILURE_RATE.md"

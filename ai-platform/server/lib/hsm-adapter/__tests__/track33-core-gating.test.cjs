@@ -83,13 +83,18 @@ describe('Track 33 core gating hub', () => {
     const engine = new CryptoPolicyEngine();
     const hub = new PqcDirectAccumulatorMembershipGatingHub('t1', engine);
     hub.collectWitnesses(new Array(8).fill('witness'));
-    expect(() => hub.validateProof({
-      accumulatorSize: 1024,
-      enclaveMembershipAttestation: true,
-      attestationAuthority: 'mock-authority',
-      accumulatorType: 'invalid-type',
-      canonicalPayloadLayout: true,
-    })).toThrow(/ACCUMULATORGATE_POLICY_VIOLATION/);
+    try {
+      hub.validateProof({
+        accumulatorSize: 1024,
+        enclaveMembershipAttestation: true,
+        attestationAuthority: 'mock-authority',
+        accumulatorType: 'invalid-type',
+        canonicalPayloadLayout: true,
+      });
+      throw new Error('expected validation to throw');
+    } catch (e) {
+      expect(e.code).toBe('ACCUMULATORGATE_POLICY_VIOLATION');
+    }
   });
 
   test('tenant override of minWitnessQuorum is respected', () => {
