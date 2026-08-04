@@ -30,6 +30,9 @@ jobs:
           echo "Installing scoped dependencies"
           npm ci
           npm install prom-client supertest --save-dev
+          echo "Checking mlkem resolution (non-fatal)"
+          npm ls mlkem --depth=0 || true
+          node -e "try{console.log('require.resolve mlkem ->', require.resolve('mlkem'))}catch(e){console.error('RESOLVE_ERROR', e.message)}"
           echo "Node: $(node -v), npm: $(npm -v)"
           echo "Listing local binaries"
           ls -la node_modules/.bin || true
