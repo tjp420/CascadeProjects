@@ -3,10 +3,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const Purger = require('../../storage/purger.cjs');
-const { writeAtomicSync } = require('../../fs-atomic.cjs');
-const { encryptEnvelope, decryptEnvelope } = require('./envelope-crypto.cjs');
 
-const BASE_DIR = process.env.RATCHET_SESSIONS_DIR || path.join(__dirname, '..', '..', '.data', 'ratchet-sessions');
+const BASE_DIR = path.join(__dirname, '..', '..', '.data', 'ratchet-sessions');
 
 function sanitizeId(id) {
   if (typeof id !== 'string') throw new Error('invalid id');
@@ -132,54 +130,16 @@ class SessionStore {
       ensureDir(dir);
       // Prepare serializable object
       const out = Object.assign({}, record);
-      // Encrypt sensitive binary fields before persisting
-      if (out.root && Buffer.isBuffer(out.root)) {
-        try {
-          out.rootEncrypted = encryptEnvelope(out.root);
-          delete out.root;
-        } catch (e) {
-          out.root = out.root.toString('base64');
-        }
-      }
-      if (out.ck && Buffer.isBuffer(out.ck)) {
-        try {
-          out.ckEncrypted = encryptEnvelope(out.ck);
-          delete out.ck;
-        } catch (e) {
-          out.ck = out.ck.toString('base64');
-        }
-      }
-      if (out.handshakeDigest && (Buffer.isBuffer(out.handshakeDigest) || typeof out.handshakeDigest === 'string')) {
-        try {
-          const raw = Buffer.isBuffer(out.handshakeDigest) ? out.handshakeDigest : Buffer.from(out.handshakeDigest, 'utf8');
-          out.handshakeDigestEncrypted = encryptEnvelope(raw);
-          delete out.handshakeDigest;
-        } catch (e) {
-          out.handshakeDigest = Buffer.isBuffer(out.handshakeDigest) ? out.handshakeDigest.toString('base64') : String(out.handshakeDigest);
-        }
-      }
+      if (out.root && Buffer.isBuffer(out.root)) out.root = out.root.toString('base64');
+      if (out.ck && Buffer.isBuffer(out.ck)) out.ck = out.ck.toString('base64');
       if (out.localKeyPair) {
         const lk = out.localKeyPair;
-        if (lk.publicKeyDer && Buffer.isBuffer(lk.publicKeyDer)) {
-          out.localKeyPair = Object.assign({}, lk, { publicKeyDer: lk.publicKeyDer.toString('base64') });
-        }
-        if (lk.privateKeyDer && Buffer.isBuffer(lk.privateKeyDer)) {
-          try {
-            const enc = encryptEnvelope(lk.privateKeyDer);
-            out.localKeyPair = Object.assign({}, out.localKeyPair || {}, { privateKeyDerEncrypted: enc });
-          } catch (e) {
-            out.localKeyPair = Object.assign({}, out.localKeyPair || {}, { privateKeyDer: lk.privateKeyDer.toString('base64') });
-          }
-        }
+        if (lk.publicKeyDer && Buffer.isBuffer(lk.publicKeyDer)) out.localKeyPair = out.localKeyPair = Object.assign({}, lk, { publicKeyDer: lk.publicKeyDer.toString('base64'), privateKeyDer: lk.privateKeyDer && Buffer.isBuffer(lk.privateKeyDer) ? lk.privateKeyDer.toString('base64') : undefined });
       }
       if (out.remotePublicKeyDer && Buffer.isBuffer(out.remotePublicKeyDer)) out.remotePublicKeyDer = out.remotePublicKeyDer.toString('base64');
       const p = path.join(dir, `${sid}.json`);
       out.updatedAt = out.updatedAt || Date.now();
-      try {
-        writeAtomicSync(p, JSON.stringify(out, null, 2), { mode: 0o600 });
-      } catch (e) {
-        // ignore write failures for now
-      }
+      fs.writeFileSync(p, JSON.stringify(out, null, 2), { mode: 0o600 });
     } catch (e) {
       // ignore write failures for now
     }
@@ -188,29 +148,11 @@ class SessionStore {
   _reconstruct(stored) {
     const rec = Object.assign({}, stored);
     try {
-      if (rec.rootEncrypted && typeof rec.rootEncrypted === 'string') {
-        try { rec.root = decryptEnvelope(rec.rootEncrypted); } catch (e) { rec.root = null; }
-      } else if (rec.root && typeof rec.root === 'string') {
-        rec.root = Buffer.from(rec.root, 'base64');
-      }
-      if (rec.ckEncrypted && typeof rec.ckEncrypted === 'string') {
-        try { rec.ck = decryptEnvelope(rec.ckEncrypted); } catch (e) { rec.ck = null; }
-      } else if (rec.ck && typeof rec.ck === 'string') {
-        rec.ck = Buffer.from(rec.ck, 'base64');
-      }
-      if (rec.handshakeDigestEncrypted && typeof rec.handshakeDigestEncrypted === 'string') {
-        try { rec.handshakeDigest = decryptEnvelope(rec.handshakeDigestEncrypted); } catch (e) { rec.handshakeDigest = null; }
-      } else if (rec.handshakeDigest && typeof rec.handshakeDigest === 'string') {
-        rec.handshakeDigest = Buffer.from(rec.handshakeDigest, 'base64');
-      }
+      if (rec.root && typeof rec.root === 'string') rec.root = Buffer.from(rec.root, 'base64');
+      if (rec.ck && typeof rec.ck === 'string') rec.ck = Buffer.from(rec.ck, 'base64');
       if (rec.localKeyPair && rec.localKeyPair.publicKeyDer) {
         const pubDer = Buffer.from(rec.localKeyPair.publicKeyDer, 'base64');
-        let privDer = null;
-        if (rec.localKeyPair.privateKeyDerEncrypted) {
-          try { privDer = decryptEnvelope(rec.localKeyPair.privateKeyDerEncrypted); } catch (e) { privDer = null; }
-        } else if (rec.localKeyPair.privateKeyDer) {
-          privDer = Buffer.from(rec.localKeyPair.privateKeyDer, 'base64');
-        }
+        const privDer = rec.localKeyPair.privateKeyDer ? Buffer.from(rec.localKeyPair.privateKeyDer, 'base64') : null;
         const publicKeyObj = crypto.createPublicKey({ key: pubDer, format: 'der', type: 'spki' });
         const privateKeyObj = privDer ? crypto.createPrivateKey({ key: privDer, format: 'der', type: 'pkcs8' }) : undefined;
         rec.localKeyPair = Object.assign({}, rec.localKeyPair, { publicKeyObj, privateKeyObj, publicKeyDer: pubDer, privateKeyDer: privDer });
