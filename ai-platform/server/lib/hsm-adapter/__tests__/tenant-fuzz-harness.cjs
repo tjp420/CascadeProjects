@@ -276,6 +276,21 @@ exports.cleanupPrototypePollution = function () {
     'vssCtorLevel4',
     'vssDeepMaxDegreeBound',
     'vssDeepMinVssShares',
+    // Track 115: VFHSS gating pollution cleanup keys
+    'vfhssGatePolluted',
+    'vfhssConstructorPolluted',
+    'vfhssProtoLevel0',
+    'vfhssProtoLevel1',
+    'vfhssProtoLevel2',
+    'vfhssProtoLevel3',
+    'vfhssProtoLevel4',
+    'vfhssCtorLevel0',
+    'vfhssCtorLevel1',
+    'vfhssCtorLevel2',
+    'vfhssCtorLevel3',
+    'vfhssCtorLevel4',
+    'vfhssDeepMaxHomomorphicDepth',
+    'vfhssDeepMinVfhssShares',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -856,6 +871,156 @@ exports.makeTrack114ConcurrentValidationCall = function (prng) {
       vssShares: prng.nextChoice([1, 3, 4, 5, 8, 12, 100, 0, -1]),
       degreeBound: prng.nextChoice([1, 8, 15, 16, 17, 32, 100, 0, -1]),
       enclaveBindingAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
+      latticeScheme: prng.nextChoice(['module-lwr', 'module-lwe', 'nist-kyber', 'unsupported', 42, null]),
+      shareAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+    },
+  };
+};
+
+// ── Track 115: PQC Lattice-Based Multi-Message VFHSS Gating mutators ────────
+
+exports.makeTrack115ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track115-polluter': {
+        latticeVfhssGating: {
+          __proto__: { vfhssGatePolluted: true },
+          minVfhssShares: 7,
+          maxHomomorphicDepth: 8,
+          requireEnclaveEvaluationAttestation: true,
+        },
+        constructor: {
+          prototype: { vfhssConstructorPolluted: true },
+        },
+      },
+      'track115-clean': {
+        latticeVfhssGating: {
+          minVfhssShares: 7,
+          maxHomomorphicDepth: 8,
+          requireEnclaveEvaluationAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack115TypeConfusionConfigs = function () {
+  return [
+    { value: { vfhssShares: '7', homomorphicDepth: '8' }, label: 'string-numbers' },
+    { value: { vfhssShares: [], homomorphicDepth: {} }, label: 'array-object-values' },
+    { value: { vfhssShares: null, homomorphicDepth: undefined }, label: 'null-undefined-values' },
+    { value: { enclaveEvaluationAttestation: 'true' }, label: 'string-boolean' },
+    { value: { latticeScheme: 42 }, label: 'number-string' },
+    { value: { shareAgeSeconds: true }, label: 'boolean-number' },
+  ];
+};
+
+exports.makeTrack115PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track115-polluter', 'track115-clean']);
+  const vfhssShares = prng.nextChoice([1, 3, 6, 7, 8, 12, 100, 0, -1]);
+  const homomorphicDepth = prng.nextChoice([1, 4, 7, 8, 9, 16, 100, 0, -1]);
+  const enclaveEvaluationAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+  const auth = prng.nextChoice(['mock-authority', 'untrusted-authority', null, 123]);
+  const latticeScheme = prng.nextChoice(['module-lwr', 'module-lwe', 'nist-kyber', 'unsupported', 42, null]);
+  const canonical = prng.nextChoice([true, false, 'yes', 1, 0]);
+  return {
+    tenantId,
+    operation: 'latticeVfhssGating',
+    config: {
+      vfhssShares,
+      homomorphicDepth,
+      enclaveEvaluationAttestation,
+      attestationAuthority: auth,
+      latticeScheme,
+      shareAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+      canonicalPayloadLayout: canonical,
+    },
+  };
+};
+
+// ── Track 115: Deep nested multi-layer policy mutation (5-level) ──────────────
+
+function attachVfhssDeepPollution(node, depth, prng) {
+  const protoMarker = `vfhssProtoLevel${depth}`;
+  const ctorMarker = `vfhssCtorLevel${depth}`;
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  const proto = Object.getPrototypeOf(node);
+  proto.vfhssDeepMaxHomomorphicDepth = prng ? prng.nextChoice([1, 0, -1, 9999]) : 9999;
+  proto.vfhssDeepMinVfhssShares = prng ? prng.nextChoice([0, 1, 100, -1]) : 0;
+  return node;
+}
+
+exports.makeTrack115DeepNestedPollutionPolicy = function () {
+  const pollutedVfhss = { latticeVfhssGating: {} };
+  let current = pollutedVfhss.latticeVfhssGating;
+  for (let i = 0; i < 5; i++) {
+    attachVfhssDeepPollution(current, i);
+    if (i < 4) {
+      current.latticeVfhssGating = {};
+      current = current.latticeVfhssGating;
+    }
+  }
+  current.minVfhssShares = 0;
+  current.maxHomomorphicDepth = 9999;
+  current.requireEnclaveEvaluationAttestation = 'false';
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track115-deep-polluter': pollutedVfhss,
+      'track115-clean': {
+        latticeVfhssGating: {
+          minVfhssShares: 7,
+          maxHomomorphicDepth: 8,
+          requireEnclaveEvaluationAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack115PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const VFHSS_KEYS = ['latticeVfhssGating', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track115-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = VFHSS_KEYS[prng.nextInt(VFHSS_KEYS.length)];
+      const block = {};
+      attachVfhssDeepPollution(block, l % 5, prng);
+      if (key === 'latticeVfhssGating' && prng.nextInt(3) === 0) {
+        block.minVfhssShares = prng.nextChoice([1, 3, 7, 8, 12, 100, 0]);
+        block.maxHomomorphicDepth = prng.nextChoice([1, 4, 8, 9, 16, 100]);
+        block.requireEnclaveEvaluationAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack115ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track115-clean',
+    'track115-deep-polluter',
+    'track115-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'latticeVfhssGating',
+    config: {
+      vfhssShares: prng.nextChoice([1, 3, 6, 7, 8, 12, 100, 0, -1]),
+      homomorphicDepth: prng.nextChoice([1, 4, 7, 8, 9, 16, 100, 0, -1]),
+      enclaveEvaluationAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
       latticeScheme: prng.nextChoice(['module-lwr', 'module-lwe', 'nist-kyber', 'unsupported', 42, null]),
       shareAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
     },
