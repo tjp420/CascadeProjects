@@ -77,6 +77,8 @@ function getStagedFiles() {
 function scanFiles(filePaths, opts = {}) {
   const allFindings = [];
   for (const p of filePaths) {
+    // Skip docs and markdown files to avoid false-positives on examples
+    if (/\.md$/i.test(p) || p.startsWith('ai-platform/docs') || p.startsWith('.github/')) continue;
     let full = p;
     if (!path.isAbsolute(full)) full = path.resolve(process.cwd(), p);
     if (!fs.existsSync(full)) continue;
