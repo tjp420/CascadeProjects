@@ -140,4 +140,22 @@ describe('Alertmanager routing (synthetic validation)', () => {
     expect(rs).toContain('hsm-crypto-ops-pager');
   });
 
+
+  test('Track 114 lattice VSS gating alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', tier: 'post-quantum-crypto', track: '114' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('Track114LatticeVssReconciliationStall alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'Track114LatticeVssReconciliationStall', component: 'hsm-mesh-vault', severity: 'critical' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('Track114HighValidationFailureRate alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'Track114HighValidationFailureRate', component: 'hsm-mesh-vault', severity: 'warning' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
 });

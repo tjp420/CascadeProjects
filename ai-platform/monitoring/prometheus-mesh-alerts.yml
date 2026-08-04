@@ -397,3 +397,39 @@ groups:
           summary: "Shard out-of-sync event flood detected"
           description: "More than 50 out-of-sync events per minute are being detected over the last 2 minutes, indicating possible cascading shard divergence, byzantine node behavior, or storage layer degradation."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SHARD_OUT_OF_SYNC_FLOOD.md"
+
+  # ── Track 114: PQC Lattice-Based Multi-Message VSS Gating alerts ──────────
+  - name: track114_lattice_vss_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track114LatticeVssReconciliationStall
+        expr: |
+          rate(hsm_vssgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_vss_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "114"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vss-gating"
+        annotations:
+          summary: "Track 114 lattice VSS accreditation has stalled"
+          description: "New lattice VSS gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK114_LATTICE_VSS_RECONCILIATION_STALL.md"
+
+      - alert: Track114HighValidationFailureRate
+        expr: |
+          rate(hsm_zk_vss_claim_verified_total[5m]) / rate(hsm_vssgate_pool_initialized_total[5m]) < 0.85
+        for: 2m
+        labels:
+          severity: warning
+          track: "114"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lattice-vss-gating"
+        annotations:
+          summary: "Track 114 lattice VSS validation failure rate is above 15%"
+          description: "More than 15% of initialized lattice VSS sessions are failing ZK proof evaluation, polynomial degree bound rejection, or share threshold rejection over the last 5 minutes, indicating possible rogue-share or malformed polynomial injection attacks."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK114_HIGH_VALIDATION_FAILURE_RATE.md"
