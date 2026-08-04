@@ -1,8 +1,8 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState, isRemoteDashboardHost, isAbsoluteLocalPath } from '../utils.js?v=20260731audit2';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260726embedfix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi, isIncompleteFolderDrop, incompleteFolderDropMessage } from '../utils-lib/dom.js?v=20260804largefolder1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
-import { LocalScanService } from '../services/localScanService.js?v=20260725dropfix3';
+import { LocalScanService } from '../services/localScanService.js?v=20260804largefolder1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260726dropfix2';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard, canUseParentBridgeFetch } from '../services/localAgentService.js?v=20260726dropfix4';
 import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260726dropfix3';
@@ -5737,7 +5737,7 @@ export class AnalyzeView {
                                                 prog.textContent = `${processed} / ${total} files`;
                                         }
                                     });
-                                    if (sandboxReport && sandboxReport.discoveredFiles >= 1) {
+                                    if (sandboxReport && sandboxReport.discoveredFiles > 2) {
                                         const cert = sandboxReport.certificate || {};
                                         const stats = el.querySelector('#analyze-dropzone-result-stats');
                                         if (stats)
@@ -5749,6 +5749,12 @@ export class AnalyzeView {
                                         }
                                         this.applySandboxScanResult(sandboxReport);
                                         showToast(`Scanned "${folderName}" — ${sandboxReport.discoveredFiles} files found`, 'success');
+                                        return;
+                                    }
+                                    if (sandboxReport && isIncompleteFolderDrop(sandboxReport.discoveredFiles || 0, { isDirectoryDrop: true })) {
+                                        showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
+                                        const nativePicker = el.querySelector('#trigger-native-picker');
+                                        if (nativePicker) setTimeout(() => nativePicker.click(), 100);
                                         return;
                                     }
                                 }
@@ -6215,10 +6221,13 @@ export class AnalyzeView {
                     }
                     // If only 1-2 files without webkitRelativePath on remote host without bridge,
                     // prompt user to use Select Folder instead of scanning 1 file.
-                    if (!fileArray.some((f) => f.webkitRelativePath) && fileArray.length <= 2 && !hasExtensionBridgeConfigured()) {
+                    if (isIncompleteFolderDrop(fileArray.length, {
+                        isDirectoryDrop: looksLikeDirDrop || !fileArray.some((f) => f.webkitRelativePath),
+                        hasRelativePath: fileArray.some((f) => f.webkitRelativePath)
+                    }) && !hasExtensionBridgeConfigured()) {
                         if (analyzeTerminal)
-                            analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                        showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                            analyzeTerminal.textContent = incompleteFolderDropMessage(folderHint);
+                        showToast(incompleteFolderDropMessage(folderHint), 'warning', { duration: 14000 });
                         setAnalyzeDropzoneState('idle');
                         const nativePicker = el.querySelector('#trigger-native-picker');
                         if (nativePicker) {
@@ -6363,10 +6372,13 @@ export class AnalyzeView {
                             }
                             // If still only 1-2 files without webkitRelativePath on remote host
                             // without bridge, prompt user to use Select Folder for full coverage.
-                            if (!hasWebkitRelPath && fileArray.length <= 2 && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
+                            if (isIncompleteFolderDrop(fileArray.length, {
+                                isDirectoryDrop: true,
+                                hasRelativePath: hasWebkitRelPath
+                            }) && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
                                 if (analyzeTerminal)
-                                    analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                                showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                    analyzeTerminal.textContent = incompleteFolderDropMessage(folderName);
+                                showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
                                 setAnalyzeDropzoneState('idle');
                                 const nativePicker = el.querySelector('#trigger-native-picker');
                                 if (nativePicker) {
@@ -6471,10 +6483,13 @@ export class AnalyzeView {
                         }
                         // Bridge unavailable or failed — if only 1-2 files without webkitRelativePath,
                         // the drop didn't expose the full directory. Prompt user to use Select Folder.
-                        if (!hasWebkitRelPath && files.length <= 2) {
+                        if (isIncompleteFolderDrop(files.length, {
+                            isDirectoryDrop: true,
+                            hasRelativePath: hasWebkitRelPath
+                        })) {
                             if (analyzeTerminal)
-                                analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                            showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                analyzeTerminal.textContent = incompleteFolderDropMessage(folderName);
+                            showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
                             setAnalyzeDropzoneState('idle');
                             const nativePicker = el.querySelector('#trigger-native-picker');
                             if (nativePicker) {
@@ -8118,6 +8133,21 @@ export class AnalyzeView {
                     this.updateProgressDom();
                 }
             });
+            const fileArr = files ? Array.from(files) : null;
+            if (fileArr && isIncompleteFolderDrop(fileArr.length, {
+                isDirectoryDrop: true,
+                hasRelativePath: fileArr.some((f) => f.webkitRelativePath || f._virtualPath)
+            })) {
+                throw new Error(incompleteFolderDropMessage(projectPath || report.projectRoot));
+            }
+            const inventoryCount = Number(report.repositoryFilesTotal ?? report.summary?.totalFiles ?? 0);
+            if (dirHandle && inventoryCount > 0 && inventoryCount <= 2) {
+                // Directory-handle walk of a protected/system tree can yield 1 readable file and a false PASS.
+                const rootName = String(report.projectRoot || projectPath || dirHandle.name || '');
+                if (/^(windows|system32|winsxs|program files|programdata)$/i.test(rootName.trim())) {
+                    throw new Error(incompleteFolderDropMessage(rootName));
+                }
+            }
             const conclusion = buildScanConclusion(report);
             const scannedRoot = report.projectRoot || report.projectPath || (projectPath && projectPath.trim()) || 'local-project';
             this.repositoryInventory = report.inventory || null;
@@ -8137,7 +8167,12 @@ export class AnalyzeView {
             this.app.state.analyzeResult = this.lastResult;
             this.app.state.report = report;
             this.app.scanService.report = report;
-            showToast('Local scan complete — no data sent to server', 'success');
+            if (report.scanLimitNote) {
+                showToast(report.scanLimitNote, 'warning', { duration: 12000 });
+            }
+            else {
+                showToast('Local scan complete — no data sent to server', 'success');
+            }
         }
         catch (err) {
             const msg = isFilePickerBlockedError(err)

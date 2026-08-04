@@ -1,6 +1,6 @@
 // simplebeacon-ignore: debugArtifacts,euAiAct,hardcodedIp — scanner service diagnostics and pattern definitions are false positives
 import { showToast } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260726embedfix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame, browserLocalScanCapMessage } from '../utils-lib/dom.js?v=20260804largefolder1';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260726sevfix1';
 import {
   createIgnoreContext,
@@ -12,6 +12,7 @@ import {
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
 const WORKER_URL = new URL('../workers/scan-worker.js?v=2026072701', import.meta.url);
 const MAX_FILES = 100000;
+const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
 const WORKER_START_TIMEOUT_MS = 15000;
@@ -190,10 +191,28 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
     const issueCount = totalFindings;
     const blockingCount = rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high')
         .reduce((sum, i) => sum + (Number(i.count) || 1), 0);
-    const gateScore = blockingCount === 0 && totalFiles > 0 ? 100 : 0;
+    const incompleteDrop = totalFiles > 0 && totalFiles < MIN_FILES_FOR_PASS;
+    // Incomplete drops must not score 100 — that produced false "Windows PASS" UX
+    const gateScore = blockingCount === 0 && totalFiles >= MIN_FILES_FOR_PASS ? 100 : 0;
     const mockSampleFiles = (meta.filePaths || []).filter((p) =>
         /sample|mock|fixture|test.*data/i.test(String(p))
     ).length;
+    const capped = Boolean(meta.capped) || totalFiles >= MAX_FILES;
+    const scanLimitNote = meta.issuesTruncated
+        ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
+        : (capped
+            ? `Browser local scan inventory capped at ${MAX_FILES.toLocaleString()} files. Run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
+            : null);
+    const incompleteDropNote = incompleteDrop
+        ? `Only ${totalFiles} file${totalFiles === 1 ? '' : 's'} discovered — this is likely an incomplete folder drop (common for OS/system directories). No full-repo PASS was recorded. Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
+        : null;
+    const limitations = [
+        `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
+        'Pattern matching on file contents — not LLM semantic review.',
+        'Jest not executed during scan — use npm test separately.'
+    ];
+    if (scanLimitNote) limitations.unshift(scanLimitNote);
+    if (incompleteDropNote) limitations.unshift(incompleteDropNote);
     return {
         type: 'simplebeacon-report',
         version: '1.0.0',
@@ -241,25 +260,21 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             pageSpecsValidated: null,
             pageSpecsFromScanPaths: 0,
             pageSpecsFromAliasPaths: 0,
-            fullDirectoryScan: true,
-            limitations: [
-                `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
-                'Pattern matching on file contents — not LLM semantic review.',
-                'Jest not executed during scan — use npm test separately.'
-            ]
+            fullDirectoryScan: !capped,
+            limitations
         },
         ignoreMeta: meta.ignoreMeta || null,
         telemetry: meta.telemetry || null,
         gate: {
-            pass: blockingCount === 0 && totalFiles > 0,
+            pass: blockingCount === 0 && totalFiles >= MIN_FILES_FOR_PASS,
             blockingCount,
             warningCount: totalFindings - blockingCount,
-            score: gateScore
+            score: gateScore,
+            incompleteDrop
         },
         issuesTruncated: Boolean(meta.issuesTruncated),
-        scanLimitNote: meta.issuesTruncated
-            ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
-            : (totalFiles >= MAX_FILES ? `File inventory capped at ${MAX_FILES.toLocaleString()} files. Use the CLI for full monorepo coverage.` : null)
+        scanLimitNote,
+        incompleteDropNote
     };
 }
 /**
@@ -362,6 +377,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 const filePaths = workerFiles.map((f) => f.path);
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
                     issuesTruncated,
+                    capped: totalFiles >= MAX_FILES,
                     folderCount,
                     filePaths,
                     ignoreMeta: options.ignoreCtx
@@ -572,7 +588,7 @@ export async function runLocalScan(options = {}) {
         showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
     }
     if (files.length >= MAX_FILES) {
-        showToast(`Large repo — scanning first ${MAX_FILES.toLocaleString()} files. Use CLI for unlimited coverage.`, 'warning', { duration: 8000 });
+        showToast(browserLocalScanCapMessage(MAX_FILES), 'warning', { duration: 12000 });
     }
     else if (files.length > 3000) {
         showToast(`Scanning ${files.length.toLocaleString()} files locally — this may take a few minutes.`, 'info', { duration: 6000 });

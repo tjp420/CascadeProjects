@@ -1,76 +1,48 @@
-# Test Plan: Track 119 Phase 3 — Multi-Tenant Fuzzing & Edge Cases
+# Test Plan: Browser large-folder scan — false 1-file PASS + 100k+ failure UX
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Add 6 Track 119 mutator functions + 14 cleanup keys to `tenant-fuzz-harness.cjs`, plus a 9-check fuzz test file stress-testing the `crossClusterMigration` validation layer |
+| Feature / change | Fix/clarify hosted browser scans when folder drops yield 1 file or repos exceed ~100k files |
 | Author (Builder) | Builder |
 | Date | 2026-08-04 |
-| Branch | feat/track119-multi-tenant-fuzz |
-| Packages touched | ai-platform |
+| Branch | (TBD after approval) |
+| Packages touched | ai-platform (dashboard LocalScanService / AnalyzeView), coming-soon (audit `/audit` scanner) |
+
+## Problem (from user reports)
+
+1. **`https://simplebeacon.ai/app/#/analyze`** — Dropped a ~393k-file / 48 GB folder (`Windows`). Result: **1 file indexed**, gate PASS, quality 100%. Report: `simplebeacon-report-1785885586927.json` (`scanSource: browser-local`, `projectRoot: Windows`).
+2. **`https://simplebeacon.ai/audit`** — Same class of target fails / is unusable above ~100k files. `report(7).json` is a **successful** ~15k-file `AdvancedInstallers` sandbox scan (not the Windows failure).
+
+### Root causes (code)
+
+| Surface | Cause |
+|---------|--------|
+| Analyze (`LocalScanService`) | Hard `MAX_FILES = 50000` during directory-handle walk; incomplete drops (no `webkitRelativePath`, protected OS dirs) can yield **1** `File` and still produce a green PASS. |
+| Analyze drop handlers | Known path: IDE/OS drop exposes 1 file; traversal fallbacks exist but can still fall through to scanning that single file. |
+| Audit (`coming-soon`) | Soft thresholds `FILE_COUNT_HIGH=65000` / `FILE_COUNT_VERY_HIGH=100000`; worker diagnostic mentions **cap 100000**; posting huge `File` arrays via `postMessage` + in-browser scan of 100k–400k files OOMs / hangs the tab. Discovery cap in `scan-utils.js` is effectively unlimited (`999999999`). |
+
+**Out of scope for browser:** Full recursive scan of `C:\Windows` (~400k files / 48 GB). Correct path is **CLI** (`npx simplebeacon scan`) or Local Agent with an absolute path — not hosted drag-and-drop.
 
 ## Scope
 
-### Files in scope (Broom strategy — 2 files)
+### Files in scope (Broom — prefer existing modules)
 
-1. `ai-platform/server/lib/hsm-adapter/__tests__/tenant-fuzz-harness.cjs` — add 6 Track 119 mutator functions + 14 cleanup keys
-2. `ai-platform/server/lib/hsm-adapter/__tests__/track119-multi-tenant-fuzz.test.cjs` — new Jest test file (9 checks)
+1. `ai-platform/web/simplebeacon-dashboard/js/services/localScanService.js` (+ js-es2018 twin if deployed from it)
+2. `ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js` — incomplete-drop / refuse false PASS
+3. `coming-soon/public/js-es2018/dashboard/main.js` and/or `scanner-engine.js` — hard warn + block/redirect CLI before OOM at ≥100k
+4. Optional: `ai-platform/web/simplebeacon-dashboard/js/utils-lib/dom.js` — shared incomplete-drop helper
 
-### Tracking keys for prototype contamination detection
+### APIs / routes
 
-Following the Track 118 pattern (2 base + 10 nested + 2 deep = 14 keys):
+- No new REST routes. Browser-local / browser-sandbox only.
 
-| Key | Purpose |
-|-----|---------|
-| `migrationGatePolluted` | Direct `__proto__` pollution on crossClusterMigration block |
-| `migrationConstructorPolluted` | Direct `constructor.prototype` pollution |
-| `migrationProtoLevel0` through `migrationProtoLevel4` | 5-level nested `__proto__` chain |
-| `migrationCtorLevel0` through `migrationCtorLevel4` | 5-level nested `constructor.prototype` chain |
-| `migrationDeepMinQuorumNodes` | Deep nested policy key contamination |
-| `migrationDeepMaxConcurrentMigrations` | Deep nested policy key contamination |
+### UI / IDE surfaces
 
-### 6 mutator functions to add to `tenant-fuzz-harness.cjs`
-
-| # | Function | Purpose |
-|---|----------|---------|
-| 1 | `makeTrack119ProtoPollutionPolicy()` | Basic `__proto__`/`constructor` pollution on `crossClusterMigration` block with `track119-polluter` and `track119-clean` tenants |
-| 2 | `makeTrack119DeepNestedPollutionPolicy()` | 5-level nested `__proto__`/`constructor` pollution with `track119-deep-polluter` tenant |
-| 3 | `makeTrack119TypeConfusionConfigs()` | 6 type confusion cases: string-numbers, array-object values, null-undefined values, string-booleans, boolean-numbers, **array-flooded attestation authorities** |
-| 4 | `makeTrack119PrngDrivenValidateCall(prng)` | PRNG-driven validation calls with boundary values for all 7 policy keys, including mixed-type `allowedAttestationAuthorities` arrays |
-| 5 | `makeTrack119PrngDrivenMultiLayerPolicy(prng)` | Multi-layer random policies (2-5 tenants, 1-4 layers) with random pollution attachment |
-| 6 | `makeTrack119ConcurrentValidationCall(prng)` | Concurrent validation flood calls for race condition testing |
-
-### Attestation authority array fuzzing (your question 2)
-
-Yes — the type confusion configs will aggressively flood the `allowedAttestationAuthorities` array with:
-- Mixed data types: `['mock-authority', 123, null, {}, [], true, undefined]`
-- Array mutations: nested arrays `[['mock-authority'], ['spoofed']]`
-- Prototype pollution via array: `[{ __proto__: { migrationGatePolluted: true } }]`
-- Empty array: `[]`
-- Non-array values: `'mock-authority'` (string), `123` (number), `{ authority: 'mock' }` (object)
-
-### Test structure (9 checks following Track 118 pattern)
-
-| ID | Test | Iterations |
-|----|------|------------|
-| FUZZ-119-01 | Prototype pollution in crossClusterMigration is blocked | 1 |
-| FUZZ-119-02 | 5-level nested `__proto__`/`constructor` pollution is blocked | 1 |
-| FUZZ-119-03 | Deterministic SHA-256 PRNG is reproducible | 20 |
-| FUZZ-119-04 | 1000 multi-layer random policies construct and merge without crash or pollution | 1000 |
-| FUZZ-119-05 | Strict reference sandboxing — mutation does not cross-tenant leak | 1 |
-| FUZZ-119-06 | Track 119 type confusion fails closed with structured HsmAdapterError | 6 |
-| FUZZ-119-07 | PRNG-driven crossClusterMigration validation — 100 calls, no unhandled crash | 100 |
-| FUZZ-119-08 | Concurrent validation flood does not race or crash | 1000 |
-| FUZZ-119-09 | Cross-tenant crossClusterMigration mutation isolation | 1 |
-
-### Tenant IDs
-
-- `track119-polluter` (malicious tenant with prototype pollution)
-- `track119-clean` (clean tenant for isolation verification)
-- `track119-deep-polluter` (for 5-level nested pollution)
-- `t1` (generic tenant in PRNG-driven tests)
-- `track119-tenant-{random-8-chars}` (PRNG-generated)
+- [x] Main dashboard Analyze (`#/analyze`)
+- [x] Marketing audit page (`/audit`)
+- [ ] Sidebar webview (N/A unless shared helper)
 
 ---
 
@@ -78,14 +50,12 @@ Yes — the type confusion configs will aggressively flood the `allowedAttestati
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on tenant-fuzz-harness.cjs | `node -c ai-platform/server/lib/hsm-adapter/__tests__/tenant-fuzz-harness.cjs` | [ ] |
-| L1-02 | Syntax on track119-multi-tenant-fuzz.test.cjs | `node -c ai-platform/server/lib/hsm-adapter/__tests__/track119-multi-tenant-fuzz.test.cjs` | [ ] |
-| L1-03 | Track 119 fuzz tests pass | `cd ai-platform && npx jest --testPathPatterns track119-multi-tenant-fuzz` | [ ] |
-| L1-04 | Existing Track 118 fuzz tests still pass (regression) | `cd ai-platform && npx jest --testPathPatterns track118-multi-tenant-fuzz` | [ ] |
-| L1-05 | Existing Track 117 fuzz tests still pass (regression) | `cd ai-platform && npx jest --testPathPatterns track117-multi-tenant-fuzz` | [ ] |
-| L1-06 | Track 119 REST route tests still pass (regression) | `cd ai-platform && npx jest --testPathPatterns track119-rest-routes` | [ ] |
-| L1-07 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-08 | No secrets in diff | Manual / gate token rules | [ ] |
+| L1-01 | Syntax on changed JS/CJS | `node -c <file>` | [ ] |
+| L1-02 | ai-platform tests (if touched) | `cd ai-platform && npm test` | [ ] |
+| L1-03 | Extension compile | N/A unless extension touched | [ ] |
+| L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
+| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
+| L1-06 | npm audit | N/A unless deps changed | [ ] |
 
 ---
 
@@ -93,11 +63,10 @@ Yes — the type confusion configs will aggressively flood the `allowedAttestati
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Prototype pollution blocked | Load `makeTrack119ProtoPollutionPolicy()`, construct engine, check `Object.prototype.migrationGatePolluted` is undefined | Pollution blocked | [ ] |
-| L2-02 | Deep nested pollution blocked | Load `makeTrack119DeepNestedPollutionPolicy()`, construct engine, check all 12 nested keys are undefined | Pollution blocked | [ ] |
-| L2-03 | PRNG reproducibility | Create 2 PRNGs with same seed, generate 20 values each, compare | All values match | [ ] |
-| L2-04 | Multi-layer policy construction | 1000 iterations of `makeTrack119PrngDrivenMultiLayerPolicy()`, construct engine each time, check no pollution | No crash, no pollution | [ ] |
-| L2-05 | Cross-tenant isolation | Mutate `track119-polluter` policy, verify `track119-clean` policy unchanged | No cross-tenant leak | [ ] |
+| L2-01 | Incomplete folder drop | Drop a folder that only exposes 1 File without `webkitRelativePath` (or simulate) on Analyze | Toast warning; **no** green PASS report claiming full repo; prompt Select Folder / CLI | [ ] |
+| L2-02 | Cap transparency (Analyze) | Scan via directory handle that exceeds `MAX_FILES` | Report/`scanLimitNote` states truncation; not silent 50k-as-complete | [ ] |
+| L2-03 | Audit ≥100k guard | Start scan when discovered files ≥ 100000 | Clear stop/warn with CLI command; avoid posting full File array to worker | [ ] |
+| L2-04 | Audit mid-size still works | Scan folder ~1k–15k files (like AdvancedInstallers) | Completes; inventory matches order of magnitude | [ ] |
 
 ---
 
@@ -105,11 +74,9 @@ Yes — the type confusion configs will aggressively flood the `allowedAttestati
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Type confusion fails closed | All 6 type confusion configs throw `HsmAdapterError` with `POLICY_VIOLATION_BLOCKED` or fail gracefully | [ ] |
-| L3-02 | PRNG-driven validation — 100 calls | No unhandled crashes, all throw `HsmAdapterError` or return `true` | [ ] |
-| L3-03 | Concurrent validation flood — 1000 calls | No race conditions, no crashes, all promises resolve | [ ] |
-| L3-04 | Cross-tenant mutation isolation | Mutating `track119-polluter` crossClusterMigration does not affect `track119-clean` | [ ] |
-| L3-05 | Existing Track 118 fuzz tests unchanged | Track 118 fuzz tests still pass (9/9) | [ ] |
+| L3-01 | System / protected dirs (`Windows`) | Do not claim full inventory; surface permission / incomplete enumeration | [ ] |
+| L3-02 | Select Folder vs drag-drop | Select Folder still preferred path for full browser walk | [ ] |
+| L3-03 | No scope creep | No new scan engine; CLI remains recommended for mega-trees | [ ] |
 
 ---
 
@@ -117,13 +84,37 @@ Yes — the type confusion configs will aggressively flood the `allowedAttestati
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials / PII in fuzz test data | [ ] |
-| S-02 | Prototype pollution does not leak to other tenants | [ ] |
-| S-03 | Attestation authority array flooding does not bypass validation | [ ] |
+| S-01 | No credentials / PII in logs or commits | [ ] |
+| S-02 | Browser-local scans still do not upload source by default | [ ] |
+
+---
+
+## Proposed Builder work (after approval)
+
+1. **Refuse false PASS** when directory drop yields ≤2 files without relative paths / after failed tree walk — toast + Select Folder / CLI, do not apply 1-file “Windows PASS” report.
+2. **Surface `MAX_FILES`** in `localScanService` report (`scanLimitNote` / limitations).
+3. **Audit page:** before deep scan / worker `postMessage`, if `files.length >= 100000`, abort with actionable CLI message (and optional Local Agent path); do not clone 100k+ File objects into the worker.
+4. Keep copy honest: browser sandbox is for project-sized trees, not OS install roots.
+
+## Immediate user workaround (no code required)
+
+```powershell
+# From a normal project folder (not C:\Windows), or a scoped subtree:
+npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
+```
+
+For hosted Analyze: use **Select Folder** (not drag of system roots). Prefer scanning application/source trees, not entire OS directories.
 
 ---
 
 ## Approval
 
-- [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- [x] User approved this plan (or task included approved scope)
+- Approved by: user  Date: 2026-08-04
+- Defaults chosen: Analyze cap toast uses CLI command string; Audit hard-stop shows CLI command (no download link).
+
+## Coercion Verification Block
+- [x] Coerce numeric inputs (`minQuorumNodes`, `maxConcurrentMigrations`, `maxShardsPerMigration`)
+- [x] Normalize stringified booleans (`requireAttestation`, `requireQuorumCommit`)
+- [x] Array normalization for attestation authorities
+- [x] Integration matrix: Verified via `track119-rest-routes.test.cjs`
