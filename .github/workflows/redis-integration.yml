@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUN_REDIS_INTEGRATION: ${{ env.RUN_REDIS_INTEGRATION }}
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

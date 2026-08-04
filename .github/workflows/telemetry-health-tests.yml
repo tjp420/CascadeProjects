@@ -10,6 +10,8 @@ jobs:
   validate-telemetry:
     name: Execute Hardened Health Suite
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Checkout Source Tree
         uses: actions/checkout@v4
@@ -74,6 +76,8 @@ jobs:
     name: Execute Staging Build Compression
     needs: validate-telemetry
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Checkout Source Tree
         uses: actions/checkout@v4

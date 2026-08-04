@@ -10,6 +10,8 @@ jobs:
   verify:
     name: Build & Quality Gates
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
 
     strategy:
       matrix:
