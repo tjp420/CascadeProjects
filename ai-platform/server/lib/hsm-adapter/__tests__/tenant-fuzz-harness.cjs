@@ -262,6 +262,20 @@ exports.cleanupPrototypePollution = function () {
     'accumulatorCtorLevel4',
     'accumulatorDeepMaxAccumulatorSize',
     'accumulatorDeepMinWitnessQuorum',
+    'vssGatePolluted',
+    'vssConstructorPolluted',
+    'vssProtoLevel0',
+    'vssProtoLevel1',
+    'vssProtoLevel2',
+    'vssProtoLevel3',
+    'vssProtoLevel4',
+    'vssCtorLevel0',
+    'vssCtorLevel1',
+    'vssCtorLevel2',
+    'vssCtorLevel3',
+    'vssCtorLevel4',
+    'vssDeepMaxDegreeBound',
+    'vssDeepMinVssShares',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -694,6 +708,156 @@ exports.makeTrack33ConcurrentValidationCall = function (prng) {
       enclaveMembershipAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
       accumulatorType: prng.nextChoice(['rsa-accumulator', 'bilinear-pairing', 'unsupported', 42, null]),
       witnessAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+    },
+  };
+};
+
+// ── Track 114: PQC Lattice-Based Multi-Message VSS Gating Hub mutators ───────
+
+exports.makeTrack114ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track114-polluter': {
+        latticeVssGating: {
+          __proto__: { vssGatePolluted: true },
+          minVssShares: 5,
+          maxDegreeBound: 16,
+          requireEnclaveBindingAttestation: true,
+        },
+        constructor: {
+          prototype: { vssConstructorPolluted: true },
+        },
+      },
+      'track114-clean': {
+        latticeVssGating: {
+          minVssShares: 5,
+          maxDegreeBound: 16,
+          requireEnclaveBindingAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack114TypeConfusionConfigs = function () {
+  return [
+    { value: { vssShares: '5', degreeBound: '16' }, label: 'string-numbers' },
+    { value: { vssShares: [], degreeBound: {} }, label: 'array-object-values' },
+    { value: { vssShares: null, degreeBound: undefined }, label: 'null-undefined-values' },
+    { value: { enclaveBindingAttestation: 'true' }, label: 'string-boolean' },
+    { value: { latticeScheme: 42 }, label: 'number-string' },
+    { value: { shareAgeSeconds: true }, label: 'boolean-number' },
+  ];
+};
+
+exports.makeTrack114PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track114-polluter', 'track114-clean']);
+  const vssShares = prng.nextChoice([1, 3, 4, 5, 8, 12, 100, 0, -1]);
+  const degreeBound = prng.nextChoice([1, 8, 15, 16, 17, 32, 100, 0, -1]);
+  const enclaveBindingAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+  const auth = prng.nextChoice(['mock-authority', 'untrusted-authority', null, 123]);
+  const latticeScheme = prng.nextChoice(['module-lwr', 'module-lwe', 'nist-kyber', 'unsupported', 42, null]);
+  const canonical = prng.nextChoice([true, false, 'yes', 1, 0]);
+  return {
+    tenantId,
+    operation: 'latticeVssGating',
+    config: {
+      vssShares,
+      degreeBound,
+      enclaveBindingAttestation,
+      attestationAuthority: auth,
+      latticeScheme,
+      shareAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+      canonicalPayloadLayout: canonical,
+    },
+  };
+};
+
+// ── Track 114: Deep nested multi-layer policy mutation (5-level) ──────────────
+
+function attachVssDeepPollution(node, depth, prng) {
+  const protoMarker = `vssProtoLevel${depth}`;
+  const ctorMarker = `vssCtorLevel${depth}`;
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  const proto = Object.getPrototypeOf(node);
+  proto.vssDeepMaxDegreeBound = prng ? prng.nextChoice([1, 0, -1, 9999]) : 9999;
+  proto.vssDeepMinVssShares = prng ? prng.nextChoice([0, 1, 100, -1]) : 0;
+  return node;
+}
+
+exports.makeTrack114DeepNestedPollutionPolicy = function () {
+  const pollutedVss = { latticeVssGating: {} };
+  let current = pollutedVss.latticeVssGating;
+  for (let i = 0; i < 5; i++) {
+    attachVssDeepPollution(current, i);
+    if (i < 4) {
+      current.latticeVssGating = {};
+      current = current.latticeVssGating;
+    }
+  }
+  current.minVssShares = 0;
+  current.maxDegreeBound = 9999;
+  current.requireEnclaveBindingAttestation = 'false';
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track114-deep-polluter': pollutedVss,
+      'track114-clean': {
+        latticeVssGating: {
+          minVssShares: 5,
+          maxDegreeBound: 16,
+          requireEnclaveBindingAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack114PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const VSS_KEYS = ['latticeVssGating', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track114-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = VSS_KEYS[prng.nextInt(VSS_KEYS.length)];
+      const block = {};
+      attachVssDeepPollution(block, l % 5, prng);
+      if (key === 'latticeVssGating' && prng.nextInt(3) === 0) {
+        block.minVssShares = prng.nextChoice([1, 3, 5, 8, 12, 100, 0]);
+        block.maxDegreeBound = prng.nextChoice([1, 8, 16, 17, 32, 100]);
+        block.requireEnclaveBindingAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack114ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track114-clean',
+    'track114-deep-polluter',
+    'track114-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'latticeVssGating',
+    config: {
+      vssShares: prng.nextChoice([1, 3, 4, 5, 8, 12, 100, 0, -1]),
+      degreeBound: prng.nextChoice([1, 8, 15, 16, 17, 32, 100, 0, -1]),
+      enclaveBindingAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
+      latticeScheme: prng.nextChoice(['module-lwr', 'module-lwe', 'nist-kyber', 'unsupported', 42, null]),
+      shareAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
     },
   };
 };
