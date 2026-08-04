@@ -31,10 +31,12 @@ const DEFAULT_EXPECTED_PCRS = {
 
 /**
  * Default expected MRENCLAVE values for SEV-SNP / SGX testing.
+ * SEV-SNP MEASUREMENT is 48 bytes (SHA-384 hash).
+ * SGX MRENCLAVE is 16 bytes (256-bit hash truncated).
  */
 const DEFAULT_EXPECTED_MRENCLAVE = {
-  'sev-snp': crypto.createHash('sha256').update('sev-snp-enclave-v1').digest('hex'),
-  'sgx': crypto.createHash('sha256').update('sgx-enclave-v1').digest('hex'),
+  'sev-snp': crypto.createHash('sha384').update('sev-snp-enclave-v1').digest('hex'),
+  'sgx': crypto.createHash('sha256').update('sgx-enclave-v1').digest('hex').slice(0, 32), // 16 bytes = 32 hex chars
 };
 
 /**
@@ -169,6 +171,138 @@ class MockTpmQuoteGenerator {
       7: crypto.createHash('sha256').update('secureboot-disabled').digest('hex'),
     };
     return this.generateQuote(nonce, { pcrs: wrongPcrs });
+  }
+
+  /**
+   * Generate a raw SEV-SNP attestation report (4096-byte binary blob).
+   * @param {string} nonce — challenge nonce (hex string)
+   * @param {object} [options]
+   * @param {string} [options.mrenclave] — override MEASUREMENT (hex, 48 bytes)
+   * @param {number} [options.version] — report version (default: 1)
+   * @param {number} [options.policy] — policy flags (default: 0x1F = SMT-enforced, AB-excluded)
+   * @param {number} [options.timestamp]
+   * @returns {object} attestation with rawReport (Buffer), nonce, timestamp, authority, signature
+   */
+  generateSevSnpRawReport(nonce, options = {}) {
+    const measurement = options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE['sev-snp'];
+    const version = options.version || 1;
+    const policy = options.policy !== undefined ? options.policy : 0x1F;
+    const timestamp = options.timestamp || Date.now();
+
+    const buf = Buffer.alloc(4096, 0);
+
+    // VERSION (offset 0x00, 4 bytes LE)
+    buf.writeUInt32LE(version, 0x00);
+    // ALGORITHM (offset 0x04, 4 bytes) — 1 = ECC P-384 with SHA-384
+    buf.writeUInt32LE(1, 0x04);
+    // POLICY (offset 0x08, 4 bytes)
+    buf.writeUInt32LE(policy, 0x08);
+
+    // REPORT_DATA (offset 0xC0, 48 bytes) — pad nonce to 48 bytes
+    const nonceBytes = Buffer.from(nonce, 'hex');
+    nonceBytes.copy(buf, 0xC0);
+
+    // MEASUREMENT (offset 0xF0, 48 bytes) — MRENCLAVE
+    const measBytes = Buffer.from(measurement, 'hex');
+    measBytes.copy(buf, 0xF0);
+
+    // SIGNATURE (offset 0x2D0, 512 bytes) — mock signature (zeros, real would be ECC P-384)
+    // For testing, we fill with a deterministic pattern
+    const sigFill = crypto.createHash('sha384').update(measurement + nonce).digest();
+    sigFill.copy(buf, 0x2D0);
+    // Pad the rest of the signature area
+    for (let i = sigFill.length; i < 512; i += sigFill.length) {
+      sigFill.copy(buf, 0x2D0 + i);
+    }
+
+    const attestation = {
+      authority: 'sev-snp',
+      rawReport: buf,
+      nonce,
+      timestamp,
+    };
+
+    attestation.signature = _sign(attestation);
+    return attestation;
+  }
+
+  /**
+   * Generate a raw SGX DCAP quote (binary blob).
+   * @param {string} nonce — challenge nonce (hex string)
+   * @param {object} [options]
+   * @param {string} [options.mrenclave] — override MRENCLAVE (hex, 16 bytes)
+   * @param {string} [options.mrsigner] — MRSIGNER (hex, 16 bytes)
+   * @param {number} [options.isvProdId] — ISV product ID (default: 1)
+   * @param {number} [options.timestamp]
+   * @returns {object} attestation with rawQuote (Buffer), nonce, timestamp, authority, signature
+   */
+  generateSgxRawQuote(nonce, options = {}) {
+    const mrenclave = options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE['sgx'].slice(0, 32); // 16 bytes = 32 hex chars
+    const mrsigner = options.mrsigner || crypto.createHash('sha256').update('intel-signing-key').digest('hex').slice(0, 32);
+    const isvProdId = options.isvProdId || 1;
+    const timestamp = options.timestamp || Date.now();
+
+    // Header (28 bytes) + Report Body (384 bytes) + Signature (variable, we use 64 bytes)
+    const totalSize = 28 + 384 + 64;
+    const buf = Buffer.alloc(totalSize, 0);
+
+    // Quote header
+    buf.writeUInt16LE(3, 0x00); // VERSION = 3 (DCAP)
+    buf.writeUInt16LE(0, 0x02); // SIGN_TYPE = 0 (ECDSA-256-with-P-256)
+    buf.writeUInt32LE(0, 0x04); // QE_SVN
+    buf.writeUInt32LE(0, 0x08); // PCE_SVN
+
+    // Report body starts at offset 28 (0x1C)
+    const rb = 28;
+
+    // MRENCLAVE (offset 0x00 in report body, 16 bytes)
+    Buffer.from(mrenclave, 'hex').copy(buf, rb + 0x00);
+
+    // MRSIGNER (offset 0x10 in report body, 16 bytes)
+    Buffer.from(mrsigner, 'hex').copy(buf, rb + 0x10);
+
+    // ISVPRODID (offset 0x20 in report body, 2 bytes LE)
+    buf.writeUInt16LE(isvProdId, rb + 0x20);
+
+    // ISVSVN (offset 0x22 in report body, 2 bytes LE)
+    buf.writeUInt16LE(1, rb + 0x22);
+
+    // ATTRIBUTES (offset 0x24 in report body, 8 bytes) — set INITIALIZED flag
+    buf.writeUInt8(0x01, rb + 0x24); // INITIALIZED flag
+
+    // REPORT_DATA (offset 0x68 in report body, 16 bytes) — first 16 bytes of nonce
+    const nonceBytes = Buffer.from(nonce, 'hex');
+    nonceBytes.subarray(0, 16).copy(buf, rb + 0x68);
+
+    const attestation = {
+      authority: 'sgx',
+      rawQuote: buf,
+      nonce,
+      timestamp,
+    };
+
+    attestation.signature = _sign(attestation);
+    return attestation;
+  }
+
+  /**
+   * Generate a SEV-SNP raw report with wrong MEASUREMENT (for testing mismatch).
+   * @param {string} nonce
+   * @returns {object}
+   */
+  generateSevSnpWrongMeasurementReport(nonce) {
+    const wrongMrenclave = crypto.createHash('sha384').update('malicious-enclave').digest('hex');
+    return this.generateSevSnpRawReport(nonce, { mrenclave: wrongMrenclave });
+  }
+
+  /**
+   * Generate an SGX raw quote with wrong MRENCLAVE (for testing mismatch).
+   * @param {string} nonce
+   * @returns {object}
+   */
+  generateSgxWrongMeasurementQuote(nonce) {
+    const wrongMrenclave = crypto.createHash('sha256').update('malicious-sgx-enclave').digest('hex').slice(0, 32);
+    return this.generateSgxRawQuote(nonce, { mrenclave: wrongMrenclave });
   }
 }
 
