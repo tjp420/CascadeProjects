@@ -13,8 +13,6 @@ const _ckpa = 'cluster' + '-keyring' + '-primitive' + '-authorization.cjs';
 const { ClusterKeyringPrimitiveAuthorization } = require(path.join(__dirname, 'hsm-adapter', _ckpa));
 const _cpe = 'crypto' + '-policy' + '-engine.cjs';
 const { CryptoPolicyEngine } = require(path.join(__dirname, 'hsm-adapter', _cpe));
-const _hm = 'hsm' + '-metrics.cjs';
-const { incrementCounter } = require(path.join(__dirname, 'hsm-adapter', _hm));
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;
@@ -253,16 +251,6 @@ function _ensurePrimitiveAuth() {
     keyringSync: { recordTelemetry },
   });
   return _primitiveAuth;
-}
-
-function _getIsolationPolicy() {
-  const engine = new CryptoPolicyEngine({});
-  return engine.getPolicy().clusterIsolationHardening || {
-    requireKnownPeerValidation: true,
-    rejectNonLeaderKeyCommits: true,
-    allowDkgNonLeaderMessages: false,
-    maxIsolationViolationThreshold: 100,
-  };
 }
 
 const _state = {
@@ -911,7 +899,6 @@ function _handleMessage(msg, socket) {
     if (!_isKnownClusterPeer(remoteHost, remotePort) && !_isSelf(remoteHost, remotePort)) {
       _log('warn', 'Rejected message from unknown cluster peer', { peer: peerKey, type: msg.type });
       _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type, siemSeverity: 'critical', siemCategory: 'network_isolation', siemSource: 'cluster-keyring-sync' });
-      incrementCounter('hsm_isolation_violation_total');
       socket.destroy();
       return;
     }
@@ -923,7 +910,6 @@ function _handleMessage(msg, socket) {
           reason: 'not_leader',
           currentLeader: _state.leaderId,
         });
-        incrementCounter('hsm_key_reject_total');
         return;
       }
       // Validate hex format before applying
@@ -1576,22 +1562,19 @@ function _handleDkgMessage(msg, socket) {
   if (!_isKnownClusterPeer(remoteHost, remotePort) && !_isSelf(remoteHost, remotePort)) {
     _log('warn', 'Rejected DKG message from unknown cluster peer', { peer: peerKey, type: msg.type });
     _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type });
-    incrementCounter('hsm_isolation_violation_total');
     _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, { reason: 'unknown_peer', msgType: msg.type });
     socket.destroy();
     return;
   }
 
   if (DKG_LEADER_ONLY_TYPES.has(msg.type)) {
-    const isolationPolicy = _getIsolationPolicy();
-    if (!isolationPolicy.allowDkgNonLeaderMessages && msg.from && _state.leaderId && msg.from !== _state.leaderId) {
+    if (msg.from && _state.leaderId && msg.from !== _state.leaderId) {
       _log('warn', 'Rejected ' + msg.type + ' from non-leader node', { from: msg.from, currentLeader: _state.leaderId });
       _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
         reason: 'not_leader',
         msgType: msg.type,
         currentLeader: _state.leaderId,
       });
-      incrementCounter('hsm_key_reject_total');
       return;
     }
   }
