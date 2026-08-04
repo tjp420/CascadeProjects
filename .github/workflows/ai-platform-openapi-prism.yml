@@ -23,13 +23,9 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install Monorepo Dependencies (root)
+      - name: Install Monorepo Dependencies
         run: |
-          npm ci
-
-      - name: Install ai-platform package dependencies
-        run: |
-          npm --prefix ai-platform install
+          cd ai-platform && npm install --ignore-scripts --no-workspaces --install-strategy=nested
 
       - name: Install Spectral and run lint (with retries)
         run: |
