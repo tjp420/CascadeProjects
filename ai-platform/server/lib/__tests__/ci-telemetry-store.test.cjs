@@ -104,6 +104,30 @@ describe('ci-telemetry-store', () => {
     assert.strictEqual(event.orgKey, resolveOrgKey('team@example.com', { certOrgId: 'org-acme' }));
   });
 
+  it('does not persist raw email on recorded events (D-03)', () => {
+    const { recordCiTelemetryEvent, accountKey, resolveOrgKey } = require('../ci-telemetry-store.cjs');
+    const email = 'privacy@example.com';
+    const event = recordCiTelemetryEvent(email, {
+      event: 'team_scan',
+      scan_source: 'ci',
+      workspace_fingerprint: 'abc123def4567890abcdef12',
+      gate_pass: true,
+      email: 'attacker@evil.com'
+    }, {
+      subscription: { certOrgId: 'org-privacy' }
+    });
+    assert.strictEqual(event.email, undefined);
+    assert.ok(!Object.prototype.hasOwnProperty.call(event, 'email'));
+    assert.strictEqual(event.accountKey, accountKey(email));
+    assert.strictEqual(event.orgKey, resolveOrgKey(email, { certOrgId: 'org-privacy' }));
+
+    const stored = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+    const last = stored.events[stored.events.length - 1];
+    assert.strictEqual(last.email, undefined);
+    assert.ok(!JSON.stringify(last).includes(email));
+    assert.ok(!JSON.stringify(last).includes('attacker@evil.com'));
+  });
+
   it('exports privacy constants for Phase 2 rollup', () => {
     const {
       TEAM_TELEMETRY_RETENTION_DAYS,
