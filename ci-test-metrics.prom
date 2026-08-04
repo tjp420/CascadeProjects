@@ -1,0 +1,27 @@
+# HELP ci_tests_total Total number of tests discovered
+# TYPE ci_tests_total gauge
+ci_tests_total 199
+# HELP ci_tests_passed_total Total number of passed tests
+# TYPE ci_tests_passed_total gauge
+ci_tests_passed_total 199
+# HELP ci_tests_failed_total Total number of failed tests
+# TYPE ci_tests_failed_total gauge
+ci_tests_failed_total 0
+# HELP ci_tests_pending_total Total number of pending tests
+# TYPE ci_tests_pending_total gauge
+ci_tests_pending_total 0
+# HELP ci_tests_run_time_ms Aggregate test run time in milliseconds
+# TYPE ci_tests_run_time_ms gauge
+ci_tests_run_time_ms 0
+# HELP ci_testfile_runtime_ms Per-test-file runtime in ms
+# TYPE ci_testfile_runtime_ms gauge
+ci_testfile_runtime_ms{file="authService.test.js"} 0
+ci_testfile_runtime_ms{file="file-quality-heuristics.test.js"} 0
+ci_testfile_runtime_ms{file="github-repo-clone.test.js"} 0
+ci_testfile_runtime_ms{file="assessment-controller.test.js"} 0
+ci_testfile_runtime_ms{file="json-file-cache.test.js"} 0
+ci_testfile_runtime_ms{file="core.test.js"} 0
+ci_testfile_runtime_ms{file="basic.test.js"} 0
+ci_testfile_runtime_ms{file="server-health.test.js"} 0
+ci_testfile_runtime_ms{file="auth-routes.test.js"} 0
+ci_testfile_runtime_ms{file="auth-middleware.test.js"} 0

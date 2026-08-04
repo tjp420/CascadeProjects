@@ -1,0 +1,3244 @@
+{
+  "totalTests": 6759,
+  "totalPassed": 6735,
+  "totalFailed": 22,
+  "totalPending": 2,
+  "startTime": 1785879629343,
+  "runTimeMs": null,
+  "testFileSummaries": [
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-stratospheric-aerosol-monitoring-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-global-health-epidemiological-surveillance-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-smart-grid-micro-transaction-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-deep-sea-mineral-rights-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-ocean-fisheries-allocation-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-cultural-heritage-provenance-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-space-asset-telemetry-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-consensus-snapshot.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-prediction-markets-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-supply-chain-provenance-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-real-estate-tokenization-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-carbon-tokenization-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-health-insurance-claim-auditing-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-supply-chain-escrow-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-education-credential-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-health-data-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/dkg-gossip.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-identity-gating-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-fractional-custody-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-insurance-underwriting-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-lending-pools-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/config/__tests__/constants.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-blind-option-pools-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/cluster-keyring-sync-load.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hardware-attestation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-regulatory-simulation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-time-locked-matrix-extensions.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-logger-auto-purge.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/partition-e2e-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/dkg-snark.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cross-cluster-migration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-key-reconciliation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/encrypted-p2p-routing.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/multiparty-rekeying.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/state-snapshot.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/key-rotation-store.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/azure-hsm-adapter.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-stream-block-aware.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/autonomous-rekey.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-healing-worker.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/he-mesh-topology.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/cluster-keyring-sync.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mpc/schnorr/__tests__/schnorr.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/threshold-account-recovery.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/vss-pss-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zk-range-proof-solvency.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/threshold-decryption-circuit.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/epoch-frame.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/violation-retention-policy.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/sandbox-memory-audit.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/distributed-consensus-coordinator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/confidential-sandbox.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-consensus-replay.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/ipc-boundary.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hybrid-kem-pfs.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zk-proof-of-assets.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/mixnet-blind-transaction-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-integrity-chain.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/bft-shard-sync.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-metrics-prometheus.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-consensus-implicit.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zk-snark-verifier-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-stream-scrubbing.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/tenant-boundary-saturation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-consensus.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-stream-preflight.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/simplebeacon-subscription-store.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-enclave-migration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-keyring-primitive-authorization.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/backup-coordinator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/helm-chart-validation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/multi-key-fhe-relinearization-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-log-scrubbing.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-scrubber-registry.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-consensus-coordinator-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zk-mpc-handshake.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-consensus-byzantine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/compliance-report.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/directory-sandbox-crypto.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-enclave-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/confidential-federated-learning.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-context-aware.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/dynamic-enclave-rescaling.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/encrypted-quarantine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/basic.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-threshold-signature.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/vdf-time-lock-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-consensus-rotation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/enclave-fault-injection.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cross-enclave-state-sync.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-stream-verify.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/canonical-request-serializer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/assessment-controller.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/core.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/enclave-key-rotation-heartbeat.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/secure-time-anchoring.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/multiparty-audit-log.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/key-interdiction.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/recursive-proof-aggregation-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/circuit-breaker-metrics.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/path-safety.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/enclave-secret-sealing-policy.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hybrid-kem-handshake.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-global-health-epidemiological-surveillance-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-wildlife-conservation-tracking-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-cultural-heritage-provenance-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-smart-grid-micro-transaction-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-nuclear-safeguards-monitoring-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-ocean-fisheries-allocation-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-scientific-reproducibility-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-supply-chain-provenance-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-zk-decentralized-storage-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-biometric-verification-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-real-estate-tokenization.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-space-asset-telemetry-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-health-insurance-claim-auditing-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-carbon-tokenization.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-education-credential-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-dao-treasury-management-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-financial-derivatives-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-clinical-trial-verification-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/secure-inner-product-search.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-water-rights-allocation-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-cross-border-logistics-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/core/__tests__/RoadmapDataAnalyzer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-logger-retention.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-ai-model-training-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-energy-certificate-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-vrf-audit-sortition-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-holographic-storage-content-addressable-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-telecom-routing-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-insurance-underwriting.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-health-data-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-patent-verification-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-blind-option-pools.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-supply-chain-escrow.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-prediction-markets.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-recovery.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-vesting-locks.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-identity-accumulator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-autonomous-vehicle-fleet-coordination-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-identity-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-homomorphic-identity-bridge.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-supply-chain-resilience-integrity-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-fractional-custody.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-adapter.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-lending-pools.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-time-locked-matrix.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/stream-interdiction.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-space-based-laser-communication-mesh-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-quantum-key-distribution-link-switch-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-smart-contract-verifiable-execution-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-quantum-sensor-calibration-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-neural-network-inference-integrity-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/disaster-recovery.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-sync-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-stratospheric-aerosol-monitoring-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-genomic-privacy-compliance-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/secret-config.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-orbital-debris-tracking-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-polar-research-data-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-deep-sea-mineral-rights-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-identity-revocation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-cross-chain-governance.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hybrid-kem-resumption.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/mpc-gated-decryption.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/oram-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-consensus-status.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/agentic-orchestration.jest.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zkp-identity.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/alert-rule-store-purge.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cross-tenant-escrow.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hybrid-kem-mitm.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/security-telemetry.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/ephemeral-token.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/homomorphic-key-sharding.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cluster-consensus-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track116-core-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/crypto-client-cache.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/storage/__tests__/telemetry-pipeline.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/email-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track116-multi-tenant-fuzz.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/auth/trust-levels.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/encrypted-search-routing.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track117-multi-tenant-fuzz.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-policy-sync.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hsm-vault-lattice-vfhss-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/encrypted-deduplication.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/middleware/__tests__/auth.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/canary-metric-simulator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/org-partition-enforcement.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/auth-middleware.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-throttle.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track33-core-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track33-multi-tenant-fuzz.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track115-multi-tenant-fuzz.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/dashboard-vault-auth.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/asymmetric-adapter.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hsm-vault-accumulator-gating-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/authService.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/core/__tests__/GlobalContextManager.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track114-multi-tenant-fuzz.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track115-core-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/key-provenance.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/pii-sync-history.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-autonomous-drone-swarm-mesh-routing-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/monitoring/__tests__/alertmanager-routing.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hsm-vault-lattice-vss-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-zk-decentralized-storage-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-asset-bridge.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track117-rest-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/auth-advanced.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-multi-enclave-confidential-mesh-state-reconciliation-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-bio-digital-interface-neural-telemetry-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zk-access-token-attestation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/confidential-issuance.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pq-swarm-robotics-kinetic-assembly-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-recursive-aggregation-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-report-executive.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-identity-hub.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-bio-digital-neural-telemetry-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track117-core-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/cross-tenant-audit.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-autonomous-drone-swarm-mesh-routing-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/homomorphic-querying.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/homomorphic-computation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track114-core-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-supply-chain-provenance-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-remediation-paths.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/api/assessment/__tests__/index.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/key-purge-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/keyring-serializer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/session-ratchet.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/track11-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/admin-throttle.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hsm-vault-cluster-isolation-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-remediation-classify.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-multi-enclave-confidential-mesh-state-reconciliation-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zk-cross-chain-settlement.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/fine-tuning-telemetry.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-holographic-storage-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-decentralized-identity-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-laser-mesh-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-swarm-robotics-kinetic-assembly-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hardware-root-rotation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-throttle-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-qkd-link-switch-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hsm-vault-ring-gating-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-policy-store.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/pqc-hybrid-kem.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/siem-exporter.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/homomorphic-db-lookup.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/governance-derivation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/volatile-eviction.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/compliance-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/client-error.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/multi-tenant-key-isolation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hardware-enclave.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/blind-pir.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track117-primitive-groundwork.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-metrics-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-replication-status-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/threshold-cryptography.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/analyze-export-bundle-engines.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track115-prometheus-alerts.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/token-throttle-mesh.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/dynamic-resharding.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/codebase-analyzer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track113-endpoint-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-recovery-status-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track116-prometheus-alerts.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track117-prometheus-alerts.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track32-multi-tenant-fuzz.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/token-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/server-health.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/simplebeacon-proxy.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/stripe-event-store.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/bootstrap/__tests__/dashboard-auth.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/policy-syncer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/token-budget-allocation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/quantum-hybrid-rollout.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/terminal-escape.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/chatbot-mock.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/tenant-hsm-isolation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track116-primitive-groundwork.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track31-lookup-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/hsm-client-wrapper.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/auth-routes.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-vault-lookup-gating-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/analyze-export-bundle-validation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/outreach-mail.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/aes-kw.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/api/billing/__tests__/billing-utils.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track115-primitive-groundwork.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track114-primitive-groundwork.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/cold-archive-search.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/validate-project-token.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-lifecycle-worker.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-remediation-normalize.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/chatbot-removefilters.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/group-reshard-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/outreach-resend-webhook.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/sandbox-isolation-keys.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track33-primitive-groundwork.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mixnet/__tests__/onion.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/storage/__tests__/reassembler.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/login-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/fuzzy-content-matcher.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/merge-preview.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/npm-audit-runner.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/cron/__tests__/renewals.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/storage/__tests__/shard-reconciler.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/json-file-cache.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/auth/__tests__/trust-levels.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/report-bundle-builder.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/api/billing/__tests__/license-utils.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hybrid-kem-resumption.redis.integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/AssessmentController.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track113/hardening-primitives.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/auth/device-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/policy-validator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/enclave-state-manager.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/hub-smoke.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track32-core-gating.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/analyze-export-bundle-facade.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/api/__tests__/simplebeacon-api.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/identity-ratchet.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/outreach-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/eu-ai-act-sprint-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/attestation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/file-merger-reduction-scanner.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/chatbot-knowledge.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/file-quality-heuristics.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/file-audit-context.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/jest-coverage-reader.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track112/upload-manager-purger.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mixnet/__tests__/timing_fuzz.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mpc/schnorr/__tests__/jcs.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-report-html-sections.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-remediation-facade.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/auth/mfa-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-business-logic-patterns.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track32-primitive-groundwork.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/operator-deliverable-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/reshard-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/llama-cpp-hints.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/auth/sandbox-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/unit/registration-policy.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/analyze-export-bundle-split.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-expert-review-store.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-compliance-report.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/ci-telemetry-store.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/hsm-integration.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mpc/schnorr/__tests__/proofs_validation.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/legacy-page-redirects.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-semantic-analyzer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/secure-zeroize.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-remediation-data.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/mock-data-file-scanner.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/eu-ai-act-sprint-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/istanbul-telemetry-merge.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mpc/schnorr/__tests__/proofs.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track112/poRep-merkle.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/auth/audit-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-zscript-cvar-analyzer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-report-sample-report.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/api/billing/__tests__/email-templates.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/nizk/__tests__/nizk-routes.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/flexible-analyze-roadmap.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mpc/schnorr/__tests__/unicode_vectors.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/devsecops-compliance-payload.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/__tests__/dashboard-stub-api.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/zk-rollup-accumulator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/enclave-attestation-client.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/auth/__tests__/vault-operator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/retry-with-timeout.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/middleware/__tests__/authorize-edges.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-report-html-renderer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/auth/__tests__/token-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-ml-pattern-detector.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/__tests__/trust-api.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/middleware/__tests__/enforceOrgPartition.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/crypto/ratchet/__tests__/session-purge.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/api/__tests__/simplebeacon-billing-api.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-zscript-structure-analyzer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/directory-bloat-scanner.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/middleware/__tests__/requireDashboardWrite.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/mixnet/__tests__/mixnet.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/wal.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/enclave-worker.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/nizk/__tests__/sequence.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-index.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-contextual-analyzer.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/cloud-inference-service.retry.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/storage/__tests__/repair-worker.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/dashboard-home-builder.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/dkg-guards.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/auth/password-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/middleware/__tests__/enforceKeyInterdiction.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-zscript-mod-report.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-understanding-engine.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/getIpKey.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/data-cleanup-scan.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/nizk/__tests__/nizk.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/auth/__tests__/token-service-errors.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/auth/__tests__/sandbox-service.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track112/upload-routes.int.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/coverage-reports-builder.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/path-health.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/api/__tests__/optimization-api.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/nizk/__tests__/store.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/token-service-blacklist.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/src/api/__tests__/build-from-path-route.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/nizk/__tests__/fixtures.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/crypto/ratchet/__tests__/secret-scanner.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/codebase-analyzer-patterns.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track112/ingest-queue.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/crypto/__tests__/kem-provider.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/auth.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-report-internal-tests.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/tests/github-repo-clone.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/complete-scan-audit-report.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/enhanced-ai-orchestrator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/eu-ai-act-audit-report.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/plugin-system-register-generic-fallback-plugins-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/central-data-config.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/language-patterns-universal-baseline-patterns-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/eu-ai-act-export.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/plugin-system-generic-structure-hints-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/hsm-adapter/__tests__/track112/poRep-verifier.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/audit-report-internal-tests-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/plugin-system-language-plugin-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/plugin-system-builtin-plugins-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/plugin-system-plugin-manager-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/operator-deliverable-service-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/security-dashboard-builder-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/strategic-insights-engine-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/repository-health-payload-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/roadmap-history-metrics-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/removable-files-scanner-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/code-roadmap-generator.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/parsers-zscript-parser-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/roadmap-scan-analysis-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/roadmap-sprint-model-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/trust-history-store-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/path-classification-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/roadmap-filesystem-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/scan-report-patch-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/safe-merge-guard-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/roadmap-analysis-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/snapshot-seeds-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/server-startup-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/scan-scheduler-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/recoverable-io-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/redis-cache-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/token-db-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/snapshot-resolver-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/sso-service-smoke.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/lib/__tests__/database-adapter.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "/home/runner/work/CascadeProjects/CascadeProjects/ai-platform/server/__tests__/admin-api.test.cjs",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    }
+  ]
+}

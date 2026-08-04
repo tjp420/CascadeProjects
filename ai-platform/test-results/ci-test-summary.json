@@ -1,0 +1,80 @@
+{
+  "totalTests": 199,
+  "totalPassed": 199,
+  "totalFailed": 0,
+  "totalPending": 0,
+  "startTime": 1781263233984,
+  "runTimeMs": 0,
+  "testFileSummaries": [
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\authService.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\file-quality-heuristics.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\github-repo-clone.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\assessment-controller.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\json-file-cache.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\core.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\basic.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\server-health.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\auth-routes.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    },
+    {
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\auth-middleware.test.js",
+      "numPassingTests": 0,
+      "numFailingTests": 0,
+      "numPendingTests": 0,
+      "runTimeMs": null
+    }
+  ]
+}
