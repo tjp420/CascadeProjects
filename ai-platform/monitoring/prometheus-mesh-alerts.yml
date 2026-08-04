@@ -188,6 +188,42 @@ groups:
           description: "MuSig2 signature verifications are failing at a rate of more than 5 per 5 minutes, indicating possible key mismatch or Byzantine share submission."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MUSIG2_VERIFICATION_FAILURE_SPIKE.md"
 
+  # ── Track 31: Homomorphic Database Lookup Gating Hub alerts ───────
+  - name: track31_lookup_gating_alerts
+    interval: 30s
+    rules:
+      - alert: Track31HomomorphicLookupStall
+        expr: |
+          rate(hsm_lookupgate_pool_initialized_total[5m]) > 0
+          and
+          rate(hsm_lookup_accreditation_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "31"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lookup-gating"
+        annotations:
+          summary: "Track 31 homomorphic lookup accreditations have stalled"
+          description: "New lookup gating pools are being initialized but no accreditations are completing over the last 5 minutes, indicating possible deadlock or worker pool thread starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK31_HOMOMORPHIC_LOOKUP_STALL.md"
+
+      - alert: Track31HighValidationFailureRate
+        expr: |
+          rate(hsm_lookupgate_challenge_issued_total[5m]) / rate(hsm_lookupgate_pool_initialized_total[5m]) > 0.15
+        for: 2m
+        labels:
+          severity: warning
+          track: "31"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-lookup-gating"
+        annotations:
+          summary: "Track 31 lookup validation failure rate is above 15%"
+          description: "More than 15% of initialized homomorphic lookup sessions are failing ZK proof evaluation or recursive depth rejection over the last 5 minutes, indicating possible brute-force or stale claim injection."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK31_HIGH_VALIDATION_FAILURE_RATE.md"
+
       - alert: Musig2SigningStall
         expr: |
           rate(hsm_musig2_signature_assembled_total[10m]) == 0
