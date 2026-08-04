@@ -19,12 +19,20 @@ const { RecursiveProofAggregationEngine } = require('../lib/hsm-adapter/recursiv
 const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
 const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
 const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
+const { PqcBlindedRingSignatureGatingHub } = require('../lib/hsm-adapter/pqc-blinded-ring-signature-gating-hub.cjs');
+const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
 const SessionStore = require('../lib/crypto/ratchet/session-store.cjs');
 
 const router = express.Router();
 
 // In-memory registry for Track 31 lookup gating pools (per-process; persistent storage out of scope)
 const lookupGatingPools = new Map();
+
+// In-memory registry for Track 32 ring gating pools (per-process; persistent storage out of scope)
+const ringGatingPools = new Map();
+
+// Shared policy engine instance for Track 32 ring gating
+const ringGatingPolicyEngine = new CryptoPolicyEngine();
 
 // Apply token-bucket defense to all admin HSM vault routes, after auth
 function authBeforeThrottle(req, res, next) {
@@ -1590,6 +1598,132 @@ router.get('/handshake/:sessionId/telemetry', authorize('admin:all'), runAsync(a
     authenticatedAt: record.authenticatedAt,
     expiresAt: record.expiresAt,
     // handshakeDigest intentionally omitted; never expose raw digest or keys
+  });
+}));
+
+
+// ── Track 32: PQC Blinded Ring-Signature Gating Hub endpoints ─────────────────
+
+function resolveRingGatingPool(poolId) {
+  const pool = ringGatingPools.get(poolId);
+  if (!pool) return null;
+  return pool;
+}
+
+// POST /api/vault/ring-gating/pool — initialize a Track 32 ring gating pool
+router.post('/ring-gating/pool', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const hub = new PqcBlindedRingSignatureGatingHub(orgId, ringGatingPolicyEngine);
+  const poolId = crypto.randomBytes(16).toString('hex');
+  ringGatingPools.set(poolId, { hub, orgId, createdAt: Date.now() });
+  res.status(201).json({
+    success: true,
+    orgId,
+    poolId,
+    status: hub.state,
+  });
+}));
+
+// POST /api/vault/ring-gating/:poolId/keys — collect anonymity set
+router.post('/ring-gating/:poolId/keys', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  const anonymitySet = (req.body && req.body.anonymitySet) || [];
+  if (!Array.isArray(anonymitySet)) return sendError(res, 400, 'RINGGATE_INVALID_KEYS');
+  try {
+    const status = entry.hub.collectKeys(anonymitySet);
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+      ringSize: entry.hub.keys.length,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'RINGGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// POST /api/vault/ring-gating/:poolId/validate — validate ZK ring proof
+router.post('/ring-gating/:poolId/validate', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  const claim = (req.body && req.body.claim) || {};
+  const linkabilityToken = (req.body && req.body.linkabilityToken) || undefined;
+  const blindedLinkabilityAttestation = (req.body && req.body.blindedLinkabilityAttestation) || undefined;
+  try {
+    const status = entry.hub.validateProof({
+      ...claim,
+      linkabilityToken,
+      blindedLinkabilityAttestation,
+    });
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    const code = err.message && err.message.includes('RINGCLAIM_INVALID_ANONYMITY_SET_SIZE')
+      ? 'RINGCLAIM_INVALID_ANONYMITY_SET_SIZE'
+      : err.message && err.message.includes('RINGCLAIM_UNATTESTED_LINKABILITY')
+        ? 'RINGCLAIM_UNATTESTED_LINKABILITY'
+        : err.code || 'RINGGATE_INVALID_TRANSITION';
+    sendError(res, 400, code, { message: err.message });
+  }
+}));
+
+// POST /api/vault/ring-gating/:poolId/accredit — finalize accreditation
+router.post('/ring-gating/:poolId/accredit', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  try {
+    const status = entry.hub.accredit();
+    res.json({
+      success: true,
+      orgId,
+      poolId: req.params.poolId,
+      status,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || 'RINGGATE_INVALID_TRANSITION', { message: err.message });
+  }
+}));
+
+// GET /api/vault/ring-gating/telemetry — expose Track 32 telemetry counters (no raw keys/tokens)
+router.get('/ring-gating/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_ringgate_pool_initialized_total: allMetrics.hsm_ringgate_pool_initialized_total || 0,
+      hsm_zk_ring_claim_verified_total: allMetrics.hsm_zk_ring_claim_verified_total || 0,
+      hsm_ring_accreditation_completed_total: allMetrics.hsm_ring_accreditation_completed_total || 0,
+      activePools: ringGatingPools.size,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'ring_gating_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/ring-gating/:poolId — get pool status (no raw keys or tokens)
+router.get('/ring-gating/:poolId', authorize('admin:all'), runAsync(async (req, res) => {
+  const orgId = resolveOrgId(req);
+  const entry = resolveRingGatingPool(req.params.poolId);
+  if (!entry) return sendError(res, 404, 'ring_pool_not_found');
+  res.json({
+    success: true,
+    orgId,
+    poolId: req.params.poolId,
+    status: entry.hub.state,
+    ringSize: entry.hub.keys.length,
   });
 }));
 
