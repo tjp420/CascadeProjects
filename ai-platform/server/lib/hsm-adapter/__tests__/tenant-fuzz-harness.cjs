@@ -236,6 +236,18 @@ exports.cleanupPrototypePollution = function () {
     'handshakeConstructorPolluted',
     'ringGatePolluted',
     'ringConstructorPolluted',
+    'ringProtoLevel0',
+    'ringProtoLevel1',
+    'ringProtoLevel2',
+    'ringProtoLevel3',
+    'ringProtoLevel4',
+    'ringCtorLevel0',
+    'ringCtorLevel1',
+    'ringCtorLevel2',
+    'ringCtorLevel3',
+    'ringCtorLevel4',
+    'ringDeepMinRingSize',
+    'ringDeepMaxRingSize',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -427,6 +439,97 @@ exports.makeTrack32PrngDrivenValidateCall = function (prng) {
       blindingType: blinding,
       signatureAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
       canonicalPayloadLayout: canonical,
+    },
+  };
+};
+
+// ── Track 32: Deep nested multi-layer policy mutation (5-level) ───────────────
+
+function attachDeepPollution(node, depth, prng) {
+  const protoMarker = `ringProtoLevel${depth}`;
+  const ctorMarker = `ringCtorLevel${depth}`;
+  // Using setPrototypeOf to make the pollution attempt explicit
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  // constructor.prototype pollution stored as an own property to be safe
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  // Attempt to shadow the actual ring keys at this depth via prototype
+  const proto = Object.getPrototypeOf(node);
+  proto.ringDeepMinRingSize = prng ? prng.nextChoice([1, 0, -1, 9999]) : 1;
+  proto.ringDeepMaxRingSize = prng ? prng.nextChoice([1, 0, 10000, 256]) : 9999;
+  return node;
+}
+
+exports.makeTrack32DeepNestedPollutionPolicy = function () {
+  const pollutedRing = { ringGating: {} };
+  let current = pollutedRing.ringGating;
+  for (let i = 0; i < 5; i++) {
+    attachDeepPollution(current, i);
+    if (i < 4) {
+      current.ringGating = {};
+      current = current.ringGating;
+    }
+  }
+  // Leaf owns the actual keys to verify the top-level merge still resolves correctly
+  current.minRingSize = 1;
+  current.maxRingSize = 9999;
+  current.requireBlindedLinkabilityAttestation = 'false';
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track32-deep-polluter': pollutedRing,
+      'track32-clean': {
+        ringGating: {
+          minRingSize: 16,
+          maxRingSize: 128,
+          requireBlindedLinkabilityAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack32PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const RING_KEYS = ['ringGating', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track32-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = RING_KEYS[prng.nextInt(RING_KEYS.length)];
+      const block = {};
+      attachDeepPollution(block, l % 5, prng);
+      // Occasionally own the actual ringGating keys to verify merge fallbacks
+      if (key === 'ringGating' && prng.nextInt(3) === 0) {
+        block.minRingSize = prng.nextChoice([1, 8, 16, 32, 64, 128, 256]);
+        block.maxRingSize = prng.nextChoice([1, 8, 16, 32, 64, 128, 256]);
+        block.requireBlindedLinkabilityAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack32ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track32-clean',
+    'track32-deep-polluter',
+    'track32-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'ringGating',
+    config: {
+      ringSize: prng.nextChoice([1, 8, 15, 16, 32, 64, 128, 129, 256, 0, -1]),
+      blindedLinkabilityAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
+      blindingType: prng.nextChoice(['pedersen', 'borromean', 'unsupported', 42, null]),
+      signatureAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
     },
   };
 };

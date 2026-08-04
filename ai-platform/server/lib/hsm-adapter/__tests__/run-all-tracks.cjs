@@ -124,6 +124,7 @@ const SUITES = [
   'recursive-proof-aggregation-engine',
   'lookup-gating',
   'tenant-boundary-saturation',
+  'track32-multi-tenant-fuzz',
   'track113-endpoint-integration',
   'shard-reconciler',
   'track32-primitive-groundwork',
