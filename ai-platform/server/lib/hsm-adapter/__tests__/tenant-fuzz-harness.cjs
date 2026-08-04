@@ -306,6 +306,21 @@ exports.cleanupPrototypePollution = function () {
     'isolationCtorLevel4',
     'isolationDeepMaxViolationThreshold',
     'isolationDeepRequireKnownPeerValidation',
+    // Track 117: BFT shard sync pollution cleanup keys
+    'bftShardGatePolluted',
+    'bftShardConstructorPolluted',
+    'bftShardProtoLevel0',
+    'bftShardProtoLevel1',
+    'bftShardProtoLevel2',
+    'bftShardProtoLevel3',
+    'bftShardProtoLevel4',
+    'bftShardCtorLevel0',
+    'bftShardCtorLevel1',
+    'bftShardCtorLevel2',
+    'bftShardCtorLevel3',
+    'bftShardCtorLevel4',
+    'bftShardDeepMinQuorumNodes',
+    'bftShardDeepMaxCatchUpBatchSize',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -1187,6 +1202,179 @@ exports.makeTrack116ConcurrentValidationCall = function (prng) {
       rejectNonLeaderKeyCommits: prng.nextChoice([true, false, 'yes', 1, 0]),
       allowDkgNonLeaderMessages: prng.nextChoice([true, false, 'true', 1, 0]),
       maxIsolationViolationThreshold: prng.nextChoice([0, 50, 100, 101, 999, -1, Number.MAX_SAFE_INTEGER, NaN]),
+    },
+  };
+};
+
+// ── Track 117: BFT Shard Sync mutators ───────────────────────────────────────
+
+exports.makeTrack117ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track117-polluter': {
+        bftShardSync: {
+          __proto__: { bftShardGatePolluted: true },
+          minQuorumNodes: 3,
+          maxCatchUpBatchSize: 64,
+          lagThreshold: 8,
+          byzantineDivergenceThreshold: 100,
+          requireQuorumCommit: true,
+          requireAntiReplay: true,
+          maxShardsPerCluster: 128,
+        },
+        constructor: {
+          prototype: { bftShardConstructorPolluted: true },
+        },
+      },
+      'track117-clean': {
+        bftShardSync: {
+          minQuorumNodes: 3,
+          maxCatchUpBatchSize: 64,
+          lagThreshold: 8,
+          byzantineDivergenceThreshold: 100,
+          requireQuorumCommit: true,
+          requireAntiReplay: true,
+          maxShardsPerCluster: 128,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack117TypeConfusionConfigs = function () {
+  return [
+    { value: { minQuorumNodes: '3', maxCatchUpBatchSize: '64' }, label: 'string-numbers' },
+    { value: { lagThreshold: [], byzantineDivergenceThreshold: {} }, label: 'array-object-values' },
+    { value: { requireQuorumCommit: null, requireAntiReplay: undefined }, label: 'null-undefined-values' },
+    { value: { requireQuorumCommit: 'true' }, label: 'string-boolean-quorum' },
+    { value: { requireAntiReplay: 'false' }, label: 'string-boolean-replay' },
+    { value: { maxShardsPerCluster: true }, label: 'boolean-number-shards' },
+  ];
+};
+
+exports.makeTrack117PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track117-polluter', 'track117-clean']);
+  const minQuorumNodes = prng.nextChoice([1, 2, 3, 4, 5, 0, -1, 999, NaN, '3']);
+  const maxCatchUpBatchSize = prng.nextChoice([0, 32, 64, 65, 128, 999, -1, '64']);
+  const lagThreshold = prng.nextChoice([0, 4, 8, 9, 100, -1, '8']);
+  const byzantineDivergenceThreshold = prng.nextChoice([0, 50, 100, 101, 9999, -1, '100']);
+  const requireQuorumCommit = prng.nextChoice([true, false, 'true', 1, 0]);
+  const requireAntiReplay = prng.nextChoice([true, false, 'false', 1, 0]);
+  const maxShardsPerCluster = prng.nextChoice([0, 64, 128, 129, 9999, -1, '128']);
+  return {
+    tenantId,
+    operation: 'bftShardSync',
+    config: {
+      minQuorumNodes,
+      maxCatchUpBatchSize,
+      lagThreshold,
+      byzantineDivergenceThreshold,
+      requireQuorumCommit,
+      requireAntiReplay,
+      maxShardsPerCluster,
+    },
+  };
+};
+
+// ── Track 117: Deep nested multi-layer policy mutation (5-level) ──────────────
+
+function attachBftShardDeepPollution(node, depth, prng) {
+  const protoMarker = `bftShardProtoLevel${depth}`;
+  const ctorMarker = `bftShardCtorLevel${depth}`;
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  const proto = Object.getPrototypeOf(node);
+  proto.bftShardDeepMinQuorumNodes = prng ? prng.nextChoice([0, -1, 999, 1]) : 1;
+  proto.bftShardDeepMaxCatchUpBatchSize = prng ? prng.nextChoice([0, 9999, -1]) : 9999;
+  return node;
+}
+
+exports.makeTrack117DeepNestedPollutionPolicy = function () {
+  const pollutedBftShard = { bftShardSync: {} };
+  let current = pollutedBftShard.bftShardSync;
+  for (let i = 0; i < 5; i++) {
+    attachBftShardDeepPollution(current, i);
+    if (i < 4) {
+      current.bftShardSync = {};
+      current = current.bftShardSync;
+    }
+  }
+  current.minQuorumNodes = 1;
+  current.maxCatchUpBatchSize = 9999;
+  current.lagThreshold = 999;
+  current.byzantineDivergenceThreshold = 99999;
+  current.requireQuorumCommit = false;
+  current.requireAntiReplay = false;
+  current.maxShardsPerCluster = 99999;
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track117-deep-polluter': pollutedBftShard,
+      'track117-clean': {
+        bftShardSync: {
+          minQuorumNodes: 3,
+          maxCatchUpBatchSize: 64,
+          lagThreshold: 8,
+          byzantineDivergenceThreshold: 100,
+          requireQuorumCommit: true,
+          requireAntiReplay: true,
+          maxShardsPerCluster: 128,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack117PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const BFT_SHARD_KEYS = ['bftShardSync', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track117-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = BFT_SHARD_KEYS[prng.nextInt(BFT_SHARD_KEYS.length)];
+      const block = {};
+      attachBftShardDeepPollution(block, l % 5, prng);
+      if (key === 'bftShardSync' && prng.nextInt(3) === 0) {
+        block.minQuorumNodes = prng.nextChoice([1, 2, 3, 4, 5, 0, -1, 999]);
+        block.maxCatchUpBatchSize = prng.nextChoice([0, 32, 64, 65, 128, 999, -1]);
+        block.lagThreshold = prng.nextChoice([0, 4, 8, 9, 100, -1]);
+        block.byzantineDivergenceThreshold = prng.nextChoice([0, 50, 100, 101, 9999, -1]);
+        block.requireQuorumCommit = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.requireAntiReplay = prng.nextChoice([true, false, 'false', 1, 0]);
+        block.maxShardsPerCluster = prng.nextChoice([0, 64, 128, 129, 9999, -1]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack117ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track117-clean',
+    'track117-deep-polluter',
+    'track117-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'bftShardSync',
+    config: {
+      minQuorumNodes: prng.nextChoice([1, 2, 3, 4, 5, 0, -1, 999, NaN]),
+      maxCatchUpBatchSize: prng.nextChoice([0, 32, 64, 65, 128, 999, -1]),
+      lagThreshold: prng.nextChoice([0, 4, 8, 9, 100, -1]),
+      byzantineDivergenceThreshold: prng.nextChoice([0, 50, 100, 101, 9999, -1]),
+      requireQuorumCommit: prng.nextChoice([true, false, 'true', 1, 0]),
+      requireAntiReplay: prng.nextChoice([true, false, 'false', 1, 0]),
+      maxShardsPerCluster: prng.nextChoice([0, 64, 128, 129, 9999, -1]),
     },
   };
 };
