@@ -214,6 +214,15 @@
       "maxShareAgeSeconds": 60,
       "requireCanonicalPayloadLayout": true
     },
+    "latticeVfhssGating": {
+      "minVfhssShares": 7,
+      "maxHomomorphicDepth": 8,
+      "requireEnclaveEvaluationAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedLatticeSchemes": ["module-lwr", "module-lwe", "nist-kyber"],
+      "maxShareAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
     "zkSettlement": {
       "minClearingNodeQuorum": 3,
       "maxSettlementTimeoutSeconds": 300,

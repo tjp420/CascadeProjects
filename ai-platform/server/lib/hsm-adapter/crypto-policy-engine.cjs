@@ -283,6 +283,15 @@ const DEFAULT_POLICY = {
     maxShareAgeSeconds: 60,
     requireCanonicalPayloadLayout: true,
   },
+  latticeVfhssGating: {
+    minVfhssShares: 7,
+    maxHomomorphicDepth: 8,
+    requireEnclaveEvaluationAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedLatticeSchemes: ['module-lwr', 'module-lwe', 'nist-kyber'],
+    maxShareAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
@@ -1268,6 +1277,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.latticeVssGating,
       ...(tenantPolicy.latticeVssGating || {}),
     },
+    latticeVfhssGating: {
+      ...DEFAULT_POLICY.latticeVfhssGating,
+      ...(tenantPolicy.latticeVfhssGating || {}),
+    },
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
       ...(tenantPolicy.zkSettlement || {}),
@@ -2151,6 +2164,31 @@ class CryptoPolicyEngine {
     }
     if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
       throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateLatticeVfhssGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.latticeVfhssGating, ...(tenantPolicy.latticeVfhssGating || {}) };
+    if (typeof config.vfhssShares === 'number' && config.vfhssShares < policy.minVfhssShares) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `vfhss shares ${config.vfhssShares} below minimum ${policy.minVfhssShares}`);
+    }
+    if (typeof config.homomorphicDepth === 'number' && config.homomorphicDepth > policy.maxHomomorphicDepth) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `homomorphic depth ${config.homomorphicDepth} exceeds maximum ${policy.maxHomomorphicDepth}`);
+    }
+    if (policy.requireEnclaveEvaluationAttestation && config.enclaveEvaluationAttestation === false) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', 'enclave evaluation attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.latticeScheme === 'string' && !policy.allowedLatticeSchemes.includes(config.latticeScheme)) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `lattice scheme ${config.latticeScheme} is not allowed; permitted: ${policy.allowedLatticeSchemes.join(', ')}`);
+    }
+    if (typeof config.shareAgeSeconds === 'number' && config.shareAgeSeconds > policy.maxShareAgeSeconds) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', `share age ${config.shareAgeSeconds}s exceeds maximum ${policy.maxShareAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('VFHSSGATE_POLICY_VIOLATION', 'canonical payload layout is required');
     }
   }
 
@@ -4738,6 +4776,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'latticeVssGating') {
       this._validateLatticeVssGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'latticeVfhssGating') {
+      this._validateLatticeVfhssGating(tenantPolicy, config);
       return true;
     }
 
