@@ -1903,5 +1903,10 @@ module.exports = {
   _validateSnapshotSchema,
   _snapshotHistory,
   MAX_SNAPSHOTS,
+  // Expose the hsm-metrics module instance used internally, so tests can read
+  // the same counters object that incrementCounter modifies. Jest may create
+  // separate module instances for the same file when required from different
+  // locations; this export guarantees test code sees the live counter state.
+  _hsmMetrics: require(path.join(__dirname, 'hsm-adapter', _hm)),
 };
 
