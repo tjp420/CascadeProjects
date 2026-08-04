@@ -20,8 +20,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
+          cache: 'npm'
 
+      - name: Install Monorepo Dependencies
+        run: |
+          cd ai-platform && npm install --ignore-scripts --no-workspaces --install-strategy=nested
 
       - name: Install Spectral and run lint (with retries)
         run: |
@@ -97,7 +101,7 @@ jobs:
         env:
           CI: true
         run: |
-          npx jest --config=ai-platform/jest.config.cjs --runInBand
+          cd ai-platform && npm test -- --runInBand
 
       - name: Run integration tests against Prism mock
         env:
@@ -105,7 +109,7 @@ jobs:
           PRISM_BASE: http://localhost:4010
         run: |
           echo 'Running integration tests against Prism mock...'
-          npx jest --config=ai-platform/jest.config.cjs ai-platform/tests/integration --runInBand
+          cd ai-platform && npm test -- tests/integration --runInBand
 
       - name: Collect mock logs
         if: failure()
