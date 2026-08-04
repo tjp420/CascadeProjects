@@ -141,10 +141,8 @@ const SUITES = [
   'track115-primitive-groundwork',
   'track115-core-gating',
   'track115-multi-tenant-fuzz',
-<<<<<<< HEAD
-=======
   'hsm-vault-lattice-vfhss-routes',
->>>>>>> f947a279c (feat(track115): REST route integration for PQC lattice VFHSS gating)
+  'track115-prometheus-alerts',
 ];
 
 function resolveBaseTestFile(pattern) {
