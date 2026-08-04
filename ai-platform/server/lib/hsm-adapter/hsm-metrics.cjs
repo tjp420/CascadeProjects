@@ -875,6 +875,11 @@ const counters = {
   hsm_musig2_signature_assembled_total: 0,
   hsm_musig2_signature_verified_total: 0,
   hsm_musig2_signature_verification_failed_total: 0,
+  // MuSig2 HSM Orchestrator counters (Option G — musig2-hsm-orchestrator.cjs)
+  hsm_musig2_orch_session_created_total: 0,
+  hsm_musig2_orch_session_completed_total: 0,
+  hsm_musig2_orch_session_failed_total: 0,
+  hsm_musig2_orch_key_share_wrapped_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1624,6 +1629,11 @@ const META = {
   hsm_musig2_signature_assembled_total: { help: 'Total MuSig2 threshold signatures assembled.', type: 'counter' },
   hsm_musig2_signature_verified_total: { help: 'Total MuSig2 signatures verified successfully.', type: 'counter' },
   hsm_musig2_signature_verification_failed_total: { help: 'Total MuSig2 signature verifications that failed.', type: 'counter' },
+  // MuSig2 HSM Orchestrator metadata (Option G)
+  hsm_musig2_orch_session_created_total: { help: 'Total MuSig2 orchestrator sessions created.', type: 'counter' },
+  hsm_musig2_orch_session_completed_total: { help: 'Total MuSig2 orchestrator sessions completed successfully.', type: 'counter' },
+  hsm_musig2_orch_session_failed_total: { help: 'Total MuSig2 orchestrator sessions that failed.', type: 'counter' },
+  hsm_musig2_orch_key_share_wrapped_total: { help: 'Total MuSig2 key shares wrapped via HSM adapter.', type: 'counter' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };
