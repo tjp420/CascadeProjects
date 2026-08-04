@@ -88,6 +88,9 @@ const EVENT_TYPES = {
   // IPC boundary events
   IPC_SCHEMA_VIOLATION: 'ipc_schema_violation',
   IPC_MESSAGE_RECEIVED: 'ipc_message_received',
+  // State snapshot checkpoint events
+  STATE_SNAPSHOT: 'state_snapshot',
+  STATE_RESTORED: 'state_restored',
 };
 
 const _events = [];
@@ -281,6 +284,10 @@ const _peerEpochs = new Map(); // peerKey -> epoch number
 const _siemHooks = []; // array of callback functions
 const SIEM_RATE_LIMIT_PER_MIN = parseInt(process.env.SIEM_RATE_LIMIT_PER_MIN, 10) || 100;
 const _siemRateCounters = new Map(); // eventType -> { count, windowStart }
+
+// State snapshot checkpoint state
+const MAX_SNAPSHOTS = 5; // tight ceiling to guard against heap inflation
+const _snapshotHistory = []; // ring buffer of snapshot metadata
 
 function _pruneRetiredSteks() {
   const now = Date.now();
@@ -613,6 +620,8 @@ function _validateIncomingEpoch(msg, peerKey) {
         siemCategory: 'epoch_manipulation',
         siemSource: 'cluster-keyring-sync',
       });
+      // Freeze state snapshot before rejecting — preserves forensic evidence
+      createStateSnapshot('epoch_drift');
       _log('warn', 'Unreconcilable epoch jump — rejecting', { peer: peerKey, peerEpoch, localEpoch, jump });
       return false; // hard reject
     }
@@ -633,6 +642,8 @@ function _validateIncomingEpoch(msg, peerKey) {
       previousEpoch: localEpoch,
       peer: peerKey,
     });
+    // Snapshot after successful epoch reconciliation
+    createStateSnapshot('epoch_reconciled');
     _log('info', 'Adopted higher epoch from peer', { peer: peerKey, newEpoch: peerEpoch, previousEpoch: localEpoch });
   }
   return true;
@@ -1296,6 +1307,219 @@ function _resetEpochState() {
   _peerEpochs.clear();
   _siemHooks.length = 0;
   _siemRateCounters.clear();
+  _snapshotHistory.length = 0;
+}
+
+// ── State Snapshot Checkpoint Utility ──────────────────────────────
+
+/**
+ * Create a state snapshot checkpoint of the current cluster topology.
+ * Captures _state, _peerState, _peerEpochs, STEK metadata, and DKG session
+ * metadata (if active). Excludes all raw key material, STEK bytes, and DKG
+ * private shares for security.
+ * @param {string} reason - why the snapshot was created (e.g. 'epoch_drift', 'manual')
+ * @returns {object} serializable snapshot object
+ */
+function createStateSnapshot(reason) {
+  const snapshotId = 'snap-' + Date.now() + '-' + crypto.randomBytes(4).toString('hex');
+  const timestamp = Date.now();
+
+  // Capture _state (fingerprints only, no raw key material)
+  const stateCapture = {
+    nodeId: _state.nodeId,
+    leaderId: _state.leaderId,
+    epoch: _state.epoch,
+    activeFingerprint: _state.activeFingerprint,
+    previousFingerprint: _state.previousFingerprint,
+    rotatedAt: _state.rotatedAt,
+  };
+
+  // Capture _peerState (serializable object, not Map)
+  const peerStateCapture = {};
+  for (const [peerKey, peer] of _peerState.entries()) {
+    peerStateCapture[peerKey] = {
+      lastSeen: peer.lastSeen,
+      leaderId: peer.leaderId,
+      activeFingerprint: peer.activeFingerprint,
+      previousFingerprint: peer.previousFingerprint,
+      rotatedAt: peer.rotatedAt,
+    };
+  }
+
+  // Capture _peerEpochs
+  const peerEpochsCapture = Object.fromEntries(_peerEpochs);
+
+  // Capture STEK metadata (stekId as hex string, not raw STEK bytes)
+  const stekCapture = {
+    stekId: _stekId ? (_stekId.toString('hex') || null) : null,
+    retiredCount: _retiredSteks.size,
+  };
+
+  // Capture DKG session metadata (if active, public fields only)
+  let dkgSessionCapture = null;
+  if (_dkgSession) {
+    dkgSessionCapture = {
+      phase: _dkgSession.phase,
+      sessionId: _dkgSession.sessionId,
+      nodeId: _dkgSession.nodeId,
+      finalized: _dkgSession.finalized,
+      contributionCount: _dkgSession.contributions.size,
+      sharesReceivedCount: _dkgSession.sharesReceived.size,
+      complaintCount: _dkgSession.complaints.length,
+      disqualifiedCount: _dkgSession.disqualified.size,
+      masterPublicKey: _dkgSession.masterPublicKey,
+    };
+  }
+
+  const snapshot = {
+    snapshotId,
+    timestamp,
+    reason: reason || 'manual',
+    state: stateCapture,
+    peerState: peerStateCapture,
+    peerEpochs: peerEpochsCapture,
+    stek: stekCapture,
+    dkgSession: dkgSessionCapture,
+  };
+
+  // Add to history (ring buffer, max MAX_SNAPSHOTS)
+  _snapshotHistory.push({
+    snapshotId,
+    timestamp,
+    reason: snapshot.reason,
+  });
+  if (_snapshotHistory.length > MAX_SNAPSHOTS) {
+    _snapshotHistory.shift();
+  }
+
+  _recordEvent(EVENT_TYPES.STATE_SNAPSHOT, NODE_ID, {
+    snapshotId,
+    reason: snapshot.reason,
+    epoch: _state.epoch,
+    peerCount: Object.keys(peerStateCapture).length,
+  });
+
+  _log('info', 'State snapshot created', { snapshotId, reason: snapshot.reason, epoch: _state.epoch });
+
+  return snapshot;
+}
+
+/**
+ * Validate a snapshot object schema before restoring.
+ * Uses direct property existence checks (matches _validateMessageSchema pattern).
+ * @param {object} snapshot - the snapshot to validate
+ * @returns {string|null} error reason string, or null if valid
+ */
+function _validateSnapshotSchema(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return 'invalid_snapshot_object';
+  if (typeof snapshot.snapshotId !== 'string' || !snapshot.snapshotId.startsWith('snap-')) {
+    return 'invalid_snapshot_id';
+  }
+  if (typeof snapshot.timestamp !== 'number' || snapshot.timestamp <= 0) {
+    return 'invalid_timestamp';
+  }
+  if (typeof snapshot.reason !== 'string') return 'invalid_reason';
+  if (!snapshot.state || typeof snapshot.state !== 'object') return 'missing_state';
+  if (typeof snapshot.state.nodeId !== 'string') return 'invalid_state_nodeId';
+  if (typeof snapshot.state.epoch !== 'number') return 'invalid_state_epoch';
+  if (!snapshot.peerState || typeof snapshot.peerState !== 'object') return 'missing_peerState';
+  if (!snapshot.peerEpochs || typeof snapshot.peerEpochs !== 'object') return 'missing_peerEpochs';
+  if (!snapshot.stek || typeof snapshot.stek !== 'object') return 'missing_stek';
+  if (snapshot.dkgSession !== null && typeof snapshot.dkgSession !== 'object') {
+    return 'invalid_dkgSession';
+  }
+  return null;
+}
+
+/**
+ * Restore cluster state from a previously captured snapshot.
+ * Validates the snapshot schema before applying. If validation fails, triggers
+ * a CRITICAL SIEM escalation and throws.
+ * @param {object} snapshot - the snapshot to restore
+ * @throws {Error} if snapshot is invalid
+ */
+function restoreStateSnapshot(snapshot) {
+  const validationError = _validateSnapshotSchema(snapshot);
+  if (validationError) {
+    _recordEvent(EVENT_TYPES.STATE_SNAPSHOT, NODE_ID, {
+      reason: 'restore_failed',
+      validationError,
+      siemSeverity: 'critical',
+      siemCategory: 'state_corruption',
+      siemSource: 'cluster-keyring-sync',
+    });
+    _invokeSiemHooks(EVENT_TYPES.STATE_SNAPSHOT, {
+      reason: 'restore_failed',
+      validationError,
+      siemSeverity: 'critical',
+      siemCategory: 'state_corruption',
+    });
+    _log('error', 'State snapshot restore failed — schema validation error', { validationError });
+    throw new Error('STATE_SNAPSHOT_INVALID: ' + validationError);
+  }
+
+  // Restore _state (fingerprints only, no raw key material)
+  _state.leaderId = snapshot.state.leaderId;
+  _state.epoch = snapshot.state.epoch;
+  _state.activeFingerprint = snapshot.state.activeFingerprint;
+  _state.previousFingerprint = snapshot.state.previousFingerprint;
+  _state.rotatedAt = snapshot.state.rotatedAt;
+
+  // Restore _peerState
+  _peerState.clear();
+  for (const [peerKey, peer] of Object.entries(snapshot.peerState)) {
+    _peerState.set(peerKey, {
+      lastSeen: peer.lastSeen,
+      leaderId: peer.leaderId,
+      activeFingerprint: peer.activeFingerprint,
+      previousFingerprint: peer.previousFingerprint,
+      rotatedAt: peer.rotatedAt,
+    });
+  }
+
+  // Restore _peerEpochs
+  _peerEpochs.clear();
+  for (const [peerKey, epoch] of Object.entries(snapshot.peerEpochs)) {
+    _peerEpochs.set(peerKey, epoch);
+  }
+
+  // Note: STEK and DKG session are NOT restored from snapshot — only metadata
+  // was captured, not the raw STEK bytes or DKG engine state. This is by design:
+  // STEK rotation and DKG sessions have their own lifecycle management.
+
+  _recordEvent(EVENT_TYPES.STATE_RESTORED, NODE_ID, {
+    snapshotId: snapshot.snapshotId,
+    reason: snapshot.reason,
+    epoch: _state.epoch,
+    peerCount: _peerState.size,
+  });
+
+  _log('info', 'State snapshot restored', {
+    snapshotId: snapshot.snapshotId,
+    reason: snapshot.reason,
+    epoch: _state.epoch,
+  });
+
+  return { restored: true, snapshotId: snapshot.snapshotId };
+}
+
+/**
+ * Get metadata for recent snapshots (no sensitive data).
+ * @returns {object[]} array of snapshot metadata
+ */
+function getSnapshotHistory() {
+  return _snapshotHistory.map((entry) => ({
+    snapshotId: entry.snapshotId,
+    timestamp: entry.timestamp,
+    reason: entry.reason,
+  }));
+}
+
+/**
+ * Clear snapshot history (for testing/reset).
+ */
+function clearSnapshotHistory() {
+  _snapshotHistory.length = 0;
 }
 
 function _handleDkgMessage(msg, socket) {
@@ -1622,5 +1846,13 @@ module.exports = {
   registerSiemHook,
   _invokeSiemHooks,
   _siemHooks,
+  // State snapshot checkpoint utility
+  createStateSnapshot,
+  restoreStateSnapshot,
+  getSnapshotHistory,
+  clearSnapshotHistory,
+  _validateSnapshotSchema,
+  _snapshotHistory,
+  MAX_SNAPSHOTS,
 };
 
