@@ -248,6 +248,20 @@ exports.cleanupPrototypePollution = function () {
     'ringCtorLevel4',
     'ringDeepMinRingSize',
     'ringDeepMaxRingSize',
+    'accumulatorGatePolluted',
+    'accumulatorConstructorPolluted',
+    'accumulatorProtoLevel0',
+    'accumulatorProtoLevel1',
+    'accumulatorProtoLevel2',
+    'accumulatorProtoLevel3',
+    'accumulatorProtoLevel4',
+    'accumulatorCtorLevel0',
+    'accumulatorCtorLevel1',
+    'accumulatorCtorLevel2',
+    'accumulatorCtorLevel3',
+    'accumulatorCtorLevel4',
+    'accumulatorDeepMaxAccumulatorSize',
+    'accumulatorDeepMinWitnessQuorum',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -530,6 +544,156 @@ exports.makeTrack32ConcurrentValidationCall = function (prng) {
       blindedLinkabilityAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
       blindingType: prng.nextChoice(['pedersen', 'borromean', 'unsupported', 42, null]),
       signatureAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+    },
+  };
+};
+
+// ── Track 33: PQC Direct Accumulator Membership Proof Gating Hub mutators ─────
+
+exports.makeTrack33ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track33-polluter': {
+        accumulatorGating: {
+          __proto__: { accumulatorGatePolluted: true },
+          maxAccumulatorSize: 65536,
+          minWitnessQuorum: 8,
+          requireEnclaveMembershipAttestation: true,
+        },
+        constructor: {
+          prototype: { accumulatorConstructorPolluted: true },
+        },
+      },
+      'track33-clean': {
+        accumulatorGating: {
+          maxAccumulatorSize: 65536,
+          minWitnessQuorum: 8,
+          requireEnclaveMembershipAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack33TypeConfusionConfigs = function () {
+  return [
+    { value: { accumulatorSize: '1024', witnessQuorum: '8' }, label: 'string-numbers' },
+    { value: { accumulatorSize: [], witnessQuorum: {} }, label: 'array-object-values' },
+    { value: { accumulatorSize: null, witnessQuorum: undefined }, label: 'null-undefined-values' },
+    { value: { enclaveMembershipAttestation: 'true' }, label: 'string-boolean' },
+    { value: { accumulatorType: 42 }, label: 'number-string' },
+    { value: { witnessAgeSeconds: true }, label: 'boolean-number' },
+  ];
+};
+
+exports.makeTrack33PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track33-polluter', 'track33-clean']);
+  const accumulatorSize = prng.nextChoice([1, 1024, 32768, 65536, 65537, 100000, 0, -1]);
+  const witnessQuorum = prng.nextChoice([1, 4, 7, 8, 12, 100, 0, -1]);
+  const enclaveMembershipAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+  const auth = prng.nextChoice(['mock-authority', 'untrusted-authority', null, 123]);
+  const accumulatorType = prng.nextChoice(['rsa-accumulator', 'bilinear-pairing', 'unsupported', 42, null]);
+  const canonical = prng.nextChoice([true, false, 'yes', 1, 0]);
+  return {
+    tenantId,
+    operation: 'accumulatorGating',
+    config: {
+      accumulatorSize,
+      witnessQuorum,
+      enclaveMembershipAttestation,
+      attestationAuthority: auth,
+      accumulatorType,
+      witnessAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+      canonicalPayloadLayout: canonical,
+    },
+  };
+};
+
+// ── Track 33: Deep nested multi-layer policy mutation (5-level) ───────────────
+
+function attachAccumulatorDeepPollution(node, depth, prng) {
+  const protoMarker = `accumulatorProtoLevel${depth}`;
+  const ctorMarker = `accumulatorCtorLevel${depth}`;
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  const proto = Object.getPrototypeOf(node);
+  proto.accumulatorDeepMaxAccumulatorSize = prng ? prng.nextChoice([1, 0, -1, 999999]) : 999999;
+  proto.accumulatorDeepMinWitnessQuorum = prng ? prng.nextChoice([0, 1, 100, -1]) : 0;
+  return node;
+}
+
+exports.makeTrack33DeepNestedPollutionPolicy = function () {
+  const pollutedAccumulator = { accumulatorGating: {} };
+  let current = pollutedAccumulator.accumulatorGating;
+  for (let i = 0; i < 5; i++) {
+    attachAccumulatorDeepPollution(current, i);
+    if (i < 4) {
+      current.accumulatorGating = {};
+      current = current.accumulatorGating;
+    }
+  }
+  current.maxAccumulatorSize = 999999;
+  current.minWitnessQuorum = 0;
+  current.requireEnclaveMembershipAttestation = 'false';
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track33-deep-polluter': pollutedAccumulator,
+      'track33-clean': {
+        accumulatorGating: {
+          maxAccumulatorSize: 65536,
+          minWitnessQuorum: 8,
+          requireEnclaveMembershipAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack33PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const ACCUMULATOR_KEYS = ['accumulatorGating', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track33-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = ACCUMULATOR_KEYS[prng.nextInt(ACCUMULATOR_KEYS.length)];
+      const block = {};
+      attachAccumulatorDeepPollution(block, l % 5, prng);
+      if (key === 'accumulatorGating' && prng.nextInt(3) === 0) {
+        block.maxAccumulatorSize = prng.nextChoice([1, 1024, 65536, 65537, 100000]);
+        block.minWitnessQuorum = prng.nextChoice([1, 4, 8, 12, 100, 0]);
+        block.requireEnclaveMembershipAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack33ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track33-clean',
+    'track33-deep-polluter',
+    'track33-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'accumulatorGating',
+    config: {
+      accumulatorSize: prng.nextChoice([1, 1024, 65536, 65537, 100000, 0, -1]),
+      witnessQuorum: prng.nextChoice([1, 4, 7, 8, 12, 100, 0, -1]),
+      enclaveMembershipAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
+      accumulatorType: prng.nextChoice(['rsa-accumulator', 'bilinear-pairing', 'unsupported', 42, null]),
+      witnessAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
     },
   };
 };
