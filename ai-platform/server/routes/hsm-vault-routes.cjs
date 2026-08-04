@@ -2308,4 +2308,63 @@ router.post('/musig2/session/:sessionId/sign', authorize('admin:all'), async fun
   }
 });
 
+// ── Track 118: Distributed Consensus Coordinator policy/telemetry endpoints ───
+
+// GET /api/vault/distributed-consensus-coordinator/policy — expose active Track 118 policy defaults
+router.get('/distributed-consensus-coordinator/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.distributedConsensusCoordinator,
+    });
+  } catch (err) {
+    sendError(res, 500, 'distributed_consensus_coordinator_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/distributed-consensus-coordinator/policy/validate — validate a proposed Track 118 configuration
+router.post('/distributed-consensus-coordinator/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'distributedConsensusCoordinator', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'distributed_consensus_coordinator_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/distributed-consensus-coordinator/telemetry — expose Track 118 telemetry counters
+router.get('/distributed-consensus-coordinator/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_consensus_coord_groups_created_total: allMetrics.hsm_consensus_coord_groups_created_total || 0,
+      hsm_consensus_coord_groups_destroyed_total: allMetrics.hsm_consensus_coord_groups_destroyed_total || 0,
+      hsm_consensus_coord_proposals_routed_total: allMetrics.hsm_consensus_coord_proposals_routed_total || 0,
+      hsm_consensus_coord_proposals_rejected_total: allMetrics.hsm_consensus_coord_proposals_rejected_total || 0,
+      hsm_consensus_coord_faults_detected_total: allMetrics.hsm_consensus_coord_faults_detected_total || 0,
+      hsm_consensus_coord_view_change_started_total: allMetrics.hsm_consensus_coord_view_change_started_total || 0,
+      hsm_consensus_coord_view_change_completed_total: allMetrics.hsm_consensus_coord_view_change_completed_total || 0,
+      hsm_consensus_coord_view_change_aborted_total: allMetrics.hsm_consensus_coord_view_change_aborted_total || 0,
+      hsm_consensus_coord_quorum_verified_total: allMetrics.hsm_consensus_coord_quorum_verified_total || 0,
+      hsm_consensus_coord_quorum_denied_total: allMetrics.hsm_consensus_coord_quorum_denied_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'distributed_consensus_coordinator_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 module.exports = router;
