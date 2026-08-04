@@ -12,6 +12,7 @@
  */
 
 const { HsmAdapterError } = require('./base-adapter.cjs');
+const { CryptoPolicyEngine } = require('./crypto-policy-engine.cjs');
 const hsmMetrics = require('./hsm-metrics.cjs');
 
 // ── Consensus group states ──────────────────────────────────────
@@ -72,6 +73,23 @@ class DistributedConsensusCoordinator {
     this._engineFactory = options.engineFactory || null;
     this._policy = options.policy || {};
 
+    // Track 118: Read boolean attributes from options (previously missing)
+    this.requireQuorumForProposals = options.requireQuorumForProposals !== false;
+    this.allowDynamicGroupCreation = options.allowDynamicGroupCreation !== false;
+    this.allowCrossGroupRouting = options.allowCrossGroupRouting !== false;
+
+    // Track 118: Validate config against policy at construction time
+    this._policyEngine = options.policyEngine || new CryptoPolicyEngine({ default: {} });
+    this._policyEngine.validate('default', 'distributedConsensusCoordinator', {
+      maxGroups: this.maxGroups,
+      faultTimeoutMs: this.faultTimeoutMs,
+      faultCheckIntervalMs: this.faultCheckIntervalMs,
+      viewChangeTimeoutMs: this.viewChangeTimeoutMs,
+      requireQuorumForProposals: this.requireQuorumForProposals,
+      allowDynamicGroupCreation: this.allowDynamicGroupCreation,
+      allowCrossGroupRouting: this.allowCrossGroupRouting,
+    });
+
     // Group registry: groupId -> { engine, state, keyRange, topic, nodes, lastHeartbeat, leaderId }
     this._groups = new Map();
 
@@ -126,6 +144,10 @@ class DistributedConsensusCoordinator {
     }
     if (this._groups.has(options.groupId)) {
       throw new HsmAdapterError('GROUP_EXISTS', `group ${options.groupId} already exists`);
+    }
+    if (!this.allowDynamicGroupCreation) {
+      hsmMetrics.incrementCounter('hsm_consensus_coord_proposals_rejected_total');
+      throw new HsmAdapterError('GROUP_CREATION_BLOCKED', 'dynamic group creation is restricted by policy');
     }
     if (this._groups.size >= this.maxGroups) {
       throw new HsmAdapterError('MAX_GROUPS_EXCEEDED', `max ${this.maxGroups} groups reached`);
@@ -302,24 +324,38 @@ class DistributedConsensusCoordinator {
       return { accepted: false, reason: 'group_not_active', groupId: targetGroup.groupId };
     }
 
-    // Check quorum — at least half the nodes must be healthy
-    const healthyNodes = this._countHealthyNodes(targetGroup);
-    const minQuorum = Math.floor(targetGroup.nodes.size / 2) + 1;
-    if (healthyNodes < minQuorum) {
+    // Check quorum — only if policy requires it
+    let healthyNodes = 0;
+    let minQuorum = 0;
+    if (this.requireQuorumForProposals) {
+      healthyNodes = this._countHealthyNodes(targetGroup);
+      minQuorum = Math.floor(targetGroup.nodes.size / 2) + 1;
+      if (healthyNodes < minQuorum) {
+        hsmMetrics.incrementCounter('hsm_consensus_coord_proposals_rejected_total');
+        hsmMetrics.incrementCounter('hsm_consensus_coord_quorum_denied_total');
+        this._emitAudit(COORDINATOR_EVENT.QUORUM_DENIED, {
+          groupId: targetGroup.groupId,
+          healthyNodes,
+          minQuorum,
+        });
+        return {
+          accepted: false,
+          reason: 'quorum_not_met',
+          groupId: targetGroup.groupId,
+          healthyNodes,
+          minQuorum,
+        };
+      }
+    }
+
+    // Check cross-group routing — if proposal targets a different group
+    if (!this.allowCrossGroupRouting && proposal.crossGroup) {
       hsmMetrics.incrementCounter('hsm_consensus_coord_proposals_rejected_total');
-      hsmMetrics.incrementCounter('hsm_consensus_coord_quorum_denied_total');
-      this._emitAudit(COORDINATOR_EVENT.QUORUM_DENIED, {
+      this._emitAudit(COORDINATOR_EVENT.PROPOSAL_REJECTED, {
+        reason: 'cross_group_routing_blocked',
         groupId: targetGroup.groupId,
-        healthyNodes,
-        minQuorum,
       });
-      return {
-        accepted: false,
-        reason: 'quorum_not_met',
-        groupId: targetGroup.groupId,
-        healthyNodes,
-        minQuorum,
-      };
+      return { accepted: false, reason: 'cross_group_routing_blocked', groupId: targetGroup.groupId };
     }
 
     hsmMetrics.incrementCounter('hsm_consensus_coord_proposals_routed_total');
