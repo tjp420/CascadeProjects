@@ -107,6 +107,9 @@ jobs:
       - name: Run ai-platform tests
         env:
           CI: true
+          run: |
+            mkdir -p ai-platform/test-results
+            npm test -w ai-platform -- --runInBand --json --outputFile=test-results/jest-results.json 2>&1 | tee ai-platform/test-results/jest-console.log
         run: |
           npx jest --config=ai-platform/jest.config.cjs --runInBand
 
@@ -114,6 +117,9 @@ jobs:
         env:
           CI: true
           PRISM_BASE: http://localhost:4010
+          run: |
+            echo 'Running integration tests against Prism mock...'
+            npx jest --config=ai-platform/jest.config.cjs ai-platform/tests/integration --runInBand
         run: |
           echo 'Running integration tests against Prism mock...'
           npx jest --config=ai-platform/jest.config.cjs ai-platform/tests/integration --runInBand
