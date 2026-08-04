@@ -8,19 +8,19 @@ function parseSimpleRoutes(yamlText) {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i].trim();
-    if (line.startsWith('- match:')) {
-      // parse following indented key: value lines
+    if (line.startsWith('- match:') || line.startsWith('- match_re:')) {
+      const isRegex = line.startsWith('- match_re:');
       i++;
-      const match = {};
+      const parsedMatch = {};
       while (i < lines.length && /^\s{8,}\S/.test(lines[i])) {
         const m = lines[i].trim().match(/^(\w+):\s*"?([^"]+)"?/);
-        if (m) match[m[1]] = m[2];
+        if (m) parsedMatch[m[1]] = m[2];
         i++;
       }
       // after match block, look ahead for receiver and continue
       let receiver = null;
       let cont = false;
-      while (i < lines.length && lines[i].trim() !== '' && !lines[i].trim().startsWith('- match:')) {
+      while (i < lines.length && lines[i].trim() !== '' && !lines[i].trim().startsWith('- match')) {
         const t = lines[i].trim();
         const r = t.match(/^receiver:\s*(.+)$/);
         if (r) receiver = r[1].trim().replace(/^['\"]|['\"]$/g, '');
@@ -28,7 +28,12 @@ function parseSimpleRoutes(yamlText) {
         if (c) cont = c[1] === 'true';
         i++;
       }
-      routes.push({ match, receiver, continue: cont });
+      routes.push({
+        match: isRegex ? {} : parsedMatch,
+        matchRegex: isRegex ? parsedMatch : null,
+        receiver,
+        continue: cont,
+      });
       continue;
     }
     i++;
@@ -42,6 +47,12 @@ function receiversForAlert(routes, labels) {
     let ok = true;
     for (const k of Object.keys(r.match)) {
       if (labels[k] !== r.match[k]) { ok = false; break; }
+    }
+    if (ok && r.matchRegex) {
+      for (const k of Object.keys(r.matchRegex)) {
+        const re = new RegExp(r.matchRegex[k]);
+        if (!labels[k] || !re.test(labels[k])) { ok = false; break; }
+      }
     }
     if (ok && r.receiver) matched.push(r.receiver);
     // if matched and continue === false, stop processing (mimics route stop)
@@ -73,5 +84,17 @@ describe('Alertmanager routing (synthetic validation)', () => {
     const labels = { tier: 'other', severity: 'warning' };
     const rs = receiversForAlert(routes, labels);
     expect(rs).toContain('default-ops-pager');
+  });
+
+  test('mesh reconciliation drift alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'MeshReconciliationBoundaryDrift', track: '115', service: 'hsm-vault-mesh' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('hsm-mesh-vault component alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', severity: 'critical' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
   });
 });
