@@ -238,3 +238,39 @@ groups:
           summary: "MuSig2 signing has stalled"
           description: "Challenges are being computed but no signatures are being assembled over the last 10 minutes, indicating possible share collection failure or aggregator deadlock."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/MUSIG2_SIGNING_STALL.md"
+
+  # ── Track 113: PQC Handshake Endpoint Integration alerts ───────────────
+  - name: track113_handshake_alerts
+    interval: 30s
+    rules:
+      - alert: Track113PqcHandshakeStall
+        expr: |
+          rate(hsm_handshake_init_total[5m]) > 0
+          and
+          rate(hsm_handshake_verify_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "113"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-handshake"
+        annotations:
+          summary: "Track 113 PQC handshake verifications have stalled"
+          description: "New post-quantum handshake sessions are being initialized but no verifications are completing over the last 5 minutes, indicating possible token pool lock contention or asymmetric deadlock."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK113_PQC_HANDSHAKE_STALL.md"
+
+      - alert: Track113HighDecryptionFailureRate
+        expr: |
+          rate(hsm_handshake_envelope_decryption_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          track: "113"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "hsm-vault-handshake"
+        annotations:
+          summary: "Track 113 envelope decryption failures are occurring"
+          description: "Session persistence blocks are failing AES-256-GCM authenticated decryption over the last 5 minutes, indicating possible key degradation, disk corruption, or active tampering."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK113_HIGH_DECRYPTION_FAILURE_RATE.md"
