@@ -7,6 +7,26 @@ const path = require('path');
 
 const router = express.Router();
 
+// Request tracing middleware: extract or generate `x-track112-trace-id` per incoming request
+function getOrCreateTraceId(req) {
+  const hdr = req.get && req.get('x-track112-trace-id');
+  if (hdr) return hdr;
+  if (req.query && req.query.traceId) return req.query.traceId;
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.floor(Math.random()*100000)}`;
+}
+
+router.use((req, res, next) => {
+  try {
+    const tid = getOrCreateTraceId(req);
+    req.track112TraceId = tid;
+    res.setHeader('x-track112-trace-id', tid);
+  } catch (e) {
+    // non-fatal, continue without tracking
+  }
+  next();
+});
+
 // Sessions persisted in-memory metadata; chunk data stored on disk under server/.data/track112/<sessionId>
 const sessions = new Map();
 
@@ -23,8 +43,8 @@ router.post('/uploads', express.json(), (req, res) => {
   const id = makeId();
   const dir = sessionDir(id);
   fs.mkdirSync(dir, { recursive: true });
-  sessions.set(id, { tenant: tenant || 'dev', maxBytes: maxBytes || 0, dir, createdAt: Date.now() });
-  res.status(201).json({ sessionId: id });
+  sessions.set(id, { tenant: tenant || 'dev', maxBytes: maxBytes || 0, dir, createdAt: Date.now(), traceId: req.track112TraceId });
+  res.status(201).json({ sessionId: id, traceId: req.track112TraceId });
 });
 
 // Write incoming chunk data directly to a file named by its offset
@@ -38,6 +58,8 @@ router.post('/uploads/:id/chunk', (req, res) => {
   const ws = fs.createWriteStream(filePath, { flags: 'w' });
   req.pipe(ws);
   ws.on('finish', () => {
+    // echo trace id for correlation
+    res.setHeader('x-track112-trace-id', req.track112TraceId || sess.traceId);
     res.status(204).end();
   });
   ws.on('error', (err) => {
@@ -80,7 +102,7 @@ router.post('/uploads/:id/commit', express.json(), (req, res) => {
     // ignore cleanup failures
   }
   sessions.delete(id);
-  res.json({ status: 'committed', root: rootHex });
+  res.json({ status: 'committed', root: rootHex, traceId: req.track112TraceId || sess.traceId });
 });
 
 module.exports = router;
