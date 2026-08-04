@@ -234,6 +234,8 @@ exports.cleanupPrototypePollution = function () {
     'lookupConstructorPolluted',
     'handshakePolluted',
     'handshakeConstructorPolluted',
+    'ringGatePolluted',
+    'ringConstructorPolluted',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -367,6 +369,67 @@ exports.makeTrack113PrngDrivenValidateCall = function (prng) {
 };
 
 // ── Exports ──────────────────────────────────────────────────────────────────
+
+// ── Track 32: PQC Blinded Ring-Signature Gating Hub mutators ──────────────────
+
+exports.makeTrack32ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track32-polluter': {
+        ringGating: {
+          __proto__: { ringGatePolluted: true },
+          minRingSize: 16,
+          maxRingSize: 128,
+          requireBlindedLinkabilityAttestation: true,
+        },
+        constructor: {
+          prototype: { ringConstructorPolluted: true },
+        },
+      },
+      'track32-clean': {
+        ringGating: {
+          minRingSize: 16,
+          maxRingSize: 128,
+          requireBlindedLinkabilityAttestation: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack32TypeConfusionConfigs = function () {
+  return [
+    { value: { ringSize: '16', blindedLinkabilityAttestation: 'true' }, label: 'string-numbers' },
+    { value: { ringSize: [], blindedLinkabilityAttestation: {} }, label: 'array-object-values' },
+    { value: { ringSize: null, blindedLinkabilityAttestation: undefined }, label: 'null-undefined-values' },
+    { value: { blindedLinkabilityAttestation: 'true' }, label: 'string-boolean' },
+    { value: { blindingType: 42 }, label: 'number-string' },
+    { value: { signatureAgeSeconds: true }, label: 'boolean-number' },
+  ];
+};
+
+exports.makeTrack32PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track32-polluter', 'track32-clean']);
+  const ringSize = prng.nextChoice([1, 8, 15, 16, 32, 64, 128, 129, 200, 0]);
+  const blindedLinkabilityAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+  const auth = prng.nextChoice(['mock-authority', 'untrusted-authority', null, 123]);
+  const blinding = prng.nextChoice(['pedersen', 'borromean', 'unsupported', 42, null]);
+  const canonical = prng.nextChoice([true, false, 'yes', 1, 0]);
+  return {
+    tenantId,
+    operation: 'ringGating',
+    config: {
+      ringSize,
+      blindedLinkabilityAttestation,
+      attestationAuthority: auth,
+      blindingType: blinding,
+      signatureAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+      canonicalPayloadLayout: canonical,
+    },
+  };
+};
 
 exports.makeHashChainPrng = makeHashChainPrng;
 exports.FUZZ_SEED = FUZZ_SEED;
