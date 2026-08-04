@@ -29,7 +29,8 @@ jobs:
 
       - name: Run Isolated Jest Verification and Emit JSON
         run: |
-          npx jest --config=ai-platform/jest.cjs --runInBand --rootDir=ai-platform --json --outputFile=ai-platform/test-results/jest-results.json || true
+          cd ai-platform
+          npx jest --config=jest.cjs --runInBand --json --outputFile=./test-results/jest-results.json || true
 
       - name: Parse Jest JSON to telemetry
         run: |

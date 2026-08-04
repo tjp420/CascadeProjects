@@ -137,11 +137,12 @@ describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxi
       const sandbox = engine.create('tenant-a');
       const sensitiveKey = crypto.randomBytes(32);
       sandbox.setMemory('signingKey', sensitiveKey);
-      expect(sandbox.getMemory('signingKey')).toBeDefined();
+      const internalKey = sandbox.getMemory('signingKey');
+      expect(internalKey).toBeDefined();
 
       engine.zeroize(sandbox.id);
       expect(sandbox.getMemory('signingKey')).toBeUndefined();
-      expect(sensitiveKey.every((b) => b === 0)).toBe(true);
+      expect(internalKey.every((b) => b === 0)).toBe(true);
     });
   });
 
@@ -162,7 +163,7 @@ describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxi
   // ── L2.07: Cannot execute after destruction ──
   describe('L2.07: cannot execute after destruction', () => {
     test('execute throws SANDBOX_NOT_FOUND after destroy', () => {
-      const engine = new ConfidentialSandboxEngine();
+      const engine = new ConfidentialSandboxEngine({ attestationClient: new MockAttestationClient() });
       const sandbox = engine.create('tenant-a');
       engine.attest(sandbox.id, _mockAttestation());
       engine.destroy(sandbox.id);
@@ -245,7 +246,7 @@ describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxi
   // ── L3.03: Disallowed operation rejected ──
   describe('L3.03: disallowed operation rejected', () => {
     test('operation not in allowedOperations throws SANDBOX_OPERATION_DENIED', () => {
-      const engine = new ConfidentialSandboxEngine();
+      const engine = new ConfidentialSandboxEngine({ attestationClient: new MockAttestationClient() });
       const sandbox = engine.create('tenant-a', { allowedOperations: new Set(['hash']) });
       engine.attest(sandbox.id, _mockAttestation());
       expect(() => engine.execute(sandbox.id, 'sign', {})).toThrow(HsmAdapterError);
@@ -266,12 +267,14 @@ describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxi
       const key2 = crypto.randomBytes(16);
       sandbox.setMemory('key1', key1);
       sandbox.setMemory('key2', key2);
+      const internalKey1 = sandbox.getMemory('key1');
+      const internalKey2 = sandbox.getMemory('key2');
       expect(sandbox.getState().memoryEntries).toBe(2);
 
       engine.zeroize(sandbox.id);
       expect(sandbox.getState().memoryEntries).toBe(0);
-      expect(key1.every((b) => b === 0)).toBe(true);
-      expect(key2.every((b) => b === 0)).toBe(true);
+      expect(internalKey1.every((b) => b === 0)).toBe(true);
+      expect(internalKey2.every((b) => b === 0)).toBe(true);
     });
 
     test('destroy auto-zeroizes if not already zeroized', () => {
@@ -279,8 +282,9 @@ describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxi
       const sandbox = engine.create('tenant-a');
       const sensitive = crypto.randomBytes(32);
       sandbox.setMemory('key', sensitive);
+      const internalKey = sandbox.getMemory('key');
       engine.destroy(sandbox.id);
-      expect(sensitive.every((b) => b === 0)).toBe(true);
+      expect(internalKey.every((b) => b === 0)).toBe(true);
     });
   });
 
@@ -343,13 +347,18 @@ describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxi
     });
   });
 
-  // ── No attestation client (mock mode) ──
-  describe('no attestation client (mock mode)', () => {
-    test('accepts mock attestation without client', () => {
+  // ── No attestation client (fail-closed mode) ──
+  describe('no attestation client (fail-closed mode)', () => {
+    test('rejects attestation without verifier configured', () => {
       const engine = new ConfidentialSandboxEngine();
       const sandbox = engine.create('tenant-a');
-      const result = engine.attest(sandbox.id, _mockAttestation());
-      expect(result.verified).toBe(true);
+      try {
+        engine.attest(sandbox.id, _mockAttestation());
+        fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(HsmAdapterError);
+        expect(e.code).toBe('ATTESTATION_NOT_CONFIGURED');
+      }
     });
 
     test('rejects missing attestation document', () => {

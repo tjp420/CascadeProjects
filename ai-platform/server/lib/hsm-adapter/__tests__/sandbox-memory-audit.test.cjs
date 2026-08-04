@@ -22,12 +22,19 @@ const {
 } = require('../../../lib/hsm-adapter/confidential-sandbox-engine.cjs');
 const { HsmAdapterError } = require('../../../lib/hsm-adapter/base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    return { verified: true };
+  }
+}
+
 describe('Confidential-Sandbox Memory Audit Hardening', () => {
 
   let engine;
 
   beforeEach(() => {
-    engine = new ConfidentialSandboxEngine();
+    engine = new ConfidentialSandboxEngine({ attestationClient: new MockAttestationClient() });
   });
 
   // ── L2-01: setMemory copies buffer (no external mutation) ─────────
@@ -81,7 +88,7 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
   describe('L2-04: zeroize clears _executionResult', () => {
     test('_executionResult is null and derivedKey buffer is zeroed after zeroize', () => {
       const sandbox = engine.create('tenant-1');
-      engine.attest(sandbox.id, { verified: true });
+      engine.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
       const result = engine.execute(sandbox.id, 'derive', {
         ikm: crypto.randomBytes(32),
       });
@@ -108,7 +115,7 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
     test('plaintext param buffer is zeroed after zeroize', () => {
       const sandbox = engine.create('tenant-1');
       sandbox.setMemory('encryptionKey', crypto.randomBytes(32));
-      engine.attest(sandbox.id, { verified: true });
+      engine.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
 
       const plaintext = Buffer.from('sensitive-plaintext-data');
       engine.execute(sandbox.id, 'encrypt', { plaintext });
@@ -129,7 +136,7 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
   describe('L2-06: Timeout enforcement on execute', () => {
     test('sandbox with maxExecutionTimeSeconds=0 throws SANDBOX_EXECUTION_TIMEOUT', () => {
       const sandbox = engine.create('tenant-1', { maxExecutionTimeSeconds: 0 });
-      engine.attest(sandbox.id, { verified: true });
+      engine.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
 
       expect(() => engine.execute(sandbox.id, 'hash', { data: Buffer.from('test') })).toThrow(HsmAdapterError);
       try { engine.execute(sandbox.id, 'hash', { data: Buffer.from('test') }); } catch (e) { expect(e.code).toBe('SANDBOX_EXECUTION_TIMEOUT'); }
@@ -209,7 +216,7 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
       const sandbox = engine.create('tenant-1');
       expect(sandbox.state).toBe(SANDBOX_STATES.CREATED);
 
-      engine.attest(sandbox.id, { verified: true });
+      engine.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
       expect(sandbox.state).toBe(SANDBOX_STATES.ATTESTED);
 
       const result = engine.execute(sandbox.id, 'hash', { data: Buffer.from('test') });
@@ -229,7 +236,7 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
   describe('L3-06: Execution result zeroized on destroy', () => {
     test('_executionResult is null after destroy without explicit zeroize', () => {
       const sandbox = engine.create('tenant-1');
-      engine.attest(sandbox.id, { verified: true });
+      engine.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
       engine.execute(sandbox.id, 'hash', { data: Buffer.from('test') });
 
       // Destroy without explicit zeroize — destroy() calls zeroize() internally
@@ -313,7 +320,7 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
     test('sign operation result signature buffer is zeroed', () => {
       const sandbox = engine.create('tenant-1');
       sandbox.setMemory('signingKey', crypto.randomBytes(32));
-      engine.attest(sandbox.id, { verified: true });
+      engine.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
       const result = engine.execute(sandbox.id, 'sign', { data: Buffer.from('test') });
 
       expect(result.signature).toBeDefined();
@@ -328,7 +335,7 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
     test('decrypt ciphertext param is zeroed after zeroize', () => {
       const sandbox = engine.create('tenant-1');
       sandbox.setMemory('encryptionKey', crypto.randomBytes(32));
-      engine.attest(sandbox.id, { verified: true });
+      engine.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
 
       // First encrypt
       const encResult = engine.execute(sandbox.id, 'encrypt', {
@@ -376,10 +383,11 @@ describe('Confidential-Sandbox Memory Audit Hardening', () => {
     test('timeout event emitted with HIGH siem severity', () => {
       const auditEvents = [];
       const engineWithAudit = new ConfidentialSandboxEngine({
+        attestationClient: new MockAttestationClient(),
         audit: (event, data) => auditEvents.push({ event, data }),
       });
       const sandbox = engineWithAudit.create('tenant-1', { maxExecutionTimeSeconds: 0 });
-      engineWithAudit.attest(sandbox.id, { verified: true });
+      engineWithAudit.attest(sandbox.id, { authority: 'mock-authority', measurement: 'mock-measurement-1', timestamp: Date.now() / 1000, attestationAgeSeconds: 0 });
 
       try {
         engineWithAudit.execute(sandbox.id, 'hash', { data: Buffer.from('test') });
