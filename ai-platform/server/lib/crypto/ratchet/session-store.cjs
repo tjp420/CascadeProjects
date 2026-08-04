@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const Purger = require('../../storage/purger.cjs');
+const { writeAtomicSync } = require('../../fs-atomic.cjs');
 
 const BASE_DIR = path.join(__dirname, '..', '..', '.data', 'ratchet-sessions');
 
@@ -139,7 +140,11 @@ class SessionStore {
       if (out.remotePublicKeyDer && Buffer.isBuffer(out.remotePublicKeyDer)) out.remotePublicKeyDer = out.remotePublicKeyDer.toString('base64');
       const p = path.join(dir, `${sid}.json`);
       out.updatedAt = out.updatedAt || Date.now();
-      fs.writeFileSync(p, JSON.stringify(out, null, 2), { mode: 0o600 });
+      try {
+        writeAtomicSync(p, JSON.stringify(out, null, 2), { mode: 0o600 });
+      } catch (e) {
+        // ignore write failures for now
+      }
     } catch (e) {
       // ignore write failures for now
     }
