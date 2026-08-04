@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const router = express.Router();
+const jcs = require('../lib/canonical/jcs.cjs');
 
 // Sessions persisted in-memory metadata; chunk data stored on disk under server/.data/track112/<sessionId>
 const sessions = new Map();
@@ -62,10 +63,15 @@ router.post('/uploads/:id/commit', express.json(), (req, res) => {
   const rootHex = rootBuf.toString('hex');
 
   try {
+    // Use canonicalized digest for signature verification to ensure deterministic signed payloads
+    // The signed payload expected: canonical JSON object { root: <hex> }
+    const signedHex = jcs.canonicalDigest({ root: rootHex }, 'hex');
+    const signedBuf = Buffer.from(signedHex, 'hex');
+
     // Accept PEM public key (SPKI). Signature is expected base64.
     const pubKeyObj = crypto.createPublicKey(publicKeyPem);
     const sigBuf = Buffer.from(signature, 'base64');
-    const ok = crypto.verify(null, rootBuf, pubKeyObj, sigBuf);
+    const ok = crypto.verify(null, signedBuf, pubKeyObj, sigBuf);
     if (!ok) {
       return res.status(401).json({ error: 'invalid_signature' });
     }
