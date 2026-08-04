@@ -19,6 +19,7 @@
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HardwareAttestationVerifier, ATTESTATION_MAX_AGE_SECONDS } = require('./hardware-attestation-verify.cjs');
 
 const SANDBOX_STATES = {
   CREATED: 'created',
@@ -194,7 +195,9 @@ class Sandbox {
 class ConfidentialSandboxEngine {
   /**
    * @param {object} options
-   * @param {object} [options.attestationClient] — EnclaveAttestationClient instance
+   * @param {object} [options.attestationClient] — EnclaveAttestationClient instance (legacy)
+   * @param {object} [options.hardwareAttestationVerifier] — HardwareAttestationVerifier instance
+   * @param {object} [options.expectedMeasurements] — expected hardware measurements for attestation
    * @param {object} [options.policy] — sandbox policy block
    * @param {Function} [options.audit]
    */
@@ -203,6 +206,17 @@ class ConfidentialSandboxEngine {
     this._policy = options.policy || null;
     this._audit = options.audit || null;
     this._sandboxes = new Map();
+    // Initialize hardware attestation verifier
+    if (options.hardwareAttestationVerifier) {
+      this._hwVerifier = options.hardwareAttestationVerifier;
+    } else if (options.expectedMeasurements) {
+      this._hwVerifier = new HardwareAttestationVerifier({
+        expectedMeasurements: options.expectedMeasurements,
+        audit: options.audit,
+      });
+    } else {
+      this._hwVerifier = null;
+    }
   }
 
   /**
@@ -253,6 +267,25 @@ class ConfidentialSandboxEngine {
    * @param {object} attestation
    * @returns {object} attestation result
    */
+  /**
+   * Issue a nonce challenge for sandbox attestation.
+   * @param {string} sandboxId
+   * @returns {{ nonce: string, issuedAt: number }}
+   */
+  issueChallenge(sandboxId) {
+    const sandbox = this._getSandbox(sandboxId);
+    if (sandbox.state !== SANDBOX_STATES.CREATED) {
+      throw new HsmAdapterError(
+        'SANDBOX_INVALID_STATE',
+        `sandbox ${sandboxId} is in state ${sandbox.state}, expected ${SANDBOX_STATES.CREATED}`,
+      );
+    }
+    if (!this._hwVerifier) {
+      throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'hardware attestation verifier not configured');
+    }
+    return this._hwVerifier.issueChallenge(sandboxId);
+  }
+
   attest(sandboxId, attestation) {
     const sandbox = this._getSandbox(sandboxId);
     if (sandbox.state !== SANDBOX_STATES.CREATED) {
@@ -264,30 +297,39 @@ class ConfidentialSandboxEngine {
 
     // Check attestation age before verification
     if (attestation && typeof attestation === 'object' && typeof attestation.attestationAgeSeconds === 'number') {
-      const maxAgeSec = this._options && this._options.maxAttestationAgeSeconds ? this._options.maxAttestationAgeSeconds : 60;
-      if (attestation.attestationAgeSeconds > maxAgeSec) {
-        throw new HsmAdapterError('ATTESTATION_EXPIRED', `attestation age ${attestation.attestationAgeSeconds}s exceeds maximum ${maxAgeSec}s`);
+      if (attestation.attestationAgeSeconds > ATTESTATION_MAX_AGE_SECONDS) {
+        this._emitAudit('ATTESTATION_EXPIRED', { sandboxId, ageSeconds: attestation.attestationAgeSeconds, siemSeverity: 'high', siemCategory: 'attestation_expired' });
+        throw new HsmAdapterError('ATTESTATION_EXPIRED', `attestation age ${attestation.attestationAgeSeconds}s exceeds maximum ${ATTESTATION_MAX_AGE_SECONDS}s`);
       }
     }
 
+    // Use hardware attestation verifier if configured (preferred path)
+    if (this._hwVerifier) {
+      const result = this._hwVerifier.verify(sandboxId, attestation);
+      sandbox._attestation = result;
+      this._emitAudit('SANDBOX_ATTESTED', { sandboxId, measurement: result.measurement, authority: result.authority });
+      sandbox.state = SANDBOX_STATES.ATTESTED;
+      sandbox.attestedAt = Date.now();
+      return sandbox._attestation;
+    }
+
+    // Legacy path: use attestation client if configured
     if (this._attestationClient) {
       const result = this._attestationClient.verify(attestation);
       if (result && result.verified === false) {
+        this._emitAudit('ATTESTATION_REJECTED', { sandboxId, siemSeverity: 'high', siemCategory: 'attestation_rejected' });
         throw new HsmAdapterError('ATTESTATION_REJECTED', 'attestation verification failed');
       }
       sandbox._attestation = result;
-    } else {
-      // No attestation client configured — accept mock attestation
-      if (!attestation || typeof attestation !== 'object') {
-        throw new HsmAdapterError('ATTESTATION_INVALID_DOCUMENT', 'attestation document missing');
-      }
-      sandbox._attestation = { verified: true, ...attestation };
+      sandbox.state = SANDBOX_STATES.ATTESTED;
+      sandbox.attestedAt = Date.now();
+      this._emitAudit('SANDBOX_ATTESTED', { sandboxId, measurement: sandbox._attestation.measurement });
+      return sandbox._attestation;
     }
 
-    sandbox.state = SANDBOX_STATES.ATTESTED;
-    sandbox.attestedAt = Date.now();
-    this._emitAudit('SANDBOX_ATTESTED', { sandboxId, measurement: sandbox._attestation.measurement });
-    return sandbox._attestation;
+    // No verifier configured — fail closed (no more mock fallback)
+    this._emitAudit('ATTESTATION_NOT_CONFIGURED', { sandboxId, siemSeverity: 'high', siemCategory: 'attestation_not_configured' });
+    throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'no attestation verifier configured — cannot attest sandbox');
   }
 
   /**
@@ -476,4 +518,5 @@ module.exports = {
   MAX_MEMORY_ENTRY_BYTES,
   MAX_MEMORY_ENTRIES,
   MAX_AUDIT_ENTRIES,
+  HardwareAttestationVerifier,
 };
