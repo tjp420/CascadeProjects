@@ -22,6 +22,7 @@ const { PqcHomomorphicDatabaseLookupGatingHub } = require('../lib/hsm-adapter/pq
 const { PqcBlindedRingSignatureGatingHub } = require('../lib/hsm-adapter/pqc-blinded-ring-signature-gating-hub.cjs');
 const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
 const SessionStore = require('../lib/crypto/ratchet/session-store.cjs');
+const { encryptEnvelope } = require('../lib/crypto/ratchet/envelope-crypto.cjs');
 
 const router = express.Router();
 
@@ -1533,12 +1534,13 @@ router.post('/handshake/init', authorize('admin:all'), runAsync(async (req, res)
   const sessionId = crypto.randomBytes(16).toString('hex');
   const tenantId = resolveOrgId(req);
   const now = Date.now();
+  const handshakeDigestEncrypted = encryptEnvelope(handshakeDigest, process.env.TRACK113_KEK);
   const record = SessionStore.create({
     sessionId,
     tenantId,
     clientId,
     status: 'INITIALIZED',
-    handshakeDigest,
+    handshakeDigestEncrypted,
     lifecycleTimeout,
     createdAt: now,
     updatedAt: now,

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const Purger = require('../../storage/purger.cjs');
 
-const BASE_DIR = path.join(__dirname, '..', '..', '.data', 'ratchet-sessions');
+const BASE_DIR = process.env.RATCHET_SESSIONS_DIR || path.join(__dirname, '..', '..', '.data', 'ratchet-sessions');
 
 function sanitizeId(id) {
   if (typeof id !== 'string') throw new Error('invalid id');
