@@ -291,6 +291,21 @@ exports.cleanupPrototypePollution = function () {
     'vfhssCtorLevel4',
     'vfhssDeepMaxHomomorphicDepth',
     'vfhssDeepMinVfhssShares',
+    // Track 116: Cluster isolation hardening pollution cleanup keys
+    'isolationGatePolluted',
+    'isolationConstructorPolluted',
+    'isolationProtoLevel0',
+    'isolationProtoLevel1',
+    'isolationProtoLevel2',
+    'isolationProtoLevel3',
+    'isolationProtoLevel4',
+    'isolationCtorLevel0',
+    'isolationCtorLevel1',
+    'isolationCtorLevel2',
+    'isolationCtorLevel3',
+    'isolationCtorLevel4',
+    'isolationDeepMaxViolationThreshold',
+    'isolationDeepRequireKnownPeerValidation',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -1023,6 +1038,155 @@ exports.makeTrack115ConcurrentValidationCall = function (prng) {
       enclaveEvaluationAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
       latticeScheme: prng.nextChoice(['module-lwr', 'module-lwe', 'nist-kyber', 'unsupported', 42, null]),
       shareAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
+    },
+  };
+};
+
+// ── Track 116: Cluster Isolation Hardening mutators ─────────────────────────
+
+exports.makeTrack116ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track116-polluter': {
+        clusterIsolationHardening: {
+          __proto__: { isolationGatePolluted: true },
+          requireKnownPeerValidation: true,
+          rejectNonLeaderKeyCommits: true,
+          allowDkgNonLeaderMessages: false,
+          maxIsolationViolationThreshold: 100,
+        },
+        constructor: {
+          prototype: { isolationConstructorPolluted: true },
+        },
+      },
+      'track116-clean': {
+        clusterIsolationHardening: {
+          requireKnownPeerValidation: true,
+          rejectNonLeaderKeyCommits: true,
+          allowDkgNonLeaderMessages: false,
+          maxIsolationViolationThreshold: 100,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack116TypeConfusionConfigs = function () {
+  return [
+    { value: { requireKnownPeerValidation: 'true', rejectNonLeaderKeyCommits: 'true' }, label: 'string-booleans' },
+    { value: { requireKnownPeerValidation: [], rejectNonLeaderKeyCommits: {} }, label: 'array-object-values' },
+    { value: { requireKnownPeerValidation: null, rejectNonLeaderKeyCommits: undefined }, label: 'null-undefined-values' },
+    { value: { allowDkgNonLeaderMessages: 'false' }, label: 'string-boolean-dkg' },
+    { value: { maxIsolationViolationThreshold: '100' }, label: 'string-number-threshold' },
+    { value: { maxIsolationViolationThreshold: true }, label: 'boolean-number-threshold' },
+  ];
+};
+
+exports.makeTrack116PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track116-polluter', 'track116-clean']);
+  const requireKnownPeerValidation = prng.nextChoice([true, false, 'true', 1, 0]);
+  const rejectNonLeaderKeyCommits = prng.nextChoice([true, false, 'yes', 1, 0]);
+  const allowDkgNonLeaderMessages = prng.nextChoice([true, false, 'true', 1, 0]);
+  const maxIsolationViolationThreshold = prng.nextChoice([0, 50, 100, 101, 999, -1, Number.MAX_SAFE_INTEGER, NaN, '100']);
+  return {
+    tenantId,
+    operation: 'clusterIsolationHardening',
+    config: {
+      requireKnownPeerValidation,
+      rejectNonLeaderKeyCommits,
+      allowDkgNonLeaderMessages,
+      maxIsolationViolationThreshold,
+    },
+  };
+};
+
+// ── Track 116: Deep nested multi-layer policy mutation (5-level) ──────────────
+
+function attachIsolationDeepPollution(node, depth, prng) {
+  const protoMarker = `isolationProtoLevel${depth}`;
+  const ctorMarker = `isolationCtorLevel${depth}`;
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  const proto = Object.getPrototypeOf(node);
+  proto.isolationDeepMaxViolationThreshold = prng ? prng.nextChoice([0, -1, 999999, Number.MAX_SAFE_INTEGER]) : 999999;
+  proto.isolationDeepRequireKnownPeerValidation = prng ? prng.nextChoice([false, true, 'false', 0]) : false;
+  return node;
+}
+
+exports.makeTrack116DeepNestedPollutionPolicy = function () {
+  const pollutedIsolation = { clusterIsolationHardening: {} };
+  let current = pollutedIsolation.clusterIsolationHardening;
+  for (let i = 0; i < 5; i++) {
+    attachIsolationDeepPollution(current, i);
+    if (i < 4) {
+      current.clusterIsolationHardening = {};
+      current = current.clusterIsolationHardening;
+    }
+  }
+  current.requireKnownPeerValidation = false;
+  current.rejectNonLeaderKeyCommits = false;
+  current.allowDkgNonLeaderMessages = true;
+  current.maxIsolationViolationThreshold = 999999;
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track116-deep-polluter': pollutedIsolation,
+      'track116-clean': {
+        clusterIsolationHardening: {
+          requireKnownPeerValidation: true,
+          rejectNonLeaderKeyCommits: true,
+          allowDkgNonLeaderMessages: false,
+          maxIsolationViolationThreshold: 100,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack116PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const ISOLATION_KEYS = ['clusterIsolationHardening', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track116-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = ISOLATION_KEYS[prng.nextInt(ISOLATION_KEYS.length)];
+      const block = {};
+      attachIsolationDeepPollution(block, l % 5, prng);
+      if (key === 'clusterIsolationHardening' && prng.nextInt(3) === 0) {
+        block.requireKnownPeerValidation = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.rejectNonLeaderKeyCommits = prng.nextChoice([true, false, 'yes', 1, 0]);
+        block.allowDkgNonLeaderMessages = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.maxIsolationViolationThreshold = prng.nextChoice([0, 50, 100, 101, 999, -1]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack116ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track116-clean',
+    'track116-deep-polluter',
+    'track116-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'clusterIsolationHardening',
+    config: {
+      requireKnownPeerValidation: prng.nextChoice([true, false, 'true', 1, 0]),
+      rejectNonLeaderKeyCommits: prng.nextChoice([true, false, 'yes', 1, 0]),
+      allowDkgNonLeaderMessages: prng.nextChoice([true, false, 'true', 1, 0]),
+      maxIsolationViolationThreshold: prng.nextChoice([0, 50, 100, 101, 999, -1, Number.MAX_SAFE_INTEGER, NaN]),
     },
   };
 };
