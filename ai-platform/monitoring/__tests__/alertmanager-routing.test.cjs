@@ -97,4 +97,10 @@ describe('Alertmanager routing (synthetic validation)', () => {
     const rs = receiversForAlert(routes, labels);
     expect(rs).toContain('hsm-crypto-ops-pager');
   });
+
+  test('Track 31 lookup gating alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { component: 'hsm-mesh-vault', tier: 'post-quantum-crypto', track: '31' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
 });
