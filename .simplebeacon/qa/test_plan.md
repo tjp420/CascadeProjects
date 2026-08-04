@@ -1,27 +1,27 @@
-# Test Plan: Shard Reconciler Recovery Loop Integration
+# Test Plan: Track 32 Post-Quantum Primitive Foundations
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Complete and wire shard-reconciler self-healing recovery loop with tenant isolation |
+| Feature / change | Track 32 PQC Blinded Threshold Ring-Signature Verification Gating Hub groundwork |
 | Author (Builder) | Devin |
 | Date | 2026-08-03 |
-| Branch | `feat/shard-reconciler-integration-v2` |
+| Branch | `feat/track32-primitive-groundwork` |
 | Packages touched | ai-platform |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/storage/shard-reconciler.cjs` *(extend)*
-- `ai-platform/server/lib/hsm-adapter/homomorphic-key-shard-disperser.cjs` *(read-only hook integration)*
-- `ai-platform/server/lib/storage/__tests__/shard-reconciler.test.cjs` *(extend)*
-- `ai-platform/server/lib/hsm-adapter/__tests__/run-all-tracks.cjs` *(register test)*
+- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json` *(append Track 32 schema)*
+- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs` *(add dispatch stub)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(register counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/track32-primitive-groundwork.test.cjs` *(new)*
 
 ### APIs / routes
 
-N/A — core library and tests only.
+N/A — schema/metrics groundwork only.
 
 ### UI / IDE surfaces
 
@@ -33,11 +33,12 @@ None.
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on reconciler | `node -c ai-platform/server/lib/storage/shard-reconciler.cjs` | [ ] |
-| L1-02 | Syntax on test file | `node -c ai-platform/server/lib/storage/__tests__/shard-reconciler.test.cjs` | [ ] |
-| L1-03 | Shard reconciler tests | `cd ai-platform && npx jest shard-reconciler --coverage=false` | [ ] |
-| L1-04 | Parallel orchestrator | `cd ai-platform && npm run test:parallel` | [ ] |
-| L1-05 | Full SimpleBeacon gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate` | [ ] |
+| L1-01 | JSON schema valid | `node -e "JSON.parse(require('fs').readFileSync('ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json','utf8'))"` | [ ] |
+| L1-02 | Engine syntax | `node -c ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs` | [ ] |
+| L1-03 | Metrics syntax | `node -c ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` | [ ] |
+| L1-04 | Track 32 tests | `cd ai-platform && npx jest track32-primitive-groundwork --coverage=false` | [ ] |
+| L1-05 | Parallel orchestrator | `cd ai-platform && npm run test:parallel` | [ ] |
+| L1-06 | Full SimpleBeacon gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate` | [ ] |
 
 ---
 
@@ -45,10 +46,10 @@ None.
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Single-node dropout triggers recovery | Simulate flight with one missing commit | Reconciliation restores target state | [ ] |
-| L2-02 | Quorum enforcement | Drop below threshold nodes | Reconciliation fails closed with `SHARD_RECON_VIOLATION` | [ ] |
-| L2-03 | Cross-tenant mismatch blocks | Use wrong `tenantId` in request | `CROSS_TENANT_RECON_VIOLATION` | [ ] |
-| L2-04 | Valid single-tenant recovery | All ownership and tenant ids match | Successful reconciliation | [ ] |
+| L2-01 | Schema includes Track 32 | Load schema | `blindedRingSignatureDigest` and `ringGating` block present | [ ] |
+| L2-02 | Engine dispatches `ringGating` | Call `validate` with `ringGating` | Returns `true` | [ ] |
+| L2-03 | Metrics registered | Load `hsm-metrics.cjs` | Counters `hsm_ringgate_pool_initialized_total`, `hsm_zk_ring_claim_verified_total`, `hsm_ring_accreditation_completed_total` exist | [ ] |
+| L2-04 | Defaults enforced | Build engine with default policy | `minRingSize` 16, `maxRingSize` 128 | [ ] |
 
 ---
 
@@ -57,7 +58,7 @@ None.
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
 | L3-01 | No new dependencies | Native modules only | [ ] |
-| L3-02 | No regression on existing tracks | 106 suites still pass | [ ] |
+| L3-02 | No regression on 107 suites | `npm run test:parallel` passes | [ ] |
 
 ---
 
@@ -65,7 +66,7 @@ None.
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials in code or tests | [ ] |
+| S-01 | No credentials in code | [ ] |
 
 ---
 

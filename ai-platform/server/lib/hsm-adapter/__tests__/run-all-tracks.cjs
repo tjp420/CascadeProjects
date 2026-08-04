@@ -126,6 +126,7 @@ const SUITES = [
   'tenant-boundary-saturation',
   'track113-endpoint-integration',
   'shard-reconciler',
+  'track32-primitive-groundwork',
 ];
 
 function resolveBaseTestFile(pattern) {

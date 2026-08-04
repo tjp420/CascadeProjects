@@ -256,6 +256,15 @@ const DEFAULT_POLICY = {
     maxQueryAgeSeconds: 60,
     requireCanonicalPayloadLayout: true,
   },
+  ringGating: {
+    minRingSize: 16,
+    maxRingSize: 128,
+    requireBlindedLinkabilityAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedBlindingTypes: ['pedersen', 'borromean'],
+    maxSignatureAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
@@ -1229,6 +1238,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.lookupGating,
       ...(tenantPolicy.lookupGating || {}),
     },
+    ringGating: {
+      ...DEFAULT_POLICY.ringGating,
+      ...(tenantPolicy.ringGating || {}),
+    },
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
       ...(tenantPolicy.zkSettlement || {}),
@@ -2037,6 +2050,31 @@ class CryptoPolicyEngine {
     }
     if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
       throw new HsmAdapterError('LOOKUPGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateRingGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.ringGating, ...(tenantPolicy.ringGating || {}) };
+    if (typeof config.ringSize === 'number' && config.ringSize < policy.minRingSize) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `ring size ${config.ringSize} below minimum ${policy.minRingSize}`);
+    }
+    if (typeof config.ringSize === 'number' && config.ringSize > policy.maxRingSize) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `ring size ${config.ringSize} exceeds maximum ${policy.maxRingSize}`);
+    }
+    if (policy.requireBlindedLinkabilityAttestation && config.blindedLinkabilityAttestation === false) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', 'blinded linkability attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.blindingType === 'string' && !policy.allowedBlindingTypes.includes(config.blindingType)) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `blinding type ${config.blindingType} is not allowed; permitted: ${policy.allowedBlindingTypes.join(', ')}`);
+    }
+    if (typeof config.signatureAgeSeconds === 'number' && config.signatureAgeSeconds > policy.maxSignatureAgeSeconds) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', `signature age ${config.signatureAgeSeconds}s exceeds maximum ${policy.maxSignatureAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('RINGGATE_POLICY_VIOLATION', 'canonical payload layout is required');
     }
   }
 
@@ -4609,6 +4647,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'lookupGating') {
       this._validateLookupGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'ringGating') {
+      this._validateRingGating(tenantPolicy, config);
       return true;
     }
 

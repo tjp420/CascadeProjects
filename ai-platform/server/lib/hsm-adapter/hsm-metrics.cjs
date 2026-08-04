@@ -884,6 +884,10 @@ const counters = {
   hsm_lookupgate_pool_initialized_total: 0,
   hsm_zk_lookup_claim_verified_total: 0,
   hsm_lookup_accreditation_completed_total: 0,
+  // Track 32: PQC Blinded Threshold Ring-Signature Verification Gating Hub counters
+  hsm_ringgate_pool_initialized_total: 0,
+  hsm_zk_ring_claim_verified_total: 0,
+  hsm_ring_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1642,6 +1646,10 @@ const META = {
   hsm_lookupgate_pool_initialized_total: { help: 'Total Track 31 lookup gating pools initialized.', type: 'counter' },
   hsm_zk_lookup_claim_verified_total: { help: 'Total Track 31 ZK lookup claims verified.', type: 'counter' },
   hsm_lookup_accreditation_completed_total: { help: 'Total Track 31 lookup accreditations completed.', type: 'counter' },
+  // Track 32: PQC Blinded Threshold Ring-Signature Verification Gating Hub metadata
+  hsm_ringgate_pool_initialized_total: { help: 'Total Track 32 ring gating pools initialized.', type: 'counter' },
+  hsm_zk_ring_claim_verified_total: { help: 'Total Track 32 ZK ring claims verified.', type: 'counter' },
+  hsm_ring_accreditation_completed_total: { help: 'Total Track 32 ring accreditations completed.', type: 'counter' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };
