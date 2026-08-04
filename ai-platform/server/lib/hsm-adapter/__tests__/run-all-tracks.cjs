@@ -153,6 +153,7 @@ const SUITES = [
   'track117-multi-tenant-fuzz',
   'track117-rest-routes',
   'track117-prometheus-alerts',
+  'track118-primitive-groundwork',
 ];
 
 function resolveBaseTestFile(pattern) {

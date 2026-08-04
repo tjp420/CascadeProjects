@@ -4412,6 +4412,38 @@ class CryptoPolicyEngine {
     }
     return true;
   }
+  _validateDistributedConsensusCoordinator(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.distributedConsensusCoordinator, ...(tenantPolicy.distributedConsensusCoordinator || {}) };
+    if (typeof config.maxGroups === 'number' && config.maxGroups > policy.maxGroups) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max groups ${config.maxGroups} exceeds maximum ${policy.maxGroups}`);
+    }
+    if (typeof config.faultTimeoutMs === 'number' && config.faultTimeoutMs < policy.faultTimeoutMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `fault timeout ${config.faultTimeoutMs} below minimum ${policy.faultTimeoutMs}`);
+    }
+    if (typeof config.faultCheckIntervalMs === 'number' && config.faultCheckIntervalMs > policy.faultCheckIntervalMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `fault check interval ${config.faultCheckIntervalMs} exceeds maximum ${policy.faultCheckIntervalMs}`);
+    }
+    if (typeof config.viewChangeTimeoutMs === 'number' && config.viewChangeTimeoutMs < policy.viewChangeTimeoutMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `view change timeout ${config.viewChangeTimeoutMs} below minimum ${policy.viewChangeTimeoutMs}`);
+    }
+    if (typeof config.requireQuorumForProposals === 'boolean' && policy.requireQuorumForProposals && !config.requireQuorumForProposals) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quorum for proposals cannot be disabled when policy enforces it');
+    }
+    if (typeof config.allowDynamicGroupCreation === 'boolean' && !policy.allowDynamicGroupCreation && config.allowDynamicGroupCreation) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'dynamic group creation cannot be enabled when policy restricts it');
+    }
+    if (typeof config.allowCrossGroupRouting === 'boolean' && !policy.allowCrossGroupRouting && config.allowCrossGroupRouting) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'cross-group routing cannot be enabled when policy restricts it');
+    }
+    return true;
+  }
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -5168,6 +5200,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'bftShardSync') {
       this._validateBftShardSync(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'distributedConsensusCoordinator') {
+      this._validateDistributedConsensusCoordinator(tenantPolicy, config);
       return true;
     }
 
