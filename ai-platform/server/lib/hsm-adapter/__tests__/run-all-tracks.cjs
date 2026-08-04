@@ -149,6 +149,7 @@ const SUITES = [
   'hsm-vault-cluster-isolation-routes',
   'track116-prometheus-alerts',
   'track117-primitive-groundwork',
+  'track117-core-integration',
 ];
 
 function resolveBaseTestFile(pattern) {

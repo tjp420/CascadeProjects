@@ -18,6 +18,8 @@
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
+const { incrementCounter, counters } = require('./hsm-metrics.cjs');
+const { CryptoPolicyEngine } = require('./crypto-policy-engine.cjs');
 
 // ── Shard entry states ───────────────────────────────────────────
 const ENTRY_STATE = {
@@ -185,8 +187,23 @@ class BftShardSyncEngine {
     this.maxCatchUpBatchSize = options.maxCatchUpBatchSize || 64;
     this.lagThreshold = options.lagThreshold || 8;
     this.byzantineDivergenceThreshold = options.byzantineDivergenceThreshold || 100;
+    this.requireQuorumCommit = options.requireQuorumCommit !== false;
+    this.requireAntiReplay = options.requireAntiReplay !== false;
+    this.maxShardsPerCluster = options.maxShardsPerCluster || 128;
     this._audit = options.audit || null;
     this._streamer = options.streamer || null;
+
+    // Track 117: Validate config against policy at construction time
+    this._policyEngine = options.policyEngine || new CryptoPolicyEngine({ default: {} });
+    this._policyEngine.validate('default', 'bftShardSync', {
+      minQuorumNodes: this.minQuorumNodes,
+      maxCatchUpBatchSize: this.maxCatchUpBatchSize,
+      lagThreshold: this.lagThreshold,
+      byzantineDivergenceThreshold: this.byzantineDivergenceThreshold,
+      requireQuorumCommit: this.requireQuorumCommit,
+      requireAntiReplay: this.requireAntiReplay,
+      maxShardsPerCluster: this.maxShardsPerCluster,
+    });
 
     // Per-shard state
     this._shards = new Map(); // shardId -> { log, vectorClock, nextIndex }
@@ -205,11 +222,16 @@ class BftShardSyncEngine {
     if (this._shards.has(shardId)) {
       throw new HsmAdapterError('SHARD_ALREADY_REGISTERED', `shard ${shardId} already registered`);
     }
+    if (this._shards.size >= this.maxShardsPerCluster) {
+      throw new HsmAdapterError('SHARD_LIMIT_EXCEEDED',
+        `shard count ${this._shards.size} exceeds max ${this.maxShardsPerCluster}`);
+    }
     this._shards.set(shardId, {
       log: [],
       vectorClock: new ShardVectorClock(shardId, Array.from(this.clusterNodes)),
       nextIndex: 1,
     });
+    counters.hsm_shard_active = this._shards.size;
     this._emitAudit('SHARD_REGISTERED', { shardId });
   }
 
@@ -224,6 +246,7 @@ class BftShardSyncEngine {
     const entry = new ShardEntry(shard.nextIndex, data, Date.now());
     shard.log.push(entry);
     shard.nextIndex++;
+    incrementCounter('hsm_shard_append_total');
     this._emitAudit('SHARD_ENTRY_APPENDED', { shardId, index: entry.index, hash: entry.hash });
     return entry;
   }
@@ -238,8 +261,10 @@ class BftShardSyncEngine {
     this._validateNode(nodeId);
     const shard = this._getShard(shardId);
 
-    // Anti-replay: sequence must be monotonic
-    shard.vectorClock.advance(nodeId, sequence);
+    // Anti-replay: sequence must be monotonic (policy-gated via requireAntiReplay)
+    if (this.requireAntiReplay) {
+      shard.vectorClock.advance(nodeId, sequence);
+    }
 
     // Mark entry as acknowledged by this node
     const entry = shard.log.find((e) => e.index === sequence);
@@ -248,6 +273,7 @@ class BftShardSyncEngine {
       this._checkCommit(shardId, entry);
     }
 
+    incrementCounter('hsm_shard_ack_total');
     this._emitAudit('SHARD_ENTRY_ACKED', { shardId, nodeId, sequence });
   }
 
@@ -258,8 +284,9 @@ class BftShardSyncEngine {
    */
   _checkCommit(shardId, entry) {
     if (entry.state === ENTRY_STATE.COMMITTED) return;
-    if (entry.acknowledgedBy.size >= this.minQuorumNodes) {
+    if (this.requireQuorumCommit && entry.acknowledgedBy.size >= this.minQuorumNodes) {
       entry.state = ENTRY_STATE.COMMITTED;
+      incrementCounter('hsm_shard_commit_total');
       this._emitAudit('SHARD_ENTRY_COMMITTED', { shardId, index: entry.index, acks: entry.acknowledgedBy.size });
     }
   }
@@ -310,6 +337,10 @@ class BftShardSyncEngine {
       }
     }
 
+    if (byzantineNodes.length > 0) {
+      incrementCounter('hsm_shard_byzantine_detected_total', byzantineNodes.length);
+    }
+    counters.hsm_shard_lagging_nodes = laggingNodes.length;
     return { shardId, maxSeq, laggingNodes, byzantineNodes };
   }
 
@@ -340,6 +371,9 @@ class BftShardSyncEngine {
       // Note: streamer may be sync or async; we don't block on it
     }
 
+    if (batchSize > 0) {
+      incrementCounter('hsm_shard_catchup_batch_total');
+    }
     this._emitAudit('SHARD_CATCH_UP_BATCH', { shardId, nodeId, batchSize, fromSeq: nodeSeq, toSeq: nodeSeq + batchSize });
 
     return {
