@@ -601,6 +601,104 @@ check('Distributed: partition fallback — node processes fair share only', () =
   b.close();
 });
 
+// ── Hardware Attestation: SEV-SNP / SGX Binary Report Parsing ────────────
+//
+// Verifies that the attestation verifier can parse and validate raw binary
+// attestation reports from real hardware (AMD SEV-SNP, Intel SGX DCAP).
+
+console.log('\n─ Hardware Attestation: SEV-SNP / SGX Binary Reports ───');
+
+const {
+  parseSevSnpReport: _parseSevSnp,
+  parseSgxQuote: _parseSgx,
+} = require(path.join('..', 'server', 'lib', 'hsm-adapter', 'hardware-attestation-verify.cjs'));
+
+check('HW: SEV-SNP report parser extracts MEASUREMENT and REPORT_DATA', () => {
+  const mockGen = new MockTpmQuoteGenerator();
+  const nonce = crypto.randomBytes(32).toString('hex');
+  const report = mockGen.generateSevSnpRawReport(nonce);
+  const parsed = _parseSevSnp(report.rawReport);
+  assert.ok(parsed, 'parsed report should not be null');
+  assert.ok(parsed.measurement, 'should have MEASUREMENT');
+  assert.ok(parsed.reportData, 'should have REPORT_DATA');
+  assert.strictEqual(parsed.version, 1);
+});
+
+check('HW: SEV-SNP raw report passes full attestation verification', () => {
+  const mockGen = new MockTpmQuoteGenerator();
+  const verifier = new HardwareAttestationVerifier({
+    expectedMeasurements: {
+      'sev-snp': { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sev-snp'] },
+      sgx: { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sgx'] },
+    },
+  });
+  const sandboxId = 'sbx-hw-sev-1';
+  const challenge = verifier.issueChallenge(sandboxId);
+  const report = mockGen.generateSevSnpRawReport(challenge.nonce);
+  const result = verifier.verify(sandboxId, report);
+  assert.strictEqual(result.verified, true);
+  assert.strictEqual(result.authority, 'sev-snp');
+});
+
+check('HW: SGX quote parser extracts MRENCLAVE and MRSIGNER', () => {
+  const mockGen = new MockTpmQuoteGenerator();
+  const nonce = crypto.randomBytes(32).toString('hex');
+  const quote = mockGen.generateSgxRawQuote(nonce);
+  const parsed = _parseSgx(quote.rawQuote);
+  assert.ok(parsed, 'parsed quote should not be null');
+  assert.ok(parsed.mrenclave, 'should have MRENCLAVE');
+  assert.ok(parsed.mrsigner, 'should have MRSIGNER');
+  assert.strictEqual(parsed.isvProdId, 1);
+});
+
+check('HW: SGX raw quote passes full attestation verification', () => {
+  const mockGen = new MockTpmQuoteGenerator();
+  const verifier = new HardwareAttestationVerifier({
+    expectedMeasurements: {
+      'sev-snp': { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sev-snp'] },
+      sgx: { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sgx'] },
+    },
+  });
+  const sandboxId = 'sbx-hw-sgx-1';
+  const challenge = verifier.issueChallenge(sandboxId);
+  const quote = mockGen.generateSgxRawQuote(challenge.nonce);
+  const result = verifier.verify(sandboxId, quote);
+  assert.strictEqual(result.verified, true);
+  assert.strictEqual(result.authority, 'sgx');
+});
+
+check('HW: SEV-SNP wrong MEASUREMENT rejected', () => {
+  const mockGen = new MockTpmQuoteGenerator();
+  const verifier = new HardwareAttestationVerifier({
+    expectedMeasurements: { 'sev-snp': { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sev-snp'] } },
+  });
+  const sandboxId = 'sbx-hw-sev-rej-1';
+  const challenge = verifier.issueChallenge(sandboxId);
+  const report = mockGen.generateSevSnpWrongMeasurementReport(challenge.nonce);
+  try {
+    verifier.verify(sandboxId, report);
+    assert.fail('should have thrown');
+  } catch (e) {
+    assert.ok(e.code === 'ATTESTATION_UNTRUSTED_MEASUREMENT' || e.message.includes('measurement'), e.message);
+  }
+});
+
+check('HW: SGX wrong MRENCLAVE rejected', () => {
+  const mockGen = new MockTpmQuoteGenerator();
+  const verifier = new HardwareAttestationVerifier({
+    expectedMeasurements: { sgx: { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sgx'] } },
+  });
+  const sandboxId = 'sbx-hw-sgx-rej-1';
+  const challenge = verifier.issueChallenge(sandboxId);
+  const quote = mockGen.generateSgxWrongMeasurementQuote(challenge.nonce);
+  try {
+    verifier.verify(sandboxId, quote);
+    assert.fail('should have thrown');
+  } catch (e) {
+    assert.ok(e.code === 'ATTESTATION_UNTRUSTED_MEASUREMENT' || e.message.includes('measurement'), e.message);
+  }
+});
+
 // ΓöÇΓöÇ Cleanup ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 broker.close();

@@ -660,3 +660,127 @@ groups:
           summary: "Track 118 quorum verification has stalled"
           description: "Proposals are being routed to consensus groups but no quorum verifications are completing over the last 10 minutes, indicating possible quorum engine failure, voter pool starvation, or cross-group routing breakdown."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_QUORUM_VERIFICATION_STALL.md"
+
+  # ── Track 119: Cross-Cluster Migration alerts ──────────────────────
+  - name: track119_cross_cluster_migration_alerts
+    interval: 15s
+    rules:
+      - alert: Track119VerificationFailureSpike
+        expr: |
+          rate(hsm_migration_verification_failed_total[5m]) > 2
+        for: 1m
+        labels:
+          severity: critical
+          track: "119"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cross-cluster-migration
+        annotations:
+          summary: "Track 119 migration verification failure spike"
+          description: "More than 2 migration verification failures per second are being recorded over the last 5 minutes, indicating possible manifest corruption, shard integrity breaches, or cross-cluster topology drift."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_VERIFICATION_FAILURE_SPIKE.md"
+
+      - alert: Track119RollbackStall
+        expr: |
+          rate(hsm_migration_verification_failed_total[10m]) > 0
+          and
+          rate(hsm_migration_rolled_back_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "119"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cross-cluster-migration
+        annotations:
+          summary: "Track 119 rollback has stalled while migrations are failing"
+          description: "Migration verification failures are occurring but no rollbacks are being executed over the last 10 minutes, indicating possible rollback engine failure, quorum commit deadlock, or cluster state divergence."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_ROLLBACK_STALL.md"
+
+      - alert: Track119ConcurrentMigrationSaturation
+        expr: |
+          hsm_migration_active > 14
+        for: 3m
+        labels:
+          severity: warning
+          track: "119"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cross-cluster-migration
+        annotations:
+          summary: "Track 119 concurrent migration saturation"
+          description: "Active concurrent migrations are above 14 for 3 minutes, approaching the policy limit of 16. Indicates possible migration backlog, resource exhaustion, or unthrottled migration scheduling."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_CONCURRENT_MIGRATION_SATURATION.md"
+
+      - alert: Track119CommitStall
+        expr: |
+          rate(hsm_migration_initiated_total[10m]) > 0
+          and
+          rate(hsm_migration_committed_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "119"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cross-cluster-migration
+        annotations:
+          summary: "Track 119 migration commits have stalled"
+          description: "Migrations are being initiated but none have been committed via quorum over the last 10 minutes, indicating possible quorum commit failure, attestation backlog, or destination cluster unavailability."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_COMMIT_STALL.md"
+
+      - alert: Track119AttestationGap
+        expr: |
+          rate(hsm_migration_initiated_total[5m]) > 0
+          and
+          rate(hsm_migration_attested_total[5m]) == 0
+        for: 3m
+        labels:
+          severity: warning
+          track: "119"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cross-cluster-migration
+        annotations:
+          summary: "Track 119 attestation gap detected"
+          description: "Migrations are being initiated but none are being attested over the last 5 minutes, indicating possible attestation authority unavailability, credential expiry, or network partition between source and attestation service."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_ATTESTATION_GAP.md"
+
+      - alert: Track119AckStarvation
+        expr: |
+          rate(hsm_migration_committed_total[10m]) > 0
+          and
+          rate(hsm_migration_ack_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          track: "119"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cross-cluster-migration
+        annotations:
+          summary: "Track 119 destination acknowledgment starvation"
+          description: "Migrations are being committed but no acknowledgments are being received from destination nodes over the last 10 minutes, indicating possible destination cluster unavailability, network partition, or ack handler failure."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_ACK_STARVATION.md"
+
+      - alert: Track119RollbackRateHigh
+        expr: |
+          rate(hsm_migration_rolled_back_total[5m])
+          /
+          (
+            rate(hsm_migration_committed_total[5m])
+            +
+            rate(hsm_migration_rolled_back_total[5m])
+            + 1
+          ) > 0.3
+        for: 2m
+        labels:
+          severity: warning
+          track: "119"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cross-cluster-migration
+        annotations:
+          summary: "Track 119 rollback rate is above 30%"
+          description: "More than 30% of migration outcomes are rollbacks over the last 5 minutes, indicating possible systematic verification failures, destination cluster instability, or misconfigured migration manifests."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_ROLLBACK_RATE_HIGH.md"

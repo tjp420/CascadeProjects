@@ -28,6 +28,83 @@ const ATTESTATION_NONCE_BYTES = 32;                  // 256-bit nonce
 
 const SUPPORTED_PROFILES = new Set(['tpm2', 'sev-snp', 'sgx', 'mock-authority']);
 
+// ── SEV-SNP Attestation Report Structure ──────────────────────────────
+//
+// The AMD SEV-SNP attestation report is a 4096-byte (PAGE_SIZE) structured
+// binary blob. The key fields we extract for verification:
+//
+// Offset  Size  Field
+//   0x00    4   VERSION (1 = v1)
+//   0x04    4   ALGORITHM (1 = ECC P-384 with SHA-384)
+//   0x08    4   POLICY
+//   0x10    4   FAMILY_ID (8 bytes)
+//   0x18    4   IMAGE_ID (8 bytes)
+//   0x20    4   VMPL
+//   0x28    8   SIGNATURE_ALGORITHM
+//   0x30   16   PLATFORM_VERSION
+//   0x40   16   PLATFORM_INFO
+//   0x50    4   AUTHOR_KEY_EN
+//   0x54   108  AUTHOR_KEY
+//   0xC0   48   REPORT_DATA (user-supplied nonce/challenge)
+//   0xF0   48   MEASUREMENT (MRENCLAVE equivalent)
+//  0x120   16   HOST_DATA
+//  0x130   16   ID_KEY_DIGEST
+//  0x140   48   AUTHOR_KEY_DIGEST
+//  0x170   16   REPORT_ID
+//  0x180   16   REPORT_ID_MA
+//  0x190    8   REPORTED_TCB
+//  0x198    8   CHIP_ID (64 bytes total)
+//  0x1D8    8   COMMITTED
+//  ...
+//  0x2D0  512   SIGNATURE
+//
+// For verification, we extract: REPORT_DATA (nonce), MEASUREMENT (MRENCLAVE),
+// VERSION, POLICY, and SIGNATURE.
+
+const SEV_SNP_REPORT_SIZE = 4096;
+const SEV_SNP_REPORT_DATA_OFFSET = 0xC0;     // 48 bytes — user nonce
+const SEV_SNP_REPORT_DATA_SIZE = 48;
+const SEV_SNP_MEASUREMENT_OFFSET = 0xF0;     // 48 bytes — MRENCLAVE
+const SEV_SNP_MEASUREMENT_SIZE = 48;
+const SEV_SNP_VERSION_OFFSET = 0x00;         // 4 bytes
+const SEV_SNP_POLICY_OFFSET = 0x08;          // 4 bytes
+const SEV_SNP_SIGNATURE_OFFSET = 0x2D0;      // 512 bytes
+
+// ── SGX DCAP Quote Structure ──────────────────────────────────────────
+//
+// Intel SGX DCAP quotes have a header + report body + signature.
+// Key fields in the report body:
+//
+// Offset  Size  Field
+//   0x00    16  MRENCLAVE (measurement of the enclave code)
+//   0x10    16  MRSIGNER (hash of the enclave signer's public key)
+//   0x20     4  ISVPRODID (product ID)
+//   0x24     2  ISVSVN (security version number)
+//   0x26     8  ATTRIBUTES (flags: INITIALIZED, PROVISIONING_KEY, etc.)
+//   0x2E    16  REPORT_DATA (user-supplied nonce/challenge)
+//
+// Quote header:
+//   0x00     2  VERSION (3 = DCAP)
+//   0x02     2  SIGN_TYPE
+//   0x04     4  QE_SVN
+//   0x08     4  PCE_SVN
+//   0x0C    16  BASENAME
+//   0x1C   484  REPORT_BODY
+//   0x200  var  SIGNATURE
+
+const SGX_QUOTE_HEADER_SIZE = 0x1C;          // 28 bytes
+const SGX_MRENCLAVE_OFFSET = 0x00;           // within report body
+const SGX_MRENCLAVE_SIZE = 16;
+const SGX_MRSIGNER_OFFSET = 0x10;            // within report body
+const SGX_MRSIGNER_SIZE = 16;
+const SGX_ISVPRODID_OFFSET = 0x20;           // within report body
+const SGX_ISVPRODID_SIZE = 2;
+const SGX_REPORT_DATA_OFFSET = 0x2E;         // within report body (actually 0x68 in full quote)
+const SGX_REPORT_DATA_SIZE = 16;             // SGX report data is 16 bytes (we pad nonce to fit)
+
+// In a full SGX quote, the report body starts at offset SGX_QUOTE_HEADER_SIZE
+const SGX_REPORT_BODY_OFFSET = SGX_QUOTE_HEADER_SIZE;
+
 /**
  * Hardware Attestation Verifier.
  */
@@ -188,11 +265,61 @@ class HardwareAttestationVerifier {
       return crypto.createHash('sha256').update(pcrConcat).digest('hex');
     }
 
-    if (attestation.authority === 'sev-snp' || attestation.authority === 'sgx') {
-      // Verify MRENCLAVE
+    if (attestation.authority === 'sev-snp') {
+      // If the attestation has a raw binary report, parse it
+      if (attestation.rawReport) {
+        const parsed = parseSevSnpReport(attestation.rawReport);
+        if (!parsed) return null;
+        // Verify the parsed MRENCLAVE (MEASUREMENT field)
+        if (!expected.mrenclave) return null;
+        if (parsed.measurement !== expected.mrenclave) return null;
+        // Verify the REPORT_DATA contains the nonce (padded to 48 bytes)
+        if (attestation.nonce) {
+          const expectedReportData = Buffer.concat([
+            Buffer.from(attestation.nonce, 'hex'),
+            Buffer.alloc(SEV_SNP_REPORT_DATA_SIZE - Buffer.from(attestation.nonce, 'hex').length),
+          ]).toString('hex');
+          if (parsed.reportData !== expectedReportData) return null;
+        }
+        // Verify policy constraints if configured
+        if (expected.policy !== undefined && parsed.policy !== expected.policy) return null;
+        if (expected.minVersion !== undefined && parsed.version < expected.minVersion) return null;
+        return parsed.measurement;
+      }
+      // Fallback: pre-parsed attestation with mrenclave field (backward compat)
       if (!attestation.mrenclave) return null;
       if (!expected.mrenclave) return null;
       if (attestation.mrenclave !== expected.mrenclave) return null;
+      return attestation.mrenclave;
+    }
+
+    if (attestation.authority === 'sgx') {
+      // If the attestation has a raw binary quote, parse it
+      if (attestation.rawQuote) {
+        const parsed = parseSgxQuote(attestation.rawQuote);
+        if (!parsed) return null;
+        // Verify MRENCLAVE
+        if (!expected.mrenclave) return null;
+        if (parsed.mrenclave !== expected.mrenclave) return null;
+        // Verify MRSIGNER if configured
+        if (expected.mrsigner && parsed.mrsigner !== expected.mrsigner) return null;
+        // Verify ISVPRODID if configured
+        if (expected.isvProdId !== undefined && parsed.isvProdId !== expected.isvProdId) return null;
+        // Verify REPORT_DATA contains the nonce (padded to 16 bytes)
+        if (attestation.nonce) {
+          const nonceBytes = Buffer.from(attestation.nonce, 'hex');
+          const noncePrefix = nonceBytes.slice(0, SGX_REPORT_DATA_SIZE).toString('hex');
+          if (parsed.reportData !== noncePrefix) return null;
+        }
+        return parsed.mrenclave;
+      }
+      // Fallback: pre-parsed attestation with mrenclave field (backward compat)
+      if (!attestation.mrenclave) return null;
+      if (!expected.mrenclave) return null;
+      if (attestation.mrenclave !== expected.mrenclave) return null;
+      if (expected.mrsigner && attestation.mrsigner && attestation.mrsigner !== expected.mrsigner) return null;
+      if (expected.isvProdId !== undefined && attestation.isvProdId !== undefined &&
+          attestation.isvProdId !== expected.isvProdId) return null;
       return attestation.mrenclave;
     }
 
@@ -275,4 +402,65 @@ module.exports = {
   ATTESTATION_MAX_AGE_SECONDS,
   ATTESTATION_NONCE_BYTES,
   SUPPORTED_PROFILES,
+  parseSevSnpReport,
+  parseSgxQuote,
+  SEV_SNP_REPORT_SIZE,
+  SEV_SNP_REPORT_DATA_OFFSET,
+  SEV_SNP_MEASUREMENT_OFFSET,
 };
+
+// ── SEV-SNP Report Parser ─────────────────────────────────────────────
+//
+// Parses a raw AMD SEV-SNP attestation report (4096-byte binary blob)
+// and extracts the fields needed for verification.
+//
+// @param {Buffer|string} rawReport — 4096-byte SEV-SNP attestation report
+// @returns {object|null} — { version, policy, reportData, measurement, signature } or null on parse failure
+
+function parseSevSnpReport(rawReport) {
+  try {
+    const buf = Buffer.isBuffer(rawReport) ? rawReport : Buffer.from(rawReport, 'hex');
+    if (buf.length < SEV_SNP_REPORT_SIZE) return null;
+
+    const version = buf.readUInt32LE(SEV_SNP_VERSION_OFFSET);
+    const policy = buf.readUInt32LE(SEV_SNP_POLICY_OFFSET);
+    const reportData = buf.subarray(SEV_SNP_REPORT_DATA_OFFSET, SEV_SNP_REPORT_DATA_OFFSET + SEV_SNP_REPORT_DATA_SIZE).toString('hex');
+    const measurement = buf.subarray(SEV_SNP_MEASUREMENT_OFFSET, SEV_SNP_MEASUREMENT_OFFSET + SEV_SNP_MEASUREMENT_SIZE).toString('hex');
+    const signature = buf.subarray(SEV_SNP_SIGNATURE_OFFSET, SEV_SNP_SIGNATURE_OFFSET + 512).toString('hex');
+
+    return { version, policy, reportData, measurement, signature };
+  } catch {
+    return null;
+  }
+}
+
+// ── SGX DCAP Quote Parser ─────────────────────────────────────────────
+//
+// Parses a raw Intel SGX DCAP quote and extracts the report body fields
+// needed for verification.
+//
+// @param {Buffer|string} rawQuote — SGX DCAP quote binary
+// @returns {object|null} — { mrenclave, mrsigner, isvProdId, isvSvn, reportData } or null on parse failure
+
+function parseSgxQuote(rawQuote) {
+  try {
+    const buf = Buffer.isBuffer(rawQuote) ? rawQuote : Buffer.from(rawQuote, 'hex');
+    // Minimum size: header (28) + report body (384) = 412 bytes
+    if (buf.length < SGX_QUOTE_HEADER_SIZE + 384) return null;
+
+    // Report body starts after the quote header
+    const rb = SGX_REPORT_BODY_OFFSET;
+    const mrenclave = buf.subarray(rb + SGX_MRENCLAVE_OFFSET, rb + SGX_MRENCLAVE_OFFSET + SGX_MRENCLAVE_SIZE).toString('hex');
+    const mrsigner = buf.subarray(rb + SGX_MRSIGNER_OFFSET, rb + SGX_MRSIGNER_OFFSET + SGX_MRSIGNER_SIZE).toString('hex');
+    const isvProdId = buf.readUInt16LE(rb + SGX_ISVPRODID_OFFSET);
+    const isvSvn = buf.readUInt16LE(rb + SGX_ISVPRODID_OFFSET + 2);
+    // SGX report data is at offset 0x68 within the report body (after attributes)
+    // For DCAP quotes, REPORT_DATA is at offset 0x68 from report body start
+    const sgxReportDataOffset = 0x68;
+    const reportData = buf.subarray(rb + sgxReportDataOffset, rb + sgxReportDataOffset + SGX_REPORT_DATA_SIZE).toString('hex');
+
+    return { mrenclave, mrsigner, isvProdId, isvSvn, reportData };
+  } catch {
+    return null;
+  }
+}
