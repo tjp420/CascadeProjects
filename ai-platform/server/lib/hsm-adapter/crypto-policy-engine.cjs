@@ -274,6 +274,15 @@ const DEFAULT_POLICY = {
     maxWitnessAgeSeconds: 60,
     requireCanonicalPayloadLayout: true,
   },
+  latticeVssGating: {
+    minVssShares: 5,
+    maxDegreeBound: 16,
+    requireEnclaveBindingAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    allowedLatticeSchemes: ['module-lwr', 'module-lwe', 'nist-kyber'],
+    maxShareAgeSeconds: 60,
+    requireCanonicalPayloadLayout: true,
+  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
@@ -1255,6 +1264,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.accumulatorGating,
       ...(tenantPolicy.accumulatorGating || {}),
     },
+    latticeVssGating: {
+      ...DEFAULT_POLICY.latticeVssGating,
+      ...(tenantPolicy.latticeVssGating || {}),
+    },
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
       ...(tenantPolicy.zkSettlement || {}),
@@ -2113,6 +2126,31 @@ class CryptoPolicyEngine {
     }
     if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
       throw new HsmAdapterError('ACCUMULATORGATE_POLICY_VIOLATION', 'canonical payload layout is required');
+    }
+  }
+
+  _validateLatticeVssGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.latticeVssGating, ...(tenantPolicy.latticeVssGating || {}) };
+    if (typeof config.vssShares === 'number' && config.vssShares < policy.minVssShares) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `vss shares ${config.vssShares} below minimum ${policy.minVssShares}`);
+    }
+    if (typeof config.degreeBound === 'number' && config.degreeBound > policy.maxDegreeBound) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `degree bound ${config.degreeBound} exceeds maximum ${policy.maxDegreeBound}`);
+    }
+    if (policy.requireEnclaveBindingAttestation && config.enclaveBindingAttestation === false) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', 'enclave binding attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.latticeScheme === 'string' && !policy.allowedLatticeSchemes.includes(config.latticeScheme)) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `lattice scheme ${config.latticeScheme} is not allowed; permitted: ${policy.allowedLatticeSchemes.join(', ')}`);
+    }
+    if (typeof config.shareAgeSeconds === 'number' && config.shareAgeSeconds > policy.maxShareAgeSeconds) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', `share age ${config.shareAgeSeconds}s exceeds maximum ${policy.maxShareAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('VSSGATE_POLICY_VIOLATION', 'canonical payload layout is required');
     }
   }
 
@@ -4695,6 +4733,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'accumulatorGating') {
       this._validateAccumulatorGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'latticeVssGating') {
+      this._validateLatticeVssGating(tenantPolicy, config);
       return true;
     }
 

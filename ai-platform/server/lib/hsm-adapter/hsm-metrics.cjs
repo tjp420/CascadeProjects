@@ -510,6 +510,13 @@ const counters = {
   hsm_shard_byzantine_detected_total: 0,
   hsm_shard_lagging_nodes: 0,
   hsm_shard_active: 0,
+  // CI Telemetry Pipeline: Shard reconciler, repair-worker, and reassembler counters
+  hsm_shard_out_of_sync_total: 0,
+  hsm_shard_reconciler_repair_requested_total: 0,
+  hsm_shard_reconciler_repair_skipped_total: 0,
+  hsm_shard_reconstructed_blocks_total: 0,
+  hsm_shard_reassembly_attempts_total: 0,
+  hsm_repair_worker_completed_total: 0,
   // Track 34: Cross-Cluster Migration counters
   hsm_migration_initiated_total: 0,
   hsm_migration_attested_total: 0,
@@ -892,6 +899,10 @@ const counters = {
   hsm_accumulatorgate_pool_initialized_total: 0,
   hsm_zk_accumulator_claim_verified_total: 0,
   hsm_accumulator_accreditation_completed_total: 0,
+  // Track 114: PQC Lattice-Based Multi-Message VSS Gating Hub counters
+  hsm_vssgate_pool_initialized_total: 0,
+  hsm_zk_vss_claim_verified_total: 0,
+  hsm_vss_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1410,6 +1421,12 @@ const META = {
   hsm_shard_byzantine_detected_total: { help: 'Total nodes flagged as byzantine due to divergence.', type: 'counter' },
   hsm_shard_lagging_nodes: { help: 'Current number of lagging nodes across all shards.', type: 'gauge' },
   hsm_shard_active: { help: 'Current number of active shards being tracked.', type: 'gauge' },
+  hsm_shard_out_of_sync_total: { help: 'Total shard sequence gaps/duplicates detected by the reconciler.', type: 'counter' },
+  hsm_shard_reconciler_repair_requested_total: { help: 'Total repair jobs requested by the shard reconciler.', type: 'counter' },
+  hsm_shard_reconciler_repair_skipped_total: { help: 'Total repair requests skipped due to cooldown.', type: 'counter' },
+  hsm_shard_reconstructed_blocks_total: { help: 'Total shard blocks reconstructed by the reassembler.', type: 'counter' },
+  hsm_shard_reassembly_attempts_total: { help: 'Total shard reassembly attempts (labeled by outcome).', type: 'counter' },
+  hsm_repair_worker_completed_total: { help: 'Total repair jobs completed by the repair worker.', type: 'counter' },
   hsm_migration_initiated_total: { help: 'Total cross-cluster migrations initiated.', type: 'counter' },
   hsm_migration_attested_total: { help: 'Total cross-cluster migrations attested.', type: 'counter' },
   hsm_migration_committed_total: { help: 'Total cross-cluster migrations committed via quorum.', type: 'counter' },
@@ -1658,6 +1675,10 @@ const META = {
   hsm_accumulatorgate_pool_initialized_total: { help: 'Total Track 33 accumulator gating pools initialized.', type: 'counter' },
   hsm_zk_accumulator_claim_verified_total: { help: 'Total Track 33 ZK accumulator claims verified.', type: 'counter' },
   hsm_accumulator_accreditation_completed_total: { help: 'Total Track 33 accumulator accreditations completed.', type: 'counter' },
+  // Track 114: PQC Lattice-Based Multi-Message VSS Gating Hub metadata
+  hsm_vssgate_pool_initialized_total: { help: 'Total Track 114 lattice VSS gating pools initialized.', type: 'counter' },
+  hsm_zk_vss_claim_verified_total: { help: 'Total Track 114 ZK VSS claims verified.', type: 'counter' },
+  hsm_vss_accreditation_completed_total: { help: 'Total Track 114 VSS accreditations completed.', type: 'counter' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };

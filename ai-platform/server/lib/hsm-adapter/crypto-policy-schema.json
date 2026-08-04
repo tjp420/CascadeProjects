@@ -205,6 +205,15 @@
       "maxWitnessAgeSeconds": 60,
       "requireCanonicalPayloadLayout": true
     },
+    "latticeVssGating": {
+      "minVssShares": 5,
+      "maxDegreeBound": 16,
+      "requireEnclaveBindingAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedLatticeSchemes": ["module-lwr", "module-lwe", "nist-kyber"],
+      "maxShareAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
     "zkSettlement": {
       "minClearingNodeQuorum": 3,
       "maxSettlementTimeoutSeconds": 300,
