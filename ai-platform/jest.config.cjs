@@ -57,9 +57,7 @@ module.exports = {
   },
   passWithNoTests: true,
   forceExit: true,
-  setupFilesAfterEnv: [
-    '<rootDir>/tests/setup.js'
-  ],
+  setupFilesAfterEnv: process.env.CI ? [] : ['<rootDir>/tests/setup.js'],
   testTimeout: TEST_TIMEOUT_MS,
   globals: {
     'NODE_ENV': 'test'

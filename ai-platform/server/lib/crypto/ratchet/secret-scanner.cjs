@@ -78,7 +78,8 @@ function scanFiles(filePaths, opts = {}) {
   const allFindings = [];
   for (const p of filePaths) {
     // Skip docs and markdown files to avoid false-positives on examples
-    if (/\.md$/i.test(p) || p.startsWith('ai-platform/docs') || p.startsWith('.github/')) continue;
+    // Skip test files — long test pattern names and test secrets trigger high-entropy detection
+    if (/\.md$/i.test(p) || p.startsWith('ai-platform/docs') || p.startsWith('.github/') || /__tests__\/.*\.cjs$/.test(p) || /\.test\.cjs$/.test(p) || /(^|\/)tests\/.*\.(js|cjs)$/.test(p)) continue;
     let full = p;
     if (!path.isAbsolute(full)) full = path.resolve(process.cwd(), p);
     if (!fs.existsSync(full)) continue;

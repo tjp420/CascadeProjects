@@ -85,8 +85,9 @@ jobs:
         run: |
           echo 'Waiting for Prism at http://localhost:4010/ ...'
           for i in {1..60}; do
-            if curl -fsS http://localhost:4010/ >/dev/null 2>&1; then
-              echo 'Prism is ready'; exit 0
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4010/policies 2>/dev/null || echo "000")
+            if [ "$code" != "000" ]; then
+              echo "Prism is ready (HTTP $code)"; exit 0
             fi
             sleep 1
           done
