@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "simplebeacon.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "simplebeacon.labels" . | nindent 4 }}
+data:
+  # Security thresholds — injected as environment variables
+  IPC_PAYLOAD_LIMIT_BYTES: "{{ .Values.security.ipcPayloadLimitBytes }}"
+  SANDBOX_MEMORY_ENTRY_LIMIT_BYTES: "{{ .Values.security.sandboxMemoryEntryLimitBytes }}"
+  SANDBOX_MEMORY_MAX_ENTRIES: "{{ .Values.security.sandboxMemoryMaxEntries }}"
+  SANDBOX_MAX_EXECUTION_TIME_SECONDS: "{{ .Values.security.sandboxMaxExecutionTimeSeconds }}"
+  SIEM_ALERT_RATE_LIMIT_PER_MINUTE: "{{ .Values.security.siemAlertRateLimitPerMinute }}"
+
+  # Mesh worker batch size limit
+  MESH_WORKER_MAX_BATCH_SIZE: "{{ .Values.meshWorker.maxBatchSize }}"

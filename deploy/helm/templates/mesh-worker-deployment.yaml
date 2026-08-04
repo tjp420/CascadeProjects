@@ -1,0 +1,32 @@
+{{- if .Values.meshWorker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "simplebeacon.fullname" . }}-mesh-worker
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "simplebeacon.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.meshWorker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "simplebeacon.meshWorkerSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "simplebeacon.meshWorkerSelectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        {{- include "simplebeacon.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: mesh-worker
+          image: "{{ .Values.image.meshWorker.repository }}:{{ .Values.image.meshWorker.tag }}"
+          imagePullPolicy: {{ .Values.image.meshWorker.pullPolicy }}
+          securityContext:
+            {{- include "simplebeacon.containerSecurityContext" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "simplebeacon.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.resources.meshWorker | nindent 12 }}
+{{- end }}

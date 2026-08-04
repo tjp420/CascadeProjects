@@ -1,0 +1,34 @@
+SimpleBeacon Helm Chart — Post-Install Notes
+
+1. Security thresholds injected as environment variables via ConfigMap:
+   - IPC_PAYLOAD_LIMIT_BYTES: {{ .Values.security.ipcPayloadLimitBytes }}
+   - SANDBOX_MEMORY_ENTRY_LIMIT_BYTES: {{ .Values.security.sandboxMemoryEntryLimitBytes }}
+   - SANDBOX_MEMORY_MAX_ENTRIES: {{ .Values.security.sandboxMemoryMaxEntries }}
+   - SANDBOX_MAX_EXECUTION_TIME_SECONDS: {{ .Values.security.sandboxMaxExecutionTimeSeconds }}
+
+2. Health probes configured:
+   - Readiness: {{ .Values.probes.readiness.path }} (lightweight, no DB deps)
+   - Liveness: {{ .Values.probes.liveness.path }} (diagnostic with platform version)
+
+3. Envoy egress sidecar: {{ if .Values.envoy.enabled }}ENABLED{{ else }}DISABLED{{ end }}
+   {{- if .Values.envoy.enabled }}
+   - max_request_bytes: {{ .Values.envoy.maxRequestBytes }}
+   - SIEM log format: {{ .Values.envoy.logFormat }}
+   - SIEM severity on 413: {{ .Values.envoy.siemSeverity }} ({{ .Values.envoy.siemCategory }})
+   {{- end }}
+
+4. Mesh worker isolation: {{ if .Values.networkPolicy.enabled }}ENABLED{{ else }}DISABLED{{ end }}
+   {{- if .Values.networkPolicy.enabled }}
+   - Egress restricted to ingress gateway + DNS only
+   - Server ingress restricted to Envoy sidecar only
+   {{- end }}
+
+5. Pod security:
+   - runAsNonRoot: {{ .Values.podSecurityContext.runAsNonRoot }}
+   - readOnlyRootFilesystem: {{ .Values.containerSecurityContext.readOnlyRootFilesystem }}
+   - allowPrivilegeEscalation: {{ .Values.containerSecurityContext.allowPrivilegeEscalation }}
+   - All Linux capabilities dropped
+
+Verify deployment:
+  kubectl get pods -n {{ .Values.namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl get networkpolicies -n {{ .Values.namespace }}
