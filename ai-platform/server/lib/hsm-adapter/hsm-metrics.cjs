@@ -879,6 +879,12 @@ const counters = {
   // Track 116: Cluster Isolation Hardening counters
   hsm_isolation_violation_total: 0,
   hsm_key_reject_total: 0,
+  // SIEM Broker: Unified telemetry pipeline counters
+  siem_events_processed_total: 0,
+  siem_events_dropped_total: 0,
+  siem_events_bypassed_total: 0,
+  siem_tokens_consumed_total: 0,
+  siem_token_bucket_current: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1663,6 +1669,12 @@ const META = {
   // Track 116: Cluster Isolation Hardening metadata
   hsm_isolation_violation_total: { help: 'Total Track 116 cluster isolation violations — messages dropped from unverified or spoofed cluster peer nodes.', type: 'counter' },
   hsm_key_reject_total: { help: 'Total Track 116 key rejections — KEY_COMMIT frames rejected from unauthorized non-leader nodes.', type: 'counter' },
+  // SIEM Broker: Unified telemetry pipeline metadata
+  siem_events_processed_total: { help: 'Total SIEM security events accepted and routed to transport layers (batch queue or Winston stream).', type: 'counter' },
+  siem_events_dropped_total: { help: 'Total SIEM events dropped by the token-bucket rate limiter. High values indicate possible log-blinding attacks or misconfigured rate limits.', type: 'counter' },
+  siem_events_bypassed_total: { help: 'Total SIEM CRITICAL/FATAL events that bypassed the rate limiter to ensure audit longevity. P1 alert if this counter increments.', type: 'counter' },
+  siem_tokens_consumed_total: { help: 'Total SIEM token-bucket tokens consumed by accepted events.', type: 'counter' },
+  siem_token_bucket_current: { help: 'Current SIEM token-bucket capacity (available tokens). Low values indicate sustained high event volume.', type: 'gauge' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };
@@ -1766,12 +1778,42 @@ function renderPrometheus() {
   return lines.join('\n') + '\n';
 }
 
+/**
+ * Sync SIEM broker metrics into the HSM metrics registry.
+ *
+ * Pulls the broker's internal counters (processed, dropped, bypassed,
+ * tokens consumed, current token bucket capacity) into the platform's
+ * Prometheus exposition surface so they appear in /metrics output.
+ *
+ * @param {object} broker - SiemSecurityBroker instance with getMetrics()
+ */
+function updateSiemMetrics(broker) {
+  if (!broker || typeof broker.getMetrics !== 'function') return;
+  const m = broker.getMetrics();
+  if (m.siem_events_processed_total !== undefined) {
+    counters.siem_events_processed_total = m.siem_events_processed_total;
+  }
+  if (m.siem_events_dropped_total !== undefined) {
+    counters.siem_events_dropped_total = m.siem_events_dropped_total;
+  }
+  if (m.siem_events_bypassed_total !== undefined) {
+    counters.siem_events_bypassed_total = m.siem_events_bypassed_total;
+  }
+  if (m.siem_tokens_consumed_total !== undefined) {
+    counters.siem_tokens_consumed_total = m.siem_tokens_consumed_total;
+  }
+  if (m.currentTokens !== undefined) {
+    counters.siem_token_bucket_current = m.currentTokens;
+  }
+}
+
 module.exports = {
   incrementCounter,
   observeHistogram,
   reset,
   getMetrics,
   renderPrometheus,
+  updateSiemMetrics,
   counters,
   histograms,
 };

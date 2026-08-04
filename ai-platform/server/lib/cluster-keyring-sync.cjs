@@ -43,9 +43,9 @@ let _electionTimer = null;
 let _running = false;
 let _primitiveAuth = null;
 
-// ── Event Timeline (Sync.com-style audit trail) ─────────────────────────────
+// ΓöÇΓöÇ Event Timeline (Sync.com-style audit trail) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 //   Each event has: eventId, timestamp, eventType, node, details
-//   Filterable by type, date range, and node — like Sync.com Events Log.
+//   Filterable by type, date range, and node ΓÇö like Sync.com Events Log.
 const EVENT_TYPES = {
   CLUSTER_FORMED: 'cluster_formed',
   LEADER_ELECTED: 'leader_elected',
@@ -240,7 +240,7 @@ function _resetEvents() {
 
 // Track last applied rotation for idempotency / ordering (L3-03).
 // A KEY_COMMIT whose rotatedAt is <= this watermark is a duplicate or
-// out-of-order (stale) commit and MUST NOT be re-applied — otherwise an
+// out-of-order (stale) commit and MUST NOT be re-applied ΓÇö otherwise an
 // older key could regress the keyring after a newer one has been installed.
 let _lastAppliedRotatedAt = 0;
 
@@ -274,7 +274,7 @@ const _state = {
   rotatedAt: null,
 };
 
-// ── STEK / KEK maintenance (Track 11) ────────────────────────────────────────
+// ΓöÇΓöÇ STEK / KEK maintenance (Track 11) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const STEK_ROTATION_INTERVAL_MS = parseInt(process.env.STEK_ROTATION_INTERVAL_MS, 10) || 24 * 60 * 60 * 1000;
 const STEK_RETIRED_WINDOW_MS = parseInt(process.env.STEK_RETIRED_WINDOW_MS, 10) || 2 * 60 * 60 * 1000;
 
@@ -633,9 +633,9 @@ function _validateIncomingEpoch(msg, peerKey) {
         siemCategory: 'epoch_manipulation',
         siemSource: 'cluster-keyring-sync',
       });
-      // Freeze state snapshot before rejecting — preserves forensic evidence
+      // Freeze state snapshot before rejecting ΓÇö preserves forensic evidence
       createStateSnapshot('epoch_drift');
-      _log('warn', 'Unreconcilable epoch jump — rejecting', { peer: peerKey, peerEpoch, localEpoch, jump });
+      _log('warn', 'Unreconcilable epoch jump ΓÇö rejecting', { peer: peerKey, peerEpoch, localEpoch, jump });
       return false; // hard reject
     }
     // Adopt the higher epoch
@@ -893,7 +893,7 @@ function _handleMessage(msg, socket) {
   const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
   // Validate message schema before any processing
   if (!_validateMessageSchema(msg, socket)) {
-    _log('warn', 'IPC schema violation — destroying socket', { peer: peerKey, msgType: msg.type });
+    _log('warn', 'IPC schema violation ΓÇö destroying socket', { peer: peerKey, msgType: msg.type });
     socket.destroy();
     return;
   }
@@ -1015,7 +1015,7 @@ function _connectToPeer(host, port) {
   }
 }
 
-// ── Transport security model ────────────────────────────────────────────────
+// ΓöÇΓöÇ Transport security model ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // The cluster keyring transport is OPPORTUNISTIC TLS, NOT mutual TLS (mTLS):
 //   - Server: requestCert:false, rejectUnauthorized:false  (no client cert
 //     requested or verified)
@@ -1032,7 +1032,7 @@ function _connectToPeer(host, port) {
 // install or observe cluster keys.
 //
 // Do NOT enable mTLS (requestCert:true / rejectUnauthorized:true + a real
-// CA chain) unless the deployment actually crosses untrusted networks — and
+// CA chain) unless the deployment actually crosses untrusted networks ΓÇö and
 // if it does, also stop broadcasting raw key hex in favor of per-node
 // encrypted key wrapping. Both changes are out of scope for the trusted-
 // network threat model and must be designed together.
@@ -1229,7 +1229,7 @@ function proposeRotate(newKeyRaw, graceMs) {
 }
 
 
-// ── DKG Transcript Gossip Transport ──────────────────────────────────────────
+// ΓöÇΓöÇ DKG Transcript Gossip Transport ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 /**
  * Initialize a DKG session as the leader. Generates a contribution via the
@@ -1355,7 +1355,7 @@ function _resetEpochState() {
   _snapshotHistory.length = 0;
 }
 
-// ── State Snapshot Checkpoint Utility ──────────────────────────────
+// ΓöÇΓöÇ State Snapshot Checkpoint Utility ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 /**
  * Create a state snapshot checkpoint of the current cluster topology.
@@ -1499,7 +1499,7 @@ function restoreStateSnapshot(snapshot) {
       siemSeverity: 'critical',
       siemCategory: 'state_corruption',
     });
-    _log('error', 'State snapshot restore failed — schema validation error', { validationError });
+    _log('error', 'State snapshot restore failed ΓÇö schema validation error', { validationError });
     throw new Error('STATE_SNAPSHOT_INVALID: ' + validationError);
   }
 
@@ -1528,7 +1528,7 @@ function restoreStateSnapshot(snapshot) {
     _peerEpochs.set(peerKey, epoch);
   }
 
-  // Note: STEK and DKG session are NOT restored from snapshot — only metadata
+  // Note: STEK and DKG session are NOT restored from snapshot ΓÇö only metadata
   // was captured, not the raw STEK bytes or DKG engine state. This is by design:
   // STEK rotation and DKG sessions have their own lifecycle management.
 
