@@ -187,6 +187,15 @@
       "maxQueryAgeSeconds": 60,
       "requireCanonicalPayloadLayout": true
     },
+    "ringGating": {
+      "minRingSize": 16,
+      "maxRingSize": 128,
+      "requireBlindedLinkabilityAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedBlindingTypes": ["pedersen", "borromean"],
+      "maxSignatureAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
     "zkSettlement": {
       "minClearingNodeQuorum": 3,
       "maxSettlementTimeoutSeconds": 300,
