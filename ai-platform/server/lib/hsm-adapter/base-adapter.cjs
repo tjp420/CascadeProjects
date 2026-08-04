@@ -223,6 +223,17 @@ function getRecursiveProofAggregationEngine() {
   return _activeRecursiveProofAggregationEngine;
 }
 
+// Track 62: Module-level registry for the active Musig2HsmOrchestrator instance.
+let _activeMusig2Orchestrator = null;
+
+function registerMusig2Orchestrator(musig2Orchestrator) {
+  _activeMusig2Orchestrator = musig2Orchestrator;
+}
+
+function getMusig2Orchestrator() {
+  return _activeMusig2Orchestrator;
+}
+
 /**
  * Error class for HSM adapter failures.
  */
@@ -327,6 +338,10 @@ class BaseHsmAdapter {
     this._recursiveProofAggregationEngine = options.recursiveProofAggregationEngine || null;
     if (this._recursiveProofAggregationEngine) {
       registerRecursiveProofAggregationEngine(this._recursiveProofAggregationEngine);
+    }
+    this._musig2Orchestrator = options.musig2Orchestrator || null;
+    if (this._musig2Orchestrator) {
+      registerMusig2Orchestrator(this._musig2Orchestrator);
     }
     this._initialized = false;
   }
@@ -2802,4 +2817,6 @@ module.exports = {
   getMixnetBlindTransactionEngine,
   registerRecursiveProofAggregationEngine,
   getRecursiveProofAggregationEngine,
+  registerMusig2Orchestrator,
+  getMusig2Orchestrator,
 };

@@ -76,6 +76,12 @@ const EVENT_TYPES = {
   DKG_SESSION_COMPLETED: 'dkg_session_completed',
   DKG_SESSION_TIMEOUT: 'dkg_session_timeout',
   DKG_INVALID_MESSAGE: 'dkg_invalid_message',
+  // Epoch-frame verification events
+  EPOCH_STALE: 'epoch_stale',
+  EPOCH_DRIFT: 'epoch_drift',
+  EPOCH_RECONCILED: 'epoch_reconciled',
+  // SIEM alert events
+  SIEM_ALERT: 'siem_alert',
 };
 
 const _events = [];
@@ -109,6 +115,10 @@ function _removeFromIndexes(event) {
 }
 
 function _recordEvent(eventType, node, details) {
+  // Invoke SIEM hooks for high-severity events
+  if (SIEM_EVENT_TYPES && SIEM_EVENT_TYPES.has(eventType)) {
+    _invokeSiemHooks(eventType, node, details);
+  }
   const event = {
     eventId: _generateEventId(),
     timestamp: new Date().toISOString(),
@@ -256,6 +266,15 @@ let _stekTimer = null;
 const DKG_SESSION_TIMEOUT_MS = parseInt(process.env.DKG_SESSION_TIMEOUT_MS, 10) || 60000;
 let _dkgSession = null;
 let _dkgSessionTimer = null;
+
+// Epoch-frame verification state
+const EPOCH_RECONCILE_THRESHOLD = parseInt(process.env.EPOCH_RECONCILE_THRESHOLD, 10) || 5;
+const _peerEpochs = new Map(); // peerKey -> epoch number
+
+// SIEM alerting hooks
+const _siemHooks = []; // array of callback functions
+const SIEM_RATE_LIMIT_PER_MIN = parseInt(process.env.SIEM_RATE_LIMIT_PER_MIN, 10) || 100;
+const _siemRateCounters = new Map(); // eventType -> { count, windowStart }
 
 function _pruneRetiredSteks() {
   const now = Date.now();
@@ -552,6 +571,123 @@ function _applyRemoteKeyCommit(msg) {
   }
 }
 
+/**
+ * Validate incoming epoch against local epoch.
+ * - Stale epoch (< local): record EPOCH_STALE, do not adopt
+ * - Higher epoch (<= threshold): adopt, record EPOCH_DRIFT + EPOCH_RECONCILED
+ * - Unreconcilable jump (> threshold): hard reject, record EPOCH_DRIFT with reason
+ * @param {object} msg - incoming message with epoch field
+ * @param {string} peerKey - peer identifier
+ * @returns {boolean} true if message should be processed, false if rejected
+ */
+function _validateIncomingEpoch(msg, peerKey) {
+  if (typeof msg.epoch !== 'number' || msg.epoch < 0) return true; // skip if no epoch
+  const localEpoch = _state.epoch;
+  const peerEpoch = msg.epoch;
+  _peerEpochs.set(peerKey, peerEpoch);
+  if (peerEpoch < localEpoch) {
+    _recordEvent(EVENT_TYPES.EPOCH_STALE, msg.from || NODE_ID, {
+      peerEpoch,
+      localEpoch,
+      peer: peerKey,
+    });
+    _log('warn', 'Peer reported stale epoch', { peer: peerKey, peerEpoch, localEpoch });
+    return true; // allow processing but don't adopt
+  }
+  if (peerEpoch > localEpoch) {
+    const jump = peerEpoch - localEpoch;
+    if (jump > EPOCH_RECONCILE_THRESHOLD) {
+      _recordEvent(EVENT_TYPES.EPOCH_DRIFT, msg.from || NODE_ID, {
+        peerEpoch,
+        localEpoch,
+        jump,
+        peer: peerKey,
+        reason: 'unreconcilable_jump',
+        siemSeverity: 'high',
+        siemCategory: 'epoch_manipulation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      _log('warn', 'Unreconcilable epoch jump — rejecting', { peer: peerKey, peerEpoch, localEpoch, jump });
+      return false; // hard reject
+    }
+    // Adopt the higher epoch
+    _recordEvent(EVENT_TYPES.EPOCH_DRIFT, msg.from || NODE_ID, {
+      peerEpoch,
+      localEpoch,
+      jump,
+      peer: peerKey,
+      siemSeverity: 'high',
+      siemCategory: 'epoch_reconciliation',
+      siemSource: 'cluster-keyring-sync',
+    });
+    _state.epoch = peerEpoch;
+    try { keyRotationStore.setEpoch(peerEpoch); } catch (e) { /* best-effort */ }
+    _recordEvent(EVENT_TYPES.EPOCH_RECONCILED, NODE_ID, {
+      newEpoch: peerEpoch,
+      previousEpoch: localEpoch,
+      peer: peerKey,
+    });
+    _log('info', 'Adopted higher epoch from peer', { peer: peerKey, newEpoch: peerEpoch, previousEpoch: localEpoch });
+  }
+  return true;
+}
+
+/**
+ * Register a SIEM alert hook. The callback fires on high-severity events
+ * (KEY_REJECT, ISOLATION_VIOLATION, EPOCH_DRIFT, SPLIT_BRAIN_DETECTED).
+ * Rate-limited per event type (default 100/min). Excess calls are dropped silently.
+ * @param {function} callback - receives (eventType, node, details)
+ */
+function registerSiemHook(callback) {
+  if (typeof callback !== 'function') throw new Error('registerSiemHook: callback must be a function');
+  _siemHooks.push(callback);
+}
+
+/**
+ * Invoke SIEM hooks for a high-severity event, with rate limiting.
+ * Excess calls beyond SIEM_RATE_LIMIT_PER_MIN per event type are dropped silently.
+ * @param {string} eventType
+ * @param {string} node
+ * @param {object} details
+ */
+function _invokeSiemHooks(eventType, node, details) {
+  const now = Date.now();
+  let counter = _siemRateCounters.get(eventType);
+  if (!counter || (now - counter.windowStart) > 60000) {
+    counter = { count: 0, windowStart: now };
+    _siemRateCounters.set(eventType, counter);
+  }
+  counter.count++;
+  if (counter.count > SIEM_RATE_LIMIT_PER_MIN) return; // drop silently
+  for (const hook of _siemHooks) {
+    try {
+      hook(eventType, node, details);
+    } catch (err) {
+      _log('warn', 'SIEM hook threw error', { error: err.message, eventType });
+    }
+  }
+}
+
+/**
+ * Get current epoch state for diagnostics.
+ * @returns {object}
+ */
+function getEpochState() {
+  return {
+    localEpoch: _state.epoch,
+    reconcileThreshold: EPOCH_RECONCILE_THRESHOLD,
+    peerEpochs: Object.fromEntries(_peerEpochs),
+  };
+}
+
+// High-severity event types that trigger SIEM hooks
+const SIEM_EVENT_TYPES = new Set([
+  EVENT_TYPES.KEY_REJECT,
+  EVENT_TYPES.ISOLATION_VIOLATION,
+  EVENT_TYPES.EPOCH_DRIFT,
+  EVENT_TYPES.SPLIT_BRAIN_DETECTED,
+]);
+
 function _handleMessage(msg, socket) {
   if (!msg || !msg.type) return;
   const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
@@ -568,7 +704,7 @@ function _handleMessage(msg, socket) {
     const remotePort = socket.remotePort;
     if (!_isKnownClusterPeer(remoteHost, remotePort) && !_isSelf(remoteHost, remotePort)) {
       _log('warn', 'Rejected message from unknown cluster peer', { peer: peerKey, type: msg.type });
-      _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type });
+      _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type, siemSeverity: 'critical', siemCategory: 'network_isolation', siemSource: 'cluster-keyring-sync' });
       socket.destroy();
       return;
     }
@@ -585,7 +721,22 @@ function _handleMessage(msg, socket) {
       // Validate hex format before applying
       if (!_validateStrictLowercaseHex(msg.activeHex, 'activeHex')) return;
       if (msg.previousHex && !_validateStrictLowercaseHex(msg.previousHex, 'previousHex')) return;
+      // Reject KEY_COMMIT with stale epoch (replay attack prevention)
+      if (typeof msg.epoch === 'number' && msg.epoch < _state.epoch) {
+        _log('warn', 'Rejected KEY_COMMIT with stale epoch', { from: msg.from, peerEpoch: msg.epoch, localEpoch: _state.epoch });
+        _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, {
+          reason: 'stale_epoch',
+          peerEpoch: msg.epoch,
+          localEpoch: _state.epoch,
+          siemSeverity: 'high',
+          siemCategory: 'replay_attack',
+          siemSource: 'cluster-keyring-sync',
+        });
+        return;
+      }
     }
+    // Validate incoming epoch (after whitelist check, before state update)
+    if (!_validateIncomingEpoch(msg, peerKey)) return;
     const peer = _peerState.get(peerKey) || {};
     peer.lastSeen = Date.now();
     peer.leaderId = msg.leaderId;
@@ -984,6 +1135,16 @@ function _resetDkgSession() {
   _dkgSession = null;
 }
 
+function _resetEpoch() {
+  _state.epoch = 0;
+}
+
+function _resetEpochState() {
+  _peerEpochs.clear();
+  _siemHooks.length = 0;
+  _siemRateCounters.clear();
+}
+
 function _handleDkgMessage(msg, socket) {
   if (!msg || !DKG_MESSAGE_TYPES.has(msg.type)) return;
   const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
@@ -1296,5 +1457,13 @@ module.exports = {
   _serializeDkgBigInt,
   _deserializeDkgBigInt,
   _validateDkgHex,
+  // Epoch-frame verification
+  getEpochState,
+  _validateIncomingEpoch,
+  _resetEpochState,
+  // SIEM alerting hooks
+  registerSiemHook,
+  _invokeSiemHooks,
+  _siemHooks,
 };
 

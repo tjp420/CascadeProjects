@@ -27,6 +27,7 @@ let _keyRing = {
   active: null,    // Buffer (32 bytes)
   previous: null,  // Buffer (32 bytes) or null
   rotatedAt: null, // number (Date.now()) or null
+  epoch: 0,        // cluster epoch counter (persisted across restarts)
 };
 
 /**
@@ -266,6 +267,7 @@ function persistState() {
     const state = {
       rotatedAt: _keyRing.rotatedAt,
       graceOverride: _keyRing._graceOverride || null,
+      epoch: _keyRing.epoch || 0,
       activeFingerprint: _keyRing.active
         ? crypto.createHash('sha256').update(_keyRing.active).digest('hex')
         : null,
@@ -276,6 +278,53 @@ function persistState() {
   } catch {
     // Persistence is best-effort — don't block rotation on disk errors
   }
+}
+
+/**
+ * Load persisted rotation state from disk (if STORE_PATH is configured).
+ * Restores epoch, rotatedAt, and graceOverride. Does NOT restore raw key material
+ * (only fingerprints are persisted for security).
+ * @returns {{ epoch: number, rotatedAt: number|null, graceOverride: number|null }|null}
+ */
+function loadState() {
+  if (!STORE_PATH) return null;
+  try {
+    if (!fs.existsSync(STORE_PATH)) return null;
+    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const state = JSON.parse(raw);
+    if (typeof state.epoch === 'number' && state.epoch > 0) {
+      _keyRing.epoch = state.epoch;
+    }
+    if (typeof state.rotatedAt === 'number') {
+      _keyRing.rotatedAt = state.rotatedAt;
+    }
+    if (typeof state.graceOverride === 'number') {
+      _keyRing._graceOverride = state.graceOverride;
+    }
+    return { epoch: _keyRing.epoch, rotatedAt: _keyRing.rotatedAt, graceOverride: _keyRing._graceOverride };
+  } catch {
+    // Best-effort load — don't crash on corrupt state
+    return null;
+  }
+}
+
+/**
+ * Set the epoch directly (used by cluster-keyring-sync for reconciliation).
+ * @param {number} newEpoch
+ */
+function setEpoch(newEpoch) {
+  if (typeof newEpoch === 'number' && newEpoch >= 0) {
+    _keyRing.epoch = newEpoch;
+    persistState();
+  }
+}
+
+/**
+ * Get the current epoch.
+ * @returns {number}
+ */
+function getEpoch() {
+  return _keyRing.epoch || 0;
 }
 
 /**
@@ -339,6 +388,7 @@ function _reset(activeKey) {
     previous: null,
     rotatedAt: null,
     _graceOverride: null,
+    epoch: 0,
   };
 }
 
@@ -356,4 +406,7 @@ module.exports = {
   reKeyValue,
   reKeyStore,
   _reset,
+  loadState,
+  setEpoch,
+  getEpoch,
 };
