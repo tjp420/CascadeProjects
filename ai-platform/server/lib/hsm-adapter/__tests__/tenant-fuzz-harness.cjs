@@ -336,6 +336,21 @@ exports.cleanupPrototypePollution = function () {
     'consensusCtorLevel4',
     'consensusDeepMaxGroups',
     'consensusDeepFaultTimeoutMs',
+    // Track 119: Cross-cluster migration pollution cleanup keys
+    'migrationGatePolluted',
+    'migrationConstructorPolluted',
+    'migrationProtoLevel0',
+    'migrationProtoLevel1',
+    'migrationProtoLevel2',
+    'migrationProtoLevel3',
+    'migrationProtoLevel4',
+    'migrationCtorLevel0',
+    'migrationCtorLevel1',
+    'migrationCtorLevel2',
+    'migrationCtorLevel3',
+    'migrationCtorLevel4',
+    'migrationDeepMinQuorumNodes',
+    'migrationDeepMaxConcurrentMigrations',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -1563,6 +1578,195 @@ exports.makeTrack118ConcurrentValidationCall = function (prng) {
       requireQuorumForProposals: prng.nextChoice([true, false, 'true', 1, 0]),
       allowDynamicGroupCreation: prng.nextChoice([true, false, 'false', 1, 0]),
       allowCrossGroupRouting: prng.nextChoice([true, false, 'true', 1, 0]),
+    },
+  };
+};
+
+// ── Track 119: Cross-Cluster Migration mutators ──────────────────────────────
+
+exports.makeTrack119ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track119-polluter': {
+        crossClusterMigration: {
+          __proto__: { migrationGatePolluted: true },
+          minQuorumNodes: 3,
+          requireAttestation: true,
+          allowedAttestationAuthorities: ['mock-authority'],
+          maxConcurrentMigrations: 16,
+          requireQuorumCommit: true,
+          requireRollbackOnFailure: true,
+          maxShardsPerMigration: 32,
+        },
+        constructor: {
+          prototype: { migrationConstructorPolluted: true },
+        },
+      },
+      'track119-clean': {
+        crossClusterMigration: {
+          minQuorumNodes: 3,
+          requireAttestation: true,
+          allowedAttestationAuthorities: ['mock-authority'],
+          maxConcurrentMigrations: 16,
+          requireQuorumCommit: true,
+          requireRollbackOnFailure: true,
+          maxShardsPerMigration: 32,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack119TypeConfusionConfigs = function () {
+  return [
+    { value: { minQuorumNodes: '3', maxConcurrentMigrations: '16' }, label: 'string-numbers' },
+    { value: { maxShardsPerMigration: [], requireAttestation: {} }, label: 'array-object-values' },
+    { value: { requireQuorumCommit: null, requireRollbackOnFailure: undefined }, label: 'null-undefined-values' },
+    { value: { requireAttestation: 'true' }, label: 'string-boolean-attestation' },
+    { value: { requireQuorumCommit: 'false' }, label: 'string-boolean-quorum' },
+    { value: { allowedAttestationAuthorities: ['mock-authority', 123, null, {}, [], true, undefined] }, label: 'mixed-type-authority-array' },
+    { value: { allowedAttestationAuthorities: [['mock-authority'], ['spoofed']] }, label: 'nested-array-authorities' },
+    { value: { allowedAttestationAuthorities: [{ __proto__: { migrationGatePolluted: true } }] }, label: 'proto-pollution-in-authority-array' },
+    { value: { allowedAttestationAuthorities: [] }, label: 'empty-authority-array' },
+    { value: { allowedAttestationAuthorities: 'mock-authority' }, label: 'string-instead-of-array' },
+    { value: { allowedAttestationAuthorities: 123 }, label: 'number-instead-of-array' },
+    { value: { minQuorumNodes: true }, label: 'boolean-number-quorum' },
+  ];
+};
+
+exports.makeTrack119PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track119-polluter', 'track119-clean']);
+  const minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 4, 5, 999, -1, NaN, '3', Number.MAX_SAFE_INTEGER]);
+  const requireAttestation = prng.nextChoice([true, false, 'true', 1, 0, null]);
+  const allowedAttestationAuthorities = prng.nextChoice([
+    ['mock-authority'],
+    ['spoofed-authority'],
+    ['mock-authority', 'spoofed'],
+    [],
+    'mock-authority',
+    123,
+    null,
+    [{ __proto__: { migrationGatePolluted: true } }],
+    ['mock-authority', 123, null, {}, []],
+  ]);
+  const maxConcurrentMigrations = prng.nextChoice([0, 16, 17, 999, -1, '16', Number.MAX_SAFE_INTEGER]);
+  const requireQuorumCommit = prng.nextChoice([true, false, 'true', 1, 0, null]);
+  const requireRollbackOnFailure = prng.nextChoice([true, false, 'true', 1, 0, null]);
+  const maxShardsPerMigration = prng.nextChoice([0, 32, 33, 999, -1, '32', Number.MAX_SAFE_INTEGER]);
+  return {
+    tenantId,
+    operation: 'crossClusterMigration',
+    config: {
+      minQuorumNodes,
+      requireAttestation,
+      allowedAttestationAuthorities,
+      maxConcurrentMigrations,
+      requireQuorumCommit,
+      requireRollbackOnFailure,
+      maxShardsPerMigration,
+    },
+  };
+};
+
+// ── Track 119: Deep nested multi-layer policy mutation (5-level) ──────────────
+
+function attachMigrationDeepPollution(node, depth, prng) {
+  const protoMarker = 'migrationProtoLevel' + depth;
+  const ctorMarker = 'migrationCtorLevel' + depth;
+  Object.setPrototypeOf(node, { [protoMarker]: true });
+  node.constructor = { prototype: { [ctorMarker]: true } };
+  const proto = Object.getPrototypeOf(node);
+  proto.migrationDeepMinQuorumNodes = prng ? prng.nextChoice([0, -1, 999, 1]) : 999;
+  proto.migrationDeepMaxConcurrentMigrations = prng ? prng.nextChoice([0, 9999, -1]) : 9999;
+  return node;
+}
+
+exports.makeTrack119DeepNestedPollutionPolicy = function () {
+  const pollutedMigration = { crossClusterMigration: {} };
+  let current = pollutedMigration.crossClusterMigration;
+  for (let i = 0; i < 5; i++) {
+    attachMigrationDeepPollution(current, i);
+    if (i < 4) {
+      current.crossClusterMigration = {};
+      current = current.crossClusterMigration;
+    }
+  }
+  current.minQuorumNodes = 1;
+  current.requireAttestation = false;
+  current.allowedAttestationAuthorities = ['spoofed'];
+  current.maxConcurrentMigrations = 999;
+  current.requireQuorumCommit = false;
+  current.requireRollbackOnFailure = false;
+  current.maxShardsPerMigration = 999;
+
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track119-deep-polluter': pollutedMigration,
+      'track119-clean': {
+        crossClusterMigration: {
+          minQuorumNodes: 3,
+          requireAttestation: true,
+          allowedAttestationAuthorities: ['mock-authority'],
+          maxConcurrentMigrations: 16,
+          requireQuorumCommit: true,
+          requireRollbackOnFailure: true,
+          maxShardsPerMigration: 32,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack119PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const MIGRATION_KEYS = ['crossClusterMigration', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track119-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = MIGRATION_KEYS[prng.nextInt(MIGRATION_KEYS.length)];
+      const block = {};
+      attachMigrationDeepPollution(block, l % 5, prng);
+      if (key === 'crossClusterMigration' && prng.nextInt(3) === 0) {
+        block.minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 4, 5, 999, -1]);
+        block.requireAttestation = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.allowedAttestationAuthorities = prng.nextChoice([['mock-authority'], ['spoofed'], [], 'mock-authority']);
+        block.maxConcurrentMigrations = prng.nextChoice([0, 16, 17, 999, -1]);
+        block.requireQuorumCommit = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.requireRollbackOnFailure = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.maxShardsPerMigration = prng.nextChoice([0, 32, 33, 999, -1]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack119ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track119-clean',
+    'track119-deep-polluter',
+    'track119-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'crossClusterMigration',
+    config: {
+      minQuorumNodes: prng.nextChoice([0, 1, 2, 3, 4, 999, -1, NaN]),
+      requireAttestation: prng.nextChoice([true, false, 'true', 1, 0]),
+      allowedAttestationAuthorities: prng.nextChoice([['mock-authority'], ['spoofed'], [], 'mock-authority', 123]),
+      maxConcurrentMigrations: prng.nextChoice([0, 16, 17, 999, -1]),
+      requireQuorumCommit: prng.nextChoice([true, false, 'true', 1, 0]),
+      requireRollbackOnFailure: prng.nextChoice([true, false, 'true', 1, 0]),
+      maxShardsPerMigration: prng.nextChoice([0, 32, 33, 999, -1]),
     },
   };
 };
