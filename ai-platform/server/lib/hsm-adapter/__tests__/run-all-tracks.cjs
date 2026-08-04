@@ -154,6 +154,7 @@ const SUITES = [
   'track117-rest-routes',
   'track117-prometheus-alerts',
   'track118-primitive-groundwork',
+  'track118-core-integration',
 ];
 
 function resolveBaseTestFile(pattern) {
