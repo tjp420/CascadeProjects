@@ -1067,6 +1067,13 @@ const DEFAULT_POLICY = {
     banUnauthorizedShareDispersal: true,
     requireCanonicalPayloadLayout: true,
   },
+  // Track 116: Cluster Isolation Hardening policy
+  clusterIsolationHardening: {
+    requireKnownPeerValidation: true,
+    rejectNonLeaderKeyCommits: true,
+    allowDkgNonLeaderMessages: false,
+    maxIsolationViolationThreshold: 100,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1588,6 +1595,10 @@ function _mergeWithDefault(tenantPolicy) {
     clusterKeyringPrimitiveAuthorization: {
       ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization,
       ...(tenantPolicy.clusterKeyringPrimitiveAuthorization || {}),
+    },
+    clusterIsolationHardening: {
+      ...DEFAULT_POLICY.clusterIsolationHardening,
+      ...(tenantPolicy.clusterIsolationHardening || {}),
     },
   };
 }
@@ -4349,6 +4360,24 @@ class CryptoPolicyEngine {
     }
   }
 
+
+  _validateClusterIsolationHardening(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.clusterIsolationHardening, ...(tenantPolicy.clusterIsolationHardening || {}) };
+    if (typeof config.requireKnownPeerValidation === 'boolean' && config.requireKnownPeerValidation !== policy.requireKnownPeerValidation) {
+      if (!config.requireKnownPeerValidation && policy.requireKnownPeerValidation) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'known peer validation cannot be disabled when policy enforces it');
+      }
+    }
+    if (typeof config.rejectNonLeaderKeyCommits === 'boolean' && config.rejectNonLeaderKeyCommits !== policy.rejectNonLeaderKeyCommits) {
+      if (!config.rejectNonLeaderKeyCommits && policy.rejectNonLeaderKeyCommits) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'non-leader key commit rejection cannot be disabled when policy enforces it');
+      }
+    }
+    if (typeof config.maxIsolationViolationThreshold === 'number' && config.maxIsolationViolationThreshold > policy.maxIsolationViolationThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `isolation violation threshold ${config.maxIsolationViolationThreshold} exceeds maximum ${policy.maxIsolationViolationThreshold}`);
+    }
+    return true;
+  }
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -5095,6 +5124,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'clusterKeyringPrimitiveAuthorization') {
       this._validateClusterKeyringPrimitiveAuthorization(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'clusterIsolationHardening') {
+      this._validateClusterIsolationHardening(tenantPolicy, config);
       return true;
     }
 

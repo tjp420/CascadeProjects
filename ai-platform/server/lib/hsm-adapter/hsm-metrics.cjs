@@ -875,6 +875,9 @@ const counters = {
   hsm_vfhssgate_pool_initialized_total: 0,
   hsm_zk_vfhss_claim_verified_total: 0,
   hsm_vfhss_accreditation_completed_total: 0,
+  // Track 116: Cluster Isolation Hardening counters
+  hsm_isolation_violation_total: 0,
+  hsm_key_reject_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1655,6 +1658,9 @@ const META = {
   hsm_vfhssgate_pool_initialized_total: { help: 'Total Track 115 lattice VFHSS gating pools initialized.', type: 'counter' },
   hsm_zk_vfhss_claim_verified_total: { help: 'Total Track 115 ZK VFHSS claims verified.', type: 'counter' },
   hsm_vfhss_accreditation_completed_total: { help: 'Total Track 115 VFHSS accreditations completed.', type: 'counter' },
+  // Track 116: Cluster Isolation Hardening metadata
+  hsm_isolation_violation_total: { help: 'Total Track 116 cluster isolation violations — messages dropped from unverified or spoofed cluster peer nodes.', type: 'counter' },
+  hsm_key_reject_total: { help: 'Total Track 116 key rejections — KEY_COMMIT frames rejected from unauthorized non-leader nodes.', type: 'counter' },
   // DKG histogram metadata
   hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
 };

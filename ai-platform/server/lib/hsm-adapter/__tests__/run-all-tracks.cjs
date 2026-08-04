@@ -143,6 +143,7 @@ const SUITES = [
   'track115-multi-tenant-fuzz',
   'hsm-vault-lattice-vfhss-routes',
   'track115-prometheus-alerts',
+  'track116-primitive-groundwork',
 ];
 
 function resolveBaseTestFile(pattern) {
