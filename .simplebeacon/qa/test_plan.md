@@ -1,25 +1,26 @@
-# Test Plan: File Merger Reduction Scanner Worker Crash
+# Test Plan: Track 31 Post-Quantum Primitive Foundations
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Stabilize `file-merger-reduction-scanner` Jest worker under parallel load |
+| Feature / change | Scaffold Track 31 PQC Homomorphic Database Lookup Gating Hub primitives |
 | Author (Builder) | Devin |
 | Date | 2026-08-03 |
-| Branch | `fix/file-merger-reduction-scanner-crash` |
+| Branch | `feat/track31-primitive-groundwork` |
 | Packages touched | ai-platform |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/__tests__/file-merger-reduction-scanner.test.cjs`
-- `ai-platform/server/lib/recoverable-io.cjs` (fix for read-stream handle leak)
+- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json`
+- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs`
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(assumed registry location; create if absent)*
 
 ### APIs / routes
 
-N/A — test runner infrastructure only.
+N/A — schema and metrics registration groundwork only.
 
 ### UI / IDE surfaces
 
@@ -31,12 +32,12 @@ None.
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on changed JS/CJS | `node -c ai-platform/server/lib/__tests__/file-merger-reduction-scanner.test.cjs` | [x] |
-| L1-02 | Syntax on changed JS/CJS | `node -c ai-platform/server/lib/recoverable-io.cjs` | [x] |
-| L1-03 | Isolated suite, no open handles | `cd ai-platform && npx jest file-merger-reduction-scanner --detectOpenHandles` | [x] |
-| L1-04 | Parallel orchestrator | `cd ai-platform && npm run test:parallel` | [x] |
-| L1-05 | Full SimpleBeacon gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate` | [x] |
-| L1-06 | No secrets in diff | `git diff` + gate token rules | [x] |
+| L1-01 | JSON syntax on schema | `node -c ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json` | [ ] |
+| L1-02 | Syntax on crypto-policy-engine | `node -c ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs` | [ ] |
+| L1-03 | Syntax on hsm-metrics | `node -c ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` | [ ] |
+| L1-04 | Track 31 gating tests | `cd ai-platform && npx jest track31` | [ ] |
+| L1-05 | Parallel orchestrator | `cd ai-platform && npm run test:parallel` | [ ] |
+| L1-06 | Full SimpleBeacon gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate` | [ ] |
 
 ---
 
@@ -44,8 +45,8 @@ None.
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Parallel test orchestrator includes the suite | `npm run test:parallel` | Suite passes within 103-suite run | [x] |
-| L2-02 | Local temp directories are cleaned | Run isolated test | `os.tmpdir` mock directory removed | [x] |
+| L2-01 | Policy engine recognizes lookup gating | `engine.validate('t1', 'lookupGating', {...})` | No throw | [ ] |
+| L2-02 | Metrics registry exposes lookup gate counters | Read `hsm_lookupgate_*` keys | Counters present | [ ] |
 
 ---
 
@@ -53,9 +54,8 @@ None.
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Missing temp dir edge case | Test handles `collectRepositoryFiles` with missing input | No unhandled rejection / crash | [x] |
-| L3-02 | Bad fixture permutations | Malformed JSON or deep metadata inside scan paths does not crash worker | Clean caught error | [x] |
-| L3-03 | No new modules introduced | Fix is confined to existing test and scanner file | No new files created | [x] |
+| L3-01 | No changes to existing tracks | Existing tests (30 and prior) pass | [ ] |
+| L3-02 | No new modules | Only schema, engine stub, metrics touched | [ ] |
 
 ---
 
@@ -63,8 +63,8 @@ None.
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials / PII in logs or commits | [x] |
-| S-02 | No new dependencies required | [x] |
+| S-01 | No credentials / PII in logs or commits | [ ] |
+| S-02 | No new dependencies required | [ ] |
 
 ---
 

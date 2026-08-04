@@ -178,6 +178,15 @@
       "allowCrossTenantTables": true,
       "requireCanonicalPayloadLayout": true
     },
+    "lookupGating": {
+      "minLookupQuorum": 12,
+      "maxLookupDepth": 32,
+      "requireEncryptedQueryAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "allowedBlindingTypes": ["pedersen", "exponential-elgamal"],
+      "maxQueryAgeSeconds": 60,
+      "requireCanonicalPayloadLayout": true
+    },
     "zkSettlement": {
       "minClearingNodeQuorum": 3,
       "maxSettlementTimeoutSeconds": 300,
