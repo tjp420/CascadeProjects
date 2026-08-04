@@ -26,6 +26,10 @@ const HEARTBEAT_MS = parseInt(process.env.CLUSTER_HEARTBEAT_MS, 10) || 5000;
 const HEARTBEAT_TIMEOUT_MS = parseInt(process.env.CLUSTER_HEARTBEAT_TIMEOUT_MS, 10) || 15000;
 const MAX_FRAME_BYTES = 1 << 20; // 1 MB
 
+// DKG transcript gossip message types and leader-only types
+const DKG_MESSAGE_TYPES = new Set(['DKG_COMMIT', 'DKG_SHARE', 'DKG_COMPLAINT', 'DKG_DISQUALIFY', 'DKG_FINALIZE']);
+const DKG_LEADER_ONLY_TYPES = new Set(['DKG_DISQUALIFY', 'DKG_FINALIZE']);
+
 const _sockets = new Map(); // peerKey -> tls/net socket
 const _peerState = new Map(); // peerKey -> { lastSeen, leaderId, activeFingerprint, previousFingerprint, rotatedAt }
 let _server = null;
@@ -62,6 +66,16 @@ const EVENT_TYPES = {
   PRIMITIVE_POOL_AUTHORIZED: 'primitive_pool_authorized',
   PRIMITIVE_POOL_SYNCED: 'primitive_pool_synced',
   PRIMITIVE_AUTHORIZATION_REVOKED: 'primitive_authorization_revoked',
+  // DKG transcript gossip events
+  DKG_SESSION_STARTED: 'dkg_session_started',
+  DKG_COMMIT_RECEIVED: 'dkg_commit_received',
+  DKG_SHARE_RECEIVED: 'dkg_share_received',
+  DKG_SHARE_REJECTED: 'dkg_share_rejected',
+  DKG_COMPLAINT_FILED: 'dkg_complaint_filed',
+  DKG_NODE_DISQUALIFIED: 'dkg_node_disqualified',
+  DKG_SESSION_COMPLETED: 'dkg_session_completed',
+  DKG_SESSION_TIMEOUT: 'dkg_session_timeout',
+  DKG_INVALID_MESSAGE: 'dkg_invalid_message',
 };
 
 const _events = [];
@@ -238,6 +252,11 @@ let _stekId = null;
 let _retiredSteks = new Map(); // stekIdHex -> { stek, retiredAt }
 let _stekTimer = null;
 
+// DKG Transcript Gossip Session State
+const DKG_SESSION_TIMEOUT_MS = parseInt(process.env.DKG_SESSION_TIMEOUT_MS, 10) || 60000;
+let _dkgSession = null;
+let _dkgSessionTimer = null;
+
 function _pruneRetiredSteks() {
   const now = Date.now();
   for (const [id, entry] of _retiredSteks.entries()) {
@@ -325,6 +344,31 @@ function _validateStrictLowercaseHex(hex, fieldName) {
   if (!hex || typeof hex !== 'string' || hex.length !== 64 || !/^[0-9a-f]+$/.test(hex)) {
     _recordEvent(EVENT_TYPES.KEY_REJECT, NODE_ID, {
       reason: 'invalid_hex_format',
+      field: fieldName,
+      length: hex ? hex.length : 0,
+    });
+    return false;
+  }
+  return true;
+}
+
+// DKG BigInt Serialization Helpers
+function _serializeDkgBigInt(value) {
+  if (typeof value !== 'bigint') throw new Error('_serializeDkgBigInt: expected bigint, got ' + typeof value);
+  return value.toString(16);
+}
+
+function _deserializeDkgBigInt(hex) {
+  if (typeof hex !== 'string' || !/^[0-9a-f]+$/.test(hex)) {
+    throw new Error('_deserializeDkgBigInt: invalid hex string: ' + hex);
+  }
+  return BigInt('0x' + hex);
+}
+
+function _validateDkgHex(hex, fieldName) {
+  if (!hex || typeof hex !== 'string' || !/^[0-9a-f]+$/.test(hex)) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, NODE_ID, {
+      reason: 'invalid_hex',
       field: fieldName,
       length: hex ? hex.length : 0,
     });
@@ -825,6 +869,399 @@ function proposeRotate(newKeyRaw, graceMs) {
   return getStatus();
 }
 
+
+// ── DKG Transcript Gossip Transport ──────────────────────────────────────────
+
+/**
+ * Initialize a DKG session as the leader. Generates a contribution via the
+ * provided DkgSnarkEngine, broadcasts DKG_COMMIT to all peers, and sends
+ * DKG_SHARE privately to each peer.
+ */
+function initDkgSession(options = {}) {
+  if (!options.dkgEngine) throw new Error('initDkgSession: dkgEngine required');
+  if (!options.nodeId) throw new Error('initDkgSession: nodeId required');
+  if (_dkgSession) throw new Error('initDkgSession: DKG session already active');
+
+  const sessionId = 'dkg-' + crypto.randomBytes(4).toString('hex');
+  const dkgEngine = options.dkgEngine;
+  const contribution = dkgEngine.generateContribution(options.nodeId);
+
+  _dkgSession = {
+    phase: 'commit',
+    sessionId,
+    startedAt: Date.now(),
+    dkgEngine,
+    nodeId: options.nodeId,
+    contributions: new Map(),
+    sharesReceived: new Map(),
+    complaints: [],
+    disqualified: new Set(),
+    finalized: false,
+    masterPublicKey: null,
+  };
+
+  _dkgSession.contributions.set(options.nodeId, {
+    commitments: contribution.commitments.map((c) => _serializeDkgBigInt(c)),
+  });
+
+  _broadcast({
+    type: 'DKG_COMMIT',
+    from: NODE_ID,
+    sessionId,
+    nodeId: options.nodeId,
+    commitments: contribution.commitments.map((c) => _serializeDkgBigInt(c)),
+  });
+
+  for (const [peerNodeId, share] of contribution.shares.entries()) {
+    _sendDkgShareToPeer(peerNodeId, options.nodeId, sessionId, share);
+  }
+
+  _dkgSessionTimer = setTimeout(() => {
+    if (_dkgSession && !_dkgSession.finalized) {
+      _recordEvent(EVENT_TYPES.DKG_SESSION_TIMEOUT, NODE_ID, {
+        sessionId: _dkgSession.sessionId,
+        phase: _dkgSession.phase,
+        elapsed: Date.now() - _dkgSession.startedAt,
+      });
+      _log('warn', 'DKG session timed out', { sessionId: _dkgSession.sessionId });
+      _dkgSession = null;
+      _dkgSessionTimer = null;
+    }
+  }, DKG_SESSION_TIMEOUT_MS);
+
+  _recordEvent(EVENT_TYPES.DKG_SESSION_STARTED, NODE_ID, {
+    sessionId,
+    threshold: dkgEngine._threshold,
+    totalNodes: dkgEngine._totalNodes,
+  });
+  _log('info', 'DKG session started', { sessionId });
+
+  return getDkgSessionStatus();
+}
+
+function _sendDkgShareToPeer(peerNodeId, fromNodeId, sessionId, share) {
+  for (const [peerKey, state] of _peerState.entries()) {
+    if (state.nodeId === peerNodeId) {
+      const socket = _sockets.get(peerKey);
+      if (socket && !socket.destroyed) {
+        _sendMessage(socket, {
+          type: 'DKG_SHARE',
+          from: NODE_ID,
+          sessionId,
+          broadcasterId: fromNodeId,
+          recipientId: peerNodeId,
+          share: _serializeDkgBigInt(share),
+        });
+      }
+      return;
+    }
+  }
+  _log('warn', 'Could not find socket for DKG_SHARE delivery', { peerNodeId });
+}
+
+function getDkgSessionStatus() {
+  if (!_dkgSession) return null;
+  return {
+    sessionId: _dkgSession.sessionId,
+    phase: _dkgSession.phase,
+    startedAt: _dkgSession.startedAt,
+    contributionsReceived: _dkgSession.contributions.size,
+    sharesReceived: _dkgSession.sharesReceived.size,
+    complaints: _dkgSession.complaints.length,
+    disqualified: [..._dkgSession.disqualified],
+    finalized: _dkgSession.finalized,
+    masterPublicKey: _dkgSession.masterPublicKey
+      ? _serializeDkgBigInt(_dkgSession.masterPublicKey)
+      : null,
+  };
+}
+
+function _resetDkgSession() {
+  if (_dkgSessionTimer) {
+    clearTimeout(_dkgSessionTimer);
+    _dkgSessionTimer = null;
+  }
+  _dkgSession = null;
+}
+
+function _handleDkgMessage(msg, socket) {
+  if (!msg || !DKG_MESSAGE_TYPES.has(msg.type)) return;
+  const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
+
+  const remoteHost = socket.remoteAddress;
+  const remotePort = socket.remotePort;
+  if (!_isKnownClusterPeer(remoteHost, remotePort) && !_isSelf(remoteHost, remotePort)) {
+    _log('warn', 'Rejected DKG message from unknown cluster peer', { peer: peerKey, type: msg.type });
+    _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type });
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, { reason: 'unknown_peer', msgType: msg.type });
+    socket.destroy();
+    return;
+  }
+
+  if (DKG_LEADER_ONLY_TYPES.has(msg.type)) {
+    if (msg.from && _state.leaderId && msg.from !== _state.leaderId) {
+      _log('warn', 'Rejected ' + msg.type + ' from non-leader node', { from: msg.from, currentLeader: _state.leaderId });
+      _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+        reason: 'not_leader',
+        msgType: msg.type,
+        currentLeader: _state.leaderId,
+      });
+      return;
+    }
+  }
+
+  if (!_dkgSession) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'no_active_session',
+      msgType: msg.type,
+    });
+    _log('warn', 'Received ' + msg.type + ' but no DKG session active', { from: msg.from });
+    return;
+  }
+
+  if (msg.sessionId && msg.sessionId !== _dkgSession.sessionId) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'session_mismatch',
+      msgType: msg.type,
+      expected: _dkgSession.sessionId,
+      received: msg.sessionId,
+    });
+    _log('warn', 'DKG message with wrong session ID', { from: msg.from, expected: _dkgSession.sessionId, received: msg.sessionId });
+    return;
+  }
+
+  switch (msg.type) {
+    case 'DKG_COMMIT':
+      _handleDkgCommit(msg);
+      break;
+    case 'DKG_SHARE':
+      _handleDkgShare(msg, socket);
+      break;
+    case 'DKG_COMPLAINT':
+      _handleDkgComplaint(msg);
+      break;
+    case 'DKG_DISQUALIFY':
+      _handleDkgDisqualify(msg);
+      break;
+    case 'DKG_FINALIZE':
+      _handleDkgFinalize(msg);
+      break;
+  }
+}
+
+function _handleDkgCommit(msg) {
+  const fromNodeId = msg.nodeId || msg.from;
+  if (!fromNodeId) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, NODE_ID, { reason: 'missing_nodeId', msgType: 'DKG_COMMIT' });
+    return;
+  }
+  if (!Array.isArray(msg.commitments)) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, fromNodeId, { reason: 'missing_commitments', msgType: 'DKG_COMMIT' });
+    return;
+  }
+  for (let i = 0; i < msg.commitments.length; i++) {
+    if (!_validateDkgHex(msg.commitments[i], 'commitments[' + i + ']')) {
+      _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, fromNodeId, {
+        reason: 'invalid_hex',
+        msgType: 'DKG_COMMIT',
+        field: 'commitments[' + i + ']',
+      });
+      return;
+    }
+  }
+  if (_dkgSession.contributions.has(fromNodeId)) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, fromNodeId, {
+      reason: 'duplicate_commit',
+      msgType: 'DKG_COMMIT',
+    });
+    _log('warn', 'Duplicate DKG_COMMIT from node', { fromNodeId });
+    return;
+  }
+
+  _dkgSession.contributions.set(fromNodeId, {
+    commitments: msg.commitments,
+  });
+
+  _recordEvent(EVENT_TYPES.DKG_COMMIT_RECEIVED, NODE_ID, {
+    fromNodeId,
+    commitmentCount: msg.commitments.length,
+  });
+  _log('info', 'DKG_COMMIT received', { fromNodeId, commitments: msg.commitments.length });
+}
+
+function _handleDkgShare(msg, socket) {
+  const broadcasterId = msg.broadcasterId;
+  const recipientId = msg.recipientId;
+  const shareHex = msg.share;
+
+  if (!broadcasterId || !recipientId || !shareHex) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'missing_field',
+      msgType: 'DKG_SHARE',
+      fields: { broadcasterId: !!broadcasterId, recipientId: !!recipientId, share: !!shareHex },
+    });
+    return;
+  }
+
+  if (recipientId !== NODE_ID) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'share_must_unicast',
+      msgType: 'DKG_SHARE',
+      recipientId,
+    });
+    _log('warn', 'Received DKG_SHARE intended for another node', { recipientId, broadcasterId });
+    return;
+  }
+
+  if (!_validateDkgHex(shareHex, 'share')) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'invalid_hex',
+      msgType: 'DKG_SHARE',
+      field: 'share',
+    });
+    return;
+  }
+
+  let share;
+  try {
+    share = _deserializeDkgBigInt(shareHex);
+  } catch (err) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'share_deserialize_failed',
+      msgType: 'DKG_SHARE',
+      error: err.message,
+    });
+    return;
+  }
+
+  const contrib = _dkgSession.contributions.get(broadcasterId);
+  if (!contrib) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'no_commitment_for_broadcaster',
+      msgType: 'DKG_SHARE',
+      broadcasterId,
+    });
+    _log('warn', 'DKG_SHARE received before DKG_COMMIT', { broadcasterId });
+    return;
+  }
+
+  let verified = false;
+  try {
+    verified = _dkgSession.dkgEngine.verifyShare(broadcasterId, recipientId, share);
+  } catch (err) {
+    _log('warn', 'verifyShare threw during DKG_SHARE handling', { broadcasterId, error: err.message });
+  }
+
+  if (!verified) {
+    _recordEvent(EVENT_TYPES.DKG_SHARE_REJECTED, NODE_ID, {
+      broadcasterId,
+      reason: 'verification_failed',
+    });
+    _dkgSession.complaints.push({
+      from: NODE_ID,
+      against: broadcasterId,
+      reason: 'share_verification_failed',
+      timestamp: Date.now(),
+    });
+    _dkgSession.dkgEngine.fileComplaint(NODE_ID, broadcasterId, 'share_verification_failed');
+    _recordEvent(EVENT_TYPES.DKG_COMPLAINT_FILED, NODE_ID, {
+      against: broadcasterId,
+      reason: 'share_verification_failed',
+    });
+    _broadcast({
+      type: 'DKG_COMPLAINT',
+      from: NODE_ID,
+      sessionId: _dkgSession.sessionId,
+      against: broadcasterId,
+      reason: 'share_verification_failed',
+    });
+    return;
+  }
+
+  _dkgSession.sharesReceived.set(broadcasterId, share);
+  _recordEvent(EVENT_TYPES.DKG_SHARE_RECEIVED, NODE_ID, {
+    broadcasterId,
+  });
+  _log('info', 'DKG_SHARE verified and stored', { broadcasterId });
+}
+
+function _handleDkgComplaint(msg) {
+  const fromNodeId = msg.from;
+  const againstNodeId = msg.against;
+  const reason = msg.reason || 'unspecified';
+
+  if (!fromNodeId || !againstNodeId) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, fromNodeId || NODE_ID, {
+      reason: 'missing_field',
+      msgType: 'DKG_COMPLAINT',
+    });
+    return;
+  }
+
+  _dkgSession.complaints.push({
+    from: fromNodeId,
+    against: againstNodeId,
+    reason,
+    timestamp: Date.now(),
+  });
+  _dkgSession.dkgEngine.fileComplaint(fromNodeId, againstNodeId, reason);
+  _recordEvent(EVENT_TYPES.DKG_COMPLAINT_FILED, fromNodeId, {
+    against: againstNodeId,
+    reason,
+  });
+  _log('info', 'DKG_COMPLAINT received', { fromNodeId, againstNodeId, reason });
+}
+
+function _handleDkgDisqualify(msg) {
+  if (!Array.isArray(msg.disqualified)) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'missing_disqualified_list',
+      msgType: 'DKG_DISQUALIFY',
+    });
+    return;
+  }
+
+  for (const nodeId of msg.disqualified) {
+    _dkgSession.disqualified.add(nodeId);
+    _recordEvent(EVENT_TYPES.DKG_NODE_DISQUALIFIED, nodeId, {
+      sessionId: _dkgSession.sessionId,
+    });
+  }
+  _log('info', 'DKG_DISQUALIFY received', { count: msg.disqualified.length });
+}
+
+function _handleDkgFinalize(msg) {
+  if (!msg.masterPublicKey) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'missing_masterPublicKey',
+      msgType: 'DKG_FINALIZE',
+    });
+    return;
+  }
+  if (!_validateDkgHex(msg.masterPublicKey, 'masterPublicKey')) {
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, {
+      reason: 'invalid_hex',
+      msgType: 'DKG_FINALIZE',
+      field: 'masterPublicKey',
+    });
+    return;
+  }
+
+  _dkgSession.finalized = true;
+  _dkgSession.masterPublicKey = _deserializeDkgBigInt(msg.masterPublicKey);
+
+  if (_dkgSessionTimer) {
+    clearTimeout(_dkgSessionTimer);
+    _dkgSessionTimer = null;
+  }
+
+  _recordEvent(EVENT_TYPES.DKG_SESSION_COMPLETED, NODE_ID, {
+    sessionId: _dkgSession.sessionId,
+    masterPublicKey: msg.masterPublicKey,
+  });
+  _log('info', 'DKG session finalized', { sessionId: _dkgSession.sessionId });
+}
+
 module.exports = {
   init,
   shutdown,
@@ -851,4 +1288,13 @@ module.exports = {
   _resetEvents,
   _recordEvent,
   _applyRemoteKeyCommit,
+  // DKG transcript gossip
+  initDkgSession,
+  getDkgSessionStatus,
+  _resetDkgSession,
+  _handleDkgMessage,
+  _serializeDkgBigInt,
+  _deserializeDkgBigInt,
+  _validateDkgHex,
 };
+
