@@ -34,6 +34,12 @@ route:
       receiver: 'hsm-crypto-ops-pager'
       continue: true
 
+    # Route Shard Repair Pipeline alerts to Crypto Ops
+    - match_re:
+        alertname: "ShardRepairStallDetected|ShardReassemblyHighFailureRate|ShardOutOfSyncFlood"
+      receiver: 'hsm-crypto-ops-pager'
+      continue: true
+
 # Receivers (placeholders) — configure these to match your Alertmanager secrets/integrations
 receivers:
   - name: 'default-ops-pager'

@@ -346,3 +346,54 @@ groups:
           summary: "Track 33 accumulator validation failure rate is above 15%"
           description: "More than 15% of initialized accumulator membership sessions are failing ZK proof evaluation, tree size threshold rejection, or witness quorum rejection over the last 5 minutes, indicating possible rogue-witness or fake-membership injection attacks."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK33_HIGH_VALIDATION_FAILURE_RATE.md"
+
+  # ── CI Telemetry Pipeline: Shard Repair & Reassembly alerts ───────────────
+  - name: shard_repair_pipeline
+    interval: 30s
+    rules:
+      - alert: ShardRepairStallDetected
+        expr: |
+          rate(hsm_shard_reconciler_repair_requested_total[10m]) > 0
+          and
+          rate(hsm_repair_worker_completed_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "shard-repair-pipeline"
+        annotations:
+          summary: "Shard repair pipeline stall detected"
+          description: "Shard reconciler is requesting repairs but no repair-worker completions are observed over the last 10 minutes, indicating possible worker deadlock, crash loop, or queue saturation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SHARD_REPAIR_STALL_DETECTED.md"
+
+      - alert: ShardReassemblyHighFailureRate
+        expr: |
+          (
+            rate(hsm_shard_reassembly_attempts_total{outcome="failed"}[5m])
+            /
+            clamp_min(rate(hsm_shard_reassembly_attempts_total[5m]), 1)
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "shard-repair-pipeline"
+        annotations:
+          summary: "Shard reassembly failure rate is above 10%"
+          description: "More than 10% of shard reassembly attempts are failing over the last 5 minutes, indicating possible hash mismatch, manifest corruption, or storage path traversal issues."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SHARD_REASSEMBLY_HIGH_FAILURE_RATE.md"
+
+      - alert: ShardOutOfSyncFlood
+        expr: rate(hsm_shard_out_of_sync_total[2m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: "shard-repair-pipeline"
+        annotations:
+          summary: "Shard out-of-sync event flood detected"
+          description: "More than 50 out-of-sync events per minute are being detected over the last 2 minutes, indicating possible cascading shard divergence, byzantine node behavior, or storage layer degradation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/SHARD_OUT_OF_SYNC_FLOOD.md"

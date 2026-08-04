@@ -121,4 +121,23 @@ describe('Alertmanager routing (synthetic validation)', () => {
     const rs = receiversForAlert(routes, labels);
     expect(rs).toContain('hsm-crypto-ops-pager');
   });
+
+  test('ShardRepairStallDetected alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'ShardRepairStallDetected', component: 'hsm-mesh-vault', severity: 'critical' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('ShardReassemblyHighFailureRate alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'ShardReassemblyHighFailureRate', component: 'hsm-mesh-vault', severity: 'warning' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
+  test('ShardOutOfSyncFlood alerts route to hsm-crypto-ops-pager', () => {
+    const labels = { alertname: 'ShardOutOfSyncFlood', component: 'hsm-mesh-vault', severity: 'warning' };
+    const rs = receiversForAlert(routes, labels);
+    expect(rs).toContain('hsm-crypto-ops-pager');
+  });
+
 });
