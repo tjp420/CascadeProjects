@@ -1,60 +1,53 @@
 const assert = require('assert');
+const http = require('http');
+process.env.NODE_ENV = 'test';
+const path = require('path');
+// Prevent loading repo .env files during tests so DASHBOARD_VAULT_PASSWORD isn't set
+process.env.DOTENV_CONFIG_PATH = path.join(__dirname, 'no-dotenv-for-tests');
+// Ensure vault auth is disabled in test runs to avoid vault_required responses
+delete process.env.DASHBOARD_VAULT_PASSWORD;
+const app = require('../../../index.cjs');
 const kem = require('../../crypto/ratchet/kem-provider.cjs');
-const register = require('../../../routes/track113-routes.cjs');
-const ratchet = require('../../crypto/ratchet/index.cjs');
 
-function makeMockApp() {
-  const routes = {};
-  return {
-    post: (path, handler) => { routes[path] = handler; },
-    __routes: routes
-  };
-}
-
-function makeRes() {
-  const out = { statusCode: 200, body: null };
-  return {
-    status: (code) => { out.statusCode = code; return { json: (b) => { out.body = b; } }; },
-    json: (b) => { out.body = b; },
-    _out: out
-  };
+function postJson(port, path, body) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(body);
+    const req = http.request({ hostname: '127.0.0.1', port, path, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } }, (res) => {
+      let buf = '';
+      res.setEncoding('utf8');
+      res.on('data', c => buf += c);
+      res.on('end', () => {
+        let json = null;
+        try { json = buf.length ? JSON.parse(buf) : null; } catch (e) { json = buf; }
+        resolve({ statusCode: res.statusCode, body: json });
+      });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
 }
 
 async function run() {
-  const app = makeMockApp();
-  register(app);
-  const routes = app.__routes;
-  assert(routes['/api/track113/handshake/initiate']);
-  assert(routes['/api/track113/handshake/respond']);
+  const server = app.listen(0);
+  const port = server.address().port;
 
   // Happy path: initiate then respond
   const client = kem.generateKeyPair();
-  const reqInit = { body: { tenantId: 'tenant-test', clientPublicKey: client.publicKeyDer.toString('base64') } };
-  const resInit = makeRes();
-  await routes['/api/track113/handshake/initiate'](reqInit, resInit);
-  assert.strictEqual(resInit._out.statusCode, 201);
-  const { sessionId, ciphertext } = resInit._out.body;
-  assert(sessionId && ciphertext);
+  const initResp = await postJson(port, '/api/track113/handshake/initiate', { tenantId: 'tenant-test', clientPublicKey: client.publicKeyDer.toString('base64') });
+  assert.strictEqual(initResp.statusCode, 201, `init failed: ${JSON.stringify(initResp)}`);
+  const { sessionId, ciphertext } = initResp.body;
+  assert(sessionId && ciphertext, 'missing sessionId/ciphertext');
 
-  // Respond with ciphertext
-  const reqResp = { body: { tenantId: 'tenant-test', sessionId, ciphertext } };
-  const resResp = makeRes();
-  // Try calling the ratchet responder directly to inspect errors
-  try {
-    await ratchet.dhRatchetRespond(sessionId, 'tenant-test', Buffer.from(ciphertext, 'base64'));
-  } catch (e) {
-    console.error('dhRatchetRespond threw:', e && e.stack ? e.stack : e);
-  }
-  await routes['/api/track113/handshake/respond'](reqResp, resResp);
-  console.log('respond result:', resResp._out);
-  assert.strictEqual(resResp._out.statusCode, 200);
+  // Respond with ciphertext — should succeed for correct tenant
+  const respResp = await postJson(port, '/api/track113/handshake/respond', { tenantId: 'tenant-test', sessionId, ciphertext });
+  assert.strictEqual(respResp.statusCode, 200, `respond failed: ${JSON.stringify(respResp)}`);
 
   // Negative test: wrong tenant
-  const reqBad = { body: { tenantId: 'attacker', sessionId, ciphertext } };
-  const resBad = makeRes();
-  await routes['/api/track113/handshake/respond'](reqBad, resBad);
-  assert.strictEqual(resBad._out.statusCode, 403);
+  const badResp = await postJson(port, '/api/track113/handshake/respond', { tenantId: 'attacker', sessionId, ciphertext });
+  assert.strictEqual(badResp.statusCode, 403, `expected 403 for wrong tenant, got ${JSON.stringify(badResp)}`);
 
+  server.close();
   console.log('hsm-vault-track113-routes: OK');
 }
 

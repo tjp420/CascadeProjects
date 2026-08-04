@@ -1260,6 +1260,16 @@ app.use('/api/token-throttle', tokenThrottleRoutes);
 // HSM Vault — multi-region key custody handshake and decrypt
 app.use('/api/vault', hsmVaultRoutes);
 
+// Track113 handshake endpoints (post-quantum ratchet prototype)
+try {
+  const registerTrack113 = require('./routes/track113-routes.cjs');
+  if (typeof registerTrack113 === 'function') {
+    registerTrack113(app);
+  }
+} catch (e) {
+  // best-effort mount — continue if routes file missing in some environments
+}
+
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));
 

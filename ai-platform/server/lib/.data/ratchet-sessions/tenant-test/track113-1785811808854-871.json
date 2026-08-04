@@ -1,0 +1,13 @@
+{
+  "sessionId": "track113-1785811808854-871",
+  "tenantId": "tenant-test",
+  "createdAt": 1785811808854,
+  "updatedAt": 1785811808854,
+  "localKeyPair": {
+    "publicKeyObj": {},
+    "privateKeyObj": {},
+    "publicKeyDer": "MCowBQYDK2VuAyEA7pDBUbnFpSV33Ua3m1CpPJw3fldA5WWa/BnKT9jv7w0=",
+    "privateKeyDer": "MC4CAQAwBQYDK2VuBCIEIJgt+sdbaT96Q9aJx0pyIvOfVuDlSURzgFAgno9V3kBc"
+  },
+  "remotePublicKeyDer": "MCowBQYDK2VuAyEAgSTsMNVQfoDfc1k9n70s+LXgJiMJujG37xtUn292FWs="
+}
