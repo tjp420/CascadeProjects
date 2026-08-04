@@ -1,107 +1,182 @@
 # test_plan.md
 
-> Option C: Multi-Tenant Boundary Saturation Fuzzing — 15-test deterministic fuzzing matrix
-> probing the CryptoPolicyEngine public API surface for prototype pollution, type confusion,
-> and cross-tenant memory space leaks.
+> Option G: HSM Adapter Orchestration for MuSig2 Signatures
+> Bridge the software-only MuSig2/FROST math engine (`server/lib/mpc/schnorr/`)
+> with the HSM adapter layer (`server/lib/hsm-adapter/`) via a new
+> `Musig2HsmOrchestrator` class that wraps key share storage, nonce generation,
+> and signing sessions behind the HSM KEK lifecycle — following the
+> `DistributedConsensusCoordinator` orchestration pattern.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Option C: Multi-Tenant Boundary Saturation Fuzzing |
-| Author (Builder) | Devin (Builder mode) |
+| Feature / change | HSM Adapter Orchestration for MuSig2 Signatures |
+| Author (Builder) | Devin |
 | Date | 2026-08-03 |
-| Branch | feat/tenant-boundary-fuzz-matrix |
+| Branch | feat/musig2-hsm-adapter-orchestration |
 | Packages touched | ai-platform |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/hsm-adapter/__tests__/tenant-fuzz-harness.cjs` (extend with PRNG + type-confusion + cross-tenant helpers)
-- `ai-platform/server/lib/hsm-adapter/__tests__/tenant-boundary-saturation.test.cjs` (extend from 1 test to 15 tests)
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs` (READ-ONLY — no feature code changes in Builder phase)
+**New files (2):**
+- `server/lib/hsm-adapter/musig2-hsm-orchestrator.cjs` — Orchestrator class bridging MuSig2 math engine with HSM adapter layer
+- `server/lib/hsm-adapter/__tests__/musig2-hsm-orchestrator.test.cjs` — Behavioral + edge case + security test suite
+
+**Modified files (3):**
+- `server/lib/hsm-adapter/base-adapter.cjs` — Add `registerMusig2Orchestrator`/`getMusig2Orchestrator` to module-level registry pattern (Track 62)
+- `server/lib/hsm-adapter/hsm-metrics.cjs` — Add 4 new orchestrator-level counters (session, key-share-wrap, key-share-unwrap, nonce-seal)
+- `server/routes/hsm-vault-routes.cjs` — Add 3 new REST endpoints for MuSig2 session management
+
+**READ-ONLY files (NOT modified — zero drift):**
+- `server/lib/mpc/schnorr/protocol.cjs` — MuSig2 math engine (SchnorrThresholdAggregator)
+- `server/lib/mpc/schnorr/signature_share.cjs` — Partial share evaluator
+- `server/lib/mpc/schnorr/nonce.cjs` — Nonce generator
+- `server/lib/mpc/schnorr/field.cjs` — Prime field arithmetic
+- `server/lib/hsm-adapter/distributed-consensus-coordinator.cjs` — Pattern reference only
 
 ### APIs / routes
 
-- `CryptoPolicyEngine` constructor: `new CryptoPolicyEngine(policy, options)`
-- `CryptoPolicyEngine.validate(tenantId, operation, config)` — public validation gate
-- `CryptoPolicyEngine.getPolicy(tenantId)` — public tenant policy accessor
-- `CryptoPolicyEngine.static load(filePath, options)` — static file loader
-- `CryptoPolicyEngine.reload()` — hot-reload from path
-- Internal: `_parsePolicy(policy)`, `_getTenantPolicy(tenantId)`, `_mergeWithDefault(tenantPolicy)`, `_isObject(value)`
+- `POST /api/vault/musig2/session/create` — Create a new MuSig2 signing session
+- `GET /api/vault/musig2/session/:sessionId/status` — Get session status
+- `POST /api/vault/musig2/session/:sessionId/sign` — Execute signing round
 
 ### UI / IDE surfaces
 
-- [ ] N/A — pure backend library testing, no UI/IDE surfaces involved
+- [ ] Sidebar webview
+- [ ] Main dashboard iframe / address bar
+- [ ] Welcome / main window panel
+- [ ] Simple Browser / external browser
 
 ---
 
-## Fuzzing Matrix Design
+## Architectural Design
 
-### PRNG methodology
+### Musig2HsmOrchestrator Class
 
-Use a deterministic cryptographic hash-chain PRNG seeded with a fixed 256-bit seed. Each test
-draws deterministic inputs from the chain so failures are reproducible across runs.
+Follows the `DistributedConsensusCoordinator` pattern (async/await state machine with metrics integration):
 
 ```
-seed = 'tenant-fuzz-v1-0000000000000000000000000000000000000000000000000000000000000001'
-state = sha256(seed)
-next() { state = sha256(state); return state }
+class Musig2HsmOrchestrator {
+  constructor(options) {
+    // options.hsmAdapter — BaseHsmAdapter instance (for KEK wrap/unwrap)
+    // options.modulus — Prime field modulus for Schnorr math
+    // options.maxSessions — Session limit (default 128)
+    // options.sessionTimeoutMs — Idle session timeout (default 60000)
+    // options.audit — Audit callback
+  }
+
+  // Session lifecycle
+  async createSession({ tenantId, participantIds, quorum, messageHash }) → sessionId
+  async getSessionStatus(sessionId) → { state, participants, phase }
+  async destroySession(sessionId) → void
+
+  // Signing flow (wraps math engine with HSM operations)
+  async generateNonces(sessionId) → { publicCommitments[] }
+  async aggregateKeys(sessionId) → { aggPublicKey }
+  async computeBindingFactor(sessionId) → { bindingFactor }
+  async evaluateShares(sessionId) → { partialShares[] }
+  async assembleSignature(sessionId) → { R, s }
+  async verifySignature(sessionId, signature) → { valid }
+
+  // HSM-protected key share management
+  async wrapKeyShare(tenantId, keyShare) → wrappedBlob
+  async unwrapKeyShare(tenantId, wrappedBlob) → keyShare
+  async sealNonce(tenantId, nonce) → sealedNonce
+  async unsealNonce(tenantId, sealedNonce) → nonce
+}
 ```
 
-### Attack vectors
+### Session States
 
-| Vector | Target | Goal |
-|--------|--------|------|
-| Prototype pollution | `_mergeWithDefault`, `_parsePolicy` | Verify `__proto__`, `constructor.prototype`, and `Object.prototype` injections in tenant blobs do not leak into DEFAULT_POLICY or other tenants |
-| Type confusion | `validate(tenantId, operation, config)` | Verify non-string tenantId, non-object config, numeric/string coercion, and wrong-type operation fields are rejected with UNAUTHORIZED_KEY_ACCESS or POLICY_VIOLATION_BLOCKED |
-| Cross-tenant memory leak | `getPolicy(tenantId)`, `_getTenantPolicy` | Verify tenant A's policy mutations do not appear in tenant B's resolved policy; verify object identity isolation (no shared references) |
+```
+CREATED → NONCES_GENERATED → KEYS_AGGREGATED → BINDING_COMPUTED → SHARES_EVALUATED → SIGNATURE_ASSEMBLED → VERIFIED
+                                                                                    ↓
+                                                                                FAILED
+```
+
+### Metrics Integration
+
+4 new counters in `hsm-metrics.cjs`:
+- `hsm_musig2_orch_session_created_total` — Sessions created
+- `hsm_musig2_orch_session_completed_total` — Sessions completed successfully
+- `hsm_musig2_orch_session_failed_total` — Sessions that failed
+- `hsm_musig2_orch_key_share_wrapped_total` — Key shares wrapped via HSM
+
+Plus instrumentation of the 7 existing MuSig2 counters (currently defined but NOT incremented):
+- `hsm_musig2_challenge_computed_total`
+- `hsm_musig2_binding_factor_computed_total`
+- `hsm_musig2_key_aggregation_total`
+- `hsm_musig2_nonce_aggregation_total`
+- `hsm_musig2_signature_assembled_total`
+- `hsm_musig2_signature_verified_total`
+- `hsm_musig2_signature_verification_failed_total`
 
 ---
 
-## Level 1 - Deterministic (Validator MUST run all)
+## Level 1 — Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on changed JS/CJS | `node -c ai-platform/server/lib/hsm-adapter/__tests__/tenant-fuzz-harness.cjs` | [ ] |
-| L1-02 | Syntax on changed test file | `node -c ai-platform/server/lib/hsm-adapter/__tests__/tenant-boundary-saturation.test.cjs` | [ ] |
-| L1-03 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
-| L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
-| L1-06 | npm audit (if deps changed) | N/A — no dependency changes | [ ] |
+| L1-01 | Syntax on `musig2-hsm-orchestrator.cjs` | `node -c server/lib/hsm-adapter/musig2-hsm-orchestrator.cjs` | [ ] |
+| L1-02 | Syntax on `musig2-hsm-orchestrator.test.cjs` | `node -c server/lib/hsm-adapter/__tests__/musig2-hsm-orchestrator.test.cjs` | [ ] |
+| L1-03 | Syntax on modified `base-adapter.cjs` | `node -c server/lib/hsm-adapter/base-adapter.cjs` | [ ] |
+| L1-04 | Syntax on modified `hsm-metrics.cjs` | `node -c server/lib/hsm-adapter/hsm-metrics.cjs` | [ ] |
+| L1-05 | Syntax on modified `hsm-vault-routes.cjs` | `node -c server/routes/hsm-vault-routes.cjs` | [ ] |
+| L1-06 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
+| L1-07 | Parallel orchestrator | `cd ai-platform && npm run test:parallel` | [ ] |
+| L1-08 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
+| L1-09 | No secrets in diff | Manual / gate token rules | [ ] |
 
 ---
 
-## Level 2 - Behavioral (Fuzzing matrix execution)
+## Level 2 — Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | FUZZ-01: `__proto__` pollution in tenant blob | Construct engine with `tenants.malicious.__proto__ = { polluted: true }`; assert `Object.prototype.polluted` is undefined and `getPolicy('clean')` has no `polluted` key | Object.prototype clean, clean tenant unaffected | [ ] |
-| L2-02 | FUZZ-02: `constructor.prototype` pollution in tenant blob | Construct engine with `tenants.malicious.constructor = { prototype: { pollutedViaConstructor: true } }`; assert no prototype pollution | Object.prototype clean | [ ] |
-| L2-03 | FUZZ-03: Nested `__proto__` in sub-blocks (pqc, zkp, threshold) | Inject `__proto__` into `tenantPolicy.pqc.__proto__`, `tenantPolicy.zkp.__proto__`, `tenantPolicy.threshold.__proto__`; verify DEFAULT_POLICY sub-blocks remain clean | DEFAULT_POLICY sub-blocks unpolluted | [ ] |
-| L2-04 | FUZZ-04: Non-string tenantId (type confusion) | Call `validate(123, 'createKEK', {...})`, `validate(null, ...)`, `validate(undefined, ...)`, `validate([], ...)` | Throws HsmAdapterError with code UNAUTHORIZED_KEY_ACCESS | [ ] |
-| L2-05 | FUZZ-05: Empty string tenantId | Call `validate('', 'createKEK', {...})` | Throws HsmAdapterError with code UNAUTHORIZED_KEY_ACCESS | [ ] |
-| L2-06 | FUZZ-06: Non-object config (type confusion) | Call `validate('t1', 'createKEK', 'string')`, `validate('t1', 'createKEK', 42)`, `validate('t1', 'createKEK', null)`, `validate('t1', 'createKEK', [])` | Does not crash with TypeError; either throws HsmAdapterError or returns true with no side effects | [ ] |
-| L2-07 | FUZZ-07: Unknown operation string | Call `validate('t1', 'nonexistentOp', {...})` | Returns true (falls through to default kekBits/algorithm validation) without crash | [ ] |
-| L2-08 | FUZZ-08: Numeric operation field | Call `validate('t1', 42, {...})` | Does not crash; falls through to default validation or returns true | [ ] |
-| L2-09 | FUZZ-09: Cross-tenant policy isolation | Construct engine with tenants A (minimumKekBits=128) and B (minimumKekBits=256); mutate A's resolved policy object; verify B's policy is unaffected | Tenant B policy unchanged after A mutation | [ ] |
-| L2-10 | FUZZ-10: Cross-tenant object identity isolation | Call `getPolicy('A')` and `getPolicy('B')` for two tenants; verify they return distinct object references (not shared) | `getPolicy('A') !== getPolicy('B')` | [ ] |
-| L2-11 | FUZZ-11: DEFAULT_POLICY immutability after tenant merge | Construct engine with malicious tenant blob; verify `DEFAULT_POLICY` object reference still has original key values (no mutation from `_mergeWithDefault`) | DEFAULT_POLICY keys unchanged | [ ] |
-| L2-12 | FUZZ-12: Deterministic PRNG reproducibility | Run PRNG with fixed seed twice; verify identical output sequences | Two runs produce identical 256-bit chain | [ ] |
-| L2-13 | FUZZ-13: PRNG-driven random tenant blob generation | Generate 100 random tenant blobs using hash-chain PRNG; construct engine for each; verify no prototype pollution or crash | All 100 constructions succeed without pollution | [ ] |
-| L2-14 | FUZZ-14: PRNG-driven random validate() calls | Generate 100 random `validate()` calls with PRNG-driven tenantId/operation/config combinations; verify no crash or unhandled exception | All 100 calls either return true or throw HsmAdapterError (no raw TypeError) | [ ] |
-| L2-15 | FUZZ-15: Cross-tenant memory space leak via shared sub-block reference | Construct engine with tenants A and B both having `pqc` config; mutate `getPolicy('A').pqc` object; verify `getPolicy('B').pqc` is unaffected | Tenant B pqc block unchanged after A mutation | [ ] |
+| L2-01 | Create session with valid params | `createSession({ tenantId, participantIds: [1,2,3], quorum: [1,2,3], messageHash })` | Returns unique sessionId, state=CREATED, metrics counter incremented | [ ] |
+| L2-02 | Generate nonces for session | `generateNonces(sessionId)` | Returns publicCommitments array, state=NONCES_GENERATED, `hsm_musig2_nonce_aggregation_total` not yet incremented | [ ] |
+| L2-03 | Aggregate public keys | `aggregateKeys(sessionId)` | Returns aggPublicKey, state=KEYS_AGGREGATED, `hsm_musig2_key_aggregation_total` incremented | [ ] |
+| L2-04 | Compute binding factor | `computeBindingFactor(sessionId)` | Returns bindingFactor, state=BINDING_COMPUTED, `hsm_musig2_binding_factor_computed_total` incremented | [ ] |
+| L2-05 | Evaluate partial shares | `evaluateShares(sessionId)` | Returns partialShares array, state=SHARES_EVALUATED | [ ] |
+| L2-06 | Assemble final signature | `assembleSignature(sessionId)` | Returns {R, s}, state=SIGNATURE_ASSEMBLED, `hsm_musig2_signature_assembled_total` incremented | [ ] |
+| L2-07 | Verify assembled signature | `verifySignature(sessionId, signature)` | Returns {valid: true}, state=VERIFIED, `hsm_musig2_signature_verified_total` incremented | [ ] |
+| L2-08 | Full round-trip signing (2-of-3) | Create → generateNonces → aggregateKeys → computeBindingFactor → evaluateShares → assembleSignature → verifySignature | All phases pass, signature verifies, all 7 MuSig2 counters incremented | [ ] |
+| L2-09 | Full round-trip signing (3-of-5) | Same flow with 5 participants, quorum 3 | Signature verifies, counters incremented | [ ] |
+| L2-10 | Wrap key share via HSM | `wrapKeyShare(tenantId, keyShare)` | Returns wrapped blob, `hsm_musig2_orch_key_share_wrapped_total` incremented | [ ] |
+| L2-11 | Unwrap key share via HSM | `unwrapKeyShare(tenantId, wrappedBlob)` | Returns original keyShare value | [ ] |
+| L2-12 | Seal nonce via HSM | `sealNonce(tenantId, nonce)` | Returns sealed nonce blob | [ ] |
+| L2-13 | Unseal nonce via HSM | `unsealNonce(tenantId, sealedNonce)` | Returns original nonce value | [ ] |
+| L2-14 | Get session status | `getSessionStatus(sessionId)` | Returns { state, participants, phase, createdAt } | [ ] |
+| L2-15 | Destroy session | `destroySession(sessionId)` | Session removed from registry, subsequent calls throw | [ ] |
+| L2-16 | Module-level registry | `registerMusig2Orchestrator(orch)` then `getMusig2Orchestrator()` | Returns registered instance | [ ] |
+| L2-17 | Route: POST /session/create | POST to `/api/vault/musig2/session/create` with valid body | Returns 200 with sessionId | [ ] |
+| L2-18 | Route: GET /session/:id/status | GET status for existing session | Returns 200 with session state | [ ] |
+| L2-19 | Route: POST /session/:id/sign | POST sign for existing session | Returns 200 with signature | [ ] |
 
 ---
 
-## Level 3 - Edge cases & regression
+## Level 3 — Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Existing FUZZ-01 test still passes | Original prototype pollution test from prior session remains green | [ ] |
-| L3-02 | Existing crypto-policy-engine.test.cjs still passes | All 50+ existing CryptoPolicyEngine tests remain green (no regression) | [ ] |
-| L3-03 | No scope creep — crypto-policy-engine.cjs unchanged | Validator confirms no feature code changes to the engine itself | [ ] |
+| L3-01 | Create session with missing tenantId | Throws HsmAdapterError with INVALID_INPUT code | [ ] |
+| L3-02 | Create session with empty participantIds | Throws HsmAdapterError | [ ] |
+| L3-03 | Create session with quorum larger than participants | Throws HsmAdapterError | [ ] |
+| L3-04 | Generate nonces for non-existent session | Throws HsmAdapterError with SESSION_NOT_FOUND | [ ] |
+| L3-05 | Aggregate keys out of order (before nonces) | Throws HsmAdapterError with INVALID_STATE | [ ] |
+| L3-06 | Assemble signature before shares evaluated | Throws HsmAdapterError with INVALID_STATE | [ ] |
+| L3-07 | Session timeout (idle > sessionTimeoutMs) | Session auto-destroyed, subsequent calls throw | [ ] |
+| L3-08 | Max sessions exceeded | Throws HsmAdapterError with MAX_SESSIONS_EXCEEDED | [ ] |
+| L3-09 | Wrap key share with null HSM adapter | Throws HsmAdapterError with NO_HSM_ADAPTER | [ ] |
+| L3-10 | Unwrap corrupted key share blob | Throws HsmAdapterError with UNWRAP_FAILED | [ ] |
+| L3-11 | Verify invalid signature | Returns {valid: false}, `hsm_musig2_signature_verification_failed_total` incremented | [ ] |
+| L3-12 | Destroy already-destroyed session | Throws HsmAdapterError with SESSION_NOT_FOUND | [ ] |
+| L3-13 | Existing schnorr tests still pass | `node --test server/lib/mpc/schnorr/__tests__/schnorr.test.cjs` — 32/32 pass | [ ] |
+| L3-14 | Existing hsm-metrics tests still pass | `npx jest server/lib/__tests__/hsm-metrics-prometheus.test.cjs` — 24/24 pass | [ ] |
+| L3-15 | Nonce zeroization after share evaluation | Secret nonces zeroed in memory after evaluateShares completes | [ ] |
 
 ---
 
@@ -110,21 +185,44 @@ next() { state = sha256(state); return state }
 | ID | Requirement | Pass |
 |----|-------------|------|
 | S-01 | No credentials / PII in logs or commits | [ ] |
-| S-02 | Fuzz inputs are deterministic (fixed seed) — no entropy from system sources | [ ] |
-| S-03 | Prototype pollution tests clean up `Object.prototype` after each test (delete injected keys) | [ ] |
+| S-02 | Key shares wrapped via HSM KEK before storage (never stored in plaintext) | [ ] |
+| S-03 | Secret nonces zeroized after share evaluation | [ ] |
+| S-04 | Session data cleared on destroy (no residual key material) | [ ] |
+| S-05 | Tenant isolation: session tenantId scoped, cross-tenant access rejected | [ ] |
+| S-06 | No private key material in route responses or metrics | [ ] |
+| S-07 | Audit callback receives events without sensitive payload values | [ ] |
 
 ---
 
-## Implementation notes
+## Test Matrix Summary
 
-- The fuzzing harness (`tenant-fuzz-harness.cjs`) will be extended with:
-  - `makeHashChainPrng(seed)` — deterministic SHA-256 chain PRNG
-  - `makeTypeConfusionInputs()` — non-string tenantId, non-object config, numeric operation
-  - `makeCrossTenantIsolationPolicy()` — two-tenant policy with shared sub-block references
-  - `makeNestedProtoPollutionPolicy()` — `__proto__` injected into pqc/zkp/threshold sub-blocks
-- The test file (`tenant-boundary-saturation.test.cjs`) will be extended from 1 test to 15 tests
-- No changes to `crypto-policy-engine.cjs` — this is purely a test/harness expansion
-- Each prototype pollution test must clean up `Object.prototype` in afterEach to prevent test pollution
+| Level | Count |
+|-------|-------|
+| L1 (Deterministic) | 9 |
+| L2 (Behavioral) | 19 |
+| L3 (Edge cases) | 15 |
+| Security | 7 |
+| **Total** | **50** |
+
+---
+
+## Implementation Notes
+
+### Broom Strategy Compliance
+- **1 new production file**: `musig2-hsm-orchestrator.cjs` (orchestrator class)
+- **1 new test file**: `musig2-hsm-orchestrator.test.cjs`
+- **3 modified files**: `base-adapter.cjs` (registry), `hsm-metrics.cjs` (counters), `hsm-vault-routes.cjs` (routes)
+- **5 READ-ONLY files**: All schnorr math engine files remain untouched
+- **Zero new dependencies**: Uses existing `BaseHsmAdapter`, `SchnorrThresholdAggregator`, `SchnorrShareEvaluator`, `Musig2NonceGenerator`
+
+### Pattern Adherence
+- Follows `DistributedConsensusCoordinator` orchestration pattern (async/await state machine)
+- Uses `HsmAdapterError` for typed errors (consistent with existing adapter layer)
+- Uses `hsmMetrics.incrementCounter()` for telemetry (consistent with 41+ existing files)
+- Uses module-level registry pattern (`registerMusig2Orchestrator`/`getMusig2Orchestrator`)
+- Uses `node:test` + `node:assert` for tests (consistent with hsm-adapter test suite)
+
+---
 
 ## Approval
 
