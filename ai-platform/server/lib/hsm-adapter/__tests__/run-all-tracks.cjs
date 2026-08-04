@@ -145,6 +145,7 @@ const SUITES = [
   'track115-prometheus-alerts',
   'track116-primitive-groundwork',
   'track116-core-integration',
+  'track116-multi-tenant-fuzz',
 ];
 
 function resolveBaseTestFile(pattern) {
