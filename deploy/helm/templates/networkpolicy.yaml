@@ -1,0 +1,73 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "simplebeacon.fullname" . }}-mesh-worker-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "simplebeacon.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "simplebeacon.meshWorkerSelectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- range .Values.networkPolicy.meshWorkerEgress }}
+    {{- if .toIngressGateway }}
+    # Allow traffic to the ingress gateway (Envoy sidecar / server)
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: server
+      ports:
+        - protocol: TCP
+          port: 3000
+    {{- end }}
+    {{- if .toDns }}
+    # DNS already handled above — this is a no-op placeholder for clarity
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+    {{- end }}
+    {{- end }}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "simplebeacon.fullname" . }}-server-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "simplebeacon.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "simplebeacon.serverSelectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    {{- range .Values.networkPolicy.serverIngress }}
+    {{- if .fromEnvoy }}
+    # Allow ingress only from Envoy sidecar (same pod) and envoy-labeled pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: envoy
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: server
+      ports:
+        - protocol: TCP
+          port: 3000
+    {{- end }}
+    {{- end }}
+{{- end }}

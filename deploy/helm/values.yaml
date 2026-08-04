@@ -1,0 +1,137 @@
+# SimpleBeacon Helm Chart — Parameterized Security Thresholds
+#
+# All values map directly to application-level constants enforced in:
+#   - ai-platform/server/lib/hsm-adapter/confidential-sandbox-engine.cjs
+#   - ai-platform/server/lib/hsm-adapter/__tests__/mesh-load-worker.cjs
+
+# ── Security thresholds (application-level) ──────────────────────────
+security:
+  # IPC payload limit for mesh worker channels (matches MAX_IPC_PAYLOAD_BYTES)
+  ipcPayloadLimitBytes: 1048576  # 1 MB
+
+  # Sandbox memory entry size limit (matches MAX_MEMORY_ENTRY_BYTES)
+  sandboxMemoryEntryLimitBytes: 65536  # 64 KB
+
+  # Sandbox max memory entries per sandbox (matches MAX_MEMORY_ENTRIES)
+  sandboxMemoryMaxEntries: 16
+
+  # Sandbox max execution time in seconds (matches default maxExecutionTimeSeconds)
+  sandboxMaxExecutionTimeSeconds: 30
+
+  # SIEM alert rate limit per event type (alerts per minute)
+  siemAlertRateLimitPerMinute: 100
+
+# ── Container resource limits ────────────────────────────────────────
+resources:
+  server:
+    limits:
+      memory: "512Mi"
+      cpu: "1000m"
+    requests:
+      memory: "256Mi"
+      cpu: "500m"
+  meshWorker:
+    limits:
+      memory: "128Mi"
+      cpu: "500m"
+    requests:
+      memory: "64Mi"
+      cpu: "250m"
+  envoy:
+    limits:
+      memory: "64Mi"
+      cpu: "250m"
+    requests:
+      memory: "32Mi"
+      cpu: "100m"
+
+# ── Pod security context ─────────────────────────────────────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ── Image configuration ──────────────────────────────────────────────
+image:
+  server:
+    repository: simplebeacon/ai-platform-server
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  meshWorker:
+    repository: simplebeacon/mesh-load-worker
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  envoy:
+    repository: envoyproxy/envoy
+    tag: "v1.29-latest"
+    pullPolicy: IfNotPresent
+
+# ── Service configuration ────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 3000
+
+# ── Health probes ────────────────────────────────────────────────────
+probes:
+  readiness:
+    path: /health
+    port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  liveness:
+    path: /api/health
+    port: http
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# ── Envoy egress sidecar ─────────────────────────────────────────────
+envoy:
+  enabled: true
+  # Body size limit: 1MB IPC + 1MB overhead for base64/envelope bloating
+  maxRequestBytes: 2097152  # 2 MB
+  listenerPort: 8080
+  backendPort: 3000
+  # Structured JSON access logging for SIEM parsing
+  logFormat: json
+  logLevel: info
+  # SIEM fields emitted on body-size rejection (HTTP 413)
+  siemSeverity: high
+  siemCategory: envoy_body_oversized
+
+# ── Mesh worker configuration ────────────────────────────────────────
+meshWorker:
+  enabled: true
+  replicas: 2
+  # Batch size limit (matches mesh-load-worker.cjs schema validation)
+  maxBatchSize: 100000
+
+# ── Network policy ───────────────────────────────────────────────────
+networkPolicy:
+  enabled: true
+  # Mesh workers can only talk to the ingress gateway and DNS
+  meshWorkerEgress:
+    - toIngressGateway: true
+    - toDns: true
+  # Server can accept traffic from Envoy sidecar only
+  serverIngress:
+    - fromEnvoy: true
+
+# ── Replica counts ───────────────────────────────────────────────────
+replicaCount: 2
+
+# ── Namespace ────────────────────────────────────────────────────────
+namespace: default
