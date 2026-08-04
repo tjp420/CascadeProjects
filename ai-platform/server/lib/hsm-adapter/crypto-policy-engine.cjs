@@ -4378,6 +4378,40 @@ class CryptoPolicyEngine {
     }
     return true;
   }
+
+  _validateBftShardSync(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.bftShardSync, ...(tenantPolicy.bftShardSync || {}) };
+    if (typeof config.minQuorumNodes === 'number' && config.minQuorumNodes < policy.minQuorumNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `quorum nodes ${config.minQuorumNodes} below minimum ${policy.minQuorumNodes}`);
+    }
+    if (typeof config.maxCatchUpBatchSize === 'number' && config.maxCatchUpBatchSize > policy.maxCatchUpBatchSize) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `catch-up batch size ${config.maxCatchUpBatchSize} exceeds maximum ${policy.maxCatchUpBatchSize}`);
+    }
+    if (typeof config.lagThreshold === 'number' && config.lagThreshold > policy.lagThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `lag threshold ${config.lagThreshold} exceeds maximum ${policy.lagThreshold}`);
+    }
+    if (typeof config.byzantineDivergenceThreshold === 'number' &&
+        config.byzantineDivergenceThreshold > policy.byzantineDivergenceThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `byzantine divergence threshold ${config.byzantineDivergenceThreshold} exceeds maximum ${policy.byzantineDivergenceThreshold}`);
+    }
+    if (typeof config.requireQuorumCommit === 'boolean' && policy.requireQuorumCommit && !config.requireQuorumCommit) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quorum commit cannot be disabled when policy enforces it');
+    }
+    if (typeof config.requireAntiReplay === 'boolean' && policy.requireAntiReplay && !config.requireAntiReplay) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'anti-replay cannot be disabled when policy enforces it');
+    }
+    if (typeof config.maxShardsPerCluster === 'number' && config.maxShardsPerCluster > policy.maxShardsPerCluster) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `shards per cluster ${config.maxShardsPerCluster} exceeds maximum ${policy.maxShardsPerCluster}`);
+    }
+    return true;
+  }
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -5129,6 +5163,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'clusterIsolationHardening') {
       this._validateClusterIsolationHardening(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'bftShardSync') {
+      this._validateBftShardSync(tenantPolicy, config);
       return true;
     }
 
