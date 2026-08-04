@@ -232,6 +232,8 @@ exports.cleanupPrototypePollution = function () {
     'prngConstructorPolluted',
     'lookupGatePolluted',
     'lookupConstructorPolluted',
+    'handshakePolluted',
+    'handshakeConstructorPolluted',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -297,6 +299,69 @@ exports.makeTrack31PrngDrivenValidateCall = function (prng) {
       blindingType: blinding,
       queryAgeSeconds: prng.nextChoice([1, 30, 60, 600, -1, 'old']),
       canonicalPayloadLayout: canonical,
+    },
+  };
+};
+
+// ── Track 113: PQC Handshake Endpoint Integration mutators ─────────────────────
+
+exports.makeTrack113ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track113-polluter': {
+        handshake: {
+          __proto__: { handshakePolluted: true },
+          lifecycleTimeout: 3600000,
+          requirePqKem: true,
+          requireHybridSignature: true,
+        },
+        constructor: {
+          prototype: { handshakeConstructorPolluted: true },
+        },
+      },
+      'track113-clean': {
+        handshake: {
+          lifecycleTimeout: 3600000,
+          requirePqKem: true,
+          requireHybridSignature: true,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack113TypeConfusionConfigs = function () {
+  return [
+    { value: { lifecycleTimeout: '3600000', requirePqKem: 'true' }, label: 'string-numbers' },
+    { value: { lifecycleTimeout: [], requirePqKem: {} }, label: 'array-object-values' },
+    { value: { lifecycleTimeout: null, requirePqKem: undefined }, label: 'null-undefined-values' },
+    { value: { requireHybridSignature: 'true' }, label: 'string-boolean' },
+    { value: { clientId: 123 }, label: 'number-string' },
+    { value: { handshakeDigest: true }, label: 'boolean-buffer' },
+  ];
+};
+
+exports.makeTrack113PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track113-polluter', 'track113-clean']);
+  const lifecycleTimeout = prng.nextChoice([1, 60, 3600, 3600000, -1, 'forever']);
+  const requirePqKem = prng.nextChoice([true, false, 'true', 1, 0]);
+  const requireHybridSignature = prng.nextChoice([true, false, 'yes', 1, 0]);
+  const clientId = prng.nextChoice(['client-a', 'client-b', null, 123, []]);
+  const handshakeDigest = prng.nextChoice(['digest-001', 'digest-002', null, 456, []]);
+  const operation = prng.nextChoice(['handshakeInit', 'handshakeVerify', 'nonexistentOp']);
+  return {
+    tenantId,
+    operation,
+    config: {
+      clientId,
+      handshakeDigest,
+      lifecycleTimeout,
+      requirePqKem,
+      requireHybridSignature,
+      clientProof: prng.nextChoice(['proof-001', '', null, 42, []]),
+      expectedStateDigest: prng.nextChoice(['state-001', '', null, {}]),
     },
   };
 };
