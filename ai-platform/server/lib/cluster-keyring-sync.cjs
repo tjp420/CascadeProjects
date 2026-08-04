@@ -82,6 +82,9 @@ const EVENT_TYPES = {
   EPOCH_RECONCILED: 'epoch_reconciled',
   // SIEM alert events
   SIEM_ALERT: 'siem_alert',
+  // IPC boundary events
+  IPC_SCHEMA_VIOLATION: 'ipc_schema_violation',
+  IPC_MESSAGE_RECEIVED: 'ipc_message_received',
 };
 
 const _events = [];
@@ -688,9 +691,156 @@ const SIEM_EVENT_TYPES = new Set([
   EVENT_TYPES.SPLIT_BRAIN_DETECTED,
 ]);
 
+/**
+ * IPC message schema definitions per message type.
+ * Each schema lists required fields and their allowed types.
+ * Unknown fields are rejected (strict allowlist).
+ */
+const IPC_SCHEMAS = {
+  HEARTBEAT: {
+    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeFingerprint: ['string', 'object'], previousFingerprint: ['string', 'object'], rotatedAt: ['number', 'object'] },
+    optional: {},
+  },
+  KEY_COMMIT: {
+    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeHex: 'string', activeFingerprint: 'string', rotatedAt: 'number' },
+    optional: { previousHex: ['string', 'object'], previousFingerprint: ['string', 'object'], graceMs: ['number', 'object'] },
+  },
+  ANNOUNCE: {
+    required: { type: 'string', nodeId: 'string' },
+    optional: {},
+  },
+  ANNOUNCE_ACK: {
+    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number' },
+    optional: {},
+  },
+  DKG_COMMIT: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', commitments: 'object' },
+    optional: {},
+  },
+  DKG_SHARE: {
+    required: { type: 'string', from: 'string', to: 'string', sessionId: 'string', epoch: 'number', share: 'string' },
+    optional: {},
+  },
+  DKG_COMPLAINT: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', target: 'string', reason: 'string' },
+    optional: {},
+  },
+  DKG_DISQUALIFY: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', target: 'string', reason: 'string' },
+    optional: {},
+  },
+  DKG_FINALIZE: {
+    required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', masterPublicKey: 'string' },
+    optional: {},
+  },
+};
+
+// IPC audit logging rate limiter
+const IPC_AUDIT_RATE_LIMIT = 100; // max per minute
+const _ipcAuditCounter = { count: 0, windowStart: 0 };
+
+/**
+ * Validate an incoming IPC message against its schema.
+ * Rejects unknown types, missing required fields, wrong types, and unknown fields.
+ * @param {object} msg - incoming message
+ * @param {object} socket - socket for peer identification
+ * @returns {boolean} true if valid, false if rejected
+ */
+function _validateMessageSchema(msg, socket) {
+  if (!msg || typeof msg !== 'object') {
+    _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+      reason: 'invalid_message_object',
+      peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+      siemSeverity: 'high',
+      siemCategory: 'ipc_schema_violation',
+      siemSource: 'cluster-keyring-sync',
+    });
+    return false;
+  }
+  const schema = IPC_SCHEMAS[msg.type];
+  if (!schema) {
+    _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+      reason: 'unknown_message_type',
+      msgType: msg.type,
+      peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+      siemSeverity: 'high',
+      siemCategory: 'ipc_schema_violation',
+      siemSource: 'cluster-keyring-sync',
+    });
+    return false;
+  }
+  // Check required fields
+  for (const [field, allowedTypes] of Object.entries(schema.required)) {
+    if (!(field in msg)) {
+      _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+        reason: 'missing_field',
+        field,
+        msgType: msg.type,
+        peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+        siemSeverity: 'high',
+        siemCategory: 'ipc_schema_violation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      return false;
+    }
+    const actualType = Array.isArray(msg[field]) ? 'array' : typeof msg[field];
+    const allowed = Array.isArray(allowedTypes) ? allowedTypes : [allowedTypes];
+    if (!allowed.includes(actualType)) {
+      _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+        reason: 'wrong_type',
+        field,
+        expected: allowed.join('|'),
+        actual: actualType,
+        msgType: msg.type,
+        peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+        siemSeverity: 'high',
+        siemCategory: 'ipc_schema_violation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      return false;
+    }
+  }
+  // Check for unknown fields (strict allowlist)
+  const allowedFields = new Set([...Object.keys(schema.required), ...Object.keys(schema.optional)]);
+  for (const field of Object.keys(msg)) {
+    if (!allowedFields.has(field)) {
+      _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+        reason: 'unknown_field',
+        field,
+        msgType: msg.type,
+        peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+        siemSeverity: 'high',
+        siemCategory: 'ipc_schema_violation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      return false;
+    }
+  }
+  // Rate-limited IPC audit logging
+  const now = Date.now();
+  if (now - _ipcAuditCounter.windowStart > 60000) {
+    _ipcAuditCounter.count = 0;
+    _ipcAuditCounter.windowStart = now;
+  }
+  _ipcAuditCounter.count++;
+  if (_ipcAuditCounter.count <= IPC_AUDIT_RATE_LIMIT) {
+    _recordEvent(EVENT_TYPES.IPC_MESSAGE_RECEIVED, msg.from || NODE_ID, {
+      msgType: msg.type,
+      peer: socket ? _peerKey(socket.remoteAddress, socket.remotePort) : 'unknown',
+    });
+  }
+  return true;
+}
+
 function _handleMessage(msg, socket) {
   if (!msg || !msg.type) return;
   const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
+  // Validate message schema before any processing
+  if (!_validateMessageSchema(msg, socket)) {
+    _log('warn', 'IPC schema violation — destroying socket', { peer: peerKey, msgType: msg.type });
+    socket.destroy();
+    return;
+  }
 
   if (msg.type === 'ANNOUNCE') {
     _peerState.set(peerKey, { lastSeen: Date.now(), nodeId: msg.nodeId });
@@ -1463,6 +1613,8 @@ module.exports = {
   _resetEpochState,
   _handleMessage,
   _resetEpoch,
+  _validateMessageSchema,
+  IPC_SCHEMAS,
   // SIEM alerting hooks
   registerSiemHook,
   _invokeSiemHooks,
