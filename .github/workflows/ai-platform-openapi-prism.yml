@@ -7,13 +7,6 @@ on:
       - '.github/workflows/ai-platform-openapi-prism.yml'
   push:
     branches:
-
-        - name: Verify Node/npm versions
-          run: |
-            echo "Debug: before install - node and npm versions"
-            node -v
-            npm -v
-
       - 'feature/**'
   workflow_dispatch: {}
 
