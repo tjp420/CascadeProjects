@@ -56,6 +56,34 @@ function _fromHex(hex) {
 }
 
 /**
+ * Validate a hybrid KEM handshake message against expected fields.
+ * All fields must be present and valid lowercase hex strings of expected length.
+ * @param {object} msg - parsed handshake message
+ * @param {string[]} expectedFields - fields to validate (e.g. ['ek_classic', 'ek_pq'])
+ * @param {object} [fieldLengths] - optional map of field -> expected hex length
+ * @throws {Error} if validation fails
+ */
+function _validateHandshakeMessage(msg, expectedFields, fieldLengths) {
+  if (!msg || typeof msg !== 'object') {
+    throw new Error('hybrid handshake: invalid message object');
+  }
+  for (const field of expectedFields) {
+    if (!(field in msg)) {
+      throw new Error('hybrid handshake: missing field ' + field);
+    }
+    if (typeof msg[field] !== 'string') {
+      throw new Error('hybrid handshake: field ' + field + ' must be a hex string');
+    }
+    if (!/^[0-9a-f]+$/.test(msg[field])) {
+      throw new Error('hybrid handshake: field ' + field + ' must be lowercase hex');
+    }
+    if (fieldLengths && fieldLengths[field] && msg[field].length !== fieldLengths[field]) {
+      throw new Error('hybrid handshake: field ' + field + ' has wrong length (expected ' + fieldLengths[field] + ', got ' + msg[field].length + ')');
+    }
+  }
+}
+
+/**
  * HKDF-Extract + HKDF-Expand combiner.
  * @param {Uint8Array|Buffer} ecdhSecret - X25519 shared secret (32 bytes)
  * @param {Uint8Array|Buffer} mlkemSecret - ML-KEM-768 shared secret (32 bytes)
@@ -268,6 +296,14 @@ async function createServerHandshaker(socket, opts = {}) {
 
   // 1. Read client hello
   const clientHello = await _readMessage(socket, timeoutMs);
+
+  // Validate handshake message schema
+  try {
+    _validateHandshakeMessage(clientHello, ['ek_classic', 'ek_pq']);
+  } catch (e) {
+    socket.destroy();
+    throw new Error('hybrid handshake abort: invalid client hello — ' + e.message);
+  }
 
   if (!clientHello.ek_classic) {
     throw new Error('hybrid handshake: client omitted ek_classic');
@@ -630,6 +666,7 @@ async function tryResumption(socket, stekById, bloomFilter, timeoutMs = 15000) {
 }
 
 module.exports = {
+  _validateHandshakeMessage,
   createClientHandshaker,
   createServerHandshaker,
   deriveSessionKey,
