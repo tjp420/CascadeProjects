@@ -1386,4 +1386,76 @@ router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), functi
 });
 
 
+// ── MuSig2 HSM Orchestrator endpoints (Option G) ───────────────────────
+
+/**
+ * Get the registered MuSig2 orchestrator instance (if any).
+ */
+function getMusig2Orchestrator() {
+  if (baseAdapter.getMusig2Orchestrator && typeof baseAdapter.getMusig2Orchestrator === 'function') {
+    return baseAdapter.getMusig2Orchestrator();
+  }
+  return null;
+}
+
+/**
+ * POST /api/vault/musig2/session/create
+ * Create a new MuSig2 signing session.
+ */
+router.post('/musig2/session/create', authorize('admin:all'), async function (req, res) {
+  try {
+    const orchestrator = getMusig2Orchestrator();
+    if (!orchestrator) {
+      return sendError(res, 503, 'musig2_not_configured', { message: 'MuSig2 HSM orchestrator is not registered' });
+    }
+    const { tenantId, participantIds, quorum, messageHash, keyShares } = req.body;
+    const sessionId = await orchestrator.createSession({ tenantId, participantIds, quorum, messageHash, keyShares });
+    res.json({ success: true, sessionId });
+  } catch (err) {
+    sendError(res, 400, 'musig2_session_create_failed', { message: err.message });
+  }
+});
+
+/**
+ * GET /api/vault/musig2/session/:sessionId/status
+ * Get MuSig2 session status.
+ */
+router.get('/musig2/session/:sessionId/status', authorize('admin:all'), function (req, res) {
+  try {
+    const orchestrator = getMusig2Orchestrator();
+    if (!orchestrator) {
+      return sendError(res, 503, 'musig2_not_configured', { message: 'MuSig2 HSM orchestrator is not registered' });
+    }
+    const status = orchestrator.getSessionStatus(req.params.sessionId);
+    res.json({ success: true, ...status });
+  } catch (err) {
+    sendError(res, 404, 'musig2_session_not_found', { message: err.message });
+  }
+});
+
+/**
+ * POST /api/vault/musig2/session/:sessionId/sign
+ * Execute the full MuSig2 signing round for a session.
+ */
+router.post('/musig2/session/:sessionId/sign', authorize('admin:all'), async function (req, res) {
+  try {
+    const orchestrator = getMusig2Orchestrator();
+    if (!orchestrator) {
+      return sendError(res, 503, 'musig2_not_configured', { message: 'MuSig2 HSM orchestrator is not registered' });
+    }
+    const sessionId = req.params.sessionId;
+    await orchestrator.generateNonces(sessionId);
+    await orchestrator.aggregateKeys(sessionId);
+    await orchestrator.computeBindingFactor(sessionId);
+    await orchestrator.evaluateShares(sessionId);
+    const signature = await orchestrator.assembleSignature(sessionId);
+    const verification = await orchestrator.verifySignature(sessionId);
+    hsmMetrics.incrementCounter('hsm_musig2_orch_session_completed_total');
+    res.json({ success: true, signature: { R: signature.R.toString(), s: signature.s.toString() }, verified: verification.valid });
+  } catch (err) {
+    hsmMetrics.incrementCounter('hsm_musig2_orch_session_failed_total');
+    sendError(res, 400, 'musig2_sign_failed', { message: err.message });
+  }
+});
+
 module.exports = router;
