@@ -133,6 +133,7 @@ const SUITES = [
   'track33-primitive-groundwork',
   'track33-core-gating',
   'track33-multi-tenant-fuzz',
+  'hsm-vault-accumulator-gating-routes',
 ];
 
 function resolveBaseTestFile(pattern) {
