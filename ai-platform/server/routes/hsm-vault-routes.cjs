@@ -2389,7 +2389,38 @@ router.post('/cross-cluster-migration/policy/validate', authorize('admin:all'), 
     const engine = new CryptoPolicyEngine({ default: {} });
     const tenantId = resolveOrgId(req);
     const config = req.body || {};
-    engine.validate(tenantId, 'crossClusterMigration', config);
+    // sanitize incoming config: coerce numeric strings, normalize booleans, and ensure arrays
+    const sanitized = { ...config };
+    // numeric fields
+    const numericFields = ['minQuorumNodes', 'maxConcurrentMigrations', 'maxShardsPerMigration'];
+    for (const f of numericFields) {
+      if (sanitized[f] !== undefined && typeof sanitized[f] === 'string') {
+        const n = Number(sanitized[f]);
+        if (!Number.isNaN(n) && Number.isFinite(n)) sanitized[f] = Math.trunc(n);
+      }
+    }
+    // boolean fields
+    const booleanFields = ['requireAttestation', 'requireQuorumCommit', 'requireRollbackOnFailure'];
+    for (const f of booleanFields) {
+      if (sanitized[f] !== undefined && typeof sanitized[f] === 'string') {
+        const v = sanitized[f].toLowerCase();
+        if (v === 'true' || v === 'false') sanitized[f] = v === 'true';
+      }
+    }
+    // allowedAttestationAuthorities should be an array of strings
+    if (sanitized.allowedAttestationAuthorities !== undefined) {
+      if (!Array.isArray(sanitized.allowedAttestationAuthorities)) {
+        if (typeof sanitized.allowedAttestationAuthorities === 'string') {
+          // comma-separated string -> array
+          sanitized.allowedAttestationAuthorities = sanitized.allowedAttestationAuthorities.split(',').map(s => s.trim()).filter(Boolean);
+        } else {
+          sanitized.allowedAttestationAuthorities = [];
+        }
+      }
+      sanitized.allowedAttestationAuthorities = sanitized.allowedAttestationAuthorities.filter(a => typeof a === 'string');
+    }
+
+    engine.validate(tenantId, 'crossClusterMigration', sanitized);
     res.json({ success: true, valid: true });
   } catch (err) {
     if (err.code === 'POLICY_VIOLATION_BLOCKED') {
