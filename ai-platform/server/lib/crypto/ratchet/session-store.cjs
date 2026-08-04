@@ -6,7 +6,7 @@ const Purger = require('../../storage/purger.cjs');
 const { writeAtomicSync } = require('../../fs-atomic.cjs');
 const { encryptEnvelope, decryptEnvelope } = require('./envelope-crypto.cjs');
 
-const BASE_DIR = path.join(__dirname, '..', '..', '.data', 'ratchet-sessions');
+const BASE_DIR = process.env.RATCHET_SESSIONS_DIR || path.join(__dirname, '..', '..', '.data', 'ratchet-sessions');
 
 function sanitizeId(id) {
   if (typeof id !== 'string') throw new Error('invalid id');
@@ -149,6 +149,15 @@ class SessionStore {
           out.ck = out.ck.toString('base64');
         }
       }
+      if (out.handshakeDigest && (Buffer.isBuffer(out.handshakeDigest) || typeof out.handshakeDigest === 'string')) {
+        try {
+          const raw = Buffer.isBuffer(out.handshakeDigest) ? out.handshakeDigest : Buffer.from(out.handshakeDigest, 'utf8');
+          out.handshakeDigestEncrypted = encryptEnvelope(raw);
+          delete out.handshakeDigest;
+        } catch (e) {
+          out.handshakeDigest = Buffer.isBuffer(out.handshakeDigest) ? out.handshakeDigest.toString('base64') : String(out.handshakeDigest);
+        }
+      }
       if (out.localKeyPair) {
         const lk = out.localKeyPair;
         if (lk.publicKeyDer && Buffer.isBuffer(lk.publicKeyDer)) {
@@ -188,6 +197,11 @@ class SessionStore {
         try { rec.ck = decryptEnvelope(rec.ckEncrypted); } catch (e) { rec.ck = null; }
       } else if (rec.ck && typeof rec.ck === 'string') {
         rec.ck = Buffer.from(rec.ck, 'base64');
+      }
+      if (rec.handshakeDigestEncrypted && typeof rec.handshakeDigestEncrypted === 'string') {
+        try { rec.handshakeDigest = decryptEnvelope(rec.handshakeDigestEncrypted); } catch (e) { rec.handshakeDigest = null; }
+      } else if (rec.handshakeDigest && typeof rec.handshakeDigest === 'string') {
+        rec.handshakeDigest = Buffer.from(rec.handshakeDigest, 'base64');
       }
       if (rec.localKeyPair && rec.localKeyPair.publicKeyDer) {
         const pubDer = Buffer.from(rec.localKeyPair.publicKeyDer, 'base64');

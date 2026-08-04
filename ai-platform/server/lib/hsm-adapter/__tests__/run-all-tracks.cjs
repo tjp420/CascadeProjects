@@ -124,6 +124,7 @@ const SUITES = [
   'recursive-proof-aggregation-engine',
   'lookup-gating',
   'tenant-boundary-saturation',
+  'track113-endpoint-integration',
 ];
 
 function resolveBaseTestFile(pattern) {
