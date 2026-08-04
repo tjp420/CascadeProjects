@@ -789,6 +789,18 @@ const IPC_SCHEMAS = {
     required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', masterPublicKey: 'string' },
     optional: {},
   },
+  SIEM_BUCKET_SYNC: {
+    required: { type: 'string', from: 'string', localTokens: 'number', maxLocalTokens: 'number' },
+    optional: { timestamp: 'number' },
+  },
+  SIEM_TOKEN_REQUEST: {
+    required: { type: 'string', from: 'string', to: 'string', requested: 'number' },
+    optional: { timestamp: 'number' },
+  },
+  SIEM_TOKEN_GRANT: {
+    required: { type: 'string', from: 'string', to: 'string', granted: 'number' },
+    optional: { timestamp: 'number' },
+  },
 };
 
 // IPC audit logging rate limiter
@@ -962,6 +974,20 @@ function _handleMessage(msg, socket) {
 
   if (msg.type === 'PING') {
     _sendMessage(socket, { type: 'PONG', from: NODE_ID, epoch: _state.epoch });
+  }
+
+  // SIEM distributed token bucket sync messages
+  if (msg.type === 'SIEM_BUCKET_SYNC' || msg.type === 'SIEM_TOKEN_REQUEST' || msg.type === 'SIEM_TOKEN_GRANT') {
+    if (_broker && typeof _broker.handlePeerSync === 'function') {
+      if (msg.type === 'SIEM_BUCKET_SYNC') {
+        _broker.handlePeerSync(msg);
+      } else if (msg.type === 'SIEM_TOKEN_REQUEST') {
+        _broker.handleTokenRequest(msg);
+      } else if (msg.type === 'SIEM_TOKEN_GRANT') {
+        _broker.handleTokenGrant(msg);
+      }
+    }
+    return;
   }
 }
 

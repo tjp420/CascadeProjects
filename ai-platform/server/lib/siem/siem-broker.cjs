@@ -130,6 +130,10 @@ class SiemSecurityBroker extends EventEmitter {
       this._metrics.siem_tokens_consumed_total += 1;
       return true;
     }
+    // Attempt to borrow from peers if distributed sync is enabled
+    if (this._distEnabled) {
+      return this._borrowFromPeers();
+    }
     return false;
   }
 
@@ -223,9 +227,212 @@ class SiemSecurityBroker extends EventEmitter {
   close() {
     try {
       clearInterval(this._refillTimer);
+      if (this._distSyncTimer) clearInterval(this._distSyncTimer);
       this.removeAllListeners();
     } catch {}
   }
 }
+
+// ── Distributed Token Bucket Coordination ───────────────────────
+//
+// Extends the broker with gossip-based token bucket synchronization for
+// N-node clusters. Each node gets a fair-share quota (maxTokens / N) and
+// can borrow surplus tokens from peers when exhausted. The cluster-wide
+// effective rate limit converges to maxTokens regardless of node count.
+//
+// Protocol:
+//   1. SIEM_BUCKET_SYNC  — periodic state broadcast (localTokens, capacity)
+//   2. SIEM_TOKEN_REQUEST — ask a peer for tokens when local bucket empty
+//   3. SIEM_TOKEN_GRANT   — peer grants tokens from its surplus
+//
+// Failure mode: if peers are unreachable (partition), each node falls back
+// to its fair-share limit. CRITICAL/FATAL always bypass — invariant preserved.
+
+const SYNC_INTERVAL_MS = 5000;
+const RESERVE_FLOOR_RATIO = 0.2; // each node keeps at least 20% of its fair share
+
+/**
+ * Enable distributed token bucket coordination.
+ * Must be called after the cluster has elected a leader and the node
+ * count is known. The broker will broadcast its bucket state to peers
+ * via the provided sendFn and process incoming sync messages via
+ * handlePeerSync().
+ *
+ * @param {object} opts
+ * @param {number} opts.nodeCount — N (total nodes in cluster)
+ * @param {string} opts.nodeId — this node's ID
+ * @param {function} opts.sendFn — (msg) => void, called to broadcast to peers
+ * @param {number} [opts.syncIntervalMs] — gossip interval (default 5000ms)
+ */
+SiemSecurityBroker.prototype.enableDistributedSync = function (opts) {
+  if (!opts || typeof opts.nodeCount !== 'number' || opts.nodeCount < 1) {
+    throw new Error('enableDistributedSync: nodeCount must be a positive integer');
+  }
+  this._distNodeCount = opts.nodeCount;
+  this._nodeId = opts.nodeId || 'node-1';
+  this._sendToPeers = typeof opts.sendFn === 'function' ? opts.sendFn : null;
+  this._syncInterval = opts.syncIntervalMs || SYNC_INTERVAL_MS;
+  this._peerBuckets = new Map(); // nodeId -> { localTokens, maxLocalTokens, lastSeen }
+  this._distEnabled = true;
+
+  // Adjust local capacity to fair share
+  const fairShare = Math.max(1, Math.floor(this.maxTokens / this._distNodeCount));
+  this._fairShare = fairShare;
+  this._reserveFloor = Math.max(1, Math.floor(fairShare * RESERVE_FLOOR_RATIO));
+  // If current tokens exceed fair share, cap them
+  if (this.tokens > fairShare) this.tokens = fairShare;
+
+  // Start gossip timer
+  this._distSyncTimer = setInterval(() => {
+    this._broadcastBucketState();
+  }, this._syncInterval);
+  if (this._distSyncTimer.unref) this._distSyncTimer.unref();
+
+  // Broadcast initial state
+  this._broadcastBucketState();
+};
+
+/**
+ * Broadcast this node's bucket state to all peers.
+ * @private
+ */
+SiemSecurityBroker.prototype._broadcastBucketState = function () {
+  if (!this._distEnabled || !this._sendToPeers) return;
+  try {
+    this._sendToPeers({
+      type: 'SIEM_BUCKET_SYNC',
+      from: this._nodeId,
+      localTokens: this.tokens,
+      maxLocalTokens: this._fairShare,
+      timestamp: Date.now(),
+    });
+  } catch {}
+};
+
+/**
+ * Handle an incoming SIEM_BUCKET_SYNC message from a peer.
+ * Updates the peer bucket state map.
+ * @param {object} msg — { from, localTokens, maxLocalTokens, timestamp }
+ */
+SiemSecurityBroker.prototype.handlePeerSync = function (msg) {
+  if (!this._distEnabled || !msg || msg.type !== 'SIEM_BUCKET_SYNC') return;
+  try {
+    this._peerBuckets.set(msg.from, {
+      localTokens: msg.localTokens,
+      maxLocalTokens: msg.maxLocalTokens,
+      lastSeen: Date.now(),
+    });
+  } catch {}
+};
+
+/**
+ * Handle an incoming SIEM_TOKEN_REQUEST from a peer.
+ * Grants tokens from surplus if available (above reserve floor).
+ * @param {object} msg — { from, requested }
+ * @returns {number} — number of tokens granted (0 if none)
+ */
+SiemSecurityBroker.prototype.handleTokenRequest = function (msg) {
+  if (!this._distEnabled || !msg || msg.type !== 'SIEM_TOKEN_REQUEST') return 0;
+  try {
+    const requested = Math.min(msg.requested || 0, this._fairShare);
+    const surplus = this.tokens - this._reserveFloor;
+    if (surplus <= 0) return 0;
+    const granted = Math.min(requested, surplus);
+    this.tokens -= granted;
+    this._metrics.siem_tokens_consumed_total += granted;
+
+    // Send grant response
+    if (this._sendToPeers) {
+      this._sendToPeers({
+        type: 'SIEM_TOKEN_GRANT',
+        from: this._nodeId,
+        to: msg.from,
+        granted,
+        timestamp: Date.now(),
+      });
+    }
+    return granted;
+  } catch {
+    return 0;
+  }
+};
+
+/**
+ * Handle an incoming SIEM_TOKEN_GRANT from a peer.
+ * Adds granted tokens to the local bucket (capped at maxTokens).
+ * @param {object} msg — { from, granted }
+ */
+SiemSecurityBroker.prototype.handleTokenGrant = function (msg) {
+  if (!this._distEnabled || !msg || msg.type !== 'SIEM_TOKEN_GRANT') return;
+  try {
+    if (msg.to !== this._nodeId) return; // not for us
+    const space = this.maxTokens - this.tokens;
+    const accepted = Math.min(msg.granted || 0, space);
+    this.tokens += accepted;
+  } catch {}
+};
+
+/**
+ * Attempt to borrow tokens from peers when the local bucket is empty.
+ * Called internally by _consumeToken when the local bucket is exhausted.
+ * @private
+ * @returns {boolean} — true if tokens were borrowed successfully
+ */
+SiemSecurityBroker.prototype._borrowFromPeers = function () {
+  if (!this._distEnabled || !this._sendToPeers) return false;
+  let borrowed = 0;
+  const needed = Math.max(1, Math.floor(this._fairShare * 0.5));
+
+  for (const [peerId, peer] of this._peerBuckets) {
+    if (borrowed >= needed) break;
+    const peerSurplus = peer.localTokens - this._reserveFloor;
+    if (peerSurplus > 0) {
+      // Send token request to this peer
+      try {
+        this._sendToPeers({
+          type: 'SIEM_TOKEN_REQUEST',
+          from: this._nodeId,
+          to: peerId,
+          requested: Math.min(needed - borrowed, peerSurplus),
+          timestamp: Date.now(),
+        });
+      } catch {}
+    }
+  }
+
+  // In a real async network, grants arrive via handleTokenGrant().
+  // For synchronous testing, peers may grant immediately via handleTokenRequest.
+  // The actual token addition happens when handleTokenGrant is called.
+  return this.tokens > 0;
+};
+
+/**
+ * Get distributed sync state for diagnostics.
+ * @returns {object}
+ */
+SiemSecurityBroker.prototype.getDistributedState = function () {
+  if (!this._distEnabled) {
+    return {
+      enabled: false,
+      nodeId: null,
+      nodeCount: null,
+      fairShare: null,
+      reserveFloor: null,
+      localTokens: this.tokens,
+      peerCount: 0,
+      peers: {},
+    };
+  }
+  return {
+    enabled: true,
+    nodeId: this._nodeId,
+    nodeCount: this._distNodeCount,
+    fairShare: this._fairShare,
+    reserveFloor: this._reserveFloor,
+    localTokens: this.tokens,
+    peerCount: this._peerBuckets.size,
+    peers: Object.fromEntries(this._peerBuckets),
+  };
+};
 
 module.exports = SiemSecurityBroker;

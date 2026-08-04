@@ -506,6 +506,101 @@ check('event immutability preserved through full flow', () => {
   assert.ok(batchQueue[0].timestamp, 'event should have timestamp');
 });
 
+// ── Distributed Token Bucket Sync ─────────────────────────────────────────
+//
+// Verifies that N brokers with distributed sync enabled converge to a
+// cluster-wide rate limit of maxTokens (not N × maxTokens).
+
+console.log('\n─ Distributed Token Bucket Sync ──────────────────────');
+
+check('Distributed: enableDistributedSync sets fair share', () => {
+  const b = new SiemSecurityBroker({ rateLimitMaxTokens: 100, rateLimitRefillRateMs: 999999, transportStrategy: 'STDOUT_ONLY' });
+  b._dispatch = () => {};
+  b.enableDistributedSync({ nodeCount: 4, nodeId: 'test-1', sendFn: () => {}, syncIntervalMs: 999999 });
+  const state = b.getDistributedState();
+  assert.strictEqual(state.fairShare, 25, 'fair share should be 100/4');
+  assert.strictEqual(state.enabled, true);
+  b.close();
+});
+
+check('Distributed: handlePeerSync records peer state', () => {
+  const b = new SiemSecurityBroker({ rateLimitMaxTokens: 100, rateLimitRefillRateMs: 999999, transportStrategy: 'STDOUT_ONLY' });
+  b._dispatch = () => {};
+  b.enableDistributedSync({ nodeCount: 3, nodeId: 'test-1', sendFn: () => {}, syncIntervalMs: 999999 });
+  b.handlePeerSync({ type: 'SIEM_BUCKET_SYNC', from: 'peer-1', localTokens: 10, maxLocalTokens: 33 });
+  assert.strictEqual(b.getDistributedState().peerCount, 1);
+  b.close();
+});
+
+check('Distributed: handleTokenRequest grants from surplus', () => {
+  const b = new SiemSecurityBroker({ rateLimitMaxTokens: 100, rateLimitRefillRateMs: 999999, transportStrategy: 'STDOUT_ONLY' });
+  b._dispatch = () => {};
+  b.enableDistributedSync({ nodeCount: 4, nodeId: 'test-1', sendFn: () => {}, syncIntervalMs: 999999 });
+  const granted = b.handleTokenRequest({ type: 'SIEM_TOKEN_REQUEST', from: 'peer-1', to: 'test-1', requested: 10 });
+  assert.ok(granted > 0, 'should grant from surplus');
+  b.close();
+});
+
+check('Distributed: handleTokenGrant adds tokens to local bucket', () => {
+  const b = new SiemSecurityBroker({ rateLimitMaxTokens: 100, rateLimitRefillRateMs: 999999, transportStrategy: 'STDOUT_ONLY' });
+  b._dispatch = () => {};
+  b.enableDistributedSync({ nodeCount: 4, nodeId: 'test-1', sendFn: () => {}, syncIntervalMs: 999999 });
+  b.tokens = 0;
+  b.handleTokenGrant({ type: 'SIEM_TOKEN_GRANT', from: 'peer-1', to: 'test-1', granted: 10 });
+  assert.strictEqual(b.tokens, 10, 'should have 10 tokens after grant');
+  b.close();
+});
+
+check('Distributed: N=3 cluster total events ≤ maxTokens', () => {
+  const maxTokens = 60;
+  const brokers = [];
+  const bus = {
+    send(fromId, msg) {
+      for (const b of brokers) {
+        if (b._nodeId === fromId) continue;
+        if (msg.type === 'SIEM_BUCKET_SYNC') b.handlePeerSync(msg);
+        else if (msg.type === 'SIEM_TOKEN_REQUEST') b.handleTokenRequest(msg);
+        else if (msg.type === 'SIEM_TOKEN_GRANT') b.handleTokenGrant(msg);
+      }
+    },
+  };
+  for (let i = 0; i < 3; i++) {
+    const b = new SiemSecurityBroker({ rateLimitMaxTokens: maxTokens, rateLimitRefillRateMs: 999999, transportStrategy: 'STDOUT_ONLY' });
+    b._dispatch = function (e) { this.emit('test_evt', e); };
+    brokers.push(b);
+  }
+  for (let i = 0; i < brokers.length; i++) {
+    brokers[i].enableDistributedSync({ nodeCount: 3, nodeId: `n-${i + 1}`, sendFn: (m) => bus.send(`n-${i + 1}`, m), syncIntervalMs: 999999 });
+  }
+  for (const b of brokers) b._broadcastBucketState();
+  let total = 0;
+  for (const b of brokers) b.on('test_evt', () => total++);
+  for (let i = 0; i < 200; i++) brokers[i % 3].logEvent({ siemSeverity: 'LOW', siemCategory: `E${i}` });
+  assert.ok(total <= maxTokens, `total (${total}) should not exceed maxTokens (${maxTokens})`);
+  for (const b of brokers) b.close();
+});
+
+check('Distributed: CRITICAL bypasses distributed rate limiter', () => {
+  const b = new SiemSecurityBroker({ rateLimitMaxTokens: 30, rateLimitRefillRateMs: 999999, transportStrategy: 'STDOUT_ONLY' });
+  b._dispatch = () => {};
+  b.enableDistributedSync({ nodeCount: 3, nodeId: 'test-1', sendFn: () => {}, syncIntervalMs: 999999 });
+  b.tokens = 0;
+  const result = b.logEvent({ siemSeverity: 'CRITICAL', siemCategory: 'ATTACK' });
+  assert.strictEqual(result, true, 'CRITICAL must bypass distributed limiter');
+  b.close();
+});
+
+check('Distributed: partition fallback — node processes fair share only', () => {
+  const b = new SiemSecurityBroker({ rateLimitMaxTokens: 60, rateLimitRefillRateMs: 999999, transportStrategy: 'STDOUT_ONLY' });
+  b._dispatch = function (e) { this.emit('test_evt', e); };
+  b.enableDistributedSync({ nodeCount: 3, nodeId: 'test-1', sendFn: () => {}, syncIntervalMs: 999999 });
+  let processed = 0;
+  b.on('test_evt', () => processed++);
+  for (let i = 0; i < 100; i++) b.logEvent({ siemSeverity: 'LOW', siemCategory: `E${i}` });
+  assert.strictEqual(processed, 20, 'partitioned node should process exactly fair share (20)');
+  b.close();
+});
+
 // ΓöÇΓöÇ Cleanup ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 broker.close();
