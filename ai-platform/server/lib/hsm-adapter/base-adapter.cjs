@@ -2802,4 +2802,6 @@ module.exports = {
   getMixnetBlindTransactionEngine,
   registerRecursiveProofAggregationEngine,
   getRecursiveProofAggregationEngine,
+  registerMusig2Orchestrator,
+  getMusig2Orchestrator,
 };
