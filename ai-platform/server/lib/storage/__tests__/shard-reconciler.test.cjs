@@ -19,6 +19,40 @@ describe('Shard reconciler recovery loop integration', () => {
     expect(res.ok).toBe(true);
   });
 
+  test('verifyShardContinuity detects gaps and duplicates, schedules repair with jitter', async () => {
+    const provider = async () => [
+      { tenantId: 't1', shardId: 'sh-gap', records: [{ seq: 1 }, { seq: 2 }, { seq: 4 }] },
+      { tenantId: 't2', shardId: 'sh-dup', records: [{ seq: 10 }, { seq: 11 }, { seq: 11 }, { seq: 12 }] },
+    ];
+
+    const r = new ShardReconciler({ pollIntervalMs: 1000, shardProvider: provider });
+    const seen = [];
+    r.on('shard:out_of_sync', (ev) => seen.push(ev));
+
+    const repairs = [];
+    r.on('reconcile:requested', (payload) => repairs.push(payload));
+
+    const issues = await r.verifyShardContinuity();
+    expect(issues.length).toBe(2);
+    expect(seen.length).toBe(2);
+
+    await new Promise((res) => setTimeout(res, 50));
+
+    expect(repairs.length).toBeGreaterThanOrEqual(1);
+    const gapPayload = repairs.find((p) => p && p.shardId === 'sh-gap');
+    expect(gapPayload).toBeTruthy();
+    expect(typeof gapPayload.repairJitterMs).toBe('number');
+    expect(gapPayload.repairJitterMs).toBe(r.repairJitterMs);
+
+    const before = repairs.length;
+    await r.verifyShardContinuity();
+    await new Promise((res) => setTimeout(res, 50));
+    expect(repairs.length).toBe(before);
+
+    const resSync = await r.triggerSync(['sh-gap']);
+    expect(resSync && resSync.ok).toBe(true);
+  });
+
   test('reconcile restores valid single-tenant request', async () => {
     const r = new ShardReconciler();
     const res = await r.reconcile({
