@@ -1,0 +1,41 @@
+name: CI Telemetry Aggregation
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # daily at midnight UTC
+  workflow_dispatch: {}
+
+jobs:
+  aggregate:
+    name: Aggregate CI Telemetry
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install unzip (if missing)
+        run: sudo apt-get update && sudo apt-get install -y unzip
+
+      - name: Run aggregator
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI_TELEMETRY_RETENTION_DAYS: '30'
+          CI_TELEMETRY_BRANCHES: 'all'
+        run: |
+          node ai-platform/tools/ci-telemetry/aggregate-artifacts.cjs
+
+      - name: Upload aggregated telemetry
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-telemetry-history
+          path: ai-platform/test-results/ci-telemetry-history.json
+          retention-days: 90
