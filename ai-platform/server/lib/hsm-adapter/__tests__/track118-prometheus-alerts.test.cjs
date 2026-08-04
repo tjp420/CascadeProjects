@@ -212,7 +212,11 @@ describe('Track 118 Prometheus alert rule compliance', () => {
   // ── L3-03: No secrets in alert YAML ─────────────────────────────────
   test('ALERT-118-L3-03: no secrets in Track 118 alert YAML section', () => {
     const yamlText = fs.readFileSync(ALERTS_YML, 'utf8');
-    const track118Section = yamlText.slice(yamlText.indexOf('track118_distributed_consensus_coordinator_alerts'));
+    const track118Start = yamlText.indexOf('track118_distributed_consensus_coordinator_alerts');
+    const nextGroupIdx = yamlText.indexOf('\n  - name: track', track118Start + 1);
+    const track118Section = nextGroupIdx > 0
+      ? yamlText.slice(track118Start, nextGroupIdx)
+      : yamlText.slice(track118Start);
     const secretPatterns = [/password\s*[:=]/i, /api[_-]?key\s*[:=]/i, /private[_-]?key\s*[:=]/i, /[0-9a-f]{64}/i];
     for (const p of secretPatterns) {
       expect(track118Section).not.toMatch(p);
@@ -251,7 +255,12 @@ describe('Track 118 Prometheus alert rule compliance', () => {
   // ── S-01: No credentials / PII in alert rules or runbooks ───────────
   test('ALERT-118-S-01: no credentials or PII in alert rules or runbook files', () => {
     const yamlText = fs.readFileSync(ALERTS_YML, 'utf8');
-    const track118Section = yamlText.slice(yamlText.indexOf('track118_distributed_consensus_coordinator_alerts'));
+    const track118Start = yamlText.indexOf('track118_distributed_consensus_coordinator_alerts');
+    // Bound the slice to just the Track 118 section (stop at the next group or end of file)
+    const nextGroupIdx = yamlText.indexOf('\n  - name: track', track118Start + 1);
+    const track118Section = nextGroupIdx > 0
+      ? yamlText.slice(track118Start, nextGroupIdx)
+      : yamlText.slice(track118Start);
     expect(track118Section).not.toContain('credential');
     expect(track118Section).not.toContain('userEmail');
     expect(track118Section).not.toContain('apiKey');
