@@ -538,3 +538,125 @@ groups:
           summary: "Track 117 shard sync lagging nodes spike"
           description: "More than 4 nodes are persistently trailing behind the active BFT shard synchronization baseline over the last 5 minutes, indicating possible network degradation or node overload."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK117_SHARD_SYNC_LAGGING_NODES_SPIKE.md"
+
+  # ── Track 118: Distributed Consensus Coordinator alerts ──────────────
+  - name: track118_distributed_consensus_coordinator_alerts
+    interval: 15s
+    rules:
+      - alert: Track118ViewChangeAbortSpike
+        expr: |
+          rate(hsm_consensus_coord_view_change_aborted_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+          track: "118"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-distributed-consensus-coordinator
+        annotations:
+          summary: "Track 118 view change abort spike"
+          description: "More than 1 view change abort per second is being recorded over the last 5 minutes, indicating possible network partition, byzantine node behavior, or view-change protocol gridlock."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_VIEW_CHANGE_ABORT_SPIKE.md"
+
+      - alert: Track118ViewChangeCompletionStall
+        expr: |
+          rate(hsm_consensus_coord_view_change_started_total[10m]) > 0
+          and
+          rate(hsm_consensus_coord_view_change_completed_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "118"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-distributed-consensus-coordinator
+        annotations:
+          summary: "Track 118 view change completions have stalled"
+          description: "View change procedures are being initiated but none have completed successfully over the last 10 minutes, indicating possible deadlock, timeout misconfiguration, or worker pool starvation."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_VIEW_CHANGE_COMPLETION_STALL.md"
+
+      - alert: Track118FaultDetectionSpike
+        expr: |
+          rate(hsm_consensus_coord_faults_detected_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          track: "118"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-distributed-consensus-coordinator
+        annotations:
+          summary: "Track 118 fault detection spike"
+          description: "More than 5 node faults per second are being detected over the last 5 minutes, indicating possible cascading node failures, network instability, or byzantine behavior across consensus groups."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_FAULT_DETECTION_SPIKE.md"
+
+      - alert: Track118ProposalRejectionRateHigh
+        expr: |
+          rate(hsm_consensus_coord_proposals_rejected_total[5m])
+          /
+          (
+            rate(hsm_consensus_coord_proposals_routed_total[5m])
+            +
+            rate(hsm_consensus_coord_proposals_rejected_total[5m])
+            + 1
+          ) > 0.3
+        for: 2m
+        labels:
+          severity: warning
+          track: "118"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-distributed-consensus-coordinator
+        annotations:
+          summary: "Track 118 proposal rejection rate is above 30%"
+          description: "More than 30% of consensus proposals are being rejected over the last 5 minutes, indicating possible group routing misconfiguration, stale group references, or unauthorized proposal submission."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_PROPOSAL_REJECTION_RATE_HIGH.md"
+
+      - alert: Track118QuorumDenialSpike
+        expr: |
+          rate(hsm_consensus_coord_quorum_denied_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          track: "118"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-distributed-consensus-coordinator
+        annotations:
+          summary: "Track 118 quorum denial spike"
+          description: "More than 10 quorum denials per second are being recorded over the last 5 minutes, indicating possible quorum configuration drift, node unavailability, or byzantine voting behavior."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_QUORUM_DENIAL_SPIKE.md"
+
+      - alert: Track118GroupChurnImbalance
+        expr: |
+          rate(hsm_consensus_coord_groups_destroyed_total[15m])
+          >
+          rate(hsm_consensus_coord_groups_created_total[15m])
+        for: 10m
+        labels:
+          severity: warning
+          track: "118"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-distributed-consensus-coordinator
+        annotations:
+          summary: "Track 118 group churn imbalance"
+          description: "Consensus groups are being destroyed at a higher rate than they are being created over the last 15 minutes, indicating possible group lifecycle instability, resource exhaustion, or misconfigured auto-scaling."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_GROUP_CHURN_IMBALANCE.md"
+
+      - alert: Track118QuorumVerificationStall
+        expr: |
+          rate(hsm_consensus_coord_proposals_routed_total[10m]) > 0
+          and
+          rate(hsm_consensus_coord_quorum_verified_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "118"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-distributed-consensus-coordinator
+        annotations:
+          summary: "Track 118 quorum verification has stalled"
+          description: "Proposals are being routed to consensus groups but no quorum verifications are completing over the last 10 minutes, indicating possible quorum engine failure, voter pool starvation, or cross-group routing breakdown."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK118_QUORUM_VERIFICATION_STALL.md"
