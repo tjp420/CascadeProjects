@@ -470,7 +470,10 @@ class Musig2HsmOrchestrator {
     }
 
     const kekId = await this._getOrCreateKek(tenantId);
-    const plaintext = Buffer.from(keyShare.toString(16), 'hex');
+    // Encode BigInt as hex with even-length padding for unambiguous decoding
+    const hex = keyShare.toString(16);
+    const paddedHex = hex.length % 2 === 0 ? hex : '0' + hex;
+    const plaintext = Buffer.from(paddedHex, 'hex');
     const wrapped = await this._hsmAdapter.wrap(tenantId, kekId, plaintext);
 
     hsmMetrics.incrementCounter('hsm_musig2_orch_key_share_wrapped_total');
@@ -502,7 +505,8 @@ class Musig2HsmOrchestrator {
       throw new HsmAdapterError('UNWRAP_FAILED', `HSM unwrap failed: ${e.message}`);
     }
 
-    const keyShare = BigInt('0x' + plaintext.toString('hex'));
+    const hex = plaintext.toString('hex') || '0';
+    const keyShare = BigInt('0x' + hex);
     this._emit(ORCHESTRATOR_EVENT.KEY_SHARE_UNWRAPPED, { tenantId });
     return keyShare;
   }

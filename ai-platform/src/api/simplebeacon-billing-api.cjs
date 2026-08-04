@@ -89,7 +89,7 @@ const { validateProjectToken } = require('./billing/validate-project-token.cjs')
 const { verifyLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
 const { getLicenseToken } = require('../../server/lib/token-db.cjs');
 const { verifyToken } = require('../../server/lib/auth/token-service.cjs');
-const { recordCiTelemetryEvent, summarizeCiTelemetry } = require('../../server/lib/ci-telemetry-store.cjs');
+const { recordCiTelemetryEvent, summarizeCiTelemetry, summarizeTeamTelemetry, getTeamTrend, sanitizeTeamTelemetryPayload, resolveOrgKey } = require('../../server/lib/ci-telemetry-store.cjs');
 
 function resolveLicenseSecret() {
   const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
@@ -867,11 +867,57 @@ function setupSimplebeaconBillingRoutes(app) {
     return null;
   }
 
-  const CI_TELEMETRY_FIELDS = [
-    'event', 'timestamp', 'tier', 'repository', 'workflow', 'run_id', 'ref',
-    'pull_request', 'gate_pass', 'gates_tripped', 'blocking_count', 'critical_blocked',
-    'high_blocked', 'medium_count', 'files_scanned', 'diff_only', 'diff_files', 'quality_score'
-  ];
+  const COMMUNITY_TIERS = new Set(['community', 'free']);
+
+  /**
+   * @param {Object|null|undefined} subscription
+   * @returns {boolean}
+   */
+  function hasTeamComplianceLicense(subscription) {
+    const tier = String(subscription?.licenseTier || subscription?.tier || 'community').toLowerCase();
+    return !COMMUNITY_TIERS.has(tier);
+  }
+
+  /**
+   * Resolve org-scoped team telemetry context for authenticated team/compliance users.
+   * @param {import('express').Request} req
+   * @param {string} bearerToken
+   * @returns {Promise<{ email: string, subscription: Object, orgKey: string }|{ status: number, error: string, message: string }>}
+   */
+  async function resolveTeamTelemetryContext(req, bearerToken) {
+    const authHeader = String(req.headers.authorization || '');
+    const token = bearerToken || (authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '');
+    let email = await resolveCiTelemetryAccountEmail(req, token);
+    if (!email) {
+      const qEmail = normalizeEmail(req.query.email);
+      if (qEmail) {
+        const record = await getSubscriptionByEmail(qEmail);
+        if (record?.subscriptionActive || record?.licenseToken) {
+          email = qEmail;
+        }
+      }
+    }
+    if (!email) {
+      return {
+        status: 401,
+        error: 'auth_required',
+        message: 'Sign in or provide a valid license token.'
+      };
+    }
+    const subscription = await getSubscriptionByEmail(email);
+    if (!hasTeamComplianceLicense(subscription)) {
+      return {
+        status: 403,
+        error: 'team_license_required',
+        message: 'Team telemetry requires a team or compliance license.'
+      };
+    }
+    return {
+      email,
+      subscription: subscription || {},
+      orgKey: resolveOrgKey(email, subscription)
+    };
+  }
 
   app.post('/api/simplebeacon/ci/telemetry', async (req, res) => {
     const authHeader = String(req.headers.authorization || '');
@@ -883,14 +929,27 @@ function setupSimplebeaconBillingRoutes(app) {
     if (!email) {
       return res.status(403).json({ error: 'invalid_token', message: 'License token is invalid or not registered.' });
     }
-    const payload = {};
-    for (const key of CI_TELEMETRY_FIELDS) {
-      if (req.body && req.body[key] !== undefined) {
-        payload[key] = req.body[key];
-      }
+    const subscription = await getSubscriptionByEmail(email);
+    const legacyFields = process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === '1'
+      || process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === 'true';
+    const { payload, stripped, rejected } = sanitizeTeamTelemetryPayload(req.body || {}, { legacyFields });
+    if (rejected.length > 0) {
+      return res.status(400).json({
+        error: 'forbidden_fields',
+        message: 'Telemetry payload contains forbidden fields or values.',
+        rejected
+      });
     }
-    const event = recordCiTelemetryEvent(email, payload);
-    return res.json({ ok: true, id: event.id, recordedAt: event.recordedAt });
+    const event = recordCiTelemetryEvent(email, payload, {
+      orgKey: resolveOrgKey(email, subscription),
+      subscription
+    });
+    return res.json({
+      ok: true,
+      id: event.id,
+      recordedAt: event.recordedAt,
+      ...(stripped.length > 0 ? { stripped } : {})
+    });
   });
 
   app.get('/api/simplebeacon/ci/telemetry/summary', async (req, res) => {
@@ -910,7 +969,56 @@ function setupSimplebeaconBillingRoutes(app) {
       return res.status(401).json({ error: 'auth_required', message: 'Sign in or provide a valid license token.' });
     }
     const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
-    return res.json(summarizeCiTelemetry(email, { days }));
+    const summary = summarizeCiTelemetry(email, { days });
+    const subscription = await getSubscriptionByEmail(email);
+    if (subscription && hasTeamComplianceLicense(subscription)) {
+      const orgKey = resolveOrgKey(email, subscription);
+      const teamSummary = summarizeTeamTelemetry(orgKey, { days });
+      return res.json({
+        ...summary,
+        gate_pass_rate: teamSummary.gate_pass_rate,
+        quality_distribution: teamSummary.quality_distribution,
+        scan_sources: teamSummary.scan_sources,
+        severity_totals: teamSummary.severity_totals,
+        distinct_workspaces: teamSummary.distinct_workspaces,
+        k_anonymity_met: teamSummary.k_anonymity_met,
+        ...(teamSummary.workspace_breakdown ? { workspace_breakdown: teamSummary.workspace_breakdown } : {})
+      });
+    }
+    return res.json(summary);
+  });
+
+  app.get('/api/simplebeacon/team/telemetry/trend', async (req, res) => {
+    const authHeader = String(req.headers.authorization || '');
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const context = await resolveTeamTelemetryContext(req, token);
+    if (context.status) {
+      return res.status(context.status).json({
+        error: context.error,
+        message: context.message
+      });
+    }
+    const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
+    const trend = getTeamTrend(context.orgKey, { days, granularity: 'day' });
+    return res.json({ trend, granularity: 'day' });
+  });
+
+  app.get('/api/simplebeacon/team/telemetry/distribution', async (req, res) => {
+    const authHeader = String(req.headers.authorization || '');
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const context = await resolveTeamTelemetryContext(req, token);
+    if (context.status) {
+      return res.status(context.status).json({
+        error: context.error,
+        message: context.message
+      });
+    }
+    const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
+    const teamSummary = summarizeTeamTelemetry(context.orgKey, { days });
+    return res.json({
+      ...teamSummary.quality_distribution,
+      severity_totals: teamSummary.severity_totals
+    });
   });
 
 }

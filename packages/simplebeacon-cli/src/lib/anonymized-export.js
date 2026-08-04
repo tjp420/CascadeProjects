@@ -279,6 +279,9 @@ module.exports = {
     validateAnonymizedSchema,
     resolveTypeCode,
     attachAnalyzerSuiteToReport,
+    buildRepoFingerprint,
+    buildRulesFingerprint,
+    buildAnonymizedAggregate,
     ERROR_TYPE_CODES,
     SEVERITY_BANDS
 };

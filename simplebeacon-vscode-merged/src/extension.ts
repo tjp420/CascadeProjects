@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as crypto from 'crypto';
+import { handleScanCompleteTeamTelemetry } from './teamTelemetry';
 import { spawn, execSync } from 'child_process';
 import {
   ScanPhaseProvider,
@@ -4551,6 +4552,7 @@ async function runScan(
             `[SimpleBeacon] Local agent scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`
           );
           void syncReportToCloud(report);
+          handleScanCompleteTeamTelemetry(context, report as any, projectPath, outputChannel);
           scanInProgress = false;
           setTimeout(() => modernSidebarProvider.updateScanProgress(0), 2000);
           generateCodeMap(false, projectPath)
@@ -4943,6 +4945,7 @@ async function runScan(
               }
               outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
               void syncReportToCloud(report);
+          handleScanCompleteTeamTelemetry(context, report as any, projectPath, outputChannel);
               scanInProgress = false;
               _stopSimulatedProgress();
               _reportProgress(100);

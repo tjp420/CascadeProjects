@@ -75,6 +75,12 @@ jobs:
           echo '--- find jest-results.json ---'
           find . -maxdepth 4 -type f -name 'jest-results.json' -print || true
 
+      - name: Parse Jest results to Prom + JSON
+        if: always()
+        run: |
+          echo 'Parsing Jest JSON to Prom metrics and summary...'
+          node ai-platform/tools/ci-telemetry/parse-jest-results.cjs ai-platform/test-results/jest-results.json ai-platform/test-results || true
+
       - name: Upload test artifacts (both locations)
         if: always()
         uses: actions/upload-artifact@v4
