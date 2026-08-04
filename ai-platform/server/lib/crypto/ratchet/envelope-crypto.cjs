@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { resolveSecret } = require('../../../../lib/secret-config.cjs');
+const { resolveSecret } = require('../../secret-config.cjs');
 
 function _deriveKey(kek) {
   // Normalize KEK to 32 bytes using SHA-256
