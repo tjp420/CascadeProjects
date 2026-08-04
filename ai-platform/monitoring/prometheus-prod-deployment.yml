@@ -1,0 +1,51 @@
+# Prometheus production deployment configuration for ai-platform HSM/PQC telemetry.
+#
+# Usage:
+#   1. Mount this file as /etc/prometheus/prometheus.yml in your Prometheus server.
+#   2. Place prometheus-mesh-alerts.yml in the same directory (or update rule_files paths).
+#   3. Ensure the Prometheus pod service account can read the projected token at
+#      /var/run/secrets/kubernetes.io/serviceaccount/token or update bearer_token_file.
+#   4. Confirm the ai-platform metrics endpoint serves /api/agentic/metrics.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: ai-platform-prod
+    replica: '{{.ExternalURL}}'
+
+rule_files:
+  - 'prometheus-mesh-alerts.yml'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager.monitoring.svc.cluster.local:9093']
+
+scrape_configs:
+  - job_name: 'ai-platform-agentic-orchestration'
+    metrics_path: '/api/agentic/metrics'
+    bearer_token_file: '/var/run/secrets/kubernetes.io/serviceaccount/token'
+    scheme: 'https'
+    tls_config:
+      insecure_skip_verify: false
+      ca_file: '/etc/prometheus/certs/ca.crt'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - ai-platform
+        selectors:
+          - role: endpoints
+            label: 'app.kubernetes.io/name=hsm-vault-mesh'
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: 'http-metrics'
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+        target_label: job
+        regex: '([^;]+);([^;]+)'
+        replacement: '${1}/${2}'
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
