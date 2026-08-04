@@ -38,6 +38,11 @@ const DEFAULT_ALLOWED_OPERATIONS = new Set([
   'hash',
 ]);
 
+// Memory lifecycle limits
+const MAX_MEMORY_ENTRY_BYTES = 64 * 1024;  // 64 KB per entry
+const MAX_MEMORY_ENTRIES = 16;              // max entries per sandbox
+const MAX_AUDIT_ENTRIES = 50;               // ring buffer for memory audit log
+
 /**
  * Securely zeroize a Buffer.
  * @param {Buffer} buf
@@ -69,7 +74,7 @@ class Sandbox {
     this.id = id;
     this.tenantId = options.tenantId || 'default';
     this.allowedOperations = options.allowedOperations || DEFAULT_ALLOWED_OPERATIONS;
-    this.maxExecutionTimeSeconds = options.maxExecutionTimeSeconds || 30;
+    this.maxExecutionTimeSeconds = options.maxExecutionTimeSeconds != null ? options.maxExecutionTimeSeconds : 30;
     this.state = SANDBOX_STATES.CREATED;
     this.createdAt = Date.now();
     this.attestedAt = null;
@@ -79,15 +84,32 @@ class Sandbox {
     this._memory = new Map();
     this._attestation = null;
     this._executionResult = null;
+    this._memoryAuditLog = [];
+    this._lastParams = null;
   }
 
   /**
    * Store sensitive data in the sandbox memory.
+   * Copies the buffer to prevent external mutation.
    * @param {string} key
    * @param {Buffer} data
    */
   setMemory(key, data) {
-    this._memory.set(key, data);
+    if (!Buffer.isBuffer(data)) {
+      throw new HsmAdapterError('INVALID_MEMORY_TYPE', 'data must be a Buffer');
+    }
+    if (data.length > MAX_MEMORY_ENTRY_BYTES) {
+      throw new HsmAdapterError('MEMORY_ENTRY_TOO_LARGE', `entry size ${data.length} exceeds max ${MAX_MEMORY_ENTRY_BYTES}`);
+    }
+    if (!this._memory.has(key) && this._memory.size >= MAX_MEMORY_ENTRIES) {
+      throw new HsmAdapterError('MEMORY_ENTRIES_FULL', `memory entries limit ${MAX_MEMORY_ENTRIES} reached`);
+    }
+    // Copy buffer to prevent external mutation
+    const copy = Buffer.allocUnsafe(data.length);
+    data.copy(copy);
+    this._memory.set(key, copy);
+    this._memoryAuditLog.push({ op: 'set', key, size: copy.length, timestamp: Date.now() });
+    if (this._memoryAuditLog.length > MAX_AUDIT_ENTRIES) this._memoryAuditLog.shift();
   }
 
   /**
@@ -96,7 +118,10 @@ class Sandbox {
    * @returns {Buffer|undefined}
    */
   getMemory(key) {
-    return this._memory.get(key);
+    const val = this._memory.get(key);
+    this._memoryAuditLog.push({ op: 'get', key, timestamp: Date.now() });
+    if (this._memoryAuditLog.length > MAX_AUDIT_ENTRIES) this._memoryAuditLog.shift();
+    return val;
   }
 
   /**
@@ -109,14 +134,36 @@ class Sandbox {
   }
 
   /**
-   * Zeroize all sensitive data in the sandbox memory.
+   * Zeroize all sensitive data in the sandbox memory, execution result, and params.
    */
   zeroize() {
     for (const buf of this._memory.values()) {
       _secureZeroize(buf);
     }
     this._memory.clear();
+    // Zeroize execution result buffers
+    if (this._executionResult) {
+      for (const val of Object.values(this._executionResult)) {
+        if (Buffer.isBuffer(val)) _secureZeroize(val);
+      }
+      this._executionResult = null;
+    }
+    // Zeroize last operation params buffers
+    if (this._lastParams) {
+      for (const val of Object.values(this._lastParams)) {
+        if (Buffer.isBuffer(val)) _secureZeroize(val);
+      }
+      this._lastParams = null;
+    }
     this.state = SANDBOX_STATES.ZEROIZED;
+  }
+
+  /**
+   * Get the memory access audit log (no sensitive data — just key names, sizes, timestamps).
+   * @returns {object[]}
+   */
+  getMemoryAuditLog() {
+    return this._memoryAuditLog.slice(); // return a copy
   }
 
   /**
@@ -171,7 +218,7 @@ class ConfidentialSandboxEngine {
     const mergedOptions = {
       tenantId,
       allowedOperations: options.allowedOperations || DEFAULT_ALLOWED_OPERATIONS,
-      maxExecutionTimeSeconds: options.maxExecutionTimeSeconds || 30,
+      maxExecutionTimeSeconds: options.maxExecutionTimeSeconds != null ? options.maxExecutionTimeSeconds : 30,
     };
 
     if (this._policy) {
@@ -269,9 +316,24 @@ class ConfidentialSandboxEngine {
 
     sandbox.state = SANDBOX_STATES.EXECUTING;
     sandbox.executedAt = Date.now();
+    sandbox._lastParams = params;
+
+    // Enforce execution timeout
+    const timeoutMs = sandbox.maxExecutionTimeSeconds * 1000;
 
     try {
       const result = this._executeOperation(sandbox, operation, params);
+      const elapsed = Date.now() - sandbox.executedAt;
+      if (elapsed > timeoutMs || timeoutMs === 0) {
+        this._emitAudit('SANDBOX_EXECUTION_TIMEOUT', {
+          sandboxId, operation, elapsedMs: elapsed, timeoutMs,
+          siemSeverity: 'high', siemCategory: 'sandbox_timeout',
+        });
+        throw new HsmAdapterError(
+          'SANDBOX_EXECUTION_TIMEOUT',
+          `execution took ${elapsed}ms, exceeded limit ${timeoutMs}ms`,
+        );
+      }
       sandbox._executionResult = result;
       sandbox.state = SANDBOX_STATES.COMPLETED;
       sandbox.completedAt = Date.now();
@@ -411,4 +473,7 @@ module.exports = {
   Sandbox,
   SANDBOX_STATES,
   DEFAULT_ALLOWED_OPERATIONS,
+  MAX_MEMORY_ENTRY_BYTES,
+  MAX_MEMORY_ENTRIES,
+  MAX_AUDIT_ENTRIES,
 };
