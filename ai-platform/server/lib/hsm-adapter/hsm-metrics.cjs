@@ -510,6 +510,7 @@ const counters = {
   hsm_shard_byzantine_detected_total: 0,
   hsm_shard_lagging_nodes: 0,
   hsm_shard_active: 0,
+  hsm_shard_limit_exceeded_total: 0,
   // CI Telemetry Pipeline: Shard reconciler, repair-worker, and reassembler counters
   hsm_shard_out_of_sync_total: 0,
   hsm_shard_reconciler_repair_requested_total: 0,
@@ -1396,6 +1397,7 @@ const META = {
   hsm_shard_byzantine_detected_total: { help: 'Total nodes flagged as byzantine due to divergence.', type: 'counter' },
   hsm_shard_lagging_nodes: { help: 'Current number of lagging nodes across all shards.', type: 'gauge' },
   hsm_shard_active: { help: 'Current number of active shards being tracked.', type: 'gauge' },
+  hsm_shard_limit_exceeded_total: { help: 'Total shard registrations rejected due to maxShardsPerCluster limit.', type: 'counter' },
   hsm_shard_out_of_sync_total: { help: 'Total shard sequence gaps/duplicates detected by the reconciler.', type: 'counter' },
   hsm_shard_reconciler_repair_requested_total: { help: 'Total repair jobs requested by the shard reconciler.', type: 'counter' },
   hsm_shard_reconciler_repair_skipped_total: { help: 'Total repair requests skipped due to cooldown.', type: 'counter' },

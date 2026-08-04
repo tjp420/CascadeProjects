@@ -65,7 +65,7 @@ function authBeforeThrottle(req, res, next) {
 router.use(authBeforeThrottle);
 
 function resolveOrgId(req) {
-  return req.orgId || req.query.orgId || req.body.orgId || 'default';
+  return req.orgId || req.query.orgId || (req.body && req.body.orgId) || 'default';
 }
 
 function runAsync(fn) {
@@ -2176,6 +2176,63 @@ router.get('/cluster-isolation/telemetry', authorize('admin:all'), function (req
     });
   } catch (err) {
     sendError(res, 500, 'cluster_isolation_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// ── Track 117: BFT Shard Sync REST endpoints ────────────────────────────────
+
+// GET /api/vault/bft-shard-sync/policy — return default bftShardSync policy
+router.get('/bft-shard-sync/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.bftShardSync,
+    });
+  } catch (err) {
+    sendError(res, 500, 'bft_shard_sync_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/bft-shard-sync/policy/validate — validate a proposed Track 117 configuration
+router.post('/bft-shard-sync/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'bftShardSync', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'bft_shard_sync_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/bft-shard-sync/telemetry — expose Track 117 telemetry counters
+router.get('/bft-shard-sync/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_shard_append_total: allMetrics.hsm_shard_append_total || 0,
+      hsm_shard_ack_total: allMetrics.hsm_shard_ack_total || 0,
+      hsm_shard_commit_total: allMetrics.hsm_shard_commit_total || 0,
+      hsm_shard_catchup_batch_total: allMetrics.hsm_shard_catchup_batch_total || 0,
+      hsm_shard_byzantine_detected_total: allMetrics.hsm_shard_byzantine_detected_total || 0,
+      hsm_shard_limit_exceeded_total: allMetrics.hsm_shard_limit_exceeded_total || 0,
+      hsm_shard_lagging_nodes: allMetrics.hsm_shard_lagging_nodes || 0,
+      hsm_shard_active: allMetrics.hsm_shard_active || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'bft_shard_sync_telemetry_fetch_failed', { message: err.message });
   }
 });
 
