@@ -366,6 +366,21 @@ exports.cleanupPrototypePollution = function () {
     'reconciliationCtorLevel4',
     'reconciliationDeepMinQuorumNodes',
     'reconciliationDeepMaxTrackedKeys',
+    // Track 121: Multiparty re-keying pollution cleanup keys
+    'rekeyingGatePolluted',
+    'rekeyingConstructorPolluted',
+    'rekeyingProtoLevel0',
+    'rekeyingProtoLevel1',
+    'rekeyingProtoLevel2',
+    'rekeyingProtoLevel3',
+    'rekeyingProtoLevel4',
+    'rekeyingCtorLevel0',
+    'rekeyingCtorLevel1',
+    'rekeyingCtorLevel2',
+    'rekeyingCtorLevel3',
+    'rekeyingCtorLevel4',
+    'rekeyingDeepMinQuorumNodes',
+    'rekeyingDeepMaxShareholders',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -1954,6 +1969,190 @@ exports.makeTrack120ConcurrentValidationCall = function (prng) {
       requireAntiRollback: prng.nextChoice([true, false, 'true', 1, 0]),
       quarantineOnCriticalDivergence: prng.nextChoice([true, false, 'true', 1, 0]),
       maxTrackedKeys: prng.nextChoice([0, 1, 256, 512, 513, 999, -1, NaN]),
+    },
+  };
+};
+
+// ── Track 121: Multiparty Re-Keying mutators ─────────────────────────────────
+
+exports.makeTrack121ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track121-polluter': {
+        multipartyReKeying: {
+          __proto__: { rekeyingGatePolluted: true },
+          minQuorumNodes: 3,
+          maxReKeyingEpochs: 1000,
+          requireQuorumCommit: true,
+          requireAntiRollback: true,
+          requireShareZeroization: true,
+          allowThresholdAdjustment: true,
+          maxShareholders: 32,
+          constructor: { prototype: { rekeyingConstructorPolluted: true } },
+        },
+      },
+      'track121-clean': {
+        multipartyReKeying: {
+          minQuorumNodes: 3,
+          maxReKeyingEpochs: 1000,
+          requireQuorumCommit: true,
+          requireAntiRollback: true,
+          requireShareZeroization: true,
+          allowThresholdAdjustment: true,
+          maxShareholders: 32,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack121TypeConfusionConfigs = function () {
+  return [
+    { value: { minQuorumNodes: 'not-a-number' }, label: 'string-for-numeric' },
+    { value: { minQuorumNodes: null }, label: 'null-for-numeric' },
+    { value: { minQuorumNodes: [] }, label: 'array-for-numeric' },
+    { value: { minQuorumNodes: {} }, label: 'object-for-numeric' },
+    { value: { minQuorumNodes: true }, label: 'boolean-for-numeric' },
+    { value: { maxReKeyingEpochs: 'not-a-number' }, label: 'string-for-epochs' },
+    { value: { maxReKeyingEpochs: null }, label: 'null-for-epochs' },
+    { value: { maxReKeyingEpochs: [] }, label: 'array-for-epochs' },
+    { value: { requireQuorumCommit: 'not-a-boolean' }, label: 'string-for-quorum' },
+    { value: { requireQuorumCommit: 42 }, label: 'number-for-quorum' },
+    { value: { requireQuorumCommit: null }, label: 'null-for-quorum' },
+    { value: { requireQuorumCommit: [] }, label: 'array-for-quorum' },
+    { value: { requireAntiRollback: 'not-a-boolean' }, label: 'string-for-antirb' },
+    { value: { requireAntiRollback: 42 }, label: 'number-for-antirb' },
+    { value: { requireShareZeroization: 'not-a-boolean' }, label: 'string-for-zeroize' },
+    { value: { requireShareZeroization: 42 }, label: 'number-for-zeroize' },
+    { value: { allowThresholdAdjustment: 'not-a-boolean' }, label: 'string-for-threshold' },
+    { value: { allowThresholdAdjustment: 42 }, label: 'number-for-threshold' },
+    { value: { maxShareholders: 'not-a-number' }, label: 'string-for-shareholders' },
+    { value: { maxShareholders: null }, label: 'null-for-shareholders' },
+    { value: { maxShareholders: [] }, label: 'array-for-shareholders' },
+    { value: { maxShareholders: {} }, label: 'object-for-shareholders' },
+    { value: { __proto__: { rekeyingGatePolluted: true } }, label: 'proto-pollution-top-level' },
+    { value: { constructor: { prototype: { rekeyingConstructorPolluted: true } } }, label: 'ctor-pollution-top-level' },
+  ];
+};
+
+exports.makeTrack121PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track121-polluter', 'track121-clean', 'track121-restricted']);
+  const minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 4, 5, 999, -1, NaN, '3', Number.MAX_SAFE_INTEGER]);
+  const maxReKeyingEpochs = prng.nextChoice([0, 1, 1000, 9999, 10000, 10001, 99999, -1, NaN, '1000', Number.MAX_SAFE_INTEGER]);
+  const requireQuorumCommit = prng.nextChoice([true, false, 'true', 'false', 1, 0, null]);
+  const requireAntiRollback = prng.nextChoice([true, false, 'true', 'false', 1, 0, null]);
+  const requireShareZeroization = prng.nextChoice([true, false, 'true', 'false', 1, 0, null]);
+  const allowThresholdAdjustment = prng.nextChoice([true, false, 'true', 'false', 1, 0, null]);
+  const maxShareholders = prng.nextChoice([0, 1, 32, 64, 65, 999, -1, NaN, '32', Number.MAX_SAFE_INTEGER]);
+  return {
+    tenantId,
+    operation: 'multipartyReKeying',
+    config: {
+      minQuorumNodes,
+      maxReKeyingEpochs,
+      requireQuorumCommit,
+      requireAntiRollback,
+      requireShareZeroization,
+      allowThresholdAdjustment,
+      maxShareholders,
+    },
+  };
+};
+
+// ── Track 121: Deep nested multi-layer policy mutation (5-level) ─────────────
+
+function attachRekeyingDeepPollution(node, depth, prng) {
+  const protoKey = 'rekeyingProtoLevel' + depth;
+  const ctorKey = 'rekeyingCtorLevel' + depth;
+  node.__proto__ = { [protoKey]: true };
+  if (prng) {
+    node.minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 999, -1]);
+    node.maxShareholders = prng.nextChoice([0, 1, 32, 64, 999, -1]);
+  } else {
+    node.minQuorumNodes = depth % 2 === 0 ? 0 : 3;
+    node.maxShareholders = depth % 2 === 0 ? 999 : 32;
+  }
+  node.constructor = { prototype: { [ctorKey]: true } };
+}
+
+exports.makeTrack121DeepNestedPollutionPolicy = function () {
+  const pollutedRekeying = { multipartyReKeying: {} };
+  let current = pollutedRekeying.multipartyReKeying;
+  for (let i = 0; i < 5; i++) {
+    attachRekeyingDeepPollution(current, i);
+    if (i < 4) {
+      current.multipartyReKeying = {};
+      current = current.multipartyReKeying;
+    }
+  }
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track121-deep-polluter': pollutedRekeying,
+      'track121-clean': {
+        multipartyReKeying: {
+          minQuorumNodes: 3,
+          maxReKeyingEpochs: 1000,
+          requireQuorumCommit: true,
+          requireAntiRollback: true,
+          requireShareZeroization: true,
+          allowThresholdAdjustment: true,
+          maxShareholders: 32,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack121PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const REKEYING_KEYS = ['multipartyReKeying', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track121-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = prng.nextChoice(REKEYING_KEYS);
+      const block = {};
+      attachRekeyingDeepPollution(block, l % 5, prng);
+      if (key === 'multipartyReKeying' && prng.nextInt(3) === 0) {
+        block.minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 4, 5, 999, -1]);
+        block.requireQuorumCommit = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.maxShareholders = prng.nextChoice([0, 1, 32, 64, 65, 999, -1]);
+        // Some tenants restrict threshold adjustment to test inverse guard
+        if (prng.nextInt(4) === 0) {
+          block.allowThresholdAdjustment = false;
+        }
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack121ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track121-clean',
+    'track121-deep-polluter',
+    'track121-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'multipartyReKeying',
+    config: {
+      minQuorumNodes: prng.nextChoice([0, 1, 2, 3, 4, 999, -1, NaN]),
+      maxReKeyingEpochs: prng.nextChoice([0, 1000, 10000, 10001, 99999, -1, NaN]),
+      requireQuorumCommit: prng.nextChoice([true, false, 'true', 1, 0]),
+      requireAntiRollback: prng.nextChoice([true, false, 'true', 1, 0]),
+      requireShareZeroization: prng.nextChoice([true, false, 'true', 1, 0]),
+      allowThresholdAdjustment: prng.nextChoice([true, false, 'true', 1, 0]),
+      maxShareholders: prng.nextChoice([0, 1, 32, 64, 65, 999, -1, NaN]),
     },
   };
 };
