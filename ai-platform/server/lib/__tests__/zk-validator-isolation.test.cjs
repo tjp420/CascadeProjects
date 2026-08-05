@@ -136,6 +136,43 @@ describe('Track 125: ZK Validator Isolation Integration', () => {
     });
   });
 
+  describe('Production hub wiring', () => {
+    test('WIRE-01: lookup hub uses governed validateTenant by default', () => {
+      const { PqcHomomorphicDatabaseLookupGatingHub } = require('../hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
+      const hub = new PqcHomomorphicDatabaseLookupGatingHub({});
+      expect(typeof hub.validator.validateTenant).toBe('function');
+      hub.submitQuery({ encryptedQuery: { table: 'x' }, attestation: true });
+      expect(() => hub.validateProof({
+        voters: Array.from({ length: 12 }, (_, i) => `v${i}`),
+        queryTree: { a: 'leaf' },
+        digest: 'd1',
+        attestation: true,
+      }, '../bad')).toThrow('zk_isolation_violation');
+      expect(hsmMetrics.getMetrics().hsm_zk_tenant_isolation_violation_total).toBe(1);
+    });
+
+    test('WIRE-02: lookup hub skipTenantGovernance preserves bare validate', () => {
+      const { PqcHomomorphicDatabaseLookupGatingHub } = require('../hsm-adapter/pqc-homomorphic-lookup-gating-hub.cjs');
+      const hub = new PqcHomomorphicDatabaseLookupGatingHub({ skipTenantGovernance: true });
+      expect(hub.validator.validateTenant).toBeUndefined();
+      expect(typeof hub.validator.validate).toBe('function');
+    });
+
+    test('WIRE-03: createGovernedClaimValidator covers all Track 125 keys', () => {
+      const {
+        createGovernedClaimValidator,
+        TRACK125_VALIDATOR_SPECS,
+      } = require('../hsm-adapter/zk-tenant-governance.cjs');
+      for (const spec of TRACK125_VALIDATOR_SPECS) {
+        const opts = spec.ctorStyle === 'policyArg'
+          ? { policy: {} }
+          : { validatorOptions: { policy: {} } };
+        const governed = createGovernedClaimValidator(spec.key, opts);
+        expect(typeof governed.validateTenant).toBe('function');
+      }
+    });
+  });
+
   describe('Backward compatibility', () => {
     test('BC-01: validators still work without tenant governance (original method)', () => {
       const { ZkEnergyClaimValidator } = require('../hsm-adapter/zk-energy-claim-validator.cjs');
