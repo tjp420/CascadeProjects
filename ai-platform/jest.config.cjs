@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
- * Platform Jest config — CLI package tests use node:test (see packages/simplebeacon-cli).
+ * Platform Jest config ΓÇö CLI package tests use node:test (see packages/simplebeacon-cli).
  *
  * @license MIT
  */
