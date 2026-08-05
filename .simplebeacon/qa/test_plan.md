@@ -1,121 +1,124 @@
-# Test Plan: Track 124 — Cross-Cluster Replication Tenant Isolation
+# Test Plan: Hardware Attestation Chain Validation
 
-> Add tenant isolation to all 7 cross-cluster replication engines.
-> Add tenantId to all replication messages, validate tenant context on inbound,
-> reject cross-tenant replication attempts, tag SIEM events with tenant context.
+> Extend hardware-attestation-verify.cjs from parsing standalone raw binary reports
+> to validating a complete cryptographically pinned certificate chain (AMD ASK/ARK
+> and Intel Enclave CA chains).
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Cross-cluster replication tenant isolation |
+| Feature / change | Certificate chain validation, root-of-trust pinning, ECDSA signature verification |
 | Author (Builder) | Devin |
-| Date | 2026-08-05 |
-| Branch | feat/track124-cross-cluster-tenant-isolation |
-| Packages touched | ai-platform/server/lib |
+| Date | 2026-08-04 |
+| Branch | feat/attestation-chain-validation |
+| Packages touched | ai-platform/server/lib/hsm-adapter |
 
 ## Problem
 
-All 7 cross-cluster replication engines lack tenant isolation. Zero `tenantId`
-references exist in any replication module. This creates an active security
-boundary violation where Tenant A's key material could replicate to Tenant B's
-nodes. SIEM events are not tagged with tenant context, making cross-tenant
-audit impossible.
+The current `HardwareAttestationVerifier` parses binary attestation reports (SEV-SNP, SGX)
+and validates nonce, timestamp, and measurement fields. However:
+
+1. **Signature verification is mock-only** — uses HMAC-SHA256 with a hardcoded secret, not real ECDSA
+2. **No X.509 certificate chain validation** — no parsing of AMD VCEK/ASK/ARK or Intel PCK/CA certificates
+3. **No root-of-trust pinning** — no mechanism to pin vendor CA certificates
+4. **No certificate revocation checking** — no CRL/OCSP handling
+5. **No certificate fetching** — no code to retrieve VCEK from AMD KDS or PCK from Intel PCS
 
 ## Objectives
 
-### 1. Replication Tenant Context Module (`server/lib/replication-tenant-context.cjs`)
+### 1. Certificate Chain Validator (`server/lib/hsm-adapter/cert-chain-validator.cjs`)
 
-New shared module for tenant validation across all replication engines:
+New module for X.509 certificate chain validation using Node.js native `crypto.X509Certificate`:
 
-- **CTX-01**: `validateTenantContext(message)` — validates tenantId field on inbound messages
-- **CTX-02**: `rejectCrossTenant(sourceTenant, targetTenant)` — throws on mismatch
-- **CTX-03**: `tagSIEMEvent(event, tenantId)` — adds tenant context to SIEM events
-- **CTX-04**: `createTenantScopedEmitter(tenantId, emitter)` — wraps emitter with tenant filter
-- **CTX-05**: `TENANT_FIELD` constant — standard field name for tenantId in messages
+- **CERT-01**: `CertChainValidator` class with `validateChain()`, `addRootCA()`, `addIntermediateCA()` methods
+- **CERT-02**: Parse PEM/DER certificates using `crypto.X509Certificate` (Node 22+ native)
+- **CERT-03**: Build certificate chain from leaf to root
+- **CERT-04**: Validate chain signatures (each cert signed by next in chain)
+- **CERT-05**: Validate certificate validity periods (notBefore/notAfter)
+- **CERT-06**: Validate key usage and extended key usage extensions
+- **CERT-07**: Root-of-trust pinning by SHA-256 fingerprint
+- **CERT-08**: Certificate revocation checking via CRL (basic)
+- **CERT-09**: `validateSevSnpChain()` — validate AMD ARK → ASK → VCEK chain
+- **CERT-10**: `validateSgxChain()` — validate Intel Root CA → PCK CA → PCK chain
+- **CERT-11**: Return detailed validation result with chain structure and failure reasons
+- **CERT-12**: Backward compatible — works without chain validation when no CAs configured
 
-### 2. cluster-keyring-sync.cjs — Tenant Isolation
+### 2. ECDSA Signature Verification (`server/lib/hsm-adapter/hardware-attestation-verify.cjs`)
 
-- **KRS-01**: Add `tenantId` to all IPC message schemas
-- **KRS-02**: Validate tenant context on all inbound messages
-- **KRS-03**: Reject cross-tenant KEY_COMMIT, KEY_ANNOUNCE, DKG messages
-- **KRS-04**: Tag all SIEM alerts with tenant context
-- **KRS-05**: Backward compatible — messages without tenantId treated as 'default' tenant
+Replace mock HMAC-SHA256 with real ECDSA signature verification:
 
-### 3. bft-shard-sync-engine.cjs — Tenant Isolation
+- **ECDSA-01**: `verifySevSnpSignature()` — ECDSA P-384/SHA-384 signature verification
+- **ECDSA-02**: `verifySgxSignature()` — ECDSA P-256/SHA-256 signature verification
+- **ECDSA-03**: Extract public key from VCEK/PCK certificate
+- **ECDSA-04**: Verify attestation report signature against certificate public key
+- **ECDSA-05**: Fall back to mock verification when no certificate provided (backward compat)
+- **ECDSA-06**: SIEM alert on signature verification failure with certificate details
 
-- **BFT-01**: Add `tenantId` to shard operations
-- **BFT-02**: Validate tenant context on shard replication
-- **BFT-03**: Reject cross-tenant shard access
-- **BFT-04**: Tag metrics with tenant context
+### 3. Root-of-Trust Store (`server/lib/hsm-adapter/root-trust-store.cjs`)
 
-### 4. cross-enclave-state-sync.cjs — Tenant Isolation
+New module for managing pinned vendor root certificates:
 
-- **CES-01**: Add `tenantId` to enclave registration and state sync
-- **CES-02**: Validate tenant context on state sync operations
-- **CES-03**: Reject cross-tenant state access
-- **CES-04**: Tag all state sync events with tenant context
+- **ROOT-01**: `RootTrustStore` class with `addAMD()`, `addIntel()`, `getCA()`, `isPinned()` methods
+- **ROOT-02**: Load AMD ARK root certificate (pinned by SHA-256 fingerprint)
+- **ROOT-03**: Load AMD ASK intermediate certificate
+- **ROOT-04**: Load Intel Root CA certificate (pinned by SHA-256 fingerprint)
+- **ROOT-05**: Load Intel PCK CA intermediate certificate
+- **ROOT-06**: Environment variable configuration (`AMD_ARK_CERT_PATH`, `AMD_ASK_CERT_PATH`, `INTEL_ROOT_CA_PATH`, `INTEL_PCK_CA_PATH`)
+- **ROOT-07**: In-memory cache with file path loading
+- **ROOT-08**: Fingerprint verification on load (fail-closed if fingerprint mismatch)
 
-### 5. cross-cluster-migration-engine.cjs — Tenant Isolation
+### 4. Integration into HardwareAttestationVerifier
 
-- **MIG-01**: Add `tenantId` to migration operations
-- **MIG-02**: Validate tenant context on migration messages
-- **MIG-03**: Reject cross-tenant migration attempts
-- **MIG-04**: Tag migration metrics with tenant context
+Wire chain validation into the existing verification flow:
 
-### 6. cluster-consensus-engine.cjs — Tenant Isolation
+- **INTEG-01**: Add `certChainValidator` option to `HardwareAttestationVerifier` constructor
+- **INTEG-02**: Add `rootTrustStore` option to constructor
+- **INTEG-03**: After measurement validation, validate certificate chain if provided
+- **INTEG-04**: After chain validation, verify report signature against certificate public key
+- **INTEG-05**: New error code: `ATTESTATION_CHAIN_INVALID`
+- **INTEG-06**: New error code: `ATTESTATION_ROOT_UNTRUSTED`
+- **INTEG-07**: SIEM alerts for chain validation failures
+- **INTEG-08**: Backward compatible — existing tests pass without chain validation
 
-- **CON-01**: Add `tenantId` to consensus RPC messages
-- **CON-02**: Validate tenant context on consensus operations
-- **CON-03**: Reject cross-tenant consensus participation
+### 5. Tests
 
-### 7. cluster-key-reconciliation-engine.cjs — Tenant Isolation
-
-- **REC-01**: Add `tenantId` to key reconciliation operations
-- **REC-02**: Validate tenant context on reconciliation messages
-- **REC-03**: Reject cross-tenant key reconciliation
-
-### 8. siem-broker.cjs — Tenant Context Tagging
-
-- **SIEM-01**: Add `tenantId` to distributed token bucket sync messages
-- **SIEM-02**: Tag all SIEM events with tenant context
-- **SIEM-03**: Per-tenant token bucket tracking (optional, policy-controlled)
-
-### 9. hsm-metrics.cjs — Per-Tenant Replication Metrics
-
-- **MET-01**: Add `hsm_replication_tenant_isolation_violation_total` counter
-- **MET-02**: Add `hsm_replication_tenant_context_validated_total` counter
-- **MET-03**: Add `hsm_replication_cross_tenant_rejected_total` counter
-
-### 10. Tests
-
-- **TEST-01**: Replication tenant context unit tests
-- **TEST-02**: cluster-keyring-sync tenant isolation integration tests
-- **TEST-03**: BFT shard sync tenant isolation tests
-- **TEST-04**: Cross-enclave state sync tenant isolation tests
-- **TEST-05**: Cross-cluster migration tenant isolation tests
-- **TEST-06**: Backward compatibility tests (messages without tenantId)
+- **TEST-01**: CertChainValidator unit tests (parsing, chain building, signature validation, expiry, key usage, pinning)
+- **TEST-02**: RootTrustStore unit tests (loading, fingerprint verification, env var config)
+- **TEST-03**: ECDSA signature verification tests (SEV-SNP P-384, SGX P-256)
+- **TEST-04**: Integration tests (full chain validation flow in HardwareAttestationVerifier)
+- **TEST-05**: Backward compatibility tests (existing tests pass without chain config)
+- **TEST-06**: SIEM alert tests for chain validation failures
 
 ## Files to Touch
 
 | File | Change | New? |
 |------|--------|------|
-| `server/lib/replication-tenant-context.cjs` | New shared tenant validation module | Yes |
-| `server/lib/cluster-keyring-sync.cjs` | Add tenantId to schemas + validation | No |
-| `server/lib/hsm-adapter/bft-shard-sync-engine.cjs` | Add tenant context | No |
-| `server/lib/hsm-adapter/cross-enclave-state-sync.cjs` | Add tenant context | No |
-| `server/lib/hsm-adapter/cross-cluster-migration-engine.cjs` | Add tenant context | No |
-| `server/lib/hsm-adapter/cluster-consensus-engine.cjs` | Add tenant context | No |
-| `server/lib/hsm-adapter/cluster-key-reconciliation-engine.cjs` | Add tenant context | No |
-| `server/lib/siem/siem-broker.cjs` | Add tenant context tagging | No |
-| `server/lib/hsm-adapter/hsm-metrics.cjs` | Add 3 new counters | No |
-| `server/lib/__tests__/replication-tenant-context.test.cjs` | Unit tests | Yes |
-| `server/lib/__tests__/cluster-tenant-isolation.test.cjs` | Integration tests | Yes |
+| `server/lib/hsm-adapter/cert-chain-validator.cjs` | New X.509 chain validator | Yes |
+| `server/lib/hsm-adapter/root-trust-store.cjs` | New root-of-trust store | Yes |
+| `server/lib/hsm-adapter/hardware-attestation-verify.cjs` | Add ECDSA verification + chain integration | No |
+| `server/lib/hsm-adapter/__tests__/cert-chain-validator.test.cjs` | Unit tests | Yes |
+| `server/lib/hsm-adapter/__tests__/root-trust-store.test.cjs` | Unit tests | Yes |
+| `server/lib/hsm-adapter/__tests__/attestation-chain-integration.test.cjs` | Integration tests | Yes |
+
+## Level 1 Verification
+
+```powershell
+node -c server/lib/hsm-adapter/cert-chain-validator.cjs
+node -c server/lib/hsm-adapter/root-trust-store.cjs
+node -c server/lib/hsm-adapter/hardware-attestation-verify.cjs
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/cert-chain-validator.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/root-trust-store.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/attestation-chain-integration.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/hardware-attestation.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/hardware-attestation-hw-profiles.test.cjs --no-coverage
+```
 
 ## Security Invariants
 
-1. **Fail-closed**: Missing tenantId on inbound message = rejected (unless backward-compat mode)
-2. **No cross-tenant leakage**: Tenant A's key material cannot replicate to Tenant B's nodes
-3. **Tenant-tagged audit**: All SIEM events include tenant context
-4. **Backward compatible**: Messages without tenantId treated as 'default' tenant (configurable)
-5. **No silent bypass**: Cross-tenant violation = SIEM alert + rejection + metric increment
+1. **Fail-closed**: No chain validation = no attestation acceptance (when configured)
+2. **Pinned roots only**: Unpinned root certificates are rejected
+3. **No silent fallback**: Chain validation failure = attestation failure + SIEM alert
+4. **Backward compatible**: Without chain config, existing mock verification still works
+5. **No raw key material on wire**: Only certificates and fingerprints exchanged
+6. **Certificate expiry enforced**: Expired certificates are rejected

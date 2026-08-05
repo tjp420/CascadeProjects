@@ -191,6 +191,7 @@
     "globals": "^17.8.0",
     "jest": "^30.4.2",
     "nodemon": "^3.0.1",
+    "selfsigned": "^2.2.0",
     "supertest": "^7.0.0",
     "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4"
