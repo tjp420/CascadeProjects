@@ -66,6 +66,11 @@ class SiemSecurityBroker extends EventEmitter {
       siem_token_requests_received_total: 0,
     };
 
+    // Per-tenant token buckets: tenantId -> { tokens, maxTokens }
+    this._tenantBuckets = new Map();
+    this._tenantBucketMaxTokens = config.tenantRateLimitMaxTokens || 50;
+    this._tenantMetrics = new Map();
+
     this._initTokenRefillPipeline();
   }
 
@@ -95,22 +100,40 @@ class SiemSecurityBroker extends EventEmitter {
       }
 
       const isHighPriority = BYPASS_SEVERITIES.has(payload.siemSeverity);
+      const tenantId = payload.context && payload.context.tenantId;
+      const useTenantBucket = tenantId && typeof tenantId === 'string' && tenantId.trim() !== '';
+      const normalizedTenantId = useTenantBucket ? tenantId.trim() : null;
 
-      // Rate limiting — CRITICAL/FATAL bypass
-      if (!isHighPriority && !this._consumeToken()) {
-        this._metrics.siem_events_dropped_total += 1;
-        this.emit('telemetry_dropped', {
-          category: payload.siemCategory,
-          severity: payload.siemSeverity,
-          timestamp: Date.now(),
-        });
-        return false;
+      if (!isHighPriority) {
+        if (useTenantBucket) {
+          if (!this._consumeTenantToken(normalizedTenantId)) {
+            this._recordTenantDrop(normalizedTenantId);
+            this._metrics.siem_events_dropped_total += 1;
+            this.emit('telemetry_dropped', {
+              category: payload.siemCategory,
+              severity: payload.siemSeverity,
+              tenantId: normalizedTenantId,
+              timestamp: Date.now(),
+            });
+            return false;
+          }
+        } else if (!this._consumeToken()) {
+          this._metrics.siem_events_dropped_total += 1;
+          this.emit('telemetry_dropped', {
+            category: payload.siemCategory,
+            severity: payload.siemSeverity,
+            timestamp: Date.now(),
+          });
+          return false;
+        }
       }
 
       if (isHighPriority) {
         this._metrics.siem_events_bypassed_total += 1;
+        if (useTenantBucket) this._recordTenantBypass(normalizedTenantId);
       }
       this._metrics.siem_events_processed_total += 1;
+      if (useTenantBucket) this._recordTenantProcessed(normalizedTenantId);
 
       const standardizedEvent = this._normalizePayload(payload);
       this._dispatch(standardizedEvent, isHighPriority);
@@ -141,6 +164,34 @@ class SiemSecurityBroker extends EventEmitter {
     return false;
   }
 
+  _consumeTenantToken(tenantId) {
+    let bucket = this._tenantBuckets.get(tenantId);
+    if (!bucket) {
+      bucket = { tokens: this._tenantBucketMaxTokens, maxTokens: this._tenantBucketMaxTokens };
+      this._tenantBuckets.set(tenantId, bucket);
+    }
+    if (bucket.tokens > 0) { bucket.tokens -= 1; return true; }
+    return false;
+  }
+
+  _recordTenantProcessed(tenantId) {
+    let m = this._tenantMetrics.get(tenantId);
+    if (!m) { m = { processed: 0, dropped: 0, bypassed: 0 }; this._tenantMetrics.set(tenantId, m); }
+    m.processed += 1;
+  }
+
+  _recordTenantDrop(tenantId) {
+    let m = this._tenantMetrics.get(tenantId);
+    if (!m) { m = { processed: 0, dropped: 0, bypassed: 0 }; this._tenantMetrics.set(tenantId, m); }
+    m.dropped += 1;
+  }
+
+  _recordTenantBypass(tenantId) {
+    let m = this._tenantMetrics.get(tenantId);
+    if (!m) { m = { processed: 0, dropped: 0, bypassed: 0 }; this._tenantMetrics.set(tenantId, m); }
+    m.bypassed += 1;
+  }
+
   /**
    * Initialize the token refill pipeline.
    * @private
@@ -149,6 +200,9 @@ class SiemSecurityBroker extends EventEmitter {
     const timer = setInterval(() => {
       if (this.tokens < this.maxTokens) {
         this.tokens += 1;
+      }
+      for (const bucket of this._tenantBuckets.values()) {
+        if (bucket.tokens < bucket.maxTokens) { bucket.tokens += 1; }
       }
     }, this.refillRate);
     if (timer.unref) timer.unref();
@@ -222,7 +276,11 @@ class SiemSecurityBroker extends EventEmitter {
    * @returns {object}
    */
   getMetrics() {
-    return { ...this._metrics, currentTokens: this.tokens };
+    const tenantMetrics = {};
+    for (const [tenantId, m] of this._tenantMetrics.entries()) {
+      tenantMetrics[tenantId] = { ...m };
+    }
+    return { ...this._metrics, currentTokens: this.tokens, tenantMetrics };
   }
 
   /**

@@ -1,0 +1,71 @@
+{{- if .Values.tenantIsolation.enabled }}
+{{- range $tenant := .Values.tenantIsolation.namespaces }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "simplebeacon.fullname" $ }}-tenant-{{ $tenant.name }}-ingress
+  namespace: {{ $tenant.name }}
+  labels:
+    {{- include "simplebeacon.labels" $ | nindent 4 }}
+    app.kubernetes.io/tenant: {{ $tenant.name }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/tenant: {{ $tenant.name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress only from pods in the same tenant namespace
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/tenant: {{ $tenant.name }}
+        {{- if $.Values.tenantIsolation.allowEnvoyIngress }}
+        # Allow Envoy sidecar ingress (from server namespace)
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $.Values.namespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: envoy
+        {{- end }}
+        {{- if $.Values.tenantIsolation.allowAdminNamespace }}
+        # Allow admin namespace ingress for operations
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $.Values.tenantIsolation.adminNamespace }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ $.Values.tenantIsolation.tenantPort | default 3000 }}
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow egress to server in main namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $.Values.namespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: server
+      ports:
+        - protocol: TCP
+          port: 3000
+    {{- if $.Values.tenantIsolation.allowCrossTenantEgress }}
+    # Allow cross-tenant egress (disabled by default)
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: {{ $.Values.tenantIsolation.tenantPort | default 3000 }}
+    {{- end }}
+{{- end }}
+{{- end }}

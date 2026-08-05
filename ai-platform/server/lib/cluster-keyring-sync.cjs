@@ -31,6 +31,13 @@ const HEARTBEAT_MS = parseInt(process.env.CLUSTER_HEARTBEAT_MS, 10) || 5000;
 const HEARTBEAT_TIMEOUT_MS = parseInt(process.env.CLUSTER_HEARTBEAT_TIMEOUT_MS, 10) || 15000;
 const MAX_FRAME_BYTES = 1 << 20; // 1 MB
 
+// Tenant allowlist for tenant-scoped peer validation.
+const CLUSTER_ALLOWED_TENANTS = (process.env.CLUSTER_ALLOWED_TENANTS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+let _tenantAllowSet = CLUSTER_ALLOWED_TENANTS.length > 0 ? new Set(CLUSTER_ALLOWED_TENANTS) : null;
+
 // DKG transcript gossip message types and leader-only types
 const DKG_MESSAGE_TYPES = new Set(['DKG_COMMIT', 'DKG_SHARE', 'DKG_COMPLAINT', 'DKG_DISQUALIFY', 'DKG_FINALIZE']);
 const DKG_LEADER_ONLY_TYPES = new Set(['DKG_DISQUALIFY', 'DKG_FINALIZE']);
@@ -383,6 +390,27 @@ function _isKnownClusterPeer(host, port) {
     if (h === host && p2 === port) return true;
   }
   return false;
+}
+
+function _validateTenantScope(msg, peerKey) {
+  if (!msg || !msg.tenantId) return true;
+  if (!_tenantAllowSet) return true;
+  const tenantId = String(msg.tenantId).trim();
+  if (tenantId === '') return true;
+  if (_tenantAllowSet.has(tenantId)) return true;
+  _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, {
+    peer: peerKey, reason: 'unknown_tenant_scope', tenantId,
+    msgType: msg.type, siemSeverity: 'critical',
+    siemCategory: 'network_isolation', siemSource: 'cluster-keyring-sync',
+  });
+  incrementCounter('hsm_isolation_violation_total');
+  return false;
+}
+
+function _setTenantAllowListForTest(tenants) {
+  if (tenants === null) { _tenantAllowSet = null; }
+  else if (Array.isArray(tenants)) { _tenantAllowSet = new Set(tenants); }
+  else if (tenants instanceof Set) { _tenantAllowSet = tenants; }
 }
 
 function _validateStrictLowercaseHex(hex, fieldName) {
@@ -924,6 +952,11 @@ function _handleMessage(msg, socket) {
       _log('warn', 'Rejected message from unknown cluster peer', { peer: peerKey, type: msg.type });
       _recordEvent(EVENT_TYPES.ISOLATION_VIOLATION, NODE_ID, { peer: peerKey, reason: 'unknown_cluster_peer', msgType: msg.type, siemSeverity: 'critical', siemCategory: 'network_isolation', siemSource: 'cluster-keyring-sync' });
       incrementCounter('hsm_isolation_violation_total');
+      socket.destroy();
+      return;
+    }
+    if (!_validateTenantScope(msg, peerKey)) {
+      _log('warn', 'Rejected message with unknown tenant scope', { peer: peerKey, type: msg.type, tenantId: msg.tenantId });
       socket.destroy();
       return;
     }
@@ -1607,6 +1640,12 @@ function _handleDkgMessage(msg, socket) {
     socket.destroy();
     return;
   }
+  if (!_validateTenantScope(msg, peerKey)) {
+    _log('warn', 'Rejected DKG message with unknown tenant scope', { peer: peerKey, type: msg.type, tenantId: msg.tenantId });
+    _recordEvent(EVENT_TYPES.DKG_INVALID_MESSAGE, msg.from || NODE_ID, { reason: 'unknown_tenant_scope', msgType: msg.type, tenantId: msg.tenantId });
+    socket.destroy();
+    return;
+  }
 
   if (DKG_LEADER_ONLY_TYPES.has(msg.type)) {
     const isolationPolicy = _getIsolationPolicy();
@@ -1916,6 +1955,10 @@ module.exports = {
   _resetEpoch,
   _validateMessageSchema,
   IPC_SCHEMAS,
+  // Tenant-scoped peer validation
+  _validateTenantScope,
+  _isKnownClusterPeer,
+  _setTenantAllowListForTest,
   // SIEM alerting hooks
   registerSiemHook,
   setBroker,

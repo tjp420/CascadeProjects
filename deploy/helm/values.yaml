@@ -130,6 +130,23 @@ networkPolicy:
   serverIngress:
     - fromEnvoy: true
 
+# ── Tenant isolation (per-tenant NetworkPolicy) ──────────────────────
+tenantIsolation:
+  enabled: false
+  # Per-tenant namespaces to create NetworkPolicies for
+  namespaces: []
+    # - name: tenant-a
+    # - name: tenant-b
+  # Allow Envoy sidecar ingress to tenant namespaces
+  allowEnvoyIngress: true
+  # Allow admin namespace ingress to tenant namespaces
+  allowAdminNamespace: false
+  adminNamespace: kube-system
+  # Allow cross-tenant egress (disabled by default — fail-closed)
+  allowCrossTenantEgress: false
+  # Port for tenant service communication
+  tenantPort: 3000
+
 # ── Replica counts ───────────────────────────────────────────────────
 replicaCount: 2
 
