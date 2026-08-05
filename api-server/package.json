@@ -1,6 +1,6 @@
 {
   "name": "simplebeacon-api",
-  "version": "1.0.0",
+  "version": "3.2.0",
   "description": "SimpleBeacon API server — backend for file uploads, scan engine, certificate generation, billing, and email queue",
   "main": "server.cjs",
   "scripts": {

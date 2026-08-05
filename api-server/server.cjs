@@ -114,17 +114,59 @@ function generateLicenseToken(payload, secret, expiresInMinutes) {
 }
 
 // Security headers (helmet-lite)
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'public, no-transform');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
+        const HSTS_MAX_AGE = 2 * 365 * 24 * 60 * 60;
+        res.setHeader('Strict-Transport-Security', 'max-age=' + HSTS_MAX_AGE + '; includeSubDomains');
+    }
+    next();
+});
 
-// CORS — allow any origin in dev; specific origins in production
+// CORS — allow Cloudflare Pages origins + dev localhost
+app.use((req, res, next) => {
+    const origin = req.headers.origin || '';
+    const isDev = process.env.NODE_ENV !== 'production';
+    const defaultOrigins = [
+        'https://simplebeacon.ai',
+        'https://simplebeacon.pages.dev',
+        'https://www.simplebeacon.ai',
+    ];
+    const configuredOrigins = (process.env.ALLOWED_ORIGIN || '')
+        .split(',').map(s => s.trim()).filter(Boolean);
+    const allOrigins = isDev
+        ? [...defaultOrigins, 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']
+        : [...defaultOrigins, ...configuredOrigins];
+    const isAllowed = !origin
+        || allOrigins.includes(origin)
+        || /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/.test(origin)
+        || (isDev && /^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(origin));
+    if (isAllowed) {
+        if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        return res.status(403).json({ error: 'Origin not allowed' });
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+    }
+    next();
+});
 
 // Billing webhook must use raw body before JSON parser
 let billingApiAvailable = false;
 try {
     const { setupSimplebeaconBillingWebhook } = require('../ai-platform/src/api/simplebeacon-billing-api.cjs');
     setupSimplebeaconBillingWebhook(app);
-    const { setupCheckoutWebhook } = require('./routes/checkout.cjs');
+    const { setupCheckoutWebhook } = require('../coming-soon/routes/checkout.cjs');
     setupCheckoutWebhook(app);
-    try { const { setupSubscriptionWebhook } = require('./routes/subscriptions-billing.cjs'); setupSubscriptionWebhook(app); } catch (err) { logger.warn('[Billing] Subscription webhook not loaded:', err.message); }
+    try { const { setupSubscriptionWebhook } = require('../coming-soon/routes/subscriptions-billing.cjs'); setupSubscriptionWebhook(app); } catch (err) { logger.warn('[Billing] Subscription webhook not loaded:', err.message); }
     billingApiAvailable = true;
 } catch (err) {
     logger.warn('[Billing] Stripe billing API not loaded:', err.message);
@@ -134,8 +176,18 @@ try {
 app.use(express.json({ limit: '10mb' }));
 
 // Request logging
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const dur = Date.now() - start;
+        if (process.env.NODE_ENV !== 'test') {
+            logger.info(`${req.method} ${req.path} ${res.statusCode} ${dur}ms`);
+        }
+    });
+    next();
+});
 
-// Block sensitive files from being served by static middleware
+// Block sensitive files (no static serving in API-only mode)
 
 // Health check endpoint (used by monitoring and local dev)
 app.get('/health', (req, res) => {
@@ -164,7 +216,7 @@ try {
 }
 
 try {
-    const { router: subRouter } = require('./routes/subscriptions-billing.cjs');
+    const { router: subRouter } = require('../coming-soon/routes/subscriptions-billing.cjs');
     app.use(subRouter);
     logger.info('[Billing] Subscription billing routes mounted');
 } catch (err) {
@@ -927,7 +979,7 @@ app.get('/api/metrics/path-health', (_req, res) => {
 
 // ── Dashboard stub endpoints (prevent 404 noise from AnalyzeView) ──
 app.get('/api/auth/me', (_req, res) => res.json({ authenticated: false, user: null }));
-app.get('/api/platform/status', (_req, res) => res.json({ online: true, status: 'ok', version: '1.3.0' }));
+app.get('/api/platform/status', (_req, res) => res.json({ online: true, status: 'ok', version: '3.2.0' }));
 app.get('/api/dashboard-home', (_req, res) => res.json({ sections: [], widgets: [], user: null }));
 app.get('/api/dev-tools/tools', (_req, res) => res.json({ tools: [] }));
 app.get('/api/dev-tools/workflows', (_req, res) => res.json({ workflows: [] }));
@@ -936,7 +988,7 @@ app.get('/api/coverage-reports/overview', (_req, res) => res.json({ coverage: 0,
 app.get('/api/help', (_req, res) => res.json({ topics: [], faqs: [] }));
 app.get('/api/quality/overview', (_req, res) => res.json({ score: 100, metrics: {}, status: 'ok' }));
 app.get('/api/optimization/health', (_req, res) => res.json({ healthy: true, checks: [] }));
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'simplebeacon' }));
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'simplebeacon-api' }));
 app.get('/api/merger-tool/reduction-scan', (_req, res) => res.json({
     success: true,
     reportVersion: 2,
@@ -957,12 +1009,8 @@ app.get('/coming-soon/*', (req, res) => {
     res.redirect(301, req.path.replace('/coming-soon', '') || '/');
 });
 
-app.get('*', (req, res) => {
-    if (req.path.startsWith('/api/')) {
-        res.status(404).json({ error: 'Not found', path: req.path });
-    } else {
-        res.status(404).json({ error: 'Not found', path: req.path });
-    }
+app.use((req, res) => {
+    res.status(404).json({ error: 'Not found', path: req.path, method: req.method });
 });
 
 // Global error handler — catches unhandled errors from any middleware or route
@@ -985,10 +1033,23 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
 });
 
-if (require.main === module) {
-    app.listen(PORT, () => {
-        logger.info(`Server listening on port ${PORT}`);
-    });
-}
+const server = app.listen(PORT, () => {
+    logger.info(`[API] SimpleBeacon API server running on port ${PORT}`);
+    logger.info(`[API] Environment: ${process.env.NODE_ENV || 'development'}`);
+});
 
-module.exports = app;
+function gracefulShutdown(signal) {
+    logger.info('[Shutdown] Received ' + signal + '. Closing server...');
+    server.close(() => {
+        logger.info('[Shutdown] Server closed.');
+        process.exit(0);
+    });
+    setTimeout(() => {
+        logger.error('[Shutdown] Forced exit after timeout.');
+        process.exit(1);
+    }, 10000);
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+module.exports = { app, server };
