@@ -33,6 +33,13 @@ const DEFAULT_OPTIONS = {
   enableCrashFaults: true,
   enableKeyCorruption: true,
   enableTimingAttacks: true,
+  // Track 127: Mesh partition fuzzing options
+  enableGossipPacketDrop: true,
+  enableSplitBrainPartition: true,
+  enableNetworkJitter: true,
+  gossipDropRate: 0.1,
+  splitBrainDurationMs: 10000,
+  networkJitterMs: 100,
   recoveryTimeoutMs: 30000,
 };
 
@@ -45,6 +52,10 @@ const FAULT_TYPE = {
   TIMING_ATTACK: 'timing-attack',
   HEARTBEAT_LOSS: 'heartbeat-loss',
   STATE_DIVERGENCE: 'state-divergence',
+  // Track 127: Chaos & Mesh Partition Fuzzing fault types
+  GOSSIP_PACKET_DROP: 'gossip-packet-drop',
+  SPLIT_BRAIN_PARTITION: 'split-brain-partition',
+  NETWORK_JITTER: 'network-jitter',
 };
 
 const FAULT_STATUS = {
@@ -82,6 +93,12 @@ class EnclaveFaultInjection {
     this.enableCrashFaults = opts.enableCrashFaults;
     this.enableKeyCorruption = opts.enableKeyCorruption;
     this.enableTimingAttacks = opts.enableTimingAttacks;
+    this.enableGossipPacketDrop = opts.enableGossipPacketDrop;
+    this.enableSplitBrainPartition = opts.enableSplitBrainPartition;
+    this.enableNetworkJitter = opts.enableNetworkJitter;
+    this.gossipDropRate = opts.gossipDropRate;
+    this.splitBrainDurationMs = opts.splitBrainDurationMs;
+    this.networkJitterMs = opts.networkJitterMs;
     this.recoveryTimeoutMs = opts.recoveryTimeoutMs;
     this._audit = opts.audit || null;
 
@@ -187,6 +204,9 @@ class EnclaveFaultInjection {
       [FAULT_TYPE.TIMING_ATTACK]: this.enableTimingAttacks,
       [FAULT_TYPE.HEARTBEAT_LOSS]: this.enableCrashFaults,
       [FAULT_TYPE.STATE_DIVERGENCE]: this.enableByzantineFaults,
+      [FAULT_TYPE.GOSSIP_PACKET_DROP]: this.enableGossipPacketDrop,
+      [FAULT_TYPE.SPLIT_BRAIN_PARTITION]: this.enableSplitBrainPartition,
+      [FAULT_TYPE.NETWORK_JITTER]: this.enableNetworkJitter,
     };
     if (checks[faultType] === false) {
       throw new HsmAdapterError('FAULT_TYPE_DISABLED',
@@ -504,6 +524,9 @@ function _getFaultEffects(faultType, params) {
     [FAULT_TYPE.TIMING_ATTACK]: ['timing-leak', 'side-channel'],
     [FAULT_TYPE.HEARTBEAT_LOSS]: ['heartbeat-timeout', 'quarantine-trigger'],
     [FAULT_TYPE.STATE_DIVERGENCE]: ['inconsistent-state', 'sync-conflict'],
+    [FAULT_TYPE.GOSSIP_PACKET_DROP]: ['dropped-gossip', 'delayed-sync', 'stale-quorum'],
+    [FAULT_TYPE.SPLIT_BRAIN_PARTITION]: ['dual-leader', 'quorum-split', 'divergent-logs'],
+    [FAULT_TYPE.NETWORK_JITTER]: ['latency-spike', 'timeout-flap', 'heartbeat-jitter'],
   };
   return effects[faultType] || ['unknown-effect'];
 }
@@ -518,6 +541,9 @@ function _getRecoveryActions(faultType) {
     [FAULT_TYPE.TIMING_ATTACK]: ['add-jitter', 'constant-time-ops'],
     [FAULT_TYPE.HEARTBEAT_LOSS]: ['force-heartbeat', 'check-quarantine'],
     [FAULT_TYPE.STATE_DIVERGENCE]: ['force-sync', 'resolve-conflicts'],
+    [FAULT_TYPE.GOSSIP_PACKET_DROP]: ['retry-gossip', 'increase-timeout', 'reconcile-state'],
+    [FAULT_TYPE.SPLIT_BRAIN_PARTITION]: ['force-quorum-revote', 'merge-divergent-logs', 'heal-partition'],
+    [FAULT_TYPE.NETWORK_JITTER]: ['stabilize-timers', 'adjust-heartbeat-interval'],
   };
   return actions[faultType] || ['unknown-recovery'];
 }
@@ -531,6 +557,9 @@ function _pickRandomFaultType(prng, enabled) {
   if (enabled.crash) types.push(FAULT_TYPE.ENCLAVE_CRASH, FAULT_TYPE.HEARTBEAT_LOSS);
   if (enabled.keyCorruption) types.push(FAULT_TYPE.KEY_CORRUPTION);
   if (enabled.timing) types.push(FAULT_TYPE.TIMING_ATTACK);
+  if (enabled.gossipDrop) types.push(FAULT_TYPE.GOSSIP_PACKET_DROP);
+  if (enabled.splitBrain) types.push(FAULT_TYPE.SPLIT_BRAIN_PARTITION);
+  if (enabled.networkJitter) types.push(FAULT_TYPE.NETWORK_JITTER);
   if (types.length === 0) return null;
   return types[prng.nextInt(types.length)];
 }
