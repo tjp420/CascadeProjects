@@ -920,6 +920,19 @@ const counters = {
   // Track 116: Cluster Isolation Hardening counters
   hsm_isolation_violation_total: 0,
   hsm_key_reject_total: 0,
+  // Track 112: Upload and PoRep verification counters
+  hsm_track112_upload_create_total: 0,
+  hsm_track112_upload_chunk_total: 0,
+  hsm_track112_upload_chunk_failed_total: 0,
+  hsm_track112_upload_commit_total: 0,
+  hsm_track112_upload_commit_failed_total: 0,
+  hsm_track112_upload_commit_failed_invalid_signature_total: 0,
+  hsm_track112_upload_commit_failed_session_not_found_total: 0,
+  hsm_track112_proofs_verified_total: 0,
+  hsm_track112_proofs_failed_total: 0,
+  hsm_track112_worker_rejected_total: 0,
+  hsm_track112_worker_task_done_total: 0,
+  hsm_track112_ingest_backpressure_total: 0,
   // SIEM Broker: Unified telemetry pipeline counters
   siem_events_processed_total: 0,
   siem_events_dropped_total: 0,
@@ -939,6 +952,9 @@ const histograms = {
   hsm_create_kek_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
   // DKG round duration histogram (PR #391 — DKG gossip protocol)
   hsm_dkg_round_duration_ms: { buckets: [100, 500, 1000, 5000, 10000, 30000, 60000], counts: new Array(8).fill(0), sum: 0, count: 0 },
+  // Track 112: upload and proof verification latency
+  hsm_track112_upload_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
+  hsm_track112_proof_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
 };
 
 // Metadata for Prometheus exposition
@@ -1749,6 +1765,21 @@ const META = {
   // Track 116: Cluster Isolation Hardening metadata
   hsm_isolation_violation_total: { help: 'Total Track 116 cluster isolation violations — messages dropped from unverified or spoofed cluster peer nodes.', type: 'counter' },
   hsm_key_reject_total: { help: 'Total Track 116 key rejections — KEY_COMMIT frames rejected from unauthorized non-leader nodes.', type: 'counter' },
+  // Track 112: Upload and PoRep verification metadata
+  hsm_track112_upload_create_total: { help: 'Total Track 112 upload sessions created.', type: 'counter' },
+  hsm_track112_upload_chunk_total: { help: 'Total Track 112 upload chunks accepted.', type: 'counter' },
+  hsm_track112_upload_chunk_failed_total: { help: 'Total Track 112 upload chunk writes that failed.', type: 'counter' },
+  hsm_track112_upload_commit_total: { help: 'Total Track 112 upload sessions committed.', type: 'counter' },
+  hsm_track112_upload_commit_failed_total: { help: 'Total Track 112 upload commits that failed.', type: 'counter' },
+  hsm_track112_upload_commit_failed_invalid_signature_total: { help: 'Total Track 112 upload commits rejected due to an invalid Ed25519 signature.', type: 'counter' },
+  hsm_track112_upload_commit_failed_session_not_found_total: { help: 'Total Track 112 upload commits for unknown or expired sessions.', type: 'counter' },
+  hsm_track112_proofs_verified_total: { help: 'Total Track 112 PoRep proofs successfully verified.', type: 'counter' },
+  hsm_track112_proofs_failed_total: { help: 'Total Track 112 PoRep proofs that failed verification.', type: 'counter' },
+  hsm_track112_worker_rejected_total: { help: 'Total Track 112 worker-pool tasks rejected due to a full queue.', type: 'counter' },
+  hsm_track112_worker_task_done_total: { help: 'Total Track 112 worker-pool tasks completed.', type: 'counter' },
+  hsm_track112_ingest_backpressure_total: { help: 'Total Track 112 ingest-queue submissions rejected due to backpressure.', type: 'counter' },
+  hsm_track112_upload_duration_ms: { help: 'Track 112 upload endpoint latency in milliseconds.', type: 'histogram' },
+  hsm_track112_proof_duration_ms: { help: 'Track 112 PoRep proof verification latency in milliseconds.', type: 'histogram' },
   // SIEM Broker: Unified telemetry pipeline metadata
   siem_events_processed_total: { help: 'Total SIEM security events accepted and routed to transport layers (batch queue or Winston stream).', type: 'counter' },
   siem_events_dropped_total: { help: 'Total SIEM events dropped by the token-bucket rate limiter. High values indicate possible log-blinding attacks or misconfigured rate limits.', type: 'counter' },

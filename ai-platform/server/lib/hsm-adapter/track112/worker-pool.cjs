@@ -1,6 +1,7 @@
 "use strict";
 
 const EventEmitter = require('events');
+const hsmMetrics = require('../hsm-metrics.cjs');
 
 class WorkerPool extends EventEmitter {
   constructor({ concurrency = 4, queueSize = 256 } = {}) {
@@ -16,6 +17,7 @@ class WorkerPool extends EventEmitter {
     if (this.stopping) throw new Error('pool-stopping');
     if (this.queue.length >= this.queueSize) {
       const err = new Error('queue-full');
+      hsmMetrics.incrementCounter('hsm_track112_worker_rejected_total');
       this.emit('rejected', task, err);
       throw err;
     }
@@ -30,8 +32,8 @@ class WorkerPool extends EventEmitter {
         this.active += 1;
         Promise.resolve()
           .then(() => task())
-          .then((res) => { this.active -= 1; this.emit('taskDone', null, res); this._drain(); })
-          .catch((err) => { this.active -= 1; this.emit('taskDone', err); this._drain(); });
+          .then((res) => { this.active -= 1; hsmMetrics.incrementCounter('hsm_track112_worker_task_done_total'); this.emit('taskDone', null, res); this._drain(); })
+          .catch((err) => { this.active -= 1; hsmMetrics.incrementCounter('hsm_track112_worker_task_done_total'); this.emit('taskDone', err); this._drain(); });
       }
       if (this.active === 0 && this.queue.length === 0) this.emit('drained');
     });
