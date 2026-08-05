@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { zeroizeBuffer } = require('../crypto/zeroize.cjs');
 
 function isSafeId(id) {
   return typeof id === 'string' && /^[a-zA-Z0-9-_]+$/.test(id);
@@ -42,15 +43,23 @@ function writeAtomicSync(destPath, buf) {
 }
 
 function validateChunkEnvelopes(chunks) {
-  for (const c of chunks) {
-    if (c.encrypted) {
-      if (!c.cipher || !c.iv || !c.authTag) {
-        throw new Error('TRACK123_CHUNK_MISSING_ENVELOPE');
+  const buffersToScrub = [];
+  try {
+    for (const c of chunks) {
+      if (c.encrypted) {
+        if (!c.cipher || !c.iv || !c.authTag) {
+          throw new Error('TRACK123_CHUNK_MISSING_ENVELOPE');
+        }
+        const iv = Buffer.from(c.iv, 'base64');
+        const authTag = Buffer.from(c.authTag, 'base64');
+        buffersToScrub.push(iv, authTag);
+        if (iv.length !== 12) throw new Error('TRACK123_CHUNK_INVALID_IV');
+        if (authTag.length !== 16) throw new Error('TRACK123_CHUNK_INVALID_AUTH_TAG');
       }
-      const iv = Buffer.from(c.iv, 'base64');
-      const authTag = Buffer.from(c.authTag, 'base64');
-      if (iv.length !== 12) throw new Error('TRACK123_CHUNK_INVALID_IV');
-      if (authTag.length !== 16) throw new Error('TRACK123_CHUNK_INVALID_AUTH_TAG');
+    }
+  } finally {
+    for (const buf of buffersToScrub) {
+      zeroizeBuffer(buf);
     }
   }
 }

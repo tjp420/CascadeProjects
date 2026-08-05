@@ -2,6 +2,7 @@
 
 const EventEmitter = require('events');
 const crypto = require('crypto');
+const { zeroizeBuffer } = require('../crypto/zeroize.cjs');
 const { incrementCounter } = require('../hsm-adapter/hsm-metrics.cjs');
 
 // Default labels attached to every repair metric
@@ -26,12 +27,21 @@ function validateEnvelope(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('TRACK123_MISSING_PAYLOAD');
   if (payload.encrypted) {
     const { cipher, iv, authTag } = payload;
-    if (typeof cipher !== 'string' || cipher.length === 0) throw new Error('TRACK123_MISSING_CIPHER');
-    if (typeof iv !== 'string' || iv.length === 0) throw new Error('TRACK123_MISSING_IV');
-    if (typeof authTag !== 'string' || authTag.length === 0) throw new Error('TRACK123_MISSING_AUTH_TAG');
-    // Minimum sanity for AES-256-GCM components (base64 lengths)
-    if (Buffer.from(iv, 'base64').length !== 12) throw new Error('TRACK123_INVALID_IV');
-    if (Buffer.from(authTag, 'base64').length !== 16) throw new Error('TRACK123_INVALID_AUTH_TAG');
+    let ivBuf;
+    let tagBuf;
+    try {
+      if (typeof cipher !== 'string' || cipher.length === 0) throw new Error('TRACK123_MISSING_CIPHER');
+      if (typeof iv !== 'string' || iv.length === 0) throw new Error('TRACK123_MISSING_IV');
+      if (typeof authTag !== 'string' || authTag.length === 0) throw new Error('TRACK123_MISSING_AUTH_TAG');
+      // Minimum sanity for AES-256-GCM components (base64 lengths)
+      ivBuf = Buffer.from(iv, 'base64');
+      tagBuf = Buffer.from(authTag, 'base64');
+      if (ivBuf.length !== 12) throw new Error('TRACK123_INVALID_IV');
+      if (tagBuf.length !== 16) throw new Error('TRACK123_INVALID_AUTH_TAG');
+    } finally {
+      zeroizeBuffer(ivBuf);
+      zeroizeBuffer(tagBuf);
+    }
   }
 }
 
