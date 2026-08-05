@@ -38,6 +38,7 @@
 const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
+const { authorize } = require('../middleware/authorize.cjs');
 const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
@@ -1278,7 +1279,9 @@ router.post('/record', (req, res) => {
 });
 
 // GET /api/analytics/siem-telemetry — cluster-wide SIEM telemetry snapshot
-router.get('/siem-telemetry', (req, res) => {
+// Restricted to authenticated operators with read:siem_telemetry permission
+// (granted to admin and auditor roles via rbac-store.cjs)
+router.get('/siem-telemetry', authorize('read:siem_telemetry'), (req, res) => {
   try {
     const broker = getSharedBroker();
     const telemetry = broker.getClusterTelemetry();
