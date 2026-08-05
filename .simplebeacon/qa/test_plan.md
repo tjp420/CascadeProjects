@@ -1,61 +1,51 @@
-# Test Plan: Browser large-folder scan — false 1-file PASS + 100k+ failure UX
+# Test Plan: Centralized Audit Log Zeroization
+
+> Memory scrubbing layer for sensitive cryptographic and identity data
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Fix/clarify hosted browser scans when folder drops yield 1 file or repos exceed ~100k files |
-| Author (Builder) | Builder |
-| Date | 2026-08-04 |
-| Branch | (TBD after approval) |
-| Packages touched | ai-platform (dashboard LocalScanService / AnalyzeView), coming-soon (audit `/audit` scanner) |
-
-## Problem (from user reports)
-
-1. **`https://simplebeacon.ai/app/#/analyze`** — Dropped a ~393k-file / 48 GB folder (`Windows`). Result: **1 file indexed**, gate PASS, quality 100%. Report: `simplebeacon-report-1785885586927.json` (`scanSource: browser-local`, `projectRoot: Windows`).
-2. **`https://simplebeacon.ai/audit`** — Same class of target fails / is unusable above ~100k files. `report(7).json` is a **successful** ~15k-file `AdvancedInstallers` sandbox scan (not the Windows failure).
-
-### Root causes (code)
-
-| Surface | Cause |
-|---------|--------|
-| Analyze (`LocalScanService`) | Hard `MAX_FILES = 50000` during directory-handle walk; incomplete drops (no `webkitRelativePath`, protected OS dirs) can yield **1** `File` and still produce a green PASS. |
-| Analyze drop handlers | Known path: IDE/OS drop exposes 1 file; traversal fallbacks exist but can still fall through to scanning that single file. |
-| Audit (`coming-soon`) | Soft thresholds `FILE_COUNT_HIGH=65000` / `FILE_COUNT_VERY_HIGH=100000`; worker diagnostic mentions **cap 100000**; posting huge `File` arrays via `postMessage` + in-browser scan of 100k–400k files OOMs / hangs the tab. Discovery cap in `scan-utils.js` is effectively unlimited (`999999999`). |
-
-**Out of scope for browser:** Full recursive scan of `C:\Windows` (~400k files / 48 GB). Correct path is **CLI** (`npx simplebeacon scan`) or Local Agent with an absolute path — not hosted drag-and-drop.
+| Feature / change | Synchronous buffer zeroization for poRep-verifier and token-service sensitive data |
+| Author (Builder) | Devin |
+| Date | 2026-08-05 |
+| Branch | feat/zeroization-layer |
+| Packages touched | ai-platform/server/lib/hsm-adapter/track112, ai-platform/server/lib/auth, ai-platform/server/lib |
 
 ## Scope
 
-### Files in scope (Broom — prefer existing modules)
+### Files in scope
 
-1. `ai-platform/web/simplebeacon-dashboard/js/services/localScanService.js` (+ js-es2018 twin if deployed from it)
-2. `ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js` — incomplete-drop / refuse false PASS
-3. `coming-soon/public/js-es2018/dashboard/main.js` and/or `scanner-engine.js` — hard warn + block/redirect CLI before OOM at ≥100k
-4. Optional: `ai-platform/web/simplebeacon-dashboard/js/utils-lib/dom.js` — shared incomplete-drop helper
+1. `ai-platform/server/lib/zeroize.cjs` (new — shared zeroization utility)
+2. `ai-platform/server/lib/hsm-adapter/track112/poRep-verifier.cjs` (modified — zeroize leaf buffers after verification)
+3. `ai-platform/server/lib/auth/token-service.cjs` (modified — zeroize token buffers after verification)
+4. `ai-platform/server/lib/token-service.cjs` (modified — zeroize refresh token buffers after hashing)
+5. `ai-platform/server/lib/__tests__/zeroize.test.cjs` (new — unit tests for zeroization utility)
+6. `ai-platform/server/lib/hsm-adapter/__tests__/track112/poRep-verifier.test.cjs` (modified — zeroization verification tests)
 
 ### APIs / routes
 
-- No new REST routes. Browser-local / browser-sandbox only.
+No route changes. Internal utility module only.
 
 ### UI / IDE surfaces
 
-- [x] Main dashboard Analyze (`#/analyze`)
-- [x] Marketing audit page (`/audit`)
-- [ ] Sidebar webview (N/A unless shared helper)
+- [ ] Sidebar webview (N/A)
+- [ ] Main dashboard iframe (N/A)
+- [ ] Welcome / main window panel (N/A)
+- [ ] Simple Browser / external browser (N/A)
 
 ---
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 — Deterministic
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
+| ID | Check | Command | Pass |
+|----|-------|---------|------|
 | L1-01 | Syntax on changed JS/CJS | `node -c <file>` | [ ] |
-| L1-02 | ai-platform tests (if touched) | `cd ai-platform && npm test` | [ ] |
-| L1-03 | Extension compile | N/A unless extension touched | [ ] |
+| L1-02 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
+| L1-03 | Zeroize unit tests | `npx jest server/lib/__tests__/zeroize.test.cjs` | [ ] |
 | L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
 | L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
-| L1-06 | npm audit | N/A unless deps changed | [ ] |
+| L1-06 | No new dependencies | Verify package.json unchanged | [ ] |
 
 ---
 
@@ -63,58 +53,65 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Incomplete folder drop | Drop a folder that only exposes 1 File without `webkitRelativePath` (or simulate) on Analyze | Toast warning; **no** green PASS report claiming full repo; prompt Select Folder / CLI | [ ] |
-| L2-02 | Cap transparency (Analyze) | Scan via directory handle that exceeds `MAX_FILES` | Report/`scanLimitNote` states truncation; not silent 50k-as-complete | [ ] |
-| L2-03 | Audit ≥100k guard | Start scan when discovered files ≥ 100000 | Clear stop/warn with CLI command; avoid posting full File array to worker | [ ] |
-| L2-04 | Audit mid-size still works | Scan folder ~1k–15k files (like AdvancedInstallers) | Completes; inventory matches order of magnitude | [ ] |
+| L2-01 | zeroizeBuffer fills with zeros | Create buffer with secret data, call zeroizeBuffer | Buffer contents all 0x00 | [ ] |
+| L2-02 | zeroizeBuffer is idempotent | Call zeroizeBuffer twice on same buffer | No throw, buffer still all 0x00 | [ ] |
+| L2-03 | zeroizeBuffer handles null/undefined | Call with null, undefined, empty buffer | No throw, returns silently | [ ] |
+| L2-04 | poRep-verifier zeroizes leaf buffers after verification | Run verify() with valid proof, inspect leafBuf after | Leaf buffer contents zeroized | [ ] |
+| L2-05 | poRep-verifier zeroizes on error path | Run verify() with invalid proof, inspect buffers | Buffers zeroized even on failure | [ ] |
+| L2-06 | token-service zeroizes token string after verify | Call verifyToken(), inspect token buffer | Token buffer zeroized after verification | [ ] |
+| L2-07 | token-service zeroizes on exception | Call verifyToken() with invalid token | Buffer zeroized even on throw | [ ] |
+| L2-08 | token-service.cjs zeroizes refresh token after hashing | Call hashToken(), inspect input buffer | Input buffer zeroized | [ ] |
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 — Self-review / drift
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | System / protected dirs (`Windows`) | Do not claim full inventory; surface permission / incomplete enumeration | [ ] |
-| L3-02 | Select Folder vs drag-drop | Select Folder still preferred path for full browser walk | [ ] |
-| L3-03 | No scope creep | No new scan engine; CLI remains recommended for mega-trees | [ ] |
+| L3-01 | try/finally guards all zeroization | Every sensitive buffer operation wrapped in try/finally | Zeroization runs even on exception | [ ] |
+| L3-02 | No performance regression | Zeroization adds < 0.01ms per buffer | Benchmark within SLA | [ ] |
+| L3-03 | No production module instrumentation | Zeroize utility is standalone, no monkey-patching | Clean import pattern | [ ] |
+| L3-04 | Existing test suites unaffected | Run track112 + auth test suites | All existing tests pass | [ ] |
 
 ---
 
-## Security
+## Security checklist
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials / PII in logs or commits | [ ] |
-| S-02 | Browser-local scans still do not upload source by default | [ ] |
+| S-01 | No credentials / PII in zeroization code | [ ] |
+| S-02 | Zeroization is synchronous (no async gap before scrub) | [ ] |
+| S-03 | Zeroization runs in finally block (exception-safe) | [ ] |
+| S-04 | Zeroize utility does not log buffer contents | [ ] |
 
 ---
 
-## Proposed Builder work (after approval)
+## Zeroization Architecture
 
-1. **Refuse false PASS** when directory drop yields ≤2 files without relative paths / after failed tree walk — toast + Select Folder / CLI, do not apply 1-file “Windows PASS” report.
-2. **Surface `MAX_FILES`** in `localScanService` report (`scanLimitNote` / limitations).
-3. **Audit page:** before deep scan / worker `postMessage`, if `files.length >= 100000`, abort with actionable CLI message (and optional Local Agent path); do not clone 100k+ File objects into the worker.
-4. Keep copy honest: browser sandbox is for project-sized trees, not OS install roots.
+### Utility: `zeroize.cjs`
 
-## Immediate user workaround (no code required)
-
-```powershell
-# From a normal project folder (not C:\Windows), or a scoped subtree:
-npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
+```
+zeroizeBuffer(buf)   — fills buffer with 0x00, handles null/undefined/empty
+zeroizeString(str)   — converts string to Buffer, fills with 0x00, returns null
+withZeroizedBuffer(encoded, fn)  — allocates buffer, runs fn, zeroizes in finally
 ```
 
-For hosted Analyze: use **Select Folder** (not drag of system roots). Prefer scanning application/source trees, not entire OS directories.
+### Target Sites
+
+1. **poRep-verifier.cjs `verify()`** — leaf buffers (`leafBuf`, `leafHash`, `cur` in `computeRootFromPath`) zeroized after verification loop
+2. **auth/token-service.cjs `verifyToken()`** — token string converted to buffer, zeroized after `jwt.verify()` in finally block
+3. **token-service.cjs `hashToken()`** — token buffer zeroized after SHA-256 hash computation
+
+### Isolation Controls
+
+- Zeroization is synchronous — no async gap between use and scrub
+- All zeroization wrapped in try/finally to ensure execution on error paths
+- Utility handles edge cases (null, undefined, empty, non-Buffer) without throwing
+- No logging of buffer contents in zeroization code
 
 ---
 
 ## Approval
 
-- [x] User approved this plan (or task included approved scope)
-- Approved by: user  Date: 2026-08-04
-- Defaults chosen: Analyze cap toast uses CLI command string; Audit hard-stop shows CLI command (no download link).
-
-## Coercion Verification Block
-- [x] Coerce numeric inputs (`minQuorumNodes`, `maxConcurrentMigrations`, `maxShardsPerMigration`)
-- [x] Normalize stringified booleans (`requireAttestation`, `requireQuorumCommit`)
-- [x] Array normalization for attestation authorities
-- [x] Integration matrix: Verified via `track119-rest-routes.test.cjs`
+- [ ] User approved this plan
+- Approved by: ___________  Date: ___________
