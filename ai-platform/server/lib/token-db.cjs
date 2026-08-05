@@ -8,6 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const DB_PATH = path.join(__dirname, '../db/token-registry.json');
 
@@ -119,6 +120,109 @@ function revokeSessionToken(id, reason) {
         db.session_tokens[idx].revoked_at = new Date().toISOString();
         db.session_tokens[idx].revoked_reason = reason;
         return db.session_tokens[idx];
+    });
+}
+
+function getSessionTokenByHash(tokenHash) {
+    const db = loadDb();
+    return db.session_tokens.find((t) => t.token_hash === tokenHash) || null;
+}
+
+function findSessionTokensByAccount(accountId) {
+    const db = loadDb();
+    return db.session_tokens.filter((t) => t.account_id === accountId);
+}
+
+function findSessionTokensByTenant(tenantId) {
+    const db = loadDb();
+    return db.session_tokens.filter((t) => t.tenant_id === tenantId);
+}
+
+function expireSessionToken(id) {
+    return withDbQueued((db) => {
+        const idx = db.session_tokens.findIndex((t) => t.id === id);
+        if (idx === -1) return null;
+        db.session_tokens[idx].expires_at = new Date().toISOString();
+        return db.session_tokens[idx];
+    });
+}
+
+function rotateSessionToken(id, newTokenHash, newExpiresAt) {
+    return withDbQueued((db) => {
+        const idx = db.session_tokens.findIndex((t) => t.id === id);
+        if (idx === -1) return null;
+        db.session_tokens[idx].token_hash = newTokenHash;
+        db.session_tokens[idx].token_sequence = (db.session_tokens[idx].token_sequence || 0) + 1;
+        db.session_tokens[idx].expires_at = newExpiresAt;
+        db.session_tokens[idx].rotated_at = new Date().toISOString();
+        db.session_tokens[idx].revoked_at = undefined;
+        db.session_tokens[idx].revoked_reason = undefined;
+        return db.session_tokens[idx];
+    });
+}
+
+/**
+ * Synchronize a session token from a cluster gossip frame using monotonic
+ * (epoch, tokenSequence) ordering. This is the core primitive for
+ * distributed session-token replication.
+ *
+ * Conflict rules:
+ *   - If token does not exist locally: insert.
+ *   - If token exists and inbound (epoch, tokenSequence) is lexicographically
+ *     higher: overwrite, but preserve revoked_at if the inbound frame is itself
+ *     a revocation (i.e. a previously revoked record cannot be re-issued unless
+ *     the inbound issue has a higher sequence and does not carry revoked_at).
+ *   - If token exists and local sequence is >= inbound: ignore (out-of-order).
+ */
+function syncSessionToken(token) {
+    return withDbQueued((db) => {
+        if (!token || !token.token_hash) {
+            throw new Error('token-db.syncSessionToken: token_hash is required');
+        }
+
+        const existing = db.session_tokens.find((t) => t.token_hash === token.token_hash);
+        if (!existing) {
+            db.session_tokens.push({
+                id: token.id || crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+                ...token,
+                token_sequence: token.token_sequence || 0,
+                created_at: token.created_at || new Date().toISOString(),
+            });
+            return { accepted: true, action: 'insert' };
+        }
+
+        const localSeq = existing.token_sequence || 0;
+        const localEpoch = existing.epoch || 0;
+        const inboundSeq = token.token_sequence || 0;
+        const inboundEpoch = token.epoch || 0;
+
+        const newer = inboundEpoch > localEpoch ||
+            (inboundEpoch === localEpoch && inboundSeq > localSeq);
+
+        if (!newer) {
+            return { accepted: false, action: 'ignored', reason: 'stale_sequence' };
+        }
+
+        // A revocation frame can mark the token revoked; an issue frame with a
+        // higher sequence can overwrite an earlier revocation (re-issue).
+        const wasRevoked = !!existing.revoked_at;
+        const isRevocation = !!token.revoked_at;
+
+        if (wasRevoked && !isRevocation) {
+            // Higher-sequence issue revives the token (e.g. refresh).
+            existing.revoked_at = undefined;
+            existing.revoked_reason = undefined;
+        }
+
+        Object.assign(existing, token, {
+            id: existing.id,
+            token_hash: token.token_hash,
+            token_sequence: inboundSeq,
+            epoch: inboundEpoch,
+            updated_at: new Date().toISOString(),
+        });
+
+        return { accepted: true, action: isRevocation ? 'revoke' : 'update' };
     });
 }
 
@@ -247,8 +351,14 @@ module.exports = {
     revokeAccessToken,
     // Session Tokens
     getSessionToken,
+    getSessionTokenByHash,
+    findSessionTokensByAccount,
+    findSessionTokensByTenant,
     insertSessionToken,
+    expireSessionToken,
+    rotateSessionToken,
     revokeSessionToken,
+    syncSessionToken,
     // Refresh Tokens
     getRefreshTokenByHash,
     insertRefreshToken,
