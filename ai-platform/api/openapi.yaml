@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: SimpleBeacon Track79 Crypto API
+  title: SimpleBeacon Crypto Governance API
   version: 1.0.0
   description: |
-    OpenAPI specification exposing Policy, Key Lifecycle, and VRF execution endpoints for the Track79 PQ-ThVRF engine.
+    OpenAPI specification exposing Policy, Key Lifecycle, VRF execution, Governance (Tracks 114-121), and SIEM audit endpoints for the SimpleBeacon HSM mesh vault platform.
 servers:
   - url: https://api.simplebeacon.local/v1
     description: Local development server (mTLS enforced in production)
@@ -25,6 +25,11 @@ components:
     mutualTLS:
       type: mutualTLS
       description: Client TLS certificate is required for low-level node-to-node operations (DKG/MPCCoordinator). Use in production server-to-server endpoints.
+    adminAll:
+      type: apiKey
+      in: header
+      name: X-Admin-Authorization
+      description: Admin-level authorization token for governance and telemetry endpoints (admin:all scope).
 
   schemas:
     CryptoPolicyEngine:
@@ -248,6 +253,80 @@ components:
         error_context:
           type: string
 
+
+    # ── Track 114-121 Governance Reusable Schemas ────────────────────
+
+    PolicyResponse:
+      type: object
+      required: [success, orgId, policy]
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+        orgId:
+          type: string
+          description: Tenant organization identifier resolved from request
+        policy:
+          type: object
+          description: Policy attribute block for the governance track
+          additionalProperties: true
+
+    PolicyValidateRequest:
+      type: object
+      description: Configuration to validate against policy constraints
+      additionalProperties: true
+
+    PolicyValidateResponse:
+      type: object
+      required: [success, valid]
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+        valid:
+          type: boolean
+          description: Whether the configuration passed validation
+
+    PolicyViolationError:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Error code (always POLICY_VIOLATION_BLOCKED)
+          example: POLICY_VIOLATION_BLOCKED
+        message:
+          type: string
+          description: Human-readable description of the policy violation
+
+    TelemetryResponse:
+      type: object
+      required: [success, orgId, telemetry]
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+        orgId:
+          type: string
+          description: Tenant organization identifier resolved from request
+        telemetry:
+          type: object
+          description: Telemetry counters for the governance track
+          additionalProperties:
+            type: number
+
+    AuditTelemetryResponse:
+      type: object
+      required: [success, telemetry]
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+        telemetry:
+          type: object
+          description: SIEM audit telemetry counters
+          additionalProperties:
+            type: number
 paths:
   /policies:
     post:
@@ -415,6 +494,521 @@ paths:
               schema:
                 $ref: '#/components/schemas/NIZKVerifyResponse'
 
+  # ── Track 114 cluster isolation ──────────────────────────────────
+  /vault/cluster-isolation/policy:
+    get:
+      summary: Get Track 114 cluster isolation policy
+      tags: [Track114ClusterIsolation]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active policy for Track 114 cluster isolation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+
+  /vault/cluster-isolation/policy/validate:
+    post:
+      summary: Validate a Track 114 cluster isolation configuration
+      tags: [Track114ClusterIsolation]
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyValidateRequest'
+      responses:
+        '200':
+          description: Configuration is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyValidateResponse'
+        '400':
+          description: Policy violation blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+
+  /vault/cluster-isolation/telemetry:
+    get:
+      summary: Get Track 114 cluster isolation telemetry
+      tags: [Track114ClusterIsolation]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Telemetry counters for Track 114 cluster isolation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryResponse'
+
+  # ── Track 115/117 BFT shard sync ──────────────────────────────────
+  /vault/bft-shard-sync/policy:
+    get:
+      summary: Get Track 115/117 BFT shard sync policy
+      tags: [Track115BftShardSync]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active policy for Track 115/117 BFT shard sync
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+
+  /vault/bft-shard-sync/policy/validate:
+    post:
+      summary: Validate a Track 115/117 BFT shard sync configuration
+      tags: [Track115BftShardSync]
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyValidateRequest'
+      responses:
+        '200':
+          description: Configuration is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyValidateResponse'
+        '400':
+          description: Policy violation blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+
+  /vault/bft-shard-sync/telemetry:
+    get:
+      summary: Get Track 115/117 BFT shard sync telemetry
+      tags: [Track115BftShardSync]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Telemetry counters for Track 115/117 BFT shard sync
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryResponse'
+
+  # ── Track 118 distributed consensus coordinator ──────────────────────────────────
+  /vault/distributed-consensus-coordinator/policy:
+    get:
+      summary: Get Track 118 distributed consensus coordinator policy
+      tags: [Track118DistributedConsensusCoordinator]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active policy for Track 118 distributed consensus coordinator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+
+  /vault/distributed-consensus-coordinator/policy/validate:
+    post:
+      summary: Validate a Track 118 distributed consensus coordinator configuration
+      tags: [Track118DistributedConsensusCoordinator]
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyValidateRequest'
+      responses:
+        '200':
+          description: Configuration is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyValidateResponse'
+        '400':
+          description: Policy violation blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+
+  /vault/distributed-consensus-coordinator/telemetry:
+    get:
+      summary: Get Track 118 distributed consensus coordinator telemetry
+      tags: [Track118DistributedConsensusCoordinator]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Telemetry counters for Track 118 distributed consensus coordinator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryResponse'
+
+  # ── Track 119 cross-cluster migration ──────────────────────────────────
+  /vault/cross-cluster-migration/policy:
+    get:
+      summary: Get Track 119 cross-cluster migration policy
+      tags: [Track119CrossClusterMigration]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active policy for Track 119 cross-cluster migration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+
+  /vault/cross-cluster-migration/policy/validate:
+    post:
+      summary: Validate a Track 119 cross-cluster migration configuration
+      tags: [Track119CrossClusterMigration]
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyValidateRequest'
+      responses:
+        '200':
+          description: Configuration is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyValidateResponse'
+        '400':
+          description: Policy violation blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+
+  /vault/cross-cluster-migration/telemetry:
+    get:
+      summary: Get Track 119 cross-cluster migration telemetry
+      tags: [Track119CrossClusterMigration]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Telemetry counters for Track 119 cross-cluster migration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryResponse'
+
+  # ── Track 120 cluster key reconciliation ──────────────────────────────────
+  /vault/cluster-key-reconciliation/policy:
+    get:
+      summary: Get Track 120 cluster key reconciliation policy
+      tags: [Track120ClusterKeyReconciliation]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active policy for Track 120 cluster key reconciliation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+
+  /vault/cluster-key-reconciliation/policy/validate:
+    post:
+      summary: Validate a Track 120 cluster key reconciliation configuration
+      tags: [Track120ClusterKeyReconciliation]
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyValidateRequest'
+      responses:
+        '200':
+          description: Configuration is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyValidateResponse'
+        '400':
+          description: Policy violation blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+
+  /vault/cluster-key-reconciliation/telemetry:
+    get:
+      summary: Get Track 120 cluster key reconciliation telemetry
+      tags: [Track120ClusterKeyReconciliation]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Telemetry counters for Track 120 cluster key reconciliation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryResponse'
+
+  # ── Track 121 multiparty re-keying ──────────────────────────────────
+  /vault/multiparty-re-keying/policy:
+    get:
+      summary: Get Track 121 multiparty re-keying policy
+      tags: [Track121MultipartyReKeying]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active policy for Track 121 multiparty re-keying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+
+  /vault/multiparty-re-keying/policy/validate:
+    post:
+      summary: Validate a Track 121 multiparty re-keying configuration
+      tags: [Track121MultipartyReKeying]
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyValidateRequest'
+      responses:
+        '200':
+          description: Configuration is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyValidateResponse'
+        '400':
+          description: Policy violation blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+
+  /vault/multiparty-re-keying/telemetry:
+    get:
+      summary: Get Track 121 multiparty re-keying telemetry
+      tags: [Track121MultipartyReKeying]
+      security:
+        - adminAll: []
+      parameters:
+        - name: orgId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Telemetry counters for Track 121 multiparty re-keying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryResponse'
+
+  # ── SIEM / Audit Telemetry ────────────────────────────────────────
+  /audit/telemetry:
+    get:
+      summary: Get SIEM audit telemetry counters
+      tags: [SIEMAudit]
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: SIEM audit telemetry counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditTelemetryResponse'
+
+  /audit/log:
+    get:
+      summary: Get audit log entries
+      tags: [SIEMAudit]
+      security:
+        - adminAll: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  entries:
+                    type: array
+                    items:
+                      type: object
+
+  /audit/export:
+    get:
+      summary: Export audit chain
+      tags: [SIEMAudit]
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: Audit chain export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  exported_at:
+                    type: string
+                    format: date-time
+                  entry_count:
+                    type: integer
+
+  /audit/verify-integrity:
+    get:
+      summary: Verify audit hash chain integrity
+      tags: [SIEMAudit]
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: Integrity verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  valid:
+                    type: boolean
+                  broken_at:
+                    type: string
+                    nullable: true
+
+  /audit/stats:
+    get:
+      summary: Get audit statistics
+      tags: [SIEMAudit]
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: Audit statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  total_entries:
+                    type: integer
+                  chain_length:
+                    type: integer
 tags:
   - name: PolicyService
     description: Manage cryptographic policy definitions
@@ -424,6 +1018,20 @@ tags:
     description: VRF evaluation and verification APIs
   - name: NIZKService
     description: NIZK proof generation and verification (stubs for testing)
+  - name: Track114ClusterIsolation
+    description: Track 114 cluster isolation governance endpoints
+  - name: Track115BftShardSync
+    description: Track 115/117 BFT shard sync governance endpoints
+  - name: Track118DistributedConsensusCoordinator
+    description: Track 118 distributed consensus coordinator governance endpoints
+  - name: Track119CrossClusterMigration
+    description: Track 119 cross-cluster migration governance endpoints
+  - name: Track120ClusterKeyReconciliation
+    description: Track 120 cluster key reconciliation governance endpoints
+  - name: Track121MultipartyReKeying
+    description: Track 121 multiparty re-keying governance endpoints
+  - name: SIEMAudit
+    description: SIEM audit telemetry and integrity verification endpoints
 
 x-implementation-notes: |
   - Production deployments should enforce mTLS between node operators for DKG and partial-evaluation endpoints.
