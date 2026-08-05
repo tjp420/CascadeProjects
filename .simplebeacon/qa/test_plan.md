@@ -1,146 +1,112 @@
-# test_plan.md
+# Test Plan: Distributed Session Token Replication
 
-> OpenAPI Specification Hardening — Track 114-121 REST route consolidation
+> Extend the gossiped sync engine (SIEM_BUCKET_SYNC framework) to handle distributed,
+> highly available crypto-token replication across the mesh to secure session persistence
+> during node death.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | OpenAPI Specification Hardening for Tracks 114-121 + SIEM telemetry |
+| Feature / change | Session token replication engine, cluster gossip integration, token state recovery |
 | Author (Builder) | Devin |
 | Date | 2026-08-04 |
-| Branch | feat/openapi-spec-hardening |
-| Packages touched | ai-platform |
+| Branch | feat/session-token-replication |
+| Packages touched | ai-platform/server/lib, ai-platform/server/lib/siem, ai-platform/server/lib/cluster-keyring-sync.cjs |
 
-## Scope
+## Problem
 
-### Files in scope
+Session tokens are currently stored in-process `Map()` instances with optional fallback to file/PostgreSQL/Redis. When a cluster node dies:
 
-- `ai-platform/api/openapi.yaml` (modified — expand from 8 Track 79 endpoints to include Tracks 114-121 + SIEM)
-- `ai-platform/server/lib/hsm-adapter/__tests__/openapi-contract.test.cjs` (new — schema contract tests)
+1. **All in-memory session state is lost** — users on that node are forced to re-authenticate
+2. **Token blocklist is not replicated** — revoked tokens may still be valid on other nodes
+3. **Refresh token families are fragmented** — reuse detection fails across node boundaries
+4. **SIEM distributed sync is not wired** — the gossip protocol exists but `enableDistributedSync()` is never called with a real `sendFn`
+5. **No token state recovery** — on node restart, session state is empty with no cluster sync
 
-### APIs / routes
+## Objectives
 
-**Track 114-121 governance triplets (7 tracks × 3 endpoints = 21 routes):**
+### 1. Session Token Replication Engine (`server/lib/session-token-replication.cjs`)
 
-| Track | Route prefix | Endpoints |
-|-------|-------------|-----------|
-| 114 | `/cluster-isolation` | GET /policy, POST /policy/validate, GET /telemetry |
-| 115 | `/bft-shard-sync` | GET /policy, POST /policy/validate, GET /telemetry |
-| 117 | `/bft-shard-sync` | (same as 115 — verify track mapping) |
-| 118 | `/distributed-consensus-coordinator` | GET /policy, POST /policy/validate, GET /telemetry |
-| 119 | `/cross-cluster-migration` | GET /policy, POST /policy/validate, GET /telemetry |
-| 120 | `/cluster-key-reconciliation` | GET /policy, POST /policy/validate, GET /telemetry |
-| 121 | `/multiparty-re-keying` | GET /policy, POST /policy/validate, GET /telemetry |
+New module that manages distributed session token state across cluster nodes:
 
-**SIEM / audit telemetry routes (from audit-routes.cjs):**
+- **SESS-REPL-01**: `SessionTokenReplicator` class with `init()`, `start()`, `stop()` lifecycle
+- **SESS-REPL-02**: Local token store: Map of tokenId -> { tokenHash, userId, family, expiresAt, revoked, issuedAt, issuedBy }
+- **SESS-REPL-03**: `issueToken(tokenData)` — stores locally and broadcasts `SESSION_TOKEN_ISSUE` to peers
+- **SESS-REPL-04**: `revokeToken(tokenId)` — marks revoked locally and broadcasts `SESSION_TOKEN_REVOKE` to peers
+- **SESS-REPL-05**: `revokeFamily(familyId)` — revokes all tokens in a family, broadcasts `SESSION_FAMILY_REVOKE`
+- **SESS-REPL-06**: `isTokenRevoked(tokenId)` — checks local store (O(1) lookup)
+- **SESS-REPL-07**: `getTokenState(tokenId)` — returns token metadata without sensitive data
+- **SESS-REPL-08**: `handlePeerSync(msg)` — processes incoming `SESSION_TOKEN_SYNC` messages
+- **SESS-REPL-09**: `handleTokenIssue(msg)` — applies remote token issuance to local store
+- **SESS-REPL-10**: `handleTokenRevoke(msg)` — applies remote revocation to local store
+- **SESS-REPL-11**: `handleFamilyRevoke(msg)` — applies remote family revocation
+- **SESS-REPL-12**: `handleStateRequest(msg)` — responds with local token state for recovering node
+- **SESS-REPL-13**: `requestStateFromPeers()` — new node requests full token state from cluster
+- **SESS-REPL-14**: Periodic state sync broadcast (configurable interval, default 10s)
+- **SESS-REPL-15**: Token expiry sweep — removes expired tokens from local store
+- **SESS-REPL-16**: Metrics: tokens_replicated_total, tokens_revoked_total, sync_messages_sent_total, sync_messages_received_total
+- **SESS-REPL-17**: Backward compatible — works standalone (no cluster) with local-only mode
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/audit/telemetry` | GET | SIEM telemetry counters |
-| `/audit/log` | GET | Audit log entries |
-| `/audit/export` | GET | Export audit chain |
-| `/audit/verify-integrity` | GET | Verify hash chain integrity |
-| `/audit/stats` | GET | Audit statistics |
+### 2. Cluster Gossip Integration (`server/lib/cluster-keyring-sync.cjs`)
 
-**Total: 26 new endpoints to document in OpenAPI spec**
+Extend the cluster messaging layer to route session token messages:
 
-### UI / IDE surfaces
+- **CLUSTER-SESS-01**: Add `SESSION_TOKEN_SYNC`, `SESSION_TOKEN_ISSUE`, `SESSION_TOKEN_REVOKE`, `SESSION_FAMILY_REVOKE`, `SESSION_STATE_REQUEST`, `SESSION_STATE_RESPONSE` to IPC_SCHEMAS
+- **CLUSTER-SESS-02**: Route session token messages in `_handleMessage` to the replicator
+- **CLUSTER-SESS-03**: Add `setSessionReplicator(replicator)` function to register the replicator
+- **CLUSTER-SESS-04**: Wire `enableDistributedSync()` on the SIEM broker with `_broadcast` as the sendFn when cluster forms
+- **CLUSTER-SESS-05**: On cluster formation (`CLUSTER_FORMED` event), trigger replicator state request
+- **CLUSTER-SESS-06**: Tenant scope validation on session token messages (reuse `_validateTenantScope`)
 
-- [ ] Sidebar webview
-- [ ] Main dashboard iframe / address bar
-- [ ] Welcome / main window panel
-- [ ] Simple Browser / external browser
+### 3. SIEM Broker Production Wiring (`server/lib/siem/siem-broker.cjs`)
 
----
+Wire the existing distributed sync protocol to production:
 
-## Level 1 — Deterministic (Validator MUST run all)
+- **SIEM-WIRE-01**: Add `enableClusterSync(clusterSync)` method that wires `sendFn` to `clusterSync._broadcast`
+- **SIEM-WIRE-02**: Auto-call `enableDistributedSync()` with correct nodeCount from cluster state
+- **SIEM-WIRE-03**: Expose `getDistributedState()` for monitoring
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed JS/CJS | `node -c <file>` | [ ] |
-| L1-02 | ai-platform tests (if touched) | `cd ai-platform && npm test` | [ ] |
-| L1-03 | OpenAPI YAML validity | `npx js-yaml ai-platform/api/openapi.yaml` parses without error | [ ] |
-| L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
-| L1-06 | OpenAPI contract tests | `npx jest --testPathPatterns openapi-contract` | [ ] |
+### 4. Integration Tests
 
----
+- **INT-01**: Session token replicator issues token and broadcasts to peers
+- **INT-02**: Peer receives token issue and applies to local store
+- **INT-03**: Token revocation propagates across cluster
+- **INT-04**: Family revocation propagates across cluster
+- **INT-05**: New node requests and receives state from peers
+- **INT-06**: Token expiry sweep removes expired tokens
+- **INT-07**: SIEM broker distributed sync is wired on cluster formation
+- **INT-08**: IPC schema validation rejects malformed session token messages
+- **INT-09**: Tenant scope validation on session token messages
+- **INT-10**: Zero regressions — all existing tests pass
 
-## Level 2 — Behavioral
+## Files to Touch
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | OpenAPI spec covers all 21 Track 114-121 endpoints | Parse openapi.yaml, verify all 7 governance triplets have paths | All 21 paths present with correct methods | [ ] |
-| L2-02 | OpenAPI spec covers all 5 SIEM audit endpoints | Parse openapi.yaml, verify audit routes have paths | All 5 paths present with correct methods | [ ] |
-| L2-03 | Policy endpoint schema matches actual response | Compare OpenAPI schema for GET /policy against actual route handler response | Schema fields match (success, orgId, policy) | [ ] |
-| L2-04 | Validate endpoint schema matches actual response | Compare OpenAPI schema for POST /policy/validate against actual route handler response | Schema fields match (success, valid, error) | [ ] |
-| L2-05 | Telemetry endpoint schema matches actual response | Compare OpenAPI schema for GET /telemetry against actual route handler response | Schema fields match (success, orgId, telemetry) | [ ] |
-| L2-06 | Error response schema matches POLICY_VIOLATION_BLOCKED | Verify 400 response schema for validate endpoint | Error code and message fields present | [ ] |
+| File | Change | New? |
+|------|--------|------|
+| `server/lib/session-token-replication.cjs` | New replication engine | Yes |
+| `server/lib/cluster-keyring-sync.cjs` | Add IPC schemas, routing, replicator integration | No |
+| `server/lib/siem/siem-broker.cjs` | Add enableClusterSync method | No |
+| `server/lib/__tests__/session-token-replication.test.cjs` | Unit tests for replicator | Yes |
+| `server/lib/__tests__/cluster-session-integration.test.cjs` | Integration tests for cluster routing | Yes |
+| `server/lib/siem/__tests__/siem-cluster-wiring.test.cjs` | Tests for SIEM broker production wiring | Yes |
 
----
+## Level 1 Verification
 
-## Level 3 — Edge cases & regression
+```powershell
+node -c server/lib/session-token-replication.cjs
+node -c server/lib/cluster-keyring-sync.cjs
+node -c server/lib/siem/siem-broker.cjs
+cd ai-platform && npx jest server/lib/__tests__/session-token-replication.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/__tests__/cluster-session-integration.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/siem/__tests__/siem-cluster-wiring.test.cjs --no-coverage
+```
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Existing Track 79 endpoints unchanged | Verify original 8 paths still present and correct | All 8 original paths preserved | [ ] |
-| L3-02 | OpenAPI tags organize endpoints by track | Verify each governance triplet has a unique tag | 7 track tags + 1 SIEM tag present | [ ] |
-| L3-03 | OpenAPI security scheme applied to all new paths | Verify all new paths require admin:all authorization | security field present on all new paths | [ ] |
-| L3-04 | No ghost paths in OpenAPI spec | Verify every path in spec corresponds to a real route handler | No hallucinated or non-existent paths | [ ] |
-| L3-05 | Schema contract test catches response drift | If route handler response changes, contract test fails | Test validates actual response shape against schema | [ ] |
+## Security Invariants
 
----
-
-## Security
-
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | No credentials / PII in OpenAPI spec examples | [ ] |
-| S-02 | All new paths require authorization (admin:all or oauth2) | [ ] |
-| S-03 | No real tenant IDs, node IDs, or key material in schema examples | [ ] |
-
----
-
-## Implementation Strategy
-
-### Phase 1: OpenAPI Spec Expansion (openapi.yaml)
-
-1. Add 7 new tags for Tracks 114-121 (one per governance track)
-2. Add 1 new tag for SIEM/Audit telemetry
-3. Add 21 new path objects (7 governance triplets × 3 endpoints each)
-4. Add 5 new path objects (SIEM audit routes)
-5. Add reusable schemas:
-   - `PolicyResponse` (success, orgId, policy)
-   - `PolicyValidateRequest` (config fields)
-   - `PolicyValidateResponse` (success, valid)
-   - `PolicyViolationError` (error, message)
-   - `TelemetryResponse` (success, orgId, telemetry)
-   - `AuditTelemetryResponse` (success, telemetry counters)
-6. Add security scheme for admin:all (if not already present)
-
-### Phase 2: Schema Contract Tests (openapi-contract.test.cjs)
-
-1. Parse openapi.yaml with js-yaml
-2. For each of the 26 new endpoints:
-   - Verify path exists in spec
-   - Verify method matches
-   - Verify response schema is defined
-3. For 3 representative endpoints (one policy, one validate, one telemetry):
-   - Make actual HTTP request via supertest
-   - Compare response body fields against OpenAPI schema properties
-4. Verify no ghost paths (every spec path has a matching route handler)
-5. Verify all new paths have security requirements
-
-### Broom Strategy
-
-- Only 2 files touched (openapi.yaml + openapi-contract.test.cjs)
-- No new modules or dependencies
-- Reuses existing js-yaml and supertest packages already in the project
-
----
-
-## Approval
-
-- [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+1. **No sensitive data on the wire**: Token hashes only — never raw tokens or keys
+2. **Idempotent operations**: Duplicate issue/revoke messages are safe
+3. **Fail-safe revocation**: If in doubt, revoke (never fail-open on revocation)
+4. **Tenant isolation**: Session token messages carry tenantId and are validated
+5. **Backward compatible**: Works standalone without cluster (local-only mode)
+6. **No token leakage**: `getTokenState()` returns metadata only, never token hashes

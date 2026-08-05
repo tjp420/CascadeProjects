@@ -295,6 +295,7 @@ const _peerEpochs = new Map(); // peerKey -> epoch number
 // SIEM alerting hooks
 const _siemHooks = []; // array of callback functions
 let _broker = null; // SiemSecurityBroker instance (preferred over hooks)
+let _sessionReplicator = null; // SessionTokenReplicator instance for token replication
 const SIEM_RATE_LIMIT_PER_MIN = parseInt(process.env.SIEM_RATE_LIMIT_PER_MIN, 10) || 100;
 const _siemRateCounters = new Map(); // eventType -> { count, windowStart }
 
@@ -684,6 +685,14 @@ function setBroker(broker) {
 }
 
 /**
+ * Register the session token replicator for distributed token state sync.
+ * @param {object} replicator - SessionTokenReplicator instance
+ */
+function setSessionReplicator(replicator) {
+  _sessionReplicator = replicator || null;
+}
+
+/**
  * Invoke SIEM hooks for a high-severity event, with rate limiting.
  * Excess calls beyond SIEM_RATE_LIMIT_PER_MIN per event type are dropped silently.
  * When a SiemSecurityBroker is set, events are routed through broker.logEvent()
@@ -800,6 +809,30 @@ const IPC_SCHEMAS = {
   SIEM_TOKEN_GRANT: {
     required: { type: 'string', from: 'string', to: 'string', granted: 'number' },
     optional: { timestamp: 'number' },
+  },
+  SESSION_TOKEN_ISSUE: {
+    required: { type: 'string', from: 'string', tokenId: 'string' },
+    optional: { tokenHash: 'string', userId: 'string', family: 'string', expiresAt: 'number', issuedBy: 'string', tenantId: 'string', timestamp: 'number' },
+  },
+  SESSION_TOKEN_REVOKE: {
+    required: { type: 'string', from: 'string', tokenId: 'string' },
+    optional: { reason: 'string', tenantId: 'string', timestamp: 'number' },
+  },
+  SESSION_FAMILY_REVOKE: {
+    required: { type: 'string', from: 'string', family: 'string' },
+    optional: { reason: 'string', revokedTokenIds: 'object', timestamp: 'number' },
+  },
+  SESSION_TOKEN_SYNC: {
+    required: { type: 'string', from: 'string', tokenCount: 'number', familyCount: 'number' },
+    optional: { timestamp: 'number' },
+  },
+  SESSION_STATE_REQUEST: {
+    required: { type: 'string', from: 'string' },
+    optional: { timestamp: 'number' },
+  },
+  SESSION_STATE_RESPONSE: {
+    required: { type: 'string', from: 'string', tokens: ['object', 'array'] },
+    optional: { to: 'string', timestamp: 'number' },
   },
 };
 
@@ -986,6 +1019,16 @@ function _handleMessage(msg, socket) {
       } else if (msg.type === 'SIEM_TOKEN_GRANT') {
         _broker.handleTokenGrant(msg);
       }
+    }
+    return;
+  }
+
+  // Session token replication messages
+  if (msg.type === 'SESSION_TOKEN_ISSUE' || msg.type === 'SESSION_TOKEN_REVOKE' ||
+      msg.type === 'SESSION_FAMILY_REVOKE' || msg.type === 'SESSION_TOKEN_SYNC' ||
+      msg.type === 'SESSION_STATE_REQUEST' || msg.type === 'SESSION_STATE_RESPONSE') {
+    if (_sessionReplicator && typeof _sessionReplicator.handlePeerSync === 'function') {
+      _sessionReplicator.handlePeerSync(msg);
     }
     return;
   }
@@ -1919,6 +1962,7 @@ module.exports = {
   // SIEM alerting hooks
   registerSiemHook,
   setBroker,
+  setSessionReplicator,
   _invokeSiemHooks,
   _siemHooks,
   // State snapshot checkpoint utility

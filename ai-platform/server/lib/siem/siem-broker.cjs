@@ -300,6 +300,30 @@ SiemSecurityBroker.prototype.enableDistributedSync = function (opts) {
  * Broadcast this node's bucket state to all peers.
  * @private
  */
+/**
+ * Wire the broker to the cluster sync messaging layer.
+ * This enables production distributed sync by connecting the broker sendFn
+ * to the cluster broadcast mechanism.
+ *
+ * @param {object} clusterSync - cluster-keyring-sync module instance
+ * @param {number} nodeCount - total nodes in cluster
+ * @param {string} nodeId - this node ID
+ */
+SiemSecurityBroker.prototype.enableClusterSync = function (clusterSync, nodeCount, nodeId) {
+  if (!clusterSync || typeof clusterSync !== 'object') {
+    throw new Error('enableClusterSync: clusterSync must be an object');
+  }
+  this.enableDistributedSync({
+    nodeCount: nodeCount || 2,
+    nodeId: nodeId || 'node-1',
+    sendFn: (msg) => {
+      if (typeof clusterSync._broadcast === 'function') {
+        clusterSync._broadcast(msg);
+      }
+    },
+  });
+};
+
 SiemSecurityBroker.prototype._broadcastBucketState = function () {
   if (!this._distEnabled || !this._sendToPeers) return;
   try {
