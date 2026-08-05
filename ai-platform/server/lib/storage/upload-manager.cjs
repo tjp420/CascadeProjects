@@ -3,8 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const events = require('../../hsm-adapter/events.cjs');
-const logger = require('../../app-logger.cjs').child('upload-manager');
+const events = require('../hsm-adapter/events.cjs');
+const logger = require('../app-logger.cjs').child('upload-manager');
 
 class UploadManager {
   constructor({ baseDir = path.join(process.cwd(), '.data', 'track112'), defaultTenant = 'dev' } = {}) {
@@ -48,49 +48,39 @@ class UploadManager {
 
   async writeChunkFromStream(sessionId, offset, stream) {
     // Find session dir by searching tenants
-    const tenantDirs = fs.readdirSync(this.baseDir).filter(d => fs.statSync(path.join(this.baseDir, d)).isDirectory());
+    const tenants = fs.readdirSync(this.baseDir).filter(d => fs.statSync(path.join(this.baseDir, d)).isDirectory());
     let dir = null;
-    for (const t of tenantDirs) {
-      const cand = path.join(this.baseDir, t, sessionId);
-      if (fs.existsSync(cand)) { dir = cand; break; }
+    for (const t of tenants) {
+      if (t === '_committed') continue;
+      const candidate = path.join(this.baseDir, t, sessionId);
+      if (fs.existsSync(candidate)) { dir = candidate; break; }
     }
     if (!dir) throw new Error('session_not_found');
-    const filePath = path.join(dir, `${Number(offset)}.chunk`);
-    await new Promise((resolve, reject) => {
-      const ws = fs.createWriteStream(filePath, { flags: 'w' });
-      stream.pipe(ws);
-      ws.on('finish', () => resolve());
-      ws.on('error', (err) => reject(err));
+    const chunkPath = path.join(dir, `${offset}.chunk`);
+    return new Promise((resolve, reject) => {
+      const writeStream = fs.createWriteStream(chunkPath);
+      stream.pipe(writeStream);
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+      stream.on('error', reject);
     });
-    const meta = this._readMeta(dir) || {};
-    meta.lastTouch = Date.now();
-    this._writeMeta(dir, meta);
-    return true;
   }
 
   async writeChunkFromBuffer(sessionId, offset, buf) {
-    // helper for tests
-    const tenantDirs = fs.readdirSync(this.baseDir).filter(d => fs.statSync(path.join(this.baseDir, d)).isDirectory());
-    let dir = null;
-    for (const t of tenantDirs) {
-      const cand = path.join(this.baseDir, t, sessionId);
-      if (fs.existsSync(cand)) { dir = cand; break; }
-    }
-    if (!dir) throw new Error('session_not_found');
-    const filePath = path.join(dir, `${Number(offset)}.chunk`);
-    fs.writeFileSync(filePath, buf);
-    const meta = this._readMeta(dir) || {};
-    meta.lastTouch = Date.now();
-    this._writeMeta(dir, meta);
-    return true;
+    const readable = require('stream').Readable;
+    const stream = new readable();
+    stream.push(buf);
+    stream.push(null);
+    return this.writeChunkFromStream(sessionId, offset, stream);
   }
 
   computeRootHex(sessionId) {
-    const tenantDirs = fs.readdirSync(this.baseDir).filter(d => fs.statSync(path.join(this.baseDir, d)).isDirectory());
+    const tenants = fs.readdirSync(this.baseDir).filter(d => fs.statSync(path.join(this.baseDir, d)).isDirectory());
     let dir = null;
-    for (const t of tenantDirs) {
-      const cand = path.join(this.baseDir, t, sessionId);
-      if (fs.existsSync(cand)) { dir = cand; break; }
+    for (const t of tenants) {
+      if (t === '_committed') continue;
+      const candidate = path.join(this.baseDir, t, sessionId);
+      if (fs.existsSync(candidate)) { dir = candidate; break; }
     }
     if (!dir) throw new Error('session_not_found');
     const files = fs.readdirSync(dir).filter(f => f.endsWith('.chunk'));

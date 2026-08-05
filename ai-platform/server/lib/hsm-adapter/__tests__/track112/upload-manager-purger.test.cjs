@@ -44,7 +44,9 @@ describe('UploadManager + Purger lifecycle', () => {
     // commit by moving to committed dir
     const fakeKeyPair = require('crypto').generateKeyPairSync('ed25519');
     const pub = fakeKeyPair.publicKey.export({ type: 'spki', format: 'pem' });
-    const sig = cryptoSign(Buffer.from('world'), fakeKeyPair.privateKey);
+    const data = Buffer.from('world');
+    const root = require('crypto').createHash('sha256').update(data).digest();
+    const sig = cryptoSign(root, fakeKeyPair.privateKey);
     const result = mgr.verifyAndCommitSession(sid, pub, sig);
     expect(result.ok).toBe(true);
     // now purger should not remove committed session
