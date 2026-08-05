@@ -60,6 +60,8 @@ const GOVERNANCE_PREFIXES = [
   'cross-cluster-migration',
   'cluster-key-reconciliation',
   'multiparty-re-keying',
+  'replication-tenant-isolation',
+  'zk-verification-isolation',
 ];
 
 const SIEM_PATHS = ['/audit/telemetry', '/audit/log', '/audit/export', '/audit/verify-integrity', '/audit/stats'];
@@ -71,6 +73,8 @@ const EXPECTED_TAGS = [
   'Track119CrossClusterMigration',
   'Track120ClusterKeyReconciliation',
   'Track121MultipartyReKeying',
+  'Track124ReplicationTenantIsolation',
+  'Track125ZkVerificationIsolation',
   'SIEMAudit',
 ];
 
@@ -307,5 +311,107 @@ describe('OpenAPI Specification Contract Tests', () => {
     expect(yamlText).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     // No real tenant IDs
     expect(yamlText).not.toMatch(/tenant-[0-9a-f]{16,}/i);
+  });
+
+  // ── Track 124: Replication Tenant Isolation endpoints ──────────────
+  describe('Track 124: Replication Tenant Isolation', () => {
+    test('L2-06a: replication-tenant-isolation policy endpoint documented', () => {
+      expect(doc.paths['/vault/replication-tenant-isolation/policy']).toBeDefined();
+      expect(doc.paths['/vault/replication-tenant-isolation/policy'].get).toBeDefined();
+    });
+
+    test('L2-06b: replication-tenant-isolation validate endpoint documented', () => {
+      expect(doc.paths['/vault/replication-tenant-isolation/policy/validate']).toBeDefined();
+      expect(doc.paths['/vault/replication-tenant-isolation/policy/validate'].post).toBeDefined();
+    });
+
+    test('L2-06c: replication-tenant-isolation telemetry endpoint documented', () => {
+      expect(doc.paths['/vault/replication-tenant-isolation/telemetry']).toBeDefined();
+      expect(doc.paths['/vault/replication-tenant-isolation/telemetry'].get).toBeDefined();
+    });
+
+    test('L2-06d: policy endpoint returns 200 with correct schema', async () => {
+      const res = await request(app).get('/api/vault/replication-tenant-isolation/policy');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.policy).toBeDefined();
+      expect(res.body.policy.requireTenantContext).toBe(true);
+    });
+
+    test('L2-06e: validate endpoint accepts valid tenant context', async () => {
+      const res = await request(app)
+        .post('/api/vault/replication-tenant-isolation/policy/validate')
+        .send({ tenantId: 'tenant-1' });
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.valid).toBe(true);
+    });
+
+    test('L2-06f: validate endpoint rejects invalid tenant context', async () => {
+      const res = await request(app)
+        .post('/api/vault/replication-tenant-isolation/policy/validate')
+        .send({ tenantId: '../bad' });
+      expect(res.status).toBe(400);
+    });
+
+    test('L2-06g: telemetry endpoint returns 200 with counters', async () => {
+      const res = await request(app).get('/api/vault/replication-tenant-isolation/telemetry');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.telemetry).toBeDefined();
+      expect(res.body.telemetry.hsm_replication_tenant_isolation_violation_total).toBeDefined();
+    });
+  });
+
+  // ── Track 125: ZK Verification Tenant Isolation endpoints ──────────
+  describe('Track 125: ZK Verification Tenant Isolation', () => {
+    test('L2-07a: zk-verification-isolation policy endpoint documented', () => {
+      expect(doc.paths['/vault/zk-verification-isolation/policy']).toBeDefined();
+      expect(doc.paths['/vault/zk-verification-isolation/policy'].get).toBeDefined();
+    });
+
+    test('L2-07b: zk-verification-isolation validate endpoint documented', () => {
+      expect(doc.paths['/vault/zk-verification-isolation/policy/validate']).toBeDefined();
+      expect(doc.paths['/vault/zk-verification-isolation/policy/validate'].post).toBeDefined();
+    });
+
+    test('L2-07c: zk-verification-isolation telemetry endpoint documented', () => {
+      expect(doc.paths['/vault/zk-verification-isolation/telemetry']).toBeDefined();
+      expect(doc.paths['/vault/zk-verification-isolation/telemetry'].get).toBeDefined();
+    });
+
+    test('L2-07d: policy endpoint returns 200 with governed domains', async () => {
+      const res = await request(app).get('/api/vault/zk-verification-isolation/policy');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.policy).toBeDefined();
+      expect(res.body.policy.requireTenantId).toBe(true);
+      expect(res.body.policy.governedDomains).toBeDefined();
+      expect(Array.isArray(res.body.policy.governedDomains)).toBe(true);
+    });
+
+    test('L2-07e: validate endpoint accepts valid tenant ID', async () => {
+      const res = await request(app)
+        .post('/api/vault/zk-verification-isolation/policy/validate')
+        .send({ tenantId: 'tenant-1' });
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.valid).toBe(true);
+    });
+
+    test('L2-07f: validate endpoint rejects invalid tenant ID', async () => {
+      const res = await request(app)
+        .post('/api/vault/zk-verification-isolation/policy/validate')
+        .send({ tenantId: '../bad' });
+      expect(res.status).toBe(400);
+    });
+
+    test('L2-07g: telemetry endpoint returns 200 with ZK counters', async () => {
+      const res = await request(app).get('/api/vault/zk-verification-isolation/telemetry');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.telemetry).toBeDefined();
+      expect(res.body.telemetry.hsm_zk_tenant_isolation_violation_total).toBeDefined();
+    });
   });
 });

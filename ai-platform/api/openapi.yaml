@@ -2,15 +2,16 @@ openapi: 3.1.0
 info:
   title: SimpleBeacon Crypto Governance API
   version: 1.0.0
-  description: |
-    OpenAPI specification exposing Policy, Key Lifecycle, VRF execution, Governance (Tracks 114-121), and SIEM audit endpoints for the SimpleBeacon HSM mesh vault platform.
+  description: >
+    OpenAPI specification exposing Policy, Key Lifecycle, VRF execution, Governance (Tracks 114-121), and SIEM audit
+    endpoints for the SimpleBeacon HSM mesh vault platform.
 servers:
   - url: https://api.simplebeacon.local/v1
     description: Local development server (mTLS enforced in production)
-
 security:
-  - oauth2: ["policy:write", "vrf:execute"]
-
+  - oauth2:
+      - policy:write
+      - vrf:execute
 components:
   securitySchemes:
     oauth2:
@@ -24,17 +25,23 @@ components:
             vrf:execute: Execute VRF evaluations
     mutualTLS:
       type: mutualTLS
-      description: Client TLS certificate is required for low-level node-to-node operations (DKG/MPCCoordinator). Use in production server-to-server endpoints.
+      description: >-
+        Client TLS certificate is required for low-level node-to-node operations (DKG/MPCCoordinator). Use in production
+        server-to-server endpoints.
     adminAll:
       type: apiKey
       in: header
       name: X-Admin-Authorization
       description: Admin-level authorization token for governance and telemetry endpoints (admin:all scope).
-
   schemas:
     CryptoPolicyEngine:
       type: object
-      required: [policyId, version, latticeParams, thresholdParams, participants]
+      required:
+        - policyId
+        - version
+        - latticeParams
+        - thresholdParams
+        - participants
       properties:
         policyId:
           type: string
@@ -59,23 +66,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Participant'
-
     LatticeParameters:
       type: object
-      required: [scheme, n, q, sigma]
+      required:
+        - scheme
+        - 'n'
+        - q
+        - sigma
       properties:
         scheme:
           type: string
-        n:
+        'n':
           type: integer
         q:
           type: integer
         sigma:
           type: number
-
     ThresholdParameters:
       type: object
-      required: [nShares, threshold]
+      required:
+        - nShares
+        - threshold
       properties:
         nShares:
           type: integer
@@ -83,7 +94,6 @@ components:
           type: integer
         shareEncoding:
           type: string
-
     ZKProofParameters:
       type: object
       properties:
@@ -93,7 +103,6 @@ components:
           type: string
         securityLevel:
           type: integer
-
     KeyLifecycleParameters:
       type: object
       properties:
@@ -103,10 +112,13 @@ components:
           type: integer
         nonceWindowMs:
           type: integer
-
     Participant:
       type: object
-      required: [id, role, endpoint, pubKeyFingerprint]
+      required:
+        - id
+        - role
+        - endpoint
+        - pubKeyFingerprint
       properties:
         id:
           type: string
@@ -117,10 +129,8 @@ components:
           format: uri
         pubKeyFingerprint:
           type: string
-
     CreatePolicyRequest:
       $ref: '#/components/schemas/CryptoPolicyEngine'
-
     CreatePolicyResponse:
       type: object
       properties:
@@ -137,7 +147,6 @@ components:
             policy_id: clinical-trial-oncology-v1-alpha
             status: created
             created_at: '2026-08-02T16:00:00Z'
-
     GenerateThresholdKeysResponse:
       type: object
       properties:
@@ -153,7 +162,6 @@ components:
             operation_id: op-20260802-0001
             composite_public_key_fingerprint: sha256:abcd...0123
             status: pending
-
     VRFEvaluateRequest:
       type: object
       properties:
@@ -167,7 +175,6 @@ components:
         timestamp:
           type: string
           format: date-time
-
     VRFEvaluateResponse:
       type: object
       properties:
@@ -184,11 +191,10 @@ components:
       examples:
         sample:
           value:
-            vrf_output: "VGhpcyBpcyBhIHNhbXBsZSB2cmYgb3V0cHV0"
-            proof_bundle: "UE9NIFBST09GLVRIQU4gVEhJRkZfUFJBV0Q="
+            vrf_output: VGhpcyBpcyBhIHNhbXBsZSB2cmYgb3V0cHV0
+            proof_bundle: UE9NIFBST09GLVRIQU4gVEhJRkZfUFJBV0Q=
             epoch_id: epoch-2026-08-02-04
-            signed_audit_token: "sha256:abcd1234..."
-
+            signed_audit_token: sha256:abcd1234...
     VRFVerifyRequest:
       type: object
       properties:
@@ -201,7 +207,6 @@ components:
           type: string
         proof_bundle:
           type: string
-
     VRFVerifyResponse:
       type: object
       properties:
@@ -209,7 +214,6 @@ components:
           type: boolean
         error_context:
           type: string
-
     NIZKGenerateRequest:
       type: object
       properties:
@@ -221,8 +225,8 @@ components:
           type: object
         scheme:
           type: string
-      required: [policy_id]
-
+      required:
+        - policy_id
     NIZKGenerateResponse:
       type: object
       properties:
@@ -233,7 +237,6 @@ components:
           type: integer
         meta:
           type: object
-
     NIZKVerifyRequest:
       type: object
       properties:
@@ -243,8 +246,9 @@ components:
           type: object
         proof_bundle:
           type: string
-      required: [policy_id, proof_bundle]
-
+      required:
+        - policy_id
+        - proof_bundle
     NIZKVerifyResponse:
       type: object
       properties:
@@ -252,13 +256,12 @@ components:
           type: boolean
         error_context:
           type: string
-
-
-    # ── Track 114-121 Governance Reusable Schemas ────────────────────
-
     PolicyResponse:
       type: object
-      required: [success, orgId, policy]
+      required:
+        - success
+        - orgId
+        - policy
       properties:
         success:
           type: boolean
@@ -270,15 +273,15 @@ components:
           type: object
           description: Policy attribute block for the governance track
           additionalProperties: true
-
     PolicyValidateRequest:
       type: object
       description: Configuration to validate against policy constraints
       additionalProperties: true
-
     PolicyValidateResponse:
       type: object
-      required: [success, valid]
+      required:
+        - success
+        - valid
       properties:
         success:
           type: boolean
@@ -286,10 +289,11 @@ components:
         valid:
           type: boolean
           description: Whether the configuration passed validation
-
     PolicyViolationError:
       type: object
-      required: [error, message]
+      required:
+        - error
+        - message
       properties:
         error:
           type: string
@@ -298,10 +302,12 @@ components:
         message:
           type: string
           description: Human-readable description of the policy violation
-
     TelemetryResponse:
       type: object
-      required: [success, orgId, telemetry]
+      required:
+        - success
+        - orgId
+        - telemetry
       properties:
         success:
           type: boolean
@@ -314,10 +320,11 @@ components:
           description: Telemetry counters for the governance track
           additionalProperties:
             type: number
-
     AuditTelemetryResponse:
       type: object
-      required: [success, telemetry]
+      required:
+        - success
+        - telemetry
       properties:
         success:
           type: boolean
@@ -327,13 +334,142 @@ components:
           description: SIEM audit telemetry counters
           additionalProperties:
             type: number
+    ReplicationTenantIsolationPolicyResponse:
+      type: object
+      required:
+        - success
+        - orgId
+        - policy
+      properties:
+        success:
+          type: boolean
+        orgId:
+          type: string
+        policy:
+          type: object
+          properties:
+            requireTenantContext:
+              type: boolean
+            rejectCrossTenantReplication:
+              type: boolean
+            backwardCompatDefaultTenant:
+              type: string
+    ReplicationTenantContext:
+      type: object
+      required:
+        - tenantId
+      properties:
+        tenantId:
+          type: string
+        sourceTenantId:
+          type: string
+    ReplicationTenantIsolationTelemetryResponse:
+      type: object
+      required:
+        - success
+        - orgId
+        - telemetry
+      properties:
+        success:
+          type: boolean
+        orgId:
+          type: string
+        telemetry:
+          type: object
+          properties:
+            hsm_replication_tenant_isolation_violation_total:
+              type: number
+            hsm_replication_tenant_context_validated_total:
+              type: number
+            hsm_replication_cross_tenant_rejected_total:
+              type: number
+    ZkVerificationIsolationPolicyResponse:
+      type: object
+      required:
+        - success
+        - orgId
+        - policy
+      properties:
+        success:
+          type: boolean
+        orgId:
+          type: string
+        policy:
+          type: object
+          properties:
+            requireTenantId:
+              type: boolean
+            failClosedOnInvalidTenant:
+              type: boolean
+            governedDomains:
+              type: array
+              items:
+                type: string
+            defaultPolicy:
+              type: object
+    ZkTenantIdRequest:
+      type: object
+      required:
+        - tenantId
+      properties:
+        tenantId:
+          type: string
+    ZkTenantIdValidateResponse:
+      type: object
+      required:
+        - success
+        - valid
+        - tenantId
+      properties:
+        success:
+          type: boolean
+        valid:
+          type: boolean
+        tenantId:
+          type: string
+    ZkVerificationIsolationTelemetryResponse:
+      type: object
+      required:
+        - success
+        - orgId
+        - telemetry
+      properties:
+        success:
+          type: boolean
+        orgId:
+          type: string
+        telemetry:
+          type: object
+          properties:
+            hsm_zk_tenant_isolation_violation_total:
+              type: number
+            hsm_zk_tenant_context_validated_total:
+              type: number
+            hsm_zk_energy_claim_verified_total:
+              type: number
+            hsm_zk_energy_claim_failed_total:
+              type: number
+            hsm_zk_biometric_claim_verified_total:
+              type: number
+            hsm_zk_biometric_claim_failed_total:
+              type: number
+            hsm_zk_neural_claim_verified_total:
+              type: number
+            hsm_zk_neural_claim_failed_total:
+              type: number
+            hsm_zk_quantum_claim_verified_total:
+              type: number
+            hsm_zk_quantum_claim_failed_total:
+              type: number
 paths:
   /policies:
     post:
       summary: Create a new Crypto Policy
-      tags: [PolicyService]
+      tags:
+        - PolicyService
       security:
-        - oauth2: [policy:write]
+        - oauth2:
+            - policy:write
       requestBody:
         required: true
         content:
@@ -347,13 +483,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreatePolicyResponse'
-
   /policies/{policy_id}:
     get:
       summary: Get a policy
-      tags: [PolicyService]
+      tags:
+        - PolicyService
       security:
-        - oauth2: [policy:read]
+        - oauth2:
+            - policy:read
       parameters:
         - name: policy_id
           in: path
@@ -367,13 +504,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptoPolicyEngine'
-
   /policies/{policy_id}/generate-keys:
     post:
       summary: Trigger distributed key generation for a policy
-      tags: [KeyLifecycleService]
+      tags:
+        - KeyLifecycleService
       security:
-        - oauth2: [policy:write]
+        - oauth2:
+            - policy:write
       parameters:
         - name: policy_id
           in: path
@@ -387,13 +525,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenerateThresholdKeysResponse'
-
   /keys/{policy_id}/proactive-refresh:
     post:
       summary: Trigger proactive share refresh for a policy
-      tags: [KeyLifecycleService]
+      tags:
+        - KeyLifecycleService
       security:
-        - oauth2: [policy:write]
+        - oauth2:
+            - policy:write
       parameters:
         - name: policy_id
           in: path
@@ -413,13 +552,14 @@ paths:
                   refreshed_at:
                     type: string
                     format: date-time
-
   /vrf/evaluate:
     post:
       summary: Evaluate a threshold VRF for an input context
-      tags: [VRFExecutionService]
+      tags:
+        - VRFExecutionService
       security:
-        - oauth2: [vrf:execute]
+        - oauth2:
+            - vrf:execute
       requestBody:
         required: true
         content:
@@ -433,13 +573,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VRFEvaluateResponse'
-
   /vrf/verify:
     post:
       summary: Verify a VRF output and proof for a policy
-      tags: [VRFExecutionService]
+      tags:
+        - VRFExecutionService
       security:
-        - oauth2: [vrf:execute]
+        - oauth2:
+            - vrf:execute
       requestBody:
         required: true
         content:
@@ -453,13 +594,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VRFVerifyResponse'
-
   /nizk/generate:
     post:
       summary: Generate a NIZK proof bundle for a policy context (stub)
-      tags: [NIZKService]
+      tags:
+        - NIZKService
       security:
-        - oauth2: [vrf:execute]
+        - oauth2:
+            - vrf:execute
       requestBody:
         required: true
         content:
@@ -473,13 +615,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NIZKGenerateResponse'
-
   /nizk/verify:
     post:
       summary: Verify a NIZK proof bundle (stub)
-      tags: [NIZKService]
+      tags:
+        - NIZKService
       security:
-        - oauth2: [vrf:execute]
+        - oauth2:
+            - vrf:execute
       requestBody:
         required: true
         content:
@@ -493,12 +636,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NIZKVerifyResponse'
-
-  # ── Track 114 cluster isolation ──────────────────────────────────
   /vault/cluster-isolation/policy:
     get:
       summary: Get Track 114 cluster isolation policy
-      tags: [Track114ClusterIsolation]
+      tags:
+        - Track114ClusterIsolation
       security:
         - adminAll: []
       parameters:
@@ -514,11 +656,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyResponse'
-
   /vault/cluster-isolation/policy/validate:
     post:
       summary: Validate a Track 114 cluster isolation configuration
-      tags: [Track114ClusterIsolation]
+      tags:
+        - Track114ClusterIsolation
       security:
         - adminAll: []
       requestBody:
@@ -540,11 +682,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyViolationError'
-
   /vault/cluster-isolation/telemetry:
     get:
       summary: Get Track 114 cluster isolation telemetry
-      tags: [Track114ClusterIsolation]
+      tags:
+        - Track114ClusterIsolation
       security:
         - adminAll: []
       parameters:
@@ -560,12 +702,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TelemetryResponse'
-
-  # ── Track 115/117 BFT shard sync ──────────────────────────────────
   /vault/bft-shard-sync/policy:
     get:
       summary: Get Track 115/117 BFT shard sync policy
-      tags: [Track115BftShardSync]
+      tags:
+        - Track115BftShardSync
       security:
         - adminAll: []
       parameters:
@@ -581,11 +722,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyResponse'
-
   /vault/bft-shard-sync/policy/validate:
     post:
       summary: Validate a Track 115/117 BFT shard sync configuration
-      tags: [Track115BftShardSync]
+      tags:
+        - Track115BftShardSync
       security:
         - adminAll: []
       requestBody:
@@ -607,11 +748,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyViolationError'
-
   /vault/bft-shard-sync/telemetry:
     get:
       summary: Get Track 115/117 BFT shard sync telemetry
-      tags: [Track115BftShardSync]
+      tags:
+        - Track115BftShardSync
       security:
         - adminAll: []
       parameters:
@@ -627,12 +768,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TelemetryResponse'
-
-  # ── Track 118 distributed consensus coordinator ──────────────────────────────────
   /vault/distributed-consensus-coordinator/policy:
     get:
       summary: Get Track 118 distributed consensus coordinator policy
-      tags: [Track118DistributedConsensusCoordinator]
+      tags:
+        - Track118DistributedConsensusCoordinator
       security:
         - adminAll: []
       parameters:
@@ -648,11 +788,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyResponse'
-
   /vault/distributed-consensus-coordinator/policy/validate:
     post:
       summary: Validate a Track 118 distributed consensus coordinator configuration
-      tags: [Track118DistributedConsensusCoordinator]
+      tags:
+        - Track118DistributedConsensusCoordinator
       security:
         - adminAll: []
       requestBody:
@@ -674,11 +814,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyViolationError'
-
   /vault/distributed-consensus-coordinator/telemetry:
     get:
       summary: Get Track 118 distributed consensus coordinator telemetry
-      tags: [Track118DistributedConsensusCoordinator]
+      tags:
+        - Track118DistributedConsensusCoordinator
       security:
         - adminAll: []
       parameters:
@@ -694,12 +834,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TelemetryResponse'
-
-  # ── Track 119 cross-cluster migration ──────────────────────────────────
   /vault/cross-cluster-migration/policy:
     get:
       summary: Get Track 119 cross-cluster migration policy
-      tags: [Track119CrossClusterMigration]
+      tags:
+        - Track119CrossClusterMigration
       security:
         - adminAll: []
       parameters:
@@ -715,11 +854,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyResponse'
-
   /vault/cross-cluster-migration/policy/validate:
     post:
       summary: Validate a Track 119 cross-cluster migration configuration
-      tags: [Track119CrossClusterMigration]
+      tags:
+        - Track119CrossClusterMigration
       security:
         - adminAll: []
       requestBody:
@@ -741,11 +880,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyViolationError'
-
   /vault/cross-cluster-migration/telemetry:
     get:
       summary: Get Track 119 cross-cluster migration telemetry
-      tags: [Track119CrossClusterMigration]
+      tags:
+        - Track119CrossClusterMigration
       security:
         - adminAll: []
       parameters:
@@ -761,12 +900,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TelemetryResponse'
-
-  # ── Track 120 cluster key reconciliation ──────────────────────────────────
   /vault/cluster-key-reconciliation/policy:
     get:
       summary: Get Track 120 cluster key reconciliation policy
-      tags: [Track120ClusterKeyReconciliation]
+      tags:
+        - Track120ClusterKeyReconciliation
       security:
         - adminAll: []
       parameters:
@@ -782,11 +920,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyResponse'
-
   /vault/cluster-key-reconciliation/policy/validate:
     post:
       summary: Validate a Track 120 cluster key reconciliation configuration
-      tags: [Track120ClusterKeyReconciliation]
+      tags:
+        - Track120ClusterKeyReconciliation
       security:
         - adminAll: []
       requestBody:
@@ -808,11 +946,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyViolationError'
-
   /vault/cluster-key-reconciliation/telemetry:
     get:
       summary: Get Track 120 cluster key reconciliation telemetry
-      tags: [Track120ClusterKeyReconciliation]
+      tags:
+        - Track120ClusterKeyReconciliation
       security:
         - adminAll: []
       parameters:
@@ -828,12 +966,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TelemetryResponse'
-
-  # ── Track 121 multiparty re-keying ──────────────────────────────────
   /vault/multiparty-re-keying/policy:
     get:
       summary: Get Track 121 multiparty re-keying policy
-      tags: [Track121MultipartyReKeying]
+      tags:
+        - Track121MultipartyReKeying
       security:
         - adminAll: []
       parameters:
@@ -849,11 +986,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyResponse'
-
   /vault/multiparty-re-keying/policy/validate:
     post:
       summary: Validate a Track 121 multiparty re-keying configuration
-      tags: [Track121MultipartyReKeying]
+      tags:
+        - Track121MultipartyReKeying
       security:
         - adminAll: []
       requestBody:
@@ -875,11 +1012,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyViolationError'
-
   /vault/multiparty-re-keying/telemetry:
     get:
       summary: Get Track 121 multiparty re-keying telemetry
-      tags: [Track121MultipartyReKeying]
+      tags:
+        - Track121MultipartyReKeying
       security:
         - adminAll: []
       parameters:
@@ -895,12 +1032,119 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TelemetryResponse'
-
-  # ── SIEM / Audit Telemetry ────────────────────────────────────────
+  /vault/replication-tenant-isolation/policy:
+    get:
+      summary: Get replication tenant isolation policy
+      tags:
+        - Track124ReplicationTenantIsolation
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: Replication tenant isolation policy defaults
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplicationTenantIsolationPolicyResponse'
+  /vault/replication-tenant-isolation/policy/validate:
+    post:
+      summary: Validate a replication tenant context
+      tags:
+        - Track124ReplicationTenantIsolation
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplicationTenantContext'
+      responses:
+        '200':
+          description: Tenant context is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyValidateResponse'
+        '400':
+          description: Tenant context validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+  /vault/replication-tenant-isolation/telemetry:
+    get:
+      summary: Get replication tenant isolation telemetry counters
+      tags:
+        - Track124ReplicationTenantIsolation
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: Replication tenant isolation telemetry counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplicationTenantIsolationTelemetryResponse'
+  /vault/zk-verification-isolation/policy:
+    get:
+      summary: Get ZK verification tenant isolation policy
+      tags:
+        - Track125ZkVerificationIsolation
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: ZK verification tenant isolation policy defaults
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZkVerificationIsolationPolicyResponse'
+  /vault/zk-verification-isolation/policy/validate:
+    post:
+      summary: Validate a tenant ID for ZK verification
+      tags:
+        - Track125ZkVerificationIsolation
+      security:
+        - adminAll: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZkTenantIdRequest'
+      responses:
+        '200':
+          description: Tenant ID is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZkTenantIdValidateResponse'
+        '400':
+          description: Tenant ID validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyViolationError'
+  /vault/zk-verification-isolation/telemetry:
+    get:
+      summary: Get ZK verification tenant isolation telemetry counters
+      tags:
+        - Track125ZkVerificationIsolation
+      security:
+        - adminAll: []
+      responses:
+        '200':
+          description: ZK verification tenant isolation telemetry counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZkVerificationIsolationTelemetryResponse'
   /audit/telemetry:
     get:
       summary: Get SIEM audit telemetry counters
-      tags: [SIEMAudit]
+      tags:
+        - SIEMAudit
       security:
         - adminAll: []
       responses:
@@ -910,11 +1154,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuditTelemetryResponse'
-
   /audit/log:
     get:
       summary: Get audit log entries
-      tags: [SIEMAudit]
+      tags:
+        - SIEMAudit
       security:
         - adminAll: []
       parameters:
@@ -944,11 +1188,11 @@ paths:
                     type: array
                     items:
                       type: object
-
   /audit/export:
     get:
       summary: Export audit chain
-      tags: [SIEMAudit]
+      tags:
+        - SIEMAudit
       security:
         - adminAll: []
       responses:
@@ -966,11 +1210,11 @@ paths:
                     format: date-time
                   entry_count:
                     type: integer
-
   /audit/verify-integrity:
     get:
       summary: Verify audit hash chain integrity
-      tags: [SIEMAudit]
+      tags:
+        - SIEMAudit
       security:
         - adminAll: []
       responses:
@@ -988,11 +1232,11 @@ paths:
                   broken_at:
                     type: string
                     nullable: true
-
   /audit/stats:
     get:
       summary: Get audit statistics
-      tags: [SIEMAudit]
+      tags:
+        - SIEMAudit
       security:
         - adminAll: []
       responses:
@@ -1030,9 +1274,12 @@ tags:
     description: Track 120 cluster key reconciliation governance endpoints
   - name: Track121MultipartyReKeying
     description: Track 121 multiparty re-keying governance endpoints
+  - name: Track124ReplicationTenantIsolation
+    description: Track 124 cross-cluster replication tenant isolation endpoints
+  - name: Track125ZkVerificationIsolation
+    description: Track 125 ZK verification tenant isolation endpoints
   - name: SIEMAudit
     description: SIEM audit telemetry and integrity verification endpoints
-
 x-implementation-notes: |
   - Production deployments should enforce mTLS between node operators for DKG and partial-evaluation endpoints.
   - OAuth2 client credentials are recommended for external application integration.

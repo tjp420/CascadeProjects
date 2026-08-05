@@ -2595,4 +2595,121 @@ router.get('/multiparty-re-keying/telemetry', authorize('admin:all'), function (
   }
 });
 
+
+// ── Track 124: Cross-Cluster Replication Tenant Isolation REST endpoints ────
+
+// GET /api/vault/replication-tenant-isolation/policy — return default replication tenant isolation policy
+router.get('/replication-tenant-isolation/policy', authorize('admin:all'), function (req, res) {
+  try {
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: {
+        requireTenantContext: true,
+        rejectCrossTenantReplication: true,
+        backwardCompatDefaultTenant: 'default',
+      },
+    });
+  } catch (err) {
+    sendError(res, 500, 'replication_tenant_isolation_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/replication-tenant-isolation/policy/validate — validate a proposed tenant context
+router.post('/replication-tenant-isolation/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { validateTenantContext } = require('../lib/replication-tenant-context.cjs');
+    const message = req.body || {};
+    const result = validateTenantContext(message);
+    if (!result.valid) {
+      return sendError(res, 400, 'REPLICATION_TENANT_ISOLATION_VIOLATION', { message: result.reason || 'invalid tenant context' });
+    }
+    res.json({ success: true, valid: true, tenantId: result.tenantId });
+  } catch (err) {
+    return sendError(res, 400, 'REPLICATION_TENANT_ISOLATION_VIOLATION', { message: err.message });
+  }
+});
+
+// GET /api/vault/replication-tenant-isolation/telemetry — expose Track 124 telemetry counters
+router.get('/replication-tenant-isolation/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_replication_tenant_isolation_violation_total: allMetrics.hsm_replication_tenant_isolation_violation_total || 0,
+      hsm_replication_tenant_context_validated_total: allMetrics.hsm_replication_tenant_context_validated_total || 0,
+      hsm_replication_cross_tenant_rejected_total: allMetrics.hsm_replication_cross_tenant_rejected_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'replication_tenant_isolation_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
+// ── Track 125: ZK Verification Tenant Isolation REST endpoints ───────────────
+
+// GET /api/vault/zk-verification-isolation/policy — return default ZK verification isolation policy
+router.get('/zk-verification-isolation/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const policy = DEFAULT_POLICY.energyGating || {};
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: {
+        requireTenantId: true,
+        failClosedOnInvalidTenant: true,
+        governedDomains: ['energyGating', 'biometricGating', 'neuralGating', 'storageGating',
+          'authenticationGating', 'droneGating', 'genomicGating', 'insuranceGating', 'quantumGating'],
+        defaultPolicy: policy,
+      },
+    });
+  } catch (err) {
+    sendError(res, 500, 'zk_verification_isolation_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/zk-verification-isolation/policy/validate — validate a tenant ID for ZK verification
+router.post('/zk-verification-isolation/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { validateTenantId } = require('../lib/hsm-adapter/zk-tenant-governance.cjs');
+    const tenantId = req.body && req.body.tenantId;
+    if (!validateTenantId(tenantId)) {
+      return sendError(res, 400, 'ZK_TENANT_ISOLATION_VIOLATION', { message: 'invalid tenant ID' });
+    }
+    res.json({ success: true, valid: true, tenantId });
+  } catch (err) {
+    return sendError(res, 400, 'ZK_TENANT_ISOLATION_VIOLATION', { message: err.message });
+  }
+});
+
+// GET /api/vault/zk-verification-isolation/telemetry — expose Track 125 telemetry counters
+router.get('/zk-verification-isolation/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_zk_tenant_isolation_violation_total: allMetrics.hsm_zk_tenant_isolation_violation_total || 0,
+      hsm_zk_tenant_context_validated_total: allMetrics.hsm_zk_tenant_context_validated_total || 0,
+      hsm_zk_energy_claim_verified_total: allMetrics.hsm_zk_energy_claim_verified_total || 0,
+      hsm_zk_energy_claim_failed_total: allMetrics.hsm_zk_energy_claim_failed_total || 0,
+      hsm_zk_biometric_claim_verified_total: allMetrics.hsm_zk_biometric_claim_verified_total || 0,
+      hsm_zk_biometric_claim_failed_total: allMetrics.hsm_zk_biometric_claim_failed_total || 0,
+      hsm_zk_neural_claim_verified_total: allMetrics.hsm_zk_neural_claim_verified_total || 0,
+      hsm_zk_neural_claim_failed_total: allMetrics.hsm_zk_neural_claim_failed_total || 0,
+      hsm_zk_quantum_claim_verified_total: allMetrics.hsm_zk_quantum_claim_verified_total || 0,
+      hsm_zk_quantum_claim_failed_total: allMetrics.hsm_zk_quantum_claim_failed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'zk_verification_isolation_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

@@ -10,10 +10,8 @@ on:
 
 jobs:
   redis-integration:
-    if: ${{ github.event.inputs.run_redis == 'true' || env.RUN_REDIS_INTEGRATION == 'true' }}
+    if: ${{ github.event.inputs.run_redis == 'true' }}
     runs-on: ubuntu-latest
-    env:
-      RUN_REDIS_INTEGRATION: ${{ env.RUN_REDIS_INTEGRATION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
