@@ -156,6 +156,7 @@ const SUITES = [
   'track118-primitive-groundwork',
   'track118-core-integration',
   'track118-multi-tenant-fuzz',
+  'track114-121-performance-posture',
 ];
 
 function resolveBaseTestFile(pattern) {
