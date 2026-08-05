@@ -1,0 +1,238 @@
+{
+  "profile": "all",
+  "fullDirectoryScan": true,
+  "fullDirectoryScanMaxFiles": 0,
+  "fullDirectoryScanSkipDirs": [
+    ".git",
+    "github-cache",
+    ".simplebeacon",
+    "node_modules",
+    ".vscode-test",
+    ".vscode",
+    "archive",
+    "docs",
+    "reports",
+    "logs",
+    "email-queue",
+    "merge-previews",
+    "coverage",
+    "dist",
+    "build",
+    "out",
+    "ai-platform/tests",
+    "ai-agent/test",
+    "coming-soon/archive",
+    "simplebeacon-vscode-merged/out",
+    "scripts",
+    "sales",
+    "marketing",
+    "guardrail-test-bench",
+    "github-action",
+    "New folder",
+    "track*-groundwork",
+    "master-architecture-t*",
+    "release-notes-t*",
+    "CascadeProjects_wt_*",
+    "option3-telemetry-wt",
+    "temp_mpc_clone",
+    "cascade-integration",
+    "pipeline-lockdown-and-retrospective",
+    "monitoring",
+    "skills",
+    "examples",
+    "lib"
+  ],
+  "scanPaths": [
+    "."
+  ],
+  "sourceCodeScanPaths": [
+    "ai-platform/src/",
+    "ai-platform/web/",
+    "ai-platform/local-agent/",
+    "packages/",
+    "ai-agent/",
+    "ai-tools/",
+    "browser-extension/",
+    "simplebeacon-desktop/",
+    "local-agent/",
+    "scripts/",
+    "src/",
+    "lib/",
+    "web/",
+    "coming-soon/"
+  ],
+  "productionPaths": [
+    "ai-platform/server/",
+    "ai-platform/src/",
+    "ai-platform/web/",
+    "ai-platform/tools/",
+    "ai-platform/local-agent/",
+    "packages/",
+    "ai-agent/",
+    "ai-tools/",
+    "api-server/",
+    "browser-extension/",
+    "simplebeacon-desktop/",
+    "local-agent/",
+    "server/",
+    "scripts/",
+    "src/",
+    "lib/",
+    "web/",
+    "coming-soon/"
+  ],
+  "sampleDir": "fixtures",
+  "consistencyAnchorSamples": [],
+  "ignore": [
+    "**/node_modules/**",
+    "**/coverage/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.git/**",
+    "**/.github-cache/**",
+    "**/.vscode-test/**",
+    "**/.vscode/**",
+    "**/.simplebeacon/**",
+    "**/archive/**",
+    "**/docs/**",
+    "**/reports/**",
+    "**/logs/**",
+    "**/email-queue/**",
+    "**/merge-previews/**",
+    "**/.simplebeaconignore",
+    "**/package-lock.json",
+    "**/*.simplebeacon-backup.*",
+    "**/*.vsix",
+    "**/*.log",
+    "**/*.tmp",
+    "**/*.tmp",
+    "**/ai-platform/tests/**",
+    "**/ai-agent/test/**",
+    "**/coming-soon/public/data/**",
+    "**/coming-soon/archive/**",
+    "**/simplebeacon-vscode-merged/out/**",
+    "**/ai-platform/simplebeacon-vscode/**",
+    "**/scripts/**",
+    "**/sales/**",
+    "**/marketing/**",
+    "**/guardrail-test-bench/**",
+    "**/github-action/**",
+    "**/New folder/**",
+    "**/test-tokens/**",
+    "**/simplebeacon-test-tokens.txt",
+    "**/simplebeacon-all-tier-tokens.txt",
+    "**/__tests__*",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "tests/**",
+    "test/**",
+    "**/.vsix-*/**",
+    "**/.orig-*/**",
+    "**/coming-soon/**",
+    "**/coming-soon-dev/**",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/**",
+    "**/ai-platform/web/simplebeacon-dashboard/data/**",
+    "**/ai-platform/web/simplebeacon-dashboard/assets/**",
+    "server/db/token-registry.json",
+    "ai-platform/server/db/token-registry.json",
+    "C:/Users/Trevor/CascadeProjects/server/db/token-registry.json",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/db/token-registry.json",
+    "server/lib/central-data-config.cjs",
+    "ai-platform/server/lib/central-data-config.cjs",
+    "C:/Users/Trevor/CascadeProjects/server/lib/central-data-config.cjs",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/central-data-config.cjs",
+    "simplebeacon-vscode-merged/**",
+    "simplebeacon-vscode/**",
+    "simplebeacon-frameworkless/**",
+    "false-positive-audit/**",
+    "simplebeacon-rule-tests/**",
+    "ai-platform/packages/simplebeacon-cli/**",
+    "ai-platform/packages/simplebeacon-intelligence/**",
+    "browser-local/**",
+    "cjs/**",
+    "esm/**",
+    "**/llm-slop-catalog.json",
+    "**/code-map.json",
+    "ai-platform/web/simplebeacon-dashboard/js/**/utils-lib/package.json",
+    "ai-platform/web/simplebeacon-dashboard/js-es2018/**/utils-lib/package.json",
+    "**/track*-groundwork/**",
+    "**/master-architecture-t*/**",
+    "**/release-notes-t*/**",
+    "**/CascadeProjects_wt_*/**",
+    "**/option3-telemetry-wt/**",
+    "**/temp_mpc_clone/**",
+    "**/cascade-integration/**",
+    "**/pipeline-lockdown-and-retrospective/**",
+    "**/monitoring/**",
+    "**/skills/**",
+    "**/examples/**",
+    "**/lib/**",
+    "**/docker-compose.yml"
+  ],
+  "rules": {
+    "credentials": {
+      "enabled": true,
+      "scanProduction": true,
+      "ignoreGlobs": [
+        "**/coming-soon/archive/**",
+        "**/simplebeacon-rule-tests/**",
+        "**/ai-platform/tests/**"
+      ]
+    },
+    "json-schema": {
+      "enabled": true
+    },
+    "sample-consistency": {
+      "enabled": true
+    },
+    "roadmap": {
+      "enabled": true
+    },
+    "production-leak": {
+      "enabled": true,
+      "severity": "high"
+    },
+    "fiction-kpi-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "llm-slop-patterns": {
+      "enabled": true,
+      "severity": "medium",
+      "registryCheck": false
+    },
+    "agency-handoff-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "eu-ai-act-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "jest-baseline": {
+      "enabled": false,
+      "runTests": false
+    },
+    "token-bleed-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "architecture-drift-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "file-reduction": {
+      "enabled": true,
+      "dryRun": true
+    }
+  },
+  "gate": {
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ]
+  }
+}
