@@ -1,51 +1,69 @@
-# Test Plan: Centralized Audit Log Zeroization
+# test_plan.md
 
-> Memory scrubbing layer for sensitive cryptographic and identity data
+> OpenAPI Specification Hardening — Track 114-121 REST route consolidation
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Synchronous buffer zeroization for poRep-verifier and token-service sensitive data |
+| Feature / change | OpenAPI Specification Hardening for Tracks 114-121 + SIEM telemetry |
 | Author (Builder) | Devin |
-| Date | 2026-08-05 |
-| Branch | feat/zeroization-layer |
-| Packages touched | ai-platform/server/lib/hsm-adapter/track112, ai-platform/server/lib/auth, ai-platform/server/lib |
+| Date | 2026-08-04 |
+| Branch | feat/openapi-spec-hardening |
+| Packages touched | ai-platform |
 
 ## Scope
 
 ### Files in scope
 
-1. `ai-platform/server/lib/zeroize.cjs` (new — shared zeroization utility)
-2. `ai-platform/server/lib/hsm-adapter/track112/poRep-verifier.cjs` (modified — zeroize leaf buffers after verification)
-3. `ai-platform/server/lib/auth/token-service.cjs` (modified — zeroize token buffers after verification)
-4. `ai-platform/server/lib/token-service.cjs` (modified — zeroize refresh token buffers after hashing)
-5. `ai-platform/server/lib/__tests__/zeroize.test.cjs` (new — unit tests for zeroization utility)
-6. `ai-platform/server/lib/hsm-adapter/__tests__/track112/poRep-verifier.test.cjs` (modified — zeroization verification tests)
+- `ai-platform/api/openapi.yaml` (modified — expand from 8 Track 79 endpoints to include Tracks 114-121 + SIEM)
+- `ai-platform/server/lib/hsm-adapter/__tests__/openapi-contract.test.cjs` (new — schema contract tests)
 
 ### APIs / routes
 
-No route changes. Internal utility module only.
+**Track 114-121 governance triplets (7 tracks × 3 endpoints = 21 routes):**
+
+| Track | Route prefix | Endpoints |
+|-------|-------------|-----------|
+| 114 | `/cluster-isolation` | GET /policy, POST /policy/validate, GET /telemetry |
+| 115 | `/bft-shard-sync` | GET /policy, POST /policy/validate, GET /telemetry |
+| 117 | `/bft-shard-sync` | (same as 115 — verify track mapping) |
+| 118 | `/distributed-consensus-coordinator` | GET /policy, POST /policy/validate, GET /telemetry |
+| 119 | `/cross-cluster-migration` | GET /policy, POST /policy/validate, GET /telemetry |
+| 120 | `/cluster-key-reconciliation` | GET /policy, POST /policy/validate, GET /telemetry |
+| 121 | `/multiparty-re-keying` | GET /policy, POST /policy/validate, GET /telemetry |
+
+**SIEM / audit telemetry routes (from audit-routes.cjs):**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/audit/telemetry` | GET | SIEM telemetry counters |
+| `/audit/log` | GET | Audit log entries |
+| `/audit/export` | GET | Export audit chain |
+| `/audit/verify-integrity` | GET | Verify hash chain integrity |
+| `/audit/stats` | GET | Audit statistics |
+
+**Total: 26 new endpoints to document in OpenAPI spec**
 
 ### UI / IDE surfaces
 
-- [ ] Sidebar webview (N/A)
-- [ ] Main dashboard iframe (N/A)
-- [ ] Welcome / main window panel (N/A)
-- [ ] Simple Browser / external browser (N/A)
+- [ ] Sidebar webview
+- [ ] Main dashboard iframe / address bar
+- [ ] Welcome / main window panel
+- [ ] Simple Browser / external browser
 
 ---
 
-## Level 1 — Deterministic
+## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command | Pass |
-|----|-------|---------|------|
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
 | L1-01 | Syntax on changed JS/CJS | `node -c <file>` | [ ] |
-| L1-02 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
-| L1-03 | Zeroize unit tests | `npx jest server/lib/__tests__/zeroize.test.cjs` | [ ] |
+| L1-02 | ai-platform tests (if touched) | `cd ai-platform && npm test` | [ ] |
+| L1-03 | OpenAPI YAML validity | `npx js-yaml ai-platform/api/openapi.yaml` parses without error | [ ] |
 | L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
 | L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
-| L1-06 | No new dependencies | Verify package.json unchanged | [ ] |
+| L1-06 | OpenAPI contract tests | `npx jest --testPathPatterns openapi-contract` | [ ] |
 
 ---
 
@@ -53,65 +71,76 @@ No route changes. Internal utility module only.
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | zeroizeBuffer fills with zeros | Create buffer with secret data, call zeroizeBuffer | Buffer contents all 0x00 | [ ] |
-| L2-02 | zeroizeBuffer is idempotent | Call zeroizeBuffer twice on same buffer | No throw, buffer still all 0x00 | [ ] |
-| L2-03 | zeroizeBuffer handles null/undefined | Call with null, undefined, empty buffer | No throw, returns silently | [ ] |
-| L2-04 | poRep-verifier zeroizes leaf buffers after verification | Run verify() with valid proof, inspect leafBuf after | Leaf buffer contents zeroized | [ ] |
-| L2-05 | poRep-verifier zeroizes on error path | Run verify() with invalid proof, inspect buffers | Buffers zeroized even on failure | [ ] |
-| L2-06 | token-service zeroizes token string after verify | Call verifyToken(), inspect token buffer | Token buffer zeroized after verification | [ ] |
-| L2-07 | token-service zeroizes on exception | Call verifyToken() with invalid token | Buffer zeroized even on throw | [ ] |
-| L2-08 | token-service.cjs zeroizes refresh token after hashing | Call hashToken(), inspect input buffer | Input buffer zeroized | [ ] |
+| L2-01 | OpenAPI spec covers all 21 Track 114-121 endpoints | Parse openapi.yaml, verify all 7 governance triplets have paths | All 21 paths present with correct methods | [ ] |
+| L2-02 | OpenAPI spec covers all 5 SIEM audit endpoints | Parse openapi.yaml, verify audit routes have paths | All 5 paths present with correct methods | [ ] |
+| L2-03 | Policy endpoint schema matches actual response | Compare OpenAPI schema for GET /policy against actual route handler response | Schema fields match (success, orgId, policy) | [ ] |
+| L2-04 | Validate endpoint schema matches actual response | Compare OpenAPI schema for POST /policy/validate against actual route handler response | Schema fields match (success, valid, error) | [ ] |
+| L2-05 | Telemetry endpoint schema matches actual response | Compare OpenAPI schema for GET /telemetry against actual route handler response | Schema fields match (success, orgId, telemetry) | [ ] |
+| L2-06 | Error response schema matches POLICY_VIOLATION_BLOCKED | Verify 400 response schema for validate endpoint | Error code and message fields present | [ ] |
 
 ---
 
-## Level 3 — Self-review / drift
+## Level 3 — Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | try/finally guards all zeroization | Every sensitive buffer operation wrapped in try/finally | Zeroization runs even on exception | [ ] |
-| L3-02 | No performance regression | Zeroization adds < 0.01ms per buffer | Benchmark within SLA | [ ] |
-| L3-03 | No production module instrumentation | Zeroize utility is standalone, no monkey-patching | Clean import pattern | [ ] |
-| L3-04 | Existing test suites unaffected | Run track112 + auth test suites | All existing tests pass | [ ] |
+| L3-01 | Existing Track 79 endpoints unchanged | Verify original 8 paths still present and correct | All 8 original paths preserved | [ ] |
+| L3-02 | OpenAPI tags organize endpoints by track | Verify each governance triplet has a unique tag | 7 track tags + 1 SIEM tag present | [ ] |
+| L3-03 | OpenAPI security scheme applied to all new paths | Verify all new paths require admin:all authorization | security field present on all new paths | [ ] |
+| L3-04 | No ghost paths in OpenAPI spec | Verify every path in spec corresponds to a real route handler | No hallucinated or non-existent paths | [ ] |
+| L3-05 | Schema contract test catches response drift | If route handler response changes, contract test fails | Test validates actual response shape against schema | [ ] |
 
 ---
 
-## Security checklist
+## Security
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials / PII in zeroization code | [ ] |
-| S-02 | Zeroization is synchronous (no async gap before scrub) | [ ] |
-| S-03 | Zeroization runs in finally block (exception-safe) | [ ] |
-| S-04 | Zeroize utility does not log buffer contents | [ ] |
+| S-01 | No credentials / PII in OpenAPI spec examples | [ ] |
+| S-02 | All new paths require authorization (admin:all or oauth2) | [ ] |
+| S-03 | No real tenant IDs, node IDs, or key material in schema examples | [ ] |
 
 ---
 
-## Zeroization Architecture
+## Implementation Strategy
 
-### Utility: `zeroize.cjs`
+### Phase 1: OpenAPI Spec Expansion (openapi.yaml)
 
-```
-zeroizeBuffer(buf)   — fills buffer with 0x00, handles null/undefined/empty
-zeroizeString(str)   — converts string to Buffer, fills with 0x00, returns null
-withZeroizedBuffer(encoded, fn)  — allocates buffer, runs fn, zeroizes in finally
-```
+1. Add 7 new tags for Tracks 114-121 (one per governance track)
+2. Add 1 new tag for SIEM/Audit telemetry
+3. Add 21 new path objects (7 governance triplets × 3 endpoints each)
+4. Add 5 new path objects (SIEM audit routes)
+5. Add reusable schemas:
+   - `PolicyResponse` (success, orgId, policy)
+   - `PolicyValidateRequest` (config fields)
+   - `PolicyValidateResponse` (success, valid)
+   - `PolicyViolationError` (error, message)
+   - `TelemetryResponse` (success, orgId, telemetry)
+   - `AuditTelemetryResponse` (success, telemetry counters)
+6. Add security scheme for admin:all (if not already present)
 
-### Target Sites
+### Phase 2: Schema Contract Tests (openapi-contract.test.cjs)
 
-1. **poRep-verifier.cjs `verify()`** — leaf buffers (`leafBuf`, `leafHash`, `cur` in `computeRootFromPath`) zeroized after verification loop
-2. **auth/token-service.cjs `verifyToken()`** — token string converted to buffer, zeroized after `jwt.verify()` in finally block
-3. **token-service.cjs `hashToken()`** — token buffer zeroized after SHA-256 hash computation
+1. Parse openapi.yaml with js-yaml
+2. For each of the 26 new endpoints:
+   - Verify path exists in spec
+   - Verify method matches
+   - Verify response schema is defined
+3. For 3 representative endpoints (one policy, one validate, one telemetry):
+   - Make actual HTTP request via supertest
+   - Compare response body fields against OpenAPI schema properties
+4. Verify no ghost paths (every spec path has a matching route handler)
+5. Verify all new paths have security requirements
 
-### Isolation Controls
+### Broom Strategy
 
-- Zeroization is synchronous — no async gap between use and scrub
-- All zeroization wrapped in try/finally to ensure execution on error paths
-- Utility handles edge cases (null, undefined, empty, non-Buffer) without throwing
-- No logging of buffer contents in zeroization code
+- Only 2 files touched (openapi.yaml + openapi-contract.test.cjs)
+- No new modules or dependencies
+- Reuses existing js-yaml and supertest packages already in the project
 
 ---
 
 ## Approval
 
-- [ ] User approved this plan
-- Approved by: ___________  Date: ___________
+- [ ] User approved this plan (or task included approved scope)
+- Approved by: __________  Date: __________
