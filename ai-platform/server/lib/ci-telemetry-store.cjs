@@ -6,8 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const STORE_PATH = process.env.SIMPLEBEACON_CI_TELEMETRY_STORE
-  || path.join(__dirname, '../../.simplebeacon', 'ci-telemetry.json');
+function getStorePath() {
+  return process.env.SIMPLEBEACON_CI_TELEMETRY_STORE
+    || path.join(__dirname, '../../.simplebeacon', 'ci-telemetry.json');
+}
 const MAX_EVENTS = Number(process.env.SIMPLEBEACON_CI_TELEMETRY_MAX || 50000);
 
 /** Rolling retention for team telemetry events (Phase 1 constant). */
@@ -47,18 +49,24 @@ const COMMIT_SHA = /^[0-9a-f]{7,40}$/i;
 const WORKSPACE_FINGERPRINT = /^[0-9a-f]{24}$/i;
 
 function readStore() {
+  const STORE_PATH = getStorePath();
   try {
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed.events) ? parsed : { events: [] };
-  } catch {
+  } catch (err) {
+    // If the store file doesn't exist or is invalid, return an empty store.
+    // Do not throw here — callers will create the file on write.
     return { events: [] };
   }
 }
 
 function writeStore(store) {
-  fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
+  const STORE_PATH = getStorePath();
+  const dir = path.dirname(STORE_PATH);
+  fs.mkdirSync(dir, { recursive: true });
   const tmp = `${STORE_PATH}.tmp`;
+  // Write atomically to a temp file then rename into place.
   fs.writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
   fs.renameSync(tmp, STORE_PATH);
 }
