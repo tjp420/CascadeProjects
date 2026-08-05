@@ -4480,6 +4480,34 @@ class CryptoPolicyEngine {
     }
     return true;
   }
+  _validateClusterKeyReconciliation(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.clusterKeyReconciliation, ...(tenantPolicy.clusterKeyReconciliation || {}) };
+    if (typeof config.minQuorumNodes === 'number' && config.minQuorumNodes < 3) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `min quorum nodes ${config.minQuorumNodes} below minimum 3`);
+    }
+    if (typeof config.maxEpochRollbackAttempts === 'number' && config.maxEpochRollbackAttempts > 5) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max epoch rollback attempts ${config.maxEpochRollbackAttempts} exceeds maximum 5`);
+    }
+    if (typeof config.requireQuorumPromotion === 'boolean' && policy.requireQuorumPromotion && !config.requireQuorumPromotion) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quorum promotion cannot be disabled when policy enforces it');
+    }
+    if (typeof config.requireAntiRollback === 'boolean' && policy.requireAntiRollback && !config.requireAntiRollback) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'anti-rollback protection cannot be disabled when policy enforces it');
+    }
+    if (typeof config.quarantineOnCriticalDivergence === 'boolean' && policy.quarantineOnCriticalDivergence && !config.quarantineOnCriticalDivergence) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quarantine on critical divergence cannot be disabled when policy enforces it');
+    }
+    if (typeof config.maxTrackedKeys === 'number' && (config.maxTrackedKeys < 1 || config.maxTrackedKeys > 512)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max tracked keys ${config.maxTrackedKeys} out of bounds [1, 512]`);
+    }
+    return true;
+  }
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -5246,6 +5274,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'crossClusterMigration') {
       this._validateCrossClusterMigration(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'clusterKeyReconciliation') {
+      this._validateClusterKeyReconciliation(tenantPolicy, config);
       return true;
     }
 
