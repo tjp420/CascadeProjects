@@ -391,7 +391,7 @@ function setupSimplebeaconBillingRoutes(app) {
 
   // --- Scan Quota Endpoints (Phase 3) ---
 
-  app.post('/api/quota/check', async (req, res) => {
+  app.post('/api/quota/check', billingRateLimit, async (req, res) => {
     const apiToken = String(req.body?.apiToken || '').trim();
     const scanType = String(req.body?.scanType || 'local').trim();
     if (!apiToken) {
@@ -412,7 +412,7 @@ function setupSimplebeaconBillingRoutes(app) {
     });
   });
 
-  app.post('/api/quota/consume', async (req, res) => {
+  app.post('/api/quota/consume', billingRateLimit, async (req, res) => {
     const apiToken = String(req.body?.apiToken || '').trim();
     const scanType = String(req.body?.scanType || 'local').trim();
     const scanId = String(req.body?.scanId || '').trim();
@@ -639,7 +639,7 @@ function setupSimplebeaconBillingRoutes(app) {
     });
   });
 
-  app.post('/api/simplebeacon/billing/portal', async (req, res) => {
+  app.post('/api/simplebeacon/billing/portal', billingRateLimit, async (req, res) => {
     if (!isMonetizationEnabled()) {
       return billingDisabledResponse(res);
     }
@@ -795,7 +795,7 @@ function setupSimplebeaconBillingRoutes(app) {
    * POST /api/simplebeacon/billing/resend-token
    * Resend license token to the email address on file.
    */
-  app.post('/api/simplebeacon/billing/resend-token', async (req, res) => {
+  app.post('/api/simplebeacon/billing/resend-token', billingRateLimit, async (req, res) => {
     try {
       const email = normalizeEmail(req.body?.email);
       if (!email) {
@@ -919,7 +919,7 @@ function setupSimplebeaconBillingRoutes(app) {
     };
   }
 
-  app.post('/api/simplebeacon/ci/telemetry', async (req, res) => {
+  app.post('/api/simplebeacon/ci/telemetry', billingRateLimit, async (req, res) => {
     const authHeader = String(req.headers.authorization || '');
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : String(req.body?.licenseToken || '').trim();
     if (!token) {

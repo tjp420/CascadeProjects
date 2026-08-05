@@ -151,6 +151,16 @@ function setupTrustAPI(app, options = {}) {
     const monorepoRoot = options.monorepoRoot || path.join(platformRoot, '..');
     const trustHistoryPath = resolveTrustHistoryPath(platformRoot, options.trustHistoryPath);
 
+    // Rate limiter for trust publish endpoint — mutation that writes to public dir.
+    // TODO: Add authentication middleware (requireAuth) before exposing beyond localhost.
+    const trustPublishRateLimit = require('express-rate-limit')({
+        windowMs: 60 * 1000,
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req, res) => res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' })
+    });
+
     app.get('/api/trust/verification', (req, res) => {
         try {
             const cached = readPublishedTrustPayload();
@@ -294,7 +304,7 @@ function setupTrustAPI(app, options = {}) {
         }
     });
 
-    app.post('/api/trust/publish', (req, res) => {
+    app.post('/api/trust/publish', trustPublishRateLimit, (req, res) => {
         try {
             const result = publishTrustVerification({
                 platformRoot,

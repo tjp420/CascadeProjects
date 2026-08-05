@@ -64,6 +64,18 @@ function setupOptimizationAPI(app, options = {}) {
     const defaultPlatformRoot = options.platformRoot || PROJECT_ROOT;
     const defaultMonorepoRoot = options.monorepoRoot || path.join(defaultPlatformRoot, '..');
 
+    // Rate limiter for optimization endpoints — stricter for mutation paths.
+    const express = require('express');
+    const optimizationRateLimit = require('express-rate-limit')({
+        windowMs: 60 * 1000,
+        max: 10,
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req, res) => res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' })
+    });
+    // TODO: Add authentication middleware (requireAuth) to merge-execute and merge-rollback
+    // before exposing these endpoints beyond localhost/Render internal network.
+
     app.get('/api/optimization/health', (req, res) => {
         try {
             const payload = buildRepositoryHealthPayload({
@@ -120,7 +132,7 @@ function setupOptimizationAPI(app, options = {}) {
         }
     });
 
-    app.post('/api/optimization/analyze', async (req, res) => {
+    app.post('/api/optimization/analyze', optimizationRateLimit, async (req, res) => {
         try {
             const baseDir = resolveProjectPath(req.body?.projectPath || req.query?.projectPath, defaultMonorepoRoot);
             const { platformRoot } = resolvePlatformRoot(baseDir);
@@ -155,7 +167,7 @@ function setupOptimizationAPI(app, options = {}) {
         }
     });
 
-    app.post('/api/optimization/merge-preview', async (req, res) => {
+    app.post('/api/optimization/merge-preview', optimizationRateLimit, async (req, res) => {
         try {
             const projectRoot = resolveProjectPath(req.body?.projectPath, defaultMonorepoRoot);
             let candidate = req.body?.candidate || null;
@@ -183,7 +195,7 @@ function setupOptimizationAPI(app, options = {}) {
         }
     });
 
-    app.post('/api/optimization/merge-execute', async (req, res) => {
+    app.post('/api/optimization/merge-execute', optimizationRateLimit, async (req, res) => {
         try {
             const projectRoot = resolveProjectPath(req.body?.projectPath, defaultMonorepoRoot);
             const result = await executeSafeMerge({
@@ -199,7 +211,7 @@ function setupOptimizationAPI(app, options = {}) {
         }
     });
 
-    app.post('/api/optimization/merge-rollback', async (req, res) => {
+    app.post('/api/optimization/merge-rollback', optimizationRateLimit, async (req, res) => {
         try {
             const projectRoot = resolveProjectPath(req.body?.projectPath, defaultMonorepoRoot);
             const result = await rollbackMerge(projectRoot, req.body?.previewId);
