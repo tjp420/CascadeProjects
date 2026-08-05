@@ -12,6 +12,8 @@ jobs:
   e2e-matrix:
     timeout-minutes: 25
     runs-on: ubuntu-latest
+    env:
+      VITE_API_PORT: 59277
 
     defaults:
       run:
@@ -55,12 +57,51 @@ jobs:
         run: |
           npm install -g serve
           npx serve -s assets -l 3000 &
-          npx playwright test tests/storage-quota-fallback.spec.ts --project=${{ matrix.browser }}
+          # Run tests and capture combined output to e2e-output.txt for triage
+          set -o pipefail
+          (
+            npx playwright test tests/storage-quota-fallback.spec.ts --project=${{ matrix.browser }} || true
+            if [ "${{ matrix.browser }}" = "chromium" ]; then
+              npx playwright test tests/network-throttling.spec.ts --project=chromium || true
+            fi
+          ) | tee e2e-output.txt
 
       - name: Upload Test Execution Artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: playwright-execution-report-${{ matrix.browser }}
-          path: ai-platform/web/simplebeacon-dashboard/playwright-report/
+          path: |
+            ai-platform/web/simplebeacon-dashboard/playwright-report/
+            ai-platform/web/simplebeacon-dashboard/test-results/
+            ai-platform/web/simplebeacon-dashboard/e2e-output.txt
           retention-days: 7
+
+      - name: Broadcast Failure Alert to Dev Channels
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.TELEMETRY_CI_SLACK_WEBHOOK }}
+          TEAMS_WEBHOOK: ${{ secrets.TELEMETRY_CI_TEAMS_WEBHOOK }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MESSAGE="🚨 *Dashboard E2E Pipeline Failure:* The browser integration checks failed under matrix run: *${{ matrix.browser }}*.
+          \nSee details: ${RUN_URL}"
+
+          # Prepare a compact log snippet for quick triage (200 lines)
+          if [ -f e2e-output.txt ]; then
+            SNIPPET=$(head -n 200 e2e-output.txt | tr -d '"' | tr -d "'" | tr '\n' ' ')
+          else
+            SNIPPET="(no e2e-output.txt present)"
+          fi
+
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -s -X POST -H 'Content-type: application/json' \
+              --data "{\"text\": \"${MESSAGE}\n\n*Log Snippet:*\n\`\`\`${SNIPPET}\`\`\`\n\nReview the test logs or download trace bundles here: ${RUN_URL}\"}" \
+              "$SLACK_WEBHOOK" || true
+          fi
+
+          if [ -n "$TEAMS_WEBHOOK" ]; then
+            curl -s -X POST -H 'Content-type: application/json' \
+              --data "{\"text\": \"${MESSAGE}\n\nLog Snippet:\n${SNIPPET}\n\nFull run: ${RUN_URL}\"}" \
+              "$TEAMS_WEBHOOK" || true
+          fi

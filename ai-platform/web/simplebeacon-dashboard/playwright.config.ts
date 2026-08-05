@@ -4,23 +4,24 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'html' : 'list',
+  reporter: [['html', { outputFolder: 'playwright-report' }]],
   timeout: 30_000,
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: process.env.CI ? 'http://localhost:3000/dashboard' : 'http://localhost:5173/dashboard',
-    trace: 'on-first-retry',
+    baseURL: process.env.CI ? 'http://localhost:3000' : 'http://localhost:61455/dashboard',
+    // Capture screenshots on failure, keep traces if failure, and record video on first retry
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    trace: 'retain-on-failure',
+    video: 'on-first-retry',
   },
 
   webServer: !process.env.CI
     ? {
         command: 'npm run dev',
-        url: 'http://localhost:5173/dashboard/',
+        url: 'http://localhost:61455/dashboard/',
         reuseExistingServer: true,
         timeout: 60_000,
       }
