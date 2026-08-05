@@ -16,6 +16,7 @@ const { CryptoPolicyEngine } = require(path.join(__dirname, 'hsm-adapter', _cpe)
 const _hm = 'hsm' + '-metrics.cjs';
 const { incrementCounter } = require(path.join(__dirname, 'hsm-adapter', _hm));
 const { validateTenantContext, tagSIEMEvent, tagOutboundMessage, TENANT_FIELD, DEFAULT_TENANT } = require('./replication-tenant-context.cjs');
+const sessionTokenReplicator = require('./session-token-replicator.cjs');
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;
@@ -803,6 +804,22 @@ const IPC_SCHEMAS = {
     required: { type: 'string', from: 'string', to: 'string', granted: 'number' },
     optional: { tenantId: 'string', timestamp: 'number' },
   },
+  SESSION_TOKEN_ISSUE: {
+    required: { type: 'string', from: 'string', tokenHash: 'string', accountId: 'string', epoch: 'number', tokenSequence: 'number', expiresAt: 'string' },
+    optional: { tenantId: 'string' },
+  },
+  SESSION_TOKEN_REVOKE: {
+    required: { type: 'string', from: 'string', tokenHash: 'string', epoch: 'number', tokenSequence: 'number' },
+    optional: { tenantId: 'string' },
+  },
+  SESSION_STATE_REQUEST: {
+    required: { type: 'string', from: 'string', lastKnownSequence: 'number' },
+    optional: { tenantId: 'string' },
+  },
+  SESSION_STATE_RESPONSE: {
+    required: { type: 'string', from: 'string', tokens: 'object' },
+    optional: { tenantId: 'string', lastKnownSequence: 'number' },
+  },
 };
 
 // IPC audit logging rate limiter
@@ -929,6 +946,7 @@ function _handleMessage(msg, socket) {
     return;
   }
   msg[TENANT_FIELD] = _tenantCtx.tenantId;
+  socket.tenantId = socket.tenantId || _tenantCtx.tenantId;
 
   if (msg.type === 'ANNOUNCE') {
     _peerState.set(peerKey, { lastSeen: Date.now(), nodeId: msg.nodeId });
@@ -1008,6 +1026,27 @@ function _handleMessage(msg, socket) {
       }
     }
     return;
+  }
+
+  // Session-token replication gossip (Track 124 extension)
+  if (msg.type.startsWith('SESSION_')) {
+    const verifiedTenant = msg.tenantId || DEFAULT_TENANT;
+    const socketTenant = socket.tenantId || DEFAULT_TENANT;
+    if (verifiedTenant !== socketTenant) {
+      incrementCounter('hsm_replication_cross_tenant_rejected_total');
+      _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+        reason: 'cross_tenant_session_injection',
+        msgType: msg.type,
+        peer: peerKey,
+        siemSeverity: 'critical',
+        siemCategory: 'tenant_isolation_violation',
+        siemSource: 'cluster-keyring-sync',
+      });
+      _log('warn', 'Cross-tenant session replication rejected', { peer: peerKey, msgType: msg.type, tenant: verifiedTenant });
+      socket.destroy();
+      throw new Error('CROSS_TENANT_SESSION_INJECTION_REJECTED');
+    }
+    return sessionTokenReplicator.handleSessionTokenMessage(msg, socket);
   }
 }
 
@@ -1893,6 +1932,9 @@ function _handleDkgFinalize(msg) {
   });
   _log('info', 'DKG session finalized', { sessionId: _dkgSession.sessionId });
 }
+
+// Wire the session-token replicator into the cluster broadcast fabric.
+sessionTokenReplicator.setBroadcast(_broadcast);
 
 module.exports = {
   init,
