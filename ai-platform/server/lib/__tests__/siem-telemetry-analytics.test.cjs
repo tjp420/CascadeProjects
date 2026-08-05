@@ -83,7 +83,11 @@ describe('SIEM Cluster Telemetry Analytics', () => {
     const request = require('supertest');
     // Mock auth middleware before requiring the router
     jest.mock(path.join(__dirname, '..', '..', 'middleware', 'auth.cjs'), () => ({
-      authenticate: (req, res, next) => { req.user = { id: 'test-user', email: 'test@test.com' }; next(); },
+      authenticate: (req, res, next) => { req.user = { id: 'test-user', email: 'test@test.com', role: 'auditor' }; next(); },
+    }));
+    // Mock authorize middleware to pass through with auditor role
+    jest.mock(path.join(__dirname, '..', '..', 'middleware', 'authorize.cjs'), () => ({
+      authorize: () => (req, res, next) => { req.userRole = 'auditor'; next(); },
     }));
     const router = require(path.join(__dirname, '..', '..', 'routes', 'analytics-routes.cjs'));
 
@@ -97,6 +101,7 @@ describe('SIEM Cluster Telemetry Analytics', () => {
     expect(res.body.metrics).toBeDefined();
     expect(res.body.timestamp).toBeDefined();
     jest.dontMock(path.join(__dirname, '..', '..', 'middleware', 'auth.cjs'));
+    jest.dontMock(path.join(__dirname, '..', '..', 'middleware', 'authorize.cjs'));
   });
 
   // ── T5: Dashboard component renders without errors when data is available ──
@@ -187,7 +192,10 @@ describe('SIEM Cluster Telemetry Analytics', () => {
     const express = require('express');
     const request = require('supertest');
     jest.mock(path.join(__dirname, '..', '..', 'middleware', 'auth.cjs'), () => ({
-      authenticate: (req, res, next) => { req.user = { id: 'test-user', email: 'test@test.com' }; next(); },
+      authenticate: (req, res, next) => { req.user = { id: 'test-user', email: 'test@test.com', role: 'auditor' }; next(); },
+    }));
+    jest.mock(path.join(__dirname, '..', '..', 'middleware', 'authorize.cjs'), () => ({
+      authorize: () => (req, res, next) => { req.userRole = 'auditor'; next(); },
     }));
     const router = require(path.join(__dirname, '..', '..', 'routes', 'analytics-routes.cjs'));
 
@@ -207,6 +215,7 @@ describe('SIEM Cluster Telemetry Analytics', () => {
     expect(bodyStr).not.toContain('_peerBuckets');
     expect(bodyStr).not.toContain('_refillTimer');
     jest.dontMock(path.join(__dirname, '..', '..', 'middleware', 'auth.cjs'));
+    jest.dontMock(path.join(__dirname, '..', '..', 'middleware', 'authorize.cjs'));
   });
 
   // ── T13: Broker metrics are read-only (no mutation through telemetry endpoint) ──
