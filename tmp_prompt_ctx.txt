@@ -1,1 +1,0 @@
-y:Y,removeFilters:te}))},[]),X=b.useCallback(async()=>{const Y=localStorage.getItem("simplebeacon_user_id")||"anonymous";try{const me=await fetch(Mr(`/prompts/get?userId=${encodeURIComponent(Y)}`),{headers:lo()});if(me.ok){const _e=await me.json();_e.prompt&&H(_e.prompt);return}}catch{}const te=loca
