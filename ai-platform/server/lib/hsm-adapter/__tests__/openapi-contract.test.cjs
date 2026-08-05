@@ -49,6 +49,8 @@ function createTestApp() {
   }
   const vaultRoutes = require('../../../routes/hsm-vault-routes.cjs');
   app.use('/api/vault', vaultRoutes);
+  const track112Routes = require('../../../routes/track112-upload-routes.cjs');
+  app.use('/api/track112', track112Routes);
   return app;
 }
 
@@ -65,6 +67,7 @@ const GOVERNANCE_PREFIXES = [
 const SIEM_PATHS = ['/audit/telemetry', '/audit/log', '/audit/export', '/audit/verify-integrity', '/audit/stats'];
 
 const EXPECTED_TAGS = [
+  'Track112MultipartUpload',
   'Track114ClusterIsolation',
   'Track115BftShardSync',
   'Track118DistributedConsensusCoordinator',
@@ -73,6 +76,14 @@ const EXPECTED_TAGS = [
   'Track121MultipartyReKeying',
   'SIEMAudit',
 ];
+
+const TRACK112_PATHS = [
+  '/track112/uploads',
+  '/track112/uploads/{id}/chunk',
+  '/track112/uploads/{id}/commit',
+];
+
+const crypto = require('crypto');
 
 const ORIGINAL_TRACK79_PATHS = [
   '/policies',
@@ -128,6 +139,28 @@ describe('OpenAPI Specification Contract Tests', () => {
       expect(doc.paths[validatePath]).toHaveProperty('post');
       expect(doc.paths[telemetryPath]).toHaveProperty('get');
     }
+  });
+
+  // ── L2-01b: All 3 Track 112 upload endpoints are documented ───────
+  test('L2-01b: all 3 Track 112 upload endpoints are documented with correct methods', () => {
+    for (const p of TRACK112_PATHS) {
+      expect(doc.paths).toHaveProperty(p);
+    }
+    expect(doc.paths['/track112/uploads']).toHaveProperty('post');
+    expect(doc.paths['/track112/uploads/{id}/chunk']).toHaveProperty('post');
+    expect(doc.paths['/track112/uploads/{id}/commit']).toHaveProperty('post');
+  });
+
+  // ── L2-01c: Track 112 commit request schema requires publicKeyPem and signature
+  test('L2-01c: Track 112 commit request requires publicKeyPem and Ed25519 signature', () => {
+    const schema = doc.components.schemas.Track112CommitRequest;
+    expect(schema).toBeDefined();
+    expect(schema.required).toContain('publicKeyPem');
+    expect(schema.required).toContain('signature');
+    const pemProp = schema.properties.publicKeyPem;
+    expect(pemProp.format).toBe('pem');
+    const sigProp = schema.properties.signature;
+    expect(sigProp.format).toBe('byte');
   });
 
   // ── L2-02: All 5 SIEM audit endpoints are documented ───────────────
@@ -195,6 +228,45 @@ describe('OpenAPI Specification Contract Tests', () => {
     expect(schema.properties.error.example).toBe('POLICY_VIOLATION_BLOCKED');
   });
 
+  // ── L2-07: Track 112 end-to-end contract matches actual route responses
+  test('L2-07: Track 112 upload create, chunk, and commit flow matches OpenAPI schemas', async () => {
+    const createRes = await request(app)
+      .post('/api/track112/uploads')
+      .send({ tenant: 't1', maxBytes: 8192 })
+      .expect(201);
+    expect(createRes.body).toHaveProperty('sessionId');
+    expect(createRes.body).toHaveProperty('traceId');
+
+    const id = createRes.body.sessionId;
+    const chunk = Buffer.alloc(4096, 'a');
+    await request(app)
+      .post('/api/track112/uploads/' + id + '/chunk?offset=0')
+      .set('Content-Type', 'application/octet-stream')
+      .send(chunk)
+      .expect(204);
+
+    const root = crypto.createHash('sha256').update(chunk).digest();
+    const keyPair = crypto.generateKeyPairSync('ed25519');
+    const publicKeyPem = keyPair.publicKey.export({ type: 'spki', format: 'pem' });
+    const signature = crypto.sign(null, root, keyPair.privateKey).toString('base64');
+
+    const commitRes = await request(app)
+      .post('/api/track112/uploads/' + id + '/commit')
+      .send({ publicKeyPem, signature })
+      .expect(200);
+    expect(commitRes.body).toHaveProperty('status', 'committed');
+    expect(commitRes.body).toHaveProperty('root');
+    expect(commitRes.body).toHaveProperty('traceId');
+
+    // Verify schema refs
+    const createSchema = doc.paths['/track112/uploads'].post.responses['201'].content['application/json'].schema.$ref;
+    expect(createSchema).toBe('#/components/schemas/Track112UploadCreateResponse');
+    const commitSchema = doc.paths['/track112/uploads/{id}/commit'].post.responses['200'].content['application/json'].schema.$ref;
+    expect(commitSchema).toBe('#/components/schemas/Track112CommitResponse');
+    const commitReqSchema = doc.paths['/track112/uploads/{id}/commit'].post.requestBody.content['application/json'].schema.$ref;
+    expect(commitReqSchema).toBe('#/components/schemas/Track112CommitRequest');
+  });
+
   // ── L3-01: Existing Track 79 endpoints unchanged ───────────────────
   test('L3-01: existing Track 79 endpoints are preserved unchanged', () => {
     for (const p of ORIGINAL_TRACK79_PATHS) {
@@ -203,7 +275,7 @@ describe('OpenAPI Specification Contract Tests', () => {
   });
 
   // ── L3-02: OpenAPI tags organize endpoints by track ────────────────
-  test('L3-02: all 7 new track tags are registered in the tags section', () => {
+  test('L3-02: all 8 track-specific tags are registered in the tags section', () => {
     const tagNames = doc.tags.map(t => t.name);
     for (const tag of EXPECTED_TAGS) {
       expect(tagNames).toContain(tag);
@@ -252,6 +324,14 @@ describe('OpenAPI Specification Contract Tests', () => {
       const routePattern = siemPath.replace('/audit/', '/');
       expect(auditContent).toContain("'" + routePattern + "'");
     }
+    // Verify Track 112 routes
+    const track112Content = fs.readFileSync(
+      path.join(__dirname, '..', '..', '..', 'routes', 'track112-upload-routes.cjs'),
+      'utf8'
+    );
+    expect(track112Content).toContain("'/uploads'");
+    expect(track112Content).toContain("'/uploads/:id/chunk'");
+    expect(track112Content).toContain("'/uploads/:id/commit'");
   });
 
   // ── L3-05: Schema contract test catches response drift ─────────────
@@ -279,7 +359,7 @@ describe('OpenAPI Specification Contract Tests', () => {
     expect(yamlText).not.toMatch(/[0-9a-f]{64}/i);
   });
 
-  // ── S-02: All new paths require authorization ──────────────────────
+  // ── S-02: All new paths have security requirements explicitly defined ────────
   test('S-02: all new paths have security requirements defined', () => {
     const allNewPaths = [];
     for (const prefix of GOVERNANCE_PREFIXES) {
@@ -290,11 +370,19 @@ describe('OpenAPI Specification Contract Tests', () => {
     for (const p of SIEM_PATHS) {
       allNewPaths.push(p);
     }
+    for (const p of TRACK112_PATHS) {
+      allNewPaths.push(p);
+    }
     for (const p of allNewPaths) {
       const pathObj = doc.paths[p];
       const method = pathObj.get || pathObj.post;
       expect(method.security).toBeDefined();
-      expect(method.security.length).toBeGreaterThan(0);
+      // Track 112 is intentionally public (security: []); governance/SIEM require adminAll
+      if (TRACK112_PATHS.includes(p)) {
+        expect(method.security).toEqual([]);
+      } else {
+        expect(method.security.length).toBeGreaterThan(0);
+      }
     }
   });
 

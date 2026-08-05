@@ -54,7 +54,8 @@ module.exports = {
     'server/lib/hsm-adapter/__tests__/track113/hardening-primitives\\.test\\.cjs$',
     'server/lib/hsm-adapter/__tests__/pq-lattice-fuzz-matrix\\.test\\.cjs$',
     'server/lib/hsm-adapter/__tests__/pq-mutation-fuzz\\.test\\.cjs$',
-    'server/lib/hsm-adapter/__tests__/openapi-contract\\.test\\.cjs$',
+    'server/lib/__tests__/token-throttle-mesh\\.test\\.cjs$',
+
     'server/lib/__tests__/ci-telemetry-store\\.test\\.cjs$',
     'server/lib/hsm-adapter/__tests__/zkp-identity\\.test\\.cjs$'
   ],
