@@ -17,7 +17,6 @@
 
 ## [3.0.461] - 2026-07-18
 
-
 ### Added
 - Client-side cookie-session migration for the dashboard `AuthService` (`js` and `js-es2018` builds)
 - `AUTH_HINT_KEY` and `CLI_FALLBACK_TOKEN_KEY` constants plus `usesCookieSessions()` / `isHydrated()` / `hydrateSession()` helpers
