@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 function hkdfSha256(ikm, salt = Buffer.alloc(0), info = Buffer.alloc(0), length = 32) {
-  return crypto.hkdfSync('sha256', salt, ikm, info, length);
+  return Buffer.from(crypto.hkdfSync('sha256', salt, ikm, info, length));
 }
 
 // KDF_RK: derive new root and chain key from previous root and DH output

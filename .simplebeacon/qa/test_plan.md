@@ -1,30 +1,28 @@
-# Test Plan: Track 113 — SIEM Telemetry for Optimized Broker Queues
+# Test Plan: Track 113 — Hybrid KEM + Ed25519 Identity Ratchet Bootstrap
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Add SIEM queue depth, token bucket, and flush metrics to the broker and exporter. |
+| Feature / change | Hybrid ML-KEM-768 + X25519/Ed25519 identity ratchet bootstrap with fail-closed PQC policy. |
 | Author (Builder) | Devin |
 | Date | 2026-08-05 |
 | Branch | feat/track113-pqc-ratchet-migration |
-| Packages touched | ai-platform/server/lib/siem, ai-platform/server/lib/siem-exporter.cjs |
+| Packages touched | ai-platform/server/lib/hsm-adapter, ai-platform/server/lib/crypto/ratchet |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/siem/siem-broker.cjs`
-- `ai-platform/server/lib/siem-exporter.cjs`
-- `ai-platform/server/lib/__tests__/siem-broker.test.cjs`
-- `ai-platform/server/lib/__tests__/siem-exporter.test.cjs`
-- `ai-platform/scripts/perf-siem-profile.cjs`
+- `ai-platform/server/lib/hsm-adapter/pqc-identity-ratchet.cjs`
+- `ai-platform/server/lib/hsm-adapter/__tests__/identity-ratchet.test.cjs`
+- `ai-platform/server/lib/crypto/ratchet/identity-ratchet.cjs` (new)
+- `ai-platform/server/lib/crypto/ratchet/hybrid-bootstrap.cjs` (new)
 
 ### Out of scope
 
-- Track 113 hybrid KEM / signature implementation (separate design review)
 - UI/IDE surfaces
-- New dependencies
+- New npm dependencies (uses existing `mlkem` and Node `crypto`)
 
 ---
 
@@ -32,34 +30,35 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on changed CJS | `node -c ai-platform/server/lib/siem/siem-broker.cjs` and `node -c ai-platform/server/lib/siem-exporter.cjs` | [ ] |
-| L1-02 | Broker + exporter unit tests | `npx jest siem-broker siem-exporter` | [ ] |
-| L1-03 | SIEM perf profile | `node ai-platform/scripts/perf-siem-profile.cjs` (no unhandled errors) | [ ] |
-| L1-04 | No secrets in diff | manual review of changed files | [ ] |
+| L1-01 | Syntax on changed/new CJS | `node -c` on each changed file | [ ] |
+| L1-02 | Identity ratchet tests | `npx jest identity-ratchet` | [ ] |
+| L1-03 | No secrets in diff | manual review | [ ] |
 
 ## Level 2 — Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Token bucket metrics visible | Create broker with maxTokens=5; call `getMetrics()` | `siem_tokens_available` ≤ 5 and `siem_tokens_consumed_total` = events processed | [ ] |
-| L2-02 | Refill counter increments | Drain tokens and wait one refill interval | `siem_tokens_refilled_total` increments after refill | [ ] |
-| L2-03 | Queue depth metric | Enqueue 10 events with batch size 5; call `getMetrics()` | `siem_queue_depth_current` = 10 before flush, < 10 after flush | [ ] |
-| L2-04 | Queue overflow counter | Push > max queue depth in one burst | `siem_queue_dropped_total` > 0 | [ ] |
+| L2-01 | Keypair generation | Call `HybridIdentityRatchet.generate()` | Returns versioned hybrid public key with both X25519/Ed25519 and ML-KEM-768 components | [ ] |
+| L2-02 | Encapsulate/decapsulate | `encapsulate(hybridPublicKey)` then `decapsulate(...)` using `secretKey` | Shared secrets match | [ ] |
+| L2-03 | Sign/verify handshake | Sign handshake transcript with Ed25519 and verify with public key | Verification passes; wrong key fails | [ ] |
+| L2-04 | ML-KEM failure fail-closed | Force `mlkem.keygen()` to throw | Bootstrap throws `PQC_BOOTSTRAP_FAILED` and emits SIEM CRITICAL | [ ] |
+| L2-05 | Serialization roundtrip | `serializeHybridPublicKey` / `deserializeHybridPublicKey` | Output equals input; version and offsets preserved | [ ] |
 
 ## Level 3 — Edge cases & reflection
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Token bucket refill does not over-cap | Wait multiple refill intervals | `siem_tokens_available` never exceeds `maxTokens` | [ ] |
-| L3-02 | Metrics survive `resetQueue` | Reset queue and read metrics | `siem_queue_dropped_total` preserved; `siem_queue_depth_current` = 0 | [ ] |
-| L3-03 | No perf regression | `perf-siem-profile.cjs` | Queue drain still O(1) and throughput ≥ 200k ops/s | [ ] |
+| L3-01 | Unknown version byte | Deserialize with version `0xFF` | Throws `UNSUPPORTED_HYBRID_KEY_VERSION` | [ ] |
+| L3-02 | Truncated key buffer | Deserialize truncated buffer | Throws `INVALID_HYBRID_KEY_LAYOUT` | [ ] |
+| L3-03 | Mixed security domains | Ed25519 signature from different identity | Reject with `SIGNATURE_INVALID` | [ ] |
 
 ## Security
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials / PII in logs or commits | [ ] |
-| S-02 | Metrics do not expose raw chain keys or tokens | [ ] |
+| S-01 | No raw private keys logged or serialized in plaintext | [ ] |
+| S-02 | PQC failure fails closed (no classical-only fallback) | [ ] |
+| S-03 | Shared secrets derived with HKDF-SHA384 over both KEM outputs | [ ] |
 
 ## Approval
 
