@@ -4508,6 +4508,40 @@ class CryptoPolicyEngine {
     }
     return true;
   }
+  _validateMultipartyReKeying(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.multipartyReKeying, ...(tenantPolicy.multipartyReKeying || {}) };
+    if (typeof config.minQuorumNodes === 'number' && config.minQuorumNodes < 3) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `min quorum nodes ${config.minQuorumNodes} below minimum 3`);
+    }
+    if (typeof config.maxReKeyingEpochs === 'number' && config.maxReKeyingEpochs > 10000) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max re-keying epochs ${config.maxReKeyingEpochs} exceeds maximum 10000`);
+    }
+    if (typeof config.requireQuorumCommit === 'boolean' && policy.requireQuorumCommit && !config.requireQuorumCommit) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'quorum commit cannot be disabled when policy enforces it');
+    }
+    if (typeof config.requireAntiRollback === 'boolean' && policy.requireAntiRollback && !config.requireAntiRollback) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'anti-rollback protection cannot be disabled when policy enforces it');
+    }
+    if (typeof config.requireShareZeroization === 'boolean' && policy.requireShareZeroization && !config.requireShareZeroization) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'share zeroization cannot be disabled when policy enforces it');
+    }
+    // allowThresholdAdjustment: if parent policy explicitly sets it to false,
+    // a child config attempting to re-enable it (true) must be rejected.
+    if (typeof config.allowThresholdAdjustment === 'boolean' && !policy.allowThresholdAdjustment && config.allowThresholdAdjustment) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        'threshold adjustment cannot be enabled when policy restricts it');
+    }
+    if (typeof config.maxShareholders === 'number' && (config.maxShareholders < 1 || config.maxShareholders > 64)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
+        `max shareholders ${config.maxShareholders} out of bounds [1, 64]`);
+    }
+    return true;
+  }
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -5279,6 +5313,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'clusterKeyReconciliation') {
       this._validateClusterKeyReconciliation(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'multipartyReKeying') {
+      this._validateMultipartyReKeying(tenantPolicy, config);
       return true;
     }
 
