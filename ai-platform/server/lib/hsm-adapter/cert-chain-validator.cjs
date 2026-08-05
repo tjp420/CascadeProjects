@@ -230,9 +230,9 @@ class CertChainValidator {
     // Build chain: leaf -> intermediate -> root
     let current = leaf;
     let depth = 0;
-    const maxDepth = 10;
+    const MAX_CHAIN_DEPTH = 4;
 
-    while (depth < maxDepth) {
+    while (depth < MAX_CHAIN_DEPTH) {
       depth++;
 
       // Check if current is self-signed (root)
@@ -274,7 +274,10 @@ class CertChainValidator {
         return { valid: false, chain, rootFingerprint: null, errors };
       }
 
-      // Check issuer validity
+      // Check issuer validity and CA status
+      if (!issuer.ca) {
+        errors.push('issuer is not a CA certificate: ' + issuer.subject);
+      }
       if (checkValidity && !isCertValid(issuer)) {
         errors.push('intermediate certificate expired: ' + issuer.subject);
       }
@@ -295,15 +298,15 @@ class CertChainValidator {
    * @private
    */
   _findIssuer(cert) {
-    // Check intermediates first
-    for (const [, ca] of this._intermediateCAs) {
-      if (ca.subject === cert.issuer) {
-        return ca;
-      }
-    }
-    // Check roots
-    for (const [, ca] of this._rootCAs) {
-      if (ca.subject === cert.issuer) {
+    // Check intermediates first, requiring the candidate to be a CA and to have
+    // cryptographically signed the current certificate. This blocks spoofed
+    // issuer-name collisions and non-CA certificates masquerading as issuers.
+    const candidates = [
+      ...this._intermediateCAs.values(),
+      ...this._rootCAs.values(),
+    ];
+    for (const ca of candidates) {
+      if (ca.subject === cert.issuer && ca.ca && verifyCertSignature(cert, ca)) {
         return ca;
       }
     }
