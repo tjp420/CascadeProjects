@@ -23,7 +23,12 @@
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
-const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const { incrementCounter } = require('./hsm-metrics.cjs');
+const {
+  ensureSameTenant,
+  isValidTenantId,
+  DEFAULT_TENANT,
+} = require('../replication-tenant-context.cjs');
 
 // ── Migration states ─────────────────────────────────────────────
 const MIGRATION_STATE = {
@@ -64,6 +69,7 @@ class MigrationManifest {
     this.migrationId = options.migrationId;
     this.sourceCluster = options.sourceCluster;
     this.destinationCluster = options.destinationCluster;
+    this.tenantId = options.tenantId || DEFAULT_TENANT;
     this.shards = options.shards;
     this.timestamp = options.timestamp || Date.now();
     this.attestation = null;
@@ -167,7 +173,8 @@ class CrossClusterMigrationEngine {
    * @param {object} manifestOptions
    * @returns {MigrationManifest}
    */
-  initiate(manifestOptions) {
+  initiate(manifestOptions, tenantId = DEFAULT_TENANT) {
+    this._validateTenant(tenantId);
     if (this._activeMigrationCount >= this.maxConcurrentMigrations) {
       throw new HsmAdapterError(
         'MIGRATION_CONCURRENCY_LIMIT',
@@ -181,6 +188,7 @@ class CrossClusterMigrationEngine {
     const manifest = new MigrationManifest({
       ...manifestOptions,
       migrationId,
+      tenantId,
     });
 
     this._migrations.set(migrationId, {
@@ -188,6 +196,7 @@ class CrossClusterMigrationEngine {
       state: MIGRATION_STATE.INITIATED,
       acks: new Set(),
       verificationResult: null,
+      tenantId: manifest.tenantId,
     });
     this._activeMigrationCount++;
 
@@ -196,6 +205,7 @@ class CrossClusterMigrationEngine {
       sourceCluster: manifest.sourceCluster,
       destinationCluster: manifest.destinationCluster,
       shardCount: manifest.shards.length,
+      tenantId: manifest.tenantId,
     });
 
     return manifest;
@@ -207,8 +217,10 @@ class CrossClusterMigrationEngine {
    * @param {string} authority
    * @param {string} token
    */
-  attest(migrationId, authority, token) {
+  attest(migrationId, authority, token, tenantId = DEFAULT_TENANT) {
+    this._validateTenant(tenantId);
     const record = this._getMigration(migrationId);
+    this._validateMigrationTenant(record, tenantId);
     this._transition(migrationId, MIGRATION_STATE.ATTESTED);
 
     if (this.requireAttestation && !this.allowedAttestationAuthorities.includes(authority)) {
@@ -220,7 +232,7 @@ class CrossClusterMigrationEngine {
     }
 
     record.manifest.attest(authority, token);
-    this._emitAudit('MIGRATION_ATTESTED', { migrationId, authority });
+    this._emitAudit('MIGRATION_ATTESTED', { migrationId, authority, tenantId });
 
     return record.manifest;
   }
@@ -228,9 +240,12 @@ class CrossClusterMigrationEngine {
   /**
    * Begin transferring shard data to the destination cluster.
    * @param {string} migrationId
+   * @param {string} [tenantId]
    */
-  beginTransfer(migrationId) {
+  beginTransfer(migrationId, tenantId = DEFAULT_TENANT) {
+    this._validateTenant(tenantId);
     const record = this._getMigration(migrationId);
+    this._validateMigrationTenant(record, tenantId);
 
     if (this.requireAttestation && !record.manifest.attestation) {
       throw new HsmAdapterError('MIGRATION_NOT_ATTESTED', `migration ${migrationId} requires attestation before transfer`);
@@ -241,6 +256,7 @@ class CrossClusterMigrationEngine {
       migrationId,
       shardCount: record.manifest.shards.length,
       totalEntries: record.manifest.totalEntryCount(),
+      tenantId,
     });
 
     return { migrationId, status: MIGRATION_STATE.TRANSFERRING };
@@ -251,8 +267,10 @@ class CrossClusterMigrationEngine {
    * @param {string} migrationId
    * @param {boolean} verified
    */
-  verify(migrationId, verified) {
+  verify(migrationId, verified, tenantId = DEFAULT_TENANT) {
+    this._validateTenant(tenantId);
     const record = this._getMigration(migrationId);
+    this._validateMigrationTenant(record, tenantId);
     this._transition(migrationId, MIGRATION_STATE.VERIFYING);
 
     record.verificationResult = verified;
@@ -273,9 +291,11 @@ class CrossClusterMigrationEngine {
    * @param {string} migrationId
    * @param {string} nodeId
    */
-  acknowledge(migrationId, nodeId) {
+  acknowledge(migrationId, nodeId, tenantId = DEFAULT_TENANT) {
     this._validateNode(nodeId);
+    this._validateTenant(tenantId);
     const record = this._getMigration(migrationId);
+    this._validateMigrationTenant(record, tenantId);
 
     if (record.state !== MIGRATION_STATE.VERIFYING) {
       throw new HsmAdapterError(
@@ -397,6 +417,32 @@ class CrossClusterMigrationEngine {
   _validateNode(nodeId) {
     if (!this.destinationNodes.has(nodeId)) {
       throw new HsmAdapterError('MIGRATION_NODE_UNKNOWN', `node ${nodeId} not in destination cluster`);
+    }
+  }
+
+  /**
+   * Validate a tenant identifier.
+   * @param {string} tenantId
+   */
+  _validateTenant(tenantId) {
+    if (!isValidTenantId(tenantId)) {
+      incrementCounter('hsm_replication_tenant_isolation_violation_total');
+      incrementCounter('hsm_zk_tenant_isolation_violation_total');
+      throw new HsmAdapterError('INVALID_TENANT_ID', `invalid tenantId: ${tenantId}`);
+    }
+  }
+
+  /**
+   * Guard migration operations against cross-domain structural leakage.
+   * @param {object} record
+   * @param {string} tenantId
+   */
+  _validateMigrationTenant(record, tenantId) {
+    const bound = record.tenantId || record.manifest.tenantId || DEFAULT_TENANT;
+    try {
+      ensureSameTenant(bound, tenantId, { action: 'cross_tenant_migration_rejected' });
+    } catch (err) {
+      throw new HsmAdapterError('CROSS_TENANT_MIGRATION', err.message);
     }
   }
 

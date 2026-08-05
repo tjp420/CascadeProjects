@@ -154,6 +154,65 @@ function tenantsMatch(a, b) {
   return String(a || '') === String(b || '');
 }
 
+/**
+ * Emit replication isolation violation to structured stderr (SIEM-compatible).
+ * @param {string|null} sourceTenantId
+ * @param {string|null} targetTenantId
+ * @param {string} action
+ * @private
+ */
+function _emitReplicationIsolationViolation(sourceTenantId, targetTenantId, action) {
+  const event = tagSIEMEvent({
+    siemSeverity: 'CRITICAL',
+    siemCategory: 'zk_isolation_violation',
+    siemSource: 'replication-tenant-context',
+    context: {
+      action: action || 'cross_tenant_reconciliation_rejected',
+      sourceTenantId: sourceTenantId == null ? null : String(sourceTenantId),
+      targetTenantId: targetTenantId == null ? null : String(targetTenantId),
+    },
+  }, isValidTenantId(sourceTenantId) ? sourceTenantId : DEFAULT_TENANT);
+  try {
+    console.error(JSON.stringify({ ...event, timestamp: new Date().toISOString() }));
+  } catch (_err) {
+    /* fail-silent telemetry path */
+  }
+}
+
+/**
+ * Track 124: strict tenant equality gate before replication ledger commits.
+ * Rejects cross-tenant material mutations and invalid tenant identifiers.
+ *
+ * @param {string} sourceTenantId
+ * @param {string} targetTenantId
+ * @param {object} [options]
+ * @param {string} [options.action] - SIEM action label
+ * @throws {Error}
+ */
+function ensureSameTenant(sourceTenantId, targetTenantId, options = {}) {
+  const action = options.action || 'cross_tenant_reconciliation_rejected';
+
+  if (!isValidTenantId(sourceTenantId) || !isValidTenantId(targetTenantId)) {
+    incrementCounter('hsm_replication_tenant_isolation_violation_total');
+    incrementCounter('hsm_zk_tenant_isolation_violation_total');
+    _emitReplicationIsolationViolation(sourceTenantId, targetTenantId, action);
+    const err = new Error('zk_isolation_violation: Cross-tenant data boundary mutation rejected.');
+    err.code = 'INVALID_TENANT_ID';
+    throw err;
+  }
+
+  if (sourceTenantId !== targetTenantId) {
+    incrementCounter('hsm_replication_cross_tenant_rejected_total');
+    incrementCounter('hsm_zk_tenant_isolation_violation_total');
+    _emitReplicationIsolationViolation(sourceTenantId, targetTenantId, action);
+    const err = new Error('zk_isolation_violation: Cross-tenant data boundary mutation rejected.');
+    err.code = 'CROSS_TENANT_REPLICATION_REJECTED';
+    err.sourceTenant = sourceTenantId;
+    err.targetTenant = targetTenantId;
+    throw err;
+  }
+}
+
 module.exports = {
   TENANT_FIELD,
   DEFAULT_TENANT,
@@ -162,6 +221,7 @@ module.exports = {
   extractTenantContext,
   validateTenantContext,
   rejectCrossTenant,
+  ensureSameTenant,
   tagSIEMEvent,
   tagOutboundMessage,
   tenantsMatch,

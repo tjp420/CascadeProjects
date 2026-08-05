@@ -22,7 +22,13 @@
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
-const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const { incrementCounter } = require('./hsm-metrics.cjs');
+const {
+  ensureSameTenant,
+  isValidTenantId,
+  TENANT_FIELD,
+  DEFAULT_TENANT,
+} = require('../replication-tenant-context.cjs');
 
 // ── Reconciliation states ────────────────────────────────────────
 const RECONCILIATION_STATE = {
@@ -248,6 +254,9 @@ class ClusterKeyReconciliationEngine {
     this._reconciliationStates = new Map(); // keyId -> state
     this._promotionVotes = new Map(); // keyId -> Map<nodeId, votedEpoch>
     this._rollbackAttempts = new Map(); // keyId -> count
+
+    // Track 124: per-key tenant isolation
+    this._keyTenants = new Map(); // keyId -> tenantId
   }
 
   /**
@@ -257,12 +266,15 @@ class ClusterKeyReconciliationEngine {
    * @param {number} epoch
    * @param {string|Buffer} keyMaterial
    */
-  registerKey(keyId, nodeId, epoch, keyMaterial) {
+  registerKey(keyId, nodeId, epoch, keyMaterial, tenantId = DEFAULT_TENANT) {
     this._validateNode(nodeId);
+    this._validateTenant(tenantId);
+    this._ensureKeyTenant(keyId, tenantId);
     const fingerprint = computeKeyFingerprint(keyMaterial);
     this._tracker.registerNodeKey(keyId, nodeId, epoch, fingerprint);
+    this._keyTenants.set(keyId, tenantId);
 
-    this._emitAudit('KEY_REGISTERED', { keyId, nodeId, epoch, fingerprint });
+    this._emitAudit('KEY_REGISTERED', { keyId, nodeId, epoch, fingerprint, tenantId });
   }
 
   /**
@@ -292,10 +304,12 @@ class ClusterKeyReconciliationEngine {
           this._nodeHealth.set(nodeId, NODE_HEALTH.DIVERGENT);
         }
 
+        const tenantId = this._keyTenants.get(keyId) || DEFAULT_TENANT;
         this._emitAudit('KEY_DIVERGENCE_DETECTED', {
           keyId,
           severity: report.severity,
           divergentCount: report.divergentNodes.length,
+          tenantId,
         });
       }
     }
@@ -307,7 +321,9 @@ class ClusterKeyReconciliationEngine {
    * @param {string} keyId
    * @param {number} targetEpoch
    */
-  beginReconciliation(keyId, targetEpoch) {
+  beginReconciliation(keyId, targetEpoch, tenantId = DEFAULT_TENANT) {
+    this._validateTenant(tenantId);
+    this._ensureKeyTenant(keyId, tenantId);
     const state = this._reconciliationStates.get(keyId);
     if (state !== RECONCILIATION_STATE.DIVERGENT) {
       throw new HsmAdapterError(
@@ -321,7 +337,7 @@ class ClusterKeyReconciliationEngine {
     if (targetEpoch < currentEpoch) {
       const attempts = (this._rollbackAttempts.get(keyId) || 0) + 1;
       this._rollbackAttempts.set(keyId, attempts);
-      this._emitAudit('KEY_EPOCH_ROLLBACK_BLOCKED', { keyId, targetEpoch, currentEpoch, attempts });
+      this._emitAudit('KEY_EPOCH_ROLLBACK_BLOCKED', { keyId, targetEpoch, currentEpoch, attempts, tenantId });
 
       if (attempts >= this.maxEpochRollbackAttempts) {
         this._transition(keyId, RECONCILIATION_STATE.QUARANTINED);
@@ -339,7 +355,7 @@ class ClusterKeyReconciliationEngine {
     this._transition(keyId, RECONCILIATION_STATE.RECONCILING);
     this._promotionVotes.set(keyId, new Map());
 
-    this._emitAudit('RECONCILIATION_STARTED', { keyId, targetEpoch, currentEpoch });
+    this._emitAudit('RECONCILIATION_STARTED', { keyId, targetEpoch, currentEpoch, tenantId });
     return { keyId, targetEpoch, state: RECONCILIATION_STATE.RECONCILING };
   }
 
@@ -349,8 +365,10 @@ class ClusterKeyReconciliationEngine {
    * @param {string} nodeId
    * @param {number} votedEpoch
    */
-  votePromotion(keyId, nodeId, votedEpoch) {
+  votePromotion(keyId, nodeId, votedEpoch, tenantId = DEFAULT_TENANT) {
     this._validateNode(nodeId);
+    this._validateTenant(tenantId);
+    this._ensureKeyTenant(keyId, tenantId);
 
     // Only healthy nodes can vote
     if (this._nodeHealth.get(nodeId) !== NODE_HEALTH.HEALTHY) {
@@ -374,7 +392,7 @@ class ClusterKeyReconciliationEngine {
     const votes = this._promotionVotes.get(keyId);
     votes.set(nodeId, votedEpoch);
 
-    this._emitAudit('PROMOTION_VOTED', { keyId, nodeId, votedEpoch, totalVotes: votes.size });
+    this._emitAudit('PROMOTION_VOTED', { keyId, nodeId, votedEpoch, totalVotes: votes.size, tenantId });
 
     // Check if quorum reached
     if (votes.size >= this.minQuorumNodes) {
@@ -407,7 +425,8 @@ class ClusterKeyReconciliationEngine {
       }
     }
 
-    this._emitAudit('KEY_PROMOTED', { keyId, newEpoch, quorumVotes: this._promotionVotes.get(keyId).size });
+    const tenantId = this._keyTenants.get(keyId) || DEFAULT_TENANT;
+    this._emitAudit('KEY_PROMOTED', { keyId, newEpoch, quorumVotes: this._promotionVotes.get(keyId).size, tenantId });
   }
 
   /**
@@ -424,7 +443,8 @@ class ClusterKeyReconciliationEngine {
       throw new HsmAdapterError('RECONCILIATION_ALREADY_QUARANTINED', `key ${keyId} already quarantined`);
     }
     this._transition(keyId, RECONCILIATION_STATE.QUARANTINED);
-    this._emitAudit('KEY_QUARANTINED', { keyId, reason });
+    const tenantId = this._keyTenants.get(keyId) || DEFAULT_TENANT;
+    this._emitAudit('KEY_QUARANTINED', { keyId, reason, tenantId });
     return { keyId, state: RECONCILIATION_STATE.QUARANTINED, reason };
   }
 
@@ -491,6 +511,38 @@ class ClusterKeyReconciliationEngine {
   _validateNode(nodeId) {
     if (!this.clusterNodes.has(nodeId)) {
       throw new HsmAdapterError('NODE_UNKNOWN', `node ${nodeId} not in cluster`);
+    }
+  }
+
+  /**
+   * Validate a tenant identifier.
+   * @param {string} tenantId
+   */
+  _validateTenant(tenantId) {
+    if (!isValidTenantId(tenantId)) {
+      incrementCounter('hsm_replication_tenant_isolation_violation_total');
+      incrementCounter('hsm_zk_tenant_isolation_violation_total');
+      throw new HsmAdapterError('INVALID_TENANT_ID', `invalid tenantId: ${tenantId}`);
+    }
+  }
+
+  /**
+   * Ensure an operation targets the same tenant as the key's registration.
+   * @param {string} keyId
+   * @param {string} tenantId
+   */
+  _ensureKeyTenant(keyId, tenantId) {
+    const stored = this._keyTenants.get(keyId);
+    if (stored === undefined) {
+      return;
+    }
+    try {
+      ensureSameTenant(stored, tenantId, { action: 'cross_tenant_reconciliation_rejected' });
+    } catch (err) {
+      throw new HsmAdapterError(
+        'CROSS_TENANT_KEY_RECONCILIATION',
+        err.message,
+      );
     }
   }
 

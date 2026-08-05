@@ -19,7 +19,12 @@
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
-const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const { incrementCounter } = require('./hsm-metrics.cjs');
+const {
+  ensureSameTenant,
+  isValidTenantId,
+  DEFAULT_TENANT,
+} = require('../replication-tenant-context.cjs');
 
 const DEFAULT_OPTIONS = {
   replicationFactor: 3,
@@ -61,10 +66,13 @@ class CrossEnclaveStateSync {
     this.conflictResolution = opts.conflictResolution;
     this._audit = opts.audit || null;
 
-    this._enclaves = new Map(); // enclaveId -> { id, status, capacity, load, lastHeartbeat }
-    this._shards = new Map(); // shardId -> { id, enclaveIds: Set, vectorClock: Map, state: Map, version }
+    this._enclaves = new Map(); // enclaveId -> { id, status, capacity, load, lastHeartbeat, tenantId }
+    this._shards = new Map(); // shardId -> { id, enclaveIds, vectorClock, state, version, tenantId }
     this._syncLog = []; // recent sync operations
     this._maxSyncLog = 100;
+
+    // Track 124: resident enclave tenant context
+    this._enclaveTenants = new Map(); // enclaveId -> tenantId
   }
 
   /**
@@ -77,6 +85,8 @@ class CrossEnclaveStateSync {
     if (!enclaveId || typeof enclaveId !== 'string') {
       throw new HsmAdapterError('INVALID_ENCLAVE', 'enclaveId must be a non-empty string');
     }
+    const tenantId = (meta && meta.tenantId) || DEFAULT_TENANT;
+    this._validateTenant(tenantId);
     if (this._enclaves.size >= this.maxEnclaves) {
       throw new HsmAdapterError('ENCLAVE_LIMIT_REACHED',
         `maximum ${this.maxEnclaves} enclaves reached`);
@@ -91,9 +101,11 @@ class CrossEnclaveStateSync {
       capacity: (meta && meta.capacity) || 1,
       load: 0,
       lastHeartbeat: Date.now(),
+      tenantId,
     });
+    this._enclaveTenants.set(enclaveId, tenantId);
     if (typeof this._audit === 'function') {
-      this._audit('ENCLAVE_REGISTERED', { enclaveId });
+      this._audit('ENCLAVE_REGISTERED', { enclaveId, tenantId });
     }
   }
 
@@ -156,10 +168,11 @@ class CrossEnclaveStateSync {
    * @param {string} shardId
    * @returns {object} Assignment result
    */
-  createShard(shardId) {
+  createShard(shardId, tenantId = DEFAULT_TENANT) {
     if (!shardId || typeof shardId !== 'string') {
       throw new HsmAdapterError('INVALID_SHARD', 'shardId must be a non-empty string');
     }
+    this._validateTenant(tenantId);
     if (this._shards.has(shardId)) {
       throw new HsmAdapterError('SHARD_ALREADY_EXISTS', `shard ${shardId} already exists`);
     }
@@ -174,15 +187,16 @@ class CrossEnclaveStateSync {
       vectorClock: new Map(), // enclaveId -> sequence
       state: new Map(), // key -> { value, timestamp, enclaveId }
       version: 0,
+      tenantId,
     };
     for (const eid of enclaveIds) {
       shard.vectorClock.set(eid, 0);
     }
     this._shards.set(shardId, shard);
     if (typeof this._audit === 'function') {
-      this._audit('SHARD_CREATED', { shardId, enclaveIds });
+      this._audit('SHARD_CREATED', { shardId, enclaveIds, tenantId });
     }
-    return { shardId, enclaveIds };
+    return { shardId, enclaveIds, tenantId };
   }
 
   /**
@@ -243,11 +257,14 @@ class CrossEnclaveStateSync {
    * @param {string} enclaveId - The enclave performing the write
    * @returns {object} Write result
    */
-  writeState(shardId, key, value, enclaveId) {
+  writeState(shardId, key, value, enclaveId, tenantId = DEFAULT_TENANT) {
     const shard = this._shards.get(shardId);
     if (!shard) {
       throw new HsmAdapterError('SHARD_NOT_FOUND', `shard ${shardId} not found`);
     }
+    this._validateTenant(tenantId);
+    this._ensureShardTenant(shardId, tenantId);
+    this._ensureEnclaveTenant(enclaveId, tenantId);
     if (!shard.enclaveIds.has(enclaveId)) {
       throw new HsmAdapterError('ENCLAVE_NOT_ASSIGNED',
         `enclave ${enclaveId} is not assigned to shard ${shardId}`);
@@ -302,11 +319,14 @@ class CrossEnclaveStateSync {
    * @param {object} remoteVectorClock - { enclaveId -> sequence }
    * @returns {object} Sync result
    */
-  syncState(shardId, sourceEnclaveId, remoteState, remoteVectorClock) {
+  syncState(shardId, sourceEnclaveId, remoteState, remoteVectorClock, tenantId = DEFAULT_TENANT) {
     const shard = this._shards.get(shardId);
     if (!shard) {
       throw new HsmAdapterError('SHARD_NOT_FOUND', `shard ${shardId} not found`);
     }
+    this._validateTenant(tenantId);
+    this._ensureShardTenant(shardId, tenantId);
+    this._ensureEnclaveTenant(sourceEnclaveId, tenantId);
     if (!shard.enclaveIds.has(sourceEnclaveId)) {
       throw new HsmAdapterError('ENCLAVE_NOT_ASSIGNED',
         `enclave ${sourceEnclaveId} is not assigned to shard ${shardId}`);
@@ -318,6 +338,7 @@ class CrossEnclaveStateSync {
       merged: 0,
       conflicts: 0,
       skipped: 0,
+      tenantId,
     };
     // Merge remote state
     for (const [key, remoteEntry] of Object.entries(remoteState || {})) {
@@ -482,7 +503,53 @@ class CrossEnclaveStateSync {
   reset() {
     this._enclaves.clear();
     this._shards.clear();
+    this._enclaveTenants.clear();
     this._syncLog = [];
+  }
+
+  /**
+   * Validate a tenant identifier.
+   * @param {string} tenantId
+   * @private
+   */
+  _validateTenant(tenantId) {
+    if (!isValidTenantId(tenantId)) {
+      incrementCounter('hsm_replication_tenant_isolation_violation_total');
+      incrementCounter('hsm_zk_tenant_isolation_violation_total');
+      throw new HsmAdapterError('INVALID_TENANT_ID', `invalid tenantId: ${tenantId}`);
+    }
+  }
+
+  /**
+   * Ensure shard operations stay within the shard's tenant boundary.
+   * @param {string} shardId
+   * @param {string} tenantId
+   * @private
+   */
+  _ensureShardTenant(shardId, tenantId) {
+    const shard = this._shards.get(shardId);
+    if (!shard) return;
+    try {
+      ensureSameTenant(shard.tenantId, tenantId, { action: 'cross_tenant_enclave_sync_rejected' });
+    } catch (err) {
+      throw new HsmAdapterError('CROSS_TENANT_ENCLAVE_SYNC', err.message);
+    }
+  }
+
+  /**
+   * Ensure enclave credentials align with the active resident tenant context.
+   * @param {string} enclaveId
+   * @param {string} tenantId
+   * @private
+   */
+  _ensureEnclaveTenant(enclaveId, tenantId) {
+    const resident = this._enclaveTenants.get(enclaveId);
+    if (resident === undefined) return;
+    try {
+      ensureSameTenant(resident, tenantId, { action: 'cross_tenant_enclave_sync_rejected' });
+    } catch (err) {
+      throw new HsmAdapterError('CROSS_TENANT_ENCLAVE_SYNC', err.message);
+    }
   }
 }
 
