@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - alertmanager/configmap-alertmanager.yml
+  - alertmanager/pvc-alertmanager.yml
+  - alertmanager/deployment.yml
+  - alertmanager/service.yml
+  - prometheus/configmap-prometheus.yml
+  - prometheus/configmap-rules.yml
+  - prometheus/pvc-prometheus.yml
+  - prometheus/serviceaccount.yml
+  - prometheus/clusterrole.yml
+  - prometheus/clusterrolebinding.yml
+  - prometheus/deployment.yml
+  - prometheus/service.yml
+  - node-exporter/serviceaccount.yml
+  - node-exporter/clusterrole.yml
+  - node-exporter/clusterrolebinding.yml
+  - node-exporter/daemonset.yml
+  - node-exporter/service.yml
+  - grafana/deployment.yml
+  - grafana/service.yml
+  - grafana/pvc-grafana.yml
+  - grafana/ingress.yml
+
+configMapGenerator:
+  - name: grafana-datasources-config
+    files:
+      - grafana/provisioning/datasources/ds-prometheus.yaml
+  - name: grafana-dashboards-config
+    files:
+      - grafana/provisioning/dashboards/dashboards.yaml
+  - name: grafana-telemetry-dashboard-config
+    files:
+      - grafana/dashboards/scan-telemetry-dashboard.json
+      - grafana/dashboards/v3.1.0-durability-dashboard.json

@@ -1,0 +1,488 @@
+{
+  "id": null,
+  "title": "v3.1.0 Upload Durability & Concurrency",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "15s",
+  "tags": ["v3.1.0", "track396", "track397", "durability"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Storage Durability & Transaction Integrity",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Atomic Chunk Write Rate (success vs failure)",
+      "gridPos": { "x": 0, "y": 1, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(hsm_track112_chunk_write_atomic_total[5m])",
+          "legendFormat": "success/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(hsm_track112_chunk_write_atomic_failed_total[5m])",
+          "legendFormat": "failed/s",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Atomic Commit Swaps & Rollbacks",
+      "gridPos": { "x": 12, "y": 1, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(hsm_track112_commit_atomic_total[5m])",
+          "legendFormat": "commits/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(hsm_track112_commit_atomic_rollback_total[5m])",
+          "legendFormat": "rollbacks/s",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "red", "value": 1 }
+        ]
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Commit Rollbacks (since restart)",
+      "gridPos": { "x": 0, "y": 9, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_commit_atomic_rollback_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Atomic Write Failures (since restart)",
+      "gridPos": { "x": 6, "y": 9, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_chunk_write_atomic_failed_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Upload Sessions Created (rate/s)",
+      "gridPos": { "x": 12, "y": 9, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(hsm_track112_upload_create_total[5m]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Upload Commits (rate/s)",
+      "gridPos": { "x": 18, "y": 9, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(hsm_track112_upload_commit_total[5m]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Streaming Recovery Operations",
+      "gridPos": { "x": 0, "y": 13, "w": 24, "h": 1 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Merkle Leaf Hashing Throughput",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(hsm_track112_merkle_leaf_hashed_total[5m])",
+          "legendFormat": "leaves/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Session Resume & Tree Rebuild Events",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(hsm_track112_session_resumed_total[5m])",
+          "legendFormat": "resumed/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(hsm_track112_merkle_tree_rebuild_total[5m])",
+          "legendFormat": "rebuilt/s",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "yellow", "value": 1 }
+        ]
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Session Resumptions (since restart)",
+      "gridPos": { "x": 0, "y": 22, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_session_resumed_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Tree Rebuilds (since restart)",
+      "gridPos": { "x": 8, "y": 22, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_merkle_tree_rebuild_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Merkle Leaves Hashed (since restart)",
+      "gridPos": { "x": 16, "y": 22, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_merkle_leaf_hashed_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Concurrency Pool & Ingest Saturation",
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 1 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Worker Task Duration (p95 / p99)",
+      "gridPos": { "x": 0, "y": 27, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(hsm_track112_worker_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(hsm_track112_worker_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "yellow", "value": 500 },
+          { "color": "red", "value": 1000 }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Upload Endpoint Latency (p95 / p99)",
+      "gridPos": { "x": 12, "y": 27, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(hsm_track112_upload_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(hsm_track112_upload_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "yellow", "value": 1000 },
+          { "color": "red", "value": 5000 }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Ingest Backpressure & Worker Rejection Rate",
+      "gridPos": { "x": 0, "y": 35, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(hsm_track112_ingest_backpressure_total[5m])",
+          "legendFormat": "backpressure/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(hsm_track112_worker_rejected_total[5m])",
+          "legendFormat": "rejected/s",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "yellow", "value": 1 },
+          { "color": "red", "value": 10 }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Worker Tasks Completed Rate",
+      "gridPos": { "x": 12, "y": 35, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(hsm_track112_worker_task_done_total[5m])",
+          "legendFormat": "tasks/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null }
+        ]
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Backpressure Events (since restart)",
+      "gridPos": { "x": 0, "y": 43, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_ingest_backpressure_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Worker Rejections (since restart)",
+      "gridPos": { "x": 8, "y": 43, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_worker_rejected_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Worker Tasks Done (since restart)",
+      "gridPos": { "x": 16, "y": 43, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(hsm_track112_worker_task_done_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      }
+    }
+  ]
+}

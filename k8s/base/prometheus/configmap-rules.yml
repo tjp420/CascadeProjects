@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  scan-resource-guard-rules.yml: |
+    groups:
+      - name: simplebeacon-scan-rules
+        rules:
+          - alert: SimpleBeaconScanResourcePressure
+            expr: |
+              (
+                node_memory_MemAvailable_bytes < 536870912
+              ) or (
+                (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 5
+              )
+            for: 1m
+            labels:
+              severity: critical
+              service: simplebeacon-scan
+            annotations:
+              summary: "SimpleBeacon scan runner experiencing low memory"
+              description: |
+                The host running SimpleBeacon scans has low available memory.
+                Available bytes: {{ $value }}.
+                This alert fires when available memory is below 512MiB or less than 5% of total memory.
+                Recommended actions: pause or cancel any running full-directory scans, increase host memory, or set SIMPLEBEACON_FULL_SCAN_MAX_FILES to a positive integer.
+              runbook: "https://example.com/runbooks/simplebeacon-scan-resource-guard"
+  track396-durability-rules.yml: |
+    groups:
+      - name: track396-upload-durability
+        rules:
+          - alert: Track396CommitRollbackDetected
+            expr: increase(hsm_track112_commit_atomic_rollback_total[5m]) > 0
+            for: 0m
+            labels:
+              severity: critical
+              service: ai-platform-upload
+              track: "396"
+            annotations:
+              summary: "Upload commit atomic rollback detected"
+              description: "Commit directory swap rolled back {{ $value }} time(s) in the last 5m. Filesystem rename failures may indicate disk pressure or cross-device links."
+              runbook: "https://example.com/runbooks/track396-commit-rollback"
+          - alert: Track396AtomicWriteFailureRate
+            expr: rate(hsm_track112_chunk_write_atomic_failed_total[5m]) / (rate(hsm_track112_chunk_write_atomic_total[5m]) + rate(hsm_track112_chunk_write_atomic_failed_total[5m]) + 1) > 0.05
+            for: 10m
+            labels:
+              severity: warning
+              service: ai-platform-upload
+              track: "396"
+            annotations:
+              summary: "Atomic chunk write failure rate > 5%"
+              description: "More than 5% of atomic chunk writes are failing over a 10m window. Check disk space and filesystem health."
+              runbook: "https://example.com/runbooks/track396-atomic-write-failures"
+          - alert: Track396SessionResumeSpike
+            expr: increase(hsm_track112_session_resumed_total[15m]) > 5
+            for: 0m
+            labels:
+              severity: warning
+              service: ai-platform-upload
+              track: "396"
+            annotations:
+              summary: "High session resumption rate"
+              description: "{{ $value }} sessions resumed from checkpoint in 15m. This may indicate frequent crashes or pod restarts."
+              runbook: "https://example.com/runbooks/track396-session-resume-spike"
+          - alert: Track396IngestBackpressureSustained
+            expr: rate(hsm_track112_ingest_backpressure_total[5m]) > 1
+            for: 5m
+            labels:
+              severity: warning
+              service: ai-platform-upload
+              track: "397"
+            annotations:
+              summary: "Sustained ingest queue backpressure"
+              description: "Ingest queue backpressure events exceeding 1/s for 5m. Worker pool may be undersized or tasks are blocking."
+              runbook: "https://example.com/runbooks/track397-backpressure"
+          - alert: Track396WorkerRejectionSustained
+            expr: rate(hsm_track112_worker_rejected_total[5m]) > 0.5
+            for: 5m
+            labels:
+              severity: warning
+              service: ai-platform-upload
+              track: "397"
+            annotations:
+              summary: "Sustained worker pool rejections"
+              description: "Worker pool rejecting tasks at > 0.5/s for 5m. Queue is full — increase concurrency or queue size."
+              runbook: "https://example.com/runbooks/track397-worker-rejections"
