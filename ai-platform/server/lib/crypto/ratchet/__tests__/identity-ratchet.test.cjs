@@ -58,6 +58,36 @@ describe('IdentityRatchet (Track 113)', () => {
     assert.strictEqual(ratchet.publicKey.length > 0, true);
   });
 
+  it('emits QUANTUM_ROTATE_PENDING and rotates at message threshold', async () => {
+    const events = [];
+    const audit = (event, info) => events.push({ event, info });
+    const alice = await new IdentityRatchet({ deviceId: 'alice', audit, rotation: { maxMessages: 10, warningRatio: 0.8 } }).generate();
+    const bob = await new IdentityRatchet({ deviceId: 'bob', audit, rotation: { maxMessages: 10, warningRatio: 0.8 } }).generate();
+    await alice.encapsulateFor(bob.publicKey);
+
+    const keys = [];
+    for (let i = 0; i < 12; i++) {
+      keys.push(alice.step().toString('hex'));
+    }
+
+    assert.ok(events.some(e => e.event === 'QUANTUM_ROTATE_PENDING'), 'pending warning emitted');
+    assert.ok(events.some(e => e.event === 'IDENTITY_RATCHET_ROTATED'), 'rotation completed');
+    assert.strictEqual(keys.length, 12);
+    // After rotation, message keys should be distinct from pre-rotation
+    assert.notStrictEqual(keys[9], keys[10], 'rotation changes key stream');
+  });
+
+  it('rotateNow() produces a new chain key', async () => {
+    const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
+    const bob = await new IdentityRatchet({ deviceId: 'bob' }).generate();
+    await alice.encapsulateFor(bob.publicKey);
+    const before = alice.getChainKey();
+    const result = alice.rotateNow();
+    const after = alice.getChainKey();
+    assert.notStrictEqual(before, after);
+    assert.ok(result.rotationEpoch > 0);
+  });
+
   it('throws on unknown public key version', () => {
     assert.throws(() => deserializePublicKey(Buffer.from([0xff])), HybridBootstrapError);
   });

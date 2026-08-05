@@ -12,7 +12,8 @@
 
 const crypto = require('node:crypto');
 const bootstrap = require('./hybrid-bootstrap.cjs');
-const { initializeFromShared, kdfChain } = require('./index.cjs');
+const { initializeFromShared, kdfRoot, kdfChain } = require('./index.cjs');
+const { RotationScheduler } = require('./rotation-scheduler.cjs');
 
 class IdentityRatchet {
   /**
@@ -32,6 +33,9 @@ class IdentityRatchet {
     this._root = null;
     this._ck = null;
     this._mkIndex = 0;
+    this._rotationEpoch = 0;
+    this._scheduler = new RotationScheduler(options.rotation || {});
+    this._wireScheduler();
   }
 
   /**
@@ -50,6 +54,16 @@ class IdentityRatchet {
     return this;
   }
 
+  _wireScheduler() {
+    this._scheduler.on('QUANTUM_ROTATE_PENDING', (info) => {
+      this._emitAudit('QUANTUM_ROTATE_PENDING', { deviceId: this.deviceId, ...info });
+    });
+    this._scheduler.on('QUANTUM_ROTATE_REQUIRED', (info) => {
+      this._emitAudit('QUANTUM_ROTATE_REQUIRED', { deviceId: this.deviceId, ...info });
+      try { this.rotateNow(); } catch {}
+    });
+  }
+
   /**
    * Initialize the root/chain from a shared secret.
    * @param {Buffer} sharedSecret
@@ -60,6 +74,9 @@ class IdentityRatchet {
     this._root = root;
     this._ck = ck;
     this._mkIndex = 0;
+    this._rotationEpoch = 0;
+    this._scheduler.reset();
+    this._scheduler.start();
   }
 
   /**
@@ -70,10 +87,44 @@ class IdentityRatchet {
     if (!this._ck) {
       throw new Error('IDENTITY_RATCHET_NOT_INITIALIZED');
     }
+    this._scheduler.recordStep();
     const { messageKey, nextCk } = kdfChain(this._ck);
     this._ck = nextCk;
     this._mkIndex += 1;
     return messageKey;
+  }
+
+  /**
+   * Rotate the root/chain key deterministically.
+   * @returns {{chainKey: string, rotationEpoch: number}}
+   */
+  rotateNow() {
+    if (!this._ck) {
+      throw new Error('IDENTITY_RATCHET_NOT_INITIALIZED');
+    }
+    this._rotationEpoch += 1;
+    const dhOut = crypto.createHmac('sha256', this._root)
+      .update(Buffer.from('track113-rotation'))
+      .update(Buffer.from([this._rotationEpoch]))
+      .digest();
+    const { root, ck } = kdfRoot(this._root, dhOut);
+    this._root = root;
+    this._ck = ck;
+    this._mkIndex = 0;
+    this._scheduler.reset();
+    this._emitAudit('IDENTITY_RATCHET_ROTATED', {
+      deviceId: this.deviceId,
+      rotationEpoch: this._rotationEpoch,
+      chainKeyHash: crypto.createHash('sha256').update(this._ck).digest('hex'),
+    });
+    return { chainKey: this._ck.toString('hex'), rotationEpoch: this._rotationEpoch };
+  }
+
+  /**
+   * Clean up the scheduler.
+   */
+  close() {
+    this._scheduler.close();
   }
 
   /**

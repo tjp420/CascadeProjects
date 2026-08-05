@@ -1,28 +1,27 @@
-# Test Plan: Track 113 — Hybrid KEM + Ed25519 Identity Ratchet Bootstrap
+# Test Plan: Track 113 — Rotation Scheduler for Hybrid Identity Ratchet
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Hybrid ML-KEM-768 + X25519/Ed25519 identity ratchet bootstrap with fail-closed PQC policy. |
+| Feature / change | In-memory rotation scheduler: message count + time thresholds, pre-rotation warning, and explicit `QUANTUM_ROTATE_PENDING` event. |
 | Author (Builder) | Devin |
 | Date | 2026-08-05 |
 | Branch | feat/track113-pqc-ratchet-migration |
-| Packages touched | ai-platform/server/lib/hsm-adapter, ai-platform/server/lib/crypto/ratchet |
+| Packages touched | ai-platform/server/lib/crypto/ratchet |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/hsm-adapter/pqc-identity-ratchet.cjs`
-- `ai-platform/server/lib/hsm-adapter/__tests__/identity-ratchet.test.cjs`
-- `ai-platform/server/lib/crypto/ratchet/identity-ratchet.cjs` (new)
-- `ai-platform/server/lib/crypto/ratchet/hybrid-bootstrap.cjs` (new)
+- `ai-platform/server/lib/crypto/ratchet/identity-ratchet.cjs`
+- `ai-platform/server/lib/crypto/ratchet/__tests__/identity-ratchet.test.cjs`
 
 ### Out of scope
 
+- Shared-state / Redis epoch coordination
 - UI/IDE surfaces
-- New npm dependencies (uses existing `mlkem` and Node `crypto`)
+- New npm dependencies
 
 ---
 
@@ -30,7 +29,7 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on changed/new CJS | `node -c` on each changed file | [ ] |
+| L1-01 | Syntax on changed CJS | `node -c` on changed files | [ ] |
 | L1-02 | Identity ratchet tests | `npx jest identity-ratchet` | [ ] |
 | L1-03 | No secrets in diff | manual review | [ ] |
 
@@ -38,27 +37,26 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Keypair generation | Call `HybridIdentityRatchet.generate()` | Returns versioned hybrid public key with both X25519/Ed25519 and ML-KEM-768 components | [ ] |
-| L2-02 | Encapsulate/decapsulate | `encapsulate(hybridPublicKey)` then `decapsulate(...)` using `secretKey` | Shared secrets match | [ ] |
-| L2-03 | Sign/verify handshake | Sign handshake transcript with Ed25519 and verify with public key | Verification passes; wrong key fails | [ ] |
-| L2-04 | ML-KEM failure fail-closed | Force `mlkem.keygen()` to throw | Bootstrap throws `PQC_BOOTSTRAP_FAILED` and emits SIEM CRITICAL | [ ] |
-| L2-05 | Serialization roundtrip | `serializeHybridPublicKey` / `deserializeHybridPublicKey` | Output equals input; version and offsets preserved | [ ] |
+| L2-01 | Message-count rotation | Step the ratchet `maxMessages` times | A `QUANTUM_ROTATE_REQUIRED` event fires and the chain is re-initialized | [ ] |
+| L2-02 | Time-based rotation | Wait `maxDurationMs` (use stub clock) | Rotation fires after threshold | [ ] |
+| L2-03 | Pre-rotation warning | Step to 80% of `maxMessages` | `QUANTUM_ROTATE_PENDING` fires once | [ ] |
+| L2-04 | No double warning | Continue stepping | `QUANTUM_ROTATE_PENDING` emitted only once | [ ] |
+| L2-05 | Manual rotation | Call `rotateNow()` | New chain key is generated and `IDENTITY_RATCHET_ROTATED` fired | [ ] |
 
 ## Level 3 — Edge cases & reflection
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Unknown version byte | Deserialize with version `0xFF` | Throws `UNSUPPORTED_HYBRID_KEY_VERSION` | [ ] |
-| L3-02 | Truncated key buffer | Deserialize truncated buffer | Throws `INVALID_HYBRID_KEY_LAYOUT` | [ ] |
-| L3-03 | Mixed security domains | Ed25519 signature from different identity | Reject with `SIGNATURE_INVALID` | [ ] |
+| L3-01 | Rotation before initialization | Call `rotateNow()` without `encapsulate/decapsulate` | Throws `IDENTITY_RATCHET_NOT_INITIALIZED` | [ ] |
+| L3-02 | Warning threshold not triggered | Step only to 79% | No pending warning | [ ] |
+| L3-03 | Timer cleanup | Call `close()` | Pending timeouts cleared | [ ] |
 
 ## Security
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No raw private keys logged or serialized in plaintext | [ ] |
-| S-02 | PQC failure fails closed (no classical-only fallback) | [ ] |
-| S-03 | Shared secrets derived with HKDF-SHA384 over both KEM outputs | [ ] |
+| S-01 | No raw private keys logged on rotation | [ ] |
+| S-02 | Rotation does not reuse previous chain key | [ ] |
 
 ## Approval
 
