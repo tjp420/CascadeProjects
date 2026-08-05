@@ -21,7 +21,7 @@ describe('session-token-replicator', () => {
     replicator.setBroadcast(() => {});
     await replicator.issueToken({ tokenHash: 'hash-a', accountId: 'acc-1', tenantId: 'tenant-delta', expiresAt: new Date(Date.now() + 3600000).toISOString() });
     await replicator.issueToken({ tokenHash: 'hash-b', accountId: 'acc-1', tenantId: 'tenant-delta', expiresAt: new Date(Date.now() + 3600000).toISOString() });
-    const delta = replicator.buildStateDelta('tenant-delta', 0);
+    const delta = await replicator.buildStateDelta('tenant-delta', 0);
     assert.ok(delta.length >= 2);
     assert.ok(delta.every((t) => (t.token_sequence || 0) > 0));
   });
@@ -74,11 +74,11 @@ describe('session-token-replicator', () => {
     assert.strictEqual(Array.isArray(result.results), true);
   });
 
-  it('broadcasts a state response when handling SESSION_STATE_REQUEST', () => {
+  it('broadcasts a state response when handling SESSION_STATE_REQUEST', async () => {
     const calls = [];
     replicator.setBroadcast((msg) => calls.push(msg));
     const socket = makeSocket('tenant-1');
-    replicator.handleSessionTokenMessage({
+    await replicator.handleSessionTokenMessage({
       type: 'SESSION_STATE_REQUEST',
       from: 'node-2',
       tenantId: 'tenant-1',

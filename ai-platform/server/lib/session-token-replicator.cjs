@@ -13,7 +13,7 @@
  *   - Delta-only responses for state sync.
  */
 
-const tokenDb = require('./token-db.cjs');
+const tokenStore = require('./token-store-adapter.cjs');
 
 const DEFAULT_TENANT = 'default';
 const NODE_ID = process.env.NODE_ID || 'node-1';
@@ -55,7 +55,9 @@ function _validateTenant(msg, socket) {
 async function issueToken({ tokenHash, accountId, tenantId, expiresAt }) {
   if (!_broadcast) return { accepted: false, reason: 'broadcast_unavailable' };
   const t = _getTenant(tenantId);
-  const seq = _nextSequence(t);
+  const store = await tokenStore.getStore();
+  let seq = typeof store.nextSequence === 'function' ? (await store.nextSequence(t)) : null;
+  if (seq === null || seq === undefined) seq = _nextSequence(t);
 
   const frame = {
     type: 'SESSION_TOKEN_ISSUE',
@@ -68,7 +70,8 @@ async function issueToken({ tokenHash, accountId, tenantId, expiresAt }) {
     expiresAt,
   };
 
-  await tokenDb.syncSessionToken({
+  await store.syncSessionToken({
+    id: tokenHash,
     token_hash: tokenHash,
     account_id: accountId,
     tenant_id: t,
@@ -88,7 +91,9 @@ async function issueToken({ tokenHash, accountId, tenantId, expiresAt }) {
 async function revokeToken({ tokenHash, tenantId }) {
   if (!_broadcast) return { accepted: false, reason: 'broadcast_unavailable' };
   const t = _getTenant(tenantId);
-  const seq = _nextSequence(t);
+  const store = await tokenStore.getStore();
+  let seq = typeof store.nextSequence === 'function' ? (await store.nextSequence(t)) : null;
+  if (seq === null || seq === undefined) seq = _nextSequence(t);
 
   const frame = {
     type: 'SESSION_TOKEN_REVOKE',
@@ -99,7 +104,8 @@ async function revokeToken({ tokenHash, tenantId }) {
     tokenSequence: seq,
   };
 
-  await tokenDb.syncSessionToken({
+  await store.syncSessionToken({
+    id: tokenHash,
     token_hash: tokenHash,
     tenant_id: t,
     token_sequence: seq,
@@ -130,9 +136,10 @@ function requestStateSync({ lastKnownSequence = 0, tenantId } = {}) {
 /**
  * Build a delta of tokens greater than lastKnownSequence for a tenant.
  */
-function buildStateDelta(tenantId, lastKnownSequence) {
+async function buildStateDelta(tenantId, lastKnownSequence) {
   const t = _getTenant(tenantId);
-  const tokens = tokenDb.findSessionTokensByTenant(t);
+  const store = await tokenStore.getStore();
+  const tokens = await store.findSessionTokensByTenant(t);
   return tokens.filter((tok) => (tok.token_sequence || 0) > lastKnownSequence);
 }
 
@@ -148,11 +155,13 @@ async function handleSessionTokenMessage(msg, socket) {
   }
 
   const tenantId = _getTenant(msg.tenantId);
+  const store = await tokenStore.getStore();
 
   switch (msg.type) {
     case 'SESSION_TOKEN_ISSUE': {
       _setSequence(tenantId, msg.tokenSequence);
-      return tokenDb.syncSessionToken({
+      return store.syncSessionToken({
+        id: msg.tokenHash,
         token_hash: msg.tokenHash,
         account_id: msg.accountId,
         tenant_id: tenantId,
@@ -164,7 +173,8 @@ async function handleSessionTokenMessage(msg, socket) {
     }
     case 'SESSION_TOKEN_REVOKE': {
       _setSequence(tenantId, msg.tokenSequence);
-      return tokenDb.syncSessionToken({
+      return store.syncSessionToken({
+        id: msg.tokenHash,
         token_hash: msg.tokenHash,
         tenant_id: tenantId,
         token_sequence: msg.tokenSequence,
@@ -173,7 +183,7 @@ async function handleSessionTokenMessage(msg, socket) {
       });
     }
     case 'SESSION_STATE_REQUEST': {
-      const delta = buildStateDelta(tenantId, msg.lastKnownSequence || 0);
+      const delta = await buildStateDelta(tenantId, msg.lastKnownSequence || 0);
       const response = {
         type: 'SESSION_STATE_RESPONSE',
         from: NODE_ID,
@@ -192,7 +202,7 @@ async function handleSessionTokenMessage(msg, socket) {
       for (const t of tokens) {
         try {
           _setSequence(tenantId, t.token_sequence);
-          results.push(await tokenDb.syncSessionToken(t));
+          results.push(await store.syncSessionToken(t));
         } catch (err) {
           rejected += 1;
           results.push({ accepted: false, reason: err.message });
