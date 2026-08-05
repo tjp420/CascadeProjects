@@ -349,3 +349,17 @@ restart-simplebeacon-server.bat
 stop-all-servers.bat
 launch-website.bat
 node_modules
+
+# Repository health cleanup (Track 397 follow-up)
+.tmp-commit-*.txt
+.tmp-*.cjs
+tmp_*
+tmp-*
+*.err
+headers*.txt
+cli-scan-test.txt
+main_js.txt
+pr-302-body.txt
+test-output*.txt
+test-tokens.txt
+vsix-dirs*.txt

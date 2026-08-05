@@ -1,4 +1,0 @@
-.vsix-check-temp
-.vsix-rebuild-all
-.vsix-team-verify2
-.vsix-team-verify3
