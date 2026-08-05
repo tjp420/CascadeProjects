@@ -39,8 +39,28 @@ try {
 const { generateToken, optionalAuthenticate } = require('../middleware/auth.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { toClientError } = require('../../shared-utils/index.cjs');
+const sessionReplicator = require('../lib/session-token-replicator.cjs');
 
 const router = express.Router();
+
+function resolveTenantId(req) {
+    return (req.user && req.user.tenantId) ||
+        (req.headers && req.headers['x-tenant-id']) ||
+        process.env.DEFAULT_TENANT ||
+        'default';
+}
+
+function replicateSessionIssue(tokenHash, accountId, tenantId, expiresAt) {
+    sessionReplicator.issueToken({ tokenHash, accountId, tenantId, expiresAt }).catch((err) => {
+        logger.warn('Session token replication issue failed', { error: err.message, tokenHash });
+    });
+}
+
+function replicateSessionRevoke(tokenHash, tenantId) {
+    sessionReplicator.revokeToken({ tokenHash, tenantId }).catch((err) => {
+        logger.warn('Session token replication revoke failed', { error: err.message, tokenHash });
+    });
+}
 
 // Redis client for token blocklist (instantiated at server startup)
 let redisClient = null;
@@ -284,16 +304,25 @@ router.post('/device-verify', async (req, res) => {
         // Issue Session Token
         const sessionTokenId = crypto.randomUUID();
         const sessionExpires = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000);
+        const tenantId = resolveTenantId(req);
         await db.insertSessionToken({
             id: sessionTokenId,
+            account_id: account.id,
+            token_hash: sessionTokenId,
+            tenant_id: tenantId,
             access_token_jti: accessTokenJti,
             device_key_id,
             scope: 'read',
             ip_address: req.ip,
             user_agent: req.headers['user-agent'],
+            token_sequence: 0,
+            epoch: 0,
             issued_at: now.toISOString(),
             expires_at: sessionExpires.toISOString()
         });
+
+        // Replicate session token to cluster (non-blocking)
+        replicateSessionIssue(sessionTokenId, account.id, tenantId, sessionExpires.toISOString());
 
         // Issue Refresh Token (opaque)
         const refreshToken = generateOpaqueToken();
@@ -570,6 +599,8 @@ router.post('/refresh', async (req, res) => {
         if (session) {
             await blocklistJti(session.access_token_jti, session.expires_at, 'refresh_rotation');
             await db.revokeSessionToken(session.id, 'refresh_rotation');
+            const oldTenant = session.tenant_id || resolveTenantId(req);
+            replicateSessionRevoke(session.token_hash || session.id, oldTenant);
         }
 
         const account = await db.getAccount(refreshRecord.account_id);
@@ -603,16 +634,23 @@ router.post('/refresh', async (req, res) => {
         // Issue new Session Token
         const newSessionId = crypto.randomUUID();
         const sessionExpires = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000);
+        const newTenant = resolveTenantId(req);
         await db.insertSessionToken({
             id: newSessionId,
             account_id: account.id,
+            token_hash: newSessionId,
+            tenant_id: newTenant,
             access_token_jti: newAccessTokenJti,
             scope: 'read',
             ip_address: req.ip,
             user_agent: req.headers['user-agent'],
+            token_sequence: 0,
+            epoch: 0,
             issued_at: now.toISOString(),
             expires_at: sessionExpires.toISOString()
         });
+
+        replicateSessionIssue(newSessionId, account.id, newTenant, sessionExpires.toISOString());
 
         // Issue new Refresh Token
         const newRefreshToken = generateOpaqueToken();
@@ -663,6 +701,7 @@ router.post('/logout', optionalAuthenticate, async (req, res) => {
 
         // Revoke session
         await db.revokeSessionToken(session.id, 'logout');
+        replicateSessionRevoke(session.token_hash || session.id, session.tenant_id || resolveTenantId(req));
 
         // Blocklist Access Token
         await blocklistJti(session.access_token_jti, session.expires_at, 'logout');
