@@ -2524,4 +2524,75 @@ router.get('/cluster-key-reconciliation/telemetry', authorize('admin:all'), func
   }
 });
 
+// GET /api/vault/multiparty-re-keying/policy — expose active Track 121 policy defaults
+router.get('/multiparty-re-keying/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.multipartyReKeying,
+    });
+  } catch (err) {
+    sendError(res, 500, 'multiparty_rekeying_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/multiparty-re-keying/policy/validate — validate a proposed Track 121 configuration
+router.post('/multiparty-re-keying/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    // sanitize incoming config: coerce numeric strings, normalize booleans
+    const sanitized = { ...config };
+    const numericFields = ['minQuorumNodes', 'maxReKeyingEpochs', 'maxShareholders'];
+    for (const f of numericFields) {
+      if (sanitized[f] !== undefined && typeof sanitized[f] === 'string') {
+        const n = Number(sanitized[f]);
+        if (!Number.isNaN(n) && Number.isFinite(n)) sanitized[f] = Math.trunc(n);
+      }
+    }
+    const booleanFields = ['requireQuorumCommit', 'requireAntiRollback', 'requireShareZeroization', 'allowThresholdAdjustment'];
+    for (const f of booleanFields) {
+      if (sanitized[f] !== undefined && typeof sanitized[f] === 'string') {
+        const v = sanitized[f].toLowerCase();
+        if (v === 'true' || v === 'false') sanitized[f] = v === 'true';
+      }
+    }
+
+    engine.validate(tenantId, 'multipartyReKeying', sanitized);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'multiparty_rekeying_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/multiparty-re-keying/telemetry — expose Track 121 telemetry counters
+router.get('/multiparty-re-keying/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_rekey_proposed_total: allMetrics.hsm_rekey_proposed_total || 0,
+      hsm_rekey_resharing_submitted_total: allMetrics.hsm_rekey_resharing_submitted_total || 0,
+      hsm_rekey_verified_total: allMetrics.hsm_rekey_verified_total || 0,
+      hsm_rekey_committed_total: allMetrics.hsm_rekey_committed_total || 0,
+      hsm_rekey_aborted_total: allMetrics.hsm_rekey_aborted_total || 0,
+      hsm_rekey_rollback_blocked_total: allMetrics.hsm_rekey_rollback_blocked_total || 0,
+      hsm_rekey_active: allMetrics.hsm_rekey_active || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'multiparty_rekeying_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

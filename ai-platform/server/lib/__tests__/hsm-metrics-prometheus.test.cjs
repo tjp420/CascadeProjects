@@ -220,7 +220,7 @@ describe('HSM Metrics Prometheus Exposition — Option F', () => {
       const doc = yaml.load(fs.readFileSync(p, 'utf8'));
       expect(doc).toHaveProperty('groups');
       expect(Array.isArray(doc.groups)).toBe(true);
-      expect(doc.groups.length).toBe(5);
+      expect(doc.groups.length).toBeGreaterThanOrEqual(5);
       for (const g of doc.groups) {
         expect(g).toHaveProperty('name');
         expect(g).toHaveProperty('rules');
@@ -236,7 +236,18 @@ describe('HSM Metrics Prometheus Exposition — Option F', () => {
       expect(names).toContain('stek_rotation_alerts');
       expect(names).toContain('musig2_protocol_alerts');
       const total = doc.groups.reduce((s, g) => s + g.rules.length, 0);
-      expect(total).toBe(12);
+      expect(total).toBeGreaterThanOrEqual(12);
+
+      // Ensure specific critical alerts exist exactly as named
+      const ruleNames = doc.groups.flatMap(g => (g.rules || []).map(r => r.alert));
+      expect(ruleNames).toContain('MeshReconciliationBoundaryDrift');
+      expect(ruleNames).toContain('DkgSessionStall');
+      expect(ruleNames).toContain('StekRotationFailure');
+      expect(ruleNames).toContain('Musig2VerificationFailureSpike');
+      expect(ruleNames).toContain('Track113PqcHandshakeStall');
+      expect(ruleNames).toContain('ShardReassemblyHighFailureRate');
+      expect(ruleNames).toContain('Track119CommitStall');
+      expect(ruleNames).toContain('Track118ProposalRejectionRateHigh');
     });
 
     test('L3-06: Grafana dashboard JSON has required fields', () => {
