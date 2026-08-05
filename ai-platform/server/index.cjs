@@ -113,7 +113,7 @@ if (process.env.NODE_ENV !== 'test') {
   initializeAudit().catch(err => logger.error('Audit init failed:', err));
 }
 
-// HTTPS redirect for production ΓÇö respect health checks and local development
+// HTTPS redirect for production ╬ô├ç├╢ respect health checks and local development
 app.use((req, res, next) => {
   const isLocalhost = /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i.test(req.hostname);
   const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
@@ -140,7 +140,7 @@ app.use(ipProtection);
 // Rate limiting with trust-level awareness
 // Base rate limit for general API routes (raised for dashboard dev mode)
 app.use('/api/', createRateLimiter({
-  max: constants.MAX_RATE_LIMIT // Base rate limit ΓÇö dashboard fires many concurrent requests on load
+  max: constants.MAX_RATE_LIMIT // Base rate limit ╬ô├ç├╢ dashboard fires many concurrent requests on load
 }));
 
 // Higher rate limit for analyze endpoints (complete scan makes sequential requests)
@@ -231,7 +231,7 @@ app.use((req, res, next) => {
 // Billing webhook must use raw body before JSON parser
 setupSimplebeaconBillingWebhook(app);
 
-// Whitelabel sub-domain routing ΓÇö resolve partner brand from hostname
+// Whitelabel sub-domain routing ╬ô├ç├╢ resolve partner brand from hostname
 // Mounted before dashboard routes so req.brand is available for HTML injection
 app.use(whitelabelMiddleware);
 
@@ -388,7 +388,7 @@ async function sendSimplebeaconDashboard(res) {
   return res.send(html);
 }
 
-// Public storefront ΓÇö same paywall as simplebeacon.ai (coming-soon/public/)
+// Public storefront ╬ô├ç├╢ same paywall as simplebeacon.ai (coming-soon/public/)
 // When internalDashboard is enabled, serve the dashboard instead of the landing page
 app.get('/', createRateLimiter({ max: 300 }), (req, res) => {
   if (internalDashboard) {
@@ -462,7 +462,7 @@ app.use((req, res, next) => {
 
 // Development-only: simple stub endpoints to facilitate local UI testing
 if (process.env.SIMPLEBEACON_DEV_STUBS === 'true') {
-  logger.info('[DevStubs] SIMPLEBEACON_DEV_STUBS=true ΓÇö registering dev-only auth stubs');
+  logger.info('[DevStubs] SIMPLEBEACON_DEV_STUBS=true ╬ô├ç├╢ registering dev-only auth stubs');
   app.post('/api/auth/token-status', express.json(), (req, res) => {
     const { token } = req.body || {};
     if (!token) return res.status(400).json({ error: 'Token required' });
@@ -515,7 +515,7 @@ app.use((req, res, next) => {
   return res.redirect(302, '/');
 });
 
-// Private dashboard ΓÇö unlocks vault session, then opens the marketing sample report
+// Private dashboard ╬ô├ç├╢ unlocks vault session, then opens the marketing sample report
 app.get('/private-dashboard-vault', async (req, res) => {
   try {
     const vaultPassword = process.env.DASHBOARD_VAULT_PASSWORD;
@@ -529,7 +529,7 @@ app.get('/private-dashboard-vault', async (req, res) => {
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
       return res.sendFile(samplePath);
     } catch {
-      return res.status(404).send('sample-report.html not found ΓÇö run: cd ai-platform && npm run build:sample-report');
+      return res.status(404).send('sample-report.html not found ╬ô├ç├╢ run: cd ai-platform && npm run build:sample-report');
     }
   } catch (err) {
     logger.error('[private-dashboard-vault] error:', err.message);
@@ -559,7 +559,7 @@ app.get(['/public/dashboard', '/public/dashboard/', '/public/dashboard/index.htm
   res.send(html);
 });
 
-// Storefront static assets ΓÇö serve marketing site from landing root (coming-soon/public/)
+// Storefront static assets ╬ô├ç├╢ serve marketing site from landing root (coming-soon/public/)
 app.use('/', express.static(landingRoot, { index: false }));
 
 // Prevent browser caching of dashboard HTML/JS so updated client code always loads
@@ -575,7 +575,7 @@ app.use((req, res, next) => {
 
 // Dashboard-specific asset routes (serve from web/simplebeacon-dashboard/)
 const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
-// JS module directories ΓÇö disable etag to prevent Firefox from reusing stale cached versions
+// JS module directories ╬ô├ç├╢ disable etag to prevent Firefox from reusing stale cached versions
 const noStoreStatic = (dir) => express.static(dir, {
   etag: false,
   setHeaders: (res, path) => {
@@ -604,7 +604,7 @@ for (const p of ['/dashboard/css', '/dashboard/images', '/dashboard/fonts']) {
 app.use('/dashboard/assets', noStoreStatic(path.join(dashDir, 'assets')));
 app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')));
 
-// Dashboard static asset fallback ΓÇö also check coming-soon/public/dashboard for vendor files
+// Dashboard static asset fallback ╬ô├ç├╢ also check coming-soon/public/dashboard for vendor files
 const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
   ? path.join(landingRoot, 'dashboard')
   : null;
@@ -712,7 +712,7 @@ if (landingRootExists) {
       next();
     });
   }
-  // .html ΓåÆ clean URL redirects
+  // .html ╬ô├Ñ├å clean URL redirects
   app.get('/pricing.html', (req, res, next) => {
     if (!storefrontAssetsEnabled()) return next();
     return res.redirect(301, '/pricing');
@@ -785,7 +785,7 @@ async function sendDashboardWithRuntimeConfig(req, res) {
   }
   const runtimeConfig = JSON.stringify({
     DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
-    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}` // simplebeacon-ignore hardcoded-url ΓÇö default Ollama localhost URL for client-side settings
+    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}` // simplebeacon-ignore hardcoded-url ╬ô├ç├╢ default Ollama localhost URL for client-side settings
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   // Inject whitelabel brand config + CSS (resolved by whitelabel-middleware)
@@ -833,12 +833,12 @@ app.use('/assets', express.static(path.join(webRoot, 'assets')));
 // Health, status, and VS Code heartbeat routes
 app.use('/api', require('./routes/health-routes.cjs'));
 
-// Stripe webhook ΓÇö must use raw body, mounted before express.json() middleware
+// Stripe webhook ╬ô├ç├╢ must use raw body, mounted before express.json() middleware
 app.use('/api/stripe', require('./routes/stripe-webhook-routes.cjs'));
 
 // /api/status is already handled by health-routes.cjs (mounted at /api above).
 
-// Meta routes ΓÇö project structure, releases, backlog
+// Meta routes ╬ô├ç├╢ project structure, releases, backlog
 app.use('/api', require('./routes/meta-routes.cjs'));
 
 // Mock data API routes
@@ -875,7 +875,7 @@ app.post('/api/security/npm-audit', async (req, res) => {
   }
 });
 
-// Flexible analyze API ΓÇö codebase scan and inventory (shared path-safety with simplebeacon-server)
+// Flexible analyze API ╬ô├ç├╢ codebase scan and inventory (shared path-safety with simplebeacon-server)
 // Proxy legacy bare POST /api/analyze to the flexible analysis endpoint.
 app.use((req, res, next) => {
     if (req.method === 'POST' && req.path === '/api/analyze') {
@@ -890,10 +890,10 @@ setupFlexibleAnalyzeAPI(app, {
     monorepoRoot: path.join(platformRoot, '..')
 });
 
-// AI Math Audit route ΓÇö deterministic model-log analysis
+// AI Math Audit route ╬ô├ç├╢ deterministic model-log analysis
 setupAiMathAuditRoute(app, platformRoot);
 
-// Pricing config endpoint ΓÇö serves Stripe URLs from environment variables
+// Pricing config endpoint ╬ô├ç├╢ serves Stripe URLs from environment variables
 app.get('/api/config/pricing', (_req, res) => {
     res.json({
         success: true,
@@ -916,10 +916,10 @@ app.get('/api/theme', (_req, res) => {
     res.json({ theme: process.env.DEFAULT_THEME || 'dark' });
 });
 
-// Chatbot API ΓÇö AI-powered code assistance
+// Chatbot API ╬ô├ç├╢ AI-powered code assistance
 setupChatbotAPI(app);
 
-// Browser notification bridge ΓÇö no-op sink for legacy dashboard / extension heartbeat events
+// Browser notification bridge ╬ô├ç├╢ no-op sink for legacy dashboard / extension heartbeat events
 app.post('/api/notify', (req, res) => {
   res.json({ success: true, received: true });
 });
@@ -931,7 +931,7 @@ app.post('/api/notify', (req, res) => {
 // and emits audit logs. This strengthens ingestion security and ensures
 // audit attribution.
 
-// Path verification ΓÇö used by the Analyze page to validate candidate scan paths
+// Path verification ╬ô├ç├╢ used by the Analyze page to validate candidate scan paths
 app.post('/api/verify-path', (req, res) => {
   const candidate = String(req.body?.path || '').trim();
   if (!candidate) {
@@ -995,7 +995,7 @@ setupWebAuthnAPI(app);
 // Admin dashboard stats, users, sessions (requires admin role)
 setupAdminAPI(app, { platformRoot: path.join(__dirname, '..') });
 
-// Per-user AI provider keys (OpenAI, Anthropic, Ollama) ΓÇö encrypted at rest
+// Per-user AI provider keys (OpenAI, Anthropic, Ollama) ╬ô├ç├╢ encrypted at rest
 const { getUserAiKeysPublic, saveUserAiKeys, clearUserAiKeys } = require('./lib/user-ai-keys-store.cjs');
 app.get('/api/user/ai-keys', authenticate, async (req, res) => {
   try {
@@ -1031,12 +1031,12 @@ app.delete('/api/user/ai-keys', authenticate, async (req, res) => {
 app.get('/api/prompts/get', (_req, res) => res.json({ prompts: [], userId: _req.query.userId || 'anonymous' }));
 app.get('/data/re-attestation-metadata.json', (_req, res) => res.json({ attestations: [], generatedAt: new Date().toISOString() }));
 
-// Local models API ΓÇö Ollama and local model management
+// Local models API ╬ô├ç├╢ Ollama and local model management
 setupLocalModelsAPI(app, {
     baseDir: platformRoot
 });
 
-// Workspace API ΓÇö multi-tenant with RLS transaction guardrails
+// Workspace API ╬ô├ç├╢ multi-tenant with RLS transaction guardrails
 // Only mount if database is configured; otherwise skip gracefully
 const { isDatabaseEnabled, getDatabaseConfig } = require('./config/database.cjs');
 if (isDatabaseEnabled()) {
@@ -1045,19 +1045,19 @@ if (isDatabaseEnabled()) {
         app.use('/api/workspaces', authenticate, setupWorkspaceRoutes(dbAdapter));
         logger.info('[Workspaces] RLS workspace routes mounted at /api/workspaces');
     } catch (e) {
-        logger.warn('[Workspaces] Database not configured ΓÇö workspace routes skipped:', e.message);
+        logger.warn('[Workspaces] Database not configured ╬ô├ç├╢ workspace routes skipped:', e.message);
     }
 } else {
-    logger.info('[Workspaces] Database disabled ΓÇö workspace routes not mounted');
+    logger.info('[Workspaces] Database disabled ╬ô├ç├╢ workspace routes not mounted');
 }
 
-// FixOrchestrator 2.0 ΓÇö auto-remediation preview / apply
+// FixOrchestrator 2.0 ╬ô├ç├╢ auto-remediation preview / apply
 // Mounted with auth + RBAC + RLS transaction guardrails
 const fixoDbAdapter = isDatabaseEnabled() ? new DatabaseAdapter(getDatabaseConfig()) : null;
-// Read-only strategies endpoint ΓÇö only requires authentication, not remediation:write
+// Read-only strategies endpoint ╬ô├ç├╢ only requires authentication, not remediation:write
 const fixStrategiesRouter = express.Router();
 fixStrategiesRouter.get('/strategies', (_req, res) => {
-  // simplebeacon-ignore: debugArtifacts ΓÇö strategy map keys are string identifiers, not debug statements
+  // simplebeacon-ignore: debugArtifacts ╬ô├ç├╢ strategy map keys are string identifiers, not debug statements
   const strategyMap = {
     'debugger-statement': { strategy: 'delete', confidence: 0.95 },
     'console-log': { strategy: 'delete', confidence: 0.95 },
@@ -1100,7 +1100,7 @@ app.get('/api/v2/archive/download', (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
-// Simplebeacon dashboard API ΓÇö scan report, baseline, config, history
+// Simplebeacon dashboard API ╬ô├ç├╢ scan report, baseline, config, history
 // Authenticate vault sessions for user routes so req.user is populated
 app.use('/api/simplebeacon/user', authenticate);
 try {
@@ -1109,21 +1109,21 @@ try {
     logger.warn('[Simplebeacon] simplebeacon-api setup skipped:', e.message);
 }
 
-// Audit log retrieval API ΓÇö paginated, strict memory limits (default LIMIT 50, max 200)
+// Audit log retrieval API ╬ô├ç├╢ paginated, strict memory limits (default LIMIT 50, max 200)
 app.use('/api/v2/audit', auditLogRouter);
 
 // Auth rotation & blocklist routes
 app.use('/api/v2/auth', authRoutes);
 
-// Enterprise SSO ΓÇö SAML + OIDC callbacks
+// Enterprise SSO ╬ô├ç├╢ SAML + OIDC callbacks
 app.use('/api/v2/auth/sso', ssoRoutes);
 logger.info('[SSO] Enterprise SSO routes mounted at /api/v2/auth/sso');
 
-// Enterprise SSO configuration ΓÇö CRUD endpoints for per-org provider configs
+// Enterprise SSO configuration ╬ô├ç├╢ CRUD endpoints for per-org provider configs
 app.use('/api/enterprise/sso', ssoConfigRoutes);
 logger.info('[SSO] SSO config routes mounted at /api/enterprise/sso');
 
-// Enterprise analytics facade ΓÇö compact payload for admin dashboard
+// Enterprise analytics facade ╬ô├ç├╢ compact payload for admin dashboard
 try {
   const enterpriseAnalytics = require('./routes/enterprise-analytics-routes.cjs');
   app.use('/api/enterprise/analytics', enterpriseAnalytics);
@@ -1132,7 +1132,7 @@ try {
   logger.warn('[Enterprise] Analytics route not mounted:', e?.message || e);
 }
 
-// Dashboard stub APIs ΓÇö dashboard-home, dev-tools, coverage-reports, security, quality, help
+// Dashboard stub APIs ╬ô├ç├╢ dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {
     setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });
 } catch (e) {
@@ -1155,7 +1155,7 @@ try {
     logger.warn('[Simplebeacon] trust-api setup skipped:', e.message);
 }
 
-// External integrations (dev-friendly) ΓÇö weather lookup
+// External integrations (dev-friendly) ╬ô├ç├╢ weather lookup
 try {
   if (process.env.ENABLE_EXTERNAL_APIS === 'true' || process.env.NODE_ENV === 'development') {
     setupExternalWeatherAPI(app);
@@ -1179,35 +1179,35 @@ try {
     logger.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
 }
 
-// Simplebeacon billing ΓÇö checkout, subscription status, license tokens
+// Simplebeacon billing ╬ô├ç├╢ checkout, subscription status, license tokens
 try {
     setupSimplebeaconBillingRoutes(app);
 } catch (e) {
     logger.warn('[Simplebeacon] billing routes setup skipped:', e.message);
 }
 
-// Enterprise onboarding ΓÇö organization provisioning, seat management, Azure DevOps integration
+// Enterprise onboarding ╬ô├ç├╢ organization provisioning, seat management, Azure DevOps integration
 try {
     setupEnterpriseOnboardingRoutes(app);
 } catch (e) {
     logger.warn('[Enterprise] onboarding routes setup skipped:', e.message);
 }
 
-// Public compliance schema endpoint ΓÇö no auth, no project access, no code upload
+// Public compliance schema endpoint ╬ô├ç├╢ no auth, no project access, no code upload
 try {
     registerComplianceSchemaRoute(app);
 } catch (e) {
     logger.warn('[Simplebeacon] Compliance schema route setup skipped:', e.message);
 }
 
-// PR integration API ΓÇö secure GitHub Action report ingestion
+// PR integration API ╬ô├ç├╢ secure GitHub Action report ingestion
 try {
     setupPrIntegrationAPI(app);
 } catch (e) {
     logger.warn('[Simplebeacon] PR integration API setup skipped:', e.message);
 }
 
-// Free token routes ΓÇö community/sandbox token generation from coming-soon
+// Free token routes ╬ô├ç├╢ community/sandbox token generation from coming-soon
 try {
     const freeTokenRouter = require('../../coming-soon/dist/routes/free-token.cjs');
     app.use(freeTokenRouter);
@@ -1225,7 +1225,7 @@ app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Agent routes ΓÇö AI execution status
+// Agent routes ╬ô├ç├╢ AI execution status
 app.use('/api', require('./routes/agent-routes.cjs'));
 
 // Path health metrics API
@@ -1239,26 +1239,26 @@ try {
     logger.warn('[PromptService] prompt-service routes not loaded');
 }
 
-// Upload API disabled ΓÇö source code never leaves your machine per privacy promise.
+// Upload API disabled ╬ô├ç├╢ source code never leaves your machine per privacy promise.
 // To re-enable: uncomment the next line.
 // app.use('/api/upload', optionalAuthenticate, uploadSecurity, contentValidation, uploadRoutes);
 
-// AI Context routes ΓÇö scan data + notes to .simplebeacon/ai-context.md
+// AI Context routes ╬ô├ç├╢ scan data + notes to .simplebeacon/ai-context.md
 app.use('/api', require('./routes/ai-context-routes.cjs'));
 
-// Token budget allocation routes ΓÇö per-org fiscal guardrails
+// Token budget allocation routes ╬ô├ç├╢ per-org fiscal guardrails
 app.use('/api/token-budget', tokenBudgetRoutes);
 
-// Workspace configuration routes ΓÇö admin telemetry for sandbox + budget controls
+// Workspace configuration routes ╬ô├ç├╢ admin telemetry for sandbox + budget controls
 app.use('/api/workspace', workspaceConfigRoutes);
 
-// Fine-tuning telemetry routes ΓÇö conversation dataset collection and export
+// Fine-tuning telemetry routes ╬ô├ç├╢ conversation dataset collection and export
 app.use('/api/telemetry', fineTuningTelemetryRoutes);
 
-// Token-throttling backpressure mesh ΓÇö LLM provider RPM/TPM smoothing
+// Token-throttling backpressure mesh ╬ô├ç├╢ LLM provider RPM/TPM smoothing
 app.use('/api/token-throttle', tokenThrottleRoutes);
 
-// HSM Vault ΓÇö multi-region key custody handshake and decrypt
+// HSM Vault ╬ô├ç├╢ multi-region key custody handshake and decrypt
 app.use('/api/vault', hsmVaultRoutes);
 
 // Static file serving for saved scan data exports
