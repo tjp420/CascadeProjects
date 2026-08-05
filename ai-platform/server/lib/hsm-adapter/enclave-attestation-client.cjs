@@ -86,13 +86,6 @@ class EnclaveAttestationClient {
   }
 
   /**
-   * Return true if a measurement has been previously verified and cached.
-   */
-  isVerified(measurement) {
-    return Boolean(this._cache.get(measurement));
-  }
-
-  /**
    * Clear the attestation cache.
    */
   clearCache() {
@@ -120,6 +113,7 @@ class EnclaveAttestationClient {
    */
   isVerified(idOrMeasurement) {
     if (!idOrMeasurement) return false;
+    if (this._cache.get(idOrMeasurement)) return true;
     if (this._verifiedMrenclaves.has(idOrMeasurement)) return true;
     if (this._verifiedIds.has(idOrMeasurement)) return true;
     if (this.allowedMeasurements.includes(idOrMeasurement)) return true;

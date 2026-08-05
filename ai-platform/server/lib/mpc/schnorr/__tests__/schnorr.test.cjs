@@ -624,7 +624,7 @@ describe('Schnorr threshold completion (Option D)', () => {
       sessionId: 's1',
       partialShares,
       threshold: 2,
-      publicKeys,
+      publicKeys: pubKeys,
       publicNonce1s,
       publicNonce2s,
       challenges,
