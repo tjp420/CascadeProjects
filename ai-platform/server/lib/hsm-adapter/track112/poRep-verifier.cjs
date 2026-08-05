@@ -47,28 +47,28 @@ class PoRepVerifier {
   }
 
   async verify(proof, options = {}) {
+    const start = process.hrtime.bigint();
     this.metrics.verifications += 1;
 
     // Stub-mode short-circuit for placeholder test assertions
-    if (proof && proof.valid === true) return { valid: true };
-
-    try {
-      if (!hsmMetrics.counters.hsm_track112_proofs_verified_total) hsmMetrics.counters.hsm_track112_proofs_verified_total = 0;
-      if (!hsmMetrics.counters.hsm_track112_proofs_failed_total) hsmMetrics.counters.hsm_track112_proofs_failed_total = 0;
-    } catch (e) {}
+    if (proof && proof.valid === true) {
+      this._record(true, start, 'stub');
+      return { valid: true };
+    }
 
     // Backwards-compatibility: accept a simple stub object `{ valid: true }`
     if (proof && typeof proof.valid === 'boolean') {
       if (proof.valid) {
-        try { hsmMetrics.incrementCounter('hsm_track112_proofs_verified_total'); } catch (e) {}
+        this._record(true, start, 'stub');
         return { valid: true };
       }
-      try { hsmMetrics.incrementCounter('hsm_track112_proofs_failed_total'); } catch (e) {}
+      this._record(false, start, 'stub_rejected');
+      this.metrics.failures += 1;
       return { valid: false, reason: 'stub_rejected' };
     }
 
     if (!proof || !proof.root || !Array.isArray(proof.challenges) || proof.challenges.length === 0) {
-      try { hsmMetrics.incrementCounter('hsm_track112_proofs_failed_total'); } catch (e) {}
+      this._record(false, start, 'malformed_proof');
       this.metrics.failures += 1;
       return { valid: false, reason: 'malformed_proof' };
     }
@@ -80,7 +80,7 @@ class PoRepVerifier {
       try {
         const computedRoot = computeRootFromPath(leafHash, ch.index, ch.path || []);
         if (computedRoot.toLowerCase() !== rootHex) {
-          try { hsmMetrics.incrementCounter('hsm_track112_proofs_failed_total'); } catch (e) {}
+          this._record(false, start, 'challenge_mismatch');
           this.metrics.failures += 1;
           return { valid: false, reason: 'challenge_mismatch', index: ch.index };
         }
@@ -91,8 +91,18 @@ class PoRepVerifier {
       }
     }
 
-    try { hsmMetrics.incrementCounter('hsm_track112_proofs_verified_total'); } catch (e) {}
+    this._record(true, start, 'ok');
     return { valid: true };
+  }
+
+  _record(ok, start, reason) {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    hsmMetrics.observeHistogram('hsm_track112_proof_duration_ms', ms);
+    if (ok) {
+      hsmMetrics.incrementCounter('hsm_track112_proofs_verified_total');
+    } else {
+      hsmMetrics.incrementCounter('hsm_track112_proofs_failed_total');
+    }
   }
 }
 
