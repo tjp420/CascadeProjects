@@ -4,6 +4,7 @@ const request = require('supertest');
 const crypto = require('crypto');
 const app = require('../../../../index.cjs');
 const hsmMetrics = require('../../../hsm-adapter/hsm-metrics.cjs');
+const { canonicalize } = require('../../../crypto/jcs-canonicalize.cjs');
 
 function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest();
@@ -35,7 +36,8 @@ describe('Track112 upload routes (integration)', () => {
     const root = sha256(chunk);
     const keyPair = crypto.generateKeyPairSync('ed25519');
     const publicKeyPem = keyPair.publicKey.export({ type: 'spki', format: 'pem' });
-    const signature = crypto.sign(null, root, keyPair.privateKey).toString('base64');
+    const commitPayload = canonicalize({ root: root.toString('hex'), sessionId: id, tenant: 't1' });
+    const signature = crypto.sign(null, Buffer.from(commitPayload, 'utf8'), keyPair.privateKey).toString('base64');
 
     const commitRes = await request(app)
       .post(`/api/track112/uploads/${id}/commit`)
