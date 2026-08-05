@@ -2,7 +2,31 @@
 import { showToast } from '../utils.js';
 import { canUseDirectoryPicker, filePickerBlockedMessage, browserLocalScanCapMessage } from '../utils-lib/dom.js';
 
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260716cachefix1', import.meta.url);
+const WORKER_ASSET_VERSION = '20260804worker1';
+function resolveScanWorkerUrl() {
+  const v = WORKER_ASSET_VERSION;
+  try {
+    if (typeof location !== 'undefined' && location.origin) {
+      const path = String(location.pathname || '');
+      const mount = path.startsWith('/dashboard')
+        ? '/dashboard'
+        : (path.startsWith('/app') ? '/app' : null);
+      if (mount) {
+        return new URL(`${mount}/assets/scan-worker.js?v=${v}`, location.origin);
+      }
+    }
+  } catch (_locErr) { /* fall through */ }
+  try {
+    const base = (typeof import.meta !== 'undefined' && import.meta.url) ? import.meta.url : '';
+    if (base.includes('/assets/')) {
+      return new URL(`./scan-worker.js?v=${v}`, base);
+    }
+    if (base) {
+      return new URL(`../workers/scan-worker.js?v=${v}`, base);
+    }
+  } catch (_metaErr) { /* fall through */ }
+  return `/app/assets/scan-worker.js?v=${v}`;
+}
 
 const MAX_FILES = 100000;
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
@@ -170,7 +194,7 @@ export async function runLocalScan(options = {}) {
   const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
 
   return new Promise((resolve, reject) => {
-    const worker = new Worker(WORKER_URL, { type: 'module' });
+    const worker = new Worker(resolveScanWorkerUrl(), { type: 'module' });
     const signal = options.signal;
     let settled = false;
 

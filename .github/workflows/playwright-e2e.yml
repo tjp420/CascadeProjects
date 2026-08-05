@@ -16,7 +16,8 @@ on:
 jobs:
   run-e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Job-level budget: cold Playwright install + apt deps can exceed 10m on cache miss.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout Source Code
