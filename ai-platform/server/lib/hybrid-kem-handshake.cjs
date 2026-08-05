@@ -297,9 +297,11 @@ async function createServerHandshaker(socket, opts = {}) {
   // 1. Read client hello
   const clientHello = await _readMessage(socket, timeoutMs);
 
-  // Validate handshake message schema
+  // Validate required classic field at parse time. ek_pq is optional here so
+  // the explicit downgrade branch below can emit quantum_downgrade_rejected
+  // (or allow classic-only when QUANTUM_DEGRADE_ALLOWED=1).
   try {
-    _validateHandshakeMessage(clientHello, ['ek_classic', 'ek_pq']);
+    _validateHandshakeMessage(clientHello, ['ek_classic']);
   } catch (e) {
     socket.destroy();
     throw new Error('hybrid handshake abort: invalid client hello — ' + e.message);

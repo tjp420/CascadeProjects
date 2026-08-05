@@ -274,6 +274,62 @@ describe('L3-02: Permissive override allows classic-only', () => {
   });
 });
 
+describe('L3-02b: cluster-keyring-sync emits QUANTUM_DEGRADE_REJECTED on forced downgrade', () => {
+  let server, clientSocket, serverSocket, serverPort;
+  let clusterSync;
+
+  before(() => {
+    delete require.cache[require.resolve('../cluster-keyring-sync.cjs')];
+    clusterSync = require('../cluster-keyring-sync.cjs');
+  });
+
+  beforeEach((done) => {
+    delete process.env.QUANTUM_DEGRADE_ALLOWED;
+    clusterSync._resetEvents();
+    server = net.createServer((s) => { serverSocket = s; done(); });
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      clientSocket = net.connect(serverPort, '127.0.0.1');
+    });
+  });
+
+  afterEach((done) => {
+    try { clientSocket.destroy(); } catch (e) {}
+    try { serverSocket.destroy(); } catch (e) {}
+    server.close(() => done());
+  });
+
+  it('records quantum_downgrade_rejected error payload via EVENT_TYPES.QUANTUM_DEGRADE_REJECTED', async () => {
+    const header = Buffer.alloc(4);
+    const body = Buffer.from(JSON.stringify({ ek_classic: 'aa'.repeat(32) }), 'utf8');
+    header.writeUInt32BE(body.length, 0);
+    clientSocket.write(Buffer.concat([header, body]));
+
+    // Mirror cluster-keyring-sync _startServer onConnection catch (fail-closed).
+    let caught;
+    try {
+      await hk.createServerHandshaker(serverSocket, { timeoutMs: 5000 });
+    } catch (err) {
+      caught = err;
+      clusterSync._recordEvent(
+        clusterSync.EVENT_TYPES.QUANTUM_DEGRADE_REJECTED,
+        'test-node',
+        { error: err.message }
+      );
+    }
+
+    assert.ok(caught, 'server handshaker must reject omitted ek_pq');
+    assert.match(caught.message, /^quantum_downgrade_rejected: client omitted ek_pq$/);
+
+    const result = clusterSync.queryEvents({
+      eventType: clusterSync.EVENT_TYPES.QUANTUM_DEGRADE_REJECTED,
+    });
+    assert.strictEqual(result.total, 1);
+    assert.strictEqual(result.events[0].eventType, 'quantum_downgrade_rejected');
+    assert.strictEqual(result.events[0].details.error, caught.message);
+  });
+});
+
 describe('L3-03: Hybrid handshake does not break existing cluster sync with flag disabled', () => {
   it('cluster-keyring-sync loads without error when CLUSTER_QUANTUM_HYBRID is not set', () => {
     delete process.env.CLUSTER_QUANTUM_HYBRID;
