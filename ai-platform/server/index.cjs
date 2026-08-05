@@ -447,7 +447,7 @@ const VAULT_AUTH_PREFIX_PATHS = [
 ];
 
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'development') return next();
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') return next();
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();
   if (!req.path.startsWith('/api/')) return next();
   if (VAULT_AUTH_EXACT_PATHS.has(req.path)) return next();
@@ -509,7 +509,7 @@ if (process.env.SIMPLEBEACON_DEV_STUBS === 'true') {
 }
 
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'development') return next();
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') return next();
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();
   if (!isProtectedDashboardPath(req.path)) return next();
   if (isVaultAuthenticated(req)) return next();
