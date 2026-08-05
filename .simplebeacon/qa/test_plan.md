@@ -1,146 +1,124 @@
-# test_plan.md
+# Test Plan: Hardware Attestation Chain Validation
 
-> OpenAPI Specification Hardening — Track 114-121 REST route consolidation
+> Extend hardware-attestation-verify.cjs from parsing standalone raw binary reports
+> to validating a complete cryptographically pinned certificate chain (AMD ASK/ARK
+> and Intel Enclave CA chains).
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | OpenAPI Specification Hardening for Tracks 114-121 + SIEM telemetry |
+| Feature / change | Certificate chain validation, root-of-trust pinning, ECDSA signature verification |
 | Author (Builder) | Devin |
 | Date | 2026-08-04 |
-| Branch | feat/openapi-spec-hardening |
-| Packages touched | ai-platform |
+| Branch | feat/attestation-chain-validation |
+| Packages touched | ai-platform/server/lib/hsm-adapter |
 
-## Scope
+## Problem
 
-### Files in scope
+The current `HardwareAttestationVerifier` parses binary attestation reports (SEV-SNP, SGX)
+and validates nonce, timestamp, and measurement fields. However:
 
-- `ai-platform/api/openapi.yaml` (modified — expand from 8 Track 79 endpoints to include Tracks 114-121 + SIEM)
-- `ai-platform/server/lib/hsm-adapter/__tests__/openapi-contract.test.cjs` (new — schema contract tests)
+1. **Signature verification is mock-only** — uses HMAC-SHA256 with a hardcoded secret, not real ECDSA
+2. **No X.509 certificate chain validation** — no parsing of AMD VCEK/ASK/ARK or Intel PCK/CA certificates
+3. **No root-of-trust pinning** — no mechanism to pin vendor CA certificates
+4. **No certificate revocation checking** — no CRL/OCSP handling
+5. **No certificate fetching** — no code to retrieve VCEK from AMD KDS or PCK from Intel PCS
 
-### APIs / routes
+## Objectives
 
-**Track 114-121 governance triplets (7 tracks × 3 endpoints = 21 routes):**
+### 1. Certificate Chain Validator (`server/lib/hsm-adapter/cert-chain-validator.cjs`)
 
-| Track | Route prefix | Endpoints |
-|-------|-------------|-----------|
-| 114 | `/cluster-isolation` | GET /policy, POST /policy/validate, GET /telemetry |
-| 115 | `/bft-shard-sync` | GET /policy, POST /policy/validate, GET /telemetry |
-| 117 | `/bft-shard-sync` | (same as 115 — verify track mapping) |
-| 118 | `/distributed-consensus-coordinator` | GET /policy, POST /policy/validate, GET /telemetry |
-| 119 | `/cross-cluster-migration` | GET /policy, POST /policy/validate, GET /telemetry |
-| 120 | `/cluster-key-reconciliation` | GET /policy, POST /policy/validate, GET /telemetry |
-| 121 | `/multiparty-re-keying` | GET /policy, POST /policy/validate, GET /telemetry |
+New module for X.509 certificate chain validation using Node.js native `crypto.X509Certificate`:
 
-**SIEM / audit telemetry routes (from audit-routes.cjs):**
+- **CERT-01**: `CertChainValidator` class with `validateChain()`, `addRootCA()`, `addIntermediateCA()` methods
+- **CERT-02**: Parse PEM/DER certificates using `crypto.X509Certificate` (Node 22+ native)
+- **CERT-03**: Build certificate chain from leaf to root
+- **CERT-04**: Validate chain signatures (each cert signed by next in chain)
+- **CERT-05**: Validate certificate validity periods (notBefore/notAfter)
+- **CERT-06**: Validate key usage and extended key usage extensions
+- **CERT-07**: Root-of-trust pinning by SHA-256 fingerprint
+- **CERT-08**: Certificate revocation checking via CRL (basic)
+- **CERT-09**: `validateSevSnpChain()` — validate AMD ARK → ASK → VCEK chain
+- **CERT-10**: `validateSgxChain()` — validate Intel Root CA → PCK CA → PCK chain
+- **CERT-11**: Return detailed validation result with chain structure and failure reasons
+- **CERT-12**: Backward compatible — works without chain validation when no CAs configured
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/audit/telemetry` | GET | SIEM telemetry counters |
-| `/audit/log` | GET | Audit log entries |
-| `/audit/export` | GET | Export audit chain |
-| `/audit/verify-integrity` | GET | Verify hash chain integrity |
-| `/audit/stats` | GET | Audit statistics |
+### 2. ECDSA Signature Verification (`server/lib/hsm-adapter/hardware-attestation-verify.cjs`)
 
-**Total: 26 new endpoints to document in OpenAPI spec**
+Replace mock HMAC-SHA256 with real ECDSA signature verification:
 
-### UI / IDE surfaces
+- **ECDSA-01**: `verifySevSnpSignature()` — ECDSA P-384/SHA-384 signature verification
+- **ECDSA-02**: `verifySgxSignature()` — ECDSA P-256/SHA-256 signature verification
+- **ECDSA-03**: Extract public key from VCEK/PCK certificate
+- **ECDSA-04**: Verify attestation report signature against certificate public key
+- **ECDSA-05**: Fall back to mock verification when no certificate provided (backward compat)
+- **ECDSA-06**: SIEM alert on signature verification failure with certificate details
 
-- [ ] Sidebar webview
-- [ ] Main dashboard iframe / address bar
-- [ ] Welcome / main window panel
-- [ ] Simple Browser / external browser
+### 3. Root-of-Trust Store (`server/lib/hsm-adapter/root-trust-store.cjs`)
 
----
+New module for managing pinned vendor root certificates:
 
-## Level 1 — Deterministic (Validator MUST run all)
+- **ROOT-01**: `RootTrustStore` class with `addAMD()`, `addIntel()`, `getCA()`, `isPinned()` methods
+- **ROOT-02**: Load AMD ARK root certificate (pinned by SHA-256 fingerprint)
+- **ROOT-03**: Load AMD ASK intermediate certificate
+- **ROOT-04**: Load Intel Root CA certificate (pinned by SHA-256 fingerprint)
+- **ROOT-05**: Load Intel PCK CA intermediate certificate
+- **ROOT-06**: Environment variable configuration (`AMD_ARK_CERT_PATH`, `AMD_ASK_CERT_PATH`, `INTEL_ROOT_CA_PATH`, `INTEL_PCK_CA_PATH`)
+- **ROOT-07**: In-memory cache with file path loading
+- **ROOT-08**: Fingerprint verification on load (fail-closed if fingerprint mismatch)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed JS/CJS | `node -c <file>` | [ ] |
-| L1-02 | ai-platform tests (if touched) | `cd ai-platform && npm test` | [ ] |
-| L1-03 | OpenAPI YAML validity | `npx js-yaml ai-platform/api/openapi.yaml` parses without error | [ ] |
-| L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
-| L1-06 | OpenAPI contract tests | `npx jest --testPathPatterns openapi-contract` | [ ] |
+### 4. Integration into HardwareAttestationVerifier
 
----
+Wire chain validation into the existing verification flow:
 
-## Level 2 — Behavioral
+- **INTEG-01**: Add `certChainValidator` option to `HardwareAttestationVerifier` constructor
+- **INTEG-02**: Add `rootTrustStore` option to constructor
+- **INTEG-03**: After measurement validation, validate certificate chain if provided
+- **INTEG-04**: After chain validation, verify report signature against certificate public key
+- **INTEG-05**: New error code: `ATTESTATION_CHAIN_INVALID`
+- **INTEG-06**: New error code: `ATTESTATION_ROOT_UNTRUSTED`
+- **INTEG-07**: SIEM alerts for chain validation failures
+- **INTEG-08**: Backward compatible — existing tests pass without chain validation
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | OpenAPI spec covers all 21 Track 114-121 endpoints | Parse openapi.yaml, verify all 7 governance triplets have paths | All 21 paths present with correct methods | [ ] |
-| L2-02 | OpenAPI spec covers all 5 SIEM audit endpoints | Parse openapi.yaml, verify audit routes have paths | All 5 paths present with correct methods | [ ] |
-| L2-03 | Policy endpoint schema matches actual response | Compare OpenAPI schema for GET /policy against actual route handler response | Schema fields match (success, orgId, policy) | [ ] |
-| L2-04 | Validate endpoint schema matches actual response | Compare OpenAPI schema for POST /policy/validate against actual route handler response | Schema fields match (success, valid, error) | [ ] |
-| L2-05 | Telemetry endpoint schema matches actual response | Compare OpenAPI schema for GET /telemetry against actual route handler response | Schema fields match (success, orgId, telemetry) | [ ] |
-| L2-06 | Error response schema matches POLICY_VIOLATION_BLOCKED | Verify 400 response schema for validate endpoint | Error code and message fields present | [ ] |
+### 5. Tests
 
----
+- **TEST-01**: CertChainValidator unit tests (parsing, chain building, signature validation, expiry, key usage, pinning)
+- **TEST-02**: RootTrustStore unit tests (loading, fingerprint verification, env var config)
+- **TEST-03**: ECDSA signature verification tests (SEV-SNP P-384, SGX P-256)
+- **TEST-04**: Integration tests (full chain validation flow in HardwareAttestationVerifier)
+- **TEST-05**: Backward compatibility tests (existing tests pass without chain config)
+- **TEST-06**: SIEM alert tests for chain validation failures
 
-## Level 3 — Edge cases & regression
+## Files to Touch
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Existing Track 79 endpoints unchanged | Verify original 8 paths still present and correct | All 8 original paths preserved | [ ] |
-| L3-02 | OpenAPI tags organize endpoints by track | Verify each governance triplet has a unique tag | 7 track tags + 1 SIEM tag present | [ ] |
-| L3-03 | OpenAPI security scheme applied to all new paths | Verify all new paths require admin:all authorization | security field present on all new paths | [ ] |
-| L3-04 | No ghost paths in OpenAPI spec | Verify every path in spec corresponds to a real route handler | No hallucinated or non-existent paths | [ ] |
-| L3-05 | Schema contract test catches response drift | If route handler response changes, contract test fails | Test validates actual response shape against schema | [ ] |
+| File | Change | New? |
+|------|--------|------|
+| `server/lib/hsm-adapter/cert-chain-validator.cjs` | New X.509 chain validator | Yes |
+| `server/lib/hsm-adapter/root-trust-store.cjs` | New root-of-trust store | Yes |
+| `server/lib/hsm-adapter/hardware-attestation-verify.cjs` | Add ECDSA verification + chain integration | No |
+| `server/lib/hsm-adapter/__tests__/cert-chain-validator.test.cjs` | Unit tests | Yes |
+| `server/lib/hsm-adapter/__tests__/root-trust-store.test.cjs` | Unit tests | Yes |
+| `server/lib/hsm-adapter/__tests__/attestation-chain-integration.test.cjs` | Integration tests | Yes |
 
----
+## Level 1 Verification
 
-## Security
+```powershell
+node -c server/lib/hsm-adapter/cert-chain-validator.cjs
+node -c server/lib/hsm-adapter/root-trust-store.cjs
+node -c server/lib/hsm-adapter/hardware-attestation-verify.cjs
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/cert-chain-validator.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/root-trust-store.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/attestation-chain-integration.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/hardware-attestation.test.cjs --no-coverage
+cd ai-platform && npx jest server/lib/hsm-adapter/__tests__/hardware-attestation-hw-profiles.test.cjs --no-coverage
+```
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | No credentials / PII in OpenAPI spec examples | [ ] |
-| S-02 | All new paths require authorization (admin:all or oauth2) | [ ] |
-| S-03 | No real tenant IDs, node IDs, or key material in schema examples | [ ] |
+## Security Invariants
 
----
-
-## Implementation Strategy
-
-### Phase 1: OpenAPI Spec Expansion (openapi.yaml)
-
-1. Add 7 new tags for Tracks 114-121 (one per governance track)
-2. Add 1 new tag for SIEM/Audit telemetry
-3. Add 21 new path objects (7 governance triplets × 3 endpoints each)
-4. Add 5 new path objects (SIEM audit routes)
-5. Add reusable schemas:
-   - `PolicyResponse` (success, orgId, policy)
-   - `PolicyValidateRequest` (config fields)
-   - `PolicyValidateResponse` (success, valid)
-   - `PolicyViolationError` (error, message)
-   - `TelemetryResponse` (success, orgId, telemetry)
-   - `AuditTelemetryResponse` (success, telemetry counters)
-6. Add security scheme for admin:all (if not already present)
-
-### Phase 2: Schema Contract Tests (openapi-contract.test.cjs)
-
-1. Parse openapi.yaml with js-yaml
-2. For each of the 26 new endpoints:
-   - Verify path exists in spec
-   - Verify method matches
-   - Verify response schema is defined
-3. For 3 representative endpoints (one policy, one validate, one telemetry):
-   - Make actual HTTP request via supertest
-   - Compare response body fields against OpenAPI schema properties
-4. Verify no ghost paths (every spec path has a matching route handler)
-5. Verify all new paths have security requirements
-
-### Broom Strategy
-
-- Only 2 files touched (openapi.yaml + openapi-contract.test.cjs)
-- No new modules or dependencies
-- Reuses existing js-yaml and supertest packages already in the project
-
----
-
-## Approval
-
-- [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+1. **Fail-closed**: No chain validation = no attestation acceptance (when configured)
+2. **Pinned roots only**: Unpinned root certificates are rejected
+3. **No silent fallback**: Chain validation failure = attestation failure + SIEM alert
+4. **Backward compatible**: Without chain config, existing mock verification still works
+5. **No raw key material on wire**: Only certificates and fingerprints exchanged
+6. **Certificate expiry enforced**: Expired certificates are rejected
