@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
- * Platform Jest config ΓÇö CLI package tests use node:test (see packages/simplebeacon-cli).
+ * Platform Jest config — CLI package tests use node:test (see packages/simplebeacon-cli).
  *
  * @license MIT
  */
@@ -46,6 +46,7 @@ module.exports = {
     'middleware/__tests__/simplebeacon-subscription\\.test\\.cjs$',
     'middleware/__tests__/audit\\.test\\.cjs$',
     'bootstrap/__tests__/phase2-integration\\.test\\.cjs$',
+    'server/bootstrap/__tests__/dashboard-auth\\.test\\.cjs$',
     'server/lib/__tests__/agentic-orchestration\\.test\\.cjs$',
     'server/lib/storage/__tests__/reassembler\\.test\\.cjs$',
     'server/lib/storage/__tests__/repair-worker\\.test\\.cjs$',
