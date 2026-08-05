@@ -28,6 +28,66 @@ const FLUSH_MS = parseInt(process.env.SIEM_FLUSH_MS, 10) || 5000;
 const RETRY_BASE_MS = parseInt(process.env.SIEM_RETRY_BASE_MS, 10) || 100;
 const RETRY_MAX_MS = parseInt(process.env.SIEM_RETRY_MAX_MS, 10) || 60 * 1000;
 const RETRY_MAX_ATTEMPTS = parseInt(process.env.SIEM_RETRY_MAX_ATTEMPTS, 10) || 5;
+const MAX_QUEUE_DEPTH = parseInt(process.env.SIEM_MAX_QUEUE_DEPTH, 10) || 1000;
+
+// ── Bounded ring queue for O(1) enqueue / dequeue ─────────────────────
+// Replaces a plain JS array to avoid expensive shift/splice under load.
+class BoundedQueue {
+  constructor(capacity) {
+    this._capacity = Math.max(1, capacity);
+    this._buffer = new Array(this._capacity);
+    this._head = 0; // next write position
+    this._tail = 0; // next read position
+    this._count = 0;
+    this._dropped = 0;
+  }
+
+  get length() { return this._count; }
+  get dropped() { return this._dropped; }
+
+  push(event) {
+    if (!event) return false;
+    this._buffer[this._head] = event;
+    this._head = (this._head + 1) % this._capacity;
+    if (this._count === this._capacity) {
+      // Overwrite oldest (tail) and advance tail
+      this._tail = this._head;
+      this._dropped += 1;
+      return true;
+    }
+    this._count += 1;
+    return true;
+  }
+
+  take(n) {
+    const count = Math.min(n, this._count);
+    if (count <= 0) return [];
+    const out = new Array(count);
+    for (let i = 0; i < count; i++) {
+      out[i] = this._buffer[this._tail];
+      this._buffer[this._tail] = undefined;
+      this._tail = (this._tail + 1) % this._capacity;
+    }
+    this._count -= count;
+    return out;
+  }
+
+  reset() {
+    this._head = 0;
+    this._tail = 0;
+    this._count = 0;
+    this._dropped = 0;
+    for (let i = 0; i < this._capacity; i++) this._buffer[i] = undefined;
+  }
+
+  toArray() {
+    const out = new Array(this._count);
+    for (let i = 0; i < this._count; i++) {
+      out[i] = this._buffer[(this._tail + i) % this._capacity];
+    }
+    return out;
+  }
+}
 
 // ── mTLS Agent Construction ──────────────────────────────────────────
 //
@@ -97,19 +157,24 @@ let _mtlsEnabled = false;
   }
 })();
 
-let queue = [];
+let queue = new BoundedQueue(MAX_QUEUE_DEPTH);
 let flushing = false;
 let _totalSendAttempts = 0;
 // In-memory metrics registry (thread-safe for single-node process)
 const _metrics = {
   siem_delivery_retries_total: 0,
   siem_delivery_dropped_total: 0,
+  siem_queue_dropped_total: 0,
 };
 
 function enqueue(event) {
   try {
     if (!event || typeof event !== 'object') return;
+    const droppedBefore = queue.dropped;
     queue.push(event);
+    if (queue.dropped > droppedBefore) {
+      _metrics.siem_queue_dropped_total += 1;
+    }
     if (queue.length >= getBatchSize()) flush().catch(() => {});
   } catch (e) {
     // swallow
@@ -120,11 +185,11 @@ async function flush() {
   if (flushing || queue.length === 0) return;
   if (!SIEM_ENDPOINT) {
     // No endpoint configured; drop events after a local noop
-    queue = [];
+    queue.reset();
     return;
   }
   flushing = true;
-  const payload = queue.splice(0, getBatchSize());
+  const payload = queue.take(getBatchSize());
 
   // Non-blocking send with retries
   sendBatch(payload).catch(() => {});
@@ -177,14 +242,12 @@ async function sendBatch(batch, attempt = 0) {
         // ignore scheduling failure
       }
     } else {
-      // Retries exhausted: re-enqueue to head with trim
+      // Retries exhausted: re-enqueue to head; bounded queue drops oldest on overflow
       try {
-        logger.error('[SIEM Exporter] sendBatch retries exhausted, re-enqueueing batch (trim to 1000)', { attempts: attempt + 1, error: e && e.message });
-        // compute drop count when trimming to protect memory
-        const beforeConcatLen = queue.length;
-        const concatenated = batch.concat(queue);
-        queue = concatenated.slice(0, 1000);
-        const dropped = Math.max(0, concatenated.length - queue.length);
+        logger.error('[SIEM Exporter] sendBatch retries exhausted, re-enqueueing batch', { attempts: attempt + 1, error: e && e.message });
+        const droppedBefore = queue.dropped;
+        for (const e of batch) queue.push(e);
+        const dropped = queue.dropped - droppedBefore;
         if (dropped > 0) {
           try { _metrics.siem_delivery_dropped_total += dropped; } catch (mErr) {}
         }
@@ -240,13 +303,34 @@ module.exports = {
   sendBatch,
   connectBroker,
   _debug: {
-    getQueue: () => queue,
+    getQueue: () => {
+      // Return a live-array proxy so tests can q.push() and Array.isArray() works.
+      const snapshot = queue.toArray();
+      return new Proxy(snapshot, {
+        get(target, prop) {
+          if (prop === 'push') {
+            return (event) => {
+              queue.push(event);
+              return target.push(event);
+            };
+          }
+          if (prop === 'length') return target.length;
+          if (prop === 'reset') return () => { queue.reset(); target.length = 0; };
+          return target[prop];
+        },
+        set(target, prop, value) {
+          target[prop] = value;
+          return true;
+        },
+      });
+    },
     isFlushing: () => flushing,
     getBatchSize,
-    resetQueue: () => { queue = []; flushing = false; },
+    resetQueue: () => { queue.reset(); flushing = false; },
     getTotalSendAttempts: () => _totalSendAttempts,
     getMetrics: () => ({ ..._metrics }),
     isMtlsEnabled: () => _mtlsEnabled,
     getMtlsAgent: () => _mtlsAgent,
+    getCapacity: () => MAX_QUEUE_DEPTH,
   },
 };

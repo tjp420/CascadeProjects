@@ -54,6 +54,7 @@ class SiemSecurityBroker extends EventEmitter {
     this.refillRate = config.rateLimitRefillRateMs || 1000;
     this.strategy = config.transportStrategy || 'HYBRID';
     this.tokens = this.maxTokens;
+    this._lastRefill = Date.now();
 
     // Metrics registry for observability
     this._metrics = {
@@ -143,15 +144,25 @@ class SiemSecurityBroker extends EventEmitter {
   }
 
   /**
+   * Credit tokens proportional to elapsed time since last refill.
+   * This makes the bucket resistant to event-loop jitter and bursty traffic.
+   * @private
+   */
+  _refillTokens() {
+    const now = Date.now();
+    const elapsed = now - this._lastRefill;
+    if (elapsed < this.refillRate) return;
+    const credits = Math.floor(elapsed / this.refillRate);
+    this.tokens = Math.min(this.maxTokens, this.tokens + credits);
+    this._lastRefill = now - (elapsed % this.refillRate);
+  }
+
+  /**
    * Initialize the token refill pipeline.
    * @private
    */
   _initTokenRefillPipeline() {
-    const timer = setInterval(() => {
-      if (this.tokens < this.maxTokens) {
-        this.tokens += 1;
-      }
-    }, this.refillRate);
+    const timer = setInterval(() => this._refillTokens(), this.refillRate);
     if (timer.unref) timer.unref();
     this._refillTimer = timer;
   }
