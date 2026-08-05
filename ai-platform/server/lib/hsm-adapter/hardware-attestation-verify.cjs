@@ -19,6 +19,8 @@
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 const { MOCK_SIGNING_SECRET, _canonical } = require('./mock-tpm-quote-generator.cjs');
+const { CertChainValidator } = require('./cert-chain-validator.cjs');
+const { RootTrustStore } = require('./root-trust-store.cjs');
 
 // ── Security invariants (hardcoded — NOT Helm-configurable) ──────────
 const ATTESTATION_NONCE_TTL_MS = 5 * 60 * 1000;    // 5 minutes
@@ -121,6 +123,8 @@ class HardwareAttestationVerifier {
     this._allowedAuthorities = options.allowedAuthorities || ['tpm2', 'sev-snp', 'sgx', 'mock-authority'];
     this._audit = options.audit || null;
     this._broker = options.broker || null;
+    this._certChainValidator = options.certChainValidator || null;
+    this._rootTrustStore = options.rootTrustStore || null;
     this._pendingChallenges = new Map();
     this._seenNonces = new Map();
   }
@@ -323,6 +327,19 @@ class HardwareAttestationVerifier {
       return attestation.mrenclave;
     }
 
+    if (attestation.authority === 'mock-authority') {
+      // Mock authority: validate PCR values if configured, otherwise trust signature
+      if (expected.pcrs && attestation.pcrs) {
+        for (const [pcrIndex, expectedValue] of Object.entries(expected.pcrs)) {
+          const actual = attestation.pcrs[pcrIndex];
+          if (!actual || actual !== expectedValue) return null;
+        }
+        const pcrConcat = Object.keys(attestation.pcrs).sort().map((k) => attestation.pcrs[k]).join('');
+        return crypto.createHash('sha256').update(pcrConcat).digest('hex');
+      }
+      return 'mock';
+    }
+
     return null;
   }
 
@@ -387,6 +404,108 @@ class HardwareAttestationVerifier {
   }
 
   /**
+   * Validate a certificate chain for the attestation authority.
+   * @param {object} params
+   * @param {string} params.authority — 'sev-snp' or 'sgx'
+   * @param {string|Buffer} [params.leafCertificate] — leaf cert (VCEK / PCK)
+   * @param {string[]|Buffer[]} [params.certificateChain] — ordered [leaf, ..., root]
+   * @returns {{ valid: boolean, errors: string[], publicKey?: KeyObject }}
+   */
+  _validateCertificateChain({ authority, leafCertificate, certificateChain }) {
+    const errors = [];
+    const leaf = leafCertificate
+      || (certificateChain && certificateChain.length ? certificateChain[0] : null);
+
+    if (!leaf) {
+      errors.push('no leaf certificate provided');
+      return { valid: false, errors };
+    }
+
+    let validator = null;
+    let pinnedRoot = null;
+
+    if (this._certChainValidator instanceof CertChainValidator) {
+      validator = this._certChainValidator;
+    } else if (this._rootTrustStore && this._rootTrustStore.isConfigured()) {
+      // Build a validator from the trust store based on authority
+      validator = new CertChainValidator({
+        pinnedRootFingerprints: this._rootTrustStore.getPinnedFingerprints(),
+      });
+      if (authority === 'sev-snp') {
+        validator.addRootCA(this._rootTrustStore.getAmdArk());
+        validator.addIntermediateCA(this._rootTrustStore.getAmdAsk());
+        pinnedRoot = this._rootTrustStore.getAmdArk();
+      } else if (authority === 'sgx') {
+        validator.addRootCA(this._rootTrustStore.getIntelRootCA());
+        validator.addIntermediateCA(this._rootTrustStore.getIntelPckCA());
+        pinnedRoot = this._rootTrustStore.getIntelRootCA();
+      }
+    } else {
+      // No chain validation configured — fail closed if a cert was provided
+      errors.push('no certificate chain validator or root trust store configured');
+      return { valid: false, errors };
+    }
+
+    let result;
+    if (certificateChain && certificateChain.length) {
+      // Load the chain from the provided array: first element is leaf, last is root
+      if (certificateChain.length > 1) {
+        validator.addRootCA(certificateChain[certificateChain.length - 1]);
+      }
+      for (let i = 1; i < certificateChain.length - 1; i += 1) {
+        validator.addIntermediateCA(certificateChain[i]);
+      }
+      result = validator.validateChain(certificateChain[0]);
+    } else if (pinnedRoot) {
+      // Use explicit vendor chain
+      if (authority === 'sev-snp') {
+        result = validator.validateSevSnpChain(leaf, this._rootTrustStore.getAmdAsk(), pinnedRoot);
+      } else if (authority === 'sgx') {
+        result = validator.validateSgxChain(leaf, this._rootTrustStore.getIntelPckCA(), pinnedRoot);
+      } else {
+        result = { valid: false, errors: ['unknown authority for chain validation: ' + authority] };
+      }
+    } else {
+      result = validator.validateChain(leaf);
+    }
+
+    const publicKey = result.valid ? validator.extractPublicKey(leaf) : null;
+
+    if (!result.valid) {
+      this._emitSIEM('ATTESTATION_CHAIN_INVALID', {
+        sandboxId: 'unknown',
+        authority,
+        errors: result.errors,
+        siemSeverity: 'high',
+        siemCategory: 'attestation_chain_invalid',
+      });
+    }
+
+    return { valid: result.valid, errors: result.errors, publicKey };
+  }
+
+  /**
+   * Verify an ECDSA/RSA signature over attestation data.
+   * @param {object} attestation
+   * @param {string} attestation.authority
+   * @param {string} attestation.rawSignature — hex signature
+   * @param {string} attestation.signedData — hex data that was signed
+   * @param {KeyObject} publicKey
+   * @returns {boolean}
+   */
+  _verifyEcdsaSignature(attestation, publicKey) {
+    if (!publicKey) return false;
+    try {
+      const data = Buffer.from(attestation.signedData, 'hex');
+      const signature = Buffer.from(attestation.rawSignature, 'hex');
+      const algorithm = attestation.authority === 'sgx' ? 'sha256' : 'sha384';
+      return crypto.verify(algorithm, data, publicKey, signature);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Get the count of seen nonces (for testing).
    * @returns {number}
    */
@@ -407,6 +526,9 @@ module.exports = {
   SEV_SNP_REPORT_SIZE,
   SEV_SNP_REPORT_DATA_OFFSET,
   SEV_SNP_MEASUREMENT_OFFSET,
+  // Certificate chain validation
+  CertChainValidator,
+  RootTrustStore,
 };
 
 // ── SEV-SNP Report Parser ─────────────────────────────────────────────
