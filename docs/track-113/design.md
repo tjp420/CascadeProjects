@@ -1,95 +1,155 @@
 # Track 113 — Quantum-Resistant Identity Ratchet
 
+## Design Document
+
+**Status:** Implemented
+**Milestone:** Track 113 — Post-quantum hybrid identity ratchet rollout (Kyber hybrid + Ed25519)
+**Issues:** #404 (master plan), #405 (design), #406 (integration), #407 (migration), #408 (validation), #409 (telemetry)
+
 ## Overview
 
-This document specifies the **hybrid post-quantum identity ratchet** design for long-lived worker/agent sessions. The goal is to layer a **module-lattice KEM (Kyber-768)** hybrid key-exchange over an existing Ed25519 signature layer to provide post-quantum forward secrecy while preserving backward compatibility via hybrid signatures.
+Track 113 implements a post-quantum hybrid identity ratchet for long-lived worker/agent sessions. It combines classical X25519/Ed25519 cryptography with ML-KEM-768 (Kyber-768) post-quantum key encapsulation to provide forward secrecy even against an adversary with a quantum computer.
 
-Key decisions (initial):
+## Parameter Choices
 
-- PQ KEM: **Kyber-768** (NIST PQC Round 3 finalist family, balanced security/perf).
-- Classical signature: **Ed25519** for compatibility and existing verification codepaths.
-- Hybrid approach: KEM encapsulation for ephemeral shared secret + Ed25519 for authentication; session keys derived via HKDF over concatenated shared secrets to produce symmetric ratchet state.
-- Canonicalization: All signed/verified JSON inputs MUST be canonicalized with RFC 8785 JCS encoding (see `ai-platform/server/lib/canonical/jcs.cjs`) to guarantee deterministic signatures across nodes.
+### Hybrid Key Composition
 
-## Mathematical summary (high-level)
+The hybrid public key is a versioned, length-prefixed serialization of three components:
 
-Let:
+| Component ID | Algorithm | Purpose | Key Size (DER) |
+|-------------|-----------|---------|----------------|
+| `0x01` | Ed25519 | Signature (handshake authentication) | 44 bytes (SPKI DER) |
+| `0x02` | X25519 | Key exchange (classical ECDH) | 44 bytes (SPKI DER) |
+| `0x03` | ML-KEM-768 | Key encapsulation (post-quantum KEM) | 1184 bytes (raw) |
 
-- KEM.Generate() -> (pk_kem, sk_kem)
-- KEM.Encaps(pk_kem) -> (ct, ss_kem)
-- KEM.Decaps(sk_kem, ct) -> ss_kem
-- Sign(sk_sig, msg) -> sig
-- Verify(pk_sig, msg, sig) -> bool
-- HKDF(salt, ikm, info, L) -> key material
+**Version:** `0x01` (current)
 
-Hybrid handshake (initiator I, responder R):
+**Rationale:** ML-KEM-768 (NIST FIPS 203, Level 3 security) was chosen over ML-KEM-512 (Level 1) for a conservative security margin. The 1184-byte public key is larger than classical equivalents but acceptable for session bootstrap (not per-message overhead).
 
-1. Both sides have long-lived signing keypair (Ed25519): (sk_sig_I, pk_sig_I) and (sk_sig_R, pk_sig_R).
-2. R publishes KEM public key `pk_kem_R` (rotated per policy) as part of responder metadata.
-3. I performs `KEM.Encaps(pk_kem_R)` producing `(ct, ss_kem)`.
-4. I constructs canonical JSON envelope E containing: { ct, pk_sig_I, pk_sig_R, nonce, version }
-5. I signs canonical(E) with `sk_sig_I` producing `sig_I` and sends `{ E, sig_I }` to R.
-6. R verifies `sig_I` using `pk_sig_I`. R then computes `ss_kem = KEM.Decaps(sk_kem_R, ct)`.
-7. Both sides derive session key material via `HKDF(salt, ss_kem || shared_info, "Track113 ratchet", 64)`.
-8. Subsequent ratchet rotations use ephemeral KEM keypairs and the same canonical signing flow to authenticate rotations.
+### Key Derivation
 
-Security notes:
+| Function | Algorithm | Output |
+|----------|-----------|--------|
+| `initializeFromShared` | HKDF-SHA256 | 32-byte root + 32-byte chain key |
+| `kdfRoot` (rotation) | HKDF-SHA256 | 32-byte root + 32-byte chain key |
+| `kdfChain` (message step) | HKDF-SHA256 | 32-byte message key + 32-byte next chain key |
+| Hybrid shared secret | HKDF-SHA384 | 32-byte shared secret from PQ + classical |
 
-- Concatenate KEM-derived secrets deterministically before HKDF.
-- Use canonical JSON for the envelope to prevent signature malleability across language runtimes.
-- Hybrid signatures ensure that even if classical signatures are broken, KEM secrecy remains, and vice-versa.
+**Rationale:** SHA-256 is used for the ratchet chain (sufficient security, faster) while SHA-384 is used for the initial hybrid shared secret derivation (higher security margin for the PQ-classical combination step).
 
-## API Contract (proposed)
+### Rotation Thresholds
 
-Module path: `server/lib/crypto/ratchet`
+| Parameter | Default | Configurable |
+|-----------|---------|-------------|
+| `maxMessages` | 10,000 | Yes |
+| `maxDurationMs` | 86,400,000 (24h) | Yes |
+| `warningRatio` | 0.8 (80%) | Yes |
+| `checkIntervalMs` | 1,000 | Yes |
 
-Exports (CJS):
+**Rationale:** 10,000 messages provides a reasonable tradeoff between forward secrecy (frequent rotation limits exposure) and performance (rotation requires new key derivation). The 80% warning ratio gives operators time to prepare for rotation before it's forced.
 
-- `bootstrapSession({ tenant, peerPkSig, peerPkKem, localSkSig, opts }) -> { sessionId, publicMetadata }`
-  - Create new ratchet session; returns `publicMetadata` to publish (includes `pk_kem` and `pk_sig`).
+## Threat Model
 
-- `processBootstrap({ sessionId, envelope, signature }) -> { ok, sessionKey, meta }`
-  - Process incoming bootstrap envelope and complete handshake.
+### Protected Against
 
-- `rotate(sessionId) -> { ok, rotationMeta }`
-  - Initiate a ratchet rotation; returns canonical rotation envelope signed by local sk.
+- **Harvest-now-decrypt-later:** An adversary recording ciphertexts today cannot decrypt them in the future with a quantum computer, because the ML-KEM-768 component provides post-quantum confidentiality.
+- **Key compromise:** The ratchet chain provides forward secrecy — compromising the current chain key does not reveal past message keys.
+- **Signature forgery:** Ed25519 provides classical authentication; the hybrid signature scheme ensures authenticity even if the classical component is compromised.
 
-- `verifyRotation({ sessionId, envelope, signature }) -> { ok }`
-  - Verify and apply rotation state.
+### Not Protected Against
 
-- `exportPublicMetadata(sessionId) -> { pk_sig, pk_kem, version, rotatedAt }`
+- **Active quantum adversary during handshake:** The ML-KEM-768 component is not signed by the PQ key — only the classical Ed25519 signature authenticates the handshake. A future upgrade could add PQ signature (e.g., ML-DSA-65).
+- **Side-channel attacks:** The implementation uses software ML-KEM; constant-time guarantees depend on the vendored implementation.
+- **Key storage compromise:** If the secret key (including ML-KEM secret) is exfiltrated, all past sessions can be decrypted.
 
-Implementation notes:
+## API Contract
 
-- All serialized envelopes MUST be canonicalized via the JCS implementation before signing or verifying.
-- Session state stored under `server/data/ratchet/<tenant>/<sessionId>` with atomic writes.
+### `IdentityRatchet`
 
-## Rotation Policy
+```javascript
+const { IdentityRatchet } = require('./lib/crypto/ratchet/identity-ratchet.cjs');
 
-- Default rotation interval: 24 hours for long-lived sessions; configurable per-tenant.
-- Immediate rotation on suspicious activity or manual trigger.
+const ratchet = await new IdentityRatchet({ deviceId: 'agent-1' }).generate();
+// ratchet.publicKey — Buffer (versioned hybrid key)
+// ratchet.secretKey — { deviceId, ed25519, x25519, mlkem }
 
-## Migration & Compatibility
+// Encapsulate shared secret against peer's public key
+const { cipherText, chainKey } = await ratchet.encapsulateFor(peerPublicKey);
 
-- Hybrid signatures: when verifying incoming envelopes, servers should accept either pure-classical envelopes (legacy) or hybrid envelopes (containing KEM ct). Servers must prefer hybrid if available and emit forensic events when legacy-only envelopes are used from upgraded clients.
+// Decapsulate incoming cipherText
+const { chainKey } = await ratchet.decapsulateFrom(cipherText);
 
-## Telemetry
+// Step the chain for each message
+const messageKey = ratchet.step();
 
-- Counters: `track113.ratchet_rotations_total{tenant}` (low-cardinality)
-- Histograms: `track113.handshake_latency_seconds` (p50/p95/p99)
-- Forensic events: `track113.handshake_failure` appended to `.simplebeacon/forensic-events.log` with `traceId` when available.
+// Force rotation
+const { chainKey, rotationEpoch } = ratchet.rotateNow();
 
-## Tests & Fixtures
+// Sign/verify handshake transcripts
+const signature = ratchet.signHandshake(transcript);
+const valid = ratchet.verifyHandshake(signature, transcript, peerPublicKey);
+```
 
-- Provide a multi-turn negotiation simulator fixture that runs bootstrap -> rotate -> rotate and asserts deterministic derived keys across two nodes.
+### `CompatibilityShim`
 
-## Implementation roadmap
+```javascript
+const { initiateHandshake, acceptHandshake, detectMode } = require('./lib/crypto/ratchet/compatibility-shim.cjs');
 
-1. Design doc review and security sign-off.
-2. Prototype KEM wrapper (native binding or pure-js fallback) and HKDF-derived ratchet.
-3. Ratchet service hull + storage.
-4. Tests, interop, and migration plan.
+// Auto-detect peer mode
+const { mode } = detectMode(peerPublicKey); // 'HYBRID' or 'CLASSICAL'
 
----
+// Initiate handshake (auto-selects hybrid or classical)
+const { mode, handshake, chainKey } = await initiateHandshake(localRatchet, peerPublicKey);
 
-*Document generated and scaffolded by automation; refine parameters and math with security reviewers.*
+// Accept handshake
+const { mode, chainKey } = await acceptHandshake(localRatchet, handshake, peerPublicKey);
+```
+
+## Migration Notes
+
+### Compatibility Shim
+
+The compatibility shim (`compatibility-shim.cjs`) enables rolling deployment:
+
+1. **Phase 1 (current):** Hybrid-capable peers use ML-KEM-768 + X25519 + Ed25519. Classical-only peers use X25519 + Ed25519 with an ephemeral X25519 key for forward secrecy.
+2. **Phase 2 (future):** Set `deprecationDeadline` to a future timestamp. After the deadline, classical-only handshakes throw `CLASSICAL_DEPRECATION_DEADLINE`.
+3. **Phase 3 (future):** Remove classical fallback. All peers must support hybrid.
+
+### Client Migration
+
+- Hybrid public keys are backward-incompatible with classical-only clients (different format)
+- The compatibility shim auto-detects peer capabilities from the public key format
+- No protocol negotiation needed — the versioned key format is self-describing
+
+## File Layout
+
+```
+server/lib/crypto/ratchet/
+├── hybrid-bootstrap.cjs      — ML-KEM-768 + X25519 + Ed25519 KEM
+├── identity-ratchet.cjs      — Full ratchet with KDF chain + rotation
+├── compatibility-shim.cjs    — Hybrid/classical auto-detection + fallback
+├── rotation-scheduler.cjs    — Message count + duration threshold rotation
+├── ratchet-metrics.cjs       — Handshake latency + failure telemetry
+├── session-store.cjs         — Session persistence
+├── envelope-crypto.cjs       — Envelope encryption
+├── kem-provider.cjs          — KEM provider abstraction
+├── secret-scanner.cjs        — Secret scanning integration
+├── index.cjs                 — KDF root/chain functions
+└── __tests__/
+    ├── identity-ratchet.test.cjs     — 9 unit tests
+    ├── compatibility-shim.test.cjs   — 7 unit tests
+    ├── handshake-fuzz.test.cjs       — 25 fuzz + interop tests
+    ├── secret-scanner.test.cjs       — 1 unit test
+    └── session-purge.test.cjs        — 1 unit test
+```
+
+## Test Coverage
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| identity-ratchet.test.cjs | 9 | Keypair generation, encapsulate/decapsulate, sign/verify, chain step, rotation, audit events |
+| compatibility-shim.test.cjs | 7 | Mode detection, hybrid/classical handshake, deprecation deadline, metrics |
+| handshake-fuzz.test.cjs | 25 | Malformed keys, truncated cipherTexts, version mismatches, corrupted signatures, randomized fuzzing, interop convergence |
+| secret-scanner.test.cjs | 1 | Secret scanning integration |
+| session-purge.test.cjs | 1 | Session purge |
+| **Total** | **43** | |
