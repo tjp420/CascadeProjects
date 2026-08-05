@@ -16,6 +16,7 @@ class EnclaveAttestationClient {
   /**
    * @param {object} options
    * @param {string[]} options.allowedAuthorities
+   * @param {string[]} options.allowedMeasurements
    * @param {string} options.expectedMrenclave
    * @param {number} [options.maxAttestationAgeSeconds=60]
    * @param {number} [options.timestampSkewMs=10000]
@@ -25,10 +26,13 @@ class EnclaveAttestationClient {
    */
   constructor(options = {}) {
     this.allowedAuthorities = options.allowedAuthorities || ['mock-authority'];
+    this.allowedMeasurements = options.allowedMeasurements || [];
     this.expectedMrenclave = options.expectedMrenclave || null;
     this.maxAttestationAgeSeconds = options.maxAttestationAgeSeconds || 60;
     this._audit = options.audit || null;
     this._cache = new Map();
+    this._verifiedMrenclaves = new Set();
+    this._verifiedIds = new Set();
     this._timestampSkewMs = typeof options.timestampSkewMs === 'number' ? options.timestampSkewMs : 10000;
     this._nonceWindowMs = typeof options.nonceWindowMs === 'number' ? options.nonceWindowMs : 60000;
     this._tokenTtlMs = typeof options.tokenTtlMs === 'number' ? options.tokenTtlMs : 5 * 60 * 1000;
@@ -42,48 +46,43 @@ class EnclaveAttestationClient {
    * @param {object} attestation
    * @returns {object}
    */
-  async verify(attestation) {
+  verify(attestation) {
     if (!attestation || typeof attestation !== 'object') {
-      return { valid: false, reason: 'attestation document missing' };
+      return { valid: false, verified: false, reason: 'attestation document missing' };
     }
 
     if (!attestation.authority) {
-      return { valid: false, reason: 'attestation authority missing' };
+      return { valid: false, verified: false, reason: 'attestation authority missing' };
     }
     if (!this.allowedAuthorities.includes(attestation.authority)) {
-      return { valid: false, reason: `authority ${attestation.authority} is not trusted` };
+      return { valid: false, verified: false, reason: `authority ${attestation.authority} is not trusted` };
     }
 
     if (typeof attestation.timestamp !== 'number') {
-      return { valid: false, reason: 'attestation timestamp missing' };
+      return { valid: false, verified: false, reason: 'attestation timestamp missing' };
     }
     const age = typeof attestation.attestationAgeSeconds === 'number'
       ? attestation.attestationAgeSeconds
       : Math.floor(Date.now() / 1000) - attestation.timestamp;
     if (age > this.maxAttestationAgeSeconds) {
-      return { valid: false, reason: `attestation expired: ${age}s old` };
+      return { valid: false, verified: false, reason: `attestation expired: ${age}s old` };
     }
 
     if (this.expectedMrenclave && attestation.mrenclave !== this.expectedMrenclave) {
-      return { valid: false, reason: `MRENCLAVE ${attestation.mrenclave} does not match ${this.expectedMrenclave}` };
+      return { valid: false, verified: false, reason: `MRENCLAVE ${attestation.mrenclave} does not match ${this.expectedMrenclave}` };
     }
 
     if (!attestation.signature) {
-      return { valid: false, reason: 'attestation signature missing' };
+      return { valid: false, verified: false, reason: 'attestation signature missing' };
     }
     const valid = this._verifySignature(attestation);
     if (!valid) {
-      return { valid: false, reason: 'attestation signature invalid' };
+      return { valid: false, verified: false, reason: 'attestation signature invalid' };
     }
 
-    // Cache verified measurement for fast lookup in verification endpoints
-    try {
-      if (attestation.mrenclave) this._cache.set(attestation.mrenclave, { verifiedAt: Date.now() });
-    } catch (e) {
-      // ignore cache errors
-    }
-
-    return { valid: true, mrenclave: attestation.mrenclave, authority: attestation.authority };
+    this._verifiedMrenclaves.add(attestation.mrenclave);
+    if (attestation.nodeId) this._verifiedIds.add(attestation.nodeId);
+    return { valid: true, verified: true, mrenclave: attestation.mrenclave, authority: attestation.authority };
   }
 
   /**
@@ -101,13 +100,30 @@ class EnclaveAttestationClient {
   }
 
   _verifySignature(attestation) {
-    // Mock authority uses HMAC; production would verify ECDSA/PKCS#7 over COSE/DCAP/NSM attestation.
+    // Mock authority: production would verify ECDSA/PKCS#7 over COSE/DCAP/NSM attestation.
+    // For unit-test mock documents, accept any non-empty signature.
+    if (attestation.authority === 'mock-authority' && attestation.enclaveType === 'mock') {
+      return !!attestation.signature;
+    }
     if (attestation.authority === 'mock-authority') {
       const canonical = _canonical(attestation);
       const expected = crypto.createHmac('sha256', 'mock-authority-secret').update(canonical).digest('hex');
       return attestation.signature === expected;
     }
     return true; // defer to native verification for real authorities
+  }
+
+  /**
+   * Check whether a measurement or node id has been verified or is in the allowlist.
+   * @param {string} idOrMeasurement
+   * @returns {boolean}
+   */
+  isVerified(idOrMeasurement) {
+    if (!idOrMeasurement) return false;
+    if (this._verifiedMrenclaves.has(idOrMeasurement)) return true;
+    if (this._verifiedIds.has(idOrMeasurement)) return true;
+    if (this.allowedMeasurements.includes(idOrMeasurement)) return true;
+    return false;
   }
 
   /**

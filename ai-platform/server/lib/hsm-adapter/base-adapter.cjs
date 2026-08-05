@@ -955,6 +955,24 @@ class BaseHsmAdapter {
     this._audit('AUDIT_RECEIPT_CHAINED', info);
   }
 
+  /**
+   * Recognize and authorize a cross-tenant access request.
+   * @param {object} request
+   * @param {string} [tenantId='default']
+   * @returns {object}
+   */
+  recognizeCrossTenantAccess(request, tenantId = 'default') {
+    this._ensureInitialized();
+    const tenantPolicy = this._policyEngine?.getPolicy(tenantId) || {};
+    const policy = tenantPolicy.crossTenantAudit || {};
+    const { CrossTenantAccessAuditor } = require('./cross-tenant-access-auditor.cjs');
+    const auditor = new CrossTenantAccessAuditor({
+      policy,
+      audit: this._audit.bind(this),
+    });
+    return auditor.recognize(request);
+  }
+
   // ── Track 46 homomorphic computation telemetry hooks ───────────────
 
   /**
