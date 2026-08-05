@@ -211,7 +211,7 @@ groups:
 
       - alert: Track31HighValidationFailureRate
         expr: |
-          rate(hsm_lookupgate_challenge_issued_total[5m]) / rate(hsm_lookupgate_pool_initialized_total[5m]) > 0.15
+          rate(hsm_lookup_accreditation_completed_total[5m]) / (rate(hsm_lookupgate_pool_initialized_total[5m]) + 1) < 0.85
         for: 2m
         labels:
           severity: warning
@@ -245,9 +245,9 @@ groups:
     rules:
       - alert: Track113PqcHandshakeStall
         expr: |
-          rate(hsm_handshake_init_total[5m]) > 0
+          rate(hsm_mpc_handshake_initiated_total[5m]) > 0
           and
-          rate(hsm_handshake_verify_total[5m]) == 0
+          rate(hsm_mpc_handshake_verified_total[5m]) == 0
         for: 5m
         labels:
           severity: critical
@@ -262,7 +262,7 @@ groups:
 
       - alert: Track113HighDecryptionFailureRate
         expr: |
-          rate(hsm_handshake_envelope_decryption_failed_total[5m]) > 0
+          rate(hsm_mpc_handshake_aborted_total[5m]) > 0
         for: 2m
         labels:
           severity: warning
@@ -298,7 +298,7 @@ groups:
 
       - alert: Track32HighValidationFailureRate
         expr: |
-          rate(hsm_ringgate_challenge_issued_total[5m]) / rate(hsm_ringgate_pool_initialized_total[5m]) > 0.15
+          rate(hsm_ring_accreditation_completed_total[5m]) / (rate(hsm_ringgate_pool_initialized_total[5m]) + 1) < 0.85
         for: 2m
         labels:
           severity: warning
@@ -334,7 +334,7 @@ groups:
 
       - alert: Track33HighValidationFailureRate
         expr: |
-          rate(hsm_zk_accumulator_claim_verified_total[5m]) / rate(hsm_accumulatorgate_pool_initialized_total[5m]) < 0.85
+          rate(hsm_zk_accumulator_claim_verified_total[5m]) / (rate(hsm_accumulatorgate_pool_initialized_total[5m]) + 1) < 0.85
         for: 2m
         labels:
           severity: warning
@@ -421,7 +421,7 @@ groups:
 
       - alert: Track114HighValidationFailureRate
         expr: |
-          rate(hsm_zk_vss_claim_verified_total[5m]) / rate(hsm_vssgate_pool_initialized_total[5m]) < 0.85
+          rate(hsm_zk_vss_claim_verified_total[5m]) / (rate(hsm_vssgate_pool_initialized_total[5m]) + 1) < 0.85
         for: 2m
         labels:
           severity: warning
@@ -457,7 +457,7 @@ groups:
 
       - alert: Track115HighValidationFailureRate
         expr: |
-          rate(hsm_zk_vfhss_claim_verified_total[5m]) / rate(hsm_vfhssgate_pool_initialized_total[5m]) < 0.85
+          rate(hsm_zk_vfhss_claim_verified_total[5m]) / (rate(hsm_vfhssgate_pool_initialized_total[5m]) + 1) < 0.85
         for: 2m
         labels:
           severity: warning
