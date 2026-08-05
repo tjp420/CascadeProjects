@@ -276,8 +276,14 @@ SiemSecurityBroker.prototype.enableDistributedSync = function (opts) {
   this._nodeId = opts.nodeId || 'node-1';
   this._sendToPeers = typeof opts.sendFn === 'function' ? opts.sendFn : null;
   this._syncInterval = opts.syncIntervalMs || SYNC_INTERVAL_MS;
-  this._peerBuckets = new Map(); // nodeId -> { localTokens, maxLocalTokens, lastSeen }
+  this._peerBuckets = new Map(); // nodeId -> { localTokens, maxLocalTokens, weight, lastSeen }
   this._distEnabled = true;
+
+  // Node capacity weight (default 1 = homogeneous cluster)
+  const weight = typeof opts.weight === 'number' && opts.weight > 0
+    ? Math.floor(opts.weight)
+    : 1;
+  this._nodeWeight = weight;
 
   // Adjust local capacity to fair share
   const fairShare = Math.max(1, Math.floor(this.maxTokens / this._distNodeCount));
@@ -308,6 +314,7 @@ SiemSecurityBroker.prototype._broadcastBucketState = function () {
       from: this._nodeId,
       localTokens: this.tokens,
       maxLocalTokens: this._fairShare,
+      weight: this._nodeWeight,
       timestamp: Date.now(),
     });
   } catch {}
@@ -321,12 +328,66 @@ SiemSecurityBroker.prototype._broadcastBucketState = function () {
 SiemSecurityBroker.prototype.handlePeerSync = function (msg) {
   if (!this._distEnabled || !msg || msg.type !== 'SIEM_BUCKET_SYNC') return;
   try {
+    const peerWeight = typeof msg.weight === 'number' && msg.weight > 0
+      ? Math.floor(msg.weight)
+      : 1;
     this._peerBuckets.set(msg.from, {
       localTokens: msg.localTokens,
       maxLocalTokens: msg.maxLocalTokens,
+      weight: peerWeight,
       lastSeen: Date.now(),
     });
+    // Recalculate weighted fair share when peer weight info arrives
+    this._recalculateWeightedFairShare();
   } catch {}
+};
+
+/**
+ * Recalculate the weighted fair share based on local and peer weights.
+ *
+ * Formula: fairShare = maxTokens * (localWeight / sumOfAllWeights)
+ *
+ * When all nodes have weight 1 (homogeneous), this reduces to the
+ * original maxTokens / N formula. When weights differ, higher-weight
+ * nodes get proportionally more capacity.
+ *
+ * The reserve floor is updated proportionally. If the new fair share is
+ * lower than the current token count, tokens are capped.
+ *
+ * @private
+ */
+SiemSecurityBroker.prototype._recalculateWeightedFairShare = function () {
+  if (!this._distEnabled) return;
+
+  // Sum all weights: local + all known peers
+  let knownWeight = this._nodeWeight;
+  let knownPeers = 0;
+  for (const peer of this._peerBuckets.values()) {
+    knownWeight += (peer.weight || 1);
+    knownPeers++;
+  }
+
+  // If we haven't heard from all peers yet, account for unknown nodes
+  // with default weight 1 to avoid over-allocating before convergence.
+  const totalExpectedNodes = this._distNodeCount;
+  const unknownNodes = Math.max(0, totalExpectedNodes - 1 - knownPeers); // -1 for self
+  const totalWeight = knownWeight + unknownNodes; // unknown nodes default to weight 1
+
+  // Weighted fair share: maxTokens * (localWeight / totalWeight)
+  const weightedFairShare = Math.max(1, Math.floor(
+    this.maxTokens * (this._nodeWeight / totalWeight)
+  ));
+
+  // Only update if the value actually changed (avoid churn)
+  if (weightedFairShare === this._fairShare) return;
+
+  this._fairShare = weightedFairShare;
+  this._reserveFloor = Math.max(1, Math.floor(weightedFairShare * RESERVE_FLOOR_RATIO));
+
+  // If current tokens exceed the new fair share, cap them
+  if (this.tokens > weightedFairShare) {
+    this.tokens = weightedFairShare;
+  }
 };
 
 /**
@@ -389,9 +450,20 @@ SiemSecurityBroker.prototype._borrowFromPeers = function () {
   let borrowed = 0;
   const needed = Math.max(1, Math.floor(this._fairShare * 0.5));
 
-  for (const [peerId, peer] of this._peerBuckets) {
+  // Sort peers by weight descending — high-weight (core) nodes have more
+  // surplus capacity and should be preferred lenders over low-weight (edge) nodes.
+  const sortedPeers = [...this._peerBuckets.entries()].sort(
+    (a, b) => (b[1].weight || 1) - (a[1].weight || 1)
+  );
+
+  for (const [peerId, peer] of sortedPeers) {
     if (borrowed >= needed) break;
-    const peerSurplus = peer.localTokens - this._reserveFloor;
+    // Use the peer's own reserve floor (proportional to their weight/fair share)
+    // rather than this node's reserve floor, since high-weight peers have more surplus.
+    const peerReserveFloor = Math.max(1, Math.floor(
+      (peer.maxLocalTokens || this._fairShare) * RESERVE_FLOOR_RATIO
+    ));
+    const peerSurplus = peer.localTokens - peerReserveFloor;
     if (peerSurplus > 0) {
       // Send token request to this peer
       try {
@@ -402,6 +474,7 @@ SiemSecurityBroker.prototype._borrowFromPeers = function () {
           requested: Math.min(needed - borrowed, peerSurplus),
           timestamp: Date.now(),
         });
+        this._metrics.siem_token_requests_sent_total += 1;
       } catch {}
     }
   }
@@ -422,6 +495,8 @@ SiemSecurityBroker.prototype.getDistributedState = function () {
       enabled: false,
       nodeId: null,
       nodeCount: null,
+      nodeWeight: null,
+      clusterWeight: null,
       fairShare: null,
       reserveFloor: null,
       localTokens: this.tokens,
@@ -429,10 +504,17 @@ SiemSecurityBroker.prototype.getDistributedState = function () {
       peers: {},
     };
   }
+  // Calculate total cluster weight for diagnostics
+  let clusterWeight = this._nodeWeight;
+  for (const peer of this._peerBuckets.values()) {
+    clusterWeight += (peer.weight || 1);
+  }
   return {
     enabled: true,
     nodeId: this._nodeId,
     nodeCount: this._distNodeCount,
+    nodeWeight: this._nodeWeight,
+    clusterWeight,
     fairShare: this._fairShare,
     reserveFloor: this._reserveFloor,
     localTokens: this.tokens,
@@ -453,6 +535,8 @@ SiemSecurityBroker.prototype.getClusterTelemetry = function () {
     timestamp: new Date().toISOString(),
     nodeId: distState.nodeId,
     nodeCount: distState.nodeCount,
+    nodeWeight: distState.nodeWeight,
+    clusterWeight: distState.clusterWeight,
     distributedSyncEnabled: distState.enabled,
     fairShare: distState.fairShare,
     reserveFloor: distState.reserveFloor,
