@@ -31,6 +31,11 @@ router.use((req, res, next) => {
     req.track112TraceId = tid;
     req.track112Start = nowMs();
     res.setHeader('x-track112-trace-id', tid);
+    // Log request completion with trace ID for ingress → processing correlation
+    res.on('finish', () => {
+      const dur = req.track112Start ? (nowMs() - req.track112Start).toFixed(1) : '?';
+      console.log(`[track112] ${req.method} ${req.path} ${res.statusCode} ${dur}ms traceId=${tid}`);
+    });
   } catch (e) {
     // non-fatal, continue without tracking
   }
