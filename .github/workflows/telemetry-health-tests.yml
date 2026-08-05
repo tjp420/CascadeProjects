@@ -21,12 +21,12 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: ai-platform/package-json
+          cache-dependency-path: ai-platform/package.json
 
       - name: Install Dependencies and Run Jest
         working-directory: ai-platform
         run: |
-          set -e
+          set -euo pipefail
           echo "Installing scoped dependencies"
           npm ci
           npm install prom-client supertest --save-dev
