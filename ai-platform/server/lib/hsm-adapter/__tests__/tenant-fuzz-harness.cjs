@@ -2159,3 +2159,142 @@ exports.makeTrack121ConcurrentValidationCall = function (prng) {
 
 exports.makeHashChainPrng = makeHashChainPrng;
 exports.FUZZ_SEED = FUZZ_SEED;
+
+// ── Cross-track lattice fuzzing matrix utilities (Tracks 32/33/114/115) ──────
+exports.VALID_CLAIMS = {
+  track32: {
+    blindedLinkabilityAttestation: true,
+    linkabilityToken: 'token-valid',
+    attestationAuthority: 'mock-authority',
+    anonymitySet: new Array(32).fill('pub-key'),
+    canonicalPayloadLayout: true,
+  },
+  track33: {
+    enclaveMembershipAttestation: true,
+    attestationAuthority: 'mock-authority',
+    accumulatorType: 'rsa-accumulator',
+    canonicalPayloadLayout: true,
+    accumulatorSize: 1024,
+  },
+  track114: {
+    degreeBound: 8,
+    enclaveBindingAttestation: true,
+    attestationAuthority: 'mock-authority',
+    latticeScheme: 'module-lwr',
+    canonicalPayloadLayout: true,
+  },
+  track115: {
+    homomorphicDepth: 4,
+    enclaveEvaluationAttestation: true,
+    attestationAuthority: 'mock-authority',
+    latticeScheme: 'module-lwr',
+    canonicalPayloadLayout: true,
+  },
+};
+
+exports.CROSS_TRACK_PAYLOADS = {
+  ringToVss: {
+    blindedLinkabilityAttestation: true,
+    linkabilityToken: 'cross-track-token',
+    anonymitySet: new Array(128).fill('pub'),
+  },
+  ringToVfhss: {
+    blindedLinkabilityAttestation: true,
+    linkabilityToken: 'cross-track-token',
+    anonymitySet: new Array(128).fill('pub'),
+  },
+  accumulatorToRing: {
+    enclaveMembershipAttestation: true,
+    accumulatorSize: 65536,
+    accumulatorType: 'rsa-accumulator',
+  },
+  accumulatorToVfhss: {
+    enclaveMembershipAttestation: true,
+    accumulatorSize: 65536,
+    accumulatorType: 'rsa-accumulator',
+  },
+  vssToRing: {
+    degreeBound: 16,
+    enclaveBindingAttestation: true,
+    latticeScheme: 'module-lwr',
+  },
+  vssToAccumulator: {
+    degreeBound: 16,
+    enclaveBindingAttestation: true,
+    latticeScheme: 'module-lwr',
+  },
+  vfhssToRing: {
+    homomorphicDepth: 8,
+    enclaveEvaluationAttestation: true,
+    latticeScheme: 'module-lwr',
+  },
+  vfhssToAccumulator: {
+    homomorphicDepth: 8,
+    enclaveEvaluationAttestation: true,
+    latticeScheme: 'module-lwr',
+  },
+};
+
+exports.runZkVerificationRunner = function (tenantId, policyEngine) {
+  const { PqcBlindedRingSignatureGatingHub } = require('../pqc-blinded-ring-signature-gating-hub.cjs');
+  const { PqcDirectAccumulatorMembershipGatingHub } = require('../pqc-direct-accumulator-membership-gating-hub.cjs');
+  const { PqcLatticeVssGatingHub } = require('../pqc-lattice-vss-gating-hub.cjs');
+  const { PqcLatticeVfhssGatingHub } = require('../pqc-lattice-vfhss-gating-hub.cjs');
+
+  const results = {};
+  const trackSpecs = [
+    { key: 'track32', Hub: PqcBlindedRingSignatureGatingHub, collect: (hub) => hub.collectKeys(new Array(32).fill('pub')), claim: exports.VALID_CLAIMS.track32 },
+    { key: 'track33', Hub: PqcDirectAccumulatorMembershipGatingHub, collect: (hub) => hub.collectWitnesses(new Array(8).fill('witness')), claim: exports.VALID_CLAIMS.track33 },
+    { key: 'track114', Hub: PqcLatticeVssGatingHub, collect: (hub) => hub.collectShares(new Array(8).fill('share')), claim: exports.VALID_CLAIMS.track114 },
+    { key: 'track115', Hub: PqcLatticeVfhssGatingHub, collect: (hub) => hub.collectShares(new Array(10).fill('share')), claim: exports.VALID_CLAIMS.track115 },
+  ];
+
+  for (const spec of trackSpecs) {
+    try {
+      const hub = new spec.Hub(tenantId, policyEngine);
+      spec.collect(hub);
+      hub.validateProof({ ...spec.claim });
+      hub.accredit();
+      results[spec.key] = { passed: true, state: hub.state, error: null };
+    } catch (err) {
+      results[spec.key] = { passed: false, state: null, error: err.message };
+    }
+  }
+
+  const allPassed = Object.values(results).every((r) => r.passed);
+  return { results, allPassed };
+};
+
+exports.makeCrossTrackContaminationPayload = function (prng) {
+  const tracks = ['track32', 'track33', 'track114', 'track115'];
+  const sourceIdx = prng.nextInt(tracks.length);
+  let targetIdx = prng.nextInt(tracks.length);
+  while (targetIdx === sourceIdx) targetIdx = prng.nextInt(tracks.length);
+
+  const sourceTrack = tracks[sourceIdx];
+  const targetTrack = tracks[targetIdx];
+  const sourceClaim = exports.VALID_CLAIMS[sourceTrack];
+  const pollutedPayload = { ...sourceClaim };
+  if (prng.nextInt(3) === 0) {
+    pollutedPayload.__proto__ = { crossTrackPolluted: true };
+  }
+  if (prng.nextInt(5) === 0) {
+    pollutedPayload.constructor = { prototype: { crossTrackCtorPolluted: true } };
+  }
+  return { sourceTrack, targetTrack, payload: pollutedPayload };
+};
+
+exports.makeMultiTenantTrackCall = function (prng) {
+  const tenants = ['tenant-a', 'tenant-b', 'tenant-c', 'tenant-d', 'tenant-e'];
+  const tracks = ['track32', 'track33', 'track114', 'track115'];
+  const tenantId = prng.nextChoice(tenants);
+  const track = prng.nextChoice(tracks);
+  const shouldFail = prng.nextInt(3) === 0;
+
+  if (shouldFail) {
+    return { tenantId, track, claim: { attestationAuthority: 'mock-authority' }, shouldFail: true };
+  }
+  return { tenantId, track, claim: { ...exports.VALID_CLAIMS[track] }, shouldFail: false };
+};
+
+exports.CROSS_TRACK_CLEANUP_KEYS = ['crossTrackPolluted', 'crossTrackCtorPolluted'];
