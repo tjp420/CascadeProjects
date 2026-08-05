@@ -17,8 +17,8 @@ const logger = require('../app-logger.cjs').child('upload-purger');
 class Purger {
   constructor({ baseDir = path.join(process.cwd(), '.data', 'track112'), ttlHours = 24, intervalMinutes = 15 } = {}) {
     this.baseDir = baseDir;
-    this.ttlMs = (ttlHours || 24) * 60 * 60 * 1000;
-    this.intervalMs = (intervalMinutes || 15) * 60 * 1000;
+    this.ttlMs = (ttlHours == null ? 24 : ttlHours) * 60 * 60 * 1000;
+    this.intervalMs = (intervalMinutes == null ? 15 : intervalMinutes) * 60 * 1000;
     this._timer = null;
   }
 

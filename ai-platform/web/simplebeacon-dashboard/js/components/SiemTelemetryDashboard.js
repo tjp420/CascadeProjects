@@ -133,6 +133,25 @@ function renderSiemTelemetryContent(container, data) {
   const m = data.metrics || {};
   const peers = data.peers || {};
   const peerEntries = Object.entries(peers);
+
+  // Weight-related calculations
+  const nodeWeight = data.nodeWeight || 1;
+  const clusterWeight = data.clusterWeight || nodeWeight;
+  const proportionalSharePct = clusterWeight > 0
+    ? ((nodeWeight / clusterWeight) * 100).toFixed(1)
+    : '100.0';
+
+  // Build weight entries for all nodes (self + peers) for the allocation bar
+  const allWeightEntries = [
+    { id: data.nodeId || 'self', weight: nodeWeight, isSelf: true },
+    ...peerEntries.map(([peerId, peer]) => ({
+      id: peerId,
+      weight: peer.weight || 1,
+      isSelf: false,
+    })),
+  ];
+  const totalBarWeight = allWeightEntries.reduce((sum, e) => sum + e.weight, 0);
+
   // simplebeacon-ignore innerhtml-usage — internal API data rendered to trusted container
   container.innerHTML = `
     <div class="metrics-grid mb-4">
@@ -174,12 +193,51 @@ function renderSiemTelemetryContent(container, data) {
     </div>
 
     ${data.distributedSyncEnabled ? `
+    <div class="metrics-grid mb-4">
+      <div class="metric-card">
+        <div class="metric-label">Node Weight</div>
+        <div class="metric-value">${nodeWeight}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Cluster Weight (&Sigma;)</div>
+        <div class="metric-value">${clusterWeight}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Proportional Share</div>
+        <div class="metric-value text-blue-400">${proportionalSharePct}%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Fair Share Tokens</div>
+        <div class="metric-value">${data.fairShare || 0}</div>
+      </div>
+    </div>
+
+    <div class="siem-weight-bar-container mb-4">
+      <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:0.5rem;">Capacity Weight Allocation</h4>
+      <div class="siem-weight-bar">
+        ${allWeightEntries.map(entry => {
+          const pct = totalBarWeight > 0 ? (entry.weight / totalBarWeight) * 100 : 0;
+          const cls = entry.isSelf ? 'siem-weight-seg-self' : 'siem-weight-seg-peer';
+          const label = entry.id.length > 12 ? entry.id.substring(0, 10) + '..' : entry.id;
+          return `<div class="siem-weight-seg ${cls}" style="width:${pct}%;" title="${entry.id}: weight ${entry.weight} (${pct.toFixed(1)}%)">
+            <span class="siem-weight-seg-label">${label} (${entry.weight})</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="siem-weight-bar-legend">
+        <span class="siem-weight-legend-item"><span class="siem-weight-legend-dot siem-weight-legend-self"></span>Self (weight ${nodeWeight})</span>
+        <span class="siem-weight-legend-item"><span class="siem-weight-legend-dot siem-weight-legend-peer"></span>Peers (${peerEntries.length} seen)</span>
+      </div>
+    </div>
+
     <div class="table-container mb-4">
       <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:0.5rem;">Cluster Nodes (${data.nodeCount || '—'} total, ${peerEntries.length} peers seen)</h4>
       <table class="data-table">
         <thead>
           <tr>
             <th>Node ID</th>
+            <th>Weight</th>
+            <th>Share %</th>
             <th>Local Tokens</th>
             <th>Max Local Tokens</th>
             <th>Last Seen</th>
@@ -188,18 +246,27 @@ function renderSiemTelemetryContent(container, data) {
         <tbody>
           <tr>
             <td class="font-mono">${data.nodeId || '—'} (self)</td>
+            <td>${nodeWeight}</td>
+            <td>${proportionalSharePct}%</td>
             <td>${data.localTokens || 0}</td>
             <td>${data.fairShare || 0}</td>
             <td>now</td>
           </tr>
-          ${peerEntries.map(([peerId, peer]) => `
+          ${peerEntries.map(([peerId, peer]) => {
+            const peerWeight = peer.weight || 1;
+            const peerSharePct = clusterWeight > 0
+              ? ((peerWeight / clusterWeight) * 100).toFixed(1)
+              : '100.0';
+            return `
             <tr>
               <td class="font-mono">${peerId}</td>
+              <td>${peerWeight}</td>
+              <td>${peerSharePct}%</td>
               <td>${peer.localTokens}</td>
               <td>${peer.maxLocalTokens}</td>
               <td>${peer.lastSeen ? new Date(peer.lastSeen).toLocaleTimeString() : '—'}</td>
             </tr>
-          `).join('')}
+          `}).join('')}
         </tbody>
       </table>
     </div>
@@ -210,7 +277,7 @@ function renderSiemTelemetryContent(container, data) {
     `}
 
     <div class="flex justify-between text-xs text-gray-400 font-mono">
-      <span>Node: ${data.nodeId || '—'} | Fair share: ${data.fairShare || '—'} | Reserve floor: ${data.reserveFloor || '—'}</span>
+      <span>Node: ${data.nodeId || '—'} | Weight: ${nodeWeight} | Fair share: ${data.fairShare || '—'} | Reserve floor: ${data.reserveFloor || '—'}</span>
       <span>Refreshed: ${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '—'}</span>
     </div>
   `;
