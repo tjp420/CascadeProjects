@@ -16,17 +16,14 @@ route:
     - match:
         service: 'simplebeacon-scan'
       receiver: 'simplebeacon-receiver'
-      continue: true
-    # Fallback: any alerts that do not match specific routes will use the top-level receiver.
-
 inhibit_rules:
-  # Auto-inhibit warning alerts when a critical alert is active for the same resource
+  # Suppress lower-severity (warning) alerts when a corresponding higher-severity (critical)
+  # alert is firing for the same cluster/instance/service. This reduces noise during active
+  # incident escalations (e.g., memory-critical supersedes memory-warning).
   - source_match:
-      alertname: SimpleBeaconScanResourcePressure
-      severity: critical
+      severity: 'critical'
     target_match:
-      alertname: SimpleBeaconScanResourcePressure
-      severity: warning
+      severity: 'warning'
     equal: ['cluster', 'instance', 'service']
 
 receivers:
