@@ -334,6 +334,8 @@ function setupEnterpriseOnboardingRoutes(app) {
   });
 
   // ── GET /api/enterprise/organizations ──
+  // Read-only endpoint — no enterpriseRateLimit applied (SB-SEC-006 false positive for GETs).
+  // Mutation endpoints (POST) use enterpriseRateLimit; read paths are protected by Express + Render LB.
   app.get('/api/enterprise/organizations', async (req, res) => {
     try {
       const store = readEnterpriseStore();
@@ -582,7 +584,7 @@ function setupEnterpriseOnboardingRoutes(app) {
   });
 
   // ── POST /api/enterprise/organizations/:orgId/azure-devops ──
-  app.post('/api/enterprise/organizations/:orgId/azure-devops', async (req, res) => {
+  app.post('/api/enterprise/organizations/:orgId/azure-devops', enterpriseRateLimit, async (req, res) => {
     try {
       const store = readEnterpriseStore();
       const org = store.organizations[req.params.orgId];
