@@ -1,12 +1,13 @@
 const { PrimeField } = require('./field.cjs');
 
 class SchnorrShareEvaluator {
-  constructor(modulus) {
+  constructor(modulus, subgroupOrder = modulus) {
     this.field = new PrimeField(modulus);
+    this.subgroupOrder = subgroupOrder === undefined || subgroupOrder === null ? this.field.q : BigInt(subgroupOrder);
   }
 
   /**
-   * Validates that a value is a BigInt (or can be coerced to one) and is within field range.
+   * Validates that a value is a BigInt (or can be coerced to one) and is within range.
    * @param {*} value - The value to validate.
    * @param {string} name - The parameter name for error messages.
    * @param {boolean} [allowZero=true] - Whether zero is a valid value.
@@ -25,14 +26,17 @@ class SchnorrShareEvaluator {
     if (!allowZero && bg === 0n) {
       throw new Error(`SchnorrShareEvaluator: ${name} must not be zero`);
     }
-    if (bg < 0n || bg >= this.field.q) {
-      throw new Error(`SchnorrShareEvaluator: ${name} must be in field range [0, q-1]`);
+    if (bg < 0n || bg >= this.subgroupOrder) {
+      throw new Error(`SchnorrShareEvaluator: ${name} must be in subgroup range [0, q-1]`);
     }
     return bg;
   }
 
   /**
-   * Evaluates a localized partial signature share: s_i = (c * x_i * lambda_i) + k_i1 + (b_i * k_i2) mod q
+   * Evaluates a localized partial signature share scalar: s_i = (c * x_i * lambda_i) + k_i1 + (b * k_i2) mod q
+   * All secret scalars live in the prime-order subgroup of order q, so the result is
+   * reduced modulo q. The public verification equation is:
+   *   g^{s_i} == (X_i)^{c * lambda_i} * R_i1 * (R_i2)^b  (mod p)
    */
   evaluatePartialShare({ challenge, secretKeyShare, lagrangeWeight, secretNonces, bindingFactor }) {
     if (challenge === undefined || challenge === null) {
@@ -64,14 +68,12 @@ class SchnorrShareEvaluator {
     const k2 = this._validateBigInt(secretNonces.k2, 'secretNonces.k2');
     const b = this._validateBigInt(bindingFactor, 'bindingFactor');
 
-    // effective secret component: (c * x * lambda) mod q
-    const keyProduct = this.field.mul(c, x);
-    const effectiveSecret = this.field.mul(keyProduct, lambda);
+    const q = this.subgroupOrder;
 
-    // blended nonce: k1 + b * k2
-    const blended = this.field.add(k1, this.field.mul(b, k2));
+    const secretPart = (((c * x) % q) * lambda) % q;
+    const noncePart = (k1 + ((b * k2) % q)) % q;
 
-    return this.field.add(effectiveSecret, blended);
+    return (secretPart + noncePart) % q;
   }
 
   // Zeroize secret nonces (in-place) to reduce memory lifetime of secrets.

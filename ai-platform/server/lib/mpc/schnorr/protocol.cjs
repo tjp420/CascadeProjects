@@ -1,9 +1,31 @@
 const crypto = require('crypto');
 const { PrimeField } = require('./field.cjs');
 
+let HsmAdapterError;
+let hsmMetrics;
+try {
+  HsmAdapterError = require('../../hsm-adapter/base-adapter.cjs').HsmAdapterError;
+} catch (e) {
+  HsmAdapterError = class extends Error {
+    constructor(code, message) {
+      super(message);
+      this.name = 'HsmAdapterError';
+      this.code = code;
+    }
+  };
+}
+try {
+  hsmMetrics = require('../../hsm-adapter/hsm-metrics.cjs');
+} catch (e) {
+  hsmMetrics = { incrementCounter: () => {} };
+}
+
 class SchnorrThresholdAggregator {
-  constructor(modulus) {
+  constructor(modulus, subgroupOrder = modulus, generator = 2n) {
     this.field = new PrimeField(modulus);
+    this.subgroupOrder = subgroupOrder === undefined || subgroupOrder === null ? this.field.q : this.field.toBig(subgroupOrder);
+    this.generator = this.field.toBig(generator);
+    this._tenantShares = new Map();
   }
 
   /**
@@ -199,9 +221,150 @@ class SchnorrThresholdAggregator {
     let s = 0n;
     for (let i = 0; i < partialShares.length; i++) {
       const si = this._validateBigInt(partialShares[i], `partialShares[${i}]`);
-      s = this.field.add(s, si);
+      s = (s + si) % this.subgroupOrder;
     }
     return { R, s };
+  }
+
+  /**
+   * Build a tenant-scoped share cache key.
+   */
+  _shareKey(tenantId, sessionId) {
+    return `${tenantId || 'default'}::${sessionId || 'global'}`;
+  }
+
+  /**
+   * Store a verified partial share under a tenant-scoped compound key.
+   */
+  _setShare(tenantId, sessionId, nodeId, share) {
+    const key = this._shareKey(tenantId, sessionId);
+    if (!this._tenantShares.has(key)) {
+      this._tenantShares.set(key, new Map());
+    }
+    this._tenantShares.get(key).set(String(nodeId), share);
+  }
+
+  /**
+   * Retrieve tenant-scoped partial shares as an array.
+   */
+  _getShares(tenantId, sessionId) {
+    const key = this._shareKey(tenantId, sessionId);
+    const bucket = this._tenantShares.get(key);
+    if (!bucket) return [];
+    return Array.from(bucket.values());
+  }
+
+  /**
+   * Verify a partial share before aggregation.
+   * For field arithmetic the check is:
+   *   s_i == (c * x_i * lambda_i) + k_i1 + (b * k_i2)  (as integers, represented via public points)
+   * We verify the point relation:
+   *   g^{s_i} == (P_i)^{c * lambda_i} * R_i1 * (R_i2)^b  (mod q)
+   * This traps rogue partial shares before they contaminate the final signature.
+   */
+  verifyPartialShare({
+    publicKey,
+    publicNonce1,
+    publicNonce2,
+    partialShare,
+    challenge,
+    lagrangeWeight,
+    bindingFactor,
+    nodeId,
+  }) {
+    if (publicKey === undefined || publicKey === null) {
+      throw new Error('SchnorrThresholdAggregator.verifyPartialShare: publicKey is required');
+    }
+    if (publicNonce1 === undefined || publicNonce1 === null) {
+      throw new Error('SchnorrThresholdAggregator.verifyPartialShare: publicNonce1 is required');
+    }
+    const P = this._validateBigInt(publicKey, 'publicKey');
+    const R1 = this._validateBigInt(publicNonce1, 'publicNonce1');
+    const R2 = publicNonce2 === undefined || publicNonce2 === null ? 1n : this._validateBigInt(publicNonce2, 'publicNonce2');
+    const s = this._validateBigInt(partialShare, 'partialShare');
+    const c = this._validateBigInt(challenge, 'challenge');
+    const lambda = this._validateBigInt(lagrangeWeight, 'lagrangeWeight');
+    const b = this._validateBigInt(bindingFactor, 'bindingFactor');
+
+    const q = this.subgroupOrder;
+    const sMod = s % q;
+    const exp = (c % q) * (lambda % q) % q;
+    const bMod = b % q;
+    const lhs = this.field.exp(this.generator, sMod);
+    const rhs = this.field.mul(
+      this.field.mul(this.field.exp(P, exp), R1),
+      this.field.exp(R2, bMod)
+    );
+    if (lhs !== rhs) {
+      if (hsmMetrics && hsmMetrics.incrementCounter) {
+        hsmMetrics.incrementCounter('hsm_mpc_schnorr_fault_total');
+      }
+      throw new HsmAdapterError(
+        'SCHNORR_THRESHOLD_VIOLATION',
+        `SchnorrThresholdAggregator.verifyPartialShare: partial share from node ${nodeId ?? 'unknown'} failed verification (SCHNORR_THRESHOLD_VIOLATION)`
+      );
+    }
+    return true;
+  }
+
+  /**
+   * Collect, verify, and aggregate partial shares under a strict threshold quorum (t+1).
+   * Only verified shares are cached; the first failing share aborts the collection
+   * and reports the offending nodeId with SCHNORR_THRESHOLD_VIOLATION.
+   */
+  aggregateVerifiedPartialShares({
+    tenantId,
+    sessionId,
+    partialShares,
+    threshold,
+    publicKeys,
+    publicNonce1s,
+    publicNonce2s,
+    challenges,
+    lagrangeWeights,
+    bindingFactors,
+  }) {
+    if (!Array.isArray(partialShares) || partialShares.length === 0) {
+      throw new Error('SchnorrThresholdAggregator.aggregateVerifiedPartialShares: partialShares must be a non-empty array');
+    }
+    if (typeof threshold !== 'number' || threshold < 1) {
+      throw new Error('SchnorrThresholdAggregator.aggregateVerifiedPartialShares: threshold must be a positive integer');
+    }
+    if (partialShares.length < threshold + 1) {
+      throw new HsmAdapterError(
+        'SCHNORR_THRESHOLD_VIOLATION',
+        'SchnorrThresholdAggregator.aggregateVerifiedPartialShares: insufficient partial shares to reach threshold (t+1)'
+      );
+    }
+
+    const ids = partialShares.map((_, i) => i + 1);
+    for (let i = 0; i < partialShares.length; i++) {
+      const nodeId = ids[i];
+      try {
+        this.verifyPartialShare({
+          publicKey: publicKeys[i],
+          publicNonce1: publicNonce1s[i],
+          publicNonce2: publicNonce2s ? publicNonce2s[i] : undefined,
+          partialShare: partialShares[i],
+          challenge: challenges[i],
+          lagrangeWeight: lagrangeWeights[i],
+          bindingFactor: bindingFactors[i],
+          nodeId,
+        });
+      } catch (e) {
+        if (hsmMetrics && hsmMetrics.incrementCounter) {
+          hsmMetrics.incrementCounter('hsm_mpc_schnorr_fault_total');
+        }
+        throw new HsmAdapterError(
+          'SCHNORR_THRESHOLD_VIOLATION',
+          `SchnorrThresholdAggregator.aggregateVerifiedPartialShares: node ${nodeId} submitted a malformed partial signature share`
+        );
+      }
+      this._setShare(tenantId, sessionId, nodeId, partialShares[i]);
+    }
+
+    const verified = this._getShares(tenantId, sessionId);
+    return this.assembleSignature(verified[0], verified);
   }
 
   /**
@@ -250,9 +413,9 @@ class SchnorrThresholdAggregator {
     // Field-based verification (for testing without EC points):
     // s ≡ k_agg + c * x_agg (mod q)
     if (options.aggPrivateKey !== undefined && options.aggSecretNonce !== undefined) {
-      const x_agg = this._validateBigInt(options.aggPrivateKey, 'aggPrivateKey');
-      const k_agg = this._validateBigInt(options.aggSecretNonce, 'aggSecretNonce');
-      const expected = this.field.add(k_agg, this.field.mul(c, x_agg));
+      const x_agg = this._validateBigInt(options.aggPrivateKey, 'aggPrivateKey') % this.subgroupOrder;
+      const k_agg = this._validateBigInt(options.aggSecretNonce, 'aggSecretNonce') % this.subgroupOrder;
+      const expected = (k_agg + (c % this.subgroupOrder) * x_agg) % this.subgroupOrder;
       return s === expected;
     }
 

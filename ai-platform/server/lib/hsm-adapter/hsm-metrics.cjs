@@ -131,6 +131,7 @@ const counters = {
   hsm_heartbeat_quarantined_keys: 0,
   hsm_heartbeat_pending_challenges: 0,
   // Track 46: Zero-Knowledge Inter-Enclave MPC Handshakes counters
+  hsm_mpc_schnorr_fault_total: 0,
   hsm_mpc_handshake_initiated_total: 0,
   hsm_mpc_handshake_committed_total: 0,
   hsm_mpc_handshake_proven_total: 0,
@@ -1053,6 +1054,7 @@ const META = {
   hsm_heartbeat_quarantined_keys: { help: 'Number of enclaves with quarantined key status.', type: 'gauge' },
   hsm_heartbeat_pending_challenges: { help: 'Number of pending heartbeat challenges awaiting response.', type: 'gauge' },
   // Track 46: Zero-Knowledge Inter-Enclave MPC Handshakes
+  hsm_mpc_schnorr_fault_total: { help: 'Total malformed or malicious Schnorr threshold partial shares detected and rejected.', type: 'counter' },
   hsm_mpc_handshake_initiated_total: { help: 'Total MPC handshakes initiated.', type: 'counter' },
   hsm_mpc_handshake_committed_total: { help: 'Total MPC handshake commitment phases completed (all participants committed).', type: 'counter' },
   hsm_mpc_handshake_proven_total: { help: 'Total MPC handshake proof phases completed (all proofs submitted).', type: 'counter' },

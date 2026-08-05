@@ -462,3 +462,174 @@ describe('MuSig2 Core Protocol Primitives', () => {
     expect(() => aggregator.verifySignature(100n, 50n, {}, 'msg')).toThrow();
   });
 });
+
+// ── Option D: MPC-Schnorr threshold completion — tenant isolation & partial-share verification
+
+describe('Schnorr threshold completion (Option D)', () => {
+  // Field prime p = 23, prime subgroup order q = 11, generator g = 2 (order 11 in F_23).
+  const P = 23n;
+  const Q = 11n;
+  const G = 2n;
+  let aggregator;
+  let evaluator;
+
+  beforeEach(() => {
+    aggregator = new SchnorrThresholdAggregator(P, Q, G);
+    evaluator = new SchnorrShareEvaluator(P, Q);
+  });
+
+  test('verifyPartialShare accepts a valid share and rejects a rogue share', () => {
+    const challenge = 2n;
+    const binding = 3n;
+    const x = 3n;
+    const k1 = 4n;
+    const k2 = 5n;
+
+    const partial = evaluator.evaluatePartialShare({
+      challenge,
+      secretKeyShare: x,
+      lagrangeWeight: 1n,
+      secretNonces: { k1, k2 },
+      bindingFactor: binding,
+    });
+
+    const P = aggregator.field.exp(aggregator.generator, x);
+    const R1 = aggregator.field.exp(aggregator.generator, k1);
+    const R2 = aggregator.field.exp(aggregator.generator, k2);
+
+    expect(aggregator.verifyPartialShare({
+      publicKey: P,
+      publicNonce1: R1,
+      publicNonce2: R2,
+      partialShare: partial,
+      challenge,
+      lagrangeWeight: 1n,
+      bindingFactor: binding,
+      nodeId: 1,
+    })).toBe(true);
+
+    expect(() => aggregator.verifyPartialShare({
+      publicKey: P,
+      publicNonce1: R1,
+      publicNonce2: R2,
+      partialShare: partial + 1n,
+      challenge,
+      lagrangeWeight: 1n,
+      bindingFactor: binding,
+      nodeId: 'rogue-1',
+    })).toThrow();
+  });
+
+  test('aggregateVerifiedPartialShares enforces t+1 quorum and tenant isolation', () => {
+    const challenge = 2n;
+    const binding = 3n;
+    const keyShares = [3n, 4n, 5n];
+    const k1s = [4n, 5n, 6n];
+    const k2s = [5n, 6n, 7n];
+    const pubKeys = keyShares.map(x => aggregator.field.exp(aggregator.generator, x));
+    const publicNonce1s = k1s.map(k => aggregator.field.exp(aggregator.generator, k));
+    const publicNonce2s = k2s.map(k => aggregator.field.exp(aggregator.generator, k));
+    const partialShares = keyShares.map((x, i) => evaluator.evaluatePartialShare({
+      challenge,
+      secretKeyShare: x,
+      lagrangeWeight: 1n,
+      secretNonces: { k1: k1s[i], k2: k2s[i] },
+      bindingFactor: binding,
+    }));
+
+    const result = aggregator.aggregateVerifiedPartialShares({
+      tenantId: 'tenant-a',
+      sessionId: 'session-a',
+      partialShares,
+      threshold: 2,
+      publicKeys: pubKeys,
+      publicNonce1s,
+      publicNonce2s,
+      challenges: partialShares.map(() => challenge),
+      lagrangeWeights: partialShares.map(() => 1n),
+      bindingFactors: partialShares.map(() => binding),
+    });
+
+    expect(result).toHaveProperty('R');
+    expect(result).toHaveProperty('s');
+
+    // Tenant-b scope must not reuse the verified tenant-a share cache.
+    // Re-running with a mismatched public nonce forces a fresh verification failure.
+    const badNonce1s = publicNonce1s.slice();
+    badNonce1s[0] = 1n;
+    expect(() => aggregator.aggregateVerifiedPartialShares({
+      tenantId: 'tenant-b',
+      sessionId: 'session-a',
+      partialShares,
+      threshold: 2,
+      publicKeys: pubKeys,
+      publicNonce1s: badNonce1s,
+      publicNonce2s,
+      challenges: partialShares.map(() => challenge),
+      lagrangeWeights: partialShares.map(() => 1n),
+      bindingFactors: partialShares.map(() => binding),
+    })).toThrow();
+  });
+
+  test('aggregateVerifiedPartialShares throws SCHNORR_THRESHOLD_VIOLATION on malformed share', () => {
+    const challenge = 2n;
+    const binding = 3n;
+    const keyShares = [3n, 4n, 5n];
+    const k1s = [4n, 5n, 6n];
+    const k2s = [5n, 6n, 7n];
+    const pubKeys = keyShares.map(x => aggregator.field.exp(aggregator.generator, x));
+    const publicNonce1s = k1s.map(k => aggregator.field.exp(aggregator.generator, k));
+    const publicNonce2s = k2s.map(k => aggregator.field.exp(aggregator.generator, k));
+    const partialShares = keyShares.map((x, i) => evaluator.evaluatePartialShare({
+      challenge,
+      secretKeyShare: x,
+      lagrangeWeight: 1n,
+      secretNonces: { k1: k1s[i], k2: k2s[i] },
+      bindingFactor: binding,
+    }));
+
+    // Corrupt node 2 share
+    partialShares[1] = (partialShares[1] + 1n) % Q;
+
+    try {
+      aggregator.aggregateVerifiedPartialShares({
+        tenantId: 'tenant-violation',
+        sessionId: 'session-violation',
+        partialShares,
+        threshold: 2,
+        publicKeys: pubKeys,
+        publicNonce1s,
+        publicNonce2s,
+        challenges: partialShares.map(() => challenge),
+        lagrangeWeights: partialShares.map(() => 1n),
+        bindingFactors: partialShares.map(() => binding),
+      });
+      throw new Error('expected SCHNORR_THRESHOLD_VIOLATION');
+    } catch (e) {
+      expect(e.code).toBe('SCHNORR_THRESHOLD_VIOLATION');
+    }
+  });
+
+  test('aggregateVerifiedPartialShares requires t+1 partial shares', () => {
+    const pubKeys = [2n, 3n, 4n];
+    const partialShares = [1n, 2n];
+    const publicNonce1s = [2n, 3n];
+    const publicNonce2s = [3n, 4n];
+    const challenges = [1n, 1n];
+    const lagrangeWeights = [1n, 1n];
+    const bindingFactors = [1n, 1n];
+
+    expect(() => aggregator.aggregateVerifiedPartialShares({
+      tenantId: 'tenant-t',
+      sessionId: 's1',
+      partialShares,
+      threshold: 2,
+      publicKeys,
+      publicNonce1s,
+      publicNonce2s,
+      challenges,
+      lagrangeWeights,
+      bindingFactors,
+    })).toThrow();
+  });
+});

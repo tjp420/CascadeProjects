@@ -44,6 +44,22 @@ class PrimeField {
   div(a, b) {
     return this.mul(a, this.inv(b));
   }
+
+  exp(base, e) {
+    let result = 1n;
+    let b = this.toBig(base) % this.q;
+    let exp = this.toBig(e);
+    if (exp < 0n) {
+      b = this.inv(b);
+      exp = -exp;
+    }
+    while (exp > 0n) {
+      if (exp % 2n === 1n) result = this.mul(result, b);
+      b = this.mul(b, b);
+      exp = exp / 2n;
+    }
+    return result;
+  }
 }
 
 module.exports = { PrimeField };
