@@ -1082,6 +1082,26 @@ class BaseHsmAdapter {
     this._audit('ZK_SETTLEMENT_FINALIZED', info);
   }
 
+  // ── Track 30 PQC identity ratchet telemetry hooks ──────────────────
+
+  /**
+   * Emit an identity ratchet step event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIdentityRatchetStepped(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_RATCHET_STEPPED', info);
+  }
+
+  /**
+   * Emit an MFA token authenticated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitMfaTokenAuthenticated(info = {}) {
+    this._ensureInitialized();
+    this._audit('MFA_TOKEN_AUTHENTICATED', info);
+  }
+
   // ── Track 51 PQC identity hub telemetry hooks ──────────────────────
 
   /**
