@@ -351,6 +351,21 @@ exports.cleanupPrototypePollution = function () {
     'migrationCtorLevel4',
     'migrationDeepMinQuorumNodes',
     'migrationDeepMaxConcurrentMigrations',
+    // Track 120: Cluster key reconciliation pollution cleanup keys
+    'reconciliationGatePolluted',
+    'reconciliationConstructorPolluted',
+    'reconciliationProtoLevel0',
+    'reconciliationProtoLevel1',
+    'reconciliationProtoLevel2',
+    'reconciliationProtoLevel3',
+    'reconciliationProtoLevel4',
+    'reconciliationCtorLevel0',
+    'reconciliationCtorLevel1',
+    'reconciliationCtorLevel2',
+    'reconciliationCtorLevel3',
+    'reconciliationCtorLevel4',
+    'reconciliationDeepMinQuorumNodes',
+    'reconciliationDeepMaxTrackedKeys',
   ];
   for (const key of keys) {
     delete Object.prototype[key];
@@ -1767,6 +1782,178 @@ exports.makeTrack119ConcurrentValidationCall = function (prng) {
       requireQuorumCommit: prng.nextChoice([true, false, 'true', 1, 0]),
       requireRollbackOnFailure: prng.nextChoice([true, false, 'true', 1, 0]),
       maxShardsPerMigration: prng.nextChoice([0, 32, 33, 999, -1]),
+    },
+  };
+};
+
+// ── Track 120: Cluster Key Reconciliation mutators ───────────────────────────
+
+exports.makeTrack120ProtoPollutionPolicy = function () {
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track120-polluter': {
+        clusterKeyReconciliation: {
+          __proto__: { reconciliationGatePolluted: true },
+          minQuorumNodes: 3,
+          maxEpochRollbackAttempts: 3,
+          requireQuorumPromotion: true,
+          requireAntiRollback: true,
+          quarantineOnCriticalDivergence: true,
+          maxTrackedKeys: 256,
+          constructor: { prototype: { reconciliationConstructorPolluted: true } },
+        },
+      },
+      'track120-clean': {
+        clusterKeyReconciliation: {
+          minQuorumNodes: 3,
+          maxEpochRollbackAttempts: 3,
+          requireQuorumPromotion: true,
+          requireAntiRollback: true,
+          quarantineOnCriticalDivergence: true,
+          maxTrackedKeys: 256,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack120TypeConfusionConfigs = function () {
+  return [
+    { value: { minQuorumNodes: 'not-a-number' }, label: 'string-for-numeric' },
+    { value: { minQuorumNodes: null }, label: 'null-for-numeric' },
+    { value: { minQuorumNodes: [] }, label: 'array-for-numeric' },
+    { value: { minQuorumNodes: {} }, label: 'object-for-numeric' },
+    { value: { minQuorumNodes: true }, label: 'boolean-for-numeric' },
+    { value: { maxEpochRollbackAttempts: 'not-a-number' }, label: 'string-for-rollback' },
+    { value: { maxEpochRollbackAttempts: null }, label: 'null-for-rollback' },
+    { value: { maxEpochRollbackAttempts: [] }, label: 'array-for-rollback' },
+    { value: { requireQuorumPromotion: 'not-a-boolean' }, label: 'string-for-boolean' },
+    { value: { requireQuorumPromotion: 42 }, label: 'number-for-boolean' },
+    { value: { requireQuorumPromotion: null }, label: 'null-for-boolean' },
+    { value: { requireQuorumPromotion: [] }, label: 'array-for-boolean' },
+    { value: { requireAntiRollback: 'not-a-boolean' }, label: 'string-for-antirb' },
+    { value: { requireAntiRollback: 42 }, label: 'number-for-antirb' },
+    { value: { quarantineOnCriticalDivergence: 'not-a-boolean' }, label: 'string-for-quarantine' },
+    { value: { quarantineOnCriticalDivergence: 42 }, label: 'number-for-quarantine' },
+    { value: { maxTrackedKeys: 'not-a-number' }, label: 'string-for-tracked' },
+    { value: { maxTrackedKeys: null }, label: 'null-for-tracked' },
+    { value: { maxTrackedKeys: [] }, label: 'array-for-tracked' },
+    { value: { maxTrackedKeys: {} }, label: 'object-for-tracked' },
+    { value: { __proto__: { reconciliationGatePolluted: true } }, label: 'proto-pollution-top-level' },
+    { value: { constructor: { prototype: { reconciliationConstructorPolluted: true } } }, label: 'ctor-pollution-top-level' },
+  ];
+};
+
+exports.makeTrack120PrngDrivenValidateCall = function (prng) {
+  const tenantId = prng.nextChoice(['t1', 'track120-polluter', 'track120-clean']);
+  const minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 4, 5, 999, -1, NaN, '3', Number.MAX_SAFE_INTEGER]);
+  const maxEpochRollbackAttempts = prng.nextChoice([0, 1, 3, 5, 6, 999, -1, NaN, '5', Number.MAX_SAFE_INTEGER]);
+  const requireQuorumPromotion = prng.nextChoice([true, false, 'true', 'false', 1, 0, null]);
+  const requireAntiRollback = prng.nextChoice([true, false, 'true', 'false', 1, 0, null]);
+  const quarantineOnCriticalDivergence = prng.nextChoice([true, false, 'true', 'false', 1, 0, null]);
+  const maxTrackedKeys = prng.nextChoice([0, 1, 256, 512, 513, 999, -1, NaN, '256', Number.MAX_SAFE_INTEGER]);
+  return {
+    tenantId,
+    operation: 'clusterKeyReconciliation',
+    config: {
+      minQuorumNodes,
+      maxEpochRollbackAttempts,
+      requireQuorumPromotion,
+      requireAntiRollback,
+      quarantineOnCriticalDivergence,
+      maxTrackedKeys,
+    },
+  };
+};
+
+// ── Track 120: Deep nested multi-layer policy mutation (5-level) ─────────────
+
+function attachReconciliationDeepPollution(node, depth, prng) {
+  const protoKey = 'reconciliationProtoLevel' + depth;
+  const ctorKey = 'reconciliationCtorLevel' + depth;
+  node.__proto__ = { [protoKey]: true };
+  if (prng) {
+    node.minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 999, -1]);
+    node.maxTrackedKeys = prng.nextChoice([0, 1, 256, 512, 999, -1]);
+  } else {
+    node.minQuorumNodes = depth % 2 === 0 ? 0 : 3;
+    node.maxTrackedKeys = depth % 2 === 0 ? 999 : 256;
+  }
+  node.constructor = { prototype: { [ctorKey]: true } };
+}
+
+exports.makeTrack120DeepNestedPollutionPolicy = function () {
+  const pollutedReconciliation = { clusterKeyReconciliation: {} };
+  let current = pollutedReconciliation.clusterKeyReconciliation;
+  for (let i = 0; i < 5; i++) {
+    attachReconciliationDeepPollution(current, i);
+    if (i < 4) {
+      current.clusterKeyReconciliation = {};
+      current = current.clusterKeyReconciliation;
+    }
+  }
+  return {
+    version: '0.0.0',
+    default: {},
+    tenants: {
+      'track120-deep-polluter': pollutedReconciliation,
+      'track120-clean': {
+        clusterKeyReconciliation: {
+          minQuorumNodes: 3,
+          maxEpochRollbackAttempts: 3,
+          requireQuorumPromotion: true,
+          requireAntiRollback: true,
+          quarantineOnCriticalDivergence: true,
+          maxTrackedKeys: 256,
+        },
+      },
+    },
+  };
+};
+
+exports.makeTrack120PrngDrivenMultiLayerPolicy = function (prng) {
+  const tenantCount = prng.nextInt(4) + 2;
+  const tenants = {};
+  const RECONCILIATION_KEYS = ['clusterKeyReconciliation', 'pqc', 'zkp', 'threshold', 'governance'];
+  for (let i = 0; i < tenantCount; i++) {
+    const tenantId = 'track120-tenant-' + prng.nextString(8);
+    const tenant = {};
+    const layers = prng.nextInt(4) + 1;
+    for (let l = 0; l < layers; l++) {
+      const key = prng.nextChoice(RECONCILIATION_KEYS);
+      const block = {};
+      attachReconciliationDeepPollution(block, l % 5, prng);
+      if (key === 'clusterKeyReconciliation' && prng.nextInt(3) === 0) {
+        block.minQuorumNodes = prng.nextChoice([0, 1, 2, 3, 4, 5, 999, -1]);
+        block.requireQuorumPromotion = prng.nextChoice([true, false, 'true', 1, 0]);
+        block.maxTrackedKeys = prng.nextChoice([0, 1, 256, 512, 513, 999, -1]);
+      }
+      tenant[key] = block;
+    }
+    tenants[tenantId] = tenant;
+  }
+  return { version: '0.0.0', default: {}, tenants };
+};
+
+exports.makeTrack120ConcurrentValidationCall = function (prng) {
+  const tenantId = prng.nextChoice([
+    'track120-clean',
+    'track120-deep-polluter',
+    'track120-tenant-' + prng.nextString(8),
+    prng.nextInt(999).toString(),
+  ]);
+  return {
+    tenantId,
+    operation: 'clusterKeyReconciliation',
+    config: {
+      minQuorumNodes: prng.nextChoice([0, 1, 2, 3, 4, 999, -1, NaN]),
+      maxEpochRollbackAttempts: prng.nextChoice([0, 3, 5, 6, 999, -1, NaN]),
+      requireQuorumPromotion: prng.nextChoice([true, false, 'true', 1, 0]),
+      requireAntiRollback: prng.nextChoice([true, false, 'true', 1, 0]),
+      quarantineOnCriticalDivergence: prng.nextChoice([true, false, 'true', 1, 0]),
+      maxTrackedKeys: prng.nextChoice([0, 1, 256, 512, 513, 999, -1, NaN]),
     },
   };
 };
