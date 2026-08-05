@@ -33,6 +33,10 @@ const HEARTBEAT_MS = parseInt(process.env.CLUSTER_HEARTBEAT_MS, 10) || 5000;
 const HEARTBEAT_TIMEOUT_MS = parseInt(process.env.CLUSTER_HEARTBEAT_TIMEOUT_MS, 10) || 15000;
 const MAX_FRAME_BYTES = 1 << 20; // 1 MB
 
+const CLUSTER_KEYRING_WRAP_SECRET = process.env.CLUSTER_KEYRING_WRAP_SECRET || '';
+const CLUSTER_KEYRING_ALLOW_PLAINTEXT = process.env.CLUSTER_KEYRING_ALLOW_PLAINTEXT === '1';
+const CLUSTER_KEYRING_STRICT = process.env.CLUSTER_KEYRING_STRICT === '1' || !CLUSTER_KEYRING_ALLOW_PLAINTEXT;
+
 // DKG transcript gossip message types and leader-only types
 const DKG_MESSAGE_TYPES = new Set(['DKG_COMMIT', 'DKG_SHARE', 'DKG_COMPLAINT', 'DKG_DISQUALIFY', 'DKG_FINALIZE']);
 const DKG_LEADER_ONLY_TYPES = new Set(['DKG_DISQUALIFY', 'DKG_FINALIZE']);
@@ -471,10 +475,29 @@ function _sendMessage(socket, msg) {
   }
 }
 
+function _peerNodeIdForSocket(socket) {
+  return socket._sb_peerNodeId || null;
+}
+
 function _broadcast(msg) {
   tagOutboundMessage(msg, msg.tenantId || DEFAULT_TENANT);
   for (const [key, socket] of _sockets.entries()) {
-    if (!_sendMessage(socket, msg)) {
+    let out = msg;
+    if (msg.type === 'KEY_COMMIT' && _hasWrapSecret()) {
+      const peerNodeId = _peerNodeIdForSocket(socket);
+      if (!peerNodeId) {
+        _log('warn', 'Skipping KEY_COMMIT to peer without known nodeId', { peer: key });
+        continue;
+      }
+      const aad = _buildWrapAad(msg);
+      out = { ...msg, encKeyHex: _wrapKeyMaterial(msg.activeHex, peerNodeId, aad) };
+      if (msg.previousHex) {
+        out.encPreviousHex = _wrapKeyMaterial(msg.previousHex, peerNodeId, aad);
+      }
+      delete out.activeHex;
+      delete out.previousHex;
+    }
+    if (!_sendMessage(socket, out)) {
       _sockets.delete(key);
       _peerState.delete(key);
     }
@@ -549,7 +572,31 @@ function _electLeader() {
 // so the audit timeline shows the rejection. Returns true if applied,
 // false if rejected.
 function _applyRemoteKeyCommit(msg) {
-  if (!msg || !msg.activeHex) return false;
+  if (!msg) return false;
+
+  let activeHex = msg.activeHex;
+  let previousHex = msg.previousHex;
+
+  if (msg.encKeyHex) {
+    if (!_hasWrapSecret()) {
+      _log('error', 'Received wrapped KEY_COMMIT but CLUSTER_KEYRING_WRAP_SECRET is not set', { from: msg.from });
+      _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, { reason: 'missing_wrap_secret' });
+      return false;
+    }
+    try {
+      const aad = _buildWrapAad(msg);
+      activeHex = _unwrapKeyMaterial(msg.encKeyHex, NODE_ID, aad);
+      if (msg.encPreviousHex) {
+        previousHex = _unwrapKeyMaterial(msg.encPreviousHex, NODE_ID, aad);
+      }
+    } catch (err) {
+      _log('error', 'Failed to unwrap KEY_COMMIT', { from: msg.from, error: err.message });
+      _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, { reason: 'unwrap_failed', error: err.message });
+      return false;
+    }
+  }
+
+  if (!activeHex) return false;
   const rotatedAt = Number(msg.rotatedAt);
   if (!Number.isFinite(rotatedAt)) {
     _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, {
@@ -575,8 +622,8 @@ function _applyRemoteKeyCommit(msg) {
   }
   try {
     keyRotationStore.applyKeyringCommit(
-      msg.activeHex,
-      msg.previousHex || null,
+      activeHex,
+      previousHex || null,
       rotatedAt,
       msg.graceMs || null,
     );
@@ -761,8 +808,8 @@ const IPC_SCHEMAS = {
     optional: { tenantId: 'string' },
   },
   KEY_COMMIT: {
-    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeHex: 'string', activeFingerprint: 'string', rotatedAt: 'number' },
-    optional: { tenantId: 'string', previousHex: ['string', 'object'], previousFingerprint: ['string', 'object'], graceMs: ['number', 'object'] },
+    required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeFingerprint: 'string', rotatedAt: 'number' },
+    optional: { tenantId: 'string', activeHex: 'string', previousHex: ['string', 'object'], encKeyHex: 'string', encPreviousHex: 'string', previousFingerprint: ['string', 'object'], graceMs: ['number', 'object'] },
   },
   ANNOUNCE: {
     required: { type: 'string', nodeId: 'string' },
@@ -949,12 +996,20 @@ function _handleMessage(msg, socket) {
   socket.tenantId = socket.tenantId || _tenantCtx.tenantId;
 
   if (msg.type === 'ANNOUNCE') {
+    socket._sb_peerNodeId = msg.nodeId;
     _peerState.set(peerKey, { lastSeen: Date.now(), nodeId: msg.nodeId });
     _sendMessage(socket, { type: 'ANNOUNCE_ACK', from: NODE_ID, leaderId: _state.leaderId, epoch: _state.epoch });
     return;
   }
 
+  if (msg.type === 'ANNOUNCE_ACK') {
+    if (msg.from) socket._sb_peerNodeId = msg.from;
+    _peerState.set(peerKey, { lastSeen: Date.now(), nodeId: msg.from });
+    return;
+  }
+
   if (msg.type === 'HEARTBEAT' || msg.type === 'KEY_COMMIT') {
+    if (msg.from) socket._sb_peerNodeId = msg.from;
     // Reject messages from unknown cluster peers
     const remoteHost = socket.remoteAddress;
     const remotePort = socket.remotePort;
@@ -976,8 +1031,17 @@ function _handleMessage(msg, socket) {
         incrementCounter('hsm_key_reject_total');
         return;
       }
-      // Validate hex format before applying
-      if (!_validateStrictLowercaseHex(msg.activeHex, 'activeHex')) return;
+      // Require either raw or wrapped key material
+      if (!msg.activeHex && !msg.encKeyHex) {
+        _log('warn', 'Rejected KEY_COMMIT with no key material', { from: msg.from });
+        _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, {
+          reason: 'missing_key_material',
+        });
+        incrementCounter('hsm_key_reject_total');
+        return;
+      }
+      // Validate hex format before applying (raw mode only)
+      if (msg.activeHex && !_validateStrictLowercaseHex(msg.activeHex, 'activeHex')) return;
       if (msg.previousHex && !_validateStrictLowercaseHex(msg.previousHex, 'previousHex')) return;
       // Reject KEY_COMMIT with stale epoch (replay attack prevention)
       if (typeof msg.epoch === 'number' && msg.epoch < _state.epoch) {
@@ -1050,11 +1114,68 @@ function _handleMessage(msg, socket) {
   }
 }
 
+function _hasTlsMaterial() {
+  return !!(process.env.CLUSTER_CERT && process.env.CLUSTER_KEY && process.env.CLUSTER_CA_CERT);
+}
+
+function _requireTls() {
+  if (CLUSTER_KEYRING_ALLOW_PLAINTEXT) return false;
+  if (!_hasTlsMaterial()) {
+    throw new Error('CLUSTER_KEYRING_TLS_REQUIRED');
+  }
+  return true;
+}
+
+// ΓöÇΓöÇ Per-peer encrypted key-wrapping helpers (AES-256-GCM over HKDF) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+function _hasWrapSecret() {
+  return CLUSTER_KEYRING_WRAP_SECRET.length > 0;
+}
+
+function _derivePeerWrapKey(peerNodeId) {
+  if (!_hasWrapSecret()) {
+    throw new Error('CLUSTER_KEYRING_WRAP_SECRET_REQUIRED');
+  }
+  const ikm = Buffer.from(CLUSTER_KEYRING_WRAP_SECRET, 'hex');
+  if (ikm.length !== 32) {
+    throw new Error('CLUSTER_KEYRING_WRAP_SECRET_MUST_BE_64_HEX_BYTES');
+  }
+  return crypto.hkdfSync('sha256', ikm, 'cluster-keyring-wrap-v1', peerNodeId, 32);
+}
+
+function _wrapKeyMaterial(plaintextHex, peerNodeId, aad) {
+  const key = _derivePeerWrapKey(peerNodeId);
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  if (aad) cipher.setAAD(Buffer.from(aad, 'utf8'));
+  const ciphertext = Buffer.concat([cipher.update(Buffer.from(plaintextHex, 'hex')), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([iv, tag, ciphertext]).toString('base64');
+}
+
+function _unwrapKeyMaterial(wrappedB64, peerNodeId, aad) {
+  const key = _derivePeerWrapKey(peerNodeId);
+  const wrapped = Buffer.from(wrappedB64, 'base64');
+  if (wrapped.length < 28) throw new Error('INVALID_WRAPPED_KEY');
+  const iv = wrapped.slice(0, 12);
+  const tag = wrapped.slice(12, 28);
+  const ciphertext = wrapped.slice(28);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(tag);
+  if (aad) decipher.setAAD(Buffer.from(aad, 'utf8'));
+  const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  return plaintext.toString('hex');
+}
+
+function _buildWrapAad(msg) {
+  return `${msg.from || ''}|${msg.epoch || 0}|${msg.rotatedAt || 0}`;
+}
+
 function _connectToPeer(host, port) {
   const key = _peerKey(host, port);
   if (_sockets.has(key)) return;
 
-  const isTls = !!(process.env.CLUSTER_CERT && process.env.CLUSTER_KEY);
+  _requireTls();
   const onConnect = async (socket) => {
     if (process.env.CLUSTER_QUANTUM_HYBRID === '1') {
       try {
@@ -1083,47 +1204,35 @@ function _connectToPeer(host, port) {
     socket.on('error', (err) => { _log('warn', 'Peer socket error', { peer: key, error: err.message }); });
   };
 
-  if (isTls) {
-    // rejectUnauthorized:false is intentional under the trusted-network
-    // threat model (see _startServer). Do not flip to true without also
-    // configuring a real CA chain and stopping raw-key-hex broadcast.
-    const socket = tls.connect(port, host, {
-      cert: fs.readFileSync(process.env.CLUSTER_CERT),
-      key: fs.readFileSync(process.env.CLUSTER_KEY),
-      ca: process.env.CLUSTER_CA_CERT ? fs.readFileSync(process.env.CLUSTER_CA_CERT) : undefined,
-      rejectUnauthorized: false,
-    }, () => onConnect(socket));
-    socket.on('error', (err) => _log('warn', 'TLS peer connect error', { peer: key, error: err.message }));
-  } else {
-    const socket = net.createConnection({ host, port }, () => onConnect(socket));
-    socket.on('error', (err) => _log('warn', 'TCP peer connect error', { peer: key, error: err.message }));
-  }
+  const ca = process.env.CLUSTER_CA_CERT ? fs.readFileSync(process.env.CLUSTER_CA_CERT) : undefined;
+  const socket = tls.connect(port, host, {
+    cert: fs.readFileSync(process.env.CLUSTER_CERT),
+    key: fs.readFileSync(process.env.CLUSTER_KEY),
+    ca,
+    requestCert: true,
+    rejectUnauthorized: true,
+  }, () => onConnect(socket));
+  socket.on('error', (err) => _log('warn', 'TLS peer connect error', { peer: key, error: err.message }));
 }
 
 // ΓöÇΓöÇ Transport security model ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-// The cluster keyring transport is OPPORTUNISTIC TLS, NOT mutual TLS (mTLS):
-//   - Server: requestCert:false, rejectUnauthorized:false  (no client cert
-//     requested or verified)
-//   - Client: rejectUnauthorized:false                      (server cert not
-//     verified)
-//   - When CLUSTER_CERT/CLUSTER_KEY are unset, the transport falls back to
-//     plaintext TCP.
+// The cluster keyring transport is now strict mutual TLS (mTLS) by default.
+//   - Server: requestCert:true, rejectUnauthorized:true (client cert verified
+//     against the configured CA).
+//   - Client: rejectUnauthorized:true (server cert verified).
+//   - CLUSTER_CERT, CLUSTER_KEY, and CLUSTER_CA_CERT are all required.
 //
-// This is intentional and relies on the deployment threat model: the cluster
-// port (CLUSTER_KEYRING_PORT, default 7000) MUST be reachable only on a
-// trusted private network (e.g. a private VPC, isolated overlay, or
-// loopback). KEY_COMMIT frames carry raw key material (activeHex/previousHex)
-// over this channel; without network-level isolation any reachable peer can
-// install or observe cluster keys.
+// To opt-in to the legacy plaintext/relaxed TLS mode, set
+// CLUSTER_KEYRING_ALLOW_PLAINTEXT=1. This triggers a high-visibility warning
+// and a QUANTUM_DEGRADE telemetry event; it must not be used in production.
 //
-// Do NOT enable mTLS (requestCert:true / rejectUnauthorized:true + a real
-// CA chain) unless the deployment actually crosses untrusted networks ΓÇö and
-// if it does, also stop broadcasting raw key hex in favor of per-node
-// encrypted key wrapping. Both changes are out of scope for the trusted-
-// network threat model and must be designed together.
+// KEY_COMMIT frames no longer carry raw key hex. Instead, active and previous
+// key material is wrapped per peer with AES-256-GCM using an HKDF-derived
+// key from CLUSTER_KEYRING_WRAP_SECRET. Only the intended peer can unwrap.
 function _startServer() {
   if (_server) return;
-  const isTls = !!(process.env.CLUSTER_CERT && process.env.CLUSTER_KEY);
+
+  const useTls = _requireTls();
   const onConnection = async (socket) => {
     if (process.env.CLUSTER_QUANTUM_HYBRID === '1') {
       try {
@@ -1140,25 +1249,29 @@ function _startServer() {
     socket.on('close', () => _log('debug', 'Server socket closed'));
   };
 
-  if (!isTls) {
-    _log('warn', 'Cluster keyring transport is PLAINTEXT TCP (no CLUSTER_CERT/CLUSTER_KEY). '
-      + 'Raw key material will be broadcast unencrypted. Only acceptable on a fully isolated/trusted network.');
-  }
-
-  if (isTls) {
+  if (!useTls) {
+    _log('warn', 'Cluster keyring transport is PLAINTEXT TCP (CLUSTER_KEYRING_ALLOW_PLAINTEXT=1). '
+      + 'Raw key material will be broadcast unencrypted. This is a non-production fallback.');
+    _recordEvent(EVENT_TYPES.QUANTUM_DEGRADE, NODE_ID, {
+      reason: 'plaintext_fallback',
+      port: CLUSTER_KEYRING_PORT,
+      siemSeverity: 'high',
+      siemCategory: 'cluster_transport_downgrade',
+      siemSource: 'cluster-keyring-sync',
+    });
+    _server = net.createServer(onConnection);
+  } else {
     _server = tls.createServer({
       cert: fs.readFileSync(process.env.CLUSTER_CERT),
       key: fs.readFileSync(process.env.CLUSTER_KEY),
       ca: process.env.CLUSTER_CA_CERT ? fs.readFileSync(process.env.CLUSTER_CA_CERT) : undefined,
-      requestCert: false,
-      rejectUnauthorized: false,
+      requestCert: true,
+      rejectUnauthorized: true,
     }, onConnection);
-  } else {
-    _server = net.createServer(onConnection);
   }
 
   _server.listen(CLUSTER_KEYRING_PORT, () => {
-    _log('info', 'Cluster keyring server listening', { port: CLUSTER_KEYRING_PORT, tls: isTls });
+    _log('info', 'Cluster keyring server listening', { port: CLUSTER_KEYRING_PORT, tls: useTls });
   });
   _server.on('error', (err) => _log('error', 'Cluster server error', { error: err.message }));
 }
