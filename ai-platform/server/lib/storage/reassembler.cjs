@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { zeroizeBuffer } = require('../crypto/zeroize.cjs');
+const { canonicalize: jcsCanonicalize } = require('../crypto/jcs-canonicalize.cjs');
 
 function isSafeId(id) {
   return typeof id === 'string' && /^[a-zA-Z0-9-_]+$/.test(id);
@@ -16,19 +17,6 @@ function safeJoinBase(base, ...parts) {
   const resolvedTarget = path.resolve(target) + path.sep;
   if (!resolvedTarget.startsWith(resolvedBase)) throw new Error('Path traversal attempt');
   return target;
-}
-
-function jcsCanonicalize(obj) {
-  // Minimal JCS-like canonicalization for the reassembler tests: deterministic key ordering.
-  function canonicalize(value) {
-    if (value === null || typeof value !== 'object') return value;
-    if (Array.isArray(value)) return value.map(canonicalize);
-    const keys = Object.keys(value).sort();
-    const out = {};
-    for (const k of keys) out[k] = canonicalize(value[k]);
-    return out;
-  }
-  return JSON.stringify(canonicalize(obj));
 }
 
 function sha256Bytes(buf) {

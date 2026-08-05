@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const events = require('../hsm-adapter/events.cjs');
 const logger = require('../app-logger.cjs').child('upload-manager');
+const { canonicalize } = require('../crypto/jcs-canonicalize.cjs');
 
 class UploadManager {
   constructor({ baseDir = path.join(process.cwd(), '.data', 'track112'), defaultTenant = 'dev' } = {}) {
@@ -93,12 +94,16 @@ class UploadManager {
 
   verifyAndCommitSession(sessionId, publicKeyPem, signature) {
     const { rootBuf, rootHex, dir } = this.computeRootHex(sessionId);
+    const meta = this._readMeta(dir) || {};
+    const tenant = meta.tenant || this.defaultTenant;
+    // RFC 8785 canonicalized commit payload binds root, sessionId, and tenant
+    const commitPayload = canonicalize({ root: rootHex, sessionId, tenant });
     try {
       const pubKeyObj = crypto.createPublicKey(publicKeyPem);
       const sigBuf = Buffer.from(signature, 'base64');
-      const ok = crypto.verify(null, rootBuf, pubKeyObj, sigBuf);
+      const ok = crypto.verify(null, Buffer.from(commitPayload, 'utf8'), pubKeyObj, sigBuf);
       if (!ok) {
-        events.recordSparseEvent('upload_commit_invalid_signature', { sessionId, tenant: this._readMeta(dir)?.tenant, traceId: this._readMeta(dir)?.traceId });
+        events.recordSparseEvent('upload_commit_invalid_signature', { sessionId, tenant, traceId: meta.traceId });
         return { ok: false, reason: 'invalid_signature' };
       }
     } catch (e) {
@@ -106,8 +111,7 @@ class UploadManager {
     }
 
     // move to committed area
-    const meta = this._readMeta(dir) || {};
-    const committedDir = path.join(this.baseDir, '_committed', meta.tenant || this.defaultTenant);
+    const committedDir = path.join(this.baseDir, '_committed', tenant);
     fs.mkdirSync(committedDir, { recursive: true });
     const dest = path.join(committedDir, sessionId);
     try {

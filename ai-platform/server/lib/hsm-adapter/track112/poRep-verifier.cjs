@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const hsmMetrics = require('../hsm-metrics.cjs');
 const { zeroizeBuffer } = require('../../crypto/zeroize.cjs');
+const { canonicalHash } = require('../../crypto/jcs-canonicalize.cjs');
 
 function toBufferFromEncoded(v) {
   if (Buffer.isBuffer(v)) return v;
@@ -50,27 +51,29 @@ class PoRepVerifier {
     const start = process.hrtime.bigint();
     this.metrics.verifications += 1;
 
+    const proofHash = canonicalHash(proof);
+
     // Stub-mode short-circuit for placeholder test assertions
     if (proof && proof.valid === true) {
       this._record(true, start, 'stub');
-      return { valid: true };
+      return { valid: true, proofHash };
     }
 
     // Backwards-compatibility: accept a simple stub object `{ valid: true }`
     if (proof && typeof proof.valid === 'boolean') {
       if (proof.valid) {
         this._record(true, start, 'stub');
-        return { valid: true };
+        return { valid: true, proofHash };
       }
       this._record(false, start, 'stub_rejected');
       this.metrics.failures += 1;
-      return { valid: false, reason: 'stub_rejected' };
+      return { valid: false, reason: 'stub_rejected', proofHash };
     }
 
     if (!proof || !proof.root || !Array.isArray(proof.challenges) || proof.challenges.length === 0) {
       this._record(false, start, 'malformed_proof');
       this.metrics.failures += 1;
-      return { valid: false, reason: 'malformed_proof' };
+      return { valid: false, reason: 'malformed_proof', proofHash };
     }
 
     const rootHex = proof.root.replace(/^0x/, '').toLowerCase();
@@ -92,7 +95,7 @@ class PoRepVerifier {
     }
 
     this._record(true, start, 'ok');
-    return { valid: true };
+    return { valid: true, proofHash };
   }
 
   _record(ok, start, reason) {
