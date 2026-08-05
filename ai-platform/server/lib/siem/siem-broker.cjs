@@ -60,6 +60,10 @@ class SiemSecurityBroker extends EventEmitter {
       siem_events_dropped_total: 0,
       siem_events_bypassed_total: 0,
       siem_tokens_consumed_total: 0,
+      siem_tokens_borrowed_total: 0,
+      siem_tokens_granted_total: 0,
+      siem_token_requests_sent_total: 0,
+      siem_token_requests_received_total: 0,
     };
 
     this._initTokenRefillPipeline();
@@ -334,12 +338,14 @@ SiemSecurityBroker.prototype.handlePeerSync = function (msg) {
 SiemSecurityBroker.prototype.handleTokenRequest = function (msg) {
   if (!this._distEnabled || !msg || msg.type !== 'SIEM_TOKEN_REQUEST') return 0;
   try {
+    this._metrics.siem_token_requests_received_total += 1;
     const requested = Math.min(msg.requested || 0, this._fairShare);
     const surplus = this.tokens - this._reserveFloor;
     if (surplus <= 0) return 0;
     const granted = Math.min(requested, surplus);
     this.tokens -= granted;
     this._metrics.siem_tokens_consumed_total += granted;
+    this._metrics.siem_tokens_granted_total += granted;
 
     // Send grant response
     if (this._sendToPeers) {
@@ -432,6 +438,38 @@ SiemSecurityBroker.prototype.getDistributedState = function () {
     localTokens: this.tokens,
     peerCount: this._peerBuckets.size,
     peers: Object.fromEntries(this._peerBuckets),
+  };
+};
+
+/**
+ * Get a consolidated cluster telemetry snapshot combining metrics and distributed state.
+ * Returns a single object suitable for REST API consumption by the dashboard.
+ * @returns {object}
+ */
+SiemSecurityBroker.prototype.getClusterTelemetry = function () {
+  const metrics = this.getMetrics();
+  const distState = this.getDistributedState();
+  return {
+    timestamp: new Date().toISOString(),
+    nodeId: distState.nodeId,
+    nodeCount: distState.nodeCount,
+    distributedSyncEnabled: distState.enabled,
+    fairShare: distState.fairShare,
+    reserveFloor: distState.reserveFloor,
+    localTokens: distState.localTokens,
+    peerCount: distState.peerCount,
+    peers: distState.peers,
+    metrics: {
+      siem_events_processed_total: metrics.siem_events_processed_total,
+      siem_events_dropped_total: metrics.siem_events_dropped_total,
+      siem_events_bypassed_total: metrics.siem_events_bypassed_total,
+      siem_tokens_consumed_total: metrics.siem_tokens_consumed_total,
+      siem_tokens_borrowed_total: metrics.siem_tokens_borrowed_total,
+      siem_tokens_granted_total: metrics.siem_tokens_granted_total,
+      siem_token_requests_sent_total: metrics.siem_token_requests_sent_total,
+      siem_token_requests_received_total: metrics.siem_token_requests_received_total,
+      currentTokens: metrics.currentTokens,
+    },
   };
 };
 

@@ -46,6 +46,16 @@ const reportScheduleStore = require('../lib/report-schedule-store.cjs');
 const reportScheduler = require('../lib/report-scheduler.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
+const SiemSecurityBroker = require('../lib/siem/siem-broker.cjs');
+
+// Shared SIEM broker instance for telemetry endpoint
+let _sharedBroker = null;
+function getSharedBroker() {
+  if (!_sharedBroker) {
+    _sharedBroker = new SiemSecurityBroker();
+  }
+  return _sharedBroker;
+}
 
 reportScheduler.setAnalyticsStore(analyticsStore);
 reportScheduler.startScheduler();
@@ -1264,6 +1274,18 @@ router.post('/record', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Record failed:', err.message);
     sendError(res, 500, 'record_failed', { message: err.message });
+  }
+});
+
+// GET /api/analytics/siem-telemetry — cluster-wide SIEM telemetry snapshot
+router.get('/siem-telemetry', (req, res) => {
+  try {
+    const broker = getSharedBroker();
+    const telemetry = broker.getClusterTelemetry();
+    res.json({ status: 'success', ...telemetry });
+  } catch (err) {
+    logger.error('[Analytics] SIEM telemetry failed:', err.message);
+    sendError(res, 500, 'siem_telemetry_failed', { message: err.message });
   }
 });
 
