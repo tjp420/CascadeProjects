@@ -168,6 +168,54 @@ describe('Track 125: ZK Tenant Governance', () => {
     expect(hsmMetrics.getMetrics().hsm_zk_tenant_isolation_violation_total).toBe(1);
   });
 
+  test('GOV-04h: concurrent validateTenant does not mutate shared this.policy', async () => {
+    const engine = new CryptoPolicyEngine();
+    const seenPolicies = [];
+    const shared = { marker: 'shared-base' };
+    const mockValidator = {
+      policy: shared,
+      verifyTestClaim: function() {
+        seenPolicies.push(this.policy);
+        return { ok: true };
+      },
+    };
+    wrapWithTenantGovernance(mockValidator, engine, 'energyGating', 'verifyTestClaim', 'energy');
+    await Promise.all([
+      Promise.resolve(mockValidator.validateTenant('tenant-1', {})),
+      Promise.resolve(mockValidator.validateTenant('tenant-2', {})),
+    ]);
+    expect(mockValidator.policy).toBe(shared);
+    expect(seenPolicies).toHaveLength(2);
+    expect(seenPolicies[0].requireClearingCommitteeAttestation).toBe(true);
+    expect(seenPolicies[1].requireClearingCommitteeAttestation).toBe(true);
+  });
+
+  test('GOV-05a: createGovernedClaimValidator wraps energy validator', () => {
+    const { createGovernedClaimValidator } = require('../hsm-adapter/zk-tenant-governance.cjs');
+    const governed = createGovernedClaimValidator('energy', {
+      validatorOptions: { policy: {}, hub: null },
+    });
+    expect(typeof governed.validateTenant).toBe('function');
+    expect(() => governed.validateTenant('../bad', {})).toThrow('zk_isolation_violation');
+  });
+
+  test('GOV-05b: isolation violation emits SIEM broker event', () => {
+    const {
+      setZkGovernanceSiemBroker,
+      resolvePolicy,
+    } = require('../hsm-adapter/zk-tenant-governance.cjs');
+    const events = [];
+    setZkGovernanceSiemBroker({
+      logEvent(payload) { events.push(payload); return true; },
+    });
+    const engine = new CryptoPolicyEngine();
+    expect(() => resolvePolicy(engine, '../bad', 'energyGating')).toThrow('zk_isolation_violation');
+    expect(events).toHaveLength(1);
+    expect(events[0].siemCategory).toBe('zk_isolation_violation');
+    expect(events[0].siemSeverity).toBe('CRITICAL');
+    setZkGovernanceSiemBroker(null);
+  });
+
   describe('MET: hsm-metrics ZK counters', () => {
     test('MET-01: hsm_zk_energy_claim_verified_total exists', () => {
       hsmMetrics.incrementCounter('hsm_zk_energy_claim_verified_total');
