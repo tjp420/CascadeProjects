@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { runTextRulePasses, buildFictionPatterns } = require('./full-tree-rule-pass');
 const { runTextRulePassesParallel, resolveWorkerCount } = require('./full-tree-scan-pool');
+const { preflightOrThrow, sampleAndThrow } = require('./resource-guard');
 const {
     detectDocumentationArtifacts,
     filterDocumentedAiInventoryIssues,
@@ -18,8 +19,17 @@ const { globMatch } = require('../rules/production-leak');
 const constants = require('./constants');
 
 const DEFAULT_SKIP_DIRS = new Set([]);
-const DEFAULT_MAX_FILES = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES) || 2_000_000;
+function resolveDefaultMaxFilesFromEnv() {
+    const env = process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES;
+    if (env == null || String(env).trim() === '') return 2_000_000;
+    const n = Number(env);
+    if (!Number.isFinite(n)) return 2_000_000;
+    return n <= 0 ? Number.POSITIVE_INFINITY : Math.max(1, n);
+}
+
+const DEFAULT_MAX_FILES = resolveDefaultMaxFilesFromEnv();
 const BATCH_LOG_EVERY = Number(process.env.SIMPLEBEACON_FULL_SCAN_LOG_EVERY) || constants.TIMEOUT_5S;
+const RESOURCE_SAMPLE_EVERY = Number(process.env.SIMPLEBEACON_RESOURCE_SAMPLE_EVERY_FILES) || 1000;
 
 function resolveMaxContentBytes(options = {}) {
     if (options.maxContentBytes != null) {
@@ -163,6 +173,17 @@ async function hashFileStream(filePath) {
 async function analyzeFullDirectory(rootDir, options = {}) {
     const isUniversal = options.universal === true;
     const maxContentBytes = resolveMaxContentBytes(options);
+    const maxFilesFromOptions = resolveMaxFiles(options);
+    if (!Number.isFinite(maxFilesFromOptions)) {
+        console.error('UNLIMITED SCAN WARNING: full-directory scan configured with no file limit. This may consume large amounts of memory and CPU. Consider setting SIMPLEBEACON_FULL_SCAN_MAX_FILES to a positive integer or run on a machine with sufficient resources.');
+    }
+    // Pre-flight resource check: abort early if host is low on free memory
+    try {
+        preflightOrThrow();
+    } catch (err) {
+        console.error(err.message);
+        throw err;
+    }
     const walkResult = await walkAllFiles(rootDir, options);
     const issues = [];
     const ruleHitTotals = {
@@ -208,6 +229,16 @@ async function analyzeFullDirectory(rootDir, options = {}) {
             process.stderr.write(`[${index + 1}/${walkResult.files.length}] ${file.relativePath}\n`);
         } else if (!options.onProgress && index > 0 && index % BATCH_LOG_EVERY === 0) {
             /* legacy batch log hook */
+        }
+
+        // Periodic resource sampling to abort scan early on low-memory conditions
+        if (index > 0 && index % RESOURCE_SAMPLE_EVERY === 0) {
+            try {
+                sampleAndThrow({ filesFound: index + 1, phase: 'walk' });
+            } catch (err) {
+                console.error(err.message);
+                throw err;
+            }
         }
 
         const bucket = categories.get(categoryForExt(file.ext)) || {
