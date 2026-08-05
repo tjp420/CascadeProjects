@@ -1,10 +1,10 @@
-# Test Plan: Track 113 — Compatibility Shim for Classical-Only Peers
+# Test Plan: Track 113 — Ratchet Telemetry Counters and Handshake Latency
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Compatibility shim that negotiates hybrid vs classical mode, emits degraded telemetry, and enforces a deprecation deadline. |
+| Feature / change | Add `identity_handshake_duration_ms` histogram and `identity_handshake_failed_total` counter to the compatibility shim. |
 | Author (Builder) | Devin |
 | Date | 2026-08-05 |
 | Branch | feat/track113-pqc-ratchet-migration |
@@ -14,9 +14,8 @@
 
 ### Files in scope
 
-- `ai-platform/server/lib/crypto/ratchet/compatibility-shim.cjs` (new)
-- `ai-platform/server/lib/crypto/ratchet/identity-ratchet.cjs` (minor integration)
-- `ai-platform/server/lib/crypto/ratchet/__tests__/compatibility-shim.test.cjs` (new)
+- `ai-platform/server/lib/crypto/ratchet/compatibility-shim.cjs`
+- `ai-platform/server/lib/crypto/ratchet/__tests__/compatibility-shim.test.cjs`
 
 ### Out of scope
 
@@ -29,37 +28,30 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on new CJS | `node -c` on new files | [ ] |
-| L1-02 | Compatibility tests | `npx jest compatibility-shim` | [ ] |
-| L1-03 | No secrets in diff | manual review | [ ] |
+| L1-01 | Syntax | `node -c` on changed file | [ ] |
+| L1-02 | Shim tests | `npx jest compatibility-shim` | [ ] |
 
 ## Level 2 — Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Auto-detect hybrid peer | Pass a hybrid public key to the shim | Mode = `HYBRID`; uses `encapsulateFor` / `decapsulateFrom` | [ ] |
-| L2-02 | Auto-detect classical peer | Pass an X25519/Ed25519-only public key | Mode = `CLASSICAL`; uses X25519 ECDH + Ed25519 signatures | [ ] |
-| L2-03 | Classical fallback telemetry | Negotiate a classical-only session | Emits `IDENTITY_COMPAT_CLASSICAL_FALLBACK` | [ ] |
-| L2-04 | Strict deadline rejection | Set `deprecationEpoch` to a past value and attempt classical | Throws `CLASSICAL_DEPRECATION_DEADLINE` | [ ] |
-| L2-05 | Shared secret equivalence | Run hybrid and classical handshakes between compatible peers | Both produce a 32-byte shared secret; classical fallback emits telemetry | [ ] |
+| L2-01 | Hybrid duration recorded | Complete hybrid handshake | `identity_handshake_duration_ms` has one observation with `mode=hybrid` | [ ] |
+| L2-02 | Classical duration recorded | Complete classical handshake | `identity_handshake_duration_ms` has one observation with `mode=classical` | [ ] |
+| L2-03 | Failure counter | Trigger an invalid signature rejection | `identity_handshake_failed_total` with `reason=signature_invalid` increments | [ ] |
+| L2-04 | Deprecation failure counter | Trigger past deadline | `identity_handshake_failed_total` with `reason=expired_deadline` increments | [ ] |
 
 ## Level 3 — Edge cases & reflection
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Empty public key | Pass `null` or `Buffer.alloc(0)` | Throws `INVALID_PUBLIC_KEY` | [ ] |
-| L3-02 | Unknown hybrid version after deadline | Pass unknown version when past deadline | Throws `UNSUPPORTED_HYBRID_KEY_VERSION` | [ ] |
-| L3-03 | Deadline not yet reached | Classical peer with future `deprecationEpoch` | Allowed with warning telemetry | [ ] |
-| L3-04 | Missing Ed25519 in peer key | Hybrid public key missing `0x01` | Throws `INVALID_HYBRID_KEY_LAYOUT` | [ ] |
-| L3-05 | Classical-only deadline grace | Deadline is exactly `now` | Throws `CLASSICAL_DEPRECATION_DEADLINE` | [ ] |
-| L3-06 | Hybrid peer ignored by explicit classical mode | Caller requests `CLASSICAL` for hybrid-capable peer | Uses classical mode and emits fallback telemetry | [ ] |
+| L3-01 | No double counting | Same handshake succeeds | Exactly one duration observation, zero failure counters | [ ] |
+| L3-02 | Histogram buckets | Record durations | Buckets include p50/p95/p99-ish counts | [ ] |
 
 ## Security
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No raw private keys logged in telemetry | [ ] |
-| S-02 | Deprecation deadline checked before classical DH | [ ] |
+| S-01 | Metrics do not include raw public keys or shared secrets | [ ] |
 
 ## Approval
 

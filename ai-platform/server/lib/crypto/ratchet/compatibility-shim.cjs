@@ -13,6 +13,7 @@
 const crypto = require('node:crypto');
 const bootstrap = require('./hybrid-bootstrap.cjs');
 const { initializeFromShared } = require('./index.cjs');
+const { RatchetMetrics, reasonFromError } = require('./ratchet-metrics.cjs');
 
 const CLASSICAL_LABEL = Buffer.from('track113-classical-fallback');
 const HANDSHAKE_VERSION_CLASSICAL = 0x00;
@@ -92,49 +93,60 @@ function _checkDeprecation(opts, telemetry) {
  * @returns {Promise<{mode: 'HYBRID'|'CLASSICAL', handshake: Buffer, chainKey: string}>}
  */
 async function initiateHandshake(localRatchet, peerPublicKey, opts = {}) {
-  const { mode } = detectMode(peerPublicKey);
+  const metrics = opts.metrics || new RatchetMetrics();
+  const start = process.hrtime.bigint();
+  let mode;
+  try {
+    ({ mode } = detectMode(peerPublicKey));
 
-  if (mode === 'HYBRID') {
-    const enc = await localRatchet.encapsulateFor(peerPublicKey);
+    if (mode === 'HYBRID') {
+      const enc = await localRatchet.encapsulateFor(peerPublicKey);
+      const transcript = _makeTranscript(localRatchet.publicKey, peerPublicKey);
+      const signature = localRatchet.signHandshake(transcript);
+      const handshake = Buffer.concat([
+        Buffer.from([HANDSHAKE_VERSION_HYBRID]),
+        enc.cipherText,
+        Buffer.from([signature.length]),
+        signature,
+      ]);
+      return { mode, handshake, chainKey: enc.chainKey };
+    }
+
+    // Classical mode
+    _checkDeprecation(opts, opts.telemetry);
+    const peer = _classicalPeerComponents(peerPublicKey);
+    const sharedSecret = _deriveClassicalShared(localRatchet.secretKey.x25519, peer.x25519);
+
+    const ephemeral = crypto.generateKeyPairSync('x25519', {
+      publicKeyEncoding: { type: 'spki', format: 'der' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'der' },
+    });
+    const ephemeralPublic = ephemeral.publicKey;
+    const peerPub = crypto.createPublicKey({ key: peer.x25519, type: 'spki', format: 'der' });
+    const ephemeralPrivate = crypto.createPrivateKey({ key: ephemeral.privateKey, type: 'pkcs8', format: 'der' });
+    const dh = crypto.diffieHellman({ privateKey: ephemeralPrivate, publicKey: peerPub });
+    const finalShared = Buffer.from(crypto.hkdfSync('sha384', Buffer.alloc(0), Buffer.concat([sharedSecret, dh]), CLASSICAL_LABEL, 32));
+
+    const { ck } = initializeFromShared(finalShared);
+    localRatchet._initChain(finalShared);
+
     const transcript = _makeTranscript(localRatchet.publicKey, peerPublicKey);
     const signature = localRatchet.signHandshake(transcript);
     const handshake = Buffer.concat([
-      Buffer.from([HANDSHAKE_VERSION_HYBRID]),
-      enc.cipherText,
+      Buffer.from([HANDSHAKE_VERSION_CLASSICAL]),
+      ephemeralPublic,
       Buffer.from([signature.length]),
       signature,
     ]);
-    return { mode, handshake, chainKey: enc.chainKey };
+
+    return { mode, handshake, chainKey: ck.toString('hex') };
+  } catch (err) {
+    metrics.incrementHandshakeFailed(reasonFromError(err));
+    throw err;
+  } finally {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    if (mode) metrics.observeHandshakeDuration(mode.toLowerCase(), ms);
   }
-
-  // Classical mode
-  _checkDeprecation(opts, opts.telemetry);
-  const peer = _classicalPeerComponents(peerPublicKey);
-  const sharedSecret = _deriveClassicalShared(localRatchet.secretKey.x25519, peer.x25519);
-
-  const ephemeral = crypto.generateKeyPairSync('x25519', {
-    publicKeyEncoding: { type: 'spki', format: 'der' },
-    privateKeyEncoding: { type: 'pkcs8', format: 'der' },
-  });
-  const ephemeralPublic = ephemeral.publicKey;
-  const peerPub = crypto.createPublicKey({ key: peer.x25519, type: 'spki', format: 'der' });
-  const ephemeralPrivate = crypto.createPrivateKey({ key: ephemeral.privateKey, type: 'pkcs8', format: 'der' });
-  const dh = crypto.diffieHellman({ privateKey: ephemeralPrivate, publicKey: peerPub });
-  const finalShared = Buffer.from(crypto.hkdfSync('sha384', Buffer.alloc(0), Buffer.concat([sharedSecret, dh]), CLASSICAL_LABEL, 32));
-
-  const { ck } = initializeFromShared(finalShared);
-  localRatchet._initChain(finalShared);
-
-  const transcript = _makeTranscript(localRatchet.publicKey, peerPublicKey);
-  const signature = localRatchet.signHandshake(transcript);
-  const handshake = Buffer.concat([
-    Buffer.from([HANDSHAKE_VERSION_CLASSICAL]),
-    ephemeralPublic,
-    Buffer.from([signature.length]),
-    signature,
-  ]);
-
-  return { mode, handshake, chainKey: ck.toString('hex') };
 }
 
 /**
@@ -149,49 +161,62 @@ async function initiateHandshake(localRatchet, peerPublicKey, opts = {}) {
  * @returns {Promise<{mode: 'HYBRID'|'CLASSICAL', chainKey: string}>}
  */
 async function acceptHandshake(localRatchet, handshake, peerPublicKey, opts = {}) {
-  if (!Buffer.isBuffer(handshake) || handshake.length < 1) {
-    throw new CompatibilityError('INVALID_HANDSHAKE', 'handshake is required');
+  const metrics = opts.metrics || new RatchetMetrics();
+  const start = process.hrtime.bigint();
+  let mode;
+  try {
+    if (!Buffer.isBuffer(handshake) || handshake.length < 1) {
+      throw new CompatibilityError('INVALID_HANDSHAKE', 'handshake is required');
+    }
+    const version = handshake[0];
+
+    if (version === HANDSHAKE_VERSION_HYBRID) {
+      mode = 'HYBRID';
+      const cipherText = handshake.subarray(1);
+      const { chainKey } = await localRatchet.decapsulateFrom(cipherText);
+      return { mode, chainKey };
+    }
+
+    if (version !== HANDSHAKE_VERSION_CLASSICAL) {
+      throw new CompatibilityError('INVALID_HANDSHAKE_VERSION', `handshake version ${version} not supported`);
+    }
+    mode = 'CLASSICAL';
+
+    _checkDeprecation(opts, opts.telemetry);
+
+    // layout: version(1) | ephemeralX25519Der | sigLen(1) | signature
+    const peer = _classicalPeerComponents(peerPublicKey);
+    // SPKI DER X25519 is 44 bytes; sigLen(1) + Ed25519 signature(64) = 65 trailing bytes
+    const EPHEMERAL_DER_LEN = 44;
+    const SIG_LEN = 64;
+    if (handshake.length !== 1 + EPHEMERAL_DER_LEN + 1 + SIG_LEN) {
+      throw new CompatibilityError('INVALID_HANDSHAKE', 'handshake too short');
+    }
+    const sigLen = handshake[handshake.length - 1 - SIG_LEN];
+    if (sigLen !== SIG_LEN) throw new CompatibilityError('INVALID_HANDSHAKE', 'unexpected signature length');
+    const signature = handshake.subarray(handshake.length - SIG_LEN);
+    const ephemeralPublicDer = handshake.subarray(1, 1 + EPHEMERAL_DER_LEN);
+    const localX25519Private = crypto.createPrivateKey({ key: localRatchet.secretKey.x25519, type: 'pkcs8', format: 'der' });
+    const ephemeralPub = crypto.createPublicKey({ key: ephemeralPublicDer, type: 'spki', format: 'der' });
+    const dh = crypto.diffieHellman({ privateKey: localX25519Private, publicKey: ephemeralPub });
+    const sharedSecret = _deriveClassicalShared(localRatchet.secretKey.x25519, peer.x25519);
+    const finalShared = Buffer.from(crypto.hkdfSync('sha384', Buffer.alloc(0), Buffer.concat([sharedSecret, dh]), CLASSICAL_LABEL, 32));
+
+    const transcript = _makeTranscript(peerPublicKey, localRatchet.publicKey);
+    if (!bootstrap.verify(signature, transcript, peerPublicKey)) {
+      throw new CompatibilityError('SIGNATURE_INVALID', 'classical handshake signature verification failed');
+    }
+
+    const { ck } = initializeFromShared(finalShared);
+    localRatchet._initChain(finalShared);
+    return { mode, chainKey: ck.toString('hex') };
+  } catch (err) {
+    metrics.incrementHandshakeFailed(reasonFromError(err));
+    throw err;
+  } finally {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    if (mode) metrics.observeHandshakeDuration(mode.toLowerCase(), ms);
   }
-  const version = handshake[0];
-
-  if (version === HANDSHAKE_VERSION_HYBRID) {
-    const cipherText = handshake.subarray(1);
-    const { chainKey } = await localRatchet.decapsulateFrom(cipherText);
-    return { mode: 'HYBRID', chainKey };
-  }
-
-  if (version !== HANDSHAKE_VERSION_CLASSICAL) {
-    throw new CompatibilityError('INVALID_HANDSHAKE_VERSION', `handshake version ${version} not supported`);
-  }
-
-  _checkDeprecation(opts, opts.telemetry);
-
-  // layout: version(1) | ephemeralX25519Der | sigLen(1) | signature
-  const peer = _classicalPeerComponents(peerPublicKey);
-  // SPKI DER X25519 is 44 bytes; sigLen(1) + Ed25519 signature(64) = 65 trailing bytes
-  const EPHEMERAL_DER_LEN = 44;
-  const SIG_LEN = 64;
-  if (handshake.length !== 1 + EPHEMERAL_DER_LEN + 1 + SIG_LEN) {
-    throw new CompatibilityError('INVALID_HANDSHAKE', 'handshake too short');
-  }
-  const sigLen = handshake[handshake.length - 1 - SIG_LEN];
-  if (sigLen !== SIG_LEN) throw new CompatibilityError('INVALID_HANDSHAKE', 'unexpected signature length');
-  const signature = handshake.subarray(handshake.length - SIG_LEN);
-  const ephemeralPublicDer = handshake.subarray(1, 1 + EPHEMERAL_DER_LEN);
-  const localX25519Private = crypto.createPrivateKey({ key: localRatchet.secretKey.x25519, type: 'pkcs8', format: 'der' });
-  const ephemeralPub = crypto.createPublicKey({ key: ephemeralPublicDer, type: 'spki', format: 'der' });
-  const dh = crypto.diffieHellman({ privateKey: localX25519Private, publicKey: ephemeralPub });
-  const sharedSecret = _deriveClassicalShared(localRatchet.secretKey.x25519, peer.x25519);
-  const finalShared = Buffer.from(crypto.hkdfSync('sha384', Buffer.alloc(0), Buffer.concat([sharedSecret, dh]), CLASSICAL_LABEL, 32));
-
-  const transcript = _makeTranscript(peerPublicKey, localRatchet.publicKey);
-  if (!bootstrap.verify(signature, transcript, peerPublicKey)) {
-    throw new CompatibilityError('SIGNATURE_INVALID', 'classical handshake signature verification failed');
-  }
-
-  const { ck } = initializeFromShared(finalShared);
-  localRatchet._initChain(finalShared);
-  return { mode: 'CLASSICAL', chainKey: ck.toString('hex') };
 }
 
 module.exports = {
@@ -199,4 +224,5 @@ module.exports = {
   detectMode,
   initiateHandshake,
   acceptHandshake,
+  RatchetMetrics,
 };

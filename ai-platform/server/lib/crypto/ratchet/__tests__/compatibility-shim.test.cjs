@@ -5,7 +5,7 @@ const { describe, it } = require('node:test');
 const path = require('path');
 
 const { IdentityRatchet } = require(path.resolve(process.cwd(), 'server', 'lib', 'crypto', 'ratchet', 'identity-ratchet.cjs'));
-const { detectMode, initiateHandshake, acceptHandshake, CompatibilityError } = require(path.resolve(process.cwd(), 'server', 'lib', 'crypto', 'ratchet', 'compatibility-shim.cjs'));
+const { detectMode, initiateHandshake, acceptHandshake, CompatibilityError, RatchetMetrics } = require(path.resolve(process.cwd(), 'server', 'lib', 'crypto', 'ratchet', 'compatibility-shim.cjs'));
 
 async function createPeer(hybrid = true) {
   const r = await new IdentityRatchet({ deviceId: 'peer' }).generate();
@@ -73,5 +73,31 @@ describe('Compatibility Shim (Track 113)', () => {
       () => detectMode(Buffer.alloc(0)),
       (err) => err instanceof CompatibilityError,
     );
+  });
+
+  it('records hybrid and classical handshake duration metrics', async () => {
+    const metrics = new RatchetMetrics();
+    const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
+    const bob = await createPeer(true);
+    const init = await initiateHandshake(alice, bob.publicKey, { metrics });
+    const accept = await acceptHandshake(bob, init.handshake, alice.publicKey, { metrics });
+    assert.strictEqual(init.chainKey, accept.chainKey);
+
+    const snap = metrics.snapshot();
+    assert.ok(snap.identity_handshake_duration_ms.hybrid, 'hybrid duration recorded');
+    assert.strictEqual(snap.identity_handshake_duration_ms.hybrid.count, 2);
+    assert.strictEqual(snap.identity_handshake_failed_total['signature_invalid'] || 0, 0);
+  });
+
+  it('records failure metrics for expired deadline', async () => {
+    const metrics = new RatchetMetrics();
+    const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
+    const bob = await createPeer(false);
+    await assert.rejects(
+      () => initiateHandshake(alice, bob.publicKey, { metrics, deprecationDeadline: Date.now() - 1, now: Date.now() }),
+      (err) => err instanceof CompatibilityError,
+    );
+    const snap = metrics.snapshot();
+    assert.ok(snap.identity_handshake_failed_total.expired_deadline >= 1);
   });
 });
