@@ -52,4 +52,14 @@ describe('scan-utils', () => {
     it('should have correct max files constant', () => {
         assert.strictEqual(MAX_DISCOVERED_FILES, 999999999);
     });
+
+    it('should hard-stop browser scans at 100000 files with CLI hint', () => {
+        const { analyzeFolderSize } = require('../js/scan-utils.js');
+        const files = Array.from({ length: 100000 }, () => ({ size: 1, name: 'a.js', webkitRelativePath: 'p/a.js' }));
+        const result = analyzeFolderSize(files);
+        assert.strictEqual(result.blocked, true);
+        assert.strictEqual(result.severity, 'error');
+        assert.match(result.message, /100,000/);
+        assert.match(result.cliHint, /npx simplebeacon scan/);
+    });
 });

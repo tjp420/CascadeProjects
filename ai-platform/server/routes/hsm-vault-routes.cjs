@@ -2453,4 +2453,75 @@ router.get('/cross-cluster-migration/telemetry', authorize('admin:all'), functio
   }
 });
 
+// GET /api/vault/cluster-key-reconciliation/policy — expose active Track 120 policy defaults
+router.get('/cluster-key-reconciliation/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.clusterKeyReconciliation,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cluster_key_reconciliation_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/cluster-key-reconciliation/policy/validate — validate a proposed Track 120 configuration
+router.post('/cluster-key-reconciliation/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    // sanitize incoming config: coerce numeric strings, normalize booleans
+    const sanitized = { ...config };
+    const numericFields = ['minQuorumNodes', 'maxEpochRollbackAttempts', 'maxTrackedKeys'];
+    for (const f of numericFields) {
+      if (sanitized[f] !== undefined && typeof sanitized[f] === 'string') {
+        const n = Number(sanitized[f]);
+        if (!Number.isNaN(n) && Number.isFinite(n)) sanitized[f] = Math.trunc(n);
+      }
+    }
+    const booleanFields = ['requireQuorumPromotion', 'requireAntiRollback', 'quarantineOnCriticalDivergence'];
+    for (const f of booleanFields) {
+      if (sanitized[f] !== undefined && typeof sanitized[f] === 'string') {
+        const v = sanitized[f].toLowerCase();
+        if (v === 'true' || v === 'false') sanitized[f] = v === 'true';
+      }
+    }
+
+    engine.validate(tenantId, 'clusterKeyReconciliation', sanitized);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'cluster_key_reconciliation_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/cluster-key-reconciliation/telemetry — expose Track 120 telemetry counters
+router.get('/cluster-key-reconciliation/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_reconciliation_scans_total: allMetrics.hsm_reconciliation_scans_total || 0,
+      hsm_reconciliation_divergence_detected_total: allMetrics.hsm_reconciliation_divergence_detected_total || 0,
+      hsm_reconciliation_promoted_total: allMetrics.hsm_reconciliation_promoted_total || 0,
+      hsm_reconciliation_quarantined_total: allMetrics.hsm_reconciliation_quarantined_total || 0,
+      hsm_reconciliation_rollback_blocked_total: allMetrics.hsm_reconciliation_rollback_blocked_total || 0,
+      hsm_reconciliation_promotion_votes_total: allMetrics.hsm_reconciliation_promotion_votes_total || 0,
+      hsm_reconciliation_divergent_keys: allMetrics.hsm_reconciliation_divergent_keys || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'cluster_key_reconciliation_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

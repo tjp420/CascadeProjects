@@ -5984,28 +5984,15 @@ export class AnalyzeView {
                             return;
                         }
                     }
-                    // If only 1-2 files without webkitRelativePath on remote host without bridge,
-                    // prompt user to use Select Folder instead of scanning 1 file.
-                    if (!fileArray.some((f) => f.webkitRelativePath) && fileArray.length <= 2 && !hasExtensionBridgeConfigured()) {
+                    // If only 1-2 files on a directory drop (with or without webkitRelativePath),
+                    // prompt user to use Select Folder instead of scanning an incomplete tree.
+                    if (isIncompleteFolderDrop(fileArray.length, {
+                        isDirectoryDrop: looksLikeDirDrop || !fileArray.some((f) => f.webkitRelativePath),
+                        hasRelativePath: fileArray.some((f) => f.webkitRelativePath)
+                    }) && !hasExtensionBridgeConfigured()) {
                         if (analyzeTerminal)
-                            analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                        showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
-                        setAnalyzeDropzoneState('idle');
-                        const nativePicker = el.querySelector('#trigger-native-picker');
-                        if (nativePicker) {
-                            setTimeout(() => nativePicker.click(), 100);
-                        }
-                        return;
-                    }
-                    // Also guard against 1-2 file drops that DO have webkitRelativePath but
-                    // are clearly incomplete (e.g., OS Explorer drop of a protected directory
-                    // like C:\Windows that only exposes 1 file). The gate logic in
-                    // localScanService will refuse to PASS, but we warn here too to guide
-                    // the user toward Select Folder or CLI before the scan runs.
-                    if (fileArray.length <= 2 && looksLikeDirDrop) {
-                        if (analyzeTerminal)
-                            analyzeTerminal.textContent = 'Drop exposed only ' + fileArray.length + ' file' + (fileArray.length === 1 ? '' : 's') + ' — likely incomplete access. Use Select Folder for full scan.';
-                        showToast('Folder drop exposed only ' + fileArray.length + ' file' + (fileArray.length === 1 ? '' : 's') + ' (incomplete access — common for OS/system directories). Click Select Folder or run: npx simplebeacon scan --full --gate --format json', 'warning', { duration: 10000 });
+                            analyzeTerminal.textContent = incompleteFolderDropMessage(folderHint);
+                        showToast(incompleteFolderDropMessage(folderHint), 'warning', { duration: 14000 });
                         setAnalyzeDropzoneState('idle');
                         const nativePicker = el.querySelector('#trigger-native-picker');
                         if (nativePicker) {
@@ -6148,12 +6135,15 @@ export class AnalyzeView {
                                     return;
                                 }
                             }
-                            // If still only 1-2 files without webkitRelativePath on remote host
+                            // If still only 1-2 files on a directory drop on remote host
                             // without bridge, prompt user to use Select Folder for full coverage.
-                            if (!hasWebkitRelPath && fileArray.length <= 2 && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
+                            if (isIncompleteFolderDrop(fileArray.length, {
+                                isDirectoryDrop: true,
+                                hasRelativePath: hasWebkitRelPath
+                            }) && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
                                 if (analyzeTerminal)
-                                    analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                                showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                    analyzeTerminal.textContent = incompleteFolderDropMessage(folderName);
+                                showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
                                 setAnalyzeDropzoneState('idle');
                                 const nativePicker = el.querySelector('#trigger-native-picker');
                                 if (nativePicker) {
@@ -6256,12 +6246,15 @@ export class AnalyzeView {
                                 console['warn']('[AnalyzeView] findFolderViaBridge failed for non-folder drop:', bridgeErr);
                             }
                         }
-                        // Bridge unavailable or failed — if only 1-2 files without webkitRelativePath,
+                        // Bridge unavailable or failed — if only 1-2 files on a directory drop,
                         // the drop didn't expose the full directory. Prompt user to use Select Folder.
-                        if (!hasWebkitRelPath && files.length <= 2) {
+                        if (isIncompleteFolderDrop(files.length, {
+                            isDirectoryDrop: true,
+                            hasRelativePath: hasWebkitRelPath
+                        })) {
                             if (analyzeTerminal)
-                                analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                            showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                analyzeTerminal.textContent = incompleteFolderDropMessage(folderName);
+                            showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
                             setAnalyzeDropzoneState('idle');
                             const nativePicker = el.querySelector('#trigger-native-picker');
                             if (nativePicker) {
@@ -7905,6 +7898,21 @@ export class AnalyzeView {
                     this.updateProgressDom();
                 }
             });
+            const fileArr = files ? Array.from(files) : null;
+            if (fileArr && isIncompleteFolderDrop(fileArr.length, {
+                isDirectoryDrop: true,
+                hasRelativePath: fileArr.some((f) => f.webkitRelativePath || f._virtualPath)
+            })) {
+                throw new Error(incompleteFolderDropMessage(projectPath || report.projectRoot));
+            }
+            const inventoryCount = Number(report.repositoryFilesTotal ?? report.summary?.totalFiles ?? 0);
+            if (dirHandle && inventoryCount > 0 && inventoryCount <= 2) {
+                // Directory-handle walk of a protected/system tree can yield 1 readable file and a false PASS.
+                const rootName = String(report.projectRoot || projectPath || dirHandle.name || '');
+                if (/^(windows|system32|winsxs|program files|programdata)$/i.test(rootName.trim())) {
+                    throw new Error(incompleteFolderDropMessage(rootName));
+                }
+            }
             const conclusion = buildScanConclusion(report);
             const scannedRoot = report.projectRoot || report.projectPath || (projectPath && projectPath.trim()) || 'local-project';
             this.repositoryInventory = report.inventory || null;
