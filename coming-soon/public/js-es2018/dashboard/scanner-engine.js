@@ -1259,6 +1259,21 @@ function analyzeRemovableFiles(files) {
 
 async function processLocalCLIScan(files) {
     appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654;</span> processLocalCLIScan: received ${files.length.toLocaleString()} files`, 'info');
+    // Hard-stop before normalize/dedupe/worker — do not clone or postMessage 100k+ File objects.
+    const BROWSER_HARD_STOP = 100000;
+    const CLI_HINT = 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+    if (files.length >= BROWSER_HARD_STOP) {
+        appendTerminalLine(
+            `<span style="color:#EF4444;font-weight:700;">&#10008; Browser hard-stop:</span> ${files.length.toLocaleString()} files exceeds the ${BROWSER_HARD_STOP.toLocaleString()}-file in-tab limit. `
+            + `Run the CLI instead:<br><code style="user-select:all;">${CLI_HINT}</code>`,
+            'error',
+            true
+        );
+        if (typeof showToast === 'function') {
+            showToast(`Browser scan stops at ${BROWSER_HARD_STOP.toLocaleString()} files. Use CLI: ${CLI_HINT}`, 'error', 12000);
+        }
+        return;
+    }
     reportData = null;
     window._scanPreviewData = null;
     window._scanPreviewModules = null;
