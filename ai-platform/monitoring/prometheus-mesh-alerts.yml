@@ -897,3 +897,116 @@ groups:
           description: "No key reconciliation scans have been performed over the last 10 minutes, indicating possible reconciliation engine failure, scheduler deadlock, or process termination on the responsible node."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_SCAN_STALL.md"
 
+  # ── Track 121: Multiparty Re-Keying alerts ────────────────────────
+  - name: track121_multiparty_rekeying_alerts
+    interval: 15s
+    rules:
+      - alert: Track121AbortSpike
+        expr: |
+          rate(hsm_rekey_aborted_total[5m]) > 2
+        for: 1m
+        labels:
+          severity: critical
+          track: "121"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-multiparty-rekeying
+        annotations:
+          summary: "Track 121 re-keying abort spike"
+          description: "More than 2 re-keying rounds per second are being aborted over the last 5 minutes, indicating possible systematic verification failures, shareholder coordination breakdown, or VSS polynomial corruption."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK121_ABORT_SPIKE.md"
+
+      - alert: Track121CommitStall
+        expr: |
+          rate(hsm_rekey_verified_total[10m]) > 0
+          and
+          rate(hsm_rekey_committed_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "121"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-multiparty-rekeying
+        annotations:
+          summary: "Track 121 re-keying commit stall"
+          description: "Re-keying rounds are being verified but none are being committed via quorum over the last 10 minutes, indicating possible quorum commit deadlock, voter pool exhaustion, or commit phase engine failure."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK121_COMMIT_STALL.md"
+
+      - alert: Track121ActiveSaturation
+        expr: |
+          hsm_rekey_active > 28
+        for: 5m
+        labels:
+          severity: critical
+          track: "121"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-multiparty-rekeying
+        annotations:
+          summary: "Track 121 active re-keying saturation"
+          description: "More than 28 concurrent re-keying rounds are active for over 5 minutes, approaching the maxShareholders limit of 32. Indicates possible re-keying backlog, resource exhaustion, or unthrottled re-keying scheduling."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK121_ACTIVE_SATURATION.md"
+
+      - alert: Track121RollbackBlockedSpike
+        expr: |
+          rate(hsm_rekey_rollback_blocked_total[5m]) > 1
+        for: 3m
+        labels:
+          severity: warning
+          track: "121"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-multiparty-rekeying
+        annotations:
+          summary: "Track 121 re-keying rollback blocked spike"
+          description: "More than 1 re-keying epoch rollback attempt per second is being blocked by anti-rollback protection over the last 5 minutes, indicating possible downgrade attacks, historic epoch reinjection attempts, or misconfigured recovery procedures."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK121_ROLLBACK_BLOCKED_SPIKE.md"
+
+      - alert: Track121ResharingStall
+        expr: |
+          rate(hsm_rekey_proposed_total[10m]) > 0
+          and
+          rate(hsm_rekey_resharing_submitted_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          track: "121"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-multiparty-rekeying
+        annotations:
+          summary: "Track 121 resharing submission stall"
+          description: "Re-keying proposals are being initiated but no shareholder resharings are being submitted over the last 10 minutes, indicating possible shareholder participation failure, network partition, or resharing engine deadlock."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK121_RESHARING_STALL.md"
+
+      - alert: Track121AbortRate
+        expr: |
+          rate(hsm_rekey_aborted_total[5m]) / (rate(hsm_rekey_proposed_total[5m]) + 1) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          track: "121"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-multiparty-rekeying
+        annotations:
+          summary: "Track 121 re-keying abort rate above 50%"
+          description: "More than 50% of proposed re-keying rounds are being aborted over the last 5 minutes, indicating systematic re-keying failures, irreconcilable shareholder states, or compromised key material."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK121_ABORT_RATE.md"
+
+      - alert: Track121ProposalStall
+        expr: |
+          rate(hsm_rekey_proposed_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          track: "121"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-multiparty-rekeying
+        annotations:
+          summary: "Track 121 re-keying proposal stall"
+          description: "No re-keying proposals have been initiated over the last 10 minutes, indicating possible re-keying scheduler failure, process termination on the lead node, or governance policy blocking new proposals."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK121_PROPOSAL_STALL.md"
+
