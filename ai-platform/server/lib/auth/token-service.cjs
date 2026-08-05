@@ -9,6 +9,7 @@ const constants = require('../../config/constants.cjs');
 const { trustLevels } = require('./trust-levels.cjs');
 const { isAccessTokenBlacklisted } = require('../token-service.cjs');
 const logger = require('../app-logger.cjs');
+const { withZeroizedBuffer } = require('../crypto/zeroize.cjs');
 
 const TOKEN_LIFETIME_MS = 24 * 60 * constants.ONE_MINUTE_MS;
 
@@ -74,7 +75,12 @@ function generateToken(user, options = {}) {
 }
 
 // Verify JWT token. Always enforces issuer and audience claims.
+// Token buffer is zeroized after verification (even on error).
 async function verifyToken(token) {
+  // Create a buffer copy of the token for zeroization after use.
+  // jwt.verify() requires a string, so we pass the original but track
+  // a buffer copy for scrubbing.
+  const tokenBuf = Buffer.from(String(token), 'utf8');
   try {
     const blacklisted = await isAccessTokenBlacklisted(token);
     if (blacklisted) {
@@ -88,6 +94,9 @@ async function verifyToken(token) {
   } catch (err) {
     if (err.status) throw err;
     throw createError(401, 'Invalid or expired token');
+  } finally {
+    // Zeroize the token buffer copy immediately after verification
+    tokenBuf.fill(0);
   }
 }
 
