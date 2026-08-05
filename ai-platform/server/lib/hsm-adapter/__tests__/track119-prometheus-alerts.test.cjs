@@ -209,7 +209,12 @@ describe('Track 119 Prometheus alert rule compliance', () => {
   // ── L3-03: No secrets in alert YAML ─────────────────────────────────
   test('ALERT-119-L3-03: no secrets in Track 119 alert YAML section', () => {
     const yamlText = fs.readFileSync(ALERTS_YML, 'utf8');
-    const track119Section = yamlText.slice(yamlText.indexOf('track119_cross_cluster_migration_alerts'));
+    const track119Start = yamlText.indexOf('track119_cross_cluster_migration_alerts');
+    // Bound the slice to just the Track 119 section (stop at the next group or end of file)
+    const nextGroupIdx = yamlText.indexOf('\n  - name: track', track119Start + 1);
+    const track119Section = nextGroupIdx > 0
+      ? yamlText.slice(track119Start, nextGroupIdx)
+      : yamlText.slice(track119Start);
     const secretPatterns = [/password\s*[:=]/i, /api[_-]?key\s*[:=]/i, /private[_-]?key\s*[:=]/i, /[0-9a-f]{64}/i];
     for (const p of secretPatterns) {
       expect(track119Section).not.toMatch(p);
@@ -245,7 +250,12 @@ describe('Track 119 Prometheus alert rule compliance', () => {
   // ── S-01: No credentials / PII in alert rules or runbooks ───────────
   test('ALERT-119-S-01: no credentials or PII in alert rules or runbook files', () => {
     const yamlText = fs.readFileSync(ALERTS_YML, 'utf8');
-    const track119Section = yamlText.slice(yamlText.indexOf('track119_cross_cluster_migration_alerts'));
+    const track119Start = yamlText.indexOf('track119_cross_cluster_migration_alerts');
+    // Bound the slice to just the Track 119 section (stop at the next group or end of file)
+    const nextGroupIdx = yamlText.indexOf('\n  - name: track', track119Start + 1);
+    const track119Section = nextGroupIdx > 0
+      ? yamlText.slice(track119Start, nextGroupIdx)
+      : yamlText.slice(track119Start);
     // Check for actual secret patterns, not the word "credential" in descriptions
     expect(track119Section).not.toMatch(/password\s*[:=]\s*["']?[^\s"']+/i);
     expect(track119Section).not.toMatch(/api[_-]?key\s*[:=]\s*["']?[^\s"']+/i);
