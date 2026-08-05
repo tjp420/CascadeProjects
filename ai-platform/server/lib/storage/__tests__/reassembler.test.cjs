@@ -74,3 +74,5 @@ async function run() {
 }
 
 run().catch(err => { console.error(err); process.exit(2); });
+
+test('reassembler run to completion', async () => await run());

@@ -21,4 +21,6 @@ function run() {
 
 if (require.main === module) run();
 
+test('secret scanner run to completion', run);
+
 module.exports = { run };
