@@ -36,7 +36,7 @@ describe('Cluster Session Token Integration', () => {
 
   test('CLUSTER-SESS-01f: IPC_SCHEMAS includes SESSION_STATE_RESPONSE', () => {
     expect(IPC_SCHEMAS.SESSION_STATE_RESPONSE).toBeDefined();
-    expect(IPC_SCHEMAS.SESSION_STATE_RESPONSE.required.tokens).toBe('object');
+    expect(IPC_SCHEMAS.SESSION_STATE_RESPONSE.required.tokens).toEqual(['object', 'array']);
   });
 
   test('CLUSTER-SESS-02: setSessionReplicator is a function', () => {

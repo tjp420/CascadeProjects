@@ -1,112 +1,89 @@
-# Test Plan: Distributed Session Token Replication
+# Test Plan: Track 123 — Secure Shard Repair Worker Hardening
 
-> Extend the gossiped sync engine (SIEM_BUCKET_SYNC framework) to handle distributed,
-> highly available crypto-token replication across the mesh to secure session persistence
-> during node death.
+> Copy to `.simplebeacon/qa/test_plan.md` and fill before Builder writes feature code.
+> User approval required unless the task explicitly includes an approved plan.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Session token replication engine, cluster gossip integration, token state recovery |
+| Feature / change | Track 123: Secure shard repair worker — idempotent repair loop, jitter, atomic persistence, observability, tenant isolation |
 | Author (Builder) | Devin |
-| Date | 2026-08-04 |
-| Branch | feat/session-token-replication |
-| Packages touched | ai-platform/server/lib, ai-platform/server/lib/siem, ai-platform/server/lib/cluster-keyring-sync.cjs |
+| Date | 2026-08-05 |
+| Branch | feat/track123-secure-shard-repair |
+| Packages touched | ai-platform |
 
-## Problem
+## Scope
 
-Session tokens are currently stored in-process `Map()` instances with optional fallback to file/PostgreSQL/Redis. When a cluster node dies:
+### Files in scope
 
-1. **All in-memory session state is lost** — users on that node are forced to re-authenticate
-2. **Token blocklist is not replicated** — revoked tokens may still be valid on other nodes
-3. **Refresh token families are fragmented** — reuse detection fails across node boundaries
-4. **SIEM distributed sync is not wired** — the gossip protocol exists but `enableDistributedSync()` is never called with a real `sendFn`
-5. **No token state recovery** — on node restart, session state is empty with no cluster sync
+- `server/lib/storage/repair-worker.cjs` — core worker implementation
+- `server/lib/storage/__tests__/repair-worker.test.cjs` — worker unit tests
+- `server/lib/storage/reassembler.cjs` — shard reassembly validation
+- `server/lib/storage/__tests__/reassembler.test.cjs` — reassembly edge cases
+- `server/lib/storage/README-REPAIR-WORKER.md` — operational documentation
+- `server/lib/hsm-adapter/hsm-metrics.cjs` — new telemetry counters
 
-## Objectives
+### APIs / routes
 
-### 1. Session Token Replication Engine (`server/lib/session-token-replication.cjs`)
+- Event bus: `shard:reconciler:reconcile_requested` and `reconcile:requested` subscriptions
+- Internal repair worker lifecycle: `handle(payload)`, `executeRepair(payload)`, event emissions
+- Metrics: `hsm_repair_worker_*_total` counters and `hsm_shard_reconciler_*_total` counters
 
-New module that manages distributed session token state across cluster nodes:
+### UI / IDE surfaces
 
-- **SESS-REPL-01**: `SessionTokenReplicator` class with `init()`, `start()`, `stop()` lifecycle
-- **SESS-REPL-02**: Local token store: Map of tokenId -> { tokenHash, userId, family, expiresAt, revoked, issuedAt, issuedBy }
-- **SESS-REPL-03**: `issueToken(tokenData)` — stores locally and broadcasts `SESSION_TOKEN_ISSUE` to peers
-- **SESS-REPL-04**: `revokeToken(tokenId)` — marks revoked locally and broadcasts `SESSION_TOKEN_REVOKE` to peers
-- **SESS-REPL-05**: `revokeFamily(familyId)` — revokes all tokens in a family, broadcasts `SESSION_FAMILY_REVOKE`
-- **SESS-REPL-06**: `isTokenRevoked(tokenId)` — checks local store (O(1) lookup)
-- **SESS-REPL-07**: `getTokenState(tokenId)` — returns token metadata without sensitive data
-- **SESS-REPL-08**: `handlePeerSync(msg)` — processes incoming `SESSION_TOKEN_SYNC` messages
-- **SESS-REPL-09**: `handleTokenIssue(msg)` — applies remote token issuance to local store
-- **SESS-REPL-10**: `handleTokenRevoke(msg)` — applies remote revocation to local store
-- **SESS-REPL-11**: `handleFamilyRevoke(msg)` — applies remote family revocation
-- **SESS-REPL-12**: `handleStateRequest(msg)` — responds with local token state for recovering node
-- **SESS-REPL-13**: `requestStateFromPeers()` — new node requests full token state from cluster
-- **SESS-REPL-14**: Periodic state sync broadcast (configurable interval, default 10s)
-- **SESS-REPL-15**: Token expiry sweep — removes expired tokens from local store
-- **SESS-REPL-16**: Metrics: tokens_replicated_total, tokens_revoked_total, sync_messages_sent_total, sync_messages_received_total
-- **SESS-REPL-17**: Backward compatible — works standalone (no cluster) with local-only mode
+- [ ] Not applicable — pure backend storage worker
 
-### 2. Cluster Gossip Integration (`server/lib/cluster-keyring-sync.cjs`)
+---
 
-Extend the cluster messaging layer to route session token messages:
+## Level 1 — Deterministic (Validator MUST run all)
 
-- **CLUSTER-SESS-01**: Add `SESSION_TOKEN_SYNC`, `SESSION_TOKEN_ISSUE`, `SESSION_TOKEN_REVOKE`, `SESSION_FAMILY_REVOKE`, `SESSION_STATE_REQUEST`, `SESSION_STATE_RESPONSE` to IPC_SCHEMAS
-- **CLUSTER-SESS-02**: Route session token messages in `_handleMessage` to the replicator
-- **CLUSTER-SESS-03**: Add `setSessionReplicator(replicator)` function to register the replicator
-- **CLUSTER-SESS-04**: Wire `enableDistributedSync()` on the SIEM broker with `_broadcast` as the sendFn when cluster forms
-- **CLUSTER-SESS-05**: On cluster formation (`CLUSTER_FORMED` event), trigger replicator state request
-- **CLUSTER-SESS-06**: Tenant scope validation on session token messages (reuse `_validateTenantScope`)
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed JS/CJS | `node -c server/lib/storage/repair-worker.cjs` | [ ] |
+| L1-02 | Syntax on changed test | `node -c server/lib/storage/__tests__/repair-worker.test.cjs` | [ ] |
+| L1-03 | ai-platform unit test | `cd ai-platform && npx jest server/lib/storage/__tests__/repair-worker.test.cjs --no-coverage` | [ ] |
+| L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
+| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
 
-### 3. SIEM Broker Production Wiring (`server/lib/siem/siem-broker.cjs`)
+---
 
-Wire the existing distributed sync protocol to production:
+## Level 2 — Behavioral
 
-- **SIEM-WIRE-01**: Add `enableClusterSync(clusterSync)` method that wires `sendFn` to `clusterSync._broadcast`
-- **SIEM-WIRE-02**: Auto-call `enableDistributedSync()` with correct nodeCount from cluster state
-- **SIEM-WIRE-03**: Expose `getDistributedState()` for monitoring
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Idempotency prevents duplicate repair | Emit two `reconcile_requested` events with identical `tenantId\|shardId\|rotatedAt` | Second request emits `repair:skipped` and increments `repair_skipped_duplicate` | [ ] |
+| L2-02 | Coordinated jitter spreads load | Emit 50 repair requests with `repairJitterMs=1000` | Delays are uniformly distributed in `[0, 1000]` ms and started at distinct times | [ ] |
+| L2-03 | Observability counters emit | Run a repair to success and a duplicate | `hsm_repair_worker_completed_total` and `hsm_shard_reconciler_repair_skipped_duplicate_total` increment with `{tenantId, shardId, worker}` labels | [ ] |
+| L2-04 | Monotonic sequence validation | Attempt to apply a sequence number that is not `last+1` | Worker rejects and increments `repair_failed` | [ ] |
+| L2-05 | Atomic write persistence | Simulate a crash mid-write | Shard state is either unchanged or fully repaired; no torn writes | [ ] |
 
-### 4. Integration Tests
+---
 
-- **INT-01**: Session token replicator issues token and broadcasts to peers
-- **INT-02**: Peer receives token issue and applies to local store
-- **INT-03**: Token revocation propagates across cluster
-- **INT-04**: Family revocation propagates across cluster
-- **INT-05**: New node requests and receives state from peers
-- **INT-06**: Token expiry sweep removes expired tokens
-- **INT-07**: SIEM broker distributed sync is wired on cluster formation
-- **INT-08**: IPC schema validation rejects malformed session token messages
-- **INT-09**: Tenant scope validation on session token messages
-- **INT-10**: Zero regressions — all existing tests pass
+## Level 3 — Edge cases & regression
 
-## Files to Touch
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Re-entrant `handle` during processing | Worker does not lose track of active repair and correctly removes lock in `finally` | [ ] |
+| L3-02 | Missing `rotatedAt` in payload | Worker throws clear error and does not corrupt store | [ ] |
+| L3-03 | Concurrent repairs for different tenants | Both complete independently, no cross-tenant key collision | [ ] |
+| L3-04 | Zero `repairJitterMs` | Repair starts immediately with delay `0` | [ ] |
+| L3-05 | Existing Track 112 / reassembler tests | All existing `storage/` tests continue to pass | [ ] |
 
-| File | Change | New? |
-|------|--------|------|
-| `server/lib/session-token-replication.cjs` | New replication engine | Yes |
-| `server/lib/cluster-keyring-sync.cjs` | Add IPC schemas, routing, replicator integration | No |
-| `server/lib/siem/siem-broker.cjs` | Add enableClusterSync method | No |
-| `server/lib/__tests__/session-token-replication.test.cjs` | Unit tests for replicator | Yes |
-| `server/lib/__tests__/cluster-session-integration.test.cjs` | Integration tests for cluster routing | Yes |
-| `server/lib/siem/__tests__/siem-cluster-wiring.test.cjs` | Tests for SIEM broker production wiring | Yes |
+---
 
-## Level 1 Verification
+## Security
 
-```powershell
-node -c server/lib/session-token-replication.cjs
-node -c server/lib/cluster-keyring-sync.cjs
-node -c server/lib/siem/siem-broker.cjs
-cd ai-platform && npx jest server/lib/__tests__/session-token-replication.test.cjs --no-coverage
-cd ai-platform && npx jest server/lib/__tests__/cluster-session-integration.test.cjs --no-coverage
-cd ai-platform && npx jest server/lib/siem/__tests__/siem-cluster-wiring.test.cjs --no-coverage
-```
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | No credentials / PII in logs or commits | [ ] |
+| S-02 | Tenant-scoped shard fetch / apply | [ ] |
+| S-03 | Sensitive session data encrypted with AES-256-GCM envelope before disk write | [ ] |
+| S-04 | No long-term secrets persisted in worker process | [ ] |
 
-## Security Invariants
+---
 
-1. **No sensitive data on the wire**: Token hashes only — never raw tokens or keys
-2. **Idempotent operations**: Duplicate issue/revoke messages are safe
-3. **Fail-safe revocation**: If in doubt, revoke (never fail-open on revocation)
-4. **Tenant isolation**: Session token messages carry tenantId and are validated
-5. **Backward compatible**: Works standalone without cluster (local-only mode)
-6. **No token leakage**: `getTokenState()` returns metadata only, never token hashes
+## Approval
+
+- [ ] User approved this plan (or task included approved scope)
+- Approved by: __________  Date: __________
