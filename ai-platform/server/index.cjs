@@ -442,7 +442,8 @@ const VAULT_AUTH_PREFIX_PATHS = [
   '/api/analyze/',
   '/api/find-folder',
   '/api/operator/',
-  '/api/reports/status/'
+  '/api/reports/status/',
+  '/api/track112/'
 ];
 
 app.use((req, res, next) => {
@@ -1260,6 +1261,9 @@ app.use('/api/token-throttle', tokenThrottleRoutes);
 
 // HSM Vault ΓÇö multi-region key custody handshake and decrypt
 app.use('/api/vault', hsmVaultRoutes);
+
+// Track 112 — disk-backed multipart upload session routes
+app.use('/api/track112', track112UploadRoutes);
 
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));
