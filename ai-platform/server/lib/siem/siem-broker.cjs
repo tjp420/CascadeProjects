@@ -62,6 +62,7 @@ class SiemSecurityBroker extends EventEmitter {
       siem_events_dropped_total: 0,
       siem_events_bypassed_total: 0,
       siem_tokens_consumed_total: 0,
+      siem_tokens_refilled_total: 0,
       siem_tokens_borrowed_total: 0,
       siem_tokens_granted_total: 0,
       siem_token_requests_sent_total: 0,
@@ -154,6 +155,7 @@ class SiemSecurityBroker extends EventEmitter {
     if (elapsed < this.refillRate) return;
     const credits = Math.floor(elapsed / this.refillRate);
     this.tokens = Math.min(this.maxTokens, this.tokens + credits);
+    this._metrics.siem_tokens_refilled_total += credits;
     this._lastRefill = now - (elapsed % this.refillRate);
   }
 
@@ -234,7 +236,12 @@ class SiemSecurityBroker extends EventEmitter {
    * @returns {object}
    */
   getMetrics() {
-    return { ...this._metrics, currentTokens: this.tokens };
+    return {
+      ...this._metrics,
+      siem_tokens_available: this.tokens,
+      siem_tokens_max: this.maxTokens,
+      currentTokens: this.tokens,
+    };
   }
 
   /**
