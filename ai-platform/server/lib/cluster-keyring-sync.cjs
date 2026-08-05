@@ -34,6 +34,7 @@ const HEARTBEAT_TIMEOUT_MS = parseInt(process.env.CLUSTER_HEARTBEAT_TIMEOUT_MS, 
 const MAX_FRAME_BYTES = 1 << 20; // 1 MB
 
 const CLUSTER_KEYRING_WRAP_SECRET = process.env.CLUSTER_KEYRING_WRAP_SECRET || '';
+const CLUSTER_KEYRING_WRAP_SECRET_PREVIOUS = process.env.CLUSTER_KEYRING_WRAP_SECRET_PREVIOUS || '';
 const CLUSTER_KEYRING_ALLOW_PLAINTEXT = process.env.CLUSTER_KEYRING_ALLOW_PLAINTEXT === '1';
 const CLUSTER_KEYRING_STRICT = process.env.CLUSTER_KEYRING_STRICT === '1' || !CLUSTER_KEYRING_ALLOW_PLAINTEXT;
 
@@ -1118,6 +1119,20 @@ function _hasTlsMaterial() {
   return !!(process.env.CLUSTER_CERT && process.env.CLUSTER_KEY && process.env.CLUSTER_CA_CERT);
 }
 
+function getClusterTransportStatus() {
+  const tls = _hasTlsMaterial();
+  const plaintext = CLUSTER_KEYRING_ALLOW_PLAINTEXT;
+  const wrapConfigured = _hasWrapSecret();
+  const wrapPreviousConfigured = CLUSTER_KEYRING_WRAP_SECRET_PREVIOUS.length > 0;
+  return {
+    tls,
+    plaintext,
+    wrapConfigured,
+    wrapPreviousConfigured,
+    secure: tls && wrapConfigured && !plaintext,
+  };
+}
+
 function _requireTls() {
   if (CLUSTER_KEYRING_ALLOW_PLAINTEXT) return false;
   if (!_hasTlsMaterial()) {
@@ -1132,11 +1147,12 @@ function _hasWrapSecret() {
   return CLUSTER_KEYRING_WRAP_SECRET.length > 0;
 }
 
-function _derivePeerWrapKey(peerNodeId) {
-  if (!_hasWrapSecret()) {
+function _derivePeerWrapKey(peerNodeId, usePrevious = false) {
+  const secret = usePrevious ? CLUSTER_KEYRING_WRAP_SECRET_PREVIOUS : CLUSTER_KEYRING_WRAP_SECRET;
+  if (secret.length === 0) {
     throw new Error('CLUSTER_KEYRING_WRAP_SECRET_REQUIRED');
   }
-  const ikm = Buffer.from(CLUSTER_KEYRING_WRAP_SECRET, 'hex');
+  const ikm = Buffer.from(secret, 'hex');
   if (ikm.length !== 32) {
     throw new Error('CLUSTER_KEYRING_WRAP_SECRET_MUST_BE_64_HEX_BYTES');
   }
@@ -1153,8 +1169,8 @@ function _wrapKeyMaterial(plaintextHex, peerNodeId, aad) {
   return Buffer.concat([iv, tag, ciphertext]).toString('base64');
 }
 
-function _unwrapKeyMaterial(wrappedB64, peerNodeId, aad) {
-  const key = _derivePeerWrapKey(peerNodeId);
+function _tryUnwrap(wrappedB64, peerNodeId, aad, usePrevious) {
+  const key = _derivePeerWrapKey(peerNodeId, usePrevious);
   const wrapped = Buffer.from(wrappedB64, 'base64');
   if (wrapped.length < 28) throw new Error('INVALID_WRAPPED_KEY');
   const iv = wrapped.slice(0, 12);
@@ -1165,6 +1181,16 @@ function _unwrapKeyMaterial(wrappedB64, peerNodeId, aad) {
   if (aad) decipher.setAAD(Buffer.from(aad, 'utf8'));
   const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
   return plaintext.toString('hex');
+}
+
+function _unwrapKeyMaterial(wrappedB64, peerNodeId, aad) {
+  try {
+    return _tryUnwrap(wrappedB64, peerNodeId, aad, false);
+  } catch (err) {
+    if (!CLUSTER_KEYRING_WRAP_SECRET_PREVIOUS) throw err;
+    _log('info', 'Unwrap with current secret failed, trying previous wrap secret', { peerNodeId });
+    return _tryUnwrap(wrappedB64, peerNodeId, aad, true);
+  }
 }
 
 function _buildWrapAad(msg) {
@@ -2108,6 +2134,7 @@ module.exports = {
   // the same counters object that incrementCounter modifies. Jest may create
   // separate module instances for the same file when required from different
   // locations; this export guarantees test code sees the live counter state.
+  getClusterTransportStatus,
   _hsmMetrics: require(path.join(__dirname, 'hsm-adapter', _hm)),
 };
 
