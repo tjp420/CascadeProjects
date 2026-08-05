@@ -165,6 +165,9 @@ const _metrics = {
   siem_delivery_retries_total: 0,
   siem_delivery_dropped_total: 0,
   siem_queue_dropped_total: 0,
+  siem_queue_depth_current: 0,
+  siem_queue_capacity_total: MAX_QUEUE_DEPTH,
+  siem_batches_flushed_total: 0,
 };
 
 function enqueue(event) {
@@ -175,6 +178,7 @@ function enqueue(event) {
     if (queue.dropped > droppedBefore) {
       _metrics.siem_queue_dropped_total += 1;
     }
+    _metrics.siem_queue_depth_current = queue.length;
     if (queue.length >= getBatchSize()) flush().catch(() => {});
   } catch (e) {
     // swallow
@@ -190,6 +194,8 @@ async function flush() {
   }
   flushing = true;
   const payload = queue.take(getBatchSize());
+  _metrics.siem_batches_flushed_total += 1;
+  _metrics.siem_queue_depth_current = queue.length;
 
   // Non-blocking send with retries
   sendBatch(payload).catch(() => {});
