@@ -35,7 +35,7 @@ process.env.AUDIT_LOG_SCRUB_PII = 'false';
 fs.writeFileSync(process.env.AUDIT_LOG_PATH, JSON.stringify({ entries: {} }), 'utf8');
 
 const replicator = require('../server/lib/session-token-replicator.cjs');
-const tokenDb = require('../server/lib/token-db.cjs');
+const tokenStore = require('../server/lib/token-store-adapter.cjs');
 
 // ── Configurable scale knobs ────────────────────────────────────────────────
 const LOGIN_BURST_COUNT = parseInt(process.env.LOGIN_BURST_COUNT || '1000', 10);
@@ -71,7 +71,7 @@ function report(name, stats) {
   }
 }
 
-function resetRegistry() {
+async function resetRegistry() {
   // Re-initialize a clean token registry for each phase
   const dbPath = path.join(__dirname, '..', 'server', 'db', 'token-registry.json');
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -87,12 +87,17 @@ function resetRegistry() {
     license_tokens: [],
     audit_log: []
   }, null, 2));
+
+  const store = await tokenStore.getStore();
+  if (store.client && typeof store.client.flushdb === 'function') {
+    await store.client.flushdb();
+  }
 }
 
 // ── Phase 1: Concurrent Login Burst Storm ───────────────────────────────────
 
 async function phase1LoginBurst() {
-  resetRegistry();
+  await resetRegistry();
   replicator.setBroadcast(() => {});
   const latencies = [];
   const memBefore = snapshotMemory();
@@ -124,7 +129,7 @@ async function phase1LoginBurst() {
 
   latencies.sort((a, b) => a - b);
   const totalMs = ms(start, end);
-  const accepted = (await tokenDb.findSessionTokensByTenant(TENANT)).length;
+  const accepted = (await (await tokenStore.getStore()).findSessionTokensByTenant(TENANT)).length;
 
   report('Phase 1: Concurrent Login Burst Storm', {
     requested: LOGIN_BURST_COUNT,
@@ -145,7 +150,7 @@ async function phase1LoginBurst() {
 // ── Phase 2: Asymmetric Network Partition & Revoke Storm ────────────────────
 
 async function phase2PartitionedRevoke() {
-  resetRegistry();
+  await resetRegistry();
   replicator.setBroadcast(() => {});
 
   // Seed tokens
@@ -208,7 +213,7 @@ async function phase2PartitionedRevoke() {
 // ── Phase 3: Quorum Node Death & Delta Bootstrap Recovery ───────────────────
 
 async function phase3DeltaRecovery() {
-  resetRegistry();
+  await resetRegistry();
   replicator.setBroadcast(() => {});
 
   // Populate a "peer" node with tokens
@@ -222,10 +227,10 @@ async function phase3DeltaRecovery() {
   }
 
   // Capture the authoritative peer delta before node death
-  const peerTokens = (await tokenDb.findSessionTokensByTenant(TENANT)).map((t) => ({ ...t }));
+  const peerTokens = (await (await tokenStore.getStore()).findSessionTokensByTenant(TENANT)).map((t) => ({ ...t }));
 
   // Simulate node death: reset the local registry
-  resetRegistry();
+  await resetRegistry();
 
   // Catch the broadcasted state request
   let capturedRequest = null;
@@ -250,7 +255,7 @@ async function phase3DeltaRecovery() {
   const end = now();
   const memAfter = snapshotMemory();
 
-  const recovered = (await tokenDb.findSessionTokensByTenant(TENANT)).length;
+  const recovered = (await (await tokenStore.getStore()).findSessionTokensByTenant(TENANT)).length;
 
   report('Phase 3: Quorum Node Death & Delta Bootstrap Recovery', {
     peerTokens: DELTA_TOKEN_COUNT,
