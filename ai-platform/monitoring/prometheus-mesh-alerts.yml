@@ -784,3 +784,116 @@ groups:
           summary: "Track 119 rollback rate is above 30%"
           description: "More than 30% of migration outcomes are rollbacks over the last 5 minutes, indicating possible systematic verification failures, destination cluster instability, or misconfigured migration manifests."
           runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK119_ROLLBACK_RATE_HIGH.md"
+  # ── Track 120: Cluster Key Reconciliation alerts ──────────────────
+  - name: track120_cluster_key_reconciliation_alerts
+    interval: 15s
+    rules:
+      - alert: Track120DivergenceSpike
+        expr: |
+          rate(hsm_reconciliation_divergence_detected_total[5m]) > 2
+        for: 1m
+        labels:
+          severity: critical
+          track: "120"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cluster-key-reconciliation
+        annotations:
+          summary: "Track 120 key divergence spike"
+          description: "More than 2 key divergences per second are being detected over the last 5 minutes, indicating active key drift across cluster nodes, possible split-brain conditions, or compromised key material."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_DIVERGENCE_SPIKE.md"
+
+      - alert: Track120QuarantineSpike
+        expr: |
+          rate(hsm_reconciliation_quarantined_total[10m]) > 0
+          and
+          rate(hsm_reconciliation_promoted_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          track: "120"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cluster-key-reconciliation
+        annotations:
+          summary: "Track 120 quarantine spike with no promotions"
+          description: "Keys are being quarantined due to unrecoverable divergence but no key epochs are being promoted via quorum over the last 10 minutes, indicating possible quorum promotion engine failure, voter pool starvation, or critical cluster state divergence."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_QUARANTINE_SPIKE.md"
+
+      - alert: Track120UnresolvedDivergence
+        expr: |
+          hsm_reconciliation_divergent_keys > 50
+        for: 10m
+        labels:
+          severity: critical
+          track: "120"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cluster-key-reconciliation
+        annotations:
+          summary: "Track 120 unresolved key divergence above 50"
+          description: "More than 50 keys have unresolved divergence for over 10 minutes, indicating the cluster is approaching split-brain conditions and the reconciliation engine cannot converge on a consistent key state."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_UNRESOLVED_DIVERGENCE.md"
+
+      - alert: Track120RollbackBlockedSpike
+        expr: |
+          rate(hsm_reconciliation_rollback_blocked_total[5m]) > 1
+        for: 3m
+        labels:
+          severity: warning
+          track: "120"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cluster-key-reconciliation
+        annotations:
+          summary: "Track 120 rollback blocked spike"
+          description: "More than 1 rollback attempt per second is being blocked by anti-rollback protection over the last 5 minutes, indicating possible downgrade attacks, historic key frame reinjection attempts, or misconfigured recovery procedures."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_ROLLBACK_BLOCKED_SPIKE.md"
+
+      - alert: Track120PromotionVoteStall
+        expr: |
+          rate(hsm_reconciliation_scans_total[10m]) > 0
+          and
+          rate(hsm_reconciliation_promotion_votes_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          track: "120"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cluster-key-reconciliation
+        annotations:
+          summary: "Track 120 promotion vote stall"
+          description: "Reconciliation scans are running but no promotion votes are being cast by healthy nodes over the last 10 minutes, indicating possible voter pool exhaustion, node health check failure, or quorum promotion engine deadlock."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_PROMOTION_VOTE_STALL.md"
+
+      - alert: Track120QuarantineRate
+        expr: |
+          rate(hsm_reconciliation_quarantined_total[5m]) / (rate(hsm_reconciliation_divergence_detected_total[5m]) + 1) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          track: "120"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cluster-key-reconciliation
+        annotations:
+          summary: "Track 120 quarantine rate above 50%"
+          description: "More than 50% of detected key divergences are resulting in quarantine rather than successful promotion over the last 5 minutes, indicating systematic recovery failures, irreconcilable key states, or compromised node key material."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_QUARANTINE_RATE.md"
+
+      - alert: Track120ScanStall
+        expr: |
+          rate(hsm_reconciliation_scans_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          track: "120"
+          component: hsm-mesh-vault
+          tier: post-quantum-crypto
+          service: hsm-vault-cluster-key-reconciliation
+        annotations:
+          summary: "Track 120 reconciliation scan stall"
+          description: "No key reconciliation scans have been performed over the last 10 minutes, indicating possible reconciliation engine failure, scheduler deadlock, or process termination on the responsible node."
+          runbook_url: "https://github.com/tjp420/CascadeProjects/blob/main/ai-platform/docs/runbooks/TRACK120_SCAN_STALL.md"
+
