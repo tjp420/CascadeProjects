@@ -10,7 +10,35 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=2026072701', import.meta.url);
+// Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
+// to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
+// runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
+const WORKER_ASSET_VERSION = '20260804worker1';
+function resolveScanWorkerUrl() {
+    const v = WORKER_ASSET_VERSION;
+    try {
+        if (typeof location !== 'undefined' && location.origin) {
+            const path = String(location.pathname || '');
+            const mount = path.startsWith('/dashboard')
+                ? '/dashboard'
+                : (path.startsWith('/app') ? '/app' : null);
+            if (mount) {
+                return new URL(`${mount}/assets/scan-worker.js?v=${v}`, location.origin);
+            }
+        }
+    } catch (_locErr) { /* fall through */ }
+    try {
+        // Dev module graph: worker lives beside services under ../workers/
+        const base = (typeof import.meta !== 'undefined' && import.meta.url) ? import.meta.url : '';
+        if (base.includes('/assets/')) {
+            return new URL(`./scan-worker.js?v=${v}`, base);
+        }
+        if (base) {
+            return new URL(`../workers/scan-worker.js?v=${v}`, base);
+        }
+    } catch (_metaErr) { /* fall through */ }
+    return `/app/assets/scan-worker.js?v=${v}`;
+}
 const MAX_FILES = 100000;
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
@@ -311,7 +339,10 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             cleanup();
             const detail = err.message || (err.error && err.error.message) || '';
             const loc = err.filename ? ` at ${err.filename}:${err.lineno || 0}:${err.colno || 0}` : '';
-            const workerUrl = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+            const workerUrl = String((() => {
+                const u = resolveScanWorkerUrl();
+                return u && u.href ? u.href : u;
+            })());
             // Provide a more actionable error when the worker script fails to load (CSP, 404, network).
             // This commonly happens on hosted dashboards when the worker URL resolves to the wrong path.
             if (!detail) {
@@ -601,10 +632,11 @@ export async function runLocalScan(options = {}) {
     let worker;
     let blobUrlForWorker = null;
     try {
-        const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+        const resolvedWorkerUrl = resolveScanWorkerUrl();
+        const workerUrlStr = String(resolvedWorkerUrl && resolvedWorkerUrl.href ? resolvedWorkerUrl.href : resolvedWorkerUrl);
         console.warn('[localScan] Creating module worker from:', workerUrlStr);
         // Firefox has issues with query parameters in module worker URLs — strip them as a fallback
-        let workerUrlForCreation = WORKER_URL;
+        let workerUrlForCreation = resolvedWorkerUrl;
         try {
             const parsed = new URL(workerUrlStr);
             if (parsed.search && navigator.userAgent.toLowerCase().includes('firefox')) {
@@ -624,7 +656,11 @@ export async function runLocalScan(options = {}) {
                 console.warn('[localScan] Worker construction failed, attempting fetch+blob fallback:', ctorErr?.message || ctorErr);
                 const resp = await fetch(String(workerUrlForCreation));
                 if (!resp.ok) throw new Error(`Fetch failed with status ${resp.status}`);
+                const ct = String(resp.headers.get('content-type') || '').toLowerCase();
                 const scriptText = await resp.text();
+                if (ct.includes('text/html') || /^\s*</.test(scriptText)) {
+                    throw new Error(`Worker URL returned HTML instead of JavaScript (${workerUrlStr})`);
+                }
                 const blob = new Blob([scriptText], { type: 'application/javascript' });
                 blobUrlForWorker = URL.createObjectURL(blob);
                 console.warn('[localScan] Created blob URL for worker; will keep alive until worker confirms start');
@@ -635,7 +671,8 @@ export async function runLocalScan(options = {}) {
             }
         }
     } catch (workerCtorErr) {
-        const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+        const resolvedWorkerUrl = resolveScanWorkerUrl();
+        const workerUrlStr = String(resolvedWorkerUrl && resolvedWorkerUrl.href ? resolvedWorkerUrl.href : resolvedWorkerUrl);
         console.error('[localScan] new Worker() constructor threw:', workerCtorErr);
         throw new Error(`Failed to create module worker from ${workerUrlStr}: ${workerCtorErr?.message || workerCtorErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`);
     }

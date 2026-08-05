@@ -236,19 +236,7 @@ async function withTimeout(promise, ms, label) {
     }
 }
 async function resolveFile(fileEntry) {
-    // If pre-read text is available (Firefox drag-and-drop), return a synthetic
-    // file-like object that serves the pre-read text without needing a live File.
-    if (fileEntry.preReadText !== undefined && fileEntry.preReadText !== null) {
-        const text = fileEntry.preReadText;
-        const size = fileEntry.preReadSize || text.length;
-        return {
-            text: () => Promise.resolve(text),
-            slice: (start, end) => ({ size: end !== undefined ? Math.max(0, Math.min(end, size) - (start || 0)) : size - (start || 0) }),
-            size: size,
-        };
-    }
     const fileObj = fileEntry.fileObj || fileEntry;
-    if (!fileObj) return null;
     if (typeof fileObj.getFile === 'function') {
         return fileObj.getFile();
     }

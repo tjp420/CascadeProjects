@@ -540,6 +540,23 @@ export function AnalyzeView() {
     }
   }, []);
 
+  const refuseIncompleteBrowserDrop = useCallback((fileCount: number, folderHint?: string) => {
+    const n = Number(fileCount) || 0;
+    if (n === 0 || n > 2) return false;
+    const label = folderHint ? `"${folderHint}"` : 'This folder';
+    const msg =
+      `${label} only exposed ${n} file${n === 1 ? '' : 's'} in the browser (incomplete access — common for OS/system directories like C:\\Windows). `
+      + 'No full-repo PASS was recorded. Use Select Folder on a project tree, or run: '
+      + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+    toast.warning(msg, { duration: 14000 });
+    setRequiresManualTrigger(true);
+    setScanState('idle');
+    setProgress(0);
+    setProgressLabel('Click "Select Folder" for a project tree, or use the CLI for OS roots.');
+    appendLog(`[SimpleBeacon] Incomplete folder drop refused (${n} file${n === 1 ? '' : 's'}) — ${msg}`);
+    return true;
+  }, [appendLog]);
+
   const runBrowserLocalScan = useCallback(async (options: {
     files?: FileList | File[];
     dirHandle?: FileSystemDirectoryHandle;
@@ -552,6 +569,12 @@ export function AnalyzeView() {
       setProgressLabel('Sign in required to run analysis.');
       setLastErrorMsg('Sign in required to run analysis on the hosted dashboard.');
       toast.error('Sign in to run analysis.');
+      return;
+    }
+    if (options.files && refuseIncompleteBrowserDrop(
+      Array.isArray(options.files) ? options.files.length : options.files.length,
+      options.projectPath,
+    )) {
       return;
     }
     if (scanInFlightRef.current) return;
@@ -607,6 +630,13 @@ export function AnalyzeView() {
       setScanState('complete');
       setProgress(100);
       appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+      if ((r.gate && r.gate.incompleteDrop) || (scanResult.totalFiles > 0 && scanResult.totalFiles < 3 && scanResult.gate.pass === false)) {
+        toast.warning(
+          r.incompleteDropNote
+            || 'Incomplete folder inventory — gate FAIL. Use Select Folder on a project tree or CLI for OS roots (e.g. C:\\Windows).',
+          { duration: 14000 },
+        );
+      }
       persistScanResult(scanResult, report);
     } catch (err: any) {
       setScanState('error');
@@ -618,7 +648,7 @@ export function AnalyzeView() {
     } finally {
       scanInFlightRef.current = false;
     }
-  }, [appendLog, persistScanResult, hosted]);
+  }, [appendLog, persistScanResult, hosted, refuseIncompleteBrowserDrop]);
 
   const ensureScanAuthorized = useCallback((): boolean => {
     if (!hostedScanRequiresAuth(hosted) || !isTokenExpired()) return true;
@@ -1332,13 +1362,7 @@ export function AnalyzeView() {
           // Guard: 1-2 files from a folder drop likely means entries went stale
           // (DOMException when worker reads the File). Show Select Folder prompt
           // instead of producing a false-positive gate PASS on a stale single file.
-          if (files.length <= 2) {
-            toast.warning('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', { duration: 10000 });
-            setRequiresManualTrigger(true);
-            setScanState('idle');
-            setProgress(0);
-            setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
-            appendLog('[SimpleBeacon] Drop traversal returned too few files — showing manual Select Folder button.');
+          if (refuseIncompleteBrowserDrop(files.length, rootName)) {
             return;
           }
           toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
@@ -1351,21 +1375,21 @@ export function AnalyzeView() {
           } catch (scanErr: any) {
             appendLog(`[SimpleBeacon] Browser local scan failed: ${scanErr?.name || ''} ${scanErr?.message || scanErr}`);
             console.error('[SimpleBeacon] runBrowserLocalScan error:', scanErr);
-            try {
-              // Extra defensive logging for DOMException-like failures
-              console.error('Error details:', {
-                name: scanErr?.name,
-                message: scanErr?.message,
-                code: scanErr?.code,
-                stack: scanErr?.stack,
-              });
-            } catch (logErr) {
-              console.warn('[SimpleBeacon] Failed to stringify scan error details', logErr);
-            }
             throw scanErr;
           }
           return;
         }
+        appendLog('[SimpleBeacon] Drop traversal returned 0 files — showing manual Select Folder button.');
+        setRequiresManualTrigger(true);
+        setScanState('idle');
+        setProgress(0);
+        setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
+        toast.warning(
+          'Folder drop could not enumerate files (common for protected OS directories like C:\\Windows). '
+            + 'Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json',
+          { duration: 14000 },
+        );
+        return;
       } catch (traverseErr: any) {
         appendLog(`[SimpleBeacon] Drop traversal failed: ${traverseErr?.message || traverseErr}`);
         console.debug('[SimpleBeacon] Drop traversal error (handled — showing manual Select Folder fallback):', traverseErr);
@@ -1373,7 +1397,11 @@ export function AnalyzeView() {
         setScanState('idle');
         setProgress(0);
         setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
-        toast.warning('Folder drop could not be traversed. Click Select Folder to choose a directory manually.', { duration: 10000 });
+        toast.warning(
+          'Folder drop could not be traversed (browser cannot fully read OS roots like C:\\Windows). '
+            + 'Click Select Folder for a project tree, or use the CLI.',
+          { duration: 14000 },
+        );
         return;
       }
     }
@@ -1402,13 +1430,11 @@ export function AnalyzeView() {
         const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
         return rel && rel.includes('/');
       });
-      // Guard: if only 1-2 files without webkitRelativePath, the folder wasn't
-      // traversed (browser DOMException on readEntries). Scanning 1 file from
-      // a folder drop produces a false-positive gate PASS. Match the /audit
-      // page behavior: refuse to scan and prompt for Select Folder.
+      if (refuseIncompleteBrowserDrop(dtFiles.length, dtFiles[0]?.name || 'dropped-folder')) {
+        return;
+      }
       if (!hasRelativePath && dtFiles.length <= 2) {
-        toast.warning('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', { duration: 10000 });
-        setScanState('idle');
+        refuseIncompleteBrowserDrop(dtFiles.length, 'dropped-folder');
         return;
       }
       for (const f of dtFiles) {
@@ -1429,6 +1455,9 @@ export function AnalyzeView() {
       }
       const firstRel = flatFiles[0]?._virtualPath || flatFiles[0]?.name || 'dropped-files';
       const rootName = String(firstRel).split('/')[0] || 'dropped-files';
+      if (refuseIncompleteBrowserDrop(flatFiles.length, rootName)) {
+        return;
+      }
       toast.info(`Scanning dropped folder "${rootName}" (${flatFiles.length.toLocaleString()} files)...`);
       await runBrowserLocalScan({
         files: flatFiles,
@@ -1454,7 +1483,7 @@ export function AnalyzeView() {
     toast.error('Could not read dropped folder. Click Select Folder below or install the VS Code extension.');
     setRequiresManualTrigger(true);
     setScanState('idle');
-  }, [appendLog, bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
+  }, [appendLog, bridgeBase, bridgeToken, hosted, refuseIncompleteBrowserDrop, runBrowserLocalScan]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
