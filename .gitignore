@@ -92,6 +92,7 @@ ai-platform/data/.dev-jwt-secrets.json
 
 # VS Code extension builds
 *.vsix
+!coming-soon/public/downloads/simplebeacon.vsix
 vscode-extension/*.vsix
 vscode-extension/out/
 .vsix-patch-temp/
