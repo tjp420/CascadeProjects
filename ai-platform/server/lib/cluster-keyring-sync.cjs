@@ -1230,15 +1230,20 @@ function _connectToPeer(host, port) {
     socket.on('error', (err) => { _log('warn', 'Peer socket error', { peer: key, error: err.message }); });
   };
 
-  const ca = process.env.CLUSTER_CA_CERT ? fs.readFileSync(process.env.CLUSTER_CA_CERT) : undefined;
-  const socket = tls.connect(port, host, {
-    cert: fs.readFileSync(process.env.CLUSTER_CERT),
-    key: fs.readFileSync(process.env.CLUSTER_KEY),
-    ca,
-    requestCert: true,
-    rejectUnauthorized: true,
-  }, () => onConnect(socket));
-  socket.on('error', (err) => _log('warn', 'TLS peer connect error', { peer: key, error: err.message }));
+  if (_requireTls()) {
+    const ca = process.env.CLUSTER_CA_CERT ? fs.readFileSync(process.env.CLUSTER_CA_CERT) : undefined;
+    const socket = tls.connect(port, host, {
+      cert: fs.readFileSync(process.env.CLUSTER_CERT),
+      key: fs.readFileSync(process.env.CLUSTER_KEY),
+      ca,
+      requestCert: true,
+      rejectUnauthorized: true,
+    }, () => onConnect(socket));
+    socket.on('error', (err) => _log('warn', 'TLS peer connect error', { peer: key, error: err.message }));
+  } else {
+    const socket = net.createConnection({ host, port }, () => onConnect(socket));
+    socket.on('error', (err) => _log('warn', 'TCP peer connect error', { peer: key, error: err.message }));
+  }
 }
 
 // ΓöÇΓöÇ Transport security model ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
