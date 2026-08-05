@@ -110,6 +110,7 @@ const SUITES = [
   'pq-swarm-robotics-kinetic-assembly-gating',
   'pq-multi-enclave-confidential-mesh-state-reconciliation-gating',
   'cluster-keyring-primitive-authorization',
+  'cluster-keyring-sync.tls',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
