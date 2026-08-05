@@ -6,6 +6,15 @@ const crypto = require('crypto');
 const events = require('../hsm-adapter/events.cjs');
 const logger = require('../app-logger.cjs').child('upload-manager');
 const { canonicalize } = require('../crypto/jcs-canonicalize.cjs');
+const MerkleReassembler = require('../hsm-adapter/track112/merkle-reassembler.cjs');
+const { writeAtomicSync } = require('./reassembler.cjs');
+
+let hsmMetrics = null;
+try {
+  hsmMetrics = require('../hsm-adapter/hsm-metrics.cjs');
+} catch (e) {
+  hsmMetrics = { incrementCounter: () => {} };
+}
 
 class UploadManager {
   constructor({ baseDir = path.join(process.cwd(), '.data', 'track112'), defaultTenant = 'dev' } = {}) {
@@ -26,9 +35,39 @@ class UploadManager {
     const id = `upload-${Date.now()}-${Math.floor(Math.random()*10000)}`;
     const dir = this._sessionDir(tenant, id);
     fs.mkdirSync(dir, { recursive: true });
-    const meta = { sessionId: id, tenant: tenant || this.defaultTenant, maxBytes: maxBytes || 0, createdAt: Date.now(), lastTouch: Date.now(), committed: false, traceId: traceId || null };
+    const meta = { sessionId: id, tenant: tenant || this.defaultTenant, maxBytes: maxBytes || 0, createdAt: Date.now(), lastTouch: Date.now(), committed: false, traceId: traceId || null, leafSize: 4096 };
     fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify(meta));
     return id;
+  }
+
+  /**
+   * Resume an existing session by rebuilding the Merkle tree from disk.
+   * Reads existing chunk files and tree-state.json checkpoint.
+   * @param {string} sessionId
+   * @returns {{ reassembler: MerkleReassembler, meta: object, dir: string }}
+   */
+  resumeSession(sessionId) {
+    const { dir, meta } = this._findSession(sessionId);
+    if (!dir) throw new Error('session_not_found');
+    const reassembler = new MerkleReassembler({
+      leafSize: meta.leafSize || 4096,
+      stateDir: dir,
+      metrics: hsmMetrics,
+    });
+    // If checkpoint exists, tree state is already loaded by constructor.
+    // If not, rebuild from chunk files on disk.
+    if (reassembler.leafCount === 0) {
+      const files = fs.readdirSync(dir).filter(f => f.endsWith('.chunk'));
+      const offsets = files.map(f => Number(f.replace('.chunk', ''))).sort((a, b) => a - b);
+      for (const o of offsets) {
+        const chunkBuf = fs.readFileSync(path.join(dir, `${o}.chunk`));
+        reassembler.append(o, chunkBuf);
+      }
+    }
+    hsmMetrics.incrementCounter('hsm_track112_session_resumed_total');
+    meta.lastTouch = Date.now();
+    this._writeMeta(dir, meta);
+    return { reassembler, meta, dir };
   }
 
   _readMeta(dir) {
@@ -48,22 +87,45 @@ class UploadManager {
   }
 
   async writeChunkFromStream(sessionId, offset, stream) {
-    // Find session dir by searching tenants
-    const tenants = fs.readdirSync(this.baseDir).filter(d => fs.statSync(path.join(this.baseDir, d)).isDirectory());
-    let dir = null;
-    for (const t of tenants) {
-      if (t === '_committed') continue;
-      const candidate = path.join(this.baseDir, t, sessionId);
-      if (fs.existsSync(candidate)) { dir = candidate; break; }
-    }
+    const { dir, meta } = this._findSession(sessionId);
     if (!dir) throw new Error('session_not_found');
     const chunkPath = path.join(dir, `${offset}.chunk`);
+    const tmpPath = path.join(dir, `.${offset}.chunk.${crypto.randomBytes(6).toString('hex')}.tmp`);
     return new Promise((resolve, reject) => {
-      const writeStream = fs.createWriteStream(chunkPath);
+      const writeStream = fs.createWriteStream(tmpPath);
       stream.pipe(writeStream);
-      writeStream.on('finish', resolve);
-      writeStream.on('error', reject);
-      stream.on('error', reject);
+      writeStream.on('finish', () => {
+        try {
+          fs.renameSync(tmpPath, chunkPath);
+          hsmMetrics.incrementCounter('hsm_track112_chunk_write_atomic_total');
+          // Update Merkle tree incrementally
+          const chunkBuf = fs.readFileSync(chunkPath);
+          const reassembler = new MerkleReassembler({
+            leafSize: meta.leafSize || 4096,
+            stateDir: dir,
+            metrics: hsmMetrics,
+          });
+          reassembler.append(offset, chunkBuf);
+          // Touch meta
+          meta.lastTouch = Date.now();
+          this._writeMeta(dir, meta);
+          resolve();
+        } catch (e) {
+          hsmMetrics.incrementCounter('hsm_track112_chunk_write_atomic_failed_total');
+          try { fs.unlinkSync(tmpPath); } catch (_) {}
+          reject(e);
+        }
+      });
+      writeStream.on('error', (err) => {
+        hsmMetrics.incrementCounter('hsm_track112_chunk_write_atomic_failed_total');
+        try { fs.unlinkSync(tmpPath); } catch (_) {}
+        reject(err);
+      });
+      stream.on('error', (err) => {
+        hsmMetrics.incrementCounter('hsm_track112_chunk_write_atomic_failed_total');
+        try { fs.unlinkSync(tmpPath); } catch (_) {}
+        reject(err);
+      });
     });
   }
 
@@ -76,20 +138,27 @@ class UploadManager {
   }
 
   computeRootHex(sessionId) {
-    const tenants = fs.readdirSync(this.baseDir).filter(d => fs.statSync(path.join(this.baseDir, d)).isDirectory());
-    let dir = null;
-    for (const t of tenants) {
-      if (t === '_committed') continue;
-      const candidate = path.join(this.baseDir, t, sessionId);
-      if (fs.existsSync(candidate)) { dir = candidate; break; }
-    }
+    const { dir, meta } = this._findSession(sessionId);
     if (!dir) throw new Error('session_not_found');
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.chunk'));
-    const offsets = files.map(f => Number(f.replace('.chunk',''))).sort((a,b)=>a-b);
-    const bufs = offsets.map(o => fs.readFileSync(path.join(dir, `${o}.chunk`)));
-    const total = Buffer.concat(bufs.length ? bufs : [Buffer.alloc(0)]);
-    const rootBuf = crypto.createHash('sha256').update(total).digest();
-    return { rootBuf, rootHex: rootBuf.toString('hex'), dir };
+    // Use the incremental Merkle reassembler with disk-persisted checkpoint
+    const reassembler = new MerkleReassembler({
+      leafSize: meta.leafSize || 4096,
+      stateDir: dir,
+      metrics: hsmMetrics,
+    });
+    // If checkpoint already has leaves, tree was built incrementally.
+    // If not (e.g. legacy session without tree-state.json), rebuild from chunks.
+    if (reassembler.leafCount === 0) {
+      const files = fs.readdirSync(dir).filter(f => f.endsWith('.chunk'));
+      const offsets = files.map(f => Number(f.replace('.chunk', ''))).sort((a, b) => a - b);
+      for (const o of offsets) {
+        const chunkBuf = fs.readFileSync(path.join(dir, `${o}.chunk`));
+        reassembler.append(o, chunkBuf);
+      }
+    }
+    const rootHex = reassembler.finalize();
+    const rootBuf = Buffer.from(rootHex, 'hex');
+    return { rootBuf, rootHex, dir };
   }
 
   verifyAndCommitSession(sessionId, publicKeyPem, signature) {
@@ -110,12 +179,26 @@ class UploadManager {
       return { ok: false, reason: 'signature_verify_error', message: e.message };
     }
 
-    // move to committed area
+    // move to committed area (atomic directory swap with rollback)
     const committedDir = path.join(this.baseDir, '_committed', tenant);
     fs.mkdirSync(committedDir, { recursive: true });
     const dest = path.join(committedDir, sessionId);
     try {
-      fs.renameSync(dir, dest);
+      hsmMetrics.incrementCounter('hsm_track112_commit_atomic_total');
+      if (fs.existsSync(dest)) {
+        const backup = `${dest}.bak.${crypto.randomBytes(4).toString('hex')}`;
+        fs.renameSync(dest, backup);
+        try {
+          fs.renameSync(dir, dest);
+          fs.rmSync(backup, { recursive: true, force: true });
+        } catch (swapErr) {
+          if (!fs.existsSync(dest) && fs.existsSync(backup)) fs.renameSync(backup, dest);
+          hsmMetrics.incrementCounter('hsm_track112_commit_atomic_rollback_total');
+          throw swapErr;
+        }
+      } else {
+        fs.renameSync(dir, dest);
+      }
       const newMeta = Object.assign({}, meta, { committed: true, committedAt: Date.now(), root: rootHex });
       fs.writeFileSync(path.join(dest, 'meta.json'), JSON.stringify(newMeta));
     } catch (e) {
@@ -126,6 +209,27 @@ class UploadManager {
       this._writeMeta(dir, meta);
     }
     return { ok: true, root: rootHex };
+  }
+
+  /**
+   * Find a session directory by searching tenant subdirectories.
+   * @param {string} sessionId
+   * @returns {{ dir: string|null, meta: object }}
+   * @private
+   */
+  _findSession(sessionId) {
+    const tenants = fs.readdirSync(this.baseDir).filter(d => {
+      try { return fs.statSync(path.join(this.baseDir, d)).isDirectory(); } catch (e) { return false; }
+    });
+    for (const t of tenants) {
+      if (t === '_committed') continue;
+      const candidate = path.join(this.baseDir, t, sessionId);
+      if (fs.existsSync(candidate)) {
+        const meta = this._readMeta(candidate) || {};
+        return { dir: candidate, meta };
+      }
+    }
+    return { dir: null, meta: {} };
   }
 
   // Expose low-level helpers for test & admin use

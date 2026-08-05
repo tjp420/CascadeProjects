@@ -41,12 +41,14 @@ describe('UploadManager + Purger lifecycle', () => {
     const purger = new Purger({ baseDir: base, ttlHours: 0, intervalMinutes: 1 });
     const sid = mgr.createSession({ tenant: 't1', maxBytes: 100, traceId: 'trace-2' });
     await mgr.writeChunkFromBuffer(sid, 0, Buffer.from('world'));
-    // commit by moving to committed dir
+    // commit by moving to committed dir — sign JCS canonical payload
+    const { canonicalize } = require('../../../crypto/jcs-canonicalize.cjs');
     const fakeKeyPair = require('crypto').generateKeyPairSync('ed25519');
     const pub = fakeKeyPair.publicKey.export({ type: 'spki', format: 'pem' });
-    const data = Buffer.from('world');
-    const root = require('crypto').createHash('sha256').update(data).digest();
-    const sig = cryptoSign(root, fakeKeyPair.privateKey);
+    // Merkle root for a single leaf = leaf hash = SHA-256(chunk)
+    const rootHex = require('crypto').createHash('sha256').update(Buffer.from('world')).digest('hex');
+    const commitPayload = canonicalize({ root: rootHex, sessionId: sid, tenant: 't1' });
+    const sig = cryptoSign(Buffer.from(commitPayload, 'utf8'), fakeKeyPair.privateKey);
     const result = mgr.verifyAndCommitSession(sid, pub, sig);
     expect(result.ok).toBe(true);
     // now purger should not remove committed session
