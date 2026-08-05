@@ -327,7 +327,185 @@ components:
           description: SIEM audit telemetry counters
           additionalProperties:
             type: number
+
+    # ── Track 112 Multipart Upload Reusable Schemas ─────────────────────
+
+    Track112UploadCreateRequest:
+      type: object
+      required: [tenant, maxBytes]
+      properties:
+        tenant:
+          type: string
+          description: Target tenant for the upload session
+        maxBytes:
+          type: integer
+          description: Maximum total bytes accepted for the session
+
+    Track112UploadCreateResponse:
+      type: object
+      required: [sessionId, traceId]
+      properties:
+        sessionId:
+          type: string
+          description: Unique upload session identifier
+        traceId:
+          type: string
+          description: Request trace identifier echoed in x-track112-trace-id header
+
+    Track112ChunkUploadParameters:
+      type: object
+      required: [id, offset]
+      properties:
+        id:
+          type: string
+          in: path
+          description: Upload session identifier
+        offset:
+          type: integer
+          in: query
+          description: Byte offset for the chunk within the session
+
+    Track112CommitRequest:
+      type: object
+      required: [publicKeyPem, signature]
+      properties:
+        publicKeyPem:
+          type: string
+          format: pem
+          description: Ed25519 public key in PEM SPKI format used to verify the root commitment
+        signature:
+          type: string
+          format: byte
+          description: Base64-encoded Ed25519 signature over the SHA-256 root of persisted chunk data
+
+    Track112CommitResponse:
+      type: object
+      required: [status, root, traceId]
+      properties:
+        status:
+          type: string
+          example: committed
+          description: Final commitment status of the upload session
+        root:
+          type: string
+          format: byte
+          description: Base64-encoded SHA-256 root over the persisted chunk data
+        traceId:
+          type: string
+          description: Request trace identifier echoed in x-track112-trace-id header
+
+    Track112Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error detail
 paths:
+  /track112/uploads:
+    post:
+      summary: Create a Track 112 multipart upload session
+      tags: [Track112MultipartUpload]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Track112UploadCreateRequest'
+      responses:
+        '201':
+          description: Upload session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track112UploadCreateResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track112Error'
+
+  /track112/uploads/{id}/chunk:
+    post:
+      summary: Upload a raw chunk for a Track 112 session
+      tags: [Track112MultipartUpload]
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '204':
+          description: Chunk accepted
+        '500':
+          description: Chunk write failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track112Error'
+
+  /track112/uploads/{id}/commit:
+    post:
+      summary: Commit a Track 112 session with Ed25519 root signature
+      tags: [Track112MultipartUpload]
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Track112CommitRequest'
+      responses:
+        '200':
+          description: Session committed and root returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track112CommitResponse'
+        '400':
+          description: Missing public key or signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track112Error'
+        '401':
+          description: Signature verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track112Error'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track112Error'
+
   /policies:
     post:
       summary: Create a new Crypto Policy
