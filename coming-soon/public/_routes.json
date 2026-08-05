@@ -3,13 +3,13 @@
   "include": [
     "/api/*",
     "/dashboard/*",
-    "/app/*"
+    "/app/*",
+    "/downloads/*"
   ],
   "exclude": [
     "/js/*",
     "/js-es2018/*",
     "/css/*",
-    "/downloads/*",
     "/data/*",
     "/content/*",
     "/blog/*",
