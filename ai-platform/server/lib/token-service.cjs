@@ -14,7 +14,6 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const logger = require('./app-logger.cjs');
 const { jwtConfig, refreshConfig } = require('./jwt-config.cjs');
-const { withZeroizedBuffer } = require('./crypto/zeroize.cjs');
 
 // In-memory fallback stores (used when PostgreSQL is unavailable)
 const _refreshStore = new Map();      // tokenHash -> tokenRecord
@@ -24,11 +23,8 @@ const _familyStore = new Map();       // familyId -> { userId, revoked }
 const USE_DB = process.env.ENABLE_DATABASE === 'true' || process.env.DATABASE_URL;
 
 // Token hashing helper
-// Token hashing helper — zeroizes token buffer after hashing
 function hashToken(token) {
-  return withZeroizedBuffer(token, (buf) => {
-    return crypto.createHash('sha256').update(buf).digest('hex');
-  });
+  return crypto.createHash('sha256').update(token).digest('hex');
 }
 
 // Generate opaque refresh token (256-bit random)

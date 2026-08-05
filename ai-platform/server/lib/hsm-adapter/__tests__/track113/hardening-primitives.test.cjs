@@ -76,6 +76,4 @@ function run() {
 
 if (require.main === module) run();
 
-test('hardening primitives run to completion', run);
-
 module.exports = { testWriteAtomicCleanup, testEnvelopeRoundTripAndTamper };

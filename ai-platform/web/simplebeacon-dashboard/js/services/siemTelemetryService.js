@@ -54,8 +54,6 @@ export async function getDistributedState() {
   return {
     nodeId: data.nodeId,
     nodeCount: data.nodeCount,
-    nodeWeight: data.nodeWeight,
-    clusterWeight: data.clusterWeight,
     distributedSyncEnabled: data.distributedSyncEnabled,
     fairShare: data.fairShare,
     reserveFloor: data.reserveFloor,

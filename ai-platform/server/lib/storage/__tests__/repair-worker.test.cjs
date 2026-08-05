@@ -26,6 +26,4 @@ async function run() {
 
 if (require.main === module) run().catch((e) => { console.error(e); process.exit(1); });
 
-test('repair worker run to completion', async () => await run());
-
 module.exports = { run };

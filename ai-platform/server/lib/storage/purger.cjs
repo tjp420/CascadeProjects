@@ -57,6 +57,7 @@ class Purger {
     if (this._timer) return;
     this._scanOnce();
     this._timer = setInterval(() => this._scanOnce(), this.intervalMs);
+    if (this._timer && typeof this._timer.unref === 'function') this._timer.unref();
   }
 
   stop() {
