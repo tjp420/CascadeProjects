@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { zeroizeBuffer } = require('../crypto/zeroize.cjs');
 
 function isSafeId(id) {
   return typeof id === 'string' && /^[a-zA-Z0-9-_]+$/.test(id);
@@ -41,6 +42,39 @@ function writeAtomicSync(destPath, buf) {
   fs.renameSync(tmp, destPath);
 }
 
+function validateChunkEnvelopes(chunks) {
+  const buffersToScrub = [];
+  try {
+    for (const c of chunks) {
+      if (c.encrypted) {
+        if (!c.cipher || !c.iv || !c.authTag) {
+          throw new Error('TRACK123_CHUNK_MISSING_ENVELOPE');
+        }
+        const iv = Buffer.from(c.iv, 'base64');
+        const authTag = Buffer.from(c.authTag, 'base64');
+        buffersToScrub.push(iv, authTag);
+        if (iv.length !== 12) throw new Error('TRACK123_CHUNK_INVALID_IV');
+        if (authTag.length !== 16) throw new Error('TRACK123_CHUNK_INVALID_AUTH_TAG');
+      }
+    }
+  } finally {
+    for (const buf of buffersToScrub) {
+      zeroizeBuffer(buf);
+    }
+  }
+}
+
+function validateChunkSeq(chunks, startSeq) {
+  const sorted = [...chunks].sort((a, b) => (a.seq || 0) - (b.seq || 0));
+  for (let i = 0; i < sorted.length; i += 1) {
+    const expected = startSeq + i;
+    const actual = Number(sorted[i].seq);
+    if (Number.isNaN(actual) || actual !== expected) {
+      throw new Error(`TRACK123_CHUNK_NON_MONOTONIC: expected ${expected}, got ${actual}`);
+    }
+  }
+}
+
 async function validateManifest(stagingDir, manifest) {
   // manifest.expectedLeafHashes: { filename: hash }
   if (!manifest || typeof manifest !== 'object') throw new Error('invalid manifest');
@@ -56,7 +90,12 @@ async function validateManifest(stagingDir, manifest) {
   return true;
 }
 
-async function stageChunks(stagingDir, chunks) {
+async function stageChunks(stagingDir, chunks, opts = {}) {
+  validateChunkEnvelopes(chunks);
+  const startSeq = Number(opts.startSeq);
+  if (!Number.isNaN(startSeq)) {
+    validateChunkSeq(chunks, startSeq);
+  }
   fs.mkdirSync(stagingDir, { recursive: true });
   for (const c of chunks) {
     const dest = path.join(stagingDir, c.filename);
@@ -117,6 +156,8 @@ module.exports = {
   sha256Bytes,
   safeJoinBase,
   writeAtomicSync,
+  validateChunkEnvelopes,
+  validateChunkSeq,
   validateManifest,
   stageChunks,
   finalizeRehydration

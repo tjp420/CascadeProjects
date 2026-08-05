@@ -518,6 +518,13 @@ const counters = {
   hsm_shard_reconstructed_blocks_total: 0,
   hsm_shard_reassembly_attempts_total: 0,
   hsm_repair_worker_completed_total: 0,
+  hsm_repair_worker_started_total: 0,
+  hsm_repair_worker_failed_total: 0,
+  hsm_repair_worker_rejected_total: 0,
+  hsm_shard_reconciler_repair_seq_validated_total: 0,
+  hsm_shard_reconciler_repair_seq_rejected_total: 0,
+  hsm_shard_reconciler_envelope_validated_total: 0,
+  hsm_shard_reconciler_envelope_rejected_total: 0,
   // Track 34: Cross-Cluster Migration counters
   hsm_migration_initiated_total: 0,
   hsm_migration_attested_total: 0,
