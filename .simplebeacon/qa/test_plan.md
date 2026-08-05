@@ -1,10 +1,10 @@
-# Test Plan: Track 113 — Rotation Scheduler for Hybrid Identity Ratchet
+# Test Plan: Track 113 — Compatibility Shim for Classical-Only Peers
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | In-memory rotation scheduler: message count + time thresholds, pre-rotation warning, and explicit `QUANTUM_ROTATE_PENDING` event. |
+| Feature / change | Compatibility shim that negotiates hybrid vs classical mode, emits degraded telemetry, and enforces a deprecation deadline. |
 | Author (Builder) | Devin |
 | Date | 2026-08-05 |
 | Branch | feat/track113-pqc-ratchet-migration |
@@ -14,12 +14,12 @@
 
 ### Files in scope
 
-- `ai-platform/server/lib/crypto/ratchet/identity-ratchet.cjs`
-- `ai-platform/server/lib/crypto/ratchet/__tests__/identity-ratchet.test.cjs`
+- `ai-platform/server/lib/crypto/ratchet/compatibility-shim.cjs` (new)
+- `ai-platform/server/lib/crypto/ratchet/identity-ratchet.cjs` (minor integration)
+- `ai-platform/server/lib/crypto/ratchet/__tests__/compatibility-shim.test.cjs` (new)
 
 ### Out of scope
 
-- Shared-state / Redis epoch coordination
 - UI/IDE surfaces
 - New npm dependencies
 
@@ -29,34 +29,37 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on changed CJS | `node -c` on changed files | [ ] |
-| L1-02 | Identity ratchet tests | `npx jest identity-ratchet` | [ ] |
+| L1-01 | Syntax on new CJS | `node -c` on new files | [ ] |
+| L1-02 | Compatibility tests | `npx jest compatibility-shim` | [ ] |
 | L1-03 | No secrets in diff | manual review | [ ] |
 
 ## Level 2 — Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Message-count rotation | Step the ratchet `maxMessages` times | A `QUANTUM_ROTATE_REQUIRED` event fires and the chain is re-initialized | [ ] |
-| L2-02 | Time-based rotation | Wait `maxDurationMs` (use stub clock) | Rotation fires after threshold | [ ] |
-| L2-03 | Pre-rotation warning | Step to 80% of `maxMessages` | `QUANTUM_ROTATE_PENDING` fires once | [ ] |
-| L2-04 | No double warning | Continue stepping | `QUANTUM_ROTATE_PENDING` emitted only once | [ ] |
-| L2-05 | Manual rotation | Call `rotateNow()` | New chain key is generated and `IDENTITY_RATCHET_ROTATED` fired | [ ] |
+| L2-01 | Auto-detect hybrid peer | Pass a hybrid public key to the shim | Mode = `HYBRID`; uses `encapsulateFor` / `decapsulateFrom` | [ ] |
+| L2-02 | Auto-detect classical peer | Pass an X25519/Ed25519-only public key | Mode = `CLASSICAL`; uses X25519 ECDH + Ed25519 signatures | [ ] |
+| L2-03 | Classical fallback telemetry | Negotiate a classical-only session | Emits `IDENTITY_COMPAT_CLASSICAL_FALLBACK` | [ ] |
+| L2-04 | Strict deadline rejection | Set `deprecationEpoch` to a past value and attempt classical | Throws `CLASSICAL_DEPRECATION_DEADLINE` | [ ] |
+| L2-05 | Shared secret equivalence | Run hybrid and classical handshakes between compatible peers | Both produce a 32-byte shared secret; classical fallback emits telemetry | [ ] |
 
 ## Level 3 — Edge cases & reflection
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Rotation before initialization | Call `rotateNow()` without `encapsulate/decapsulate` | Throws `IDENTITY_RATCHET_NOT_INITIALIZED` | [ ] |
-| L3-02 | Warning threshold not triggered | Step only to 79% | No pending warning | [ ] |
-| L3-03 | Timer cleanup | Call `close()` | Pending timeouts cleared | [ ] |
+| L3-01 | Empty public key | Pass `null` or `Buffer.alloc(0)` | Throws `INVALID_PUBLIC_KEY` | [ ] |
+| L3-02 | Unknown hybrid version after deadline | Pass unknown version when past deadline | Throws `UNSUPPORTED_HYBRID_KEY_VERSION` | [ ] |
+| L3-03 | Deadline not yet reached | Classical peer with future `deprecationEpoch` | Allowed with warning telemetry | [ ] |
+| L3-04 | Missing Ed25519 in peer key | Hybrid public key missing `0x01` | Throws `INVALID_HYBRID_KEY_LAYOUT` | [ ] |
+| L3-05 | Classical-only deadline grace | Deadline is exactly `now` | Throws `CLASSICAL_DEPRECATION_DEADLINE` | [ ] |
+| L3-06 | Hybrid peer ignored by explicit classical mode | Caller requests `CLASSICAL` for hybrid-capable peer | Uses classical mode and emits fallback telemetry | [ ] |
 
 ## Security
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No raw private keys logged on rotation | [ ] |
-| S-02 | Rotation does not reuse previous chain key | [ ] |
+| S-01 | No raw private keys logged in telemetry | [ ] |
+| S-02 | Deprecation deadline checked before classical DH | [ ] |
 
 ## Approval
 
