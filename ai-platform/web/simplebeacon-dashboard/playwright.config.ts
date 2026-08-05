@@ -20,7 +20,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173/dashboard/',
-    reuseExistingServer: !process.env.CI,
+    // CI uses start-server-and-test to boot Vite first; reuse that server instead of failing on port conflict.
+    reuseExistingServer: true,
     timeout: 60_000,
   },
 
