@@ -1,6 +1,22 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.494] - 2026-08-05
+
+### Added
+- Downloads-bypass Cloudflare Worker proxying `simplebeacon.ai/downloads*` to Pages origin
+- Rate limiting on 17 API mutation endpoints across 4 server files (enterprise-onboarding, optimization-api, trust-api, simplebeacon-billing-api)
+
+### Fixed
+- Removed duplicate `emitIdentityRatchetStepped` and `emitMfaTokenAuthenticated` methods in `base-adapter.cjs` (ESLint no-dupe-class-members CI failure)
+- Scan-worker URL routing in dashboard results view
+- localStorage quota overflow handling in dashboard
+
+### Changed
+- Dashboard-web sync updated 4 files (SiemTelemetryDashboard, siemTelemetryService, TeamGatePassTrendChart, vite-env.d.ts)
+- `express-rate-limit` middleware applied to all POST mutation endpoints
+
 ## [3.0.461] - 2026-07-18
+
 
 ### Added
 - Client-side cookie-session migration for the dashboard `AuthService` (`js` and `js-es2018` builds)
