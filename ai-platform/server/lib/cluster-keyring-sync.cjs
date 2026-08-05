@@ -15,6 +15,7 @@ const _cpe = 'crypto' + '-policy' + '-engine.cjs';
 const { CryptoPolicyEngine } = require(path.join(__dirname, 'hsm-adapter', _cpe));
 const _hm = 'hsm' + '-metrics.cjs';
 const { incrementCounter } = require(path.join(__dirname, 'hsm-adapter', _hm));
+const { validateTenantContext, tagSIEMEvent, tagOutboundMessage, TENANT_FIELD, DEFAULT_TENANT } = require('./replication-tenant-context.cjs');
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;
@@ -470,6 +471,7 @@ function _sendMessage(socket, msg) {
 }
 
 function _broadcast(msg) {
+  tagOutboundMessage(msg, msg.tenantId || DEFAULT_TENANT);
   for (const [key, socket] of _sockets.entries()) {
     if (!_sendMessage(socket, msg)) {
       _sockets.delete(key);
@@ -755,51 +757,51 @@ const SIEM_EVENT_TYPES = new Set([
 const IPC_SCHEMAS = {
   HEARTBEAT: {
     required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeFingerprint: ['string', 'object'], previousFingerprint: ['string', 'object'], rotatedAt: ['number', 'object'] },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   KEY_COMMIT: {
     required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number', activeHex: 'string', activeFingerprint: 'string', rotatedAt: 'number' },
-    optional: { previousHex: ['string', 'object'], previousFingerprint: ['string', 'object'], graceMs: ['number', 'object'] },
+    optional: { tenantId: 'string', previousHex: ['string', 'object'], previousFingerprint: ['string', 'object'], graceMs: ['number', 'object'] },
   },
   ANNOUNCE: {
     required: { type: 'string', nodeId: 'string' },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   ANNOUNCE_ACK: {
     required: { type: 'string', from: 'string', leaderId: ['string', 'object'], epoch: 'number' },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   DKG_COMMIT: {
     required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', commitments: 'object' },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   DKG_SHARE: {
     required: { type: 'string', from: 'string', to: 'string', sessionId: 'string', epoch: 'number', share: 'string' },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   DKG_COMPLAINT: {
     required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', target: 'string', reason: 'string' },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   DKG_DISQUALIFY: {
     required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', target: 'string', reason: 'string' },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   DKG_FINALIZE: {
     required: { type: 'string', from: 'string', sessionId: 'string', epoch: 'number', masterPublicKey: 'string' },
-    optional: {},
+    optional: { tenantId: 'string' },
   },
   SIEM_BUCKET_SYNC: {
     required: { type: 'string', from: 'string', localTokens: 'number', maxLocalTokens: 'number' },
-    optional: { timestamp: 'number' },
+    optional: { tenantId: 'string', timestamp: 'number' },
   },
   SIEM_TOKEN_REQUEST: {
     required: { type: 'string', from: 'string', to: 'string', requested: 'number' },
-    optional: { timestamp: 'number' },
+    optional: { tenantId: 'string', timestamp: 'number' },
   },
   SIEM_TOKEN_GRANT: {
     required: { type: 'string', from: 'string', to: 'string', granted: 'number' },
-    optional: { timestamp: 'number' },
+    optional: { tenantId: 'string', timestamp: 'number' },
   },
 };
 
@@ -909,6 +911,24 @@ function _handleMessage(msg, socket) {
     socket.destroy();
     return;
   }
+
+  // Track 124: Validate tenant context on inbound message
+  const _tenantCtx = validateTenantContext(msg);
+  if (!_tenantCtx.valid) {
+    _recordEvent(EVENT_TYPES.IPC_SCHEMA_VIOLATION, NODE_ID, {
+      reason: 'tenant_context_invalid',
+      tenantReason: _tenantCtx.reason,
+      msgType: msg.type,
+      peer: peerKey,
+      siemSeverity: 'high',
+      siemCategory: 'tenant_isolation_violation',
+      siemSource: 'cluster-keyring-sync',
+    });
+    _log('warn', 'Tenant context validation failed — destroying socket', { peer: peerKey, msgType: msg.type, reason: _tenantCtx.reason });
+    socket.destroy();
+    return;
+  }
+  msg[TENANT_FIELD] = _tenantCtx.tenantId;
 
   if (msg.type === 'ANNOUNCE') {
     _peerState.set(peerKey, { lastSeen: Date.now(), nodeId: msg.nodeId });

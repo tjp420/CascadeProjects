@@ -22,6 +22,7 @@
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
+const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
 
 // ── Reconciliation states ────────────────────────────────────────
 const RECONCILIATION_STATE = {
