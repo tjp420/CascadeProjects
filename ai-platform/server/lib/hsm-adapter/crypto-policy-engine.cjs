@@ -292,6 +292,68 @@ const DEFAULT_POLICY = {
     maxShareAgeSeconds: 60,
     requireCanonicalPayloadLayout: true,
   },
+  energyGating: {
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxCertificateExpirationSeconds: 63072000,
+    banMalformedOrOutOfOrderEnergyClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  biometricGating: {
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxTemplateExpirationSeconds: 3600,
+    banMalformedOrOutOfOrderBiometricClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  neuralGating: {
+    requireNeuralEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxNeuralTelemetryWindowSeconds: 300,
+    requireCanonicalPayloadLayout: true,
+  },
+  storageGating: {
+    minStorageProofQuorum: 8,
+    maxStorageProofDepth: 32,
+    requireStorageAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    requireCanonicalPayloadLayout: true,
+  },
+  authenticationGating: {
+    requireAuthenticationAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxAuthenticationProofAgeSeconds: 300,
+    banMalformedAuthenticationProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  droneGating: {
+    requireSwarmCoordinationAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxSwarmRoutingProofAgeSeconds: 60,
+    banMalformedSwarmRoutingProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  genomicGating: {
+    requireGenomicEthicsCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxGenomicProofAgeSeconds: 3600,
+    banMalformedGenomicProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  insuranceGating: {
+    requireUnderwritingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxInsuranceProofAgeSeconds: 3600,
+    banMalformedInsuranceProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  quantumGating: {
+    requireQuantumAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxQuantumProofAgeSeconds: 300,
+    banMalformedQuantumProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
   zkSettlement: {
     minClearingNodeQuorum: 3,
     maxSettlementTimeoutSeconds: 300,
@@ -1279,6 +1341,42 @@ function _mergeWithDefault(tenantPolicy) {
     latticeVfhssGating: {
       ...DEFAULT_POLICY.latticeVfhssGating,
       ...(tenantPolicy.latticeVfhssGating || {}),
+    },
+    energyGating: {
+      ...DEFAULT_POLICY.energyGating,
+      ...(tenantPolicy.energyGating || {}),
+    },
+    biometricGating: {
+      ...DEFAULT_POLICY.biometricGating,
+      ...(tenantPolicy.biometricGating || {}),
+    },
+    neuralGating: {
+      ...DEFAULT_POLICY.neuralGating,
+      ...(tenantPolicy.neuralGating || {}),
+    },
+    storageGating: {
+      ...DEFAULT_POLICY.storageGating,
+      ...(tenantPolicy.storageGating || {}),
+    },
+    authenticationGating: {
+      ...DEFAULT_POLICY.authenticationGating,
+      ...(tenantPolicy.authenticationGating || {}),
+    },
+    droneGating: {
+      ...DEFAULT_POLICY.droneGating,
+      ...(tenantPolicy.droneGating || {}),
+    },
+    genomicGating: {
+      ...DEFAULT_POLICY.genomicGating,
+      ...(tenantPolicy.genomicGating || {}),
+    },
+    insuranceGating: {
+      ...DEFAULT_POLICY.insuranceGating,
+      ...(tenantPolicy.insuranceGating || {}),
+    },
+    quantumGating: {
+      ...DEFAULT_POLICY.quantumGating,
+      ...(tenantPolicy.quantumGating || {}),
     },
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
