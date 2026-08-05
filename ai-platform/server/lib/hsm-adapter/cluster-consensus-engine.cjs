@@ -1203,6 +1203,7 @@ class ClusterConsensusEngine {
     // Lazy-require metrics module to avoid circular deps
     try {
       const metrics = require('./hsm-metrics.cjs');
+const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
       switch (event) {
         case CONSENSUS_EVENT.VOTE_REQUESTED:
           metrics.incrementCounter('hsm_consensus_leader_elections_total');

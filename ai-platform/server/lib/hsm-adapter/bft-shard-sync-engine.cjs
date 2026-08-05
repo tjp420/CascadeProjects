@@ -20,6 +20,7 @@ const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 const { incrementCounter, counters } = require('./hsm-metrics.cjs');
 const { CryptoPolicyEngine } = require('./crypto-policy-engine.cjs');
+const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
 
 // ── Shard entry states ───────────────────────────────────────────
 const ENTRY_STATE = {

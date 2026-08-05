@@ -33,6 +33,7 @@
 
 const crypto = require('crypto');
 const EventEmitter = require('events');
+const { tagSIEMEvent, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
 
 const VALID_SEVERITIES = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'FATAL']);
 const BYPASS_SEVERITIES = new Set(['CRITICAL', 'FATAL']);

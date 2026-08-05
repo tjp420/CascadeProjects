@@ -19,6 +19,7 @@
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
+const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
 
 const DEFAULT_OPTIONS = {
   replicationFactor: 3,
