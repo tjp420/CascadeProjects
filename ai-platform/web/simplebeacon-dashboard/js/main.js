@@ -7,6 +7,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
+import { renderSiemTelemetryDashboard, cleanupSiemTelemetryDashboard } from './components/SiemTelemetryDashboard.js?v=20260805siem1';
 import { DashboardView } from './views/DashboardView.js?v=20260716cachefix1';
 import { ResultsView } from './views/ResultsView.js';
 import { SettingsView } from './views/SettingsView.js?v=20260716cachefix1';
@@ -150,6 +151,7 @@ class SimplebeaconDashboard {
       about: new AboutView(this),
       trust: new TrustView(this),
       'repository-health': new RepositoryHealthView(this),
+      'siem-telemetry': { mount: (container) => { container.appendChild(renderSiemTelemetryDashboard()); }, unmount: () => { cleanupSiemTelemetryDashboard(); } },
       signin: new SignInView(this),
       chatbot: new ChatbotView(this),
       upload: new UploadView(this),
@@ -488,6 +490,7 @@ class SimplebeaconDashboard {
       analyze: 'Analyze',
       results: 'Results',
       'repository-health': 'Repository Health',
+      'siem-telemetry': 'SIEM Telemetry',
       audit: 'Audit',
       security: 'Security',
       quality: 'Quality',
