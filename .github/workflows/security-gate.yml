@@ -1,6 +1,10 @@
 name: Security Gate
 
 on:
+  push:
+    branches:
+      - debug/static-asset-probe
+  workflow_dispatch: {}
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [ main, master ]
@@ -289,6 +293,41 @@ jobs:
       - name: Run Redis integration test
         run: |
           node --test ai-platform/src/api/__tests__/enterprise-onboard-redis.test.cjs
+
+  debug-static-assets:
+    name: Debug static assets (probe)
+    # Run on manual dispatch or when the debug branch is pushed
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/debug/static-asset-probe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install curl and node (ensure tools present)
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y curl
+          node --version || true
+
+      - name: Probe static asset with curl (headers + file)
+        run: |
+          mkdir -p .tmp || true
+          echo 'Fetching headers (HEAD)...'
+          curl -v -I -L https://simplebeacon.ai/dashboard/TeamMetricsView-CueXexY4.js 2>&1 | tee .tmp/headers_head.txt || true
+          echo 'Downloading file (GET)...'
+          curl -v -L https://simplebeacon.ai/dashboard/TeamMetricsView-CueXexY4.js -D .tmp/headers_download.txt -o .tmp/TeamMetricsView.js 2>&1 | tee .tmp/download_trace.txt || true
+
+      - name: Inspect file bytes with Node
+        run: |
+          node -e "const fs=require('fs'); const h1=fs.existsSync('.tmp/headers_head.txt')?fs.readFileSync('.tmp/headers_head.txt','utf8'):'<no head headers>'; const h2=fs.existsSync('.tmp/headers_download.txt')?fs.readFileSync('.tmp/headers_download.txt','utf8'):'<no download headers>'; console.log('---HEADERS (HEAD request)---\n'+h1); console.log('---HEADERS (download response)---\n'+h2); const p='.tmp/TeamMetricsView.js'; if(fs.existsSync(p)){ const b=fs.readFileSync(p); console.log('\nFILE_SIZE:'+b.length); console.log('FIRST_16_BYTES_HEX:'+b.slice(0,16).toString('hex')); console.log('GZIP_MAGIC:'+(b[0]===0x1f && b[1]===0x8b)); try{ console.log('UTF8_PREVIEW:\n'+b.slice(0,1024).toString('utf8')); }catch(e){ console.log('UTF8_PREVIEW: <binary or invalid utf8>'); } } else { console.log('NO_FILE'); }"
+
+      - name: Upload probe artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-static-assets-artifacts
+          path: .tmp
 
 
   dashboard-watchdog:
