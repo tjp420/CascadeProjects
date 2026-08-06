@@ -54,3 +54,41 @@ jobs:
         with:
           name: simplebeacon-report
           path: .simplebeacon/report.json
+
+  dashboard-watchdog:
+    name: Dashboard Watchdog
+    needs: simplebeacon
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local dashboard (background)
+        run: |
+          nohup node local_dashboard_server.js > dashboard.log 2>&1 &
+          sleep 2
+
+      - name: Seed mock report
+        run: npm run dashboard:mock
+
+      - name: Run watchdog
+        run: |
+          node scripts/verify-dashboard-health.js > watchdog.log 2>&1 || true
+
+      - name: Upload watchdog logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-watchdog-logs
+          path: |
+            dashboard.log
+            watchdog.log
