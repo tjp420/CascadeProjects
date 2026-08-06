@@ -1,0 +1,104 @@
+name: Snapshot Backup
+
+# Creates encrypted, compressed snapshots of .simplebeacon state files
+# and the token registry database. Runs daily with a tiered retention
+# policy (7 daily, 4 weekly, 12 monthly).
+#
+# Snapshots are stored as workflow artifacts (90-day retention) and can
+# also be pushed to a remote backup repository via SIMPLEBEACON_BACKUP_REPO.
+#
+# To enable remote replication:
+#   1. Create a repository secret: SIMPLEBEACON_BACKUP_TOKEN (GitHub PAT)
+#   2. Set SIMPLEBEACON_BACKUP_REPO to "owner/repo" in your secrets
+#   3. Uncomment the "Push to remote backup repo" step below
+#
+# To restore a snapshot:
+#   node scripts/snapshot-backup.cjs --restore <snapshot-id>
+
+on:
+  schedule:
+    # Daily at 02:00 UTC (off-peak hours)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Create snapshot
+        run: node scripts/snapshot-backup.cjs --once
+        env:
+          SIMPLEBEACON_BACKUP_KEK: ${{ secrets.SIMPLEBEACON_BACKUP_KEK }}
+          SIMPLEBEACON_STATE_DIR: ${{ github.workspace }}/.simplebeacon
+          SIMPLEBEACON_DB_PATH: ${{ github.workspace }}/ai-platform/server/db/token-registry.json
+          SIMPLEBEACON_BACKUP_DIR: ${{ github.workspace }}/.simplebeacon-snapshots
+
+      - name: Verify snapshot
+        run: node scripts/snapshot-backup.cjs --verify
+        env:
+          SIMPLEBEACON_BACKUP_KEK: ${{ secrets.SIMPLEBEACON_BACKUP_KEK }}
+          SIMPLEBEACON_BACKUP_DIR: ${{ github.workspace }}/.simplebeacon-snapshots
+
+      - name: Upload snapshot artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-snapshots-${{ github.run_id }}
+          path: .simplebeacon-snapshots/current/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Write step summary
+        if: always()
+        run: |
+          echo "## Snapshot Backup — $(date -u +%Y-%m-%d)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -d .simplebeacon-snapshots/current ]; then
+            echo "### Snapshots" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            ls -lh .simplebeacon-snapshots/current/*.sbsnap 2>/dev/null | awk '{print $NF, $5}'
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Metadata" >> "$GITHUB_STEP_SUMMARY"
+            for f in .simplebeacon-snapshots/current/*.meta.json; do
+              [ -f "$f" ] && node -e "const m=require('./'+process.argv[1]); console.log('Snapshot: '+m.snapshotId+' | Files: '+m.fileCount+' | Size: '+(m.encryptedSize/1024).toFixed(1)+'KB | Created: '+m.createdAt)" "$f" 2>/dev/null
+            done
+          else
+            echo "No snapshots created." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # - name: Push to remote backup repo
+      #   if: success()
+      #   run: |
+      #     cd .simplebeacon-snapshots/current
+      #     git init
+      #     git config user.name "snapshot-bot"
+      #     git config user.email "bot@simplebeacon.ai"
+      #     git remote add origin "https://x-access-token:${{ secrets.SIMPLEBEACON_BACKUP_TOKEN }}@github.com/${{ secrets.SIMPLEBEACON_BACKUP_REPO }}.git"
+      #     git add -A
+      #     git commit -m "Snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      #     git push -f origin main
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          WEBHOOK_URL: ${{ secrets.SIMPLEBEACON_WEBHOOK_URL }}
+        run: |
+          if [ -n "$WEBHOOK_URL" ]; then
+            curl -s -X POST "$WEBHOOK_URL" \
+              -H 'Content-Type: application/json' \
+              -d "{\"text\":\"🚨 Snapshot backup FAILED on ${{ github.repository }} — see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+              || true
+          fi
