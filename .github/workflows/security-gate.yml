@@ -96,21 +96,33 @@ jobs:
             dashboard.log
             watchdog.log
 
-      - name: Annotate PR on watchdog failure
+      - name: Annotate PR on watchdog failure (dedupe)
         if: failure()
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
             const logPath = 'watchdog.log';
-            let body = '';
+            const marker = '<!-- watchdog-comment-id -->';
+            let snippet = '';
             try {
               const txt = fs.readFileSync(logPath, 'utf8');
               const lines = txt.split(/\r?\n/).filter(Boolean);
               const errors = lines.filter(l => /❌|\bERROR\b|\bError\b|\bfail\b|Exception|Traceback/.test(l));
-              const snippet = (errors.length ? errors.slice(-25) : lines.slice(-50)).join('\n');
-              body = `### :warning: Watchdog Failure Summary\nThe dashboard watchdog reported failures. Last relevant lines:\n\n\`\`\`\n${snippet}\n\`\`\`\n\nFull logs are attached as the artifact \'dashboard-watchdog-logs\'.`;
+              snippet = (errors.length ? errors.slice(-25) : lines.slice(-50)).join('\n');
             } catch (e) {
-              body = `Watchdog failed but log could not be read: ${e.message}`;
+              snippet = `Could not read watchdog.log: ${e.message}`;
             }
-            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+            const body = `${marker}\n### :warning: Watchdog Failure Summary\nThe dashboard watchdog reported failures. Last relevant lines:\n\n\`\`\`\n${snippet}\n\`\`\`\n\nFull logs are attached as the artifact 'dashboard-watchdog-logs'.`;
+
+            // Find existing comment with our marker
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
