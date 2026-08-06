@@ -39,7 +39,8 @@ function resolveScanWorkerUrl() {
     } catch (_metaErr) { /* fall through */ }
     return `/app/assets/scan-worker.js?v=${v}`;
 }
-const MAX_FILES = 100000;
+const RAW_MAX_FILES = 100000;
+const MAX_FILES = RAW_MAX_FILES <= 0 ? Number.POSITIVE_INFINITY : RAW_MAX_FILES;
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
@@ -225,11 +226,12 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
     const mockSampleFiles = (meta.filePaths || []).filter((p) =>
         /sample|mock|fixture|test.*data/i.test(String(p))
     ).length;
-    const capped = Boolean(meta.capped) || totalFiles >= MAX_FILES;
+    const capped = Boolean(meta.capped) || (Number.isFinite(MAX_FILES) && totalFiles >= MAX_FILES);
+    const displayMaxFiles = Number.isFinite(MAX_FILES) ? MAX_FILES.toLocaleString() : 'unlimited';
     const scanLimitNote = meta.issuesTruncated
         ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
         : (capped
-            ? `Browser local scan inventory capped at ${MAX_FILES.toLocaleString()} files. Run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
+            ? `Browser local scan inventory capped at ${displayMaxFiles} files. Run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
             : null);
     const incompleteDropNote = incompleteDrop
         ? `Only ${totalFiles} file${totalFiles === 1 ? '' : 's'} discovered — this is likely an incomplete folder drop (common for OS/system directories). No full-repo PASS was recorded. Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`

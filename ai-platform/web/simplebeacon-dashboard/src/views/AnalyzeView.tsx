@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
+import { setLargeItem, removeLargeItem } from '@/utils/dbStorage';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
 import { captureDropEntries, collectFilesFromDrop, type VirtualFile } from '@/services/dropFolderTraversal';
@@ -304,6 +305,33 @@ export function AnalyzeView() {
     }
   }, []);
 
+  // Expose a dev/test-only storage helper on the window for E2E tests.
+  useEffect(() => {
+    try {
+      const isDev = (import.meta as any)?.env?.MODE === 'development';
+      const isE2EParam = typeof window !== 'undefined' && window.location.search.includes('sb_e2e');
+      if (typeof window !== 'undefined' && (isDev || isE2EParam)) {
+        (window as any).SimpleBeaconStorage = {
+          saveReport: async (id: string, report: any) => {
+            try {
+              await setLargeItem('sb_last_scan_report', report);
+            } catch (e) {
+              // best-effort write — fall through
+            }
+            try { localStorage.setItem('sb_last_scan_report_storage', 'indexeddb'); } catch (_e) { /* ignore */ }
+            try { localStorage.setItem('sb_last_scan_id', id); } catch (_e) { /* ignore */ }
+            try { window.dispatchEvent(new Event('storage')); } catch (_e) { /* ignore */ }
+          }
+        };
+      }
+    } catch (_e) {
+      // ignore environment detection failures
+    }
+    return () => {
+      try { if (typeof window !== 'undefined') delete (window as any).SimpleBeaconStorage; } catch (_e) { }
+    };
+  }, []);
+
   // Auto-open Local Agent modal when Local Network Access is denied
   useEffect(() => {
     if (localNetworkDenied) setShowAgentModal(true);
@@ -488,6 +516,7 @@ export function AnalyzeView() {
       try {
         localStorage.removeItem('sb_last_scan_report');
         localStorage.removeItem('sb_last_scan_full');
+        try { removeLargeItem('sb_last_scan_report'); } catch (_e) { /* ignore */ }
       } catch { /* ignore */ }
     };
 
@@ -520,18 +549,28 @@ export function AnalyzeView() {
         : (Array.isArray(fullReportData?.detectedIssues) ? fullReportData.detectedIssues : []);
       const useCompactFirst = rawIssues.length > 200 || (scanResult.issueCount ?? 0) > 500;
       const payload = useCompactFirst ? buildCompactReport(fullReportData) : fullReportData;
-      try {
-        storeReportPayload(payload);
-      } catch (e) {
-        console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
-        clearBulkyScanKeys();
+      // Try to persist the large payload into IndexedDB first (durable, async). If that fails,
+      // fall back to the existing localStorage strategy (compact payload where necessary).
+      (async () => {
         try {
-          storeReportPayload(buildCompactReport(fullReportData));
-        } catch (compactErr) {
-          console.warn('[SimpleBeacon] Failed to store compact sb_last_scan_report:', compactErr);
-          toast.warning('Findings list not saved to browser storage — use Export on the Results page or re-scan after clearing site data.');
+          await setLargeItem('sb_last_scan_report', payload);
+          try { localStorage.setItem('sb_last_scan_report_storage', 'indexeddb'); } catch { /* ignore */ }
+        } catch (dbErr) {
+          console.warn('[SimpleBeacon] IndexedDB store failed, falling back to localStorage:', dbErr);
+          try {
+            storeReportPayload(payload);
+          } catch (e) {
+            console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
+            clearBulkyScanKeys();
+            try {
+              storeReportPayload(buildCompactReport(fullReportData));
+            } catch (compactErr) {
+              console.warn('[SimpleBeacon] Failed to store compact sb_last_scan_report:', compactErr);
+              toast.warning('Findings list not saved to browser storage — use Export on the Results page or re-scan after clearing site data.');
+            }
+          }
         }
-      }
+      })();
     }
     try {
       localStorage.setItem('sb_last_scan_time', new Date().toISOString());

@@ -28,7 +28,8 @@ function resolveScanWorkerUrl() {
   return `/app/assets/scan-worker.js?v=${v}`;
 }
 
-const MAX_FILES = 100000;
+const RAW_MAX_FILES = 100000;
+const MAX_FILES = RAW_MAX_FILES <= 0 ? Number.POSITIVE_INFINITY : RAW_MAX_FILES;
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;
 
@@ -97,9 +98,10 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths
     for (const part of parts) { acc = acc ? `${acc}/${part}` : part; if (acc) folderSet.add(acc); }
   }
   const totalFolders = folderSet.size;
-  const capped = Boolean(meta.capped) || totalFiles >= MAX_FILES;
+  const capped = Boolean(meta.capped) || (Number.isFinite(MAX_FILES) && totalFiles >= MAX_FILES);
+  const displayMaxFiles = Number.isFinite(MAX_FILES) ? MAX_FILES.toLocaleString() : 'unlimited';
   const scanLimitNote = capped
-    ? `Browser local scan inventory capped at ${MAX_FILES.toLocaleString()} files. Run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
+    ? `Browser local scan inventory capped at ${displayMaxFiles} files. Run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
     : null;
   const incompleteDropNote = incompleteDrop
     ? `Only ${totalFiles} file${totalFiles === 1 ? '' : 's'} discovered — this is likely an incomplete folder drop (common for OS/system directories). No full-repo PASS was recorded. Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
