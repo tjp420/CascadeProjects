@@ -201,9 +201,21 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-Content-Type-Options', 'nosniff');
+        headers.set('X-SB-Worker', 'assets');
         return new Response(assetResp.body, { status: assetResp.status, headers });
       }
       return assetResp;
+    }
+
+    // SPA fallback for /app/ exact path — redirect to /dashboard/ which serves
+    // the same content. The ASSETS binding has a persistent cache for /app/ paths
+    // that ignores new uploads, so we redirect to /dashboard/ which works correctly.
+    if (url.pathname === '/app' || url.pathname === '/app/') {
+      return Response.redirect(new URL('/dashboard/', url.origin).toString(), 302);
+    }
+    if (url.pathname.startsWith('/app/') && url.pathname.includes('#')) {
+      const hash = url.pathname.substring(url.pathname.indexOf('#'));
+      return Response.redirect(new URL('/dashboard/' + hash, url.origin).toString(), 302);
     }
 
     // Redirect /demo to the landing page
@@ -211,11 +223,18 @@ export default {
       return Response.redirect(new URL('/', url.origin).toString(), 302);
     }
 
-    // SPA fallback for /dashboard/* routes — serve the dashboard entry HTML
+    // SPA fallback for /dashboard/* and /app/* routes — serve the entry HTML
     // so the client-side router can render the requested view.
-    if (url.pathname.startsWith('/dashboard/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+    // Fetches from ASSETS with cache-bust to bypass stale CDN cached HTML.
+    if (
+      (url.pathname.startsWith('/dashboard/') || url.pathname.startsWith('/app/')) &&
+      !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)
+    ) {
       const cacheBust = `${Date.now()}`;
-      const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
+      const isDashboard = url.pathname.startsWith('/dashboard/');
+      const entryCandidates = isDashboard
+        ? ['/dashboard/entry-20260806.html', '/dashboard/index.html', '/dashboard/__entry']
+        : ['/app/entry-20260806.html', '/app/index.html', '/app/__entry'];
       for (const entryPath of entryCandidates) {
         const assetUrl = new URL(entryPath, url.origin);
         assetUrl.searchParams.set('_cb', cacheBust);
@@ -435,6 +454,39 @@ export default {
         });
       } catch (err) {
         return json({ error: 'Backend unreachable', detail: err.message }, 502, corsOrigin);
+      }
+    }
+
+    // Catch-all: serve static files from ASSETS binding
+    // With html_handling: "none", the ASSETS binding won't auto-serve HTML,
+    // so we handle all static file serving through the Worker.
+    const assetResp = await env.ASSETS.fetch(request);
+    if (assetResp.ok) {
+      const headers = new Headers(assetResp.headers);
+      // Ensure correct MIME types for JS/CSS
+      if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
+        headers.set('Content-Type', 'text/javascript; charset=utf-8');
+      } else if (url.pathname.endsWith('.css')) {
+        headers.set('Content-Type', 'text/css; charset=utf-8');
+      }
+      headers.set('X-Content-Type-Options', 'nosniff');
+      return new Response(assetResp.body, { status: assetResp.status, headers });
+    }
+
+    // SPA fallback: serve index.html for any unmatched non-file path
+    if (!url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+      const isApp = url.pathname.startsWith('/app');
+      const entryPath = isApp ? '/app/entry-20260806.html' : '/dashboard/entry-20260806.html';
+      const assetUrl = new URL(entryPath, url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const candidate = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
+      if (candidate.ok) {
+        const body = await candidate.text();
+        const headers = new Headers();
+        headers.set('Content-Type', 'text/html; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        return new Response(body, { status: 200, headers });
       }
     }
 
