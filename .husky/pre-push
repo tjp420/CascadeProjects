@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Pre-push validation hook to catch hardcoded tokens prior to remote syncing
+
+echo "🔍 [Pre-Push] Running pre-flight credential audit on unpushed commits..."
+
+# Prefer the repo's simplebeacon engine if available, otherwise fall back to gitleaks
+if npx --no-install simplebeacon --version >/dev/null 2>&1; then
+  if ! npx simplebeacon scan --gate --offline; then
+    echo -e "\n💥 [Pre-Push] PUSH REJECTED: Hardcoded credentials or critical infractions detected!"
+    echo "👉 Remediate findings locally, move tokens to .env.local, and pass the gate before pushing.\n"
+    exit 1
+  fi
+else
+  echo "npx simplebeacon not available; falling back to gitleaks (requires network)."
+  if ! npx gitleaks detect --source . --staged --verbose --redact; then
+    echo -e "\n💥 [Pre-Push] PUSH REJECTED: Hardcoded credentials or critical infractions detected by gitleaks!"
+    echo "👉 Install simplebeacon or fix findings locally and try again.\n"
+    exit 1
+  fi
+fi
+
+echo "✅ [Pre-Push] No hardcoded tokens detected. Proceeding with remote sync."
+exit 0
