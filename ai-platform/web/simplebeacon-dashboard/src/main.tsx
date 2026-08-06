@@ -49,9 +49,11 @@ try {
 const rootEl = document.getElementById('app-main') || document.getElementById('root');
 
 if (rootEl) {
-  // Wrap global fetch so any 401 from API triggers auth clear + redirect to signin.
-  // This ensures hosted preview pages gracefully redirect users to sign-in
-  // instead of silently failing with repeated 401 errors.
+  // Wrap global fetch so a 401 from auth-validation endpoints triggers auth clear + redirect.
+  // CAUTION: Only clear auth on 401 from /api/auth/* (excluding login/register). Other endpoints
+  // (e.g., /api/vault/consensus/status, /api/outreach/*) may return 401 for reasons other than
+  // session expiration (elevated privileges, consensus tokens, tier restrictions). Clearing the
+  // session on those would wipe a valid token and cascade 401s across all endpoints.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof window !== 'undefined' && (window as any).fetch) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,7 +64,13 @@ if (rootEl) {
         const resp = await _origFetch(input, init);
         try {
           if (resp && resp.status === 401) {
-            clearAuthAndRedirect();
+            const url = typeof input === 'string' ? input : (input?.url || String(input));
+            // Only clear auth + redirect for auth-validation endpoints.
+            // Matches /api/auth/verify, /api/auth/me, /api/auth/session, etc.
+            // Excludes /api/auth/login and /api/auth/register (wrong credentials, not expiration).
+            if (/\/api\/auth\/(?!login|register)/i.test(url)) {
+              clearAuthAndRedirect();
+            }
           }
         } catch (e) {
           // ignore

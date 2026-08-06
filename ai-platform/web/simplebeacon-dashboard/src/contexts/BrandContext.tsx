@@ -176,7 +176,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
       try {
         const hostname = window.location.hostname;
         const response = await fetch(
-          `${apiUrl}/api/whitelabel/resolve?domain=${encodeURIComponent(hostname)}`,
+          `${apiUrl(`whitelabel/resolve?domain=${encodeURIComponent(hostname)}`)}`,
           { headers: { Accept: 'application/json' } }
         );
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
