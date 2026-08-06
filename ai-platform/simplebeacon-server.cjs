@@ -36,6 +36,10 @@ if (String(process.env.NODE_ENV || '').toLowerCase() === 'production') {
   if (!process.env.ALLOW_LEGACY_LOGIN) process.env.ALLOW_LEGACY_LOGIN = 'false';
 }
 
+// Validate critical Stripe/billing env vars before loading app modules
+const { validateEnvironment } = require('./server/config/validate-env.cjs');
+validateEnvironment();
+
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
