@@ -17,6 +17,7 @@
     "quality:check": "npm run quality:check --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "test:bitpacking": "node tools/test-bitpacking.js",
     "quality:monthly": "cd packages/simplebeacon-cli && node bin/simplebeacon.js scan --path ../.. --gate --full --format json --output .simplebeacon/monthly-quality-report.json && npm audit && cd ../../ai-platform && npm audit && cd ../coming-soon && npm audit",
     "ai:check": "node scripts/ai-check.js",
     "audit:context": "node scripts/audit-context.cjs",
@@ -40,6 +41,7 @@
     "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
     "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\""
   },
+ 
   "prepare": "husky install",
   "dependencies": {
     "@swc/core": "^1.15.46",
