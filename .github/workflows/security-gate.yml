@@ -57,6 +57,7 @@ jobs:
       - name: Run SimpleBeacon full gate
         run: |
           mkdir -p .simplebeacon || true
+          npm run build:ci
           npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
 
       - name: Upload SimpleBeacon report
