@@ -14,19 +14,10 @@
       }
       function neutralize(el) {
         if (!isBeacon(el)) return;
-        if (el.hasAttribute && el.hasAttribute('integrity')) {
-          try { el.removeAttribute('src'); } catch (_) {}
-          try { el.type = 'text/plain'; } catch (_) {}
-        }
+        try { el.removeAttribute('src'); } catch (_) {}
+        try { el.type = 'text/plain'; } catch (_) {}
         el.removeAttribute('integrity');
         el.removeAttribute('crossorigin');
-        var isBrave = typeof navigator.brave !== 'undefined';
-        var ua = navigator.userAgent || '';
-        if (isBrave || /Brave/.test(ua)) {
-          if (el.parentNode) el.parentNode.removeChild(el);
-          return;
-        }
-        el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
       }
       var origCreate = document.createElement.bind(document);
       document.createElement = function(tag) {

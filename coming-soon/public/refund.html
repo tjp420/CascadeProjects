@@ -30,7 +30,7 @@
     // Neutralize Cloudflare beacon injected at the edge to avoid SRI errors in dev/preview
     (function(){
       function isBeacon(el){ if(!el||el.tagName!=='SCRIPT') return false; var src=el.src||''; var cf=el.getAttribute('data-cf-beacon'); return src.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1 || (cf&&cf.length>0); }
-      function neutralize(el){ if(!isBeacon(el)) return; try{ el.removeAttribute('integrity'); el.removeAttribute('crossorigin'); }catch(e){} var isBrave=(typeof navigator.brave!=='undefined')||/Brave/.test(navigator.userAgent||''); if(isBrave){ if(el.parentNode) el.parentNode.removeChild(el); return; } el.onerror=function(){ if(el.parentNode) el.parentNode.removeChild(el); }; }
+      function neutralize(el){ if(!isBeacon(el)) return; try{ el.removeAttribute('src'); el.type='text/plain'; el.removeAttribute('integrity'); el.removeAttribute('crossorigin'); }catch(e){} }
       var s=document.querySelectorAll('script'); for(var i=0;i<s.length;i++) neutralize(s[i]);
       if(window.MutationObserver){ var mo=new MutationObserver(function(records){ records.forEach(function(r){ Array.prototype.forEach.call(r.addedNodes||[], function(n){ if(n.nodeType===1){ if(n.tagName==='SCRIPT') neutralize(n); if(n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('script'), neutralize); } }); }); }); mo.observe(document.documentElement,{childList:true,subtree:true}); }
     })();
