@@ -23,11 +23,9 @@
 /security-whitepaper  /security             301
 /waitlist             /cloud-teams          301
 
-# API backend routing — handled exclusively by the Pages Function at
-# functions/api/[[path]].js which proxies to Render and adds CORS headers.
-# Do NOT add a _redirects proxy rule for /api/* — it intercepts OPTIONS
-# preflight before the Function runs, returning incomplete CORS headers.
-# The Function handles all methods (GET, POST, PUT, PATCH, DELETE, OPTIONS).
+# API backend routing — handled by the Cloudflare Worker (worker-deploy/src/worker.js)
+# and Pages Function (functions/api/[[path]].js). Do NOT add a _redirects proxy rule
+# for /api/* — Workers don't support proxy redirects to external URLs.
 
 # SPA fallback for dashboard/app — handled by Functions worker (functions/app/[[path]].js)
 # The worker passes through static assets (JS, CSS, images) and serves HTML for SPA routes.
