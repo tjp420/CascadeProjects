@@ -12,9 +12,12 @@ const { HsmAdapterError } = require('../base-adapter.cjs');
 
 const SMALL_PRIME = 23n;
 const SMALL_GEN = 2n;
-// Larger safe prime for tests that need distinct challenge hashes.
-// 2^61 - 1 is a Mersenne prime; (p-1)/2 = 2^60 - 1 is also prime (safe prime).
-const LARGE_SAFE_PRIME = 2305843009213693951n; // 2^61 - 1
+// Proper safe prime generated via crypto.generatePrimeSync(128, { safe: true }).
+// p is prime and q = (p-1)/2 is prime by construction.
+// NOTE: 2^61-1 (Mersenne) is prime but (p-1)/2 = 2^60-1 is NOT prime — it factors
+// as (2^30-1)(2^30+1) with small divisors [3,3,5,5,7,11,13,31,41,61], causing
+// intermittent false-positive Schnorr verifications under concurrent test load.
+const LARGE_SAFE_PRIME = 287923746496521074231446155346183523207n;
 const LARGE_GEN = 2n;
 
 describe('ZkIdentityVerifier', () => {
