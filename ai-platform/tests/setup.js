@@ -45,6 +45,22 @@ try {
 }
 process.env.NODE_ENV = 'test';
 
+// Track intervals created during tests so we can forcibly clear them in teardown.
+// This is defensive: some modules start background schedulers on require
+// which tests may not explicitly stop. We wrap only in the test environment.
+const _origSetInterval = global.setInterval;
+const _origClearInterval = global.clearInterval;
+const __jestIntervals = new Set();
+global.setInterval = function (fn, ms, ...args) {
+  const id = _origSetInterval(fn, ms, ...args);
+  try { __jestIntervals.add(id); } catch (e) {}
+  return id;
+};
+global.clearInterval = function (id) {
+  try { __jestIntervals.delete(id); } catch (e) {}
+  return _origClearInterval(id);
+};
+
 // Mock console methods to reduce noise in test output
 const originalConsole = global.console;
 
@@ -251,6 +267,57 @@ jest.mock('pg', () => ({
 }), { virtual: true });
 
 // Export setup for use in other files
+// Attempt to gracefully shutdown modules that may open background handles
+// during normal operation. This is best-effort and avoids noisy logs like
+// "Cannot log after tests are done" when Jest exits.
+afterAll(async () => {
+  const targets = [
+    '../server/lib/admin-throttle.cjs',
+    '../server/lib/siem-exporter.cjs',
+    '../server/lib/cluster-keyring-sync.cjs'
+  ];
+  // Clear tracked intervals created during tests
+  try {
+    for (const id of Array.from(__jestIntervals)) {
+      try { _origClearInterval(id); } catch (e) {}
+      try { __jestIntervals.delete(id); } catch (e) {}
+    }
+  } catch (e) {}
+  // Restore global interval functions
+  try { global.setInterval = _origSetInterval; } catch (e) {}
+  try { global.clearInterval = _origClearInterval; } catch (e) {}
+  // Also ensure report scheduler is stopped if started by any module
+  try {
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    const reportScheduler = require('../server/lib/report-scheduler.cjs');
+    if (reportScheduler && typeof reportScheduler.stopScheduler === 'function') {
+      try { reportScheduler.stopScheduler(); } catch (e) {}
+    }
+  } catch (e) {
+    // ignore
+  }
+  for (const rel of targets) {
+    try {
+      // eslint-disable-next-line global-require, import/no-dynamic-require
+      const mod = require(rel);
+      if (mod && typeof mod.shutdown === 'function') {
+        try {
+          // Timeout the shutdown after 5s to avoid hanging global teardown
+          await Promise.race([mod.shutdown(), new Promise((r) => setTimeout(r, 5000))]);
+        } catch (e) {
+          // ignore individual shutdown errors
+        }
+      } else if (mod && typeof mod.close === 'function') {
+        try {
+          await Promise.race([mod.close(), new Promise((r) => setTimeout(r, 5000))]);
+        } catch (e) {}
+      }
+    } catch (e) {
+      // module not present or failed to load; ignore
+    }
+  }
+});
+
 module.exports = {
   testUtils: global.testUtils
 };

@@ -49,6 +49,7 @@ let _heartbeatTimer = null;
 let _electionTimer = null;
 let _running = false;
 let _primitiveAuth = null;
+let _shuttingDown = false;
 
 // ΓöÇΓöÇ Event Timeline (Sync.com-style audit trail) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 //   Each event has: eventId, timestamp, eventType, node, details
@@ -373,6 +374,7 @@ function _resetStek() {
 }
 
 function _log(level, message, extra = {}) {
+  if (_shuttingDown) return;
   if (!logger || !logger[level]) return;
   logger[level](message, { sub: 'cluster-keyring', nodeId: NODE_ID, leaderId: _state.leaderId, epoch: _state.epoch, ...extra });
 }
@@ -1198,6 +1200,7 @@ function _buildWrapAad(msg) {
 }
 
 function _connectToPeer(host, port) {
+  if (_shuttingDown) return;
   const key = _peerKey(host, port);
   if (_sockets.has(key)) return;
 
@@ -1356,15 +1359,29 @@ function init() {
 }
 
 function shutdown() {
+  _shuttingDown = true;
   _running = false;
-  stopStekRotation();
+  try { stopStekRotation(); } catch (e) {}
+  try { _resetDkgSession(); } catch (e) {}
+  try { _resetEpochState(); } catch (e) {}
+  try { _resetEvents(); } catch (e) {}
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
   if (_electionTimer) { clearInterval(_electionTimer); _electionTimer = null; }
   for (const [key, socket] of _sockets.entries()) {
-    socket.destroy();
+    try {
+      socket.removeAllListeners('data');
+      socket.removeAllListeners('error');
+      socket.removeAllListeners('close');
+    } catch (e) {}
+    try { socket.destroy(); } catch (e) {}
     _sockets.delete(key);
+    _peerState.delete(key);
   }
-  if (_server) { _server.close(); _server = null; }
+  if (_server) {
+    try { _server.close(); } catch (e) {}
+    _server = null;
+  }
+  try { sessionTokenReplicator.setBroadcast(() => {}); } catch (e) {}
   _log('info', 'Cluster keyring sync shutdown');
 }
 

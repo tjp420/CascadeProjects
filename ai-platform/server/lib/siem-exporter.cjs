@@ -101,6 +101,7 @@ class BoundedQueue {
 
 let _mtlsAgent = null;
 let _mtlsEnabled = false;
+let _shuttingDown = false;
 
 (function _initMtlsAgent() {
   const certPath = process.env.SIEM_TLS_CLIENT_CERT_PATH;
@@ -172,6 +173,7 @@ const _metrics = {
 
 function enqueue(event) {
   try {
+    if (_shuttingDown) return;
     if (!event || typeof event !== 'object') return;
     const droppedBefore = queue.dropped;
     queue.push(event);
@@ -235,6 +237,7 @@ async function sendBatch(batch, attempt = 0) {
     await fetch(SIEM_ENDPOINT, fetchOpts);
     return true;
   } catch (e) {
+    if (_shuttingDown) return false;
     if (attempt < RETRY_MAX_ATTEMPTS) {
       // record a retry attempt for observability
       try { _metrics.siem_delivery_retries_total += 1; } catch (mErr) {}
@@ -242,7 +245,7 @@ async function sendBatch(batch, attempt = 0) {
       try {
         logger.warn('[SIEM Exporter] sendBatch failed, scheduling retry', { attempt, delay, error: e && e.message });
         setTimeout(() => {
-          sendBatch(batch, attempt + 1).catch(() => {});
+          if (!_shuttingDown) sendBatch(batch, attempt + 1).catch(() => {});
         }, delay);
       } catch (s) {
         // ignore scheduling failure
@@ -279,6 +282,20 @@ function close() {
   }
 }
 
+async function shutdown() {
+  _shuttingDown = true;
+  try { clearInterval(_timer); } catch {}
+  if (_brokerListener) {
+    try { _brokerListener.broker.removeListener('transport_batch_queue', _brokerListener.fn); } catch {}
+    _brokerListener = null;
+  }
+  try { queue.reset(); } catch {}
+  _mtlsAgent = null;
+  _mtlsEnabled = false;
+  flushing = false;
+  return Promise.resolve();
+}
+
 // ── SiemSecurityBroker integration ──────────────────────────────────
 let _brokerListener = null;
 
@@ -294,7 +311,10 @@ function connectBroker(broker) {
     try { _brokerListener.broker.removeListener('transport_batch_queue', _brokerListener.fn); } catch {}
   }
   const fn = (event) => {
-    try { enqueue(event); } catch (e) {
+    try {
+      if (_shuttingDown) return;
+      enqueue(event);
+    } catch (e) {
       try { logger.warn('[SIEM Exporter] broker enqueue failed', { error: e && e.message }); } catch {}
     }
   };
@@ -306,6 +326,7 @@ module.exports = {
   enqueue,
   flush,
   close,
+  shutdown,
   sendBatch,
   connectBroker,
   _debug: {
