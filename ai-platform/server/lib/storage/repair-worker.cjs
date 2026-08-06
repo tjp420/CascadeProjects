@@ -3,7 +3,7 @@
 const EventEmitter = require('events');
 const crypto = require('crypto');
 const { zeroizeBuffer } = require('../crypto/zeroize.cjs');
-const { incrementCounter } = require('../hsm-adapter/hsm-metrics.cjs');
+const { incrementCounter, observeHistogram } = require('../hsm-adapter/hsm-metrics.cjs');
 
 // Default labels attached to every repair metric
 function labelsFor(payload) {
@@ -85,6 +85,8 @@ class RepairWorker extends EventEmitter {
     }
 
     const key = this.keyFor(payload);
+    // record repair request
+    try { incrementCounter('hsm_repair_requests_total', 1); } catch (e) {}
     if (this.activeRepairs.has(key)) {
       this.emit('repair:skipped', { key, payload });
       incrementCounter('hsm_shard_reconciler_repair_skipped_total', 1, labelsFor(payload));
@@ -119,11 +121,14 @@ class RepairWorker extends EventEmitter {
   }
 
   async executeRepair(payload) {
+    const start = Date.now();
     const jitterMax = Number(payload.repairJitterMs || this.repairJitterMs || 0);
     const delay = jitterMax === 0 ? 0 : Math.floor(Math.random() * (jitterMax + 1));
     await new Promise((res) => setTimeout(res, this.processingTimeMs + delay));
 
     if (!this.store) {
+      const dur = Date.now() - start;
+      try { observeHistogram('hsm_repair_duration_ms', dur); } catch (e) {}
       return { ok: true, applied: 0 };
     }
 
@@ -157,6 +162,11 @@ class RepairWorker extends EventEmitter {
       shardId: payload.shardId
     }, entries, payload);
 
+    const dur = Date.now() - start;
+    try { observeHistogram('hsm_repair_duration_ms', dur); } catch (e) {}
+    if (payload && payload.retryCount) {
+      try { incrementCounter('hsm_repair_retries_total', Number(payload.retryCount) || 0); } catch (e) {}
+    }
     return { ok: true, applied: entries.length };
   }
 }
