@@ -79,26 +79,46 @@ test('formatJsonReport sanitizes credential-like strings in issues', () => {
 });
 
 test('CLI scan prints trust banner and supports --offline', () => {
-    const root = path.join(__dirname, '..', '..', '..');
+    // Use a minimal temp directory instead of the full repo root to avoid
+    // 600+ second scan times. The trust banner and --offline flag behavior
+    // is independent of scan scope.
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'simplebeacon-trust-'));
     const configPath = path.join(root, '.simplebeacon', 'config.json');
-    if (!fs.existsSync(configPath)) {
-        return;
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
+    fs.writeFileSync(configPath, JSON.stringify({
+        profile: 'minimal',
+        scanPaths: ['.'],
+        productionPaths: ['.'],
+        gate: { failOn: ['high'] },
+        rules: {
+            credentials: { enabled: true },
+            'production-leak': { enabled: false },
+            'fiction-kpi-patterns': { enabled: false },
+            'jest-baseline': { enabled: false }
+        }
+    }, null, 2));
+    fs.writeFileSync(path.join(root, 'sample.js'), 'const x = 1;\n');
+
+    try {
+        const result = spawnSync(process.execPath, [
+            BIN,
+            'scan',
+            '--path', root,
+            '--config', configPath,
+            '--format', 'text',
+            '--offline',
+            '--no-trust-banner'
+        ], {
+            cwd: root,
+            encoding: 'utf8',
+            timeout: 30000,
+            env: { ...process.env, NO_COLOR: '1' }
+        });
+
+        assert.equal(result.status, 0, result.stderr || result.stdout);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
     }
-
-    const result = spawnSync(process.execPath, [
-        BIN,
-        'scan',
-        '--path', root,
-        '--format', 'text',
-        '--offline',
-        '--no-trust-banner'
-    ], {
-        cwd: root,
-        encoding: 'utf8',
-        env: { ...process.env, NO_COLOR: '1' }
-    });
-
-    assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
 test('CLI --offline fails when cloud upload is requested', () => {
@@ -112,6 +132,7 @@ test('CLI --offline fails when cloud upload is requested', () => {
         BIN,
         'scan',
         '--path', root,
+        '--config', configPath,
         '--offline',
         '--upload', 'https://example.com/upload',
         '--api-token', 'sb_test_token',
@@ -119,7 +140,8 @@ test('CLI --offline fails when cloud upload is requested', () => {
     ], {
         cwd: root,
         encoding: 'utf8',
-        env: { ...process.env, NO_COLOR: '1' }
+        timeout: 30000,
+        env: { ...process.env, NO_COLOR: '1', NODE_OPTIONS: '--max-old-space-size=8192' }
     });
 
     assert.notEqual(result.status, 0);

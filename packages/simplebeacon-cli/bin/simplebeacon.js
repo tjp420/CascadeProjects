@@ -1005,6 +1005,11 @@ async function runScanCommand(options) {
             return 1;
         }
     }
+    // --offline + --upload is contradictory — fail fast before scanning
+    if (options.offline && options.upload) {
+        console.error('Offline mode blocked: --offline cannot be used with --upload');
+        return 1;
+    }
     const networkGuard = createNetworkGuard({ offline: options.offline });
     printTrustBanner({ quiet: options.noTrustBanner, offline: options.offline }, paint);
     if (airGapped && !options.noTrustBanner) {
