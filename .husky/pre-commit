@@ -17,12 +17,12 @@ if [ $GITLEAKS_RESULT -ne 0 ]; then
   exit $GITLEAKS_RESULT
 fi
 
-# Run SimpleBeacon gate scan as a pre-commit hook with a short timeout to avoid blocking local commits.
-echo "Running SimpleBeacon pre-commit scan (timeout 30s)..."
-node scripts/run-with-timeout.js 30000 npm run sb:hook:pre-commit
-RESULT=$?
-if [ $RESULT -ne 0 ]; then
-  echo "SimpleBeacon pre-commit check failed (exit $RESULT). Commit aborted." >&2
-  exit $RESULT
+# Run fast staged-only secret scanner (strict local gate)
+echo "Running fast staged-only pre-commit secret scanner..."
+node scripts/sb-precommit-fast.js
+FAST_RESULT=$?
+if [ $FAST_RESULT -ne 0 ]; then
+  echo "Fast pre-commit secret scan failed. Commit aborted." >&2
+  exit $FAST_RESULT
 fi
-echo "SimpleBeacon pre-commit finished (or timed out gracefully). Proceeding with commit."
+echo "Fast pre-commit secret scan passed. Proceeding with commit."
