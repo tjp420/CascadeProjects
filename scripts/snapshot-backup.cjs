@@ -144,6 +144,33 @@ function collectStateFiles() {
     /^AUDIT_REPORT/,               // audit report markdown
     /^baseline\.json\.simplebeacon/, // old baseline backups
     /^config\.json\.simplebeacon/,   // old config backups
+    /^full-scan/,                  // full scan result dumps
+    /^gate-/,                      // gate scan reports/logs
+    /^lighthouse/,                 // lighthouse audit dumps
+    /^offline-privacy/,            // offline privacy check dumps
+    /^phase12/,                    // phase 12 verification dumps
+    /^post-.*-scan/,               // post-fix scan dumps
+    /^parent-scan/,                // parent scan test reports
+    /^poc-report/,                 // POC report dumps
+    /^handle-output/,              // handle output captures
+    /^minimatch/,                  // minimatch fix logs
+    /^proxy-violations/,           // proxy violation logs
+    /^forensic-events/,            // forensic event logs
+    /^full-blocker/,               // full blocker scan dumps
+    /^full-coverage/,              // full coverage scan dumps
+    /^gate-fix/,                   // gate fix test reports
+    /^benchmark/,                  // benchmark report dumps
+    /^codebase-audit/,             // codebase audit dumps
+    /^ai-platform-gate/,           // ai-platform gate dumps
+    /^npm-audit/,                  // npm audit report dumps
+    /^track-/,                     // track-specific notes/reports
+    /^release-notes/,              // release notes
+    /^report\.json\.backup/,       // old report.json backup
+    /^report_from/,                // report from J download
+    /^sandbox-comment/,            // sandbox comment markdown
+    /^fix-i18n/,                   // i18n fix script
+    /^history\.json/,              // scan history (regenerable)
+    /^last-scan/,                  // last scan result (regenerable)
   ];
 
   function walkDir(dir, relativeBase) {
