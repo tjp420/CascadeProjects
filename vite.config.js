@@ -4,6 +4,8 @@ import { resolve } from 'path';
 export default defineConfig({
   root: resolve(__dirname, 'coming-soon'),
   build: {
+    target: 'es2022',
+    cssCodeSplit: true,
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
     rollupOptions: {
@@ -11,8 +13,14 @@ export default defineConfig({
         main: resolve(__dirname, 'coming-soon/index.html'),
         upload: resolve(__dirname, 'coming-soon/upload.html'),
         pricing: resolve(__dirname, 'coming-soon/pricing.html')
+      },
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) return 'vendor';
+        }
       }
-    }
+    },
+    chunkSizeWarningLimit: 600
   },
   server: {
     port: 5173,

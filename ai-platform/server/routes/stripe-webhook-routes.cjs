@@ -15,6 +15,7 @@ const logger = require('../lib/app-logger.cjs');
 const { getTierConfigByPriceId } = require('../config/stripe.cjs');
 const { setSubscriptionActive, getSubscriptionByEmail } = require('../lib/simplebeacon-subscription-store.cjs');
 const { sendEmail } = require('../lib/email-service.cjs');
+const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
@@ -186,6 +187,19 @@ async function handleCheckoutCompleted(event, headers = {}) {
   });
 
   logger.info('[StripeWebhook] Confirmation email result:', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail, 'token included:', !!licenseToken);
+
+  // Send Slack/Discord purchase notification (no-op if PURCHASE_ALERT_WEBHOOK not set)
+  var alertAmount = session.amount_total || (tierConfig ? tierConfig.basePrice : null);
+  var alertResult = await sendPurchaseAlert({
+    tier: tier,
+    email: customerEmail,
+    priceId: priceId,
+    amount: alertAmount,
+    customerId: customerId
+  });
+  if (alertResult.sent) {
+    logger.info('[StripeWebhook] Purchase alert sent to', alertResult.platform, 'for tier:', tier);
+  }
 }
 
 /**
