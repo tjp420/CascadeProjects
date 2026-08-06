@@ -59,6 +59,9 @@ jobs:
     name: Dashboard Watchdog
     needs: simplebeacon
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -92,3 +95,22 @@ jobs:
           path: |
             dashboard.log
             watchdog.log
+
+      - name: Annotate PR on watchdog failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const logPath = 'watchdog.log';
+            let body = '';
+            try {
+              const txt = fs.readFileSync(logPath, 'utf8');
+              const lines = txt.split(/\r?\n/).filter(Boolean);
+              const errors = lines.filter(l => /❌|\bERROR\b|\bError\b|\bfail\b|Exception|Traceback/.test(l));
+              const snippet = (errors.length ? errors.slice(-25) : lines.slice(-50)).join('\n');
+              body = `### :warning: Watchdog Failure Summary\nThe dashboard watchdog reported failures. Last relevant lines:\n\n\`\`\`\n${snippet}\n\`\`\`\n\nFull logs are attached as the artifact \'dashboard-watchdog-logs\'.`;
+            } catch (e) {
+              body = `Watchdog failed but log could not be read: ${e.message}`;
+            }
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
