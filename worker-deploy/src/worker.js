@@ -208,6 +208,23 @@ export default {
       return assetResp;
     }
 
+    // Vite lazy-loaded chunks (e.g. TeamMetricsView-CueXexY4.js) are requested
+    // at /dashboard/<chunk>.js but the actual files live in /dashboard/assets/.
+    // Redirect to the correct path so the browser loads them as proper modules.
+    if (url.pathname.startsWith('/dashboard/') && !url.pathname.startsWith('/dashboard/assets/') &&
+        /\.(js|mjs|css)$/.test(url.pathname) && !url.pathname.startsWith('/dashboard/js/') &&
+        !url.pathname.startsWith('/dashboard/js-es2018/')) {
+      const chunkName = url.pathname.replace('/dashboard/', '');
+      const redirectUrl = new URL('/dashboard/assets/' + chunkName, url.origin);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': redirectUrl.toString(),
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
     // Redirect all /app/* SPA routes to /dashboard/* — the ASSETS binding has a
     // persistent CDN cache for /app/ paths that serves stale HTML. /dashboard/
     // serves the correct bundle. Hash fragments (#/signin) are client-side only
