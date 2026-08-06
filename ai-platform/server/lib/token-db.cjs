@@ -10,7 +10,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const DB_PATH = path.join(__dirname, '../db/token-registry.json');
+// Allow overriding the DB path for tests or custom deployments via env var.
+const DB_PATH = process.env.SIMPLEBEACON_TOKEN_DB_PATH || path.join(__dirname, '../db/token-registry.json');
 
 function loadDb() {
     if (!fs.existsSync(DB_PATH)) {

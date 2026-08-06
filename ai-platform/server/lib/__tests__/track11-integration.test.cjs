@@ -129,6 +129,7 @@ describe('Track 11: Core Systems Integration', () => {
   });
 
   test('S-03: queryEvents requires explicit eventType or time window', () => {
+    const before = new Date(Date.now() - 2000).toISOString();
     const now = new Date().toISOString();
     clusterSync._recordEvent('leader_elected', 'node-1', {});
     // No filter: should still run, but default to 24h window
@@ -137,8 +138,8 @@ describe('Track 11: Core Systems Integration', () => {
     // eventType filter explicitly supplied
     const typed = clusterSync.queryEvents({ eventType: 'leader_elected' });
     expect(typed.total).toBe(1);
-    // explicit date range supplied
-    const ranged = clusterSync.queryEvents({ startDate: now, endDate: new Date(Date.now() + 1000).toISOString() });
+    // explicit date range before the event was recorded should return 0
+    const ranged = clusterSync.queryEvents({ startDate: before, endDate: now });
     expect(ranged.events.length).toBe(0);
   });
 

@@ -1,0 +1,83 @@
+name: Vite Build & Export Verification Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - 'ai-platform/web/simplebeacon-dashboard/**'
+      - '.github/workflows/verify-vite-build.yml'
+
+jobs:
+  build-and-smoke:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ai-platform/web/simplebeacon-dashboard
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
+
+      - name: Install Application Dependencies
+        run: npm ci
+
+      - name: Cache Playwright Browser Drivers
+        id: playwright-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('ai-platform/web/simplebeacon-dashboard/package-lock.json') }}
+
+      - name: Provision Playwright Binaries
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Compile Application Production Bundle
+        run: npm run build
+
+      - name: Execute Export Smoke Test Assertion
+        env:
+          CI: true
+        run: |
+          # serve the production build and run the Playwright smoke test
+          npx serve -s dist -l 61455 &
+          # give server a moment to start
+          sleep 2
+          set -o pipefail
+          npx playwright test tests/ci/verify-build.spec.ts --project=chromium | tee build-smoke-output.txt
+
+      - name: Broadcast Compilation Failure to Dev Channels
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.TELEMETRY_CI_SLACK_WEBHOOK }}
+          TEAMS_WEBHOOK: ${{ secrets.TELEMETRY_CI_TEAMS_WEBHOOK }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MESSAGE="💥 *Vite Export Smoke Test Failure:* A pull request broke core asset compilation parameters or generated undefined runtime module references.\n\nSee: ${RUN_URL}"
+
+          if [ -f build-smoke-output.txt ]; then
+            SNIPPET=$(head -n 200 build-smoke-output.txt | tr -d '"' | tr -d "'" | tr '\n' ' ')
+          else
+            SNIPPET="(no build-smoke-output.txt present)"
+          fi
+
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -s -X POST -H 'Content-type: application/json' \
+              --data "{\"text\": \"${MESSAGE}\n\n*Log Snippet:*\n\`\`\`${SNIPPET}\`\`\`\n\nAction required immediately: ${RUN_URL}\"}" \
+              "$SLACK_WEBHOOK" || true
+          fi
+
+          if [ -n "$TEAMS_WEBHOOK" ]; then
+            curl -s -X POST -H 'Content-type: application/json' \
+              --data "{\"text\": \"${MESSAGE}\n\nLog Snippet:\n${SNIPPET}\n\nAction required: ${RUN_URL}\"}" \
+              "$TEAMS_WEBHOOK" || true
+          fi

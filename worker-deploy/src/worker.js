@@ -168,6 +168,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const corsOrigin = getCorsOrigin(request, env);
+    const debugPath = url.pathname;
 
     if (request.method === 'OPTIONS') {
       const headers = {
@@ -183,16 +184,85 @@ export default {
       return new Response(null, { status: 204, headers });
     }
 
+    // Static asset passthrough for /dashboard/assets/* and /app/assets/*
+    // Fetches from ASSETS binding with cache-bust to bypass stale CDN 404s,
+    // and sets correct Content-Type for JS modules (browsers reject text/plain).
+    if (url.pathname.startsWith('/dashboard/assets/') || url.pathname.startsWith('/app/assets/')) {
+      const assetUrl = new URL(url.pathname, url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const assetResp = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+      if (assetResp.ok) {
+        const headers = new Headers(assetResp.headers);
+        // Force correct MIME type for JS modules (CDN may have cached text/plain 404s)
+        if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
+          headers.set('Content-Type', 'text/javascript; charset=utf-8');
+        } else if (url.pathname.endsWith('.css')) {
+          headers.set('Content-Type', 'text/css; charset=utf-8');
+        }
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-Content-Type-Options', 'nosniff');
+        headers.set('X-SB-Worker', 'assets');
+        return new Response(assetResp.body, { status: assetResp.status, headers });
+      }
+      return assetResp;
+    }
+
+    // Vite lazy-loaded chunks (e.g. TeamMetricsView-CueXexY4.js) are requested
+    // at /dashboard/<chunk>.js but the actual files live in /dashboard/assets/.
+    // Redirect to the correct path so the browser loads them as proper modules.
+    if (url.pathname.startsWith('/dashboard/') && !url.pathname.startsWith('/dashboard/assets/') &&
+        /\.(js|mjs|css)$/.test(url.pathname) && !url.pathname.startsWith('/dashboard/js/') &&
+        !url.pathname.startsWith('/dashboard/js-es2018/')) {
+      const chunkName = url.pathname.replace('/dashboard/', '');
+      const redirectUrl = new URL('/dashboard/assets/' + chunkName, url.origin);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': redirectUrl.toString(),
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
+    // Redirect all /app/* SPA routes to /dashboard/* — the ASSETS binding has a
+    // persistent CDN cache for /app/ paths that serves stale HTML. /dashboard/
+    // serves the correct bundle. Hash fragments (#/signin) are client-side only
+    // and preserved automatically by the browser across same-origin redirects.
+    if (url.pathname === '/app' || url.pathname === '/app/') {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': new URL('/dashboard/', url.origin).toString(),
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'CDN-Cache-Control': 'no-store',
+          'X-SB-Worker': 'app-redirect'
+        }
+      });
+    }
+    // Redirect /app/<non-asset-path> to /dashboard/<non-asset-path>
+    if (url.pathname.startsWith('/app/') && !url.pathname.startsWith('/app/assets/') && !url.pathname.startsWith('/app/js/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+      const newPath = '/dashboard/' + url.pathname.substring(5);
+      return Response.redirect(new URL(newPath, url.origin).toString(), 302);
+    }
+
     // Redirect /demo to the landing page
     if (url.pathname === '/demo' || url.pathname.startsWith('/demo/')) {
       return Response.redirect(new URL('/', url.origin).toString(), 302);
     }
 
-    // SPA fallback for /dashboard/* routes — serve the dashboard entry HTML
+    // SPA fallback for /dashboard/* and /app/* routes — serve the entry HTML
     // so the client-side router can render the requested view.
-    if (url.pathname.startsWith('/dashboard/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+    // Fetches from ASSETS with cache-bust to bypass stale CDN cached HTML.
+    if (
+      (url.pathname.startsWith('/dashboard/') || url.pathname.startsWith('/app/')) &&
+      !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)
+    ) {
       const cacheBust = `${Date.now()}`;
-      const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
+      const isDashboard = url.pathname.startsWith('/dashboard/');
+      const entryCandidates = isDashboard
+        ? ['/dashboard/entry-20260806.html', '/dashboard/index.html', '/dashboard/__entry']
+        : ['/app/entry-20260806.html', '/app/index.html', '/app/__entry'];
       for (const entryPath of entryCandidates) {
         const assetUrl = new URL(entryPath, url.origin);
         assetUrl.searchParams.set('_cb', cacheBust);
@@ -389,32 +459,135 @@ export default {
       }
 
       const targetUrl = backendUrl.replace(/\/+$/, '') + url.pathname + url.search;
-      try {
-        const proxyHeaders = new Headers(request.headers);
-        proxyHeaders.delete('host');
-        const proxyResponse = await fetch(targetUrl, {
-          method: request.method,
-          headers: proxyHeaders,
-          body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-          redirect: 'manual'
-        });
+      const proxyHeaders = new Headers(request.headers);
+      proxyHeaders.delete('host');
 
-        // Copy response with CORS headers added
-        const responseHeaders = new Headers(proxyResponse.headers);
-        if (corsOrigin) {
-          responseHeaders.set('Access-Control-Allow-Origin', corsOrigin);
-          responseHeaders.set('Vary', 'Origin');
+      // Retry on failure — Render free tier can drop connections under concurrent load
+      const maxRetries = 2;
+      let lastErr = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          // For retries, we can't reuse request.body (already consumed), so only retry GET/HEAD
+          const canRetry = request.method === 'GET' || request.method === 'HEAD';
+          const proxyResponse = await fetch(targetUrl, {
+            method: request.method,
+            headers: proxyHeaders,
+            body: (request.method !== 'GET' && request.method !== 'HEAD') ? request.body : undefined,
+            redirect: 'manual'
+          });
+
+          // Retry on 502/503/504 from backend (Render overload) for GET/HEAD only
+          if (canRetry && (proxyResponse.status === 502 || proxyResponse.status === 503 || proxyResponse.status === 504) && attempt < maxRetries) {
+            // Small delay before retry (50ms, then 150ms)
+            await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+            continue;
+          }
+
+          // Copy response with CORS headers added
+          const responseHeaders = new Headers(proxyResponse.headers);
+          if (corsOrigin) {
+            responseHeaders.set('Access-Control-Allow-Origin', corsOrigin);
+            responseHeaders.set('Vary', 'Origin');
+          }
+          return new Response(proxyResponse.body, {
+            status: proxyResponse.status,
+            statusText: proxyResponse.statusText,
+            headers: responseHeaders
+          });
+        } catch (err) {
+          lastErr = err;
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+            continue;
+          }
         }
-        return new Response(proxyResponse.body, {
-          status: proxyResponse.status,
-          statusText: proxyResponse.statusText,
-          headers: responseHeaders
-        });
-      } catch (err) {
-        return json({ error: 'Backend unreachable', detail: err.message }, 502, corsOrigin);
+      }
+      return json({ error: 'Backend unreachable', detail: lastErr ? lastErr.message : 'timeout' }, 502, corsOrigin);
+    }
+
+    // HTML route handling — with html_handling: "none", the ASSETS binding won't
+    // auto-serve index.html for directory paths. We handle HTML serving here.
+    // Root landing page
+    if (url.pathname === '/' || url.pathname === '') {
+      const assetUrl = new URL('/index.html', url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const resp = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
+      if (resp.ok) {
+        const body = await resp.text();
+        const headers = new Headers();
+        headers.set('Content-Type', 'text/html; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-SB-Worker', 'root-html');
+        return new Response(body, { status: 200, headers });
       }
     }
 
+    // Dashboard entry HTML — serve for /dashboard/ and /dashboard/<spa-route>
+    if (url.pathname === '/dashboard' || url.pathname === '/dashboard/' ||
+        (url.pathname.startsWith('/dashboard/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i) &&
+         !url.pathname.startsWith('/dashboard/assets/'))) {
+      const assetUrl = new URL('/dashboard/entry-20260806.html', url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const resp = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
+      if (resp.ok) {
+        const body = await resp.text();
+        const headers = new Headers();
+        headers.set('Content-Type', 'text/html; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-SB-Worker', 'dashboard-html');
+        return new Response(body, { status: 200, headers });
+      }
+    }
+
+    // Other HTML pages (landing pages like /pricing, /faq, etc.)
+    if (url.pathname.endsWith('.html') || (!url.pathname.includes('.') && url.pathname !== '/')) {
+      const tryPath = url.pathname.endsWith('.html') ? url.pathname : url.pathname + '.html';
+      const assetUrl = new URL(tryPath, url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const resp = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
+      if (resp.ok) {
+        const body = await resp.text();
+        const headers = new Headers();
+        headers.set('Content-Type', 'text/html; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-SB-Worker', 'page-html');
+        return new Response(body, { status: 200, headers });
+      }
+    }
+
+    // Catch-all: serve static files from ASSETS binding
+    const assetResp = await env.ASSETS.fetch(request);
+    if (assetResp.ok) {
+      const headers = new Headers(assetResp.headers);
+      // Ensure correct MIME types for JS/CSS
+      if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
+        headers.set('Content-Type', 'text/javascript; charset=utf-8');
+      } else if (url.pathname.endsWith('.css')) {
+        headers.set('Content-Type', 'text/css; charset=utf-8');
+      }
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('X-SB-Worker', 'catchall-assets');
+      return new Response(assetResp.body, { status: assetResp.status, headers });
+    }
+
     return textResponse('Not Found', 404, corsOrigin || '');
-  }
+  },
+
+  // Scheduled event: keep Render backend warm every 10 minutes
+  // Render free tier spins down after 15 min of inactivity, causing 502s
+  async scheduled(event, env) {
+    const backendUrl = String(env.API_BACKEND || '');
+    if (!backendUrl) return;
+    try {
+      await fetch(backendUrl.replace(/\/+$/, '') + '/api/health', {
+        method: 'GET',
+        headers: { 'User-Agent': 'simplebeacon-keepalive/1.0' },
+      });
+    } catch (_) {
+      // Backend may still be spinning up — ignore errors
+    }
+  },
 };

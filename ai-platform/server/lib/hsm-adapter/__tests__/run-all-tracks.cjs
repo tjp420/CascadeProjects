@@ -158,6 +158,13 @@ const SUITES = [
   'track118-core-integration',
   'track118-multi-tenant-fuzz',
   'track114-121-performance-posture',
+  'track112-ingest-queue',
+  'track112-poRep-merkle',
+  'track112-poRep-verifier',
+  'track112-upload-manager-purger',
+  'track112-upload-routes',
+  'track113-hardening-primitives',
+  'track122-observability-remediation',
 ];
 
 function resolveBaseTestFile(pattern) {
@@ -169,7 +176,22 @@ function resolveBaseTestFile(pattern) {
       f.replace(/\.test\.cjs$/, '').includes(pattern)
     )
     .sort((a, b) => a.length - b.length);
-  return files[0] ? `server/lib/hsm-adapter/__tests__/${files[0]}` : pattern;
+  if (files[0]) return `server/lib/hsm-adapter/__tests__/${files[0]}`;
+  // Scan subdirectories for test files (e.g. track112/, track113/)
+  const subdirs = fs.readdirSync(__dirname, { withFileTypes: true })
+    .filter((d) => d.isDirectory());
+  for (const subdir of subdirs) {
+    const subFiles = fs.readdirSync(path.join(__dirname, subdir.name))
+      .filter((f) =>
+        f.endsWith('.test.cjs') &&
+        !f.includes('-extensions') &&
+        !f.includes('-stress') &&
+        f.replace(/\.test\.cjs$/, '').includes(pattern)
+      )
+      .sort((a, b) => a.length - b.length);
+    if (subFiles[0]) return `server/lib/hsm-adapter/__tests__/${subdir.name}/${subFiles[0]}`;
+  }
+  return pattern;
 }
 
 function runSuite(pattern) {

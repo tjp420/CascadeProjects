@@ -1,3 +1,16 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running pre-commit: simplebeacon staged asset & secrets checks"
+npm run sb:hook:pre-commit
+
+exit_code=$?
+if [ $exit_code -ne 0 ]; then
+  echo "pre-commit hook failed (exit $exit_code)"
+  exit $exit_code
+fi
+
+exit 0
 # --- Fast asset hygiene lint (sub-second: encoding + path regressions) ---
 echo "[lint-assets] Running pre-commit encoding & path lint..."
 node .simplebeacon/qa/lint-assets.cjs

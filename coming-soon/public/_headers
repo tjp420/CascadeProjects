@@ -6,6 +6,14 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   Referrer-Policy: strict-origin-when-cross-origin
 
+/api/*
+  Cache-Control: no-store, no-cache, must-revalidate, no-transform
+  CDN-Cache-Control: no-store, no-cache
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+  Access-Control-Allow-Headers: Content-Type,Accept,Authorization,X-Token-Password
+  Access-Control-Max-Age: 86400
+
 /*.html
   Cache-Control: public, no-cache, no-transform
   CDN-Cache-Control: no-cache

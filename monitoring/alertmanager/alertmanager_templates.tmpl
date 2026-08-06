@@ -1,0 +1,22 @@
+{{/*
+  Slack notification template for Alertmanager/Grafana alerts.
+  Produces a concise, actionable Slack message with debugging hints.
+*/}}
+{{ define "slack.default.title" }}[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}{{ end }}
+
+{{ define "slack.default.text" }}
+*Alert:* {{ .CommonAnnotations.summary }}
+*Severity:* {{ .CommonLabels.severity }}
+*Scope:* {{ with .CommonLabels.namespace }}{{ . }}{{ else }}unknown{{ end }} / {{ with .CommonLabels.pod }}{{ . }}{{ else }}unknown{{ end }}
+*Node:* {{ with .CommonLabels.node }}{{ . }}{{ else }}unknown{{ end }}
+*Value:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+
+*Quick Debug:* 
+```sh
+kubectl -n {{ with .CommonLabels.namespace }}{{ . }}{{ else }}<namespace>{{ end }} get pods -l app={{ with .CommonLabels.app }}{{ . }}{{ else }}<app>{{ end }}
+kubectl -n {{ with .CommonLabels.namespace }}{{ . }}{{ else }}<namespace>{{ end }} describe pod {{ with .CommonLabels.pod }}{{ . }}{{ else }}<pod>{{ end }}
+kubectl -n {{ with .CommonLabels.namespace }}{{ . }}{{ else }}<namespace>{{ end }} logs {{ with .CommonLabels.pod }}{{ . }}{{ else }}<pod>{{ end }} -c grafana-agent --tail=200
+``` 
+
+Please triage and escalate to @automation-lead-1 if this is critical.
+{{ end }}

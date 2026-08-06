@@ -4,6 +4,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [ main, master ]
+  schedule:
+    - cron: '0 2 * * *'
 
 jobs:
   gitleaks:
@@ -26,8 +28,156 @@ jobs:
           name: gitleaks-report
           path: artifacts/gitleaks-report.json
 
-  simplebeacon:
-    name: SimpleBeacon full scan
+  simplebeacon-ai-platform:
+    name: SimpleBeacon scan - ai-platform
+    needs: [gitleaks, token-schema]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}-ai
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SimpleBeacon scan (ai-platform)
+        run: |
+          mkdir -p .simplebeacon || true
+          npx simplebeacon scan --path ai-platform --gate --format json --output .simplebeacon/report-ai-platform.json
+
+      - name: Upload SimpleBeacon report (ai-platform)
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-report-ai-platform
+          path: .simplebeacon/report-ai-platform.json
+
+  simplebeacon-packages:
+    name: SimpleBeacon scan - packages
+    needs: [gitleaks, token-schema]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}-packages
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SimpleBeacon scan (packages)
+        run: |
+          mkdir -p .simplebeacon || true
+          npx simplebeacon scan --path packages --gate --format json --output .simplebeacon/report-packages.json
+
+      - name: Upload SimpleBeacon report (packages)
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-report-packages
+          path: .simplebeacon/report-packages.json
+
+  simplebeacon-coming-soon:
+    name: SimpleBeacon scan - coming-soon
+    needs: [gitleaks, token-schema]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}-coming-soon
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SimpleBeacon scan (coming-soon)
+        run: |
+          mkdir -p .simplebeacon || true
+          npx simplebeacon scan --path coming-soon --gate --format json --output .simplebeacon/report-coming-soon.json
+
+      - name: Upload SimpleBeacon report (coming-soon)
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-report-coming-soon
+          path: .simplebeacon/report-coming-soon.json
+
+  nightly-full-scan:
+    name: Nightly SimpleBeacon full scan
+    if: github.event_name == 'schedule'
+    needs: [gitleaks, token-schema]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SimpleBeacon full gate
+        run: |
+          mkdir -p .simplebeacon || true
+          npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
+
+      - name: Upload SimpleBeacon full report
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-report-full
+          path: .simplebeacon/report.json
+
+  token-schema:
+    name: Token registry schema validation
     needs: gitleaks
     runs-on: ubuntu-latest
     steps:
@@ -47,12 +197,17 @@ jobs:
           path: |
             ~/.npm
             node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}-schema
           restore-keys: |
             ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run token registry schema test
+        run: |
+          node --test ai-platform/server/lib/__tests__/token-registry-schema.test.cjs
+
 
       - name: Run optimized builds
         run: |
@@ -94,9 +249,101 @@ jobs:
           name: simplebeacon-report
           path: .simplebeacon/report.json
 
+  container-security:
+    name: Container security (Trivy)
+    needs: gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build coming-soon image
+        run: |
+          docker build -t sb-coming-soon:pr -f coming-soon/Dockerfile coming-soon
+
+      - name: Build ai-platform pipeline image
+        run: |
+          docker build -t ai-platform-pipeline:pr -f ai-platform/pipeline/Dockerfile ai-platform
+
+      - name: Scan coming-soon image with Trivy (SARIF)
+        uses: aquasecurity/trivy-action@v0.11.0
+        with:
+          image-ref: sb-coming-soon:pr
+          format: 'sarif'
+          output: trivy-coming-soon.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Upload coming-soon SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-coming-soon.sarif
+
+      - name: Scan ai-platform image with Trivy (SARIF)
+        uses: aquasecurity/trivy-action@v0.11.0
+        with:
+          image-ref: ai-platform-pipeline:pr
+          format: 'sarif'
+          output: trivy-ai-platform.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Upload ai-platform SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-ai-platform.sarif
+
+  redis-integration:
+    name: Redis integration (onboarding rate limiter)
+    needs: token-schema
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://redis:6379
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for Redis
+        run: |
+          echo "Waiting for Redis service to be healthy..."
+          for i in {1..20}; do
+            redis-cli -h redis ping && break || sleep 1
+          done
+
+      - name: Run Redis integration test
+        run: |
+          node --test ai-platform/src/api/__tests__/enterprise-onboard-redis.test.cjs
+
+
   dashboard-watchdog:
     name: Dashboard Watchdog
-    needs: simplebeacon
+    needs: [simplebeacon-ai-platform, simplebeacon-packages, simplebeacon-coming-soon]
     runs-on: ubuntu-latest
     permissions:
       contents: read

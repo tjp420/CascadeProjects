@@ -32,7 +32,18 @@ function resolveWorkerCount(fileCount, options = {}) {
 
 function runWorkerTask(payload) {
     return new Promise((resolve, reject) => {
-        const worker = new Worker(WORKER_SCRIPT, { workerData: payload });
+        // If the environment requests an unlimited scan (SIMPLEBEACON_FULL_SCAN_MAX_FILES<=0),
+        // ensure worker threads get a reasonable V8 old-space limit to reduce OOM risk.
+        const envMaxFiles = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES);
+        const wantsUnlimited = Number.isFinite(envMaxFiles) && envMaxFiles <= 0;
+        const envOldSpaceMb = Number(process.env.SIMPLEBEACON_WORKER_OLD_SPACE_MB);
+        const defaultOldSpaceMb = 4096; // sensible default for large scans
+        const workerOptions = { workerData: payload };
+        if (wantsUnlimited) {
+            const maxOld = Number.isFinite(envOldSpaceMb) && envOldSpaceMb > 0 ? envOldSpaceMb : defaultOldSpaceMb;
+            workerOptions.resourceLimits = { maxOldGenerationSizeMb: Math.round(maxOld) };
+        }
+        const worker = new Worker(WORKER_SCRIPT, workerOptions);
         let settled = false;
         worker.on('message', (msg) => {
             settled = true;

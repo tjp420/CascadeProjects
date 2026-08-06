@@ -335,7 +335,7 @@
   <script>
     (function(){
       function isBeacon(el){ if(!el||el.tagName!=='SCRIPT') return false; var src=el.src||''; var cf=el.getAttribute('data-cf-beacon'); return src.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1 || (cf&&cf.length>0); }
-      function neutralize(el){ if(!isBeacon(el)) return; try{ el.removeAttribute('integrity'); el.removeAttribute('crossorigin'); }catch(e){} var isBrave=(typeof navigator.brave!=='undefined')||/Brave/.test(navigator.userAgent||''); if(isBrave){ if(el.parentNode) el.parentNode.removeChild(el); return; } el.onerror=function(){ if(el.parentNode) el.parentNode.removeChild(el); }; }
+      function neutralize(el){ if(!isBeacon(el)) return; try{ el.removeAttribute('src'); el.type='text/plain'; el.removeAttribute('integrity'); el.removeAttribute('crossorigin'); }catch(e){} }
       var s=document.querySelectorAll('script'); for(var i=0;i<s.length;i++) neutralize(s[i]);
       if(window.MutationObserver){ var mo=new MutationObserver(function(records){ records.forEach(function(r){ Array.prototype.forEach.call(r.addedNodes||[], function(n){ if(n.nodeType===1){ if(n.tagName==='SCRIPT') neutralize(n); if(n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('script'), neutralize); } }); }); }); mo.observe(document.documentElement,{childList:true,subtree:true}); }
     })();
@@ -357,8 +357,8 @@
     <div class="pricing-gate">
       <div class="pricing-hero" data-animate="fade-up">
         <span class="hero-badge">Compliance & Technical Debt Pricing</span>
-        <h1>Detect Algorithmic Redundancy & Regulatory Risk at Every Stage.</h1>
-        <p class="hero-sub">From solo developers (free browser scan) to enterprise compliance teams, SimpleBeacon generates board-ready certificates, EU AI Act evidence packs, and automated remediation roadmaps—100% locally.</p>
+        <h1>B2B AI Code Debt &amp; Slop Remediation</h1>
+        <p class="hero-sub">Secure board-ready certificates and clean up hallucinated AI code artifacts <strong style="color:var(--text-primary);">100% locally</strong>. Traditional audits cost $5,000–$15,000 and take weeks. SimpleBeacon delivers proof in under 5 minutes — no source-code upload, ever.</p>
         <p style="font-size:0.85rem;color:var(--accent-hover);margin-top:12px;display:inline-flex;align-items:center;gap:6px;"><span style="font-size:1rem;">&#128274;</span> Zero source-code upload — scans run locally in your IDE or browser. <a href="faq.html" style="color:var(--accent-hover);text-decoration:underline;">Browser vs. CLI comparison</a></p>
       </div>
 
@@ -385,10 +385,10 @@
         <div class="step"><div class="step-num">4</div><div class="step-title">Deliver</div><div class="step-desc">Board-ready certificate</div></div>
       </div>
 
-      <div class="free-audit-cta" data-animate="fade-up" data-delay="250" style="max-width:560px;margin:0 auto 32px;padding:28px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:14px;text-align:center;">
-        <p style="font-size:1rem;color:var(--text-primary);font-weight:600;margin-bottom:8px;">Claim your free audit</p>
-        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">Run a full security, compliance, and quality scan on your repository — no credit card required.</p>
-        <a href="certificate-upload.html" style="display:inline-block;padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:0.9rem;font-weight:600;text-decoration:none;transition:all 0.2s;cursor:pointer;">Start Free Audit &rarr;</a>
+      <div class="free-audit-cta" data-animate="fade-up" data-delay="250" style="max-width:560px;margin:0 auto 32px;padding:28px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:14px;text-align:center;">
+        <p style="font-size:1rem;color:var(--text-primary);font-weight:600;margin-bottom:8px;">Run a free offline scan — no upload required</p>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">Drop your repo into the browser sandbox. Your code stays on your machine. No credit card, no account, no data leaving your device.</p>
+        <a href="/dashboard/#/analyze" style="display:inline-block;padding:12px 28px;background:#22c55e;color:#0a0e18;border:none;border-radius:10px;font-size:0.9rem;font-weight:700;text-decoration:none;transition:all 0.2s;cursor:pointer;">Run Free Offline Scan (No Upload) &rarr;</a>
       </div>
 
       <div style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:16px;padding:20px 24px;margin-bottom:32px;text-align:center;" data-animate="fade-up" data-delay="280">
@@ -427,7 +427,7 @@
             <li>Priority email support.</li>
           </ul>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
-          <button class="price-btn checkout-btn" data-tier="developer" data-price-id="price_developer_monthly">Subscribe</button>
+          <button class="price-btn checkout-btn" data-tier="developer" data-price-id="price_developer_monthly" data-annual-price-id="price_developer_annual">Subscribe</button>
         </article>
 
         <article class="price-card price-card-popular" data-animate="fade-up" data-delay="100">
@@ -447,8 +447,17 @@
             <li>Priority email + Slack support</li>
             <li>Quarterly compliance reviews</li>
           </ul>
+          <div style="margin:12px 0;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;text-align:center;">
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin:0 0 8px;">Need more than 5 seats?</p>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+              <button type="button" id="seatDecrement" onclick="adjustSeats(-1)" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);font-size:1rem;cursor:pointer;">&minus;</button>
+              <span id="extraSeatsDisplay" style="font-size:0.9rem;color:var(--text-primary);font-weight:600;min-width:80px;">0 extra</span>
+              <button type="button" id="seatIncrement" onclick="adjustSeats(1)" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);font-size:1rem;cursor:pointer;">+</button>
+            </div>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin:8px 0 0;">$15/mo per extra seat &middot; <span id="seatTotalDisplay">$149/mo</span></p>
+          </div>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
-          <button class="price-btn checkout-btn" data-tier="team_pro" data-price-id="price_team_pro_monthly">Subscribe</button>
+          <button class="price-btn checkout-btn" data-tier="team_pro" data-price-id="price_team_pro_monthly" data-annual-price-id="price_team_pro_annual" id="teamProSubscribeBtn">Subscribe</button>
         </article>
 
         <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
@@ -473,33 +482,19 @@
 
       </div>
 
-      <div class="zero-data-custody-banner" data-animate="fade-up" data-delay="250" style="max-width:900px;margin:0 auto 40px;padding:24px 28px;background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(34,197,94,0.08));border:1px solid rgba(99,102,241,0.3);border-radius:16px;text-align:center;">
-        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
-          <span style="font-size:1.4rem;">&#128274;</span>
-          <span style="font-weight:700;color:var(--accent);font-size:1.1rem;">Zero Data Custody</span>
-        </div>
-        <p style="font-size:0.9rem;color:var(--text-secondary);margin:0 0 8px;">SimpleBeacon never receives, stores, or transmits your source code. All scans run <strong style="color:var(--text-primary);">100% locally</strong> in your browser sandbox or CLI &mdash; no upload, no cloud processing, no data residency risk.</p>
-        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">SHA-256 integrity verification &middot; Tamper-evident JSON exports &middot; Cryptographic license tokens &middot; Auditor-friendly evidence packs</p>
+      <!-- OFFLINE DARE: Zero Data Custody callout (between subscriptions and one-time passes) -->
+      <div style="max-width:760px;margin:40px auto 32px;padding:28px 24px;border:1px solid rgba(34,197,94,0.3);border-radius:16px;background:rgba(34,197,94,0.06);text-align:center;position:relative;z-index:2;" data-animate="fade-up">
+        <span style="display:inline-block;padding:4px 14px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:12px;font-weight:600;letter-spacing:0.5px;margin-bottom:14px;">Zero Data Custody</span>
+        <h3 style="margin:0 0 10px;font-size:1.15rem;color:var(--text-primary);">Test It Offline. We Dare You.</h3>
+        <p style="color:var(--text-secondary);font-size:0.85rem;line-height:1.6;margin:0 0 18px;">Load the dashboard, <strong style="color:var(--text-primary);">unplug your internet entirely</strong>, and run a scan. Your code never leaves your machine — the engine runs 100% in your browser sandbox.</p>
+        <a href="/dashboard/#/analyze" style="display:inline-block;padding:10px 22px;border-radius:10px;background:#22c55e;color:#0a0e18;font-weight:600;font-size:0.85rem;text-decoration:none;">Try It Now — Disconnect &amp; Scan</a>
+        <p style="color:var(--text-muted);font-size:0.75rem;margin:14px 0 0;">Open Browser DevTools (F12) &rarr; Select the Network Tab &rarr; Disconnect your Wi-Fi &rarr; Run a directory scan &rarr; Observe 0 requests fire.</p>
       </div>
 
-      <div class="card mb-6" data-animate="fade-up" data-delay="250">
-        <h3 class="h5 mb-2">Self-serve checkout</h3>
-        <p style="margin:0 0 8px;color:var(--text-secondary);">Pay on Stripe → receive your license token by email → paste into <code>SIMPLEBEACON_LICENSE_TOKEN</code> in GitHub secrets.</p>
-        <p style="margin:8px 0;color:var(--text-secondary);">Need an account first? <a href="/" style="color:var(--accent-hover);">Create a free account</a></p>
-        <label for="checkout-email" style="display:block;margin-top:8px;color:var(--text-secondary);font-size:0.9rem;">Work email</label>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
-          <input type="email" id="checkout-email" placeholder="lead@yourcompany.com" style="max-width:320px;padding:10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);">
-          <span style="color:var(--text-muted);font-size:0.85rem;">Token also appears in Settings after payment.</span>
-        </div>
-      </div>
-
-      </div>
-
-      <p style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin:0 0 32px;"><strong>One license token</strong> unlocks CLI, GitHub Actions, and team dashboard. All pricing includes browser-local heuristic scans. Team & Enterprise tiers add full AST parsing.</p>
-
+      <!-- ONE-TIME COMPLIANCE PASSES (moved up — directly below subscription grid + offline dare) -->
       <h2 class="section-title" data-animate="fade-up" data-delay="0">One-Time Compliance Passes</h2>
       <div style="text-align:center;max-width:640px;margin:0 auto 24px;color:var(--text-secondary);font-size:0.9rem;" data-animate="fade-up" data-delay="50">
-        <p>One blocked launch or failed audit can cost more than these packages. Get board-ready evidence and a remediation roadmap in minutes.</p>
+        <p>No subscription required. Board-ready items in 5 minutes. A CTO facing an audit deadline can complete a high-value purchase instantly — no recurring procurement signature needed.</p>
       </div>
       <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); max-width: 900px; margin: 0 auto 48px;">
         <article class="price-card" data-animate="fade-up" data-delay="0">
@@ -557,6 +552,30 @@
           <button class="price-btn checkout-btn" data-tier="eu_ai_act_sprint" data-price-id="price_euai_onetime">Start EU AI Act Sprint</button>
         </article>
       </div>
+
+      <div class="zero-data-custody-banner" data-animate="fade-up" data-delay="250" style="max-width:900px;margin:0 auto 40px;padding:24px 28px;background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(34,197,94,0.08));border:1px solid rgba(99,102,241,0.3);border-radius:16px;text-align:center;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:1.4rem;">&#128274;</span>
+          <span style="font-weight:700;color:var(--accent);font-size:1.1rem;">Zero Data Custody</span>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-secondary);margin:0 0 8px;">SimpleBeacon never receives, stores, or transmits your source code. All scans run <strong style="color:var(--text-primary);">100% locally</strong> in your browser sandbox or CLI &mdash; no upload, no cloud processing, no data residency risk.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">SHA-256 integrity verification &middot; Tamper-evident JSON exports &middot; Cryptographic license tokens &middot; Auditor-friendly evidence packs</p>
+      </div>
+
+      <div class="card mb-6" data-animate="fade-up" data-delay="250">
+        <h3 class="h5 mb-2">Self-serve checkout</h3>
+        <p style="margin:0 0 8px;color:var(--text-secondary);">Pay on Stripe → receive your license token by email → paste into <code>SIMPLEBEACON_LICENSE_TOKEN</code> in GitHub secrets.</p>
+        <p style="margin:8px 0;color:var(--text-secondary);">Need an account first? <a href="/" style="color:var(--accent-hover);">Create a free account</a></p>
+        <label for="checkout-email" style="display:block;margin-top:8px;color:var(--text-secondary);font-size:0.9rem;">Work email</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+          <input type="email" id="checkout-email" placeholder="lead@yourcompany.com" style="max-width:320px;padding:10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);">
+          <span style="color:var(--text-muted);font-size:0.85rem;">Token also appears in Settings after payment.</span>
+        </div>
+      </div>
+
+      </div>
+
+      <p style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin:0 0 32px;"><strong>One license token</strong> unlocks CLI, GitHub Actions, and team dashboard. All pricing includes browser-local heuristic scans. Team & Enterprise tiers add full AST parsing.</p>
 
       <h2 class="section-title" data-animate="fade-up">Compare everything</h2>
       <div class="compare-wrap" data-animate="fade-up" id="compareTable">
@@ -719,6 +738,28 @@
       return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    // Per-seat add-on for Team Pro tier
+    var extraSeats = 0;
+    var SEAT_PRICE_MONTHLY = 15;
+    var SEAT_PRICE_ANNUAL = 180;
+    function adjustSeats(delta) {
+      extraSeats = Math.max(0, Math.min(50, extraSeats + delta));
+      var display = document.getElementById('extraSeatsDisplay');
+      if (display) {
+        display.textContent = extraSeats === 0 ? '0 extra' : extraSeats + ' extra';
+      }
+      updateSeatTotal();
+    }
+    function updateSeatTotal() {
+      var totalEl = document.getElementById('seatTotalDisplay');
+      if (!totalEl) return;
+      var base = isAnnual ? 1490 : 149;
+      var seatCost = isAnnual ? SEAT_PRICE_ANNUAL * extraSeats : SEAT_PRICE_MONTHLY * extraSeats;
+      var total = base + seatCost;
+      var unit = isAnnual ? '/yr' : '/mo';
+      totalEl.textContent = '$' + total.toLocaleString() + unit;
+    }
+
     // Checkout modal handlers
     function openCheckoutModal(tier) {
       var modal = document.getElementById('checkoutModal');
@@ -756,6 +797,7 @@
       if (teamNote) teamNote.style.display = isAnnual ? 'block' : 'none';
       if (complianceNote) complianceNote.style.display = isAnnual ? 'block' : 'none';
       if (entNote) entNote.style.display = 'none';
+      updateSeatTotal();
     }
     function toggleBilling() { setBilling(isAnnual ? 'monthly' : 'annual'); }
     var billingToggleEl = document.getElementById('billingToggle');
@@ -859,6 +901,9 @@
         var subTierMap = { developer_tier: 'developer', team_pro_tier: 'team_pro' };
         var subTier = subTierMap[product] || 'developer';
         var payload = { email: email, projectName: projectName, clientName: clientName || email, tier: subTier, mode: isAnnual ? 'annual' : 'monthly' };
+        if (subTier === 'team_pro' && extraSeats > 0) {
+          payload.extraSeats = extraSeats;
+        }
         var referralSlug = getReferralSlug();
         if (referralSlug) payload.referralSlug = referralSlug;
         var endpoint = apiBase + '/api/create-subscription-session';

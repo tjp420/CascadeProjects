@@ -3,6 +3,7 @@ import { getCurrentRoute, navigate } from './router/HashRouter';
 import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
 import { BrandProvider } from './contexts/BrandContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { isTokenExpired } from './config';
@@ -193,9 +194,11 @@ export default function App() {
           isFreeTier={isFreeTier}
           user={user}
         >
+          <ErrorBoundary>
           <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
             <CurrentView />
           </Suspense>
+          </ErrorBoundary>
         </AppShell>
       </ToastProvider>
     </BrandProvider>

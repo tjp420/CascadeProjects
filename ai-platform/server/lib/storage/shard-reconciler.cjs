@@ -20,6 +20,8 @@ class ShardReconciler extends EventEmitter {
     // Repair cooldowns: Map of 'tenantId:shardId' -> lastTriggeredAt(ms)
     this.activeSyncs = new Map();
     this.repairCooldownMs = Number(opts.repairCooldownMs || 60_000);
+    // repairJitterMs: max randomized jitter (ms) suggested for downstream repair workers
+    this.repairJitterMs = Number(opts.repairJitterMs || 1000);
   }
 
   start() {
@@ -107,9 +109,10 @@ class ShardReconciler extends EventEmitter {
             this.metrics.hsm_shard_reconciler_repair_requested_total += 1;
             incrementCounter('hsm_shard_reconciler_repair_requested_total');
             this.triggerSync({ tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1 }).catch((e) => this.emit('error', e));
-            // emit both legacy and reconciler-prefixed reconciliation request
-            this.emit('reconcile:requested', { tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1 });
-            this.emit('shard:reconciler:reconcile_requested', { tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1 });
+            // emit both legacy and reconciler-prefixed reconciliation request including jitter hint
+            const payload = { tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1, repairJitterMs: this.repairJitterMs };
+            this.emit('reconcile:requested', payload);
+            this.emit('shard:reconciler:reconcile_requested', payload);
           } else {
             // cooldown active - skip triggering
             this.metrics.hsm_shard_reconciler_repair_skipped_total += 1;
@@ -135,7 +138,8 @@ class ShardReconciler extends EventEmitter {
     // - Array of shardIds: triggerSync(['s1','s2']) keeps old behavior
     // - Repair object: { tenantId, shardId, fromSeq, toSeq }
     if (Array.isArray(shardIds)) {
-      this.emit('reconcile:requested', { shardIds, opts });
+      // include jitter hint for array-based requests as well
+      this.emit('reconcile:requested', { shardIds, opts, repairJitterMs: this.repairJitterMs });
       if (shardIds && shardIds.length) this.metrics.hsm_shard_out_of_sync_total += shardIds.length;
       return { ok: true, reconciled: [] };
     }
@@ -143,7 +147,7 @@ class ShardReconciler extends EventEmitter {
     // Repair object path
     const rep = shardIds || opts;
     const { tenantId, shardId, fromSeq, toSeq } = rep;
-    const payload = { tenantId, shardId, fromSeq, toSeq, opts };
+    const payload = { tenantId, shardId, fromSeq, toSeq, opts, repairJitterMs: this.repairJitterMs };
     this.emit('reconcile:requested', payload);
     // increment metric once per repair job
     this.metrics.hsm_shard_out_of_sync_total += 1;

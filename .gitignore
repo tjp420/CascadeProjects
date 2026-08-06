@@ -7,6 +7,7 @@ simplebeacon-test-repo/
 
 # Backup snapshots
 backups/
+.simplebeacon-snapshots/
 
 # IDE configuration files
 .cursor/

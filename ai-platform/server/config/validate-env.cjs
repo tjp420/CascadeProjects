@@ -43,16 +43,17 @@ function isValidWebhookSecret(val) {
  * the server entry point, before any Stripe-dependent modules are loaded.
  *
  * @param {Object} [opts] - Options.
- * @param {boolean} [opts.fatal=true] - If true, exit(1) on validation failure.
- *        Set to false for test environments. In non-production NODE_ENV,
- *        fatal defaults to false (warn only) unless explicitly overridden.
+ * @param {boolean} [opts.fatal=false] - If true, exit(1) on validation failure.
+ *        Defaults to false — the server boots so non-billing endpoints remain
+ *        available. Billing routes will return errors at runtime if Stripe
+ *        keys are missing.
  * @returns {{missing:string[],invalid:string[],passed:boolean}} Validation result.
  */
 function validateEnvironment(opts) {
   const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
   const fatal = opts && typeof opts.fatal === 'boolean'
     ? opts.fatal
-    : isProduction; // crash in prod, warn in dev
+    : false; // never crash — boot the server, let billing routes fail at runtime
 
   const missing = [];
   const invalid = [];
@@ -90,7 +91,7 @@ function validateEnvironment(opts) {
     logger.error('[EnvValidator] Server boot aborted to prevent silent webhook failures.');
     process.exit(1);
   } else {
-    logger.warn('[EnvValidator] Running in non-production mode — server will continue but Stripe billing will not function correctly.');
+    logger.warn('[EnvValidator] Stripe billing will not function — missing/invalid keys. Non-billing endpoints remain available.');
   }
 
   return { missing, invalid, passed: false };

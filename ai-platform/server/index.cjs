@@ -1327,6 +1327,33 @@ app.post('/api/enterprise/trial', async (req, res) => {
   }
 });
 
+// Provider failover routes ΓÇö LLM provider health, failover stats, circuit breaker
+try {
+  const providerFailoverRoutes = require('./routes/provider-failover-routes.cjs');
+  app.use('/api/provider-failover', providerFailoverRoutes);
+  logger.info('[Provider-Failover] Routes mounted at /api/provider-failover');
+} catch (e) {
+  logger.warn('[Provider-Failover] Routes not mounted:', e?.message || e);
+}
+
+// Identity federation routes ΓÇö SAML/OIDC federation metadata and sync history
+try {
+  const identityFederationRoutes = require('./routes/identity-federation-routes.cjs');
+  app.use('/api/identity-federation', identityFederationRoutes);
+  logger.info('[Identity-Federation] Routes mounted at /api/identity-federation');
+} catch (e) {
+  logger.warn('[Identity-Federation] Routes not mounted:', e?.message || e);
+}
+
+// Tool schema validation routes ΓÇö schema inference, violation tracking, config
+try {
+  const toolSchemaRoutes = require('./routes/tool-schema-validation-routes.cjs');
+  app.use('/api/tool-schemas', toolSchemaRoutes);
+  logger.info('[ToolSchema] Routes mounted at /api/tool-schemas');
+} catch (e) {
+  logger.warn('[ToolSchema] Routes not mounted:', e?.message || e);
+}
+
 // Token-throttling backpressure mesh ΓÇö LLM provider RPM/TPM smoothing
 app.use('/api/token-throttle', tokenThrottleRoutes);
 
