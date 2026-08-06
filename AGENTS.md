@@ -5,36 +5,53 @@
 The project has automated pre-commit hooks configured to ensure code quality before commits:
 
 ### Root Pre-Commit Hooks
-- **Unix/Linux/Mac**: `.husky/pre-commit` - Asset hygiene lint + SimpleBeacon gate scan + secret scanner
-- **Windows**: `.husky/pre-commit.cmd` - Asset hygiene lint + syntax checks + SimpleBeacon gate scan
+- **Unix/Linux/Mac**: `.husky/pre-commit` - lint-assets + gitleaks + gate scan (30s timeout, soft-fail)
+- **Windows**: `.husky/pre-commit.cmd` - lint-assets + gitleaks + syntax checks + gate scan
+- **CI backstop**: `.github/workflows/pr-hygiene.yml` - mirrors all 5 stages on PRs (catches `--no-verify` bypasses)
+
+### Local Pre-Commit Chain (3 stages, ~10s total)
+
+```
+[lint-assets.cjs]  -->  [gitleaks]  -->  [sb:hook:pre-commit (30s timeout)]
+   (<0.5s)               (~0.2s)           (secrets-gate + pre-commit-gate)
+  Fail-closed          Soft-warn          30s timeout, soft-fail
+```
 
 ### Asset Hygiene Lint (fast pre-commit guard)
 - **Script**: `.simplebeacon/qa/lint-assets.cjs`
-- **Runs**: First in the pre-commit chain (sub-second, before gate scan)
+- **Runs**: First in the pre-commit chain (sub-second)
 - **Checks**:
   1. **Mojibake detection** — scans staged JS/TS raw bytes for double-encoded UTF-8 patterns (em-dash, right-quote corruption)
   2. **Relative path integrity** — verifies `scan-worker.js` uses correct `./scan-wasm-bridge.js` and `../utils-lib/` paths, blocks `../../js-es2018/` regressions
 - **Scope**: Staged files only (`git diff --cached`)
 - **Behavior**: Strict fail-closed — blocks commit on any violation, no auto-repair
 
-### Staged-Files-Only Gate Scan (pre-commit performance fix)
-- **Script**: `.simplebeacon/qa/pre-commit-gate.cjs`
-- **Runs**: After secrets-gate, replaces the full-repo `simplebeacon scan --gate`
-- **Problem solved**: The default gate scan walks the entire repo (600k+ files, 600s+ timeout)
-- **Approach**: Copies staged files to a temp directory, scans only those with `simplebeacon scan --gate`
-- **Performance**: ~5s for typical commits (was 600s+)
-- **Hard timeout**: 60s (fails fast instead of blocking developer for 10 minutes)
-- **Config**: `package.json` `sb:hook:pre-commit` now calls `node .simplebeacon/qa/pre-commit-gate.cjs` instead of `simplebeacon scan --gate --fail-on high`
-
 ### Gitleaks Secret Scanner (industry-standard patterns)
 - **Script**: `.simplebeacon/qa/pre-commit-gitleaks.cjs`
 - **Runs**: After lint-assets, before the gate scan
 - **Approach**: Runs `gitleaks protect --staged --verbose` against staged files only
-- **Fallback**: If gitleaks binary is missing, prints a soft warning and exits 0. Track113 secret scanner still runs later in the chain.
+- **Fallback**: If gitleaks binary is missing, prints a soft warning and exits 0
 - **Install**: `npm run install-gitleaks` (downloads binary to `~/.local/bin`, cross-platform)
 - **Cross-platform**: Detects gitleaks via PATH + OS-specific fallbacks (Scoop/Chocolatey on Windows, Homebrew on macOS, /usr/local/bin on Linux)
 - **Timeout**: 30s hard cap
-- **Complements Track113**: Gitleaks provides industry-standard regex + entropy analysis. Track113 provides custom SimpleBeacon-specific KEK/secret patterns. Both run in the chain.
+
+### Staged-Files-Only Gate Scan (pre-commit performance fix)
+- **Script**: `.simplebeacon/qa/pre-commit-gate.cjs`
+- **Runs**: Via `npm run sb:hook:pre-commit` (secrets-gate + pre-commit-gate)
+- **Problem solved**: The default gate scan walks the entire repo (600k+ files, 600s+ timeout)
+- **Approach**: Copies staged files to a temp directory, scans only those with `simplebeacon scan --gate`
+- **Performance**: ~5s for typical commits (was 600s+)
+- **Local timeout**: 30s via `scripts/run-with-timeout.js` (soft-fail, does not block commit)
+- **Config**: `package.json` `sb:hook:pre-commit` calls `npm run sb:hook:secrets-gate && node .simplebeacon/qa/pre-commit-gate.cjs`
+
+### CI/CD Backstop (GitHub Actions)
+- **Workflow**: `.github/workflows/pr-hygiene.yml`
+- **Triggers**: PRs to main/develop, pushes to main/develop
+- **Jobs**: Two parallel jobs for speed:
+  1. **Static Hygiene**: lint-assets + pre-commit-gate (stages PR diff files)
+  2. **Security Scan**: gitleaks-action (strict fail-closed) + Track113 secret scanner
+- **Catches**: `git commit --no-verify` bypasses that skip local hooks
+- **Track113**: Runs in CI only (removed from local hook to keep local chain fast)
 
 ### ai-platform Pre-Commit Hook
 - **Location**: `ai-platform/.husky/pre-commit`
@@ -60,6 +77,41 @@ chmod +x .git/hooks/pre-commit
 1. ✅ **ai-platform**: Added SimpleBeacon gate scan to existing test run
 2. ✅ **Standardize**: All hooks now run syntax checks and quality gates (root `.husky/pre-commit`, `.husky/pre-commit.cmd`, `ai-platform/.husky/pre-commit`, `coming-soon/pre-commit-hook.sh`)
 3. ✅ **CI Integration**: GitHub Actions run `npm audit` on every PR (builds fail on high/critical); SimpleBeacon gate scan runs in CI via `npx simplebeacon scan --gate --format json`
+
+---
+
+## Pricing & Billing Infrastructure
+
+### Three-Tier Pricing Model (2026-08-06)
+- **Developer**: $49/mo or $490/yr (Save 17%) — unlimited scans, CI gate, 38 analyzers
+- **Team Pro**: $149/mo or $1,490/yr (Save 17%) — EU AI Act, SOC 2, board-ready certs, 5 seats
+- **Enterprise**: Custom — air-gapped, SSO/SAML, dedicated analyst, Book Demo link
+- **Legacy Pro**: $9/mo — backward compatible, still functional for existing customers
+
+### Files
+- **Frontend**: `coming-soon/public/pricing.html` (primary), `coming-soon/pricing.html` (mirror)
+- **Backend**: `coming-soon/routes/subscriptions-billing.cjs` — Stripe checkout session creation + webhook handler
+- **Integration test**: `scripts/test-payment-sim.cjs` — stubs Stripe API, verifies tier-to-price mapping
+
+### Price Constants (cents, Stripe zero-decimal format)
+| Tier | Monthly | Annual |
+|------|---------|--------|
+| Developer | 4900 ($49) | 49000 ($490) |
+| Team Pro | 14900 ($149) | 149000 ($1,490) |
+| Legacy Pro | 900 ($9) | 9000 ($90) |
+| Compliance | 39900 ($399) | 399000 ($3,990) |
+| Enterprise | 49900 ($499) | 499000 ($4,990) |
+
+### Billing Bug Fixed (2026-08-06)
+- **Bug**: Frontend `subscriptionTiers` array used old names (`startup_shield`, `compliance_suite`), causing new Developer/Team Pro subscriptions to fall through to the free `/api/test-checkout` endpoint. Server `tierConfig` only had `pro`/`compliance`/`team`/`enterprise`, so the fallback billed $9 instead of $49.
+- **Fix**: Updated `subscriptionTiers` to `['developer_tier', 'team_pro_tier']` in both HTML files. Added `developer` and `team_pro` entries to server `tierConfig` with correct price constants. Updated webhook tier detection to recognize new price points.
+- **Verification**: `node scripts/test-payment-sim.cjs` — 5/5 tests pass (Developer monthly/annual, Team Pro monthly/annual, Legacy Pro backward compat).
+
+### Running the Payment Simulation
+```bash
+node scripts/test-payment-sim.cjs
+```
+Stubs `stripe.checkout.sessions.create` — no real API calls. Uses `X-Forwarded-For` headers to bypass the rate limiter. Verifies `unit_amount`, `recurring.interval`, and `product_data.name` for each tier.
 
 ---
 
