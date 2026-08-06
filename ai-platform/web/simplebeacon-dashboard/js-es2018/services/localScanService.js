@@ -39,7 +39,7 @@ function resolveScanWorkerUrl() {
     } catch (_metaErr) { /* fall through */ }
     return `/app/assets/scan-worker.js?v=${v}`;
 }
-const MAX_FILES = 100000;
+const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
@@ -225,7 +225,46 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
     const mockSampleFiles = (meta.filePaths || []).filter((p) =>
         /sample|mock|fixture|test.*data/i.test(String(p))
     ).length;
-    const capped = Boolean(meta.capped) || totalFiles >= MAX_FILES;
+    const capped = false; // No cap — MAX_FILES is 999M (matches legacy /audit page)
+    // === File inventory breakdown (ported from legacy scanner-engine.js) ===
+    const filePaths = meta.filePaths || [];
+    const fileInventory = {
+        sourceCode: filePaths.filter(p => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|kt|go|rs|php|rb|cs|vb|c|cpp|h|hpp|swift|scala|groovy)$/i.test(p)).length,
+        markup: filePaths.filter(p => /\.(html|htm|xml|svg|vue|svelte|astro)$/i.test(p)).length,
+        config: filePaths.filter(p => /\.(json|yaml|yml|toml|ini|cfg|conf|env|properties)$/i.test(p)).length,
+        docs: filePaths.filter(p => /\.(md|markdown|mdx|txt|rst|adoc)$/i.test(p)).length,
+        buildArtifacts: filePaths.filter(p => /\.(map|min\.js|bundle\.js|pack\.js|wasm|rlib|rmeta)$/i.test(p)).length,
+        testFixtures: filePaths.filter(p => /(?:^|\/)(__tests__|tests?|fixtures?|mocks?|spec)/i.test(p) || /\.(test|spec)\.[a-z0-9]+$/i.test(p)).length,
+        other: 0
+    };
+    fileInventory.other = Math.max(0, totalFiles - fileInventory.sourceCode - fileInventory.markup - fileInventory.config - fileInventory.docs - fileInventory.buildArtifacts - fileInventory.testFixtures);
+    // === Removable files detection (ported from legacy scanner-engine.js) ===
+    const removableFiles = filePaths.filter(p =>
+        /(^|\/)(node_modules|\.git|dist|build|out|coverage|\.next|target|\.wrangler|\.cargo|logs?|cache|\.cache|tmp|temp|backups)(\/|$)/i.test(p)
+        || /\.(log|tmp|bak|swp|cache|pyc|class|jar|war|wasm|rlib|o|a|so|dylib|dll|exe)$/i.test(p)
+    ).map(p => ({ path: p, reason: 'Build artifact, cache, or generated file' }));
+    // === Diagnostic report (ported from legacy scanner-engine.js) ===
+    const diagnosticReport = {
+        rawFiles: totalFiles,
+        filteredFiles: totalFiles,
+        scannedFiles: analyzedFiles,
+        readErrors: meta.telemetry?.textErrors || 0,
+        largeFileSkips: meta.telemetry?.binarySkipped || 0,
+        fileErrors: meta.telemetry?.fileErrors || 0,
+        ignoredDirs: meta.telemetry?.ignoredDir || 0,
+        heavyVendor: meta.telemetry?.heavyVendor || 0,
+        ignoredByPattern: meta.telemetry?.ignoredByPattern || 0,
+        unaccounted: Math.max(0, totalFiles - analyzedFiles - (meta.telemetry?.binarySkipped || 0) - (meta.telemetry?.textErrors || 0))
+    };
+    // === Quality scorecard (6 dimensions, ported from legacy scanner-engine.js) ===
+    const qualityScorecard = {
+        accuracy: blockingCount === 0 ? 100 : Math.max(0, 100 - blockingCount * 10),
+        completeness: totalFiles >= MIN_FILES_FOR_PASS ? 100 : Math.round((totalFiles / MIN_FILES_FOR_PASS) * 100),
+        consistency: rawIssues.filter(i => i.severity === 'medium').length === 0 ? 100 : Math.max(0, 100 - rawIssues.filter(i => i.severity === 'medium').length * 5),
+        timeliness: 100, // No staleness check in browser scan
+        validity: gateScore,
+        integrity: mockSampleFiles === 0 ? 100 : Math.max(0, 100 - mockSampleFiles * 10)
+    };
     const scanLimitNote = meta.issuesTruncated
         ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
         : (capped
@@ -272,7 +311,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         repositoryFoldersTotal: totalFolders,
         scanScope: {
             profile: 'standard',
-            rulesEnabled: ['credential-patterns', 'production-leak-patterns'],
+            rulesEnabled: ['credential-patterns', 'production-leak-patterns', 'sensitive-data', 'config-drift', 'security-vulnerabilities', 'ai-residue', 'llm-slop', 'fiction-kpi', 'code-quality', 'maintainability'],
             gatePolicy: { failOn: ['critical', 'high'], warnOn: ['medium', 'low'] },
             mockSampleFilesInScanPaths: mockSampleFiles,
             productionDirsScanned: null,
@@ -302,7 +341,12 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         },
         issuesTruncated: Boolean(meta.issuesTruncated),
         scanLimitNote,
-        incompleteDropNote
+        incompleteDropNote,
+        fileInventory,
+        removableFiles: removableFiles.slice(0, 100), // Cap at 100 for UI
+        removableFilesTotal: removableFiles.length,
+        diagnosticReport,
+        qualityScorecard
     };
 }
 /**
@@ -316,6 +360,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
     const scanId = crypto.randomUUID();
     const totalFiles = workerFiles.length;
     const ignoreCtx = options.ignoreCtx || null;
+    const deepScan = options.deepScan !== false; // Default to true (scan all files)
     let fileErrors = 0;
     const fileErrorExamples = [];
     const SCAN_OVERALL_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes overall safeguard
@@ -408,7 +453,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 const filePaths = workerFiles.map((f) => f.path);
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
                     issuesTruncated,
-                    capped: totalFiles >= MAX_FILES,
+                    capped: false,
                     folderCount,
                     filePaths,
                     ignoreMeta: options.ignoreCtx
@@ -434,7 +479,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             type: 'scan-start',
             scanId,
             totalFiles,
-            deepScan: true,
+            deepScan,
             ignoreCtx: ignoreCtx
                 ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
                 : null
@@ -487,7 +532,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                             scanId,
                             batchOffset: offset,
                             files: batch,
-                            deepScan: true
+                            deepScan
                         });
                     });
                 }
@@ -511,6 +556,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
  * @param {FileSystemDirectoryHandle} [options.dirHandle] Optional directory handle from drag-and-drop.
  * @param {FileList|File[]} [options.files] Optional dropped files (legacy directory entry) to scan locally.
  * @param {string} [options.projectPath] Optional display path/label to use as projectPath in the report.
+ * @param {boolean} [options.deepScan=true] When true, bypass vendor/docs/build filters to scan all files.
  * @returns {Promise<Object>}
  */
 export async function runLocalScan(options = {}) {
@@ -618,10 +664,7 @@ export async function runLocalScan(options = {}) {
     if (options.files && isLikelyWebkitDirectoryFileCap(files.length)) {
         showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
     }
-    if (files.length >= MAX_FILES) {
-        showToast(browserLocalScanCapMessage(MAX_FILES), 'warning', { duration: 12000 });
-    }
-    else if (files.length > 3000) {
+    if (files.length > 3000) {
         showToast(`Scanning ${files.length.toLocaleString()} files locally — this may take a few minutes.`, 'info', { duration: 6000 });
     }
     if (onFilePrepProgress) onFilePrepProgress(files.length, files.length, `Starting scan of ${files.length.toLocaleString()} files...`);
@@ -706,7 +749,8 @@ export async function runLocalScan(options = {}) {
     const report = await runBatchedWorkerScan(worker, workerFiles, {
         onProgress: options.onProgress,
         projectName,
-        ignoreCtx
+        ignoreCtx,
+        deepScan: options.deepScan !== false // Default to true (scan all files)
     });
     return normalizeSimplebeaconReport(report);
 }

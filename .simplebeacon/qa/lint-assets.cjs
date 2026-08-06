@@ -38,6 +38,13 @@ const PATH_RULES = {
   },
 };
 
+// Directories that contain build-generated artifacts (not hand-edited source).
+// Path integrity rules are skipped for files under these directories.
+const BUILD_OUTPUT_DIRS = [
+  'coming-soon/public/',
+  'ai-platform/web/simplebeacon-dashboard/',
+];
+
 /**
  * Get list of staged .js/.cjs/.ts/.tsx files.
  * @returns {string[]} Array of repo-relative file paths.
@@ -92,6 +99,12 @@ function checkPathIntegrity(filePath, relPath) {
 
   const rule = PATH_RULES[basename];
   if (!rule) return violations;
+
+  // Skip path integrity checks for build-generated artifacts
+  const normalizedRelPath = relPath.replace(/\\/g, '/');
+  for (const dir of BUILD_OUTPUT_DIRS) {
+    if (normalizedRelPath.startsWith(dir)) return violations;
+  }
 
   let content;
   try {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -293,11 +293,19 @@ export function AdminView() {
     }
   }, [auditFilter, auditOrgFilter]);
 
+  const enterpriseErrorRef = useRef(false);
+
   const fetchEnterpriseOrgs = useCallback(async () => {
+    if (enterpriseErrorRef.current) return;
     setEnterpriseLoading(true);
     try {
       const res = await fetch(enterpriseUrl('/enterprise/organizations'), { headers: authHeaders() });
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403 || res.status === 404) {
+          enterpriseErrorRef.current = true;
+        }
+        return;
+      }
       const data = await res.json();
       setEnterpriseOrgs(data.organizations || []);
     } catch {
@@ -328,6 +336,7 @@ export function AdminView() {
         setOnboardResult({ orgId: data.orgId, apiKey: data.apiKey, adminLicenseToken: data.adminLicenseToken, companyName: data.companyName });
         toast.success(`Organization onboarded: ${data.companyName}`);
         setShowOnboardForm(false);
+        enterpriseErrorRef.current = false;
         fetchEnterpriseOrgs();
       } else {
         const err = await res.json();

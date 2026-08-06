@@ -48,7 +48,7 @@ function apiUrl(path: string): string {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

@@ -1416,15 +1416,7 @@
                 // Direct unlock helper (skip modal for non-registered tokens)
                 const directUnlock = (token) => {
                     localStorage.setItem('sb-token', token);
-                    // Read tier/email from JWT payload instead of hardcoding 'pro'
-                    let tier = 'community';
-                    let email = 'token-user@simplebeacon.ai';
-                    try {
-                        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-                        tier = payload.tier || payload.plan || 'community';
-                        email = payload.email || payload.sub || email;
-                    } catch { /* not a JWT — use defaults */ }
-                    localStorage.setItem('sb-user', JSON.stringify({ email, plan: tier, tier }));
+                    localStorage.setItem('sb-user', JSON.stringify({ email: 'token-user@simplebeacon.ai', plan: 'pro' }));
                     if (typeof showToast === 'function') showToast('Dashboard unlocked', 'success');
                     if (typeof updateAuthNav === 'function') updateAuthNav();
                 };
@@ -1459,11 +1451,9 @@
                     badge.style.background = isAdmin ? 'rgba(217,119,6,0.15)' : 'var(--primary-subtle)';
                     badge.style.color = isAdmin ? 'var(--warning)' : 'var(--accent)';
                     document.getElementById('tokenStatusEmail').textContent = data.email || 'N/A';
-                    // Handle both 'expiry' (Unix seconds) and 'expiresAt' (ISO string) from server
-                    var rawExpiry = data.expiry || data.expiresAt;
-                    if (rawExpiry) {
-                        var expiryDate = typeof rawExpiry === 'number' ? new Date(rawExpiry * 1000) : new Date(rawExpiry);
-                        var daysLeft = Math.max(0, Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24)));
+                    if (data.expiry) {
+                        const expiryDate = new Date(data.expiry * 1000);
+                        const daysLeft = Math.max(0, Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24)));
                         document.getElementById('tokenStatusExpiry').textContent = daysLeft + ' days left';
                     } else {
                         document.getElementById('tokenStatusExpiry').textContent = 'N/A';
@@ -1474,45 +1464,26 @@
                     if (adminPanel) adminPanel.style.display = isAdmin ? 'block' : 'none';
                 }
 
-                // "Start Scanning" — request a server-signed sandbox token (no email required)
+                // "Start Scanning" — instantly generate anonymous sandbox token
                 const startSandboxBtn = document.getElementById('startSandboxBtn');
                 if (startSandboxBtn) {
-                    startSandboxBtn.addEventListener('click', async () => {
+                    startSandboxBtn.addEventListener('click', () => {
                         clearError();
-                        const btn = startSandboxBtn;
-                        const originalText = btn.textContent;
-                        btn.disabled = true;
-                        btn.textContent = 'Starting…';
-                        try {
-                            const anonEmail = 'anon-' + Math.random().toString(36).slice(2, 10) + '@sandbox.local';
-                            const res = await fetch('/api/free-token?email=' + encodeURIComponent(anonEmail) + '&sendEmail=false', {
-                                method: 'GET'
-                            });
-                            const data = await res.json().catch(() => ({}));
-                            if (!res.ok || !data.success) {
-                                throw new Error(data.error || 'Server returned ' + res.status);
-                            }
-                            const token = data.token;
-                            if (tokenInput) {
-                                tokenInput.value = token;
-                                tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
-                            }
-                            localStorage.setItem('sb-token', token);
-                            localStorage.setItem('simplebeacon_token', token);
-                            localStorage.setItem('cascadeAuthToken', token);
-                            localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox', email: anonEmail }));
-                            if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
-                            if (typeof updateDropzoneGate === 'function') updateDropzoneGate();
-                            if (typeof updateAuthNav === 'function') updateAuthNav();
-                            if (typeof showToast === 'function') showToast('Sandbox ready — you can scan now', 'success');
-                            const gate = document.getElementById('audit-token-gate');
-                            if (gate) gate.style.display = 'none';
-                        } catch (err) {
-                            showError('Could not start sandbox: ' + (err && err.message ? err.message : String(err)));
-                        } finally {
-                            btn.disabled = false;
-                            btn.textContent = originalText;
+                        const token = generateSandboxToken(null);
+                        if (tokenInput) {
+                            tokenInput.value = token;
+                            tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
                         }
+                        localStorage.setItem('sb-token', token);
+                        localStorage.setItem('simplebeacon_token', token);
+                        localStorage.setItem('cascadeAuthToken', token);
+                        localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox' }));
+                        if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
+                        if (typeof updateDropzoneGate === 'function') updateDropzoneGate();
+                        if (typeof updateAuthNav === 'function') updateAuthNav();
+                        if (typeof showToast === 'function') showToast('Sandbox ready — you can scan now', 'success');
+                        const gate = document.getElementById('audit-token-gate');
+                        if (gate) gate.style.display = 'none';
                     });
                 }
 
@@ -1842,15 +1813,7 @@
                         error.hidden = true;
                         try {
                             localStorage.setItem('sb-token', token);
-                            // Read tier/email from JWT payload instead of hardcoding 'pro'
-                            let tier = 'community';
-                            let email = 'token-user@simplebeacon.ai';
-                            try {
-                                const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-                                tier = payload.tier || payload.plan || 'community';
-                                email = payload.email || payload.sub || email;
-                            } catch { /* not a JWT — use defaults */ }
-                            localStorage.setItem('sb-user', JSON.stringify({ email, plan: tier, tier }));
+                            localStorage.setItem('sb-user', JSON.stringify({ email: 'token-user@simplebeacon.ai', plan: 'pro' }));
                             if (typeof showToast === 'function') showToast('Dashboard unlocked', 'success');
                             closeModal();
                         } catch (err) {

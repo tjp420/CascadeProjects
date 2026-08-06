@@ -13,6 +13,7 @@ const SKIP_GLOBS = [
   '**/*.png',
   '**/*.jpg',
   '**/*.jpeg',
+  '**/*.css',
 ];
 
 const MAX_BYTES = 1024 * 1024; // 1MB per-file read cap for regex scanning

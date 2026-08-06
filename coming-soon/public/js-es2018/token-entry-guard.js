@@ -116,24 +116,26 @@
         }
     }
     function isTokenInLocalStorage(token) {
-        var keys = ['sb-token', 'sb_token', 'simplebeacon_token', 'cascadeAuthToken', 'auth_token'];
-        for (var i = 0; i < keys.length; i++) {
+        const keys = ['sb-token', 'sb_token', 'simplebeacon_token', 'cascadeAuthToken', 'auth_token'];
+        for (let i = 0; i < keys.length; i++) {
             try {
-                if (localStorage.getItem(keys[i]) === token) return true;
-            } catch (_e) { /* ignore */ }
+                if (localStorage.getItem(keys[i]) === token)
+                    return true;
+            }
+            catch (_e) { /* ignore */ }
         }
         return false;
     }
     function validateNewTokenEntry(token, options) {
-        var opts = options || {};
-        var trimmed = String(token || '').trim();
+        const opts = options || {};
+        const trimmed = String(token || '').trim();
         if (!trimmed) {
             return { ok: false, error: 'Please paste a new license token from your email.' };
         }
         if (trimmed.length < 20 || !trimmed.includes('.')) {
             return { ok: false, error: 'That does not look like a valid license token.' };
         }
-        var fp = tokenFingerprint(trimmed);
+        const fp = tokenFingerprint(trimmed);
         if (opts.allowFresh && fp && freshFingerprints.has(fp)) {
             return { ok: true };
         }

@@ -434,6 +434,8 @@ export function ResultsView() {
         <TabsList>
           <TabsTrigger value="findings">Findings</TabsTrigger>
           <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
           <TabsTrigger value="scope">Scope</TabsTrigger>
           <TabsTrigger value="export">Export</TabsTrigger>
         </TabsList>
@@ -725,6 +727,88 @@ export function ResultsView() {
                   ))}
                 </div>
               </div>
+
+              {fullReport?.qualityScorecard && (
+                <div>
+                  <Separator className="my-3" />
+                  <p className="text-sm font-medium mb-2">Quality Scorecard</p>
+                  <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                    {Object.entries(fullReport.qualityScorecard).map(([dim, score]) => (
+                      <div key={dim} className="rounded-md border p-2 text-center">
+                        <div className="text-xs text-foreground-muted capitalize">{dim}</div>
+                        <div className={`text-lg font-bold ${(score as number) >= 80 ? 'text-green-600' : (score as number) >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>{score as number}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inventory">
+          <Card>
+            <CardHeader>
+              <CardTitle>File Inventory</CardTitle>
+              <CardDescription>Breakdown of files by category and removable artifacts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {fullReport?.fileInventory ? (
+                <div>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {Object.entries(fullReport.fileInventory).map(([cat, count]) => (
+                      <div key={cat} className="rounded-md border p-3">
+                        <div className="text-xs text-foreground-muted capitalize">{cat.replace(/([A-Z])/g, ' $1').trim()}</div>
+                        <div className="text-xl font-bold">{count as number}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-foreground-muted">File inventory not available for this scan.</p>
+              )}
+              {fullReport?.removableFiles && fullReport.removableFiles.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">Removable Files ({fullReport.removableFilesTotal || fullReport.removableFiles.length} total)</p>
+                  <div className="rounded-md bg-muted p-3 font-mono text-xs space-y-1 overflow-y-auto max-h-48">
+                    {fullReport.removableFiles.slice(0, 50).map((f: { path: string; reason: string }, i: number) => (
+                      <div key={i} className="text-foreground-secondary break-all whitespace-pre-wrap">
+                        <span className="text-yellow-600">[removable]</span> {f.path} <span className="text-foreground-muted">— {f.reason}</span>
+                      </div>
+                    ))}
+                    {fullReport.removableFiles.length > 50 && (
+                      <div className="text-foreground-muted">... and {fullReport.removableFiles.length - 50} more (export JSON for full list)</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="diagnostics">
+          <Card>
+            <CardHeader>
+              <CardTitle>Scan Diagnostics</CardTitle>
+              <CardDescription>Internal scan statistics and file processing breakdown</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {fullReport?.diagnosticReport ? (
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Raw Files</div><div className="text-xl font-bold">{fullReport.diagnosticReport.rawFiles}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Filtered</div><div className="text-xl font-bold">{fullReport.diagnosticReport.filteredFiles}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Scanned</div><div className="text-xl font-bold">{fullReport.diagnosticReport.scannedFiles}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Read Errors</div><div className="text-xl font-bold text-red-600">{fullReport.diagnosticReport.readErrors}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Large Skips</div><div className="text-xl font-bold text-yellow-600">{fullReport.diagnosticReport.largeFileSkips}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">File Errors</div><div className="text-xl font-bold text-red-600">{fullReport.diagnosticReport.fileErrors}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Ignored Dirs</div><div className="text-xl font-bold">{fullReport.diagnosticReport.ignoredDirs}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Ignored Pattern</div><div className="text-xl font-bold">{fullReport.diagnosticReport.ignoredByPattern}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Heavy Vendor</div><div className="text-xl font-bold">{fullReport.diagnosticReport.heavyVendor}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Unaccounted</div><div className="text-xl font-bold text-yellow-600">{fullReport.diagnosticReport.unaccounted}</div></div>
+                </div>
+              ) : (
+                <p className="text-sm text-foreground-muted">Diagnostics not available for this scan.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

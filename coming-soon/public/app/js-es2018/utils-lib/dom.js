@@ -873,7 +873,40 @@ export function renderSkeletonChips(count = 5) {
 
 /** User-facing note when folder selection may be truncated by the browser. */
 export function browserFolderCapMessage(fileCount) {
-    const n = Number(fileCount) || 0;
-    return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
-        + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
+  const n = Number(fileCount) || 0;
+  return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
+    + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
+}
+
+/**
+ * True when a directory drop/pick only exposed a tiny FileList (common for system
+ * folders or IDE drops that do not recurse). Scanning these as a full repo yields
+ * false PASS reports (e.g. "Windows" with 1 file).
+ * @param {number} fileCount
+ * @param {{ isDirectoryDrop?: boolean, hasRelativePath?: boolean }} [opts]
+ */
+export function isIncompleteFolderDrop(fileCount, opts = {}) {
+  if (!opts.isDirectoryDrop) return false;
+  const n = Number(fileCount) || 0;
+  if (n > 2) return false;
+  // 1-2 files is always incomplete for a directory drop, even if
+  // webkitRelativePath is present (e.g., OS Explorer drop of a protected
+  // directory like C:\Windows that only exposes 1 file).
+  return n > 0;
+}
+
+/** Copy when refusing a false full-repo PASS from an incomplete folder drop. */
+export function incompleteFolderDropMessage(folderName) {
+  const label = folderName ? `"${folderName}"` : 'This folder';
+  return `${label} only exposed 1–2 files in the browser (incomplete access — common for OS/system directories). `
+    + 'No full-repo PASS was recorded. Use Select Folder on a project tree, or run: '
+    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+}
+
+/** Copy when browser local scan hits the inventory cap. */
+export function browserLocalScanCapMessage(maxFiles) {
+  const n = Number(maxFiles) || 0;
+  return `Browser local scan inventory is capped at ${n.toLocaleString()} files. `
+    + 'Results may be truncated. For full coverage run: '
+    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
 }

@@ -9,6 +9,10 @@ const DIST_ASSETS = path.join(ROOT, 'assets');
 
 const FILES_TO_COPY = [
   {
+    src: path.join(ROOT, 'js-es2018', 'workers', 'scan-worker.js'),
+    dest: path.join(DIST_ASSETS, 'scan-worker.js')
+  },
+  {
     src: path.join(ROOT, 'js-es2018', 'workers', 'scan-wasm-bridge.js'),
     dest: path.join(DIST_ASSETS, 'scan-wasm-bridge.js')
   },

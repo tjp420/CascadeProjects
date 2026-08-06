@@ -184,6 +184,9 @@ export class ScanService {
         this._pendingFetches = new Map();
         this._ciMetricsInflight = null;
         this._ciMetricsUnavailable = false;
+        this._teamTelemetryUnavailable = false;
+        this._teamTrendInflight = null;
+        this._teamDistributionInflight = null;
     }
     async fetchAll(projectPath = null) {
         const [reportR, baselineR, configR, historyR] = await Promise.allSettled([
@@ -791,6 +794,94 @@ export class ScanService {
             }
             const data = await readJsonResponseBody(res);
             if (!data || typeof data.total_scans !== 'number') {
+                return null;
+            }
+            return data;
+        }
+        catch {
+            return null;
+        }
+    }
+
+    /**
+     * Team gate-pass rate trend (paid team/compliance tier).
+     * @param {{ days?: number }} [options]
+     * @returns {Promise<{ trend: Array, granularity: string }|null>}
+     */
+    async fetchTeamTelemetryTrend(options = {}) {
+        if (this._teamTelemetryUnavailable) {
+            return null;
+        }
+        if (this._teamTrendInflight) {
+            return this._teamTrendInflight;
+        }
+        this._teamTrendInflight = this._fetchTeamTelemetryTrendImpl(options).finally(() => {
+            this._teamTrendInflight = null;
+        });
+        return this._teamTrendInflight;
+    }
+
+    async _fetchTeamTelemetryTrendImpl(options = {}) {
+        const days = options.days || 7;
+        try {
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/team/telemetry/trend?days=${days}`, {
+                headers: mergeAuthHeaders({ Accept: 'application/json' })
+            });
+            if (res.status === 404 || res.status === 403 || res.status === 401) {
+                if (res.status === 404) {
+                    this._teamTelemetryUnavailable = true;
+                }
+                return null;
+            }
+            if (!res.ok) {
+                return null;
+            }
+            const data = await readJsonResponseBody(res);
+            if (!data || !Array.isArray(data.trend)) {
+                return null;
+            }
+            return data;
+        }
+        catch {
+            return null;
+        }
+    }
+
+    /**
+     * Team quality-score distribution percentiles (paid team/compliance tier).
+     * @param {{ days?: number }} [options]
+     * @returns {Promise<Object|null>}
+     */
+    async fetchTeamQualityDistribution(options = {}) {
+        if (this._teamTelemetryUnavailable) {
+            return null;
+        }
+        if (this._teamDistributionInflight) {
+            return this._teamDistributionInflight;
+        }
+        this._teamDistributionInflight = this._fetchTeamQualityDistributionImpl(options).finally(() => {
+            this._teamDistributionInflight = null;
+        });
+        return this._teamDistributionInflight;
+    }
+
+    async _fetchTeamQualityDistributionImpl(options = {}) {
+        const days = options.days || 7;
+        try {
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/team/telemetry/distribution?days=${days}`, {
+                headers: mergeAuthHeaders({ Accept: 'application/json' })
+            });
+            if (res.status === 404 || res.status === 403 || res.status === 401) {
+                if (res.status === 404) {
+                    this._teamTelemetryUnavailable = true;
+                }
+                return null;
+            }
+            if (!res.ok) {
+                return null;
+            }
+            const data = await readJsonResponseBody(res);
+            if (!data || typeof data !== 'object') {
                 return null;
             }
             return data;
