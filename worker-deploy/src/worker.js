@@ -4,6 +4,9 @@
  */
 
 const DEFAULT_ALLOWED_ORIGINS = 'https://simplebeacon.ai,https://www.simplebeacon.ai';
+const PAGES_PREVIEW_ORIGIN_REGEX = /^https:\/\/(?:[a-z0-9-]+\.)?simplebeacon\.pages\.dev$/;
+const RENDER_ORIGIN_REGEX = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
+const NETLIFY_ORIGIN_REGEX = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
 const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 const LICENSE_TTL_SECONDS = 24 * 60 * 60;
 const STRIPE_TOLERANCE_SECONDS = 300;
@@ -48,7 +51,12 @@ function getCorsOrigin(request, env) {
   const origin = request.headers.get('Origin') || '';
   if (!origin) return '';
   const allowed = getAllowedOrigins(env);
-  return allowed.includes(origin) ? origin : '';
+  if (allowed.includes(origin)) return origin;
+  // Allow *.simplebeacon.pages.dev preview deployments, *.onrender.com, and *.netlify.app
+  if (PAGES_PREVIEW_ORIGIN_REGEX.test(origin) || RENDER_ORIGIN_REGEX.test(origin) || NETLIFY_ORIGIN_REGEX.test(origin)) {
+    return origin;
+  }
+  return '';
 }
 
 function isValidSessionId(sessionId) {
@@ -163,11 +171,13 @@ export default {
 
     if (request.method === 'OPTIONS') {
       const headers = {
-        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Stripe-Signature, Authorization'
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type,Accept,Authorization,X-Token-Password,Stripe-Signature',
+        'Access-Control-Max-Age': '86400'
       };
       if (corsOrigin) {
         headers['Access-Control-Allow-Origin'] = corsOrigin;
+        headers['Access-Control-Allow-Credentials'] = 'true';
         headers['Vary'] = 'Origin';
       }
       return new Response(null, { status: 204, headers });

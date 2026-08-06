@@ -23,10 +23,9 @@
 /security-whitepaper  /security             301
 /waitlist             /cloud-teams          301
 
-# API backend routing — proxy to Render backend (same-origin via Worker)
-# The Worker function at functions/api/[[path]].js handles /api/* requests.
-# This redirect serves as a fallback for preview tracks where Functions may not fire.
-/api/*  https://cascadeprojects-yzzd.onrender.com/api/:splat  200
+# API backend routing — handled by the Cloudflare Worker (worker-deploy/src/worker.js)
+# and Pages Function (functions/api/[[path]].js). Do NOT add a _redirects proxy rule
+# for /api/* — Workers don't support proxy redirects to external URLs.
 
 # SPA fallback for dashboard/app — handled by Functions worker (functions/app/[[path]].js)
 # The worker passes through static assets (JS, CSS, images) and serves HTML for SPA routes.
