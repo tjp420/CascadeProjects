@@ -29,6 +29,8 @@ const PRICE_DEVELOPER_MONTHLY = 4900;
 const PRICE_DEVELOPER_ANNUAL = 49000;
 const PRICE_TEAM_PRO_MONTHLY = 14900;
 const PRICE_TEAM_PRO_ANNUAL = 149000;
+const PRICE_EXTRA_SEAT_MONTHLY = 1500;
+const PRICE_EXTRA_SEAT_ANNUAL = 15000;
 
 const logger = {
     error: (...a) => { const c = globalThis.console; c.error(...a); },
@@ -72,10 +74,13 @@ router.post('/api/create-subscription-session', async (req, res) => {
             subCheckoutRateLog.set(clientIp, { count: 1, resetAt: now + SUB_CHECKOUT_RATE_LIMIT_MS });
         }
 
-        const { email, projectName, clientName, tier, mode } = req.body;
+        const { email, projectName, clientName, tier, mode, extraSeats } = req.body;
         if (!email || !projectName) {
             return res.status(400).json({ error: 'Email and project name are required.' });
         }
+
+        // Validate extraSeats for team_pro tier
+        const seatCount = (tier === 'team_pro' && extraSeats) ? Math.max(0, Math.min(50, parseInt(extraSeats, 10) || 0)) : 0;
 
         const tierConfig = {
             developer: {
@@ -147,21 +152,41 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const cancelUrl = `${PUBLIC_URL}/pricing.html?canceled=true`;
         const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
 
-        const session = await stripe.checkout.sessions.create({
-            mode: 'subscription',
-            customer: stripeCustomerId,
-            line_items: [{
+        // Build line items: base subscription + optional extra seat add-on
+        const lineItems = [{
+            price_data: {
+                currency: 'usd',
+                product_data: {
+                    name: selectedTier.name,
+                    description: selectedTier.desc + ' — ' + displayPrice
+                },
+                unit_amount: unitAmount,
+                recurring: { interval: interval }
+            },
+            quantity: 1
+        }];
+
+        if (seatCount > 0) {
+            const seatUnitAmount = isAnnual ? PRICE_EXTRA_SEAT_ANNUAL : PRICE_EXTRA_SEAT_MONTHLY;
+            const seatDisplayPrice = isAnnual ? '$150/yr' : '$15/mo';
+            lineItems.push({
                 price_data: {
                     currency: 'usd',
                     product_data: {
-                        name: selectedTier.name,
-                        description: selectedTier.desc + ' — ' + displayPrice
+                        name: 'Extra Team Seat',
+                        description: 'Additional seat beyond the 5 included in Team Pro — ' + seatDisplayPrice + ' per seat'
                     },
-                    unit_amount: unitAmount,
+                    unit_amount: seatUnitAmount,
                     recurring: { interval: interval }
                 },
-                quantity: 1
-            }],
+                quantity: seatCount
+            });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            mode: 'subscription',
+            customer: stripeCustomerId,
+            line_items: lineItems,
             success_url: successUrl,
             cancel_url: cancelUrl,
             metadata: {
@@ -171,6 +196,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
                 projectName: String(projectName).slice(0, 200),
                 clientName: String(clientName || email).slice(0, 200),
                 apiKey: customer.api_key,
+                ...(seatCount > 0 ? { extraSeats: String(seatCount) } : {}),
                 ...referralMetadata
             }
         });

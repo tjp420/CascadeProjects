@@ -75,6 +75,15 @@ const server = app.listen(0, () => {
         { tier: 'team_pro',  mode: 'monthly',  expectedCents: 14900,  label: 'Team Pro monthly ($149/mo)' },
         { tier: 'team_pro',  mode: 'annual',   expectedCents: 149000, label: 'Team Pro annual ($1490/yr)' },
         { tier: 'pro',       mode: 'monthly',  expectedCents: 900,    label: 'Legacy Pro monthly ($9/mo, backward compat)' },
+        // Extra seat add-on tests
+        { tier: 'team_pro',  mode: 'monthly',  expectedCents: 14900,  label: 'Team Pro monthly + 3 extra seats ($149 + 3×$15 = $194/mo)',
+          extraSeats: 3, expectedSeatCents: 1500, expectedSeatQty: 3 },
+        { tier: 'team_pro',  mode: 'annual',   expectedCents: 149000, label: 'Team Pro annual + 5 extra seats ($1490 + 5×$150 = $2240/yr)',
+          extraSeats: 5, expectedSeatCents: 15000, expectedSeatQty: 5 },
+        { tier: 'team_pro',  mode: 'monthly',  expectedCents: 14900,  label: 'Team Pro monthly + 0 extra seats (no add-on line item)',
+          extraSeats: 0, expectNoSeatItem: true },
+        { tier: 'developer', mode: 'monthly',  expectedCents: 4900,   label: 'Developer monthly + extraSeats ignored (not team_pro)',
+          extraSeats: 5, expectNoSeatItem: true },
     ];
 
     let passed = 0;
@@ -88,9 +97,11 @@ const server = app.listen(0, () => {
             if (stripeCallLog.length > 0) {
                 console.log('\nStripe session.create call log:');
                 stripeCallLog.forEach((c, i) => {
-                    console.log('  Call ' + (i+1) + ': unit_amount=' + c.line_items?.[0]?.price_data?.unit_amount +
-                        ' interval=' + c.line_items?.[0]?.price_data?.recurring?.interval +
-                        ' name="' + c.line_items?.[0]?.price_data?.product_data?.name + '"');
+                    const li = c.line_items || [];
+                    console.log('  Call ' + (i+1) + ': ' + li.length + ' line item(s)' +
+                        ' | base=' + li[0]?.price_data?.unit_amount + ' ' + li[0]?.price_data?.recurring?.interval +
+                        ' "' + li[0]?.price_data?.product_data?.name + '"' +
+                        (li[1] ? ' | add-on=' + li[1]?.price_data?.unit_amount + ' ×' + li[1]?.quantity + ' "' + li[1]?.price_data?.product_data?.name + '"' : ''));
                 });
             }
             server.close();
@@ -106,6 +117,9 @@ const server = app.listen(0, () => {
             tier: tc.tier,
             mode: tc.mode
         };
+        if (tc.extraSeats !== undefined) {
+            payload.extraSeats = tc.extraSeats;
+        }
 
         const body = JSON.stringify(payload);
         const req = http.request({
@@ -133,13 +147,30 @@ const server = app.listen(0, () => {
                 let responseOk = false;
                 try { responseOk = res.statusCode === 200 && JSON.parse(data).success === true; } catch (_e) {}
 
-                const pass = centsOk && intervalOk && responseOk;
+                // Check extra seat line item
+                let seatOk = true;
+                const seatItem = stripeCall?.line_items?.[1];
+                if (tc.expectNoSeatItem) {
+                    seatOk = !seatItem; // should NOT have a second line item
+                } else if (tc.expectedSeatCents) {
+                    seatOk = seatItem &&
+                        seatItem.price_data?.unit_amount === tc.expectedSeatCents &&
+                        seatItem.quantity === tc.expectedSeatQty &&
+                        seatItem.price_data?.recurring?.interval === expectedInterval;
+                }
+
+                const pass = centsOk && intervalOk && responseOk && seatOk;
                 if (pass) { passed++; } else { failed++; }
 
                 console.log('\n[' + (pass ? 'PASS' : 'FAIL') + '] ' + tc.label);
-                console.log('  Payload: tier=' + tc.tier + ', mode=' + tc.mode);
+                console.log('  Payload: tier=' + tc.tier + ', mode=' + tc.mode + (tc.extraSeats !== undefined ? ', extraSeats=' + tc.extraSeats : ''));
                 console.log('  Expected: ' + tc.expectedCents + ' cents, interval=' + expectedInterval);
                 console.log('  Actual:   ' + actualCents + ' cents, interval=' + actualInterval + ', name="' + actualName + '"');
+                if (tc.expectedSeatCents) {
+                    console.log('  Seat item: expected ' + tc.expectedSeatCents + ' cents × ' + tc.expectedSeatQty + ', got ' + (seatItem ? seatItem.price_data?.unit_amount + ' × ' + seatItem.quantity : 'NONE'));
+                } else if (tc.expectNoSeatItem) {
+                    console.log('  Seat item: expected none, got ' + (seatItem ? 'PRESENT' : 'none'));
+                }
                 console.log('  HTTP ' + res.statusCode + ': ' + (responseOk ? 'success=true' : data.substring(0, 200)));
 
                 runNext(idx + 1);
