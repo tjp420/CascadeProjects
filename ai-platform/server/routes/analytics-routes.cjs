@@ -48,6 +48,7 @@ const reportScheduler = require('../lib/report-scheduler.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
 const SiemSecurityBroker = require('../lib/siem/siem-broker.cjs');
+const { generateDashboardMetrics, anonymizeProjectId } = require('../lib/dashboard-analytics.cjs');
 
 // Shared SIEM broker instance for telemetry endpoint
 let _sharedBroker = null;
@@ -1289,6 +1290,46 @@ router.get('/siem-telemetry', authorize('read:siem_telemetry'), (req, res) => {
   } catch (err) {
     logger.error('[Analytics] SIEM telemetry failed:', err.message);
     sendError(res, 500, 'siem_telemetry_failed', { message: err.message });
+  }
+});
+
+// GET /api/analytics/summary?project=<name>&days=<n>
+// Admin dashboard summary — aggregates scan records into chart-ready metrics
+// using the dashboard-analytics aggregator. Project name is anonymized via
+// HMAC-SHA256 (16-char hex) for zero-custody tracking.
+router.get('/summary', authenticate, async (req, res) => {
+  try {
+    const { project } = req.query;
+    const daysLimit = Math.min(Math.max(parseInt(String(req.query.days || '30'), 10) || 30, 1), 365);
+
+    if (!project) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required query field: project'
+      });
+    }
+
+    const tenantSalt = process.env.TELEMETRY_SALT || 'simplebeacon_production_fallback';
+    const projectHash = anonymizeProjectId(String(project), tenantSalt);
+
+    // Fetch raw scan records from the analytics store for this project
+    // For now, use a mock fetcher — will be wired to analyticsStore once
+    // the store supports project-scoped scan record queries.
+    const rawRecords = [];
+
+    const dashboardMetrics = generateDashboardMetrics(rawRecords);
+
+    logger.info('[Analytics] Summary served for project signature: ' + projectHash);
+
+    return res.status(200).json({
+      success: true,
+      projectSignature: projectHash,
+      queryWindowDays: daysLimit,
+      metrics: dashboardMetrics
+    });
+  } catch (err) {
+    logger.error('[Analytics] Summary failed:', err.message);
+    sendError(res, 500, 'summary_failed', { message: err.message });
   }
 });
 

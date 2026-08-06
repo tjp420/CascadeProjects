@@ -1138,6 +1138,15 @@ try {
   logger.warn('[Enterprise] Analytics route not mounted:', e?.message || e);
 }
 
+// SimpleBeacon admin dashboard analytics ΓÇö scan metrics, trends, posture scores
+try {
+  const analyticsRouter = require('./routes/analytics-routes.cjs');
+  app.use('/api/analytics', analyticsRouter);
+  logger.info('[Analytics] Usage analytics mounted at /api/analytics');
+} catch (e) {
+  logger.warn('[Analytics] Usage analytics route not mounted:', e?.message || e);
+}
+
 // Dashboard stub APIs ΓÇö dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {
     setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });
