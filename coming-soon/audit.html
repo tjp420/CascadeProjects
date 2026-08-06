@@ -99,7 +99,7 @@
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a>, <a href="http://127.0.0.1:58000/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">open analyzer (auto-detected port)</a>, or upload a CLI report JSON.</p>
+            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use high-speed local regex heuristics across 52 rule engines. For deep AST analysis, use the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a> or <a href="http://127.0.0.1:58000/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">CLI</a>.</p>
         </header>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
@@ -110,14 +110,8 @@
 
         <div class="simplebeacon-banner" id="simplebeacon-banner" style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
             <span style="display:flex;align-items:center;gap:6px;color:var(--warning);font-weight:600;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Simplebeacon</span>
-            <span>52 analyzer engines detect placeholder debris, markdown fences, hardcoded metrics, security risks, and performance issues. Real-time protection in VS Code.</span>
+            <span>52 analyzer engines detect placeholder debris, markdown fences, hardcoded metrics, security risks, and performance issues. Real-time protection in VS Code. Browser sandbox runs high-speed local regex heuristics; deep AST analysis requires the CLI or server dashboard.</span>
             <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;">Get VS Code Extension &rarr;</a>
-        </div>
-
-        <div class="plan-cta-banner" style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(5,150,105,0.05));border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:6px;color:var(--accent-hover);font-weight:500;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Need a scan?</span>
-            <span>Build a custom audit plan and pick exactly the scans you need.</span>
-            <a href="pricing.html#scanGrid" style="color:var(--accent);font-weight:600;text-decoration:none;white-space:nowrap;">Build Your Plan &rarr;</a>
         </div>
 
         <!-- Visual Stepper -->
@@ -223,28 +217,9 @@
                 <button type="button" class="btn btn-primary" id="startSandboxBtn">Start Scanning</button>
                 <button type="button" class="btn btn-secondary" id="haveTokenBtn">I have a token</button>
               </div>
-              <div class="token-gate-secondary">
-                <span>Want a 14-day sandbox token emailed to you?</span>
-                <button type="button" id="linkEmailBtn">Try Free Sandbox</button>
-              </div>
               <div class="token-gate-paste" id="tokenPasteSection">
                 <input type="text" id="licenseToken" autocomplete="off" spellcheck="false" placeholder="Paste your license token here…" />
                 <button type="button" class="btn btn-secondary" id="tokenSubmitBtn">Unlock</button>
-              </div>
-              <div class="token-gate-email" id="emailLinkSection">
-                <p class="token-gate-email-label">Enter your email and we'll send you a 14-day sandbox token.</p>
-                <div class="token-gate-email-row">
-                  <input type="email" id="emailLinkInput" autocomplete="email" placeholder="you@example.com" />
-                  <button type="button" class="btn btn-primary" id="emailLinkSubmit">Send Token</button>
-                </div>
-                <div class="token-gate-code-row" id="sandboxCodeSection" style="display:none;">
-                  <p class="token-gate-email-label">Enter the 6-digit code from your email:</p>
-                  <div class="token-gate-code-inputs">
-                    <input type="text" id="sandboxCodeInput" maxlength="6" placeholder="123456" />
-                    <button type="button" class="btn btn-primary" id="sandboxCodeSubmit">Verify</button>
-                  </div>
-                </div>
-                <p class="token-gate-email-help">We'll email you a sandbox token and a validation code. Enter the code to unlock the audit. The token is valid for 14 days.</p>
               </div>
               <p id="tokenError" class="token-error-bar" role="alert"></p>
               <p class="token-gate-trust">Zero-trust: scans run locally in your browser. No source code is uploaded.</p>
@@ -255,7 +230,7 @@
               <div id="productDetails"></div>
             </div>
 
-            <!-- Token Status & Admin Panel -->
+            <!-- Token Status Card -->
             <div id="tokenStatusCard" style="display:none;margin-top:16px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
                 <span id="tokenStatusIcon" style="font-size:1.2rem;">🔑</span>
@@ -265,21 +240,14 @@
                 </div>
                 <span id="tokenTierBadge" style="padding:3px 10px;border-radius:6px;font-size:0.7rem;font-weight:600;background:var(--primary-subtle);color:var(--accent);">COMMUNITY</span>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;">
+              <div id="tokenStatusDetails" style="display:none;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;">
                 <div>📧 <span id="tokenStatusEmail">—</span></div>
                 <div>⏱ <span id="tokenStatusExpiry">—</span></div>
                 <div>🔓 Features: <span id="tokenStatusFeatures">—</span></div>
                 <div>📋 Registered: <span id="tokenStatusRegistered">—</span></div>
               </div>
-              <div id="adminPanel" style="display:none;border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
-                <div style="font-weight:600;font-size:0.85rem;color:var(--warning);margin-bottom:8px;">🛡️ Admin Panel</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                  <button type="button" class="btn btn-secondary" id="adminViewLogsBtn" style="font-size:0.75rem;padding:6px 12px;">📋 View System Logs</button>
-                  <button type="button" class="btn btn-secondary" id="adminCreateTokenBtn" style="font-size:0.75rem;padding:6px 12px;">🔐 Create Admin Token</button>
-                </div>
-                <div id="adminLogViewer" style="display:none;max-height:300px;overflow:auto;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:0.72rem;font-family:monospace;color:var(--text-secondary);">
-                  <div style="color:var(--text-muted);text-align:center;">Click "View System Logs" to load</div>
-                </div>
+              <div id="tokenStatusFree" style="display:none;font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;padding:10px 12px;border-radius:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);">
+                You're on the free Community tier. <a href="pricing.html" style="color:var(--accent);font-weight:600;text-decoration:none;">Upgrade &rarr;</a> to unlock AST analysis, CI/CD gating, and board-ready certificates.
               </div>
             </div>
 
@@ -418,7 +386,7 @@
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Run these commands from your repository root (<code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">CascadeProjects/</code>).</p>
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Run these commands from your repository root (<code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">your-project-root/</code>).</p>
                         <button id="oneClickInstallBtn" class="btn btn-primary" style="padding:8px 16px;background:var(--success);border:none;border-radius:8px;color:white;font-weight:600;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
                             <span>&#128229;</span> One-Click Install
                         </button>
@@ -557,7 +525,7 @@
                     </div>
                     <div class="sandbox-note">
                         <span class="sandbox-icon">&#127757;</span>
-                        <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs <strong>Simplebeacon AI Detection</strong> (placeholder debris, markdown fences, hardcoded metrics) + credential heuristics. For deep analysis, use the <strong>CLI tab</strong>.</span>
+                        <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs <strong>high-speed local regex heuristics</strong> across 52 rule engines (placeholder debris, markdown fences, hardcoded metrics, credential patterns). For deep AST analysis, use the <strong>CLI tab</strong> or server dashboard.</span>
                     </div>
                     <label style="display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
                         <input type="checkbox" id="includeDepsToggle" style="cursor:pointer;">
@@ -579,7 +547,7 @@
                             </div>
                             <div style="display:flex;align-items:center;gap:6px;">
                                 <span style="width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 2s infinite;"></span>
-                                <span style="font-size:0.68rem;color:var(--text-muted);">Browser Heuristic Sandbox — no npm audit, no AST</span>
+                                <span style="font-size:0.68rem;color:var(--text-muted);">Browser Heuristic Sandbox — 52 local regex rule engines</span>
                             </div>
                         </div>
                         <div class="terminal-body">
@@ -588,7 +556,7 @@
                                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
                                     <div style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);font-size:0.8rem;">
                                         <span style="font-size:1.1rem;">&#128225;</span>
-                                        <span id="dataServerStatus" style="color:#888;">Not connected — open VS Code: sidebar to enable</span>
+                                        <span id="dataServerStatus" style="color:var(--text-muted);">○ VS Code Extension Available</span>
                                     </div>
                                     <button type="button" id="fetchSidebarBtn" class="btn btn-primary" style="padding:8px 14px;font-size:0.8rem;background:linear-gradient(135deg,#6366f1,#4f46e5);white-space:nowrap;">Fetch from Sidebar</button>
                                 </div>
@@ -727,7 +695,7 @@
                         <span>&#128229;</span> Generate Certificate
                     </button>
                     <a href="/roadmap?h=1784596919635" class="btn btn-secondary" id="roadmapLink" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:12px;padding:10px 14px;background:rgba(99,102,241,0.1);border:1px solid var(--accent);color:var(--accent-hover);font-weight:600;border-radius:8px;transition:all 0.2s;">&#128739; View Remediation Roadmap</a>
-                    <button type="button" class="btn btn-primary" id="upload-send-ai-btn" title="Send scan data to AI Slopcop" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;display:none;">&#129302; Send to AI Slopcop</button>
+                    <button type="button" class="btn btn-primary" id="upload-send-ai-btn" title="Send scan data to AI Slop Cop" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;display:none;">&#129302; Send to AI Slop Cop</button>
                     <button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI Slop Cop" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;display:none;">&#129302; Send to AI Slop Cop</button>
                 </div>
 
@@ -1431,24 +1399,34 @@
                     card.style.display = 'block';
                     const tier = data.tier || 'unknown';
                     const isAdmin = tier === 'admin';
+                    const freeTiers = ['community','starter','instant','free','developer','sandbox'];
+                    const isFreeTier = freeTiers.includes(tier.toLowerCase());
                     document.getElementById('tokenStatusTitle').textContent = isAdmin ? '🔒 Admin Token Active' : 'Token Active';
                     document.getElementById('tokenStatusSubtitle').textContent = isAdmin ? 'Superuser access' : (tier.charAt(0).toUpperCase() + tier.slice(1)) + ' tier';
                     const badge = document.getElementById('tokenTierBadge');
                     badge.textContent = tier.toUpperCase();
                     badge.style.background = isAdmin ? 'rgba(217,119,6,0.15)' : 'var(--primary-subtle)';
                     badge.style.color = isAdmin ? 'var(--warning)' : 'var(--accent)';
-                    document.getElementById('tokenStatusEmail').textContent = data.email || 'N/A';
-                    if (data.expiry) {
-                        const expiryDate = new Date(data.expiry * 1000);
-                        const daysLeft = Math.max(0, Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24)));
-                        document.getElementById('tokenStatusExpiry').textContent = daysLeft + ' days left';
+                    // Show details grid for paid tiers, free upgrade message for free tiers
+                    const detailsGrid = document.getElementById('tokenStatusDetails');
+                    const freeMsg = document.getElementById('tokenStatusFree');
+                    if (isFreeTier) {
+                        if (detailsGrid) detailsGrid.style.display = 'none';
+                        if (freeMsg) freeMsg.style.display = 'block';
                     } else {
-                        document.getElementById('tokenStatusExpiry').textContent = 'N/A';
+                        if (detailsGrid) detailsGrid.style.display = 'grid';
+                        if (freeMsg) freeMsg.style.display = 'none';
+                        document.getElementById('tokenStatusEmail').textContent = data.email || 'N/A';
+                        if (data.expiry) {
+                            const expiryDate = new Date(data.expiry * 1000);
+                            const daysLeft = Math.max(0, Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24)));
+                            document.getElementById('tokenStatusExpiry').textContent = daysLeft + ' days left';
+                        } else {
+                            document.getElementById('tokenStatusExpiry').textContent = 'N/A';
+                        }
+                        document.getElementById('tokenStatusFeatures').textContent = (data.features && data.features.length) ? data.features.join(', ') : 'basic';
+                        document.getElementById('tokenStatusRegistered').textContent = data.registered ? 'Yes' : 'No';
                     }
-                    document.getElementById('tokenStatusFeatures').textContent = (data.features && data.features.length) ? data.features.join(', ') : 'basic';
-                    document.getElementById('tokenStatusRegistered').textContent = data.registered ? 'Yes' : 'No';
-                    const adminPanel = document.getElementById('adminPanel');
-                    if (adminPanel) adminPanel.style.display = isAdmin ? 'block' : 'none';
                 }
 
                 // "Start Scanning" — instantly generate anonymous sandbox token
