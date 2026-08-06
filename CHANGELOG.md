@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- **Added**: Husky `pre-push` hook invoking `scripts/pre-push-scan.js` to scan changed/unpushed files and block pushes with detected secrets.
+- **Added**: `scripts/pre-push-scan.js` — resilient changed-file scanner that prefers `gitleaks` (binary or `npx`) and falls back to a conservative regex-based engine when the binary is unavailable.
+- **Added**: `scripts/install-gitleaks.js` — cross-platform helper to bootstrap `gitleaks` (macOS/Homebrew, Windows/winget + PowerShell fallback; manual guidance for Linux).
+- **Changed**: `README.md` updated with onboarding instructions (`npm run install-gitleaks`) and explanation of the pre-push guard.
+- **Notes**: Security tooling and onboarding committed to branch `ci/backend-bench-pr` for review and merge.
+
+
 ## [SimpleBeacon Core Security Subsystem] - 2026-07-31
 
 ### Added
