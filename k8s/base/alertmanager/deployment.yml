@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      initContainers:
+        - name: render-alertmanager-config
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              SECRET=$(cat /etc/alertmanager.secret/api_url) ; 
+              sed "s|https://hooks.slack.com/services/REPLACE/ME|$SECRET|g" /etc/alertmanager.src/alertmanager.yml > /alertmanager-render/alertmanager.yml ;
+              # Copy templates
+              cp /etc/alertmanager.src/*.tmpl /alertmanager-render/ || true ;
+              ls -la /alertmanager-render || true
+          volumeMounts:
+            - name: alertmanager-config-src
+              mountPath: /etc/alertmanager.src
+            - name: alertmanager-secret
+              mountPath: /etc/alertmanager.secret
+            - name: alertmanager-render
+              mountPath: /alertmanager-render
+
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.25.0
+          args:
+            - "--config.file=/etc/alertmanager/alertmanager.yml"
+          ports:
+            - containerPort: 9093
+              name: web
+          volumeMounts:
+            - name: alertmanager-render
+              mountPath: /etc/alertmanager
+            - name: alertmanager-data
+              mountPath: /alertmanager
+        - name: configmap-reloader
+          image: jimmidyson/configmap-reload:v0.5.0
+          args:
+            - --volume-dir=/etc/alertmanager
+            - --webhook-url=http://localhost:9093/-/reload
+          volumeMounts:
+            - name: alertmanager-render
+              mountPath: /etc/alertmanager
+          resources:
+            limits:
+              cpu: 100m
+              memory: 5Mi
+            requests:
+              cpu: 10m
+              memory: 5Mi
+      volumes:
+        - name: alertmanager-config-src
+          configMap:
+            name: alertmanager-config
+        - name: alertmanager-secret
+          secret:
+            secretName: alertmanager-slack-webhook
+        - name: alertmanager-render
+          emptyDir: {}
+        - name: alertmanager-data
+          persistentVolumeClaim:
+            claimName: alertmanager-data
