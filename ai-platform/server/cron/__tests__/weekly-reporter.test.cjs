@@ -60,6 +60,10 @@ function createReporter(options) {
   }
 
   var mod = loadReporter(stubs);
+  // Also set the email service explicitly on the loaded module so tests are deterministic
+  try {
+    if (mod && typeof mod.setEmailServiceForTests === 'function') mod.setEmailServiceForTests(stubs['email-service.cjs']);
+  } catch (e) {}
   return { mod: mod, sentEmails: sentEmails };
 }
 

@@ -15,7 +15,19 @@
  */
 
 const { generateDashboardMetrics } = require('../lib/dashboard-analytics.cjs');
-const { sendEmail } = require('../lib/email-service.cjs');
+// Email service reference. In production this loads the real implementation.
+let _emailService = null;
+
+function getEmailService() {
+  if (_emailService) return _emailService;
+  _emailService = require('../lib/email-service.cjs');
+  return _emailService;
+}
+
+// Test helper to override email service in tests
+function setEmailServiceForTests(es) {
+  _emailService = es;
+}
 
 /**
  * Isolates historical telemetry records for a targeted organization over
@@ -117,7 +129,9 @@ async function executeWeeklyReportingJob(activeSubscriptions) {
       var metrics = generateDashboardMetrics(records);
       var htmlContent = compileWeeklyReportHTML(subscription.orgName, metrics);
 
-      await sendEmail({
+      // Use accessor so tests can override the email service
+      var emailService = getEmailService();
+      await emailService.sendEmail({
         to: subscription.adminEmail,
         subject: 'SimpleBeacon Weekly Compliance Report: Grade ' + metrics.currentGrade + ' for ' + subscription.orgName,
         html: htmlContent
@@ -138,4 +152,5 @@ module.exports = {
   fetchWeeklyOrganizationRecords: fetchWeeklyOrganizationRecords,
   compileWeeklyReportHTML: compileWeeklyReportHTML,
   executeWeeklyReportingJob: executeWeeklyReportingJob
+  , setEmailServiceForTests: setEmailServiceForTests
 };
