@@ -249,6 +249,48 @@ jobs:
           name: simplebeacon-report
           path: .simplebeacon/report.json
 
+  redis-integration:
+    name: Redis integration (onboarding rate limiter)
+    needs: token-schema
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://redis:6379
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for Redis
+        run: |
+          echo "Waiting for Redis service to be healthy..."
+          for i in {1..20}; do
+            redis-cli -h redis ping && break || sleep 1
+          done
+
+      - name: Run Redis integration test
+        run: |
+          node --test ai-platform/src/api/__tests__/enterprise-onboard-redis.test.cjs
+
+
   dashboard-watchdog:
     name: Dashboard Watchdog
     needs: [simplebeacon-ai-platform, simplebeacon-packages, simplebeacon-coming-soon]
