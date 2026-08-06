@@ -249,6 +249,44 @@ jobs:
           name: simplebeacon-report
           path: .simplebeacon/report.json
 
+  container-security:
+    name: Container security (Trivy)
+    needs: gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build coming-soon image
+        run: |
+          docker build -t sb-coming-soon:pr -f coming-soon/Dockerfile coming-soon
+
+      - name: Build ai-platform pipeline image
+        run: |
+          docker build -t ai-platform-pipeline:pr -f ai-platform/pipeline/Dockerfile ai-platform
+
+      - name: Scan coming-soon image with Trivy
+        uses: aquasecurity/trivy-action@v0.11.0
+        with:
+          image-ref: sb-coming-soon:pr
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Scan ai-platform image with Trivy
+        uses: aquasecurity/trivy-action@v0.11.0
+        with:
+          image-ref: ai-platform-pipeline:pr
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
   redis-integration:
     name: Redis integration (onboarding rate limiter)
     needs: token-schema
