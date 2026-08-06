@@ -87,4 +87,31 @@ describe('Track112 upload routes (integration)', () => {
     expect(res.headers['x-track112-trace-id']).toBe(traceId);
     expect(res.body.traceId).toBe(traceId);
   }, 20000);
+
+  test('missing publicKey or signature returns 400 and increments failure counter', async () => {
+    const createRes = await request(app)
+      .post('/api/track112/uploads')
+      .send({ tenant: 't1', maxBytes: 8192 })
+      .set('Accept', 'application/json');
+    const id = createRes.body.sessionId;
+
+    const commitRes = await request(app)
+      .post(`/api/track112/uploads/${id}/commit`)
+      .send({})
+      .set('Accept', 'application/json');
+    expect(commitRes.status).toBe(400);
+    expect(commitRes.body.error).toBe('missing_publicKey_or_signature');
+    expect(hsmMetrics.getMetrics().hsm_track112_upload_commit_failed_total).toBe(1);
+  }, 20000);
+
+  test('chunk write to non-existent session increments chunk failure counter', async () => {
+    const chunk = Buffer.alloc(4096, 'b');
+    const chunkRes = await request(app)
+      .post('/api/track112/uploads/nonexistent-session/chunk?offset=0')
+      .set('Content-Type', 'application/octet-stream')
+      .send(chunk);
+    expect(chunkRes.status).toBe(500);
+    expect(hsmMetrics.getMetrics().hsm_track112_upload_chunk_failed_total).toBe(1);
+    expect(hsmMetrics.getMetrics().hsm_track112_upload_chunk_total).toBe(0);
+  }, 20000);
 });
