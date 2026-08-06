@@ -262,6 +262,8 @@ function subscriptionRecord(email, overrides = {}) {
     certOrgId: 'default',
     customConfigEnabled: false,
     allowlistEnabled: false,
+    seatCount: 1,
+    extraSeats: 0,
     ...overrides
   };
 }

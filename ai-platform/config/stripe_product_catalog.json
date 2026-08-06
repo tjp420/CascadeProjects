@@ -67,6 +67,41 @@
           }
         }
       ]
+    },
+    {
+      "id": "prod_extra_seat_addon",
+      "name": "Extra Team Seat",
+      "description": "Additional seat beyond the 5 included in Team Pro. Billed per seat with the same interval as the base subscription.",
+      "active": true,
+      "metadata": {
+        "tier": "team_pro",
+        "internal_product_key": "extra_seat_addon",
+        "addon": "true"
+      },
+      "prices": [
+        {
+          "id": "price_seat_addon_monthly",
+          "nickname": "Extra Seat Monthly",
+          "billing_scheme": "per_unit",
+          "currency": "usd",
+          "unit_amount": 1500,
+          "recurring": {
+            "interval": "month",
+            "interval_count": 1
+          }
+        },
+        {
+          "id": "price_seat_addon_annual",
+          "nickname": "Extra Seat Annual",
+          "billing_scheme": "per_unit",
+          "currency": "usd",
+          "unit_amount": 15000,
+          "recurring": {
+            "interval": "year",
+            "interval_count": 1
+          }
+        }
+      ]
     }
   ]
 }

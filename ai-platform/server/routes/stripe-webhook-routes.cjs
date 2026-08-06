@@ -145,6 +145,8 @@ async function handleCheckoutCompleted(event, headers = {}) {
   const customerId = session.customer;
   const subscriptionId = session.subscription;
   const priceId = session.metadata?.price_id || extractPriceIdFromSession(session);
+  const extraSeatsRaw = session.metadata?.extraSeats || session.metadata?.extra_seats || '0';
+  const extraSeatsCount = Math.max(0, Math.min(50, parseInt(extraSeatsRaw, 10) || 0));
 
   if (!customerEmail) {
     logger.warn('[StripeWebhook] checkout.session.completed: no customer email in session', session.id);
@@ -155,23 +157,33 @@ async function handleCheckoutCompleted(event, headers = {}) {
   const tierConfig = priceId ? getTierConfigByPriceId(priceId) : null;
   const tier = tierConfig?.tier || 'pro';
 
-  logger.info('[StripeWebhook] Activating subscription for', customerEmail, 'tier:', tier);
+  logger.info('[StripeWebhook] Activating subscription for', customerEmail, 'tier:', tier, 'extraSeats:', extraSeatsCount);
 
   // Activate subscription in store
+  // Team Pro base includes 5 seats; extraSeats adds beyond that.
+  const baseSeats = tier === 'team_pro' ? 5 : 1;
+  const totalSeats = tier === 'team_pro' ? baseSeats + extraSeatsCount : 1;
+
   await setSubscriptionActive(customerEmail, true, {
     tier,
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId,
     stripePriceId: priceId,
-    periodStart: new Date().toISOString()
+    periodStart: new Date().toISOString(),
+    seatCount: totalSeats,
+    extraSeats: extraSeatsCount
   });
 
   // Build email content — include license token if provided by the Worker
   const licenseToken = headers.licenseToken || '';
   const licenseTier = headers.licenseTier || tier;
 
-  let emailText = `Your SimpleBeacon ${tier} subscription is now active.\n\nYou can start using all ${tier} tier features immediately.\n\nThank you for your purchase.`;
-  let emailHtml = `<h2>Subscription Activated</h2><p>Your SimpleBeacon <strong>${tier}</strong> subscription is now active.</p><p>You can start using all ${tier} tier features immediately.</p><p>Thank you for your purchase.</p>`;
+  const seatSummary = extraSeatsCount > 0
+    ? `\n\nYour Team Pro subscription includes 5 base seats plus ${extraSeatsCount} extra seat${extraSeatsCount === 1 ? '' : 's'} (${totalSeats} total).`
+    : (tier === 'team_pro' ? '\n\nYour Team Pro subscription includes 5 seats.' : '');
+
+  let emailText = `Your SimpleBeacon ${tier} subscription is now active.\n\nYou can start using all ${tier} tier features immediately.${seatSummary}\n\nThank you for your purchase.`;
+  let emailHtml = `<h2>Subscription Activated</h2><p>Your SimpleBeacon <strong>${tier}</strong> subscription is now active.</p><p>You can start using all ${tier} tier features immediately.</p>${extraSeatsCount > 0 ? `<p>Your Team Pro subscription includes 5 base seats plus <strong>${extraSeatsCount} extra seat${extraSeatsCount === 1 ? '' : 's'}</strong> (${totalSeats} total).</p>` : (tier === 'team_pro' ? '<p>Your Team Pro subscription includes 5 seats.</p>' : '')}<p>Thank you for your purchase.</p>`;
 
   if (licenseToken) {
     emailText += `\n\n--- Your License Key ---\n${licenseToken}\n------------------------\n\nKeep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.\n\nYou can also retrieve it anytime from your dashboard: https://simplebeacon.ai`;
@@ -195,7 +207,9 @@ async function handleCheckoutCompleted(event, headers = {}) {
     email: customerEmail,
     priceId: priceId,
     amount: alertAmount,
-    customerId: customerId
+    customerId: customerId,
+    extraSeats: extraSeatsCount,
+    totalSeats: totalSeats
   });
   if (alertResult.sent) {
     logger.info('[StripeWebhook] Purchase alert sent to', alertResult.platform, 'for tier:', tier);
