@@ -1,0 +1,81 @@
+name: Stripe Billing & Tier Compliance Check
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ai-platform/server/config/stripe.cjs'
+      - 'ai-platform/src/api/billing/**'
+      - 'ai-platform/config/stripe_product_catalog.json'
+      - 'ai-platform/server/routes/stripe-webhook-routes.cjs'
+      - 'ai-platform/server/routes/stripe-webhook-routes.test.cjs'
+      - 'ai-platform/test-fixtures/stripe/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ai-platform/server/config/stripe.cjs'
+      - 'ai-platform/src/api/billing/**'
+      - 'ai-platform/config/stripe_product_catalog.json'
+      - 'ai-platform/server/routes/stripe-webhook-routes.cjs'
+      - 'ai-platform/server/routes/stripe-webhook-routes.test.cjs'
+      - 'ai-platform/test-fixtures/stripe/**'
+
+jobs:
+  compliance-test:
+    name: Stripe Tier Mapping & Billing Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Tree
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ai-platform/package.json
+
+      - name: Install Dependencies
+        working-directory: ai-platform
+        run: |
+          set -e
+          npm install --ignore-scripts
+
+      - name: Run Webhook Tier Mapping Tests (Node Test Runner)
+        working-directory: ai-platform
+        run: |
+          node --test server/routes/stripe-webhook-routes.test.cjs
+
+      - name: Run Billing & Email Template Tests (Jest)
+        working-directory: ai-platform
+        run: |
+          ./node_modules/.bin/jest --config jest.config.cjs src/api/billing --verbose
+
+      - name: Validate Stripe Product Catalog Schema
+        working-directory: ai-platform
+        run: |
+          node -e "
+            const fs = require('fs');
+            const catalog = JSON.parse(fs.readFileSync('config/stripe_product_catalog.json', 'utf8'));
+            const requiredPriceIds = [
+              'price_developer_monthly',
+              'price_developer_annual',
+              'price_team_pro_monthly',
+              'price_team_pro_annual'
+            ];
+            const foundPriceIds = [];
+            for (const product of catalog.products) {
+              for (const price of product.prices) {
+                foundPriceIds.push(price.id);
+              }
+            }
+            const missing = requiredPriceIds.filter(id => !foundPriceIds.includes(id));
+            if (missing.length > 0) {
+              console.error('Missing price IDs in catalog:', missing);
+              process.exit(1);
+            }
+            console.log('All', requiredPriceIds.length, 'required price IDs present in catalog');
+          "
