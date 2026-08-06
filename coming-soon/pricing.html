@@ -853,11 +853,11 @@
         return false;
       }
 
-      // Subscription tiers: pro/compliance
-      var subscriptionTiers = ['startup_shield', 'compliance_suite'];
+      // Subscription tiers: developer/team_pro
+      var subscriptionTiers = ['developer_tier', 'team_pro_tier'];
       if (subscriptionTiers.indexOf(product) >= 0) {
-        var subTierMap = { startup_shield: 'pro', compliance_suite: 'compliance' };
-        var subTier = subTierMap[product] || 'pro';
+        var subTierMap = { developer_tier: 'developer', team_pro_tier: 'team_pro' };
+        var subTier = subTierMap[product] || 'developer';
         var payload = { email: email, projectName: projectName, clientName: clientName || email, tier: subTier, mode: isAnnual ? 'annual' : 'monthly' };
         var referralSlug = getReferralSlug();
         if (referralSlug) payload.referralSlug = referralSlug;
