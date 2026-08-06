@@ -43,9 +43,9 @@
     "install-gitleaks": "node .simplebeacon/qa/install-gitleaks.cjs",
     "dashboard:start": "node scripts/start-dashboard.js",
     "test:dashboard-health": "node scripts/verify-dashboard-health.js",
-    "dashboard:mock": "node scripts/generate-mock-report.js"
-    ,"build:ci": "node scripts/build-ci.js"
-    ,"verify:deployment": "node ai-platform/tools/verify-deployment.cjs"
+    "dashboard:mock": "node scripts/generate-mock-report.js",
+    "build:ci": "node scripts/build-ci.js",
+    "verify:deployment": "node ai-platform/tools/verify-deployment.cjs"
   },
  
   "prepare": "husky install",

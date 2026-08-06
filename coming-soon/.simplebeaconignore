@@ -39,6 +39,7 @@ report-fresh.json
 test-*.js
 *.test.js
 *.spec.js
+__audit-free-test.cjs
 
 # Dev scripts falsely flagged as debug artifacts
 pre-commit-hook.*

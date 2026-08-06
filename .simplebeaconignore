@@ -222,6 +222,9 @@ packages/simplebeacon-cli/test-cert/
 **/*.spec.ts
 **/__tests__/
 
+# Ignore audit test fixtures with intentional fake Stripe keys (test data, not production)
+coming-soon/__audit-free-test.cjs
+
 # Ignore lockfiles and generated outputs
 package-lock.json
 **/package-lock.json
