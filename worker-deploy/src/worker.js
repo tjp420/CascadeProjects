@@ -554,5 +554,20 @@ export default {
     }
 
     return textResponse('Not Found', 404, corsOrigin || '');
-  }
+  },
+
+  // Scheduled event: keep Render backend warm every 10 minutes
+  // Render free tier spins down after 15 min of inactivity, causing 502s
+  async scheduled(event, env) {
+    const backendUrl = String(env.API_BACKEND || '');
+    if (!backendUrl) return;
+    try {
+      await fetch(backendUrl.replace(/\/+$/, '') + '/api/health', {
+        method: 'GET',
+        headers: { 'User-Agent': 'simplebeacon-keepalive/1.0' },
+      });
+    } catch (_) {
+      // Backend may still be spinning up — ignore errors
+    }
+  },
 };

@@ -22,5 +22,10 @@
   },
   "vars": {
     "API_BACKEND": "https://cascadeprojects-yzzd.onrender.com"
+  },
+  "triggers": {
+    "crons": [
+      "*/10 * * * *"
+    ]
   }
 }
