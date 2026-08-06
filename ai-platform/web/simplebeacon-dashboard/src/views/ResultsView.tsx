@@ -143,7 +143,7 @@ export function ResultsView() {
         const storageHint = localStorage.getItem('sb_last_scan_report_storage');
         const hasReport = !!localStorage.getItem('sb_last_scan_report');
         if (!hasReport && storageHint === 'indexeddb') {
-          const r = await getLargeItem('sb_last_scan_report');
+          const r = await getLargeItem<any>('sb_last_scan_report');
           if (!cancelled && r) {
             setFullReport(r);
             // Try to hydrate the lightweight `result` summary if present inside the payload

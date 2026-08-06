@@ -23,9 +23,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: 'src/main.tsx',
         output: {
-          entryFileNames: 'js/[name]-[hash].js',
-          chunkFileNames: 'js/[name]-[hash].js',
-          assetFileNames: 'assets/[name]-[hash].[ext]',
+          entryFileNames: '[name]-[hash].js',
+          chunkFileNames: '[name]-[hash].js',
+          assetFileNames: '[name]-[hash].[ext]',
           manualChunks: {
             // Split heavy third-party dependencies so no single chunk exceeds ~500 KB
             'vendor-react': ['react', 'react-dom'],

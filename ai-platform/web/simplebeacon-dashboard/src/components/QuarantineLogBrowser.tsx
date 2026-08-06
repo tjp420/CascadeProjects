@@ -116,7 +116,7 @@ export function QuarantineLogBrowser() {
 
   const fetchQuarantine = useCallback(async () => {
     try {
-      const resp = await fetch(apiUrl('/api/audit/quarantine'), {
+      const resp = await fetch(apiUrl('audit/quarantine'), {
         headers: authHeaders(),
         credentials: 'include',
       });
@@ -153,7 +153,7 @@ export function QuarantineLogBrowser() {
   const handleHeal = useCallback(async () => {
     setHealing(true);
     try {
-      const resp = await fetch(apiUrl('/api/audit/heal-chain'), {
+      const resp = await fetch(apiUrl('audit/heal-chain'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         credentials: 'include',
@@ -180,7 +180,7 @@ export function QuarantineLogBrowser() {
     setVerifying(true);
     setVerifyResult(null);
     try {
-      const resp = await fetch(apiUrl('/api/audit/quarantine/verify-entry'), {
+      const resp = await fetch(apiUrl('audit/quarantine/verify-entry'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         credentials: 'include',

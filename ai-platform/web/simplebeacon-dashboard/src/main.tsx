@@ -9,7 +9,7 @@ import { clearAuthAndRedirect } from './config';
 // reachable by Playwright via a deterministic `data-testid` attribute.
 // This keeps tests stable without touching many template files.
 try {
-  const setSpinnerTestId = (el) => {
+  const setSpinnerTestId = (el: Element) => {
     try {
       if (el && el.classList && el.classList.contains('loading-spinner') && !el.hasAttribute('data-testid')) {
         el.setAttribute('data-testid', 'loading-spinner');
@@ -27,16 +27,16 @@ try {
     const mo = new MutationObserver((mutations) => {
       for (const m of mutations) {
         if (m.type === 'childList') {
-          m.addedNodes.forEach((n) => {
-            if (n && n.querySelectorAll) {
-              n.querySelectorAll('.loading-spinner').forEach(setSpinnerTestId);
+          m.addedNodes.forEach((n: Node) => {
+            if (n && (n as Element).querySelectorAll) {
+              (n as Element).querySelectorAll('.loading-spinner').forEach(setSpinnerTestId);
             }
-            if (n && n.classList && n.classList.contains && n.classList.contains('loading-spinner')) {
-              setSpinnerTestId(n);
+            if (n && (n as Element).classList && (n as Element).classList.contains && (n as Element).classList.contains('loading-spinner')) {
+              setSpinnerTestId(n as Element);
             }
           });
         } else if (m.type === 'attributes' && m.target) {
-          setSpinnerTestId(m.target);
+          setSpinnerTestId(m.target as Element);
         }
       }
     });

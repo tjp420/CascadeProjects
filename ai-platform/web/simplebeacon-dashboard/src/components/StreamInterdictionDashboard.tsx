@@ -84,10 +84,11 @@ export function StreamInterdictionDashboard() {
   const [recordingDetail, setRecordingDetail] = useState('');
   const [recording, setRecording] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fetchErrorRef = useRef(false);
 
   const fetchStatus = useCallback(async () => {
     try {
-      const resp = await fetch(apiUrl('/api/audit/interdiction/stream/status'), {
+      const resp = await fetch(apiUrl('audit/interdiction/stream/status'), {
         headers: authHeaders(),
         credentials: 'include',
       });
@@ -97,9 +98,15 @@ export function StreamInterdictionDashboard() {
       }
       const data = await resp.json();
       setStatus(data);
+      fetchErrorRef.current = false;
     } catch (err) {
       // Non-fatal — dashboard degrades gracefully
       console.warn('[StreamInterdiction] fetch failed:', err);
+      // Stop polling after first failure to avoid console spam on missing endpoints
+      if (!fetchErrorRef.current) {
+        fetchErrorRef.current = true;
+        setAutoRefresh(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -127,7 +134,7 @@ export function StreamInterdictionDashboard() {
   const handleClear = useCallback(async () => {
     setClearing(true);
     try {
-      const resp = await fetch(apiUrl('/api/audit/interdiction/stream/clear'), {
+      const resp = await fetch(apiUrl('audit/interdiction/stream/clear'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         credentials: 'include',
@@ -153,7 +160,7 @@ export function StreamInterdictionDashboard() {
     }
     setRecording(true);
     try {
-      const resp = await fetch(apiUrl('/api/audit/interdiction/stream/record'), {
+      const resp = await fetch(apiUrl('audit/interdiction/stream/record'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         credentials: 'include',
