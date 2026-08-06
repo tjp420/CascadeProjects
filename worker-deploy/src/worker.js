@@ -168,6 +168,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const corsOrigin = getCorsOrigin(request, env);
+    const debugPath = url.pathname;
 
     if (request.method === 'OPTIONS') {
       const headers = {
@@ -207,15 +208,25 @@ export default {
       return assetResp;
     }
 
-    // SPA fallback for /app/ exact path — redirect to /dashboard/ which serves
-    // the same content. The ASSETS binding has a persistent cache for /app/ paths
-    // that ignores new uploads, so we redirect to /dashboard/ which works correctly.
+    // Redirect all /app/* SPA routes to /dashboard/* — the ASSETS binding has a
+    // persistent CDN cache for /app/ paths that serves stale HTML. /dashboard/
+    // serves the correct bundle. Hash fragments (#/signin) are client-side only
+    // and preserved automatically by the browser across same-origin redirects.
     if (url.pathname === '/app' || url.pathname === '/app/') {
-      return Response.redirect(new URL('/dashboard/', url.origin).toString(), 302);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': new URL('/dashboard/', url.origin).toString(),
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'CDN-Cache-Control': 'no-store',
+          'X-SB-Worker': 'app-redirect'
+        }
+      });
     }
-    if (url.pathname.startsWith('/app/') && url.pathname.includes('#')) {
-      const hash = url.pathname.substring(url.pathname.indexOf('#'));
-      return Response.redirect(new URL('/dashboard/' + hash, url.origin).toString(), 302);
+    // Redirect /app/<non-asset-path> to /dashboard/<non-asset-path>
+    if (url.pathname.startsWith('/app/') && !url.pathname.startsWith('/app/assets/') && !url.pathname.startsWith('/app/js/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+      const newPath = '/dashboard/' + url.pathname.substring(5);
+      return Response.redirect(new URL(newPath, url.origin).toString(), 302);
     }
 
     // Redirect /demo to the landing page
@@ -457,9 +468,60 @@ export default {
       }
     }
 
+    // HTML route handling — with html_handling: "none", the ASSETS binding won't
+    // auto-serve index.html for directory paths. We handle HTML serving here.
+    // Root landing page
+    if (url.pathname === '/' || url.pathname === '') {
+      const assetUrl = new URL('/index.html', url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const resp = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
+      if (resp.ok) {
+        const body = await resp.text();
+        const headers = new Headers();
+        headers.set('Content-Type', 'text/html; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-SB-Worker', 'root-html');
+        return new Response(body, { status: 200, headers });
+      }
+    }
+
+    // Dashboard entry HTML — serve for /dashboard/ and /dashboard/<spa-route>
+    if (url.pathname === '/dashboard' || url.pathname === '/dashboard/' ||
+        (url.pathname.startsWith('/dashboard/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i) &&
+         !url.pathname.startsWith('/dashboard/assets/'))) {
+      const assetUrl = new URL('/dashboard/entry-20260806.html', url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const resp = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
+      if (resp.ok) {
+        const body = await resp.text();
+        const headers = new Headers();
+        headers.set('Content-Type', 'text/html; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-SB-Worker', 'dashboard-html');
+        return new Response(body, { status: 200, headers });
+      }
+    }
+
+    // Other HTML pages (landing pages like /pricing, /faq, etc.)
+    if (url.pathname.endsWith('.html') || (!url.pathname.includes('.') && url.pathname !== '/')) {
+      const tryPath = url.pathname.endsWith('.html') ? url.pathname : url.pathname + '.html';
+      const assetUrl = new URL(tryPath, url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const resp = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
+      if (resp.ok) {
+        const body = await resp.text();
+        const headers = new Headers();
+        headers.set('Content-Type', 'text/html; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-SB-Worker', 'page-html');
+        return new Response(body, { status: 200, headers });
+      }
+    }
+
     // Catch-all: serve static files from ASSETS binding
-    // With html_handling: "none", the ASSETS binding won't auto-serve HTML,
-    // so we handle all static file serving through the Worker.
     const assetResp = await env.ASSETS.fetch(request);
     if (assetResp.ok) {
       const headers = new Headers(assetResp.headers);
@@ -470,24 +532,8 @@ export default {
         headers.set('Content-Type', 'text/css; charset=utf-8');
       }
       headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('X-SB-Worker', 'catchall-assets');
       return new Response(assetResp.body, { status: assetResp.status, headers });
-    }
-
-    // SPA fallback: serve index.html for any unmatched non-file path
-    if (!url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
-      const isApp = url.pathname.startsWith('/app');
-      const entryPath = isApp ? '/app/entry-20260806.html' : '/dashboard/entry-20260806.html';
-      const assetUrl = new URL(entryPath, url.origin);
-      assetUrl.searchParams.set('_cb', Date.now().toString());
-      const candidate = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
-      if (candidate.ok) {
-        const body = await candidate.text();
-        const headers = new Headers();
-        headers.set('Content-Type', 'text/html; charset=utf-8');
-        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-        headers.set('CDN-Cache-Control', 'no-store');
-        return new Response(body, { status: 200, headers });
-      }
     }
 
     return textResponse('Not Found', 404, corsOrigin || '');
