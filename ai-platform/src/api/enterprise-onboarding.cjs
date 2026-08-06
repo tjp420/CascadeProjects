@@ -220,12 +220,33 @@ steps:
  * @returns {void}
  */
 function setupEnterpriseOnboardingRoutes(app) {
-  const enterpriseRateLimit = require('express-rate-limit')({
-    windowMs: 60 * 1000,
-    max: 20,
+  const rateLimit = require('express-rate-limit');
+  const enterpriseRateLimit = rateLimit({
+    // Configurable via environment for CI/test overrides
+    windowMs: Number(process.env.ONBOARD_RATE_WINDOW_MS || 60 * 1000),
+    max: Number(process.env.ONBOARD_RATE_LIMIT_MAX || 20),
     standardHeaders: true,
     legacyHeaders: false,
-    handler: (req, res) => res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' })
+    // Use adminEmail (if provided) to key requests per-account, otherwise fall back to IP
+    keyGenerator: (req /*, res*/) => {
+      try {
+        const bodyEmail = req.body && req.body.adminEmail ? normalizeEmail(req.body.adminEmail) : null;
+        if (bodyEmail) return bodyEmail;
+        // Use the library helper for IPv6-safe IP key generation when available
+        const ip = String(req.ip || '');
+        if (ip.includes(':') && typeof rateLimit.ipKeyGenerator === 'function') {
+          return rateLimit.ipKeyGenerator(req);
+        }
+        return ip || req.connection?.remoteAddress || '';
+      } catch (e) {
+        return req.ip || '';
+      }
+    },
+    handler: (req, res) => {
+      const retrySecs = Math.ceil(Number(process.env.ONBOARD_RATE_WINDOW_MS || 60000) / 1000);
+      res.set('Retry-After', String(retrySecs));
+      return res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' });
+    }
   });
 
   // ── POST /api/enterprise/onboard ──
