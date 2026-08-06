@@ -363,3 +363,42 @@ pr-302-body.txt
 test-output*.txt
 test-tokens.txt
 vsix-dirs*.txt
+
+# Windsurf AI agent plan files (4,600+ auto-generated plans)
+.windsurf/
+
+# Git worktrees (track-based and architecture-based)
+track*-groundwork/
+master-architecture-*/
+release-notes-*/
+CascadeProjects_wt_*/
+track113-worktree/
+track*-dynamic-rescaling/
+track42-*/
+track43-groundwork/
+option3-telemetry-wt/
+pipeline-lockdown-and-retrospective/
+temp_mpc_clone/
+cascade-integration/
+
+# Runtime test data (Track112 upload sessions)
+ai-platform/.data/
+
+# Personal environment files
+.gitconfig
+.viminfo
+.node_repl_history
+.ollama/
+.obs64/
+.chocolatey/
+.config/
+.dotnet/
+
+# Root-level scratch docs (not project source)
+KICKOFF_AGENDA.md
+PR_BODY.md
+EPIC_STATUS.md
+BACKEND_SPRINT_TODO.md
+DEPLOYMENT_COMPLETION_CHECKLIST.md
+OBSERVABILITY_CHEATSHEET.md
+P_WEEK1_FEEDBACK_TEMPLATE.md
