@@ -45,6 +45,7 @@
     "test:dashboard-health": "node scripts/verify-dashboard-health.js",
     "dashboard:mock": "node scripts/generate-mock-report.js"
     ,"build:ci": "node scripts/build-ci.js"
+    ,"verify:deployment": "node ai-platform/tools/verify-deployment.cjs"
   },
  
   "prepare": "husky install",
