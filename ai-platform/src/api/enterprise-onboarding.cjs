@@ -120,6 +120,34 @@ function provisionSeat(orgId, email, licenseSecret) {
     scanQuota: Infinity
   });
 
+  // Try to use the repository's distributed Redis-backed limiter when possible.
+  const redisRateLimiterPath = '../../server/lib/redis-rate-limiter.cjs';
+  let rateLimiterMiddleware = enterpriseRateLimit; // default fallback
+  try {
+    // Require but don't crash if ioredis not installed or Redis unreachable
+    const redisLimiter = require(redisRateLimiterPath);
+    const usingRedis = redisLimiter && redisLimiter._debug && typeof redisLimiter._debug.usingRedis === 'function' && redisLimiter._debug.usingRedis();
+    if (usingRedis && typeof redisLimiter.checkAndRecordRateLimit === 'function') {
+      rateLimiterMiddleware = async function (req, res, next) {
+        try {
+          const bodyEmail = req.body && req.body.adminEmail ? normalizeEmail(req.body.adminEmail) : null;
+          const key = bodyEmail || String(req.ip || req.connection?.remoteAddress || 'unknown');
+          const result = await redisLimiter.checkAndRecordRateLimit(key);
+          if (result && result.allowed) return next();
+          const retryMs = result && result.retryAfterMs ? Number(result.retryAfterMs) : Number(process.env.ONBOARD_RATE_WINDOW_MS || 60000);
+          const retrySecs = Math.ceil(retryMs / 1000);
+          res.set('Retry-After', String(retrySecs));
+          return res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' });
+        } catch (err) {
+          logger.warn('[Enterprise] Redis rate limiter failed, falling back to in-process limiter:', err && err.message);
+          return enterpriseRateLimit(req, res, next);
+        }
+      };
+    }
+  } catch (e) {
+    // If the requiring of the adapter fails, keep the in-process express-rate-limit.
+  }
+
   insertLicenseToken({
     token: licenseToken,
     email: normalizedEmail.toLowerCase(),
@@ -250,7 +278,7 @@ function setupEnterpriseOnboardingRoutes(app) {
   });
 
   // ── POST /api/enterprise/onboard ──
-  app.post('/api/enterprise/onboard', enterpriseRateLimit, async (req, res) => {
+  app.post('/api/enterprise/onboard', rateLimiterMiddleware, async (req, res) => {
     try {
       const {
         companyName,
@@ -396,7 +424,7 @@ function setupEnterpriseOnboardingRoutes(app) {
   });
 
   // ── POST /api/enterprise/organizations/:orgId/seats ──
-  app.post('/api/enterprise/organizations/:orgId/seats', enterpriseRateLimit, async (req, res) => {
+  app.post('/api/enterprise/organizations/:orgId/seats', rateLimiterMiddleware, async (req, res) => {
     try {
       const { email } = req.body || {};
       if (!email || !normalizeEmail(email)) {
@@ -498,7 +526,7 @@ function setupEnterpriseOnboardingRoutes(app) {
   });
 
   // ── POST /api/enterprise/trial ──
-  app.post('/api/enterprise/trial', enterpriseRateLimit, async (req, res) => {
+  app.post('/api/enterprise/trial', rateLimiterMiddleware, async (req, res) => {
     try {
       const { companyName, adminEmail, contactName, seatCount = 5 } = req.body || {};
 
@@ -605,7 +633,7 @@ function setupEnterpriseOnboardingRoutes(app) {
   });
 
   // ── POST /api/enterprise/organizations/:orgId/azure-devops ──
-  app.post('/api/enterprise/organizations/:orgId/azure-devops', enterpriseRateLimit, async (req, res) => {
+  app.post('/api/enterprise/organizations/:orgId/azure-devops', rateLimiterMiddleware, async (req, res) => {
     try {
       const store = readEnterpriseStore();
       const org = store.organizations[req.params.orgId];
