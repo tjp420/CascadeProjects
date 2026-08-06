@@ -183,6 +183,29 @@ export default {
       return new Response(null, { status: 204, headers });
     }
 
+    // Static asset passthrough for /dashboard/assets/* and /app/assets/*
+    // Fetches from ASSETS binding with cache-bust to bypass stale CDN 404s,
+    // and sets correct Content-Type for JS modules (browsers reject text/plain).
+    if (url.pathname.startsWith('/dashboard/assets/') || url.pathname.startsWith('/app/assets/')) {
+      const assetUrl = new URL(url.pathname, url.origin);
+      assetUrl.searchParams.set('_cb', Date.now().toString());
+      const assetResp = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+      if (assetResp.ok) {
+        const headers = new Headers(assetResp.headers);
+        // Force correct MIME type for JS modules (CDN may have cached text/plain 404s)
+        if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
+          headers.set('Content-Type', 'text/javascript; charset=utf-8');
+        } else if (url.pathname.endsWith('.css')) {
+          headers.set('Content-Type', 'text/css; charset=utf-8');
+        }
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-Content-Type-Options', 'nosniff');
+        return new Response(assetResp.body, { status: assetResp.status, headers });
+      }
+      return assetResp;
+    }
+
     // Redirect /demo to the landing page
     if (url.pathname === '/demo' || url.pathname.startsWith('/demo/')) {
       return Response.redirect(new URL('/', url.origin).toString(), 302);
