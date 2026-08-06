@@ -6,27 +6,28 @@
  * The default `simplebeacon scan --gate` walks the whole project root (100k+ files),
  * which takes 600+ seconds and times out. This wrapper:
  *   1. Gets the list of staged files via `git diff --cached`
- *   2. Extracts unique parent directories
- *   3. Writes a temporary config with scanPaths limited to those dirs
- *  4. Runs the gate scan with that config
- *  5. Cleans up the temp config
+ *   2. Copies them to a temp directory preserving directory structure
+ *   3. Runs the gate scan against the temp directory
+ *   4. Cleans up the temp directory
+ *
+ * This guarantees the scan only sees staged files, regardless of repo size.
  *
  * Usage:  node .simplebeacon/qa/pre-commit-gate.cjs
  * Exit:   0 = gate pass, 1 = gate fail, 2 = error
  */
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync, spawnSync } = require('child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const TEMP_CONFIG = path.join(REPO_ROOT, '.simplebeacon', 'config-precommit.json');
 
 // File extensions worth scanning (skip binary, docs, etc.)
 const SCANNABLE_EXT = /\.(js|cjs|mjs|ts|tsx|jsx|json|yml|yaml|xml|sh|bat|ps1|py|go|rs|java|rb|php|cs|env|ini|cfg|conf|toml|md)$/i;
 
 /**
  * Get staged files that are scannable.
- * @returns {string[]} Repo-relative file paths.
+ * @returns {string[]} Repo-relative file paths (forward slashes).
  */
 function getStagedFiles() {
   try {
@@ -44,27 +45,6 @@ function getStagedFiles() {
   }
 }
 
-/**
- * Extract unique top-level directories from a list of file paths.
- * Limits to 2 levels deep to keep scan scope tight.
- * @param {string[]} files Repo-relative file paths.
- * @returns {string[]} Unique directory paths.
- */
-function getScanDirs(files) {
-  const dirs = new Set();
-  for (const f of files) {
-    const parts = f.split('/');
-    if (parts.length <= 1) {
-      dirs.add('.');
-      continue;
-    }
-    // Use first 2 path segments to keep scope tight but cover siblings
-    const dir = parts.slice(0, 2).join('/') + '/';
-    dirs.add(dir);
-  }
-  return Array.from(dirs);
-}
-
 // --- Main ---
 const staged = getStagedFiles();
 
@@ -73,83 +53,75 @@ if (staged.length === 0) {
   process.exit(0);
 }
 
-const scanDirs = getScanDirs(staged);
-console.log(`[pre-commit-gate] ${staged.length} staged file(s) in ${scanDirs.length} dir(s):`);
-console.log(`[pre-commit-gate]   ${scanDirs.join(', ')}`);
+console.log(`[pre-commit-gate] ${staged.length} staged file(s) to scan:`);
+console.log(`[pre-commit-gate]   ${staged.join(', ')}`);
 
-// Build a minimal pre-commit config
-// Key optimizations vs the default config:
-//   - fullDirectoryScan: false -- don't walk the entire 100k+ file tree
-//   - scanPaths narrowed to staged dirs only
-//   - excludePatterns blocks known slow/irrelevant dirs (ollama cache, backups, etc.)
-const precommitConfig = {
-  scanPaths: scanDirs,
-  productionPaths: scanDirs,
-  fullDirectoryScan: false,
-  fullDirectoryScanMaxFiles: 5000,
-  excludePatterns: [
-    'node_modules/',
-    '.git/',
-    '.ollama/',
-    'github-cache/',
-    '.simplebeacon/',
-    '.cursor/',
-    '.windsurf/',
-    'dist/',
-    'build/',
-    'coverage/',
-    '.next/',
-    'out/',
-    'target/',
-    '.wrangler/',
-    '.cargo/',
-    'backups/',
-    'deployments/',
-    '*.map',
-    '*.min.js',
-    '*.pack.js',
-  ],
-  gate: {
-    failOn: ['high'],
-    warnOn: ['medium', 'low'],
-  },
-};
+// Create a temp directory and copy staged files into it preserving structure
+const tempRoot = path.join(os.tmpdir(), `sb-precommit-${process.pid}`);
+const tempConfig = path.join(tempRoot, '.simplebeacon', 'config.json');
 
-// Write temp config
 try {
-  fs.writeFileSync(TEMP_CONFIG, JSON.stringify(precommitConfig, null, 2), 'utf8');
+  fs.mkdirSync(path.join(tempRoot, '.simplebeacon'), { recursive: true });
+
+  for (const relFile of staged) {
+    const src = path.join(REPO_ROOT, relFile);
+    const dst = path.join(tempRoot, relFile);
+    if (!fs.existsSync(src)) continue;
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(src, dst);
+  }
+
+  // Write a minimal config for the temp scan root
+  const precommitConfig = {
+    scanPaths: ['.'],
+    productionPaths: ['.'],
+    fullDirectoryScan: true,
+    fullDirectoryScanMaxFiles: 10000,
+    gate: {
+      failOn: ['high'],
+      warnOn: ['medium', 'low'],
+    },
+  };
+  fs.writeFileSync(tempConfig, JSON.stringify(precommitConfig, null, 2), 'utf8');
 } catch (e) {
-  console.error(`[pre-commit-gate] Failed to write temp config: ${e.message}`);
+  console.error(`[pre-commit-gate] Failed to set up temp scan dir: ${e.message}`);
+  // Clean up partial temp dir
+  try { fs.rmSync(tempRoot, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
   process.exit(2);
 }
 
-// Run the gate scan with the temp config
+// Run the gate scan against the temp directory
 const args = [
   'packages/simplebeacon-cli/bin/simplebeacon.js',
   'scan',
-  '--config', '.simplebeacon/config-precommit.json',
+  '--path', tempRoot,
+  '--config', path.join(tempRoot, '.simplebeacon', 'config.json'),
   '--gate',
   '--fail-on', 'high',
   '--no-trust-banner',
 ];
 
-console.log('[pre-commit-gate] Running gate scan on staged paths only...');
+console.log('[pre-commit-gate] Running gate scan on staged files only...');
 const result = spawnSync('node', args, {
   cwd: REPO_ROOT,
   stdio: 'inherit',
-  timeout: 120000, // 2 min hard cap -- fail fast instead of 10 min
+  timeout: 60000, // 1 min hard cap -- temp dir is tiny so this is plenty
 });
 
-// Clean up temp config
-try { fs.unlinkSync(TEMP_CONFIG); } catch (_e) { /* ignore */ }
+// Clean up temp directory
+try { fs.rmSync(tempRoot, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
 
 const exitCode = result.status;
 if (result.error) {
-  console.error(`[pre-commit-gate] Scan process error: ${result.error.message}`);
+  if (result.error.code === 'ETIMEDOUT') {
+    console.error('[pre-commit-gate] Scan timed out after 60s. Commit blocked.');
+  } else {
+    console.error(`[pre-commit-gate] Scan process error: ${result.error.message}`);
+  }
   process.exit(2);
 }
 if (result.status === null) {
-  console.error('[pre-commit-gate] Scan timed out after 120s. Commit blocked.');
+  console.error('[pre-commit-gate] Scan terminated abnormally. Commit blocked.');
   process.exit(1);
 }
 
