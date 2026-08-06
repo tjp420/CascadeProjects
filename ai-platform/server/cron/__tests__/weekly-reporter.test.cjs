@@ -3,6 +3,7 @@
 const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const path = require('path');
 
 const REPORTER_PATH = require.resolve('../weekly-reporter.cjs');
 
@@ -13,9 +14,9 @@ function loadReporter(stubs) {
   delete require.cache[REPORTER_PATH];
   var originalLoad = Module._load;
   Module._load = function patchedLoad(requestPath, parent, isMain) {
-    var basename = requestPath.split('/').pop();
+    var basename = path.basename(String(requestPath));
     for (var key of Object.keys(stubs)) {
-      var stubBasename = key.split('/').pop();
+      var stubBasename = path.basename(String(key));
       if (stubBasename === basename) return stubs[key];
     }
     return originalLoad.call(this, requestPath, parent, isMain);
@@ -42,6 +43,21 @@ function createReporter(options) {
       }
     }
   };
+
+  // Also inject the stub into require.cache under the real absolute module path
+  try {
+    var emailModulePath = path.resolve(__dirname, '..', '..', 'lib', 'email-service.cjs');
+    // Save for cleanup
+    global.__weekly_reporter_injected_email_module = emailModulePath;
+    require.cache[emailModulePath] = {
+      id: emailModulePath,
+      filename: emailModulePath,
+      loaded: true,
+      exports: stubs['email-service.cjs']
+    };
+  } catch (e) {
+    // best-effort; fall back to Module._load stub if resolution fails
+  }
 
   var mod = loadReporter(stubs);
   return { mod: mod, sentEmails: sentEmails };
@@ -77,6 +93,13 @@ describe('Automated Weekly Reporting Worker', () => {
 
   afterEach(() => {
     delete process.env.DASHBOARD_URL;
+    // Clean up any injected email-service cache entry
+    try {
+      if (global.__weekly_reporter_injected_email_module) {
+        delete require.cache[global.__weekly_reporter_injected_email_module];
+        delete global.__weekly_reporter_injected_email_module;
+      }
+    } catch (e) {}
   });
 
   describe('compileWeeklyReportHTML', () => {
