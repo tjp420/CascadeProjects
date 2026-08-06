@@ -1452,3 +1452,33 @@ worker-deploy/src/worker.js
 # Exported scan reports — contain KPIs that trigger self-referential fiction-KPI findings
 scan-exports/
 scan-exports/**
+
+# --- 2026-08-05: Exclude worktree duplicates and self-referential scan artifacts ---
+# Triage of simplebeacon-report-1785959950658.json showed the gate failure was driven
+# by ~Nx duplication across git worktrees and the scanner scanning its own output.
+# See C:\Users\user\.devin\plans\plan-9f7bd863c42ed672.md for full analysis.
+
+# Git worktrees — near-identical copies that inflate finding counts.
+# Each has its own .simplebeaconignore for standalone scans when needed.
+CascadeProjects_wt_*/
+cascade-integration/
+master-architecture-*/
+track*-groundwork/
+track42-*/
+release-notes-*/
+option3-telemetry-wt/
+pipeline-lockdown-and-retrospective/
+temp_mpc_clone/
+track113-worktree/
+
+# Self-referential scan artifacts — scanner scanning its own output JSON.
+# These contain file listings (e.g. conformity-declaration.md) that trigger euAiAct rules.
+**/scan-output.json
+**/scan-output.schema.json
+
+# Test fixtures with intentional fake credentials (false positives for credentials engine).
+# __audit-free-test.cjs embeds sk_live_abc... to verify the scanner catches it.
+# trello-board-ai_agent.json quotes already-redacted ***REDACTED*** strings in task names.
+coming-soon/__audit-free-test.cjs
+coming-soon/trello-board-ai_agent.json
+>>>>>>> origin/main

@@ -65,7 +65,7 @@ function authBeforeThrottle(req, res, next) {
 router.use(authBeforeThrottle);
 
 function resolveOrgId(req) {
-  return req.orgId || req.query.orgId || (req.body && req.body.orgId) || 'default';
+  return String(req.orgId || req.query.orgId || (req.body && req.body.orgId) || 'default');
 }
 
 function runAsync(fn) {

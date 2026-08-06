@@ -1,0 +1,88 @@
+{
+  "id": null,
+  "title": "SimpleBeacon Scan Telemetry",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "15s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Host Memory Available",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "node_memory_MemAvailable_bytes",
+          "legendFormat": "available_bytes",
+          "refId": "A"
+        },
+        {
+          "expr": "node_memory_MemTotal_bytes",
+          "legendFormat": "total_bytes",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list" },
+        "yAxis": { "show": true }
+      },
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "red", "value": 536870912 }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Available Memory (%)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "(node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100", "refId": "A", "legendFormat": "available_percent" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "thresholds": { "mode": "percentage", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 5 } ] }
+    },
+    {
+      "type": "stat",
+      "title": "Scan Volume (files processed)",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "sum(rate(simplebeacon_scan_files_processed_total[5m]))", "refId": "A", "legendFormat": "files_per_sec" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] }
+    },
+    {
+      "type": "table",
+      "title": "Suppressed Alerts (SimpleBeacon)",
+      "gridPos": { "x": 6, "y": 8, "w": 18, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum by (alertname, severity) (ALERTS{alertname=~\"SB_.*\", alertstate=\"suppressed\"})",
+          "refId": "A"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "type": "timeseries",
+      "title": "Alert Noise (firing vs suppressed)",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+      "targets": [
+        { "expr": "sum(ALERTS{alertname=~\"SB_.*\", alertstate=\"firing\"})", "refId": "A", "legendFormat": "firing" },
+        { "expr": "sum(ALERTS{alertname=~\"SB_.*\", alertstate=\"suppressed\"})", "refId": "B", "legendFormat": "suppressed" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] }
+    }
+  ],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "templating": { "list": [] }
+}

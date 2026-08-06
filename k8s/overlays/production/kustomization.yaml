@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+secretGenerator:
+  - name: alertmanager-slack-webhook
+    namespace: monitoring
+    type: Opaque
+    literals:
+      - api_url=https://slack.com
+
+patchesStrategicMerge:
+  - patch-prometheus-pvc.yml
+  - patch-prometheus-deployment.yml
+  - patch-grafana-pvc.yml

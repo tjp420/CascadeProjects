@@ -1,0 +1,89 @@
+name: Kustomize Validate
+
+on:
+  pull_request:
+    paths:
+      - 'k8s/**'
+
+jobs:
+  validate:
+    name: Validate Kustomize overlays
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.26.1'
+
+      - name: Prepare build directory
+        run: mkdir -p build
+
+      - name: Kustomize build (staging)
+        run: kubectl kustomize k8s/overlays/staging > build/staging.yaml
+
+      - name: Kustomize build (production)
+        run: kubectl kustomize k8s/overlays/production > build/production.yaml
+
+      - name: Install yamllint
+        run: |
+          python -m pip install --upgrade pip
+          pip install yamllint
+
+      - name: Run yamllint on k8s manifests
+        run: |
+          yamllint -f colored k8s || (
+            echo 'yamllint found issues in k8s/'; exit 1
+          )
+
+      - name: Install Kubeconform
+        run: |
+          curl -sSL "https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz" -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+          rm kubeconform.tar.gz
+
+      - name: Schema-Validate Staging Build
+        run: |
+          kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.28.0 build/staging.yaml
+
+      - name: Schema-Validate Production Build
+        run: |
+          kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.28.0 build/production.yaml
+
+      - name: Notify Slack on CI Failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.TELEMETRY_CI_SLACK_WEBHOOK }}
+        run: |
+          echo "Posting failure notification to Slack..."
+          PAYLOAD=$(cat <<'EOF'
+          { "text": "🚨 *GitOps Validation Failure:* Pull Request #${{ github.event.pull_request.number }} failed Kustomize or Kubeconform validation checks. See logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+          EOF
+          )
+          curl -sS -X POST -H 'Content-type: application/json' --data "$PAYLOAD" $SLACK_WEBHOOK_URL || true
+
+      - name: Comment on Pull Request with Failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            if (pr) {
+              const body = `🚨 **GitOps Validation Failure** — Kustomize or kubeconform failed for this PR.\n\nView the workflow run: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body
+              });
+            }
+
+      - name: Upload compiled manifests (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: kustomize-builds
+          path: build/

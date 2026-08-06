@@ -1,0 +1,26 @@
+{{ define "simplebeacon.default" }}
+{{ $first := index .Alerts 0 }}
+*Alert:* {{ $first.Labels.alertname }}
+*Severity:* {{ $first.Labels.severity }}
+*Instance:* {{ $first.Labels.instance }}
+*Summary:* {{ .CommonAnnotations.summary }}
+
+{{ if gt (len .Alerts) 1 }}There are {{ len .Alerts }} alerts grouped together:
+{{ range .Alerts }} - {{ .Labels.instance }}: {{ .Annotations.summary }}
+{{ end }}
+{{ end }}
+
+*Details:*
+{{ range .Alerts }}
+- Alert: {{ .Labels.alertname }}
+  Instance: {{ .Labels.instance }}
+  StartedAt: {{ .StartsAt }}
+  Summary: {{ .Annotations.summary }}
+  Description: {{ .Annotations.description }}
+{{ end }}
+
+Runbook: {{ .CommonAnnotations.runbook }}
+
+--
+SimpleBeacon Alertmanager Notification
+{{ end }}

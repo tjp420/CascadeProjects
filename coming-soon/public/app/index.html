@@ -14,19 +14,10 @@
       }
       function neutralize(el) {
         if (!isBeacon(el)) return;
-        if (el.hasAttribute && el.hasAttribute('integrity')) {
-          try { el.removeAttribute('src'); } catch (_) {}
-          try { el.type = 'text/plain'; } catch (_) {}
-        }
+        try { el.removeAttribute('src'); } catch (_) {}
+        try { el.type = 'text/plain'; } catch (_) {}
         el.removeAttribute('integrity');
         el.removeAttribute('crossorigin');
-        var isBrave = typeof navigator.brave !== 'undefined';
-        var ua = navigator.userAgent || '';
-        if (isBrave || /Brave/.test(ua)) {
-          if (el.parentNode) el.parentNode.removeChild(el);
-          return;
-        }
-        el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
       }
       var origCreate = document.createElement.bind(document);
       document.createElement = function(tag) {
@@ -70,7 +61,7 @@
       var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
       var l = document.createElement('link');
       l.rel = 'stylesheet';
-      if (devHost) l.href = '/app/assets/main.css?v=2026072701'; else l.href = '/app/assets/main.css?v=2026072701';
+      if (devHost) l.href = '/app/assets/main.css?v=20260805ship2'; else l.href = '/app/assets/main.css?v=20260805ship2';
       document.head.appendChild(l);
     })();
   </script>
@@ -333,12 +324,12 @@
       if (devHost) {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/app/assets/main.js?v=20260730export1';
+        s.src = '/app/assets/main.js?v=20260805ship2';
         document.head.appendChild(s);
       } else {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/app/assets/main.js?v=20260730export1';
+        s.src = '/app/assets/main.js?v=20260805ship2';
         document.head.appendChild(s);
       }
     })();

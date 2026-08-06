@@ -3,13 +3,54 @@
 const EventEmitter = require('events');
 const hsmMetrics = require('../hsm-metrics.cjs');
 
+/**
+ * RingBuffer — O(1) push/shift circular buffer.
+ *
+ * Replaces the previous Array-based queue where shift() was O(n).
+ * Exposes push(), shift(), and a length getter for drop-in compatibility
+ * with the WorkerPool and IngestQueue call sites.
+ */
+class RingBuffer {
+  constructor(capacity) {
+    if (capacity <= 0) throw new Error('RingBuffer capacity must be > 0');
+    this._capacity = capacity;
+    this._buf = new Array(capacity);
+    this._head = 0;  // next dequeue index
+    this._tail = 0;  // next enqueue index
+    this._count = 0;
+  }
+
+  push(item) {
+    this._buf[this._tail] = item;
+    this._tail = (this._tail + 1) % this._capacity;
+    this._count += 1;
+  }
+
+  shift() {
+    if (this._count === 0) return undefined;
+    const item = this._buf[this._head];
+    this._buf[this._head] = undefined;  // release reference
+    this._head = (this._head + 1) % this._capacity;
+    this._count -= 1;
+    return item;
+  }
+
+  get length() {
+    return this._count;
+  }
+
+  get capacity() {
+    return this._capacity;
+  }
+}
+
 class WorkerPool extends EventEmitter {
   constructor({ concurrency = 4, queueSize = 256 } = {}) {
     super();
     if (concurrency <= 0) throw new Error('WorkerPool concurrency must be > 0');
     this.concurrency = concurrency;
     this.queueSize = queueSize;
-    this.queue = [];
+    this.queue = new RingBuffer(queueSize);
     this.active = 0;
     this.stopping = false;
     this.stopped = false;
