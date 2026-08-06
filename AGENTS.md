@@ -17,6 +17,25 @@ The project has automated pre-commit hooks configured to ensure code quality bef
 - **Scope**: Staged files only (`git diff --cached`)
 - **Behavior**: Strict fail-closed — blocks commit on any violation, no auto-repair
 
+### Staged-Files-Only Gate Scan (pre-commit performance fix)
+- **Script**: `.simplebeacon/qa/pre-commit-gate.cjs`
+- **Runs**: After secrets-gate, replaces the full-repo `simplebeacon scan --gate`
+- **Problem solved**: The default gate scan walks the entire repo (600k+ files, 600s+ timeout)
+- **Approach**: Copies staged files to a temp directory, scans only those with `simplebeacon scan --gate`
+- **Performance**: ~5s for typical commits (was 600s+)
+- **Hard timeout**: 60s (fails fast instead of blocking developer for 10 minutes)
+- **Config**: `package.json` `sb:hook:pre-commit` now calls `node .simplebeacon/qa/pre-commit-gate.cjs` instead of `simplebeacon scan --gate --fail-on high`
+
+### Gitleaks Secret Scanner (industry-standard patterns)
+- **Script**: `.simplebeacon/qa/pre-commit-gitleaks.cjs`
+- **Runs**: After lint-assets, before the gate scan
+- **Approach**: Runs `gitleaks protect --staged --verbose` against staged files only
+- **Fallback**: If gitleaks binary is missing, prints a soft warning and exits 0. Track113 secret scanner still runs later in the chain.
+- **Install**: `npm run install-gitleaks` (downloads binary to `~/.local/bin`, cross-platform)
+- **Cross-platform**: Detects gitleaks via PATH + OS-specific fallbacks (Scoop/Chocolatey on Windows, Homebrew on macOS, /usr/local/bin on Linux)
+- **Timeout**: 30s hard cap
+- **Complements Track113**: Gitleaks provides industry-standard regex + entropy analysis. Track113 provides custom SimpleBeacon-specific KEK/secret patterns. Both run in the chain.
+
 ### ai-platform Pre-Commit Hook
 - **Location**: `ai-platform/.husky/pre-commit`
 - **Current**: Runs `npm test`

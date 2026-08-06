@@ -8,6 +8,15 @@ if [ $LINT_RESULT -ne 0 ]; then
 fi
 echo "[lint-assets] Asset hygiene lint passed."
 
+# --- Gitleaks staged-files secret scan (soft-warn if missing, Track113 runs as fallback) ---
+echo "[gitleaks] Running staged-files secret scan..."
+node .simplebeacon/qa/pre-commit-gitleaks.cjs
+GITLEAKS_RESULT=$?
+if [ $GITLEAKS_RESULT -ne 0 ]; then
+  echo "[gitleaks] Secrets detected in staged files! Commit aborted." >&2
+  exit $GITLEAKS_RESULT
+fi
+
 # Run SimpleBeacon gate scan as a pre-commit hook. Exits non-zero to block commit on high/critical findings.
 echo "Running SimpleBeacon pre-commit scan..."
 npm run sb:hook:pre-commit

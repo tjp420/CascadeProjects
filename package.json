@@ -39,8 +39,8 @@
     "deploy:coming-soon:lighthouse": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -RunLighthouse",
     "deploy:coming-soon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -SkipDeploy",
     "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
-    "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\""
-    ,"install-gitleaks": "node -e \"console.log('Please install gitleaks: https://github.com/zricethezav/gitleaks/releases')\""
+    "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\"",
+    "install-gitleaks": "node .simplebeacon/qa/install-gitleaks.cjs"
   },
  
   "prepare": "husky install",
