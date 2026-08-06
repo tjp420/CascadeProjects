@@ -106,6 +106,15 @@
     }
   }
 
+  function isTokenInLocalStorage(token) {
+    const keys = ['sb-token', 'sb_token', 'simplebeacon_token', 'cascadeAuthToken', 'auth_token'];
+    for (let i = 0; i < keys.length; i++) {
+      try {
+        if (localStorage.getItem(keys[i]) === token) return true;
+      } catch (_e) { /* ignore */ }
+    }
+    return false;
+  }
   function validateNewTokenEntry(token, options) {
     const opts = options || {};
     const trimmed = String(token || '').trim();
@@ -117,6 +126,10 @@
     }
     const fp = tokenFingerprint(trimmed);
     if (opts.allowFresh && fp && freshFingerprints.has(fp)) {
+      return { ok: true };
+    }
+    // Allow re-entry of a token that is already stored in localStorage (e.g. after page refresh)
+    if (isTokenInLocalStorage(trimmed)) {
       return { ok: true };
     }
     if (isTokenAlreadyUsed(trimmed)) {

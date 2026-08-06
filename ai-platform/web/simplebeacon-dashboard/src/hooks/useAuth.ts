@@ -11,7 +11,7 @@ export function useAuth() {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+        const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
         if (token && !isTokenExpired()) {
           setIsAuthenticated(true);
           const userData = localStorage.getItem('sb_user');
@@ -42,6 +42,7 @@ export function useAuth() {
 
   const signOut = useCallback(() => {
     localStorage.removeItem('sb_token');
+    localStorage.removeItem('sb-token');
     localStorage.removeItem('sb_user');
     localStorage.removeItem('auth_token');
     setIsAuthenticated(false);

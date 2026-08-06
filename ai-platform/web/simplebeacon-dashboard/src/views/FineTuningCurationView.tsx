@@ -46,7 +46,7 @@ function apiUrl(path: string): string {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -77,6 +77,7 @@ export function FineTuningCurationView() {
   const [exportFormat, setExportFormat] = useState('jsonl');
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loadingDatasets, setLoadingDatasets] = useState(false);
+  const fetchErrorRef = useRef(false);
 
   const buildQuery = useCallback(() => {
     const params = new URLSearchParams();
@@ -106,6 +107,9 @@ export function FineTuningCurationView() {
       setSelected({});
     } catch (err: any) {
       setError(err.message || 'Failed to load telemetry');
+      if (err.message && /HTTP (401|403|404)/.test(err.message)) {
+        fetchErrorRef.current = true;
+      }
     } finally {
       setLoading(false);
     }
@@ -129,12 +133,14 @@ export function FineTuningCurationView() {
 
   useEffect(() => {
     if (!isAdmin) return;
+    if (fetchErrorRef.current) return;
     fetchEntries();
     fetchDatasets();
   }, [isAdmin, fetchEntries, fetchDatasets]);
 
   const applyFilter = () => {
     setPage(1);
+    fetchErrorRef.current = false;
     fetchEntries();
   };
 

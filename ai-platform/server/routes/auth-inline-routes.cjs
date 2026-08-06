@@ -109,8 +109,10 @@ router.post('/auth/token-status', (req, res) => {
       valid: true,
       email: entry?.email || email,
       tier: entry?.tier || tier,
+      features: claims.features || [],
       registeredAt: entry?.registered_at || (claims.iat ? new Date(claims.iat * 1000).toISOString() : null),
-      expiresAt: claims.exp ? new Date(claims.exp * 1000).toISOString() : null
+      expiresAt: claims.exp ? new Date(claims.exp * 1000).toISOString() : null,
+      expiry: claims.exp || null
     });
   }
 
@@ -192,26 +194,9 @@ router.post('/auth/register-token', (req, res) => {
   res.json({ success: true, registered: true, tier });
 });
 
-// Sandbox token generation for local/internal dashboard testing
-router.post('/tokens/sandbox', (req, res) => {
-  const sandboxToken = generateToken({
-    id: 'sandbox-' + Date.now(),
-    email: 'sandbox@local.dev',
-    name: 'Developer Sandbox',
-    trustLevel: 'gold'
-  });
-  insertLicenseToken({
-    token: sandboxToken,
-    email: 'sandbox@local.dev',
-    tier: 'community',
-    registered_at: new Date().toISOString()
-  });
-  res.json({
-    success: true,
-    token: sandboxToken,
-    tier: 'sandbox',
-    message: 'Sandbox token generated — limited to 100 requests/day'
-  });
-});
+// NOTE: /tokens/sandbox is handled by coming-soon/routes/free-token.cjs which is
+// mounted at /api and provides email verification + validation code flow.
+// The previous stub here shadowed that handler because auth-inline-routes.cjs
+// is mounted before free-token.cjs in index.cjs. Removed to fix the conflict.
 
 module.exports = router;
