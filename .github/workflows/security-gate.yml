@@ -54,11 +54,39 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run SimpleBeacon full gate
+      - name: Run optimized builds
         run: |
           mkdir -p .simplebeacon || true
           npm run build:ci
+
+      - name: Publish build benchmark summary
+        if: always()
+        run: |
+          if [ -f .simplebeacon/build-benchmark.json ]; then
+            echo 'Build benchmark JSON:'
+            cat .simplebeacon/build-benchmark.json
+            node -e "const fs=require('fs');const p='.simplebeacon/build-benchmark.json';const s=process.env.GITHUB_STEP_SUMMARY; if(fs.existsSync(p)&&s){const j=JSON.parse(fs.readFileSync(p,'utf8')); fs.appendFileSync(s,'## Build benchmark\n'); fs.appendFileSync(s,'|target|duration_ms|\n'); fs.appendFileSync(s,'|---|---|\n'); j.targets.forEach(t=>fs.appendFileSync(s,`|${t.name}|${t.durationMs}|\n`)); fs.appendFileSync(s,`\nTotal: ${j.totalMs}ms\n`);}"
+
+      - name: Run SimpleBeacon full gate
+        run: |
           npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
+
+      - name: Publish build benchmark
+        if: always()
+        run: |
+          if [ -f .simplebeacon/build-times.json ]; then
+            echo "### Build Benchmark" >> $GITHUB_STEP_SUMMARY || true
+            node -e "const fs=require('fs');const a=JSON.parse(fs.readFileSync('.simplebeacon/build-times.json','utf8')); a.forEach(e=>console.log('- '+e.name+': '+e.durationMs+' ms'))" >> $GITHUB_STEP_SUMMARY || true
+          else
+            echo 'No build-times.json found' >> $GITHUB_STEP_SUMMARY || true
+          fi
+
+      - name: Upload build benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-times
+          path: .simplebeacon/build-times.json
 
       - name: Upload SimpleBeacon report
         uses: actions/upload-artifact@v4
