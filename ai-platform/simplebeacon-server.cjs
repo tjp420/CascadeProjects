@@ -623,7 +623,8 @@ app.get(/^\/dashboard\/?$/, async (req, res) => {
 });
 
 // SPA sub-routes (e.g. /dashboard/analyze) — let the client router handle the path
-app.get('/dashboard/*', async (req, res) => {
+// Note: Express 5 / path-to-regexp requires named wildcard params (* alone is invalid)
+app.get('/dashboard/*splat', async (req, res) => {
   if (internalDashboard && !isVaultAuthenticated(req)) {
     return res.redirect(302, '/');
   }
@@ -643,7 +644,7 @@ app.get(['/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], asyn
   }
   return sendSimplebeaconDashboard(res);
 });
-app.get('/simplebeacon-dashboard/*', async (req, res) => {
+app.get('/simplebeacon-dashboard/*splat', async (req, res) => {
   if (internalDashboard && !isVaultAuthenticated(req)) {
     return res.redirect(302, '/');
   }
@@ -801,9 +802,9 @@ if (landingRootExists) {
   });
 
   // Redirect /coming-soon/* links to the canonical landing pages served at root
-  app.get('/coming-soon/*', (req, res, next) => {
+  app.get('/coming-soon/*splat', (req, res, next) => {
     if (!storefrontAssetsEnabled()) return next();
-    const target = req.params[0] || '';
+    const target = req.params.splat || '';
     if (!target) return res.redirect(301, '/');
     return res.redirect(301, '/' + target);
   });
