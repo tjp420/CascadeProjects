@@ -132,12 +132,21 @@ describe('validate-env', () => {
     assert.ok(true);
   });
 
-  it('validateEnvironment defaults to fatal in production NODE_ENV', () => {
+  it('validateEnvironment defaults to non-fatal in production NODE_ENV (boot server, billing fails at runtime)', () => {
+    clearStripeEnv();
+    process.env.NODE_ENV = 'production';
+    const result = validateEnvironment();
+    assert.strictEqual(result.passed, false);
+    // Server should boot — non-billing endpoints remain available
+    assert.ok(true);
+  });
+
+  it('validateEnvironment is fatal when explicitly requested', () => {
     clearStripeEnv();
     process.env.NODE_ENV = 'production';
     try {
-      validateEnvironment();
-      assert.fail('should have thrown via process.exit stub in production mode');
+      validateEnvironment({ fatal: true });
+      assert.fail('should have thrown via process.exit stub when fatal=true');
     } catch (err) {
       assert.strictEqual(err.exitCode, 1);
     }
