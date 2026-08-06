@@ -55,7 +55,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
-  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === 'simplebeacon.ai' || location.hostname.endsWith('.simplebeacon.pages.dev') || location.hostname.endsWith('.onrender.com'))) ? '' : 'https://simplebeacon.ai',
+  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === 'simplebeacon.ai' || location.hostname === 'www.simplebeacon.ai' || location.hostname.endsWith('.onrender.com'))) ? '' : 'https://simplebeacon.ai',
   dashboardUrl: '/dashboard/',
   dashboardAppUrl: '/dashboard/',
   stagingMode: false,
