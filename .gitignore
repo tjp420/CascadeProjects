@@ -409,3 +409,8 @@ tools/bench-sample/
 ai-platform/.perf/
 ai-platform/server/lib/db/token-registry.json
 ai-platform/server/db/
+
+# Local Management and IDE Workspace Artifacts
+*.code-workspace
+KICKOFF_INVITE*
+commit-msg.txt
