@@ -1,0 +1,56 @@
+name: Security Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ main, master ]
+
+jobs:
+  gitleaks:
+    name: Gitleaks secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks (repo-wide)
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          args: --path=. --redact --report-format=json --report-path=artifacts/gitleaks-report.json
+
+      - name: Upload gitleaks report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: artifacts/gitleaks-report.json
+
+  simplebeacon:
+    name: SimpleBeacon full scan
+    needs: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SimpleBeacon full gate
+        run: |
+          mkdir -p .simplebeacon || true
+          npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
+
+      - name: Upload SimpleBeacon report
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-report
+          path: .simplebeacon/report.json
