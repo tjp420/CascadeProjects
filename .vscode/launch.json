@@ -12,30 +12,25 @@
       },
       "console": "integratedTerminal",
       "outputCapture": "std"
+    },
+    {
+      "type": "extensionHost",
+      "request": "launch",
+      "name": "Run SimpleBeacon Extension",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/simplebeacon-vscode-merged"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/simplebeacon-vscode-merged/out/**/*.js"
+      ],
+      "preLaunchTask": "Compile SimpleBeacon Extension"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:8080",
+      "webRoot": "${workspaceFolder}"
     }
   ]
-}
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "extensionHost",
-            "request": "launch",
-            "name": "Run SimpleBeacon Extension",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/simplebeacon-vscode-merged"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/simplebeacon-vscode-merged/out/**/*.js"
-            ],
-            "preLaunchTask": "Compile SimpleBeacon Extension"
-        },
-        {
-            "type": "chrome",
-            "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
-        }
-    ]
 }
