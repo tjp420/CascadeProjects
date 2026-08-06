@@ -1,6 +1,18 @@
 'use strict';
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
+
+// Isolate token-db to a temp file so issueToken() calls don't pollute
+// the production server/db/token-registry.json.
+if (!process.env.SIMPLEBEACON_TOKEN_DB_PATH) {
+  const _testDbDir = path.join(os.tmpdir(), 'sb-replicator-test-' + Date.now());
+  fs.mkdirSync(_testDbDir, { recursive: true });
+  process.env.SIMPLEBEACON_TOKEN_DB_PATH = path.join(_testDbDir, 'token-registry.json');
+}
+
 const replicator = require('../session-token-replicator.cjs');
 
 function makeSocket(tenantId = 'tenant-1') {

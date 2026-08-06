@@ -86,6 +86,18 @@ process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-jwt-ref
 process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || 'true';
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || 'true';
 
+// Isolate token-registry.json from test runs: point token-db.cjs at a temp file
+// so tests that indirectly write session tokens (e.g. session-token-replicator.test.cjs)
+// don't pollute the production database file in server/db/token-registry.json.
+if (!process.env.SIMPLEBEACON_TOKEN_DB_PATH) {
+  const os = require('os');
+  const path = require('path');
+  const fs = require('fs');
+  const _testDbDir = path.join(os.tmpdir(), 'sb-jest-token-db');
+  try { fs.mkdirSync(_testDbDir, { recursive: true }); } catch (e) {}
+  process.env.SIMPLEBEACON_TOKEN_DB_PATH = path.join(_testDbDir, 'token-registry.json');
+}
+
 // Increase timeout for async operations
 jest.setTimeout(constants.TIMEOUT_30S);
 
