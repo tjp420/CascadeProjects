@@ -1,0 +1,108 @@
+name: Backend Performance Micro-Benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'tools/**'
+      - '.github/workflows/backend-bench.yml'
+
+jobs:
+  performance-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Initialize Node.js Environment
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: Run Dual-Pool Performance Showdown
+      id: run-bench
+      run: |
+        set -e
+        echo "🌲 Synthesizing 5,000 randomized files for CI run..."
+        node tools/generate-bench-tree.js --count 5000 --target tools/ci-bench-tree
+
+        echo "⏳ 1. Executing legacy message-cloning pool..."
+        # capture legacy output
+        node tools/experimental-pool.js --target tools/ci-bench-tree | tee bench-legacy.txt
+
+        LEGACY_LINE=$(grep "Duration:" bench-legacy.txt || true)
+        echo "Found legacy duration line: $LEGACY_LINE"
+        LEGACY_DURATION=$(echo "$LEGACY_LINE" | awk '{print $2}')
+        echo "LEGACY_DURATION=$LEGACY_DURATION" >> $GITHUB_ENV
+
+        echo "🧠 2. Executing optimized atomic memory-mapped pool..."
+        # capture optimized output
+        node tools/optimized-pool.js --target tools/ci-bench-tree | tee bench-optimized.txt
+
+        OPT_LINE=$(grep "Duration:" bench-optimized.txt || true)
+        echo "Found optimized duration line: $OPT_LINE"
+        OPTIMIZED_DURATION=$(echo "$OPT_LINE" | awk '{print $2}')
+        echo "OPTIMIZED_DURATION=$OPTIMIZED_DURATION" >> $GITHUB_ENV
+
+        printf "\n📊 Showdown Log Summary:\nLegacy Vector: %s ms\nOptimized Vector: %s ms\n" "$LEGACY_DURATION" "$OPTIMIZED_DURATION" > bench-output.txt
+        cat bench-output.txt
+
+        # Clean up the tree to release runner disk space
+        node tools/generate-bench-tree.js --count 0 --target tools/ci-bench-tree --clean
+
+    - name: Assert Architectural Efficiency Gains (5% variance)
+      run: |
+        set -e
+        # 5% allowed variance to account for CI runner noise
+        VARIANCE=1.05
+        if [ -z "$LEGACY_DURATION" ] || [ -z "$OPTIMIZED_DURATION" ]; then
+          echo "Could not determine one or both durations; failing the job.";
+          echo "LEGACY_DURATION='$LEGACY_DURATION' OPTIMIZED_DURATION='$OPTIMIZED_DURATION'"
+          exit 1
+        fi
+
+        echo "Legacy duration: $LEGACY_DURATION ms"
+        echo "Optimized duration: $OPTIMIZED_DURATION ms"
+
+        # Compute allowed upper bound = legacy * VARIANCE
+        ALLOWED=$(awk -v a="$LEGACY_DURATION" -v v="$VARIANCE" 'BEGIN{printf "%.6f", a * v}')
+        echo "Allowed optimized duration (legacy * $VARIANCE): $ALLOWED ms"
+
+        # Fail if optimized duration strictly exceeds allowed bound
+        COMP=$(awk -v a="$OPTIMIZED_DURATION" -v b="$ALLOWED" 'BEGIN{print (a>b)}')
+        if [ "$COMP" -eq 1 ]; then
+          echo "🚨 ARCHITECTURAL REGRESSION: Optimized pool ($OPTIMIZED_DURATION ms) exceeded allowed bound ($ALLOWED ms) relative to legacy ($LEGACY_DURATION ms)!"
+          exit 1
+        fi
+        echo "✅ Performance check passed (within 5% variance)."
+
+    - name: Upload Performance Log on Failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: backend-bench-metrics
+        path: bench-output.txt
+        retention-days: 7
+
+    - name: Broadcast Performance Failures to Dev Channels
+      if: failure()
+      env:
+        SLACK_WEBHOOK: ${{ secrets.TELEMETRY_CI_SLACK_WEBHOOK }}
+      run: |
+        if [ -n "$SLACK_WEBHOOK" ]; then
+          # Prepare a short log snippet for quick triage (first 200 lines)
+          if [ -f bench-output.txt ]; then
+            SNIPPET=$(head -n 200 bench-output.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          else
+            SNIPPET="(no bench-output.txt available)"
+          fi
+
+          PAYLOAD=$(cat <<EOF
+          {"text":"🚨 *Backend Performance Regression:* A pull request degraded multi-threaded file traversal runtimes or hit I/O bottlenecks. See logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}","attachments":[{"text":"${SNIPPET}"}]}
+          EOF
+        )
+
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK" || true
+        fi

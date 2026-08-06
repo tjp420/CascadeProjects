@@ -1,0 +1,19 @@
+name: Tool Validation
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run markdown linter
+        run: pwsh -File tools\markdown_lint.ps1 -FilePath SKILL.md
+
+      - name: Run simulation tests
+        run: pwsh -File tools\simulate_tool_failures.ps1

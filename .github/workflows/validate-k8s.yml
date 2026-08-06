@@ -1,0 +1,41 @@
+name: Validate Kubernetes YAML & Helm
+
+on:
+  pull_request:
+    paths:
+      - 'monitoring/**'
+      - 'charts/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install yamllint
+        run: |
+          python -m pip install --upgrade pip
+          pip install yamllint
+
+      - name: Run yamllint
+        run: |
+          yamllint -f colored . || true
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Helm template check
+        run: |
+          helm version
+          helm template grafana-agent monitoring/grafana-agent -f monitoring/grafana-agent/helm-values.yaml
+
+      - name: Kubeval validation
+        uses: instrumenta/kubeval-action@v2
+        with:
+          files: 'monitoring/**/*.yaml'

@@ -1,0 +1,43 @@
+name: Frontend Performance Audit (LHCI)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - 'ai-platform/web/simplebeacon-dashboard/**'
+      - '.github/workflows/lighthouse.yml'
+
+jobs:
+  lighthouse-audit:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ai-platform/web/simplebeacon-dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
+
+      - name: Install Application Dependencies
+        run: npm ci
+
+      - name: Install Lighthouse CI CLI Tooling
+        run: npm install -g @lhci/cli@0.13.x
+
+      - name: Compile Application Production Bundle
+        run: npm run build
+
+      - name: Execute Performance Audit and Budget Assertions
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        run: |
+          # Run LHCI against the static `assets` directory produced by the build
+          lhci autorun --config=.lighthouserc.cjs
