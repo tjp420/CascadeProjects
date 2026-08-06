@@ -1,3 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running pre-push: staged checks + tests"
+npm run sb:hook:pre-commit
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "pre-push hook: sb:hook:pre-commit failed (exit $rc)"
+  exit $rc
+fi
+
+echo "Running quick test suite (if present)"
+npm test --workspaces --if-present
+
+exit_code=$?
+if [ $exit_code -ne 0 ]; then
+  echo "pre-push tests failed (exit $exit_code)"
+  exit $exit_code
+fi
+
+exit 0
 #!/usr/bin/env bash
 # Pre-push validation hook: run the Node changed-file secret scanner
 
