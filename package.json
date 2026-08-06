@@ -40,7 +40,8 @@
     "deploy:coming-soon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -SkipDeploy",
     "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
     "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\"",
-    "install-gitleaks": "node .simplebeacon/qa/install-gitleaks.cjs"
+    "install-gitleaks": "node .simplebeacon/qa/install-gitleaks.cjs",
+    "dashboard:start": "node scripts/start-dashboard.js"
   },
  
   "prepare": "husky install",
