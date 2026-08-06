@@ -10,7 +10,7 @@
     "simplebeacon-vscode-merged"
   ],
   "scripts": {
-    "start": "node ai-platform/simplebeacon-server.cjs",
+    "start": "node scripts/check-port.js && node ai-platform/simplebeacon-server.cjs",
     "build": "npm run build --workspace=ai-platform",
     "lint": "npm run lint --workspaces --if-present",
     "format": "npx prettier --write \"**/*.{js,cjs,mjs,ts,json,md}\"",
@@ -23,7 +23,7 @@
     "audit:context": "node scripts/audit-context.cjs",
     "audit:context:init": "node scripts/audit-context.cjs --init-prd",
     "sb:hook:secrets-gate": "node packages/simplebeacon-cli/bin/simplebeacon.js secrets-gate --path .",
-    "sb:hook:pre-commit": "npm run sb:hook:secrets-gate && node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --fail-on high",
+    "sb:hook:pre-commit": "npm run sb:hook:secrets-gate && node .simplebeacon/qa/pre-commit-gate.cjs",
     "release:simplebeacon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PrepareOnly",
     "release:simplebeacon:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1",
     "release:simplebeacon:tag:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PushTag",
@@ -40,6 +40,7 @@
     "deploy:coming-soon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -SkipDeploy",
     "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
     "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\""
+    ,"install-gitleaks": "node -e \"console.log('Please install gitleaks: https://github.com/zricethezav/gitleaks/releases')\""
   },
  
   "prepare": "husky install",

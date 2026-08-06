@@ -78,11 +78,37 @@ console.log(`[pre-commit-gate] ${staged.length} staged file(s) in ${scanDirs.len
 console.log(`[pre-commit-gate]   ${scanDirs.join(', ')}`);
 
 // Build a minimal pre-commit config
+// Key optimizations vs the default config:
+//   - fullDirectoryScan: false -- don't walk the entire 100k+ file tree
+//   - scanPaths narrowed to staged dirs only
+//   - excludePatterns blocks known slow/irrelevant dirs (ollama cache, backups, etc.)
 const precommitConfig = {
   scanPaths: scanDirs,
   productionPaths: scanDirs,
   fullDirectoryScan: false,
   fullDirectoryScanMaxFiles: 5000,
+  excludePatterns: [
+    'node_modules/',
+    '.git/',
+    '.ollama/',
+    'github-cache/',
+    '.simplebeacon/',
+    '.cursor/',
+    '.windsurf/',
+    'dist/',
+    'build/',
+    'coverage/',
+    '.next/',
+    'out/',
+    'target/',
+    '.wrangler/',
+    '.cargo/',
+    'backups/',
+    'deployments/',
+    '*.map',
+    '*.min.js',
+    '*.pack.js',
+  ],
   gate: {
     failOn: ['high'],
     warnOn: ['medium', 'low'],

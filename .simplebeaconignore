@@ -1435,3 +1435,17 @@ ai-platform/src/cli/policy-gate.ts
 
 # Cloudflare Worker — console.error in catch blocks is the CF Workers logging mechanism
 worker-deploy/src/worker.js
+
+# --- 2026-08-06: Ollama model cache/backup directories ---
+
+# Ollama backup directory contains model configs and cache with fictional KPI false positives
+.ollama/
+.ollama/**
+
+# Windsurf IDE cache and worktrees — contains AI-generated state files with fictional KPIs
+.windsurf/
+.windsurf/**
+
+# Exported scan reports — contain KPIs that trigger self-referential fiction-KPI findings
+scan-exports/
+scan-exports/**

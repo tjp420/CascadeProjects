@@ -1,5 +1,12 @@
-#!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
+# --- Fast asset hygiene lint (sub-second: encoding + path regressions) ---
+echo "[lint-assets] Running pre-commit encoding & path lint..."
+node .simplebeacon/qa/lint-assets.cjs
+LINT_RESULT=$?
+if [ $LINT_RESULT -ne 0 ]; then
+  echo "[lint-assets] Asset hygiene lint failed (exit $LINT_RESULT). Commit aborted." >&2
+  exit $LINT_RESULT
+fi
+echo "[lint-assets] Asset hygiene lint passed."
 
 # Run SimpleBeacon gate scan as a pre-commit hook. Exits non-zero to block commit on high/critical findings.
 echo "Running SimpleBeacon pre-commit scan..."
@@ -13,15 +20,4 @@ echo "SimpleBeacon pre-commit passed. Proceeding with commit."
 # Run local secret scanner to prevent hardcoded KEKs/secrets from being committed
 echo "Running Track113 secret scanner..."
 node ai-platform/server/lib/crypto/ratchet/secret-scanner.cjs || { echo "Secret scanner detected potential secrets. Commit aborted." >&2; exit 2; }
-#!/usr/bin/env sh
-# Simplebeacon pre-commit — syntax check + gate scan
-# https://www.npmjs.com/package/simplebeacon
-set -e
-echo "[SimpleBeacon] Syntax-checking staged JS/CJS files..."
-for file in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|cjs)$'); do
-  [ -f "$file" ] || continue
-  node -c "$file" || { echo "[SimpleBeacon] Syntax error in $file"; exit 1; }
-done
-echo "[SimpleBeacon] Running gate scan..."
-node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --fail-on high --config ai-platform/.simplebeacon/config.json
 echo "[SimpleBeacon] Pre-commit passed"

@@ -5,8 +5,17 @@
 The project has automated pre-commit hooks configured to ensure code quality before commits:
 
 ### Root Pre-Commit Hooks
-- **Unix/Linux/Mac**: `.husky/pre-commit` - Syntax checks staged JS/CJS files + runs SimpleBeacon gate scan
-- **Windows**: `.husky/pre-commit.cmd` - Runs SimpleBeacon gate scan with high severity failure threshold
+- **Unix/Linux/Mac**: `.husky/pre-commit` - Asset hygiene lint + SimpleBeacon gate scan + secret scanner
+- **Windows**: `.husky/pre-commit.cmd` - Asset hygiene lint + syntax checks + SimpleBeacon gate scan
+
+### Asset Hygiene Lint (fast pre-commit guard)
+- **Script**: `.simplebeacon/qa/lint-assets.cjs`
+- **Runs**: First in the pre-commit chain (sub-second, before gate scan)
+- **Checks**:
+  1. **Mojibake detection** — scans staged JS/TS raw bytes for double-encoded UTF-8 patterns (em-dash, right-quote corruption)
+  2. **Relative path integrity** — verifies `scan-worker.js` uses correct `./scan-wasm-bridge.js` and `../utils-lib/` paths, blocks `../../js-es2018/` regressions
+- **Scope**: Staged files only (`git diff --cached`)
+- **Behavior**: Strict fail-closed — blocks commit on any violation, no auto-repair
 
 ### ai-platform Pre-Commit Hook
 - **Location**: `ai-platform/.husky/pre-commit`
