@@ -4,9 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/check-api.js && vite",
     "build": "tsc -b && vite build && node scripts/prepare-worker-assets.cjs",
     "preview": "vite preview",
+    "dev:jitter": "node ../../../tools/run-jitter-harness.js",
+    "test:jitter": "npx playwright test tests/network-throttling.spec.ts --project=chromium",
+    "bench:pool": "node ../../../tools/experimental-pool.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
