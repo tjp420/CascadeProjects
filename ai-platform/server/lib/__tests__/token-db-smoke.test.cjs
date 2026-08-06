@@ -1,28 +1,26 @@
-'use strict';
+ 'use strict';
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Snapshot the original DB path so we can restore it on a best-effort basis
-const ORIGINAL_DB_PATH = path.join(__dirname, '../db/token-registry.json');
+// Use a temp DB path for tests to avoid touching repository state.
 const TEST_DB_DIR = path.join(os.tmpdir(), 'sb-token-db-test-' + Date.now());
 const TEST_DB_PATH = path.join(TEST_DB_DIR, 'token-registry.json');
 
-function swapDbPath(tmpPath) {
-  // token-db.cjs hard-codes DB_PATH at require time, so we must write at the
-  // expected location for this test file. We keep tests isolated with a temp dir.
-}
+// Point token-db to the temp path before requiring it so the module uses the
+// overridden DB location (token-db.cjs reads process.env.SIMPLEBEACON_TOKEN_DB_PATH).
+process.env.SIMPLEBEACON_TOKEN_DB_PATH = TEST_DB_PATH;
 
 const mod = require('../token-db.cjs');
 
 describe('token-db smoke', () => {
   before(() => {
-    // Ensure a clean test database is present at the expected path
+    // Ensure a clean test database is present at the test DB path
     try {
-      fs.mkdirSync(path.dirname(ORIGINAL_DB_PATH), { recursive: true });
-      fs.writeFileSync(ORIGINAL_DB_PATH, JSON.stringify({
+      fs.mkdirSync(path.dirname(TEST_DB_PATH), { recursive: true });
+      fs.writeFileSync(TEST_DB_PATH, JSON.stringify({
         accounts: [],
         access_tokens: [],
         session_tokens: [],
@@ -34,7 +32,9 @@ describe('token-db smoke', () => {
         license_tokens: [],
         audit_log: []
       }, null, 2));
-    } catch (_) {}
+    } catch (err) {
+      // best-effort
+    }
   });
 
   it('module loads without throwing', () => { assert.ok(mod); });
