@@ -1,2 +1,11 @@
 _redirects
 _headers
+
+# Dev dependencies - not needed on the edge
+node_modules
+
+# Dev-only environment files
+.env*
+
+# Dev server logs
+*.log
