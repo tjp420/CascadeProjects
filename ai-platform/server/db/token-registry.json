@@ -204,6 +204,88 @@
       "token_sequence": 1,
       "expires_at": "2026-08-06T16:55:10.302Z",
       "created_at": "2026-08-06T15:55:10.303Z"
+    },
+    {
+      "id": "hash-same-1786050407858",
+      "token_hash": "hash-same-1786050407858",
+      "account_id": "acc-1",
+      "tenant_id": "tenant-1",
+      "token_sequence": 5,
+      "epoch": 1,
+      "expires_at": "2026-08-06T22:06:47.858Z",
+      "created_at": "2026-08-06T21:06:47.858Z"
+    },
+    {
+      "id": "287d6225-b0be-4e77-8f72-81bdce9e0117",
+      "token_hash": "sha256-test-1786050409094",
+      "account_id": "acc-1",
+      "tenant_id": "tenant-1",
+      "epoch": 1,
+      "token_sequence": 10,
+      "expires_at": "2026-08-06T22:06:49.094Z",
+      "created_at": "2026-08-06T21:06:49.095Z"
+    },
+    {
+      "id": "16573ecb-efb7-45f9-a27f-d2ec5d48b101",
+      "token_hash": "sha256-stale-1786050409107",
+      "account_id": "acc-1",
+      "tenant_id": "tenant-1",
+      "epoch": 2,
+      "token_sequence": 20,
+      "expires_at": "2026-08-06T22:06:49.107Z",
+      "created_at": "2026-08-06T21:06:49.108Z"
+    },
+    {
+      "id": "906f3339-c319-43c5-922c-97a7e6008ca0",
+      "token_hash": "sha256-update-1786050409127",
+      "account_id": "acc-2",
+      "tenant_id": "tenant-2",
+      "epoch": 3,
+      "token_sequence": 25,
+      "expires_at": "2026-08-06T23:06:49.136Z",
+      "created_at": "2026-08-06T21:06:49.128Z",
+      "updated_at": "2026-08-06T21:06:49.137Z"
+    },
+    {
+      "id": "4cd56da7-f9d2-49eb-8b99-16c2e89c5a2d",
+      "token_hash": "sha256-revive-1786050409149",
+      "account_id": "acc-1",
+      "tenant_id": "tenant-1",
+      "epoch": 2,
+      "token_sequence": 22,
+      "expires_at": "2026-08-06T22:06:49.168Z",
+      "created_at": "2026-08-06T21:06:49.150Z",
+      "updated_at": "2026-08-06T21:06:49.170Z"
+    },
+    {
+      "id": "rot-1786050409180",
+      "token_hash": "hash-after-1786050409188",
+      "account_id": "acc-1",
+      "tenant_id": "tenant-1",
+      "token_sequence": 1,
+      "created_at": "2026-08-06T21:06:49.180Z",
+      "expires_at": "2026-08-06T23:06:49.188Z",
+      "rotated_at": "2026-08-06T21:06:49.190Z"
+    },
+    {
+      "id": "77cb221c-9b88-4789-8f46-7b220579231f",
+      "token_hash": "hash-account-a-1786050409198",
+      "account_id": "account-a",
+      "tenant_id": "tenant-1",
+      "epoch": 1,
+      "token_sequence": 1,
+      "expires_at": "2026-08-06T22:06:49.198Z",
+      "created_at": "2026-08-06T21:06:49.199Z"
+    },
+    {
+      "id": "6266ecb3-d5d9-4ddd-8ff1-76b6e20d1cbf",
+      "token_hash": "hash-account-b-1786050409198",
+      "account_id": "account-b",
+      "tenant_id": "tenant-1",
+      "epoch": 1,
+      "token_sequence": 1,
+      "expires_at": "2026-08-06T22:06:49.207Z",
+      "created_at": "2026-08-06T21:06:49.208Z"
     }
   ],
   "refresh_tokens": [],
@@ -213,10 +295,40 @@
   "token_blocklist": [],
   "license_tokens": [
     {
-      "token": "<replace-with-env-var-or-generate-at-runtime>",
+      "token": "<REDACTED_LICENSE_TOKEN - set via env>",
       "email": "sandbox@local.dev",
       "tier": "community",
       "registered_at": "2026-06-28T01:33:05.598Z"
+    },
+    {
+      "token": "<REDACTED_LICENSE_TOKEN - set via env>",
+      "email": "admin@example.com",
+      "tier": "enterprise",
+      "registered_at": "2026-08-06T21:06:32.139Z"
+    },
+    {
+      "token": "<REDACTED_LICENSE_TOKEN - set via env>",
+      "email": "admin@example.com",
+      "tier": "enterprise",
+      "registered_at": "2026-08-06T21:06:32.197Z"
+    },
+    {
+      "token": "<REDACTED_LICENSE_TOKEN - set via env>",
+      "email": "admin@example.com",
+      "tier": "enterprise",
+      "registered_at": "2026-08-06T21:06:32.241Z"
+    },
+    {
+      "token": "<REDACTED_LICENSE_TOKEN - set via env>",
+      "email": "admin@example.com",
+      "tier": "enterprise",
+      "registered_at": "2026-08-06T21:06:32.280Z"
+    },
+    {
+      "token": "<REDACTED_LICENSE_TOKEN - set via env>",
+      "email": "admin@example.com",
+      "tier": "enterprise",
+      "registered_at": "2026-08-06T21:06:32.321Z"
     }
   ],
   "audit_log": []
