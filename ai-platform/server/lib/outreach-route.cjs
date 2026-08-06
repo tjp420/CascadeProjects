@@ -230,6 +230,86 @@ function registerOutreachRoutes(app, options = {}) {
         res.json([]);
       }
     });
+
+    // Campaign state — aggregate prospect status from sent log for the outreach analytics dashboard
+    app.get(`${base}/campaign-state`, async (req, res) => {
+      try {
+        const sentLog = await loadSentLog(options);
+        const entries = sentLog || [];
+        const now = new Date().toISOString();
+        const prospects = {};
+        let totalContacted = 0;
+        let totalReplies = 0;
+        let totalMeetings = 0;
+        let totalPilots = 0;
+        let totalClosed = 0;
+
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i];
+          const id = sentEntryId(entry) || `prospect_${i}`;
+          const emailHistory = Array.isArray(entry.history) ? entry.history.map((h) => ({
+            sequence: h.sequence || 'A',
+            step: h.step || 1,
+            template: h.template || '',
+            subject: h.subject || '',
+            sentAt: h.sentAt || h.date || ''
+          })) : [];
+          const firstEmail = emailHistory[0]?.sentAt || null;
+          const lastEmail = emailHistory[emailHistory.length - 1]?.sentAt || null;
+          const replied = Boolean(entry.replied || entry.repliedAt);
+          const meetingBooked = Boolean(entry.meetingBooked || entry.meetingDate);
+          const pilotStarted = Boolean(entry.pilotStarted || entry.pilotDate);
+          const closed = Boolean(entry.closed || entry.closedDate);
+
+          if (emailHistory.length > 0) totalContacted++;
+          if (replied) totalReplies++;
+          if (meetingBooked) totalMeetings++;
+          if (pilotStarted) totalPilots++;
+          if (closed) totalClosed++;
+
+          prospects[id] = {
+            status: entry.status || (emailHistory.length > 0 ? 'contacted' : 'pending'),
+            sequence: entry.sequence || 'A',
+            currentStep: entry.currentStep || emailHistory.length,
+            firstEmailDate: firstEmail,
+            lastEmailDate: lastEmail,
+            replied,
+            repliedAt: entry.repliedAt || null,
+            meetingBooked,
+            meetingDate: entry.meetingDate || null,
+            pilotStarted,
+            pilotDate: entry.pilotDate || null,
+            closed,
+            closedDate: entry.closedDate || null,
+            closedValue: entry.closedValue || 0,
+            reactivationStep: entry.reactivationStep || 0,
+            sequenceCompleteDate: entry.sequenceCompleteDate || null,
+            emailHistory
+          };
+        }
+
+        res.json({
+          createdAt: entries[0]?.createdAt || now,
+          updatedAt: now,
+          prospects,
+          stats: {
+            totalContacted,
+            totalReplies,
+            totalMeetings,
+            totalPilots,
+            totalClosed
+          }
+        });
+      } catch (err) {
+        logger.warn('[outreach] campaign-state query failed:', err.message);
+        res.json({
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          prospects: {},
+          stats: { totalContacted: 0, totalReplies: 0, totalMeetings: 0, totalPilots: 0, totalClosed: 0 }
+        });
+      }
+    });
   }
 
   setupOutreachResendWebhook(app, options);
