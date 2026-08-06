@@ -1,0 +1,30 @@
+{
+  "id": "evt_test_developer_annual_001",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "created": 1736352000,
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "cs_test_developer_annual_001",
+      "object": "checkout.session",
+      "mode": "subscription",
+      "customer": "cus_test_developer_002",
+      "customer_email": "developer-annual@example.com",
+      "customer_details": {
+        "email": "developer-annual@example.com",
+        "name": "John Developer"
+      },
+      "subscription": "sub_test_developer_annual_001",
+      "metadata": {
+        "price_id": "price_developer_annual",
+        "tier": "developer",
+        "product": "developer_tier"
+      },
+      "amount_total": 49000,
+      "currency": "usd",
+      "payment_status": "paid",
+      "status": "complete"
+    }
+  }
+}
