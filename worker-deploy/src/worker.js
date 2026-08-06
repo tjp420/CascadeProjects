@@ -459,30 +459,50 @@ export default {
       }
 
       const targetUrl = backendUrl.replace(/\/+$/, '') + url.pathname + url.search;
-      try {
-        const proxyHeaders = new Headers(request.headers);
-        proxyHeaders.delete('host');
-        const proxyResponse = await fetch(targetUrl, {
-          method: request.method,
-          headers: proxyHeaders,
-          body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-          redirect: 'manual'
-        });
+      const proxyHeaders = new Headers(request.headers);
+      proxyHeaders.delete('host');
 
-        // Copy response with CORS headers added
-        const responseHeaders = new Headers(proxyResponse.headers);
-        if (corsOrigin) {
-          responseHeaders.set('Access-Control-Allow-Origin', corsOrigin);
-          responseHeaders.set('Vary', 'Origin');
+      // Retry on failure — Render free tier can drop connections under concurrent load
+      const maxRetries = 2;
+      let lastErr = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          // For retries, we can't reuse request.body (already consumed), so only retry GET/HEAD
+          const canRetry = request.method === 'GET' || request.method === 'HEAD';
+          const proxyResponse = await fetch(targetUrl, {
+            method: request.method,
+            headers: proxyHeaders,
+            body: (request.method !== 'GET' && request.method !== 'HEAD') ? request.body : undefined,
+            redirect: 'manual'
+          });
+
+          // Retry on 502/503/504 from backend (Render overload) for GET/HEAD only
+          if (canRetry && (proxyResponse.status === 502 || proxyResponse.status === 503 || proxyResponse.status === 504) && attempt < maxRetries) {
+            // Small delay before retry (50ms, then 150ms)
+            await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+            continue;
+          }
+
+          // Copy response with CORS headers added
+          const responseHeaders = new Headers(proxyResponse.headers);
+          if (corsOrigin) {
+            responseHeaders.set('Access-Control-Allow-Origin', corsOrigin);
+            responseHeaders.set('Vary', 'Origin');
+          }
+          return new Response(proxyResponse.body, {
+            status: proxyResponse.status,
+            statusText: proxyResponse.statusText,
+            headers: responseHeaders
+          });
+        } catch (err) {
+          lastErr = err;
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+            continue;
+          }
         }
-        return new Response(proxyResponse.body, {
-          status: proxyResponse.status,
-          statusText: proxyResponse.statusText,
-          headers: responseHeaders
-        });
-      } catch (err) {
-        return json({ error: 'Backend unreachable', detail: err.message }, 502, corsOrigin);
       }
+      return json({ error: 'Backend unreachable', detail: lastErr ? lastErr.message : 'timeout' }, 502, corsOrigin);
     }
 
     // HTML route handling — with html_handling: "none", the ASSETS binding won't
