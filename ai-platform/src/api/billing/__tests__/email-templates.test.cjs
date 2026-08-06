@@ -13,11 +13,11 @@ describe('email-templates', () => {
     test('has eu_ai_act_sprint config', () => {
       expect(TIER_EMAIL_CONFIG.eu_ai_act_sprint.price).toBe('$2,499.00');
     });
-    test('has startup_shield config', () => {
-      expect(TIER_EMAIL_CONFIG.startup_shield.price).toBe('$49.00 / month');
+    test('has developer_tier config', () => {
+      expect(TIER_EMAIL_CONFIG.developer_tier.price).toBe('$49.00 / month');
     });
-    test('has growth_shield config', () => {
-      expect(TIER_EMAIL_CONFIG.growth_shield.price).toBe('$149.00 / month');
+    test('has team_pro_tier config', () => {
+      expect(TIER_EMAIL_CONFIG.team_pro_tier.price).toBe('$149.00 / month');
     });
     test('has continuous_shield config', () => {
       expect(TIER_EMAIL_CONFIG.continuous_shield.receiptClass).toBe('enterprise');

@@ -151,9 +151,9 @@ const TIER_EMAIL_CONFIG = {
     deliveryVisible: false,
     secondaryVisible: false
   },
-  startup_shield: {
-    headline: 'Your Team License is Active',
-    productName: 'SimpleBeacon AI Guardrails — Team',
+  developer_tier: {
+    headline: 'Your Developer License is Active',
+    productName: 'SimpleBeacon — Developer',
     price: '$49.00 / month',
     paymentMethod: 'Paid via Stripe',
     receiptClass: '',
@@ -170,9 +170,9 @@ const TIER_EMAIL_CONFIG = {
     deliveryVisible: false,
     secondaryVisible: false
   },
-  growth_shield: {
-    headline: 'Your Team License is Active',
-    productName: 'SimpleBeacon AI Guardrails — Growth',
+  team_pro_tier: {
+    headline: 'Your Team Pro License is Active',
+    productName: 'SimpleBeacon — Team Pro',
     price: '$149.00 / month',
     paymentMethod: 'Paid via Stripe',
     receiptClass: '',
@@ -232,12 +232,19 @@ const TIER_EMAIL_CONFIG = {
 function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
   if (!emailTemplateHtml) return null;
   const PRODUCT_EMAIL_ALIAS = {
-    startup: 'startup_shield',
-    startup_monthly: 'startup_shield',
-    startup_annual: 'startup_shield',
-    growth: 'growth_shield',
-    growth_monthly: 'growth_shield',
-    growth_annual: 'growth_shield',
+    developer: 'developer_tier',
+    developer_monthly: 'developer_tier',
+    developer_annual: 'developer_tier',
+    team_pro: 'team_pro_tier',
+    team_pro_monthly: 'team_pro_tier',
+    team_pro_annual: 'team_pro_tier',
+    // Legacy aliases for backward compatibility
+    startup: 'developer_tier',
+    startup_monthly: 'developer_tier',
+    startup_annual: 'developer_tier',
+    growth: 'team_pro_tier',
+    growth_monthly: 'team_pro_tier',
+    growth_annual: 'team_pro_tier',
     teams_monthly: 'team_monthly',
     teams_annual: 'team_monthly'
   };

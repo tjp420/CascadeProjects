@@ -90,7 +90,7 @@ describe('license-utils', () => {
       expect(checkoutModeForProduct('executive_clearance')).toBe('payment');
     });
     test('subscriptions use subscription mode', () => {
-      expect(checkoutModeForProduct('startup_shield')).toBe('subscription');
+      expect(checkoutModeForProduct('developer_tier')).toBe('subscription');
     });
   });
 });
