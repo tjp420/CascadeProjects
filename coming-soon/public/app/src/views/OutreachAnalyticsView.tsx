@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { apiUrl, authHeaders } from '@/config';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -301,7 +302,7 @@ export function OutreachAnalyticsView() {
       }
       if (!campaignState) {
         try {
-          const res = await fetch('/api/outreach/campaign-state');
+          const res = await fetch(apiUrl('/outreach/campaign-state'), { headers: authHeaders() });
           if (res.ok) campaignState = (await res.json()) as CampaignState;
         } catch {
           /* API optional */
@@ -320,7 +321,7 @@ export function OutreachAnalyticsView() {
       }
       if (prospectList.length === 0) {
         try {
-          const res = await fetch('/api/outreach/prospects');
+          const res = await fetch(apiUrl('/outreach/prospects'), { headers: authHeaders() });
           if (res.ok) prospectList = (await res.json()) as ProspectRecord[];
         } catch {
           /* API optional */

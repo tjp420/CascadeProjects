@@ -171,6 +171,9 @@ export function getBridgeFetch() {
             catch (err) {
                 const msg = String(err?.message || err);
                 if (msg.includes('Parent bridge fetch timeout') || msg.includes('Parent bridge unavailable')) {
+                    // On hosted HTTPS, direct fetch to localhost will always CORS-fail — don't attempt it.
+                    if (isHostedHttpsDashboard())
+                        throw err;
                     return fetch(url, init);
                 }
                 throw err;

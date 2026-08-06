@@ -1,27 +1,28 @@
-#!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
-
-# Run SimpleBeacon gate scan as a pre-commit hook. Exits non-zero to block commit on high/critical findings.
-echo "Running SimpleBeacon pre-commit scan..."
-npm run sb:hook:pre-commit
-RESULT=$?
-if [ $RESULT -ne 0 ]; then
-  echo "SimpleBeacon pre-commit check failed (exit $RESULT). Commit aborted." >&2
-  exit $RESULT
+# --- Fast asset hygiene lint (sub-second: encoding + path regressions) ---
+echo "[lint-assets] Running pre-commit encoding & path lint..."
+node .simplebeacon/qa/lint-assets.cjs
+LINT_RESULT=$?
+if [ $LINT_RESULT -ne 0 ]; then
+  echo "[lint-assets] Asset hygiene lint failed (exit $LINT_RESULT). Commit aborted." >&2
+  exit $LINT_RESULT
 fi
-echo "SimpleBeacon pre-commit passed. Proceeding with commit."
-# Run local secret scanner to prevent hardcoded KEKs/secrets from being committed
-echo "Running Track113 secret scanner..."
-node ai-platform/server/lib/crypto/ratchet/secret-scanner.cjs || { echo "Secret scanner detected potential secrets. Commit aborted." >&2; exit 2; }
-#!/usr/bin/env sh
-# Simplebeacon pre-commit — syntax check + gate scan
-# https://www.npmjs.com/package/simplebeacon
-set -e
-echo "[SimpleBeacon] Syntax-checking staged JS/CJS files..."
-for file in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|cjs)$'); do
-  [ -f "$file" ] || continue
-  node -c "$file" || { echo "[SimpleBeacon] Syntax error in $file"; exit 1; }
-done
-echo "[SimpleBeacon] Running gate scan..."
-node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --fail-on high --config ai-platform/.simplebeacon/config.json
-echo "[SimpleBeacon] Pre-commit passed"
+echo "[lint-assets] Asset hygiene lint passed."
+
+# --- Gitleaks staged-files secret scan (soft-warn if missing, Track113 runs as fallback) ---
+echo "[gitleaks] Running staged-files secret scan..."
+node .simplebeacon/qa/pre-commit-gitleaks.cjs
+GITLEAKS_RESULT=$?
+if [ $GITLEAKS_RESULT -ne 0 ]; then
+  echo "[gitleaks] Secrets detected in staged files! Commit aborted." >&2
+  exit $GITLEAKS_RESULT
+fi
+
+# Run fast staged-only secret scanner (strict local gate)
+echo "Running fast staged-only pre-commit secret scanner..."
+node scripts/sb-precommit-fast.js
+FAST_RESULT=$?
+if [ $FAST_RESULT -ne 0 ]; then
+  echo "Fast pre-commit secret scan failed. Commit aborted." >&2
+  exit $FAST_RESULT
+fi
+echo "Fast pre-commit secret scan passed. Proceeding with commit."

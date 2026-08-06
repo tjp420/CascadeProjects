@@ -1,0 +1,138 @@
+name: PR Hygiene Gate
+
+# Mirrors the local 5-stage pre-commit pipeline to catch --no-verify bypasses.
+# Runs on all PRs to main/develop and on direct pushes to main/develop.
+#
+# Local chain:  lint-assets -> gitleaks -> secrets-gate -> pre-commit-gate -> Track113
+# CI chain:     lint-assets -> gitleaks -> pre-commit-gate -> Track113
+# (secrets-gate is redundant in CI since gitleaks-action covers it)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # --- Job 1: Static hygiene (encoding + path + gate scan) ---
+  static-hygiene:
+    name: Static Hygiene & Gate Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Stage PR changed files (for lint-assets and pre-commit-gate)
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1 || true
+          # Get changed files and stage them so git diff --cached works in our scripts
+          BASE="${{ github.event.pull_request.base.ref }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "null" ]; then
+            BASE="main"
+          fi
+          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | xargs -r git add
+          echo "Staged files:"
+          git diff --cached --name-only
+
+      - name: Run asset hygiene lint (mojibake + path regressions)
+        run: node .simplebeacon/qa/lint-assets.cjs
+
+      - name: Run staged-files gate scan
+        run: node .simplebeacon/qa/pre-commit-gate.cjs
+
+  # --- Job 2: Security scan (gitleaks + Track113) ---
+  security-scan:
+    name: Secret Scanning (Gitleaks + Track113)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Gitleaks scan (strict fail-closed in CI)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: true
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+
+      - name: Stage PR changed files for Track113
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1 || true
+          BASE="${{ github.event.pull_request.base.ref }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "null" ]; then
+            BASE="main"
+          fi
+          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | xargs -r git add
+
+      - name: Run Track113 secret scanner
+        run: |
+          FILES=$(git diff --cached --name-only | tr '\n' ' ')
+          if [ -z "$FILES" ]; then
+            echo "No changed files to scan." && exit 0
+          fi
+          echo "Track113 scanning: $FILES"
+          node ai-platform/server/lib/crypto/ratchet/secret-scanner.cjs $FILES > findings.txt 2>&1 || true
+          if [ -s findings.txt ]; then
+            echo "::error::Track113 detected potential secrets"
+            cat findings.txt
+            exit 2
+          fi
+          echo "Track113: No secrets detected."
+
+      - name: Post PR comment on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const findings = fs.existsSync('findings.txt') ? fs.readFileSync('findings.txt', 'utf8') : 'See workflow logs';
+            const body = [
+              ':rotating_light: **PR Hygiene Gate** failed.',
+              '',
+              '**Track113 findings:**',
+              '```',
+              findings.slice(0, 4000),
+              '```',
+              '',
+              'Remove any hardcoded secrets and re-run the checks.',
+              'If this is a false positive, comment `@maintainers` to request an override.'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body
+            });

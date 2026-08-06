@@ -18,6 +18,22 @@ function getStripeClient() {
 
 function resolvePriceId(product) {
   const map = {
+    developer_monthly:
+      process.env.STRIPE_PRICE_ID_DEVELOPER_MONTHLY ||
+      process.env.STRIPE_PRICE_ID_STARTUP_MONTHLY ||
+      process.env.SIMPLEBEACON_STARTUP_PRICE_ID,
+    developer_annual:
+      process.env.STRIPE_PRICE_ID_DEVELOPER_ANNUAL ||
+      process.env.STRIPE_PRICE_ID_STARTUP_ANNUAL ||
+      process.env.SIMPLEBEACON_STARTUP_ANNUAL_PRICE_ID,
+    team_pro_monthly:
+      process.env.STRIPE_PRICE_ID_TEAM_PRO_MONTHLY ||
+      process.env.STRIPE_PRICE_ID_GROWTH_MONTHLY ||
+      process.env.SIMPLEBEACON_GROWTH_PRICE_ID,
+    team_pro_annual:
+      process.env.STRIPE_PRICE_ID_TEAM_PRO_ANNUAL ||
+      process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ||
+      process.env.SIMPLEBEACON_GROWTH_ANNUAL_PRICE_ID,
     pro_monthly:
       process.env.STRIPE_PRICE_ID_PRO_MONTHLY ||
       process.env.SIMPLEBEACON_PRO_PRICE_ID,
@@ -82,7 +98,8 @@ function isValidEmail(email) {
 }
 
 const VALID_LICENSE_TIERS = new Set([
-  'developer', 'startup', 'growth', 'enterprise',
+  'developer', 'team_pro', 'enterprise',
+  'startup', 'growth',
   'executive', 'agency', 'universal', 'euai', 'instant',
   'community', 'operator', 'custom',
   'free', 'pro', 'team'
@@ -94,7 +111,7 @@ function isValidLicenseTier(tier) {
 
 function checkoutModeForProduct(product) {
   const oneTimeProducts = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint'];
-  const subscriptionProducts = ['pro_monthly', 'pro_annual', 'team_monthly', 'team_annual', 'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual', 'teams_monthly', 'teams_annual', 'continuous_shield', 'runtime_shield'];
+  const subscriptionProducts = ['developer_tier', 'team_pro_tier', 'developer', 'developer_monthly', 'developer_annual', 'team_pro', 'team_pro_monthly', 'team_pro_annual', 'pro_monthly', 'pro_annual', 'team_monthly', 'team_annual', 'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual', 'teams_monthly', 'teams_annual', 'continuous_shield', 'runtime_shield'];
   if (oneTimeProducts.includes(product)) return 'payment';
   if (subscriptionProducts.includes(product)) return 'subscription';
   return 'subscription';

@@ -1,0 +1,178 @@
+name: Security Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ main, master ]
+
+jobs:
+  gitleaks:
+    name: Gitleaks secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks (repo-wide)
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          args: --path=. --redact --report-format=json --report-path=artifacts/gitleaks-report.json
+
+      - name: Upload gitleaks report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: artifacts/gitleaks-report.json
+
+  simplebeacon:
+    name: SimpleBeacon full scan
+    needs: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run optimized builds
+        run: |
+          mkdir -p .simplebeacon || true
+          npm run build:ci
+
+      - name: Publish build benchmark summary
+        if: always()
+        run: |
+          if [ -f .simplebeacon/build-benchmark.json ]; then
+            echo 'Build benchmark JSON:'
+            cat .simplebeacon/build-benchmark.json
+            node -e "const fs=require('fs');const p='.simplebeacon/build-benchmark.json';const s=process.env.GITHUB_STEP_SUMMARY; if(fs.existsSync(p)&&s){const j=JSON.parse(fs.readFileSync(p,'utf8')); fs.appendFileSync(s,'## Build benchmark\n'); fs.appendFileSync(s,'|target|duration_ms|\n'); fs.appendFileSync(s,'|---|---|\n'); j.targets.forEach(t=>fs.appendFileSync(s,`|${t.name}|${t.durationMs}|\n`)); fs.appendFileSync(s,`\nTotal: ${j.totalMs}ms\n`);}"
+
+      - name: Run SimpleBeacon full gate
+        run: |
+          npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
+
+      - name: Publish build benchmark
+        if: always()
+        run: |
+          if [ -f .simplebeacon/build-times.json ]; then
+            echo "### Build Benchmark" >> $GITHUB_STEP_SUMMARY || true
+            node -e "const fs=require('fs');const a=JSON.parse(fs.readFileSync('.simplebeacon/build-times.json','utf8')); a.forEach(e=>console.log('- '+e.name+': '+e.durationMs+' ms'))" >> $GITHUB_STEP_SUMMARY || true
+          else
+            echo 'No build-times.json found' >> $GITHUB_STEP_SUMMARY || true
+          fi
+
+      - name: Upload build benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-times
+          path: .simplebeacon/build-times.json
+
+      - name: Upload SimpleBeacon report
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-report
+          path: .simplebeacon/report.json
+
+  dashboard-watchdog:
+    name: Dashboard Watchdog
+    needs: simplebeacon
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            .vite
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}-watchdog
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local dashboard (background)
+        run: |
+          nohup node local_dashboard_server.js > dashboard.log 2>&1 &
+          sleep 2
+
+      - name: Seed mock report
+        run: npm run dashboard:mock
+
+      - name: Run watchdog
+        run: |
+          node scripts/verify-dashboard-health.js > watchdog.log 2>&1
+
+      - name: Upload watchdog logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-watchdog-logs
+          path: |
+            dashboard.log
+            watchdog.log
+
+      - name: Annotate PR on watchdog failure (dedupe)
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const logPath = 'watchdog.log';
+            const marker = '<!-- watchdog-comment-id -->';
+            let snippet = '';
+            try {
+              const txt = fs.readFileSync(logPath, 'utf8');
+              const lines = txt.split(/\r?\n/).filter(Boolean);
+              const errors = lines.filter(l => /❌|\bERROR\b|\bError\b|\bfail\b|Exception|Traceback/.test(l));
+              snippet = (errors.length ? errors.slice(-25) : lines.slice(-50)).join('\n');
+            } catch (e) {
+              snippet = `Could not read watchdog.log: ${e.message}`;
+            }
+            const body = `${marker}\n### :warning: Watchdog Failure Summary\nThe dashboard watchdog reported failures. Last relevant lines:\n\n\`\`\`\n${snippet}\n\`\`\`\n\nFull logs are attached as the artifact 'dashboard-watchdog-logs'.`;
+
+            // Find existing comment with our marker
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

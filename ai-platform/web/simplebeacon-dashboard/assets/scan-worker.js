@@ -5,10 +5,9 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js';
-import { isIgnoredVirtualPath } from './simplebeaconignore.browser.js';
-const RAW_MAX_DISCOVERED_FILES = 500000;
-const MAX_DISCOVERED_FILES = RAW_MAX_DISCOVERED_FILES <= 0 ? Number.POSITIVE_INFINITY : RAW_MAX_DISCOVERED_FILES;
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260716cachefix1';
+import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
+const MAX_DISCOVERED_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const YIELD_INTERVAL = 500; // yield back to main thread every N files
@@ -103,11 +102,233 @@ const PATTERN_REGISTRY = {
     rubyFramework: {
         appliesTo: ['ruby'],
         pattern: /\.permit!\s*\)|\bskip_before_action\b|\beval\s*\(|\bsend\s*\(\s*params\[/i
+    },
+    // === Ported from legacy scanner-patterns.js for feature parity ===
+    sensitiveData: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b|\b\d{3}-\d{2}-\d{4}\b|console\.(log|warn|error|info)\s*\(\s*(?:user|customer|email|password|token|ssn|phone)|localStorage\.setItem\s*\(\s*['"](?:token|auth|session|password)/i,
+        maxMatches: 3,
+        selfReferenceFilter: /\b(?:dev@simplebeacon\.ai|demo@simplebeacon\.ai|test@example\.com|noreply@|no-reply@|example\.com|localhost|127\.0\.0\.1|generate.*token|send.*email|email.*template|outreach|prospect|marketing|invoice|billing|payment|tier|sandbox|demo|test|fixture|mock|sample|dummy|fake|stub)\b/i,
+        contextFilter: (snippet, filePath) => {
+            if (/Copyright|Author:|maintainer_email|PACKAGE_BUGREPORT|license|@googlegroups\.com|@google\.com|@apache\.org|@mozilla\.org/.test(snippet)) return false;
+            if (filePath && /\/(jquery|modernizr|underscore|bootstrap|lodash|moment|react|vue|angular)\b|\.min\.js$|\.pack\.js$|(^|\/)(docs\/|doc\/|third_party\/|thirdparty\/|vendor\/)\//i.test(filePath)) return false;
+            return true;
+        }
+    },
+    configDrift: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /localhost:\d+|127\.0\.0\.1:\d+|hardcoded.*url|password\s*=\s*['"]|secret\s*=\s*['"]|api_key\s*=\s*['"]/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/config\.get<|vscode\.workspace\.getConfiguration|\.get\(['"]\w+['"]\s*,\s*['"]/.test(snippet)) return false;
+            if (/\/\/.*hardcoded|\/\*.*hardcoded|move hardcoded|configuration drift/i.test(snippet)) return false;
+            if (/\/\/.*localhost|\/\*.*localhost|#.*localhost|default\s*=\s*['"]http:\/\/localhost/.test(snippet)) return false;
+            return true;
+        }
+    },
+    innerHtmlXss: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /\.innerHTML\s*=\s*[^'"]/i,
+        maxMatches: 3,
+        selfReferenceFilter: /scanner-patterns|scanner-engine|ui-renderer|scan-worker|main\.js|certificate-module/i,
+        contextFilter: (snippet, filePath) => {
+            if (/scanner-patterns\.js|scanner-engine\.js|ui-renderer\.js|main\.js/i.test(filePath)) return false;
+            if (/\.innerHTML\s*=\s*`[^`]*`/.test(snippet) && !/\$\{[^}]*\}/.test(snippet)) return false;
+            return true;
+        }
+    },
+    prototypePollution: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /Object\.prototype\.|__proto__\s*[:=]|\['__proto__'\]\s*:/i,
+        maxMatches: 3,
+        selfReferenceFilter: /Object\.prototype\.hasOwnProperty\.call|Object\.prototype\.toString\.call/i
+    },
+    unhandledPromise: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /\.then\s*\([^)]*\)(?!\s*\.(catch|finally))\s*;?\s*$/m,
+        maxMatches: 3,
+        selfReferenceFilter: /await\s+\w+\.then\s*\(/i
+    },
+    insecureRandom: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /Math\.random\s*\(\)(?=.*(?:token|password|secret|salt|nonce|uuid|id|key))/i,
+        maxMatches: 3,
+        selfReferenceFilter: /scanner-patterns|scanner-engine|pattern-documentation|test-all-patterns/i
+    },
+    loggingSecrets: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /console\.(log|warn|error|info)\s*\([^)]*(?:password|token|secret|apiKey|api_key|privateKey|private_key|credential)/i,
+        maxMatches: 3,
+        selfReferenceFilter: /scanner-patterns|scanner-engine|pattern-documentation|test-all-patterns|fixRegistry|findingConverter/i,
+        contextFilter: (snippet, filePath) => {
+            const hasVariable = /\b(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)\s*[,+)]/.test(snippet);
+            const onlyInString = /['"][^'"]*(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)[^'"]*['"]/.test(snippet);
+            if (!hasVariable && onlyInString) return false;
+            if (/\/\/\s*console\.(log|error|warn)/i.test(snippet)) return false;
+            if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    evalDanger: {
+        appliesTo: ['javascript', 'python', 'php', 'ruby', 'generic'],
+        pattern: /\beval\s*\(|\bnew\s+Function\s*\(|\bsetTimeout\s*\(\s*['"`]|\bsetInterval\s*\(\s*['"`]/i,
+        maxMatches: 3,
+        selfReferenceFilter: /new\s+RegExp\s*\(|RegExp\s*\(\s*['"`]|message:\s*['"]eval\(\)|severity.*warning.*eval-usage|scanner-patterns|scanner-engine|pattern-documentation/i,
+        contextFilter: (snippet, filePath) => {
+            if (/new\s+RegExp\s*\(/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    weakCryptography: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /\bmd5\s*\(|\bsha1\s*\(|\bDES\b|\bRC4\b|\bcrypto\.createHash\s*\(\s*['"`](?:md5|sha1)['"`]/i,
+        maxMatches: 3,
+        contextFilter: (snippet) => {
+            if (/\/\/.*weak|deprecated|do not use|avoid/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    secretInComment: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /(?:\/\/|\/\*|\*|#)\s*(?:api[_-]?key|secret|token|password|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`]?[a-zA-Z0-9_\-]{16,}/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (filePath && /scanner-patterns|scanner-engine|pattern-documentation/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    llmSlop: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]|\/\/\s*AI\s+Generated\s+Placeholder|```(?:javascript|typescript|python|json)\s*$|```\s*$|99\.99\s*%?\s*Uptime|100\s*%?\s*Secure|Lorem\s+Ipsum|I have (written|implemented|created|updated) the .* as requested|Let me know if you need me to (adjust|update|change|modify)|AI Assistant Note:/i,
+        maxMatches: 5,
+        selfReferenceFilter: /llm-slop-patterns|fiction-kpi|rejectedFiction|scanner-patterns/i,
+        contextFilter: (snippet, filePath) => {
+            if (/\.template\.|\.example\.|\.sample\./i.test(filePath)) return false;
+            if (/fixture|mock|test-data|__tests__|spec/i.test(filePath)) return false;
+            if (/\.md$|\.markdown$/i.test(filePath) && /```[a-z]+\s*$/.test(snippet)) return false;
+            return true;
+        }
+    },
+    productionLeak: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /['"`][^'"`]*(?:\/|\\)mock(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*(?:\/|\\)fixtures(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*(?:\/|\\)sample(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*-sample\.json['"`]/i,
+        maxMatches: 3,
+        selfReferenceFilter: /production-leak|llm-slop-patterns|fiction-kpi|scanner-patterns/i,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|__tests__|\.test\.|\.spec\./i.test(filePath)) return false;
+            if (/fixture|mock/i.test(filePath)) return false;
+            if (/\.example\.|\.sample\.|\.template\./i.test(filePath)) return false;
+            if (/dev|staging|local|test/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    fictionKpi: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /\b(?:totalFeatures|featuresTracked|aiOptimizationsApplied|issuesDetected|issuesFound|patternsIdentified|openIssues)\s*[:=]\s*["']?\d+\b|\b(?:aiConfidence|confidence|accuracy|completionRate)\s*[:=]\s*["']?\d{1,3}\b|\b\d{1,3}\s*%\s*(?:completion|accuracy|confidence|uptime|secure)\b/i,
+        maxMatches: 3,
+        selfReferenceFilter: /rejectedFiction|fiction-kpi|fictionRemoved|fictionVsReality|not model output|baseline false|progressMetrics|scanner-patterns/i
+    },
+    hardcodedConfidence: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /confidence\s*[:=]\s*(?:0\.\d+|\d{1,3})\b/i,
+        maxMatches: 3,
+        selfReferenceFilter: /rejectedFiction|fiction-kpi|scanner-patterns|confidence.*threshold|confidence.*score|confidence.*level/i
+    },
+    hardcodedCompletion: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /completion(?:Rate)?\s*[:=]\s*(?:0\.\d+|\d{1,3})\b/i,
+        maxMatches: 3,
+        selfReferenceFilter: /rejectedFiction|fiction-kpi|scanner-patterns/i
+    },
+    mockPathLeak: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /['"`][^'"`]*(?:\/|\\)mocks?(?:\/|\\)[^'"`]+['"`]/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|__tests__|\.test\.|\.spec\./i.test(filePath)) return false;
+            if (/fixture|mock/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    sampleJsonRef: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /['"`][^'"`]*sample[^'"`]*\.json['"`]/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|__tests__|\.test\.|\.spec\./i.test(filePath)) return false;
+            if (/fixture|mock/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    emptyStubFunction: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /function\s+\w+\s*\([^)]*\)\s*\{\s*\}|(?:const|let|var)\s+\w+\s*=\s*\([^)]*\)\s*=>\s*\{\s*\}/i,
+        maxMatches: 3,
+        selfReferenceFilter: /scanner-patterns|scanner-engine|test-all-patterns/i
+    },
+    roadmapMarker: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /(?:\/\/\s*|\/\*\s*|#\s*)\b(HACK|XXX|WORKAROUND)\b/gi,
+        maxMatches: 3
+    },
+    aiPlaceholderComment: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /\/\/\s*(?:TODO:?\s*Implement|TODO:?\s*Add|TODO:?\s*Replace|Placeholder for|Stub for|AI generated placeholder)/i,
+        maxMatches: 3,
+        selfReferenceFilter: /scanner-patterns|scanner-engine|pattern-documentation/i
+    },
+    markdownFenceLeak: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /```(?:javascript|typescript|python|json)\s*$/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/\.md$|\.markdown$|\.mdx$/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    missingRateLimit: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /app\.(get|post|put|delete|patch)\s*\(\s*['"][^'"]+['"]/i,
+        maxMatches: 3,
+        selfReferenceFilter: /rateLimit|rate-limit|throttle|scanner-patterns/i,
+        contextFilter: (snippet) => {
+            if (/rateLimit|rate-limit|throttle/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    dbAntiPattern: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'generic'],
+        pattern: /SELECT\s+.*['"]\s*\+\s*['"]|query\s*\(\s*['"].*\+\s*['"]|raw\s*\(\s*['"].*\$\{|\.findAll\s*\(\s*\)(?!.*limit)/i,
+        maxMatches: 3
     }
 };
 const SEVERITY_MAP = {
     credentials: 'critical',
-    euAiAct: 'high'
+    euAiAct: 'high',
+    // Ported from legacy scanner-patterns.js
+    sensitiveData: 'high',
+    configDrift: 'medium',
+    innerHtmlXss: 'medium',
+    prototypePollution: 'high',
+    unhandledPromise: 'medium',
+    insecureRandom: 'high',
+    loggingSecrets: 'high',
+    evalDanger: 'high',
+    weakCryptography: 'high',
+    secretInComment: 'high',
+    llmSlop: 'medium',
+    productionLeak: 'medium',
+    fictionKpi: 'medium',
+    hardcodedConfidence: 'medium',
+    hardcodedCompletion: 'medium',
+    mockPathLeak: 'medium',
+    sampleJsonRef: 'medium',
+    emptyStubFunction: 'low',
+    roadmapMarker: 'low',
+    aiPlaceholderComment: 'low',
+    markdownFenceLeak: 'low',
+    missingRateLimit: 'medium',
+    dbAntiPattern: 'high'
 };
 const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
 const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data|euAiAct|eu-ai-act)/i;
@@ -209,13 +430,20 @@ function runAnalyzer(name, text, filePath) {
         return results;
     if (reg && reg.pattern) {
         const lineFilter = (line) => shouldSkipAnalyzerLine(name, filePath, line);
-        const matches = extractMatches(text, reg.pattern, 5, lineFilter);
-        if (matches.length > 0) {
+        const matches = extractMatches(text, reg.pattern, reg.maxMatches || 5, lineFilter);
+        // Apply selfReferenceFilter and contextFilter (ported from legacy scanner-patterns.js)
+        const filtered = matches.filter(m => {
+            if (reg.selfReferenceFilter && reg.selfReferenceFilter.test(m.snippet)) return false;
+            if (reg.selfReferenceFilter && reg.selfReferenceFilter.test(filePath)) return false;
+            if (reg.contextFilter && !reg.contextFilter(m.snippet, filePath)) return false;
+            return true;
+        });
+        if (filtered.length > 0) {
             results.push({
                 analyzer: name,
                 filePath,
-                matches,
-                count: matches.length
+                matches: filtered,
+                count: filtered.length
             });
         }
     }

@@ -7,7 +7,7 @@
  */
 import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js';
 import { isIgnoredVirtualPath } from './simplebeaconignore.browser.js';
-const MAX_DISCOVERED_FILES = 500000;
+const MAX_DISCOVERED_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const YIELD_INTERVAL = 500; // yield back to main thread every N files

@@ -353,7 +353,7 @@
       if(window.MutationObserver){ var mo=new MutationObserver(function(records){ records.forEach(function(r){ Array.prototype.forEach.call(r.addedNodes||[], function(n){ if(n.nodeType===1){ if(n.tagName==='SCRIPT') neutralize(n); if(n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('script'), neutralize); } }); }); }); mo.observe(document.documentElement,{childList:true,subtree:true}); }
     })();
   </script>
-  <script>(function(){var FREE_TIERS=['free','community','sandbox',''];try{var u=localStorage.getItem('sb-user')||localStorage.getItem('sb_user');if(u){var p=JSON.parse(u);var t=(p.tier||p.plan||'').toLowerCase();if(t&&FREE_TIERS.indexOf(t)===-1){window.location.href='/dashboard/';}}}}catch(_){}})();</script>
+  <script>(function(){var FREE_TIERS=['free','community','sandbox',''];try{var u=localStorage.getItem('sb-user')||localStorage.getItem('sb_user');if(u){var p=JSON.parse(u);var t=(p.tier||p.plan||'').toLowerCase();if(t&&FREE_TIERS.indexOf(t)===-1){window.location.href='/dashboard/';}}}catch(_){}})();</script>
 </head>
 <body>
 <nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
@@ -446,62 +446,74 @@
       <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
         <article class="price-card" data-animate="fade-up" data-delay="0">
           <div class="price-card-header">
-            <span class="price-tag">Free Preview</span>
-            <h3>Free Scan Preview</h3>
-            <div class="price-amount">$0</div>
+            <span class="price-tag">Individual</span>
+            <h3>Developer</h3>
+            <div class="price-amount" id="teamPrice">$49<span class="price-unit">/mo</span></div>
+            <p id="teamAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$588/yr</span> <span style="color:var(--success);font-weight:600;">$490/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
-          <p class="price-desc">100% private, browser-based heuristic snapshot.</p>
-          <ul class="price-features">
-            <li>5 local browser scans / month</li>
-            <li>Simple regex pattern matching</li>
-            <li>Basic web dashboard view</li>
-            <li>No sign-up required</li>
-          </ul>
-          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#128274; No payment required</p>
-          <a href="/audit" class="price-btn price-btn-secondary" data-tier="developer">Start Free Scan</a>
-        </article>
-
-        <article class="price-card price-card-popular" data-animate="fade-up" data-delay="100">
-          <div class="popular-badge">Most Popular</div>
-          <div class="price-card-header">
-            <span class="price-tag">Pro</span>
-            <h3>Pro</h3>
-            <div class="price-amount" id="teamPrice">$9<span class="price-unit">/mo</span></div>
-            <p id="teamAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$108/yr</span> <span style="color:var(--success);font-weight:600;">$90/yr</span> <span class="save-badge">Save 17%</span></p>
-          </div>
-          <p class="price-desc">Unlimited scans, CI gate integration, and full JSON exports for power users.</p>
+          <p class="price-desc">Unlimited local scans, CI gate integration, and full JSON exports for individual developers.</p>
           <ul class="price-features">
             <li>Unlimited pipeline scans with unlimited files per scan.</li>
             <li>GitHub Action CI gate for every pull request.</li>
             <li>Custom scanner toggles via Configuration-as-Code.</li>
             <li>Quality score + full JSON exports with actionable summary.</li>
-            <li>38 CLI analyzer modules + team dashboard.</li>
+            <li>38 CLI analyzer modules + dashboard.</li>
             <li>Priority email support.</li>
           </ul>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
-          <button class="price-btn checkout-btn" data-tier="startup" data-price-id="price_startup_monthly">Subscribe</button>
+          <button class="price-btn checkout-btn" data-tier="developer" data-price-id="price_developer_monthly">Subscribe</button>
         </article>
 
-        <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
+        <article class="price-card price-card-popular" data-animate="fade-up" data-delay="100">
+          <div class="popular-badge">Most Popular</div>
           <div class="price-card-header">
-            <span class="price-tag">Compliance</span>
-            <h3>Compliance Suite</h3>
-            <div class="price-amount" id="compliancePrice">$399<span class="price-unit">/mo</span></div>
-            <p id="complianceAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$4,788/yr</span> <span style="color:var(--success);font-weight:600;">$3,990/yr</span> <span class="save-badge">Save 17%</span></p>
+            <span class="price-tag">Team</span>
+            <h3>Team Pro</h3>
+            <div class="price-amount" id="compliancePrice">$149<span class="price-unit">/mo</span></div>
+            <p id="complianceAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$1,788/yr</span> <span style="color:var(--success);font-weight:600;">$1,490/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
-          <p class="price-desc">Board-ready compliance documentation and EU AI Act evidence packs.</p>
+          <p class="price-desc">Board-ready compliance documentation, EU AI Act evidence packs, and team collaboration.</p>
           <ul class="price-features">
             <li>EU AI Act &amp; SOC 2 legal compliance mapping</li>
             <li>Board-ready PDF certificate ZIP</li>
             <li>5 team seats + team dashboard</li>
+            <li>GitHub Action CI gate for every pull request</li>
             <li>Priority email + Slack support</li>
             <li>Quarterly compliance reviews</li>
           </ul>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
-          <button class="price-btn checkout-btn" data-tier="compliance" data-price-id="price_compliance_monthly">Subscribe to $399/mo</button>
-          <p class="price-sample">Need air-gapped or custom contracts? <a href="/contact?topic=enterprise" data-contact-link data-contact-topic="enterprise">Contact Sales &rarr;</a></p>
+          <button class="price-btn checkout-btn" data-tier="team_pro" data-price-id="price_team_pro_monthly">Subscribe</button>
         </article>
 
+        <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
+          <div class="price-card-header">
+            <span class="price-tag">Enterprise</span>
+            <h3>Enterprise</h3>
+            <div class="price-amount" id="entPrice">Custom</div>
+            <p id="entAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;">Custom annual contracts &middot; NET-30 invoicing</p>
+          </div>
+          <p class="price-desc">Air-gapped deployments, custom integrations, and dedicated analyst support for large organizations.</p>
+          <ul class="price-features">
+            <li>Self-hosted / air-gapped deployment</li>
+            <li>Unlimited team seats + SSO/SAML</li>
+            <li>Dedicated compliance analyst</li>
+            <li>Custom rule engines + integrations</li>
+            <li>EU AI Act Annex III + Article 14 + Article 50</li>
+            <li>24/7 priority support + SLA</li>
+          </ul>
+          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#128274; Zero data custody &middot; Air-gapped ready</p>
+          <a href="/contact?topic=enterprise" class="price-btn" data-tier="enterprise" data-contact-link data-contact-topic="enterprise">Book Demo &rarr;</a>
+        </article>
+
+      </div>
+
+      <div class="zero-data-custody-banner" data-animate="fade-up" data-delay="250" style="max-width:900px;margin:0 auto 40px;padding:24px 28px;background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(34,197,94,0.08));border:1px solid rgba(99,102,241,0.3);border-radius:16px;text-align:center;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:1.4rem;">&#128274;</span>
+          <span style="font-weight:700;color:var(--accent);font-size:1.1rem;">Zero Data Custody</span>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-secondary);margin:0 0 8px;">SimpleBeacon never receives, stores, or transmits your source code. All scans run <strong style="color:var(--text-primary);">100% locally</strong> in your browser sandbox or CLI &mdash; no upload, no cloud processing, no data residency risk.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">SHA-256 integrity verification &middot; Tamper-evident JSON exports &middot; Cryptographic license tokens &middot; Auditor-friendly evidence packs</p>
       </div>
 
       <div class="card mb-6" data-animate="fade-up" data-delay="250">
@@ -668,7 +680,7 @@
 
       <!-- Sticky CTA -->
       <div class="sticky-cta" id="stickyCta">
-        <span class="sticky-cta-text">Install SimpleBeacon free (10 scans/mo), upgrade to <strong>Pro ($9/mo)</strong> when you're ready</span>
+        <span class="sticky-cta-text">Install SimpleBeacon free (10 scans/mo), upgrade to <strong>Developer ($49/mo)</strong> when you're ready</span>
         <button class="sticky-cta-btn" id="stickyCtaBtn">Install Free Extension</button>
       </div>
 
@@ -744,7 +756,7 @@
     // Checkout modal handlers
     function openCheckoutModal(tier) {
       var modal = document.getElementById('checkoutModal');
-      var tierNames = { startup: 'SimpleBeacon Pro — $9/mo', startup_annual: 'SimpleBeacon Pro — $90/yr', compliance: 'SimpleBeacon Compliance Suite — $399/mo', compliance_annual: 'SimpleBeacon Compliance Suite — $3,990/yr', enterprise: 'SimpleBeacon Enterprise — Custom', enterprise_annual: 'SimpleBeacon Enterprise — Custom', one_time_certificate: 'SimpleBeacon Audit Certificate — $149 one-time', one_time_certificate_annual: 'SimpleBeacon Audit Certificate — $149 one-time', custom: 'Custom Audit Plan' };
+      var tierNames = { developer: 'SimpleBeacon Developer — $49/mo', developer_annual: 'SimpleBeacon Developer — $490/yr', team_pro: 'SimpleBeacon Team Pro — $149/mo', team_pro_annual: 'SimpleBeacon Team Pro — $1,490/yr', enterprise: 'SimpleBeacon Enterprise — Custom', enterprise_annual: 'SimpleBeacon Enterprise — Custom', one_time_certificate: 'SimpleBeacon Audit Certificate — $149 one-time', one_time_certificate_annual: 'SimpleBeacon Audit Certificate — $149 one-time', custom: 'Custom Audit Plan' };
       var displayTier = tier;
       if (isAnnual) { displayTier = tier + '_annual'; }
       document.getElementById('modalTitle').textContent = 'Purchase: ' + (tierNames[displayTier] || 'License');
@@ -772,8 +784,8 @@
       var teamNote = document.getElementById('teamAnnualNote');
       var complianceNote = document.getElementById('complianceAnnualNote');
       var entNote = document.getElementById('entAnnualNote');
-      if (teamPrice) teamPrice.innerHTML = isAnnual ? '$90<span class="price-unit">/yr</span>' : '$9<span class="price-unit">/mo</span>';
-      if (compliancePrice) compliancePrice.innerHTML = isAnnual ? '$3,990<span class="price-unit">/yr</span>' : '$399<span class="price-unit">/mo</span>';
+      if (teamPrice) teamPrice.innerHTML = isAnnual ? '$490<span class="price-unit">/yr</span>' : '$49<span class="price-unit">/mo</span>';
+      if (compliancePrice) compliancePrice.innerHTML = isAnnual ? '$1,490<span class="price-unit">/yr</span>' : '$149<span class="price-unit">/mo</span>';
       if (entPrice) entPrice.innerHTML = 'Custom';
       if (teamNote) teamNote.style.display = isAnnual ? 'block' : 'none';
       if (complianceNote) complianceNote.style.display = isAnnual ? 'block' : 'none';
@@ -829,7 +841,7 @@
         return false;
       }
 
-      var productMap = { pro: 'startup_shield', startup: 'startup_shield', compliance_suite: 'compliance_suite', enterprise: 'compliance_suite', custom: 'custom_plan', one_time_certificate: 'one_time_certificate', executive_clearance: 'executive_clearance', eu_ai_act_sprint: 'eu_ai_act_sprint' };
+      var productMap = { developer: 'developer_tier', team_pro: 'team_pro_tier', enterprise: 'enterprise_tier', custom: 'custom_plan', one_time_certificate: 'one_time_certificate', executive_clearance: 'executive_clearance', eu_ai_act_sprint: 'eu_ai_act_sprint' };
       var product = productMap[tier] || (tier.indexOf('custom_') === 0 ? 'custom_plan' : null);
       if (!product) {
         errorEl.textContent = 'Unknown product tier.';
@@ -875,11 +887,11 @@
         return false;
       }
 
-      // Subscription tiers: pro/compliance
-      var subscriptionTiers = ['startup_shield', 'compliance_suite'];
+      // Subscription tiers: developer/team_pro
+      var subscriptionTiers = ['developer_tier', 'team_pro_tier'];
       if (subscriptionTiers.indexOf(product) >= 0) {
-        var subTierMap = { startup_shield: 'pro', compliance_suite: 'compliance' };
-        var subTier = subTierMap[product] || 'pro';
+        var subTierMap = { developer_tier: 'developer', team_pro_tier: 'team_pro' };
+        var subTier = subTierMap[product] || 'developer';
         var payload = { email: email, projectName: projectName, clientName: clientName || email, tier: subTier, mode: isAnnual ? 'annual' : 'monthly' };
         var referralSlug = getReferralSlug();
         if (referralSlug) payload.referralSlug = referralSlug;
@@ -1306,7 +1318,7 @@
           e.preventDefault();
           e.stopPropagation();
           if (typeof gtag === 'function') {
-            gtag('event', 'begin_checkout', { event_category: 'ecommerce', event_label: tier, value: tier === 'enterprise' ? 399 : 9 });
+            gtag('event', 'begin_checkout', { event_category: 'ecommerce', event_label: tier, value: tier === 'team_pro' ? 149 : (tier === 'developer' ? 49 : 0) });
           }
           openCheckoutModal(tier);
           return false;

@@ -398,6 +398,53 @@ function formatJsonReport(report, gateResult = null) {
 
     const remediationPhases = report.remediationPhases || phases;
 
+    // === File inventory breakdown (ported from browser localScanService.js) ===
+    const inventoryPaths = Array.isArray(filePaths) ? filePaths : [];
+    const fileInventory = report.fileInventory || {
+        sourceCode: inventoryPaths.filter(p => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|kt|go|rs|php|rb|cs|vb|c|cpp|h|hpp|swift|scala|groovy)$/i.test(p)).length,
+        markup: inventoryPaths.filter(p => /\.(html|htm|xml|svg|vue|svelte|astro)$/i.test(p)).length,
+        config: inventoryPaths.filter(p => /\.(json|yaml|yml|toml|ini|cfg|conf|env|properties)$/i.test(p)).length,
+        docs: inventoryPaths.filter(p => /\.(md|markdown|mdx|txt|rst|adoc)$/i.test(p)).length,
+        buildArtifacts: inventoryPaths.filter(p => /\.(map|min\.js|bundle\.js|pack\.js|wasm|rlib|rmeta)$/i.test(p)).length,
+        testFixtures: inventoryPaths.filter(p => /(?:^|\/)(__tests__|tests?|fixtures?|mocks?|spec)/i.test(p) || /\.(test|spec)\.[a-z0-9]+$/i.test(p)).length,
+        other: 0
+    };
+    fileInventory.other = Math.max(0, totalFiles - fileInventory.sourceCode - fileInventory.markup - fileInventory.config - fileInventory.docs - fileInventory.buildArtifacts - fileInventory.testFixtures);
+
+    // === Removable files detection (ported from browser localScanService.js) ===
+    const removableFiles = report.removableFiles || inventoryPaths
+        .filter(p => /(^|\/)(node_modules|\.git|dist|build|out|coverage|\.next|target|\.wrangler|\.cargo|logs?|cache|\.cache|tmp|temp|backups)(\/|$)/i.test(p)
+            || /\.(log|tmp|bak|swp|cache|pyc|class|jar|war|wasm|rlib|o|a|so|dylib|dll|exe)$/i.test(p))
+        .slice(0, 100)
+        .map(p => ({ path: p, reason: 'Build artifact, cache, or generated file' }));
+
+    // === Diagnostic report (ported from browser localScanService.js) ===
+    const diagnosticReport = report.diagnosticReport || {
+        rawFiles: totalFiles,
+        filteredFiles: totalFiles,
+        scannedFiles: report.filesAnalyzed || report.ruleScopedFilesAnalyzed || 0,
+        readErrors: report.readErrors || 0,
+        largeFileSkips: report.largeFileSkips || report.binarySkipped || 0,
+        fileErrors: report.fileErrors || 0,
+        ignoredDirs: report.ignoredDirs || 0,
+        heavyVendor: report.heavyVendor || 0,
+        ignoredByPattern: report.ignoredByPattern || 0,
+        unaccounted: Math.max(0, totalFiles - (report.filesAnalyzed || report.ruleScopedFilesAnalyzed || 0) - (report.largeFileSkips || report.binarySkipped || 0) - (report.readErrors || 0))
+    };
+
+    // === Quality scorecard — 6 dimensions (ported from browser localScanService.js) ===
+    const blockingCount = enrichedGate.blockingCount || 0;
+    const mockCount = report.mockSampleFiles || 0;
+    const mediumCount = (report.severityCounts?.medium) || 0;
+    const qualityScorecard = report.qualityScorecard || {
+        accuracy: blockingCount === 0 ? 100 : Math.max(0, 100 - blockingCount * 10),
+        completeness: totalFiles >= 3 ? 100 : Math.round((totalFiles / 3) * 100),
+        consistency: mediumCount === 0 ? 100 : Math.max(0, 100 - mediumCount * 5),
+        timeliness: 100,
+        validity: report.qualityScore || 0,
+        integrity: mockCount === 0 ? 100 : Math.max(0, 100 - mockCount * 10)
+    };
+
     // Remove free tier limitations - show all findings
     // const freeLimit = 5;
     // if (!isPaid) {
@@ -422,6 +469,11 @@ function formatJsonReport(report, gateResult = null) {
         dependencyAudit,
         buildReadiness,
         remediationPhases,
+        fileInventory,
+        removableFiles,
+        removableFilesTotal: removableFiles.length,
+        diagnosticReport,
+        qualityScorecard,
         summary: {
             gatePass: enrichedGate?.pass ?? null,
             qualityScore: report.qualityScore || 0, // Show quality score for all users

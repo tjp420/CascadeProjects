@@ -1,0 +1,30 @@
+{
+  "id": "evt_test_team_pro_annual_001",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "created": 1736352000,
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "cs_test_team_pro_annual_001",
+      "object": "checkout.session",
+      "mode": "subscription",
+      "customer": "cus_test_team_pro_002",
+      "customer_email": "team-lead-annual@example.com",
+      "customer_details": {
+        "email": "team-lead-annual@example.com",
+        "name": "Team Lead Bob"
+      },
+      "subscription": "sub_test_team_pro_annual_001",
+      "metadata": {
+        "price_id": "price_team_pro_annual",
+        "tier": "team_pro",
+        "product": "team_pro_tier"
+      },
+      "amount_total": 149000,
+      "currency": "usd",
+      "payment_status": "paid",
+      "status": "complete"
+    }
+  }
+}

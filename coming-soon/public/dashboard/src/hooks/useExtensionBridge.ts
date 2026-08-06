@@ -128,7 +128,15 @@ export function useExtensionBridge() {
     setStatus('discovering');
 
     if (shouldAutoProbeLoopback(userInitiated)) {
-      const probes = await Promise.all(BRIDGE_PORTS.map((port) => probeBridgePort(port)));
+      // On hosted HTTPS, only probe the specific configured bridge origin — not all ports.
+      // Blind-scanning loopback ports from HTTPS causes CORS errors and LNA permission prompts.
+      const portsToProbe = isHostedHttpsDashboard() && canUseParentBridgeFetch()
+        ? BRIDGE_PORTS.filter((port) => {
+            const bridgeOrigin = getExtensionBridgeOrigin();
+            return bridgeOrigin && `http://127.0.0.1:${port}` === bridgeOrigin;
+          })
+        : BRIDGE_PORTS;
+      const probes = await Promise.all(portsToProbe.map((port) => probeBridgePort(port)));
       const match = probes.find(Boolean);
       if (match) {
         persistExtensionBridge(`${match.base}/api`, {

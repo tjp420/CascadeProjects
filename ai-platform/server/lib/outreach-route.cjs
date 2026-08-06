@@ -211,6 +211,25 @@ function registerOutreachRoutes(app, options = {}) {
         });
       });
     });
+
+    // Prospects — return prospect list from sent log or empty array
+    app.get(`${base}/prospects`, async (req, res) => {
+      try {
+        const sentLog = await loadSentLog(options);
+        const prospects = (sentLog || []).map((entry, i) => ({
+          id: sentEntryId(entry) || `prospect_${i}`,
+          name: entry.name || entry.toName || '',
+          email: entry.to || entry.email || '',
+          company: entry.company || '',
+          persona: entry.persona || '',
+          ...entry
+        }));
+        res.json(prospects);
+      } catch (err) {
+        logger.warn('[outreach] prospects query failed:', err.message);
+        res.json([]);
+      }
+    });
   }
 
   setupOutreachResendWebhook(app, options);

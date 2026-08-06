@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,25 +52,34 @@ export function PlatformView() {
   const [consensusData, setConsensusData] = useState<ConsensusStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const consensusErrorRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [statusResp, healthResp, consensusResp] = await Promise.allSettled([
+      const fetchPromises: Promise<Response | null>[] = [
         fetch(apiUrl('/platform/status'), { headers: authHeaders() }),
         fetch(apiUrl('/health'), { headers: authHeaders() }),
-        fetch(apiUrl('/vault/consensus/status'), { headers: authHeaders() }),
-      ]);
+        consensusErrorRef.current
+          ? Promise.resolve(null)
+          : fetch(apiUrl('/vault/consensus/status'), { headers: authHeaders() }),
+      ];
 
-      if (statusResp.status === 'fulfilled' && statusResp.value.ok) {
+      const [statusResp, healthResp, consensusResp] = await Promise.allSettled(fetchPromises);
+
+      if (statusResp.status === 'fulfilled' && statusResp.value && statusResp.value.ok) {
         setPlatformData(await statusResp.value.json());
       }
-      if (healthResp.status === 'fulfilled' && healthResp.value.ok) {
+      if (healthResp.status === 'fulfilled' && healthResp.value && healthResp.value.ok) {
         setHealthData(await healthResp.value.json());
       }
-      if (consensusResp.status === 'fulfilled' && consensusResp.value.ok) {
-        setConsensusData(await consensusResp.value.json());
+      if (consensusResp.status === 'fulfilled' && consensusResp.value) {
+        if (consensusResp.value.ok) {
+          setConsensusData(await consensusResp.value.json());
+        } else if (consensusResp.value.status === 401 || consensusResp.value.status === 403) {
+          consensusErrorRef.current = true;
+        }
       }
 
       if (statusResp.status === 'rejected' && healthResp.status === 'rejected') {

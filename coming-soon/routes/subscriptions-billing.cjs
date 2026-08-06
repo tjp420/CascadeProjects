@@ -25,6 +25,10 @@ const PRICE_TEAM_MONTHLY = 9900;
 const PRICE_TEAM_ANNUAL = 99000;
 const PRICE_ENTERPRISE_MONTHLY = 49900;
 const PRICE_ENTERPRISE_ANNUAL = 499000;
+const PRICE_DEVELOPER_MONTHLY = 4900;
+const PRICE_DEVELOPER_ANNUAL = 49000;
+const PRICE_TEAM_PRO_MONTHLY = 14900;
+const PRICE_TEAM_PRO_ANNUAL = 149000;
 
 const logger = {
     error: (...a) => { const c = globalThis.console; c.error(...a); },
@@ -74,6 +78,18 @@ router.post('/api/create-subscription-session', async (req, res) => {
         }
 
         const tierConfig = {
+            developer: {
+                name: 'SimpleBeacon Developer',
+                desc: 'SimpleBeacon Developer — unlimited scans, CI gate, 38 analyzer modules',
+                monthly: PRICE_DEVELOPER_MONTHLY,
+                annual: PRICE_DEVELOPER_ANNUAL
+            },
+            team_pro: {
+                name: 'SimpleBeacon Team Pro',
+                desc: 'SimpleBeacon Team Pro — EU AI Act, SOC 2, board-ready certificates, 5 seats',
+                monthly: PRICE_TEAM_PRO_MONTHLY,
+                annual: PRICE_TEAM_PRO_ANNUAL
+            },
             pro: {
                 name: 'AI Slop Cop Pro',
                 desc: 'SimpleBeacon Pro — unlimited scans, CI/CD, and 38 analyzer engines',
@@ -100,13 +116,13 @@ router.post('/api/create-subscription-session', async (req, res) => {
             }
         };
 
-        const selectedTier = tierConfig[tier] || tierConfig.pro;
+        const selectedTier = tierConfig[tier] || tierConfig.developer;
         const isAnnual = mode === 'annual';
         const unitAmount = isAnnual ? selectedTier.annual : selectedTier.monthly;
         const interval = isAnnual ? 'year' : 'month';
         const displayPrice = isAnnual
-            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'team' ? '$990/yr' : tier === 'pro' ? '$90/yr' : '$490/yr')
-            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'team' ? '$99/mo' : tier === 'pro' ? '$9/mo' : '$49/mo');
+            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'team_pro' ? '$1,490/yr' : tier === 'team' ? '$990/yr' : tier === 'pro' ? '$90/yr' : tier === 'developer' ? '$490/yr' : '$490/yr')
+            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'team_pro' ? '$149/mo' : tier === 'team' ? '$99/mo' : tier === 'pro' ? '$9/mo' : tier === 'developer' ? '$49/mo' : '$49/mo');
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -335,17 +351,21 @@ function setupSubscriptionWebhook(app) {
 
             // Infer tier from subscription amount or customer record
             const unitAmount = sub.items?.data?.[0]?.price?.unit_amount || 0;
-            let detectedTier = 'pro';
+            let detectedTier = 'developer';
             if (unitAmount >= PRICE_ENTERPRISE_MONTHLY) {
                 detectedTier = 'enterprise';
             } else if (unitAmount >= PRICE_COMPLIANCE_MONTHLY) {
                 detectedTier = 'compliance';
+            } else if (unitAmount >= PRICE_TEAM_PRO_MONTHLY) {
+                detectedTier = 'team_pro';
             } else if (unitAmount >= PRICE_TEAM_MONTHLY) {
                 detectedTier = 'team';
+            } else if (unitAmount >= PRICE_DEVELOPER_MONTHLY) {
+                detectedTier = 'developer';
             }
             const finalTier = customer.tier && customer.tier !== 'community' ? customer.tier : detectedTier;
-            const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite Enterprise' : finalTier === 'compliance' ? 'Compliance Suite' : finalTier === 'team' ? 'Continuous Shield Team' : 'AI Slop Cop Pro';
-            const features = finalTier === 'enterprise' || finalTier === 'compliance'
+            const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite Enterprise' : finalTier === 'compliance' ? 'Compliance Suite' : finalTier === 'team_pro' ? 'SimpleBeacon Team Pro' : finalTier === 'team' ? 'Continuous Shield Team' : finalTier === 'developer' ? 'SimpleBeacon Developer' : 'AI Slop Cop Pro';
+            const features = finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro'
                 ? ['continuous_shield', 'team_dashboard', 'ci_integration', 'compliance_certificate', 'eu_ai_act', 'analyst_support']
                 : finalTier === 'team'
                     ? ['continuous_shield', 'team_dashboard', 'ci_integration']

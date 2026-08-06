@@ -28,7 +28,6 @@
 # This redirect serves as a fallback for preview tracks where Functions may not fire.
 /api/*  https://cascadeprojects-yzzd.onrender.com/api/:splat  200
 
-# SPA fallback for dashboard/app — Functions: functions/app/[[path]].js + functions/dashboard/[[path]].js
-# Workers pass through static assets (JS, CSS, images) and serve __entry HTML for SPA routes.
+# SPA fallback for dashboard/app — handled by Functions worker (functions/app/[[path]].js)
+# The worker passes through static assets (JS, CSS, images) and serves HTML for SPA routes.
 # Do NOT add _redirects rules for /app/* or /dashboard/* — they intercept static assets.
-# /downloads/* on custom domain: functions/downloads/_middleware.js proxies to pages.dev (D-01).

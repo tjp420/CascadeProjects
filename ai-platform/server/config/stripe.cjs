@@ -2,10 +2,9 @@
 /**
  * Stripe Price ID → Tier mapping.
  *
- * New 4-tier model (2026-06):
- *   developer  – Free, no Stripe price needed
- *   startup    – $49/mo metered
- *   growth     – $149/mo metered
+ * New 3-tier model (2026-01):
+ *   developer  – $49/mo ($490/yr)
+ *   team_pro   – $149/mo ($1,490/yr)
  *   enterprise – Custom, contact sales
  *
  * Legacy entries preserved for backward compatibility.
@@ -15,50 +14,34 @@
  */
 
 const STRIPE_TIER_MAP = {
-  // --- New 4-tier metered products ---
-  'price_pro_monthly': {
-    tier: 'pro',
+  // --- Current 3-tier products ---
+  'price_developer_monthly': {
+    tier: 'developer',
     expiryDays: 30,
-    product: 'pro',
-    basePrice: 900, // cents
+    product: 'developer',
+    basePrice: 4900, // cents ($49/mo)
     metered: false
   },
-  'price_pro_annual': {
-    tier: 'pro',
+  'price_developer_annual': {
+    tier: 'developer',
     expiryDays: 365,
-    product: 'pro_annual',
-    basePrice: 7900, // cents ($79/yr)
+    product: 'developer_annual',
+    basePrice: 49000, // cents ($490/yr)
     metered: false
   },
-  'price_team_monthly': {
-    tier: 'team',
+  'price_team_pro_monthly': {
+    tier: 'team_pro',
     expiryDays: 30,
-    product: 'team',
-    basePrice: 1500, // cents per seat
-    metered: true
+    product: 'team_pro',
+    basePrice: 14900, // cents ($149/mo)
+    metered: false
   },
-  'price_team_annual': {
-    tier: 'team',
+  'price_team_pro_annual': {
+    tier: 'team_pro',
     expiryDays: 365,
-    product: 'team_annual',
-    basePrice: 15000, // cents per seat ($150/yr)
+    product: 'team_pro_annual',
+    basePrice: 149000, // cents ($1,490/yr)
     metered: false
-  },
-  'price_startup_monthly': {
-    tier: 'pro', // mapped to pro tier
-    expiryDays: 30,
-    product: 'startup',
-    basePrice: 4900, // cents
-    metered: true,
-    legacy: true
-  },
-  'price_growth_monthly': {
-    tier: 'team', // mapped to team tier
-    expiryDays: 30,
-    product: 'growth',
-    basePrice: 14900, // cents
-    metered: true,
-    legacy: true
   },
   'price_enterprise_annual': {
     tier: 'enterprise',
@@ -67,21 +50,69 @@ const STRIPE_TIER_MAP = {
     basePrice: null, // custom negotiated
     metered: false
   },
-  // --- Legacy (pre-2026-06) — preserved for migration ---
+  // --- Legacy (pre-2026-01) — preserved for migration ---
+  'price_startup_monthly': {
+    tier: 'developer', // migrated to developer tier
+    expiryDays: 30,
+    product: 'developer',
+    basePrice: 4900, // cents
+    metered: false,
+    legacy: true
+  },
+  'price_growth_monthly': {
+    tier: 'team_pro', // migrated to team_pro tier
+    expiryDays: 30,
+    product: 'team_pro',
+    basePrice: 14900, // cents
+    metered: false,
+    legacy: true
+  },
+  'price_pro_monthly': {
+    tier: 'developer',
+    expiryDays: 30,
+    product: 'developer',
+    basePrice: 900, // cents
+    metered: false,
+    legacy: true
+  },
+  'price_pro_annual': {
+    tier: 'developer',
+    expiryDays: 365,
+    product: 'developer_annual',
+    basePrice: 7900, // cents ($79/yr)
+    metered: false,
+    legacy: true
+  },
+  'price_team_monthly': {
+    tier: 'team_pro',
+    expiryDays: 30,
+    product: 'team_pro',
+    basePrice: 1500, // cents per seat
+    metered: true,
+    legacy: true
+  },
+  'price_team_annual': {
+    tier: 'team_pro',
+    expiryDays: 365,
+    product: 'team_pro_annual',
+    basePrice: 15000, // cents per seat ($150/yr)
+    metered: false,
+    legacy: true
+  },
   'price_19_instant_id': {
-    tier: 'startup', // migrated from instant_report
+    tier: 'developer',
     expiryDays: 7,
     product: 'instant_report',
     legacy: true
   },
   'price_499_executive_id': {
-    tier: 'startup', // migrated from executive
+    tier: 'developer',
     expiryDays: 90,
     product: 'executive_clearance',
     legacy: true
   },
   'price_2499_eusprint_id': {
-    tier: 'growth', // migrated from eusprint
+    tier: 'team_pro',
     expiryDays: 30,
     product: 'eu_ai_act_sprint',
     legacy: true

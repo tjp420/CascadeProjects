@@ -28,8 +28,7 @@ function resolveScanWorkerUrl() {
   return `/app/assets/scan-worker.js?v=${v}`;
 }
 
-const RAW_MAX_FILES = 100000;
-const MAX_FILES = RAW_MAX_FILES <= 0 ? Number.POSITIVE_INFINITY : RAW_MAX_FILES;
+const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;
 
@@ -98,11 +97,8 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths
     for (const part of parts) { acc = acc ? `${acc}/${part}` : part; if (acc) folderSet.add(acc); }
   }
   const totalFolders = folderSet.size;
-  const capped = Boolean(meta.capped) || (Number.isFinite(MAX_FILES) && totalFiles >= MAX_FILES);
-  const displayMaxFiles = Number.isFinite(MAX_FILES) ? MAX_FILES.toLocaleString() : 'unlimited';
-  const scanLimitNote = capped
-    ? `Browser local scan inventory capped at ${displayMaxFiles} files. Run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
-    : null;
+  const capped = false; // No cap — MAX_FILES is 999M (matches legacy /audit page)
+  const scanLimitNote = null;
   const incompleteDropNote = incompleteDrop
     ? `Only ${totalFiles} file${totalFiles === 1 ? '' : 's'} discovered — this is likely an incomplete folder drop (common for OS/system directories). No full-repo PASS was recorded. Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
     : null;
@@ -189,10 +185,6 @@ export async function runLocalScan(options = {}) {
   if (files.length === 0) {
     throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
   }
-  const capped = files.length >= MAX_FILES;
-  if (capped) {
-    showToast(browserLocalScanCapMessage(MAX_FILES), 'warning', { duration: 12000 });
-  }
   const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
 
   return new Promise((resolve, reject) => {
@@ -222,7 +214,7 @@ export async function runLocalScan(options = {}) {
       if (type === 'complete') {
         cleanup();
         const analyzedFiles = files.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
-        resolve(buildReport(projectName, issues, total, analyzedFiles, files.map((f) => f.path), { capped }));
+        resolve(buildReport(projectName, issues, total, analyzedFiles, files.map((f) => f.path), { capped: false }));
       }
       if (type === 'error') {
         cleanup();

@@ -96,6 +96,7 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => {
                 localStorage.removeItem('sb_token');
+                localStorage.removeItem('sb-token');
                 localStorage.removeItem('sb_user');
                 navigate('signin');
               }}>

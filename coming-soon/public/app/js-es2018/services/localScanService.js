@@ -1,6 +1,6 @@
 // simplebeacon-ignore: debugArtifacts,euAiAct,hardcodedIp — scanner service diagnostics and pattern definitions are false positives
 import { showToast } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260726embedfix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame, browserLocalScanCapMessage } from '../utils-lib/dom.js?v=20260804largefolder1';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260726sevfix1';
 import {
   createIgnoreContext,
@@ -10,8 +10,37 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=2026072701', import.meta.url);
-const MAX_FILES = 10000; // SB_BROWSER_LOCAL_SCAN_MAX_FILES — capped for browser memory safety
+// Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
+// to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
+// runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
+const WORKER_ASSET_VERSION = '20260804worker1';
+function resolveScanWorkerUrl() {
+    const v = WORKER_ASSET_VERSION;
+    try {
+        if (typeof location !== 'undefined' && location.origin) {
+            const path = String(location.pathname || '');
+            const mount = path.startsWith('/dashboard')
+                ? '/dashboard'
+                : (path.startsWith('/app') ? '/app' : null);
+            if (mount) {
+                return new URL(`${mount}/assets/scan-worker.js?v=${v}`, location.origin);
+            }
+        }
+    } catch (_locErr) { /* fall through */ }
+    try {
+        // Dev module graph: worker lives beside services under ../workers/
+        const base = (typeof import.meta !== 'undefined' && import.meta.url) ? import.meta.url : '';
+        if (base.includes('/assets/')) {
+            return new URL(`./scan-worker.js?v=${v}`, base);
+        }
+        if (base) {
+            return new URL(`../workers/scan-worker.js?v=${v}`, base);
+        }
+    } catch (_metaErr) { /* fall through */ }
+    return `/app/assets/scan-worker.js?v=${v}`;
+}
+const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
+const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
 const WORKER_START_TIMEOUT_MS = 15000;
@@ -190,10 +219,67 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
     const issueCount = totalFindings;
     const blockingCount = rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high')
         .reduce((sum, i) => sum + (Number(i.count) || 1), 0);
-    const gateScore = blockingCount === 0 && totalFiles > 0 ? 100 : 0;
+    const incompleteDrop = totalFiles > 0 && totalFiles < MIN_FILES_FOR_PASS;
+    // Incomplete drops must not score 100 — that produced false "Windows PASS" UX
+    const gateScore = blockingCount === 0 && totalFiles >= MIN_FILES_FOR_PASS ? 100 : 0;
     const mockSampleFiles = (meta.filePaths || []).filter((p) =>
         /sample|mock|fixture|test.*data/i.test(String(p))
     ).length;
+    const capped = false; // No cap — MAX_FILES is 999M (matches legacy /audit page)
+    // === File inventory breakdown (ported from legacy scanner-engine.js) ===
+    const filePaths = meta.filePaths || [];
+    const fileInventory = {
+        sourceCode: filePaths.filter(p => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|kt|go|rs|php|rb|cs|vb|c|cpp|h|hpp|swift|scala|groovy)$/i.test(p)).length,
+        markup: filePaths.filter(p => /\.(html|htm|xml|svg|vue|svelte|astro)$/i.test(p)).length,
+        config: filePaths.filter(p => /\.(json|yaml|yml|toml|ini|cfg|conf|env|properties)$/i.test(p)).length,
+        docs: filePaths.filter(p => /\.(md|markdown|mdx|txt|rst|adoc)$/i.test(p)).length,
+        buildArtifacts: filePaths.filter(p => /\.(map|min\.js|bundle\.js|pack\.js|wasm|rlib|rmeta)$/i.test(p)).length,
+        testFixtures: filePaths.filter(p => /(?:^|\/)(__tests__|tests?|fixtures?|mocks?|spec)/i.test(p) || /\.(test|spec)\.[a-z0-9]+$/i.test(p)).length,
+        other: 0
+    };
+    fileInventory.other = Math.max(0, totalFiles - fileInventory.sourceCode - fileInventory.markup - fileInventory.config - fileInventory.docs - fileInventory.buildArtifacts - fileInventory.testFixtures);
+    // === Removable files detection (ported from legacy scanner-engine.js) ===
+    const removableFiles = filePaths.filter(p =>
+        /(^|\/)(node_modules|\.git|dist|build|out|coverage|\.next|target|\.wrangler|\.cargo|logs?|cache|\.cache|tmp|temp|backups)(\/|$)/i.test(p)
+        || /\.(log|tmp|bak|swp|cache|pyc|class|jar|war|wasm|rlib|o|a|so|dylib|dll|exe)$/i.test(p)
+    ).map(p => ({ path: p, reason: 'Build artifact, cache, or generated file' }));
+    // === Diagnostic report (ported from legacy scanner-engine.js) ===
+    const diagnosticReport = {
+        rawFiles: totalFiles,
+        filteredFiles: totalFiles,
+        scannedFiles: analyzedFiles,
+        readErrors: meta.telemetry?.textErrors || 0,
+        largeFileSkips: meta.telemetry?.binarySkipped || 0,
+        fileErrors: meta.telemetry?.fileErrors || 0,
+        ignoredDirs: meta.telemetry?.ignoredDir || 0,
+        heavyVendor: meta.telemetry?.heavyVendor || 0,
+        ignoredByPattern: meta.telemetry?.ignoredByPattern || 0,
+        unaccounted: Math.max(0, totalFiles - analyzedFiles - (meta.telemetry?.binarySkipped || 0) - (meta.telemetry?.textErrors || 0))
+    };
+    // === Quality scorecard (6 dimensions, ported from legacy scanner-engine.js) ===
+    const qualityScorecard = {
+        accuracy: blockingCount === 0 ? 100 : Math.max(0, 100 - blockingCount * 10),
+        completeness: totalFiles >= MIN_FILES_FOR_PASS ? 100 : Math.round((totalFiles / MIN_FILES_FOR_PASS) * 100),
+        consistency: rawIssues.filter(i => i.severity === 'medium').length === 0 ? 100 : Math.max(0, 100 - rawIssues.filter(i => i.severity === 'medium').length * 5),
+        timeliness: 100, // No staleness check in browser scan
+        validity: gateScore,
+        integrity: mockSampleFiles === 0 ? 100 : Math.max(0, 100 - mockSampleFiles * 10)
+    };
+    const scanLimitNote = meta.issuesTruncated
+        ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
+        : (capped
+            ? `Browser local scan inventory capped at ${MAX_FILES.toLocaleString()} files. Run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
+            : null);
+    const incompleteDropNote = incompleteDrop
+        ? `Only ${totalFiles} file${totalFiles === 1 ? '' : 's'} discovered — this is likely an incomplete folder drop (common for OS/system directories). No full-repo PASS was recorded. Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
+        : null;
+    const limitations = [
+        `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
+        'Pattern matching on file contents — not LLM semantic review.',
+        'Jest not executed during scan — use npm test separately.'
+    ];
+    if (scanLimitNote) limitations.unshift(scanLimitNote);
+    if (incompleteDropNote) limitations.unshift(incompleteDropNote);
     return {
         type: 'simplebeacon-report',
         version: '1.0.0',
@@ -225,7 +311,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         repositoryFoldersTotal: totalFolders,
         scanScope: {
             profile: 'standard',
-            rulesEnabled: ['credential-patterns', 'production-leak-patterns'],
+            rulesEnabled: ['credential-patterns', 'production-leak-patterns', 'sensitive-data', 'config-drift', 'security-vulnerabilities', 'ai-residue', 'llm-slop', 'fiction-kpi', 'code-quality', 'maintainability'],
             gatePolicy: { failOn: ['critical', 'high'], warnOn: ['medium', 'low'] },
             mockSampleFilesInScanPaths: mockSampleFiles,
             productionDirsScanned: null,
@@ -241,25 +327,26 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             pageSpecsValidated: null,
             pageSpecsFromScanPaths: 0,
             pageSpecsFromAliasPaths: 0,
-            fullDirectoryScan: true,
-            limitations: [
-                `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
-                'Pattern matching on file contents — not LLM semantic review.',
-                'Jest not executed during scan — use npm test separately.'
-            ]
+            fullDirectoryScan: !capped,
+            limitations
         },
         ignoreMeta: meta.ignoreMeta || null,
         telemetry: meta.telemetry || null,
         gate: {
-            pass: blockingCount === 0 && totalFiles > 0,
+            pass: blockingCount === 0 && totalFiles >= MIN_FILES_FOR_PASS,
             blockingCount,
             warningCount: totalFindings - blockingCount,
-            score: gateScore
+            score: gateScore,
+            incompleteDrop
         },
         issuesTruncated: Boolean(meta.issuesTruncated),
-        scanLimitNote: meta.issuesTruncated
-            ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
-            : (totalFiles >= MAX_FILES ? `File inventory capped at ${MAX_FILES.toLocaleString()} files. Use the CLI for full monorepo coverage.` : null)
+        scanLimitNote,
+        incompleteDropNote,
+        fileInventory,
+        removableFiles: removableFiles.slice(0, 100), // Cap at 100 for UI
+        removableFilesTotal: removableFiles.length,
+        diagnosticReport,
+        qualityScorecard
     };
 }
 /**
@@ -273,6 +360,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
     const scanId = crypto.randomUUID();
     const totalFiles = workerFiles.length;
     const ignoreCtx = options.ignoreCtx || null;
+    const deepScan = options.deepScan !== false; // Default to true (scan all files)
     let fileErrors = 0;
     const fileErrorExamples = [];
     const SCAN_OVERALL_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes overall safeguard
@@ -296,7 +384,10 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             cleanup();
             const detail = err.message || (err.error && err.error.message) || '';
             const loc = err.filename ? ` at ${err.filename}:${err.lineno || 0}:${err.colno || 0}` : '';
-            const workerUrl = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+            const workerUrl = String((() => {
+                const u = resolveScanWorkerUrl();
+                return u && u.href ? u.href : u;
+            })());
             // Provide a more actionable error when the worker script fails to load (CSP, 404, network).
             // This commonly happens on hosted dashboards when the worker URL resolves to the wrong path.
             if (!detail) {
@@ -362,6 +453,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 const filePaths = workerFiles.map((f) => f.path);
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
                     issuesTruncated,
+                    capped: false,
                     folderCount,
                     filePaths,
                     ignoreMeta: options.ignoreCtx
@@ -387,7 +479,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             type: 'scan-start',
             scanId,
             totalFiles,
-            deepScan: true,
+            deepScan,
             ignoreCtx: ignoreCtx
                 ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
                 : null
@@ -440,7 +532,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                             scanId,
                             batchOffset: offset,
                             files: batch,
-                            deepScan: true
+                            deepScan
                         });
                     });
                 }
@@ -464,6 +556,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
  * @param {FileSystemDirectoryHandle} [options.dirHandle] Optional directory handle from drag-and-drop.
  * @param {FileList|File[]} [options.files] Optional dropped files (legacy directory entry) to scan locally.
  * @param {string} [options.projectPath] Optional display path/label to use as projectPath in the report.
+ * @param {boolean} [options.deepScan=true] When true, bypass vendor/docs/build filters to scan all files.
  * @returns {Promise<Object>}
  */
 export async function runLocalScan(options = {}) {
@@ -571,32 +664,22 @@ export async function runLocalScan(options = {}) {
     if (options.files && isLikelyWebkitDirectoryFileCap(files.length)) {
         showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
     }
-    if (files.length >= MAX_FILES) {
-        showToast(`Large repo — scanning first ${MAX_FILES.toLocaleString()} files. Use CLI for unlimited coverage.`, 'warning', { duration: 8000 });
-    }
-    else if (files.length > 3000) {
+    if (files.length > 3000) {
         showToast(`Scanning ${files.length.toLocaleString()} files locally — this may take a few minutes.`, 'info', { duration: 6000 });
     }
     if (onFilePrepProgress) onFilePrepProgress(files.length, files.length, `Starting scan of ${files.length.toLocaleString()} files...`);
-    const workerFiles = files.map((f) => {
-        const handle = f.handle;
-        // If the file has pre-read text (Firefox drag-and-drop), send the text instead
-        // of the stale File object to avoid DOMException during postMessage serialization.
-        if (handle && handle._preReadText !== undefined) {
-            return { path: f.path, fileObj: null, preReadText: handle._preReadText, preReadSize: handle._preReadSize || 0 };
-        }
-        return { path: f.path, fileObj: handle };
-    });
+    const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
     if (options.onProgress) {
         options.onProgress(0, workerFiles.length, { currentFile: 'Initializing scanner worker...' });
     }
     let worker;
     let blobUrlForWorker = null;
     try {
-        const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+        const resolvedWorkerUrl = resolveScanWorkerUrl();
+        const workerUrlStr = String(resolvedWorkerUrl && resolvedWorkerUrl.href ? resolvedWorkerUrl.href : resolvedWorkerUrl);
         console.warn('[localScan] Creating module worker from:', workerUrlStr);
         // Firefox has issues with query parameters in module worker URLs — strip them as a fallback
-        let workerUrlForCreation = WORKER_URL;
+        let workerUrlForCreation = resolvedWorkerUrl;
         try {
             const parsed = new URL(workerUrlStr);
             if (parsed.search && navigator.userAgent.toLowerCase().includes('firefox')) {
@@ -616,7 +699,11 @@ export async function runLocalScan(options = {}) {
                 console.warn('[localScan] Worker construction failed, attempting fetch+blob fallback:', ctorErr?.message || ctorErr);
                 const resp = await fetch(String(workerUrlForCreation));
                 if (!resp.ok) throw new Error(`Fetch failed with status ${resp.status}`);
+                const ct = String(resp.headers.get('content-type') || '').toLowerCase();
                 const scriptText = await resp.text();
+                if (ct.includes('text/html') || /^\s*</.test(scriptText)) {
+                    throw new Error(`Worker URL returned HTML instead of JavaScript (${workerUrlStr})`);
+                }
                 const blob = new Blob([scriptText], { type: 'application/javascript' });
                 blobUrlForWorker = URL.createObjectURL(blob);
                 console.warn('[localScan] Created blob URL for worker; will keep alive until worker confirms start');
@@ -627,7 +714,8 @@ export async function runLocalScan(options = {}) {
             }
         }
     } catch (workerCtorErr) {
-        const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+        const resolvedWorkerUrl = resolveScanWorkerUrl();
+        const workerUrlStr = String(resolvedWorkerUrl && resolvedWorkerUrl.href ? resolvedWorkerUrl.href : resolvedWorkerUrl);
         console.error('[localScan] new Worker() constructor threw:', workerCtorErr);
         throw new Error(`Failed to create module worker from ${workerUrlStr}: ${workerCtorErr?.message || workerCtorErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`);
     }
@@ -661,7 +749,8 @@ export async function runLocalScan(options = {}) {
     const report = await runBatchedWorkerScan(worker, workerFiles, {
         onProgress: options.onProgress,
         projectName,
-        ignoreCtx
+        ignoreCtx,
+        deepScan: options.deepScan !== false // Default to true (scan all files)
     });
     return normalizeSimplebeaconReport(report);
 }

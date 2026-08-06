@@ -35,6 +35,10 @@ if (fs.existsSync(envPath)) {
   require('dotenv').config({ path: envPath });
 }
 
+// Validate critical Stripe/billing env vars before loading app modules
+const { validateEnvironment } = require('./config/validate-env.cjs');
+validateEnvironment();
+
 const logger = require('./lib/app-logger.cjs');
 const { resolveCorsOptions } = require('./lib/cors-config.cjs');
 const { appendContactSubmission } = require('./lib/contact-submissions-store.cjs');
@@ -97,6 +101,7 @@ const fineTuningTelemetryRoutes = require('./routes/fine-tuning-telemetry-routes
 const tokenThrottleRoutes = require('./routes/token-throttle-routes.cjs');
 const hsmVaultRoutes = require('./routes/hsm-vault-routes.cjs');
 const track112UploadRoutes = require('./routes/track112-upload-routes.cjs');
+const { registerOutreachRoutes } = require('./lib/outreach-route.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
@@ -1133,6 +1138,15 @@ try {
   logger.warn('[Enterprise] Analytics route not mounted:', e?.message || e);
 }
 
+// SimpleBeacon admin dashboard analytics ΓÇö scan metrics, trends, posture scores
+try {
+  const analyticsRouter = require('./routes/analytics-routes.cjs');
+  app.use('/api/analytics', analyticsRouter);
+  logger.info('[Analytics] Usage analytics mounted at /api/analytics');
+} catch (e) {
+  logger.warn('[Analytics] Usage analytics route not mounted:', e?.message || e);
+}
+
 // Dashboard stub APIs ΓÇö dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {
     setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });
@@ -1255,6 +1269,58 @@ app.use('/api/workspace', workspaceConfigRoutes);
 
 // Fine-tuning telemetry routes ΓÇö conversation dataset collection and export
 app.use('/api/telemetry', fineTuningTelemetryRoutes);
+
+// Outreach routes — email campaign config, sent log, send, and prospects
+registerOutreachRoutes(app, {
+  dataDir: path.join(__dirname, '..', 'data'),
+  prefixes: ['/api/outreach', '/api/simplebeacon/outreach']
+});
+
+// Enterprise organizations — list, onboard, trial
+const enterpriseDb = isDatabaseEnabled() ? new DatabaseAdapter(getDatabaseConfig()) : null;
+app.get('/api/enterprise/organizations', async (req, res) => {
+  try {
+    if (!enterpriseDb) {
+      return res.json({ organizations: [] });
+    }
+    const orgs = await enterpriseDb.query('SELECT org_id, name, plan, seats, created_at FROM organizations ORDER BY created_at DESC LIMIT 100');
+    res.json({ organizations: orgs || [] });
+  } catch (err) {
+    logger.warn('[enterprise] organizations query failed:', err.message);
+    res.json({ organizations: [] });
+  }
+});
+
+app.post('/api/enterprise/onboard', async (req, res) => {
+  try {
+    const { companyName, adminEmail, plan = 'trial' } = req.body || {};
+    if (!companyName || !adminEmail) {
+      return res.status(400).json({ success: false, error: 'companyName and adminEmail are required' });
+    }
+    if (!enterpriseDb) {
+      return res.json({ success: true, orgId: `org_${Date.now()}`, companyName, adminEmail, plan });
+    }
+    const orgId = `org_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    await enterpriseDb.query('INSERT INTO organizations (org_id, name, plan, seats, created_at) VALUES (?, ?, ?, 1, ?)',
+      [orgId, companyName, plan, new Date().toISOString()]);
+    res.json({ success: true, orgId, companyName, adminEmail });
+  } catch (err) {
+    logger.warn('[enterprise] onboard failed:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/enterprise/trial', async (req, res) => {
+  try {
+    const { companyName, adminEmail } = req.body || {};
+    if (!companyName || !adminEmail) {
+      return res.status(400).json({ success: false, error: 'companyName and adminEmail are required' });
+    }
+    res.json({ success: true, trialStarted: true, companyName, adminEmail, trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Provider failover routes ΓÇö LLM provider health, failover stats, circuit breaker
 try {

@@ -436,3 +436,85 @@ describe('stripe-webhook invoice.paid handler', () => {
     assert.strictEqual(reactivated.subscriptionActive, true, 'should be reactivated');
   });
 });
+
+describe('stripe-webhook 3-tier price ID mapping', () => {
+  const { getTierConfigByPriceId } = require('../config/stripe.cjs');
+
+  it('price_developer_monthly maps to developer tier', () => {
+    const cfg = getTierConfigByPriceId('price_developer_monthly');
+    assert.ok(cfg, 'config should exist');
+    assert.strictEqual(cfg.tier, 'developer');
+    assert.strictEqual(cfg.product, 'developer');
+    assert.strictEqual(cfg.basePrice, 4900);
+  });
+
+  it('price_developer_annual maps to developer tier', () => {
+    const cfg = getTierConfigByPriceId('price_developer_annual');
+    assert.ok(cfg, 'config should exist');
+    assert.strictEqual(cfg.tier, 'developer');
+    assert.strictEqual(cfg.product, 'developer_annual');
+    assert.strictEqual(cfg.basePrice, 49000);
+  });
+
+  it('price_team_pro_monthly maps to team_pro tier', () => {
+    const cfg = getTierConfigByPriceId('price_team_pro_monthly');
+    assert.ok(cfg, 'config should exist');
+    assert.strictEqual(cfg.tier, 'team_pro');
+    assert.strictEqual(cfg.product, 'team_pro');
+    assert.strictEqual(cfg.basePrice, 14900);
+  });
+
+  it('price_team_pro_annual maps to team_pro tier', () => {
+    const cfg = getTierConfigByPriceId('price_team_pro_annual');
+    assert.ok(cfg, 'config should exist');
+    assert.strictEqual(cfg.tier, 'team_pro');
+    assert.strictEqual(cfg.product, 'team_pro_annual');
+    assert.strictEqual(cfg.basePrice, 149000);
+  });
+
+  it('legacy price_startup_monthly still maps to developer tier', () => {
+    const cfg = getTierConfigByPriceId('price_startup_monthly');
+    assert.ok(cfg, 'legacy config should exist');
+    assert.strictEqual(cfg.tier, 'developer');
+    assert.strictEqual(cfg.legacy, true);
+  });
+
+  it('legacy price_growth_monthly still maps to team_pro tier', () => {
+    const cfg = getTierConfigByPriceId('price_growth_monthly');
+    assert.ok(cfg, 'legacy config should exist');
+    assert.strictEqual(cfg.tier, 'team_pro');
+    assert.strictEqual(cfg.legacy, true);
+  });
+
+  it('unknown price ID returns null', () => {
+    const cfg = getTierConfigByPriceId('price_nonexistent_999');
+    assert.strictEqual(cfg, null);
+  });
+});
+
+describe('stripe-webhook mock fixture payloads', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const FIXTURES_DIR = path.join(__dirname, '..', '..', 'test-fixtures', 'stripe');
+
+  const EXPECTED = [
+    { file: 'checkout_developer_monthly.json', tier: 'developer', priceId: 'price_developer_monthly' },
+    { file: 'checkout_developer_annual.json', tier: 'developer', priceId: 'price_developer_annual' },
+    { file: 'checkout_team_pro_monthly.json', tier: 'team_pro', priceId: 'price_team_pro_monthly' },
+    { file: 'checkout_team_pro_annual.json', tier: 'team_pro', priceId: 'price_team_pro_annual' }
+  ];
+
+  for (const { file, tier, priceId } of EXPECTED) {
+    it(`${file} has correct tier and price_id metadata`, () => {
+      const fixturePath = path.join(FIXTURES_DIR, file);
+      assert.ok(fs.existsSync(fixturePath), `${file} should exist in test-fixtures/stripe/`);
+      const event = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+      assert.strictEqual(event.type, 'checkout.session.completed');
+      assert.strictEqual(event.data.object.metadata.tier, tier);
+      assert.strictEqual(event.data.object.metadata.price_id, priceId);
+      assert.ok(event.data.object.customer_email, 'should have customer email');
+      assert.ok(event.data.object.customer_details?.email, 'should have customer_details.email');
+      assert.ok(event.data.object.subscription, 'should have subscription ID');
+    });
+  }
+});

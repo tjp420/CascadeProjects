@@ -242,6 +242,26 @@ npx simplebeacon init
 npx simplebeacon hook install
 ```
 
+---
+
+## Pre-push secret scanning (onboarding)
+
+This repository includes a Husky `pre-push` hook that runs a changed-file secret scanner before allowing a push. It prefers the `gitleaks` binary for detection and falls back to a conservative regex scanner when `gitleaks` is not installed.
+
+To bootstrap `gitleaks` on your machine, run:
+
+```bash
+npm run install-gitleaks
+```
+
+What the helper does:
+- On macOS: attempts `brew install gitleaks`.
+- On Windows: attempts `winget install` and falls back to a PowerShell downloader that places the binary under `%USERPROFILE%\bin`.
+- On Linux: prints manual download instructions.
+
+If you prefer not to install the binary, the repo still enforces local checks via the regex fallback, but installing `gitleaks` improves detection quality and reduces false positives.
+
+
 ### VS Code: Extension
 
 Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop) or build locally:

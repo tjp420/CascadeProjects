@@ -13,8 +13,7 @@ type TraversalState = {
   maxFiles: number;
 };
 
-const RAW_DEFAULT_MAX_FILES = 100_000;
-const DEFAULT_MAX_FILES = RAW_DEFAULT_MAX_FILES <= 0 ? Number.POSITIVE_INFINITY : RAW_DEFAULT_MAX_FILES;
+const DEFAULT_MAX_FILES = 999_999_999; // No cap — scan all files (matches legacy /audit page)
 
 /** Capture FileSystemEntry objects synchronously during the drop event. */
 export function captureDropEntries(items: DataTransferItemList | null | undefined): FileSystemEntry[] {

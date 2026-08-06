@@ -1,0 +1,72 @@
+{
+  "products": [
+    {
+      "id": "prod_developer_tier",
+      "name": "SimpleBeacon Developer",
+      "description": "Zero Data Custody local AI code compliance scanning for individual developers.",
+      "active": true,
+      "metadata": {
+        "tier": "developer",
+        "internal_product_key": "developer_tier"
+      },
+      "prices": [
+        {
+          "id": "price_developer_monthly",
+          "nickname": "Developer Monthly",
+          "billing_scheme": "per_unit",
+          "currency": "usd",
+          "unit_amount": 4900,
+          "recurring": {
+            "interval": "month",
+            "interval_count": 1
+          }
+        },
+        {
+          "id": "price_developer_annual",
+          "nickname": "Developer Annual",
+          "billing_scheme": "per_unit",
+          "currency": "usd",
+          "unit_amount": 49000,
+          "recurring": {
+            "interval": "year",
+            "interval_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "prod_team_pro_tier",
+      "name": "SimpleBeacon Team Pro",
+      "description": "Advanced AI code compliance orchestration and reporting for engineering teams.",
+      "active": true,
+      "metadata": {
+        "tier": "team_pro",
+        "internal_product_key": "team_pro_tier"
+      },
+      "prices": [
+        {
+          "id": "price_team_pro_monthly",
+          "nickname": "Team Pro Monthly",
+          "billing_scheme": "per_unit",
+          "currency": "usd",
+          "unit_amount": 14900,
+          "recurring": {
+            "interval": "month",
+            "interval_count": 1
+          }
+        },
+        {
+          "id": "price_team_pro_annual",
+          "nickname": "Team Pro Annual",
+          "billing_scheme": "per_unit",
+          "currency": "usd",
+          "unit_amount": 149000,
+          "recurring": {
+            "interval": "year",
+            "interval_count": 1
+          }
+        }
+      ]
+    }
+  ]
+}

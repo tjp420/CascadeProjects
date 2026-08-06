@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Pre-push validation hook: run the Node changed-file secret scanner
+
+echo "🔍 [Pre-Push] Running pre-flight credential audit on unpushed commits..."
+
+# Invoke the Node-based scanner which prefers gitleaks and falls back to a fast regex scan
+if command -v node >/dev/null 2>&1; then
+  node scripts/pre-push-scan.js "$@"
+  EXIT_CODE=$?
+  if [ $EXIT_CODE -ne 0 ]; then
+    echo -e "\n💥 [Pre-Push] PUSH REJECTED: secret scanner failed or detected leaks. Remediate and try again.\n"
+    exit $EXIT_CODE
+  fi
+  echo "✅ Pre-push secret scan passed."
+  exit 0
+else
+  echo "⚠️ Node.js not found in PATH — unable to run pre-push scanner. Skipping checks." 
+  exit 0
+fi

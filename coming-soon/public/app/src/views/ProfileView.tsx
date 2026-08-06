@@ -25,7 +25,7 @@ export function ProfileView() {
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     try {
-      const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+      const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
       if (token) {
         setIsAuthenticated(true);
         const userData = localStorage.getItem('sb_user');
@@ -55,6 +55,7 @@ export function ProfileView() {
 
   const handleSignOut = () => {
     localStorage.removeItem('sb_token');
+    localStorage.removeItem('sb-token');
     localStorage.removeItem('sb_user');
     localStorage.removeItem('auth_token');
     navigate('signin');

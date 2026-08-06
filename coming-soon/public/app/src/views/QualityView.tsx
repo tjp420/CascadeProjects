@@ -17,12 +17,15 @@ interface ScanResultData {
 
 export function QualityView() {
   const [result, setResult] = useState<ScanResultData | null>(null);
+  const [fullReport, setFullReport] = useState<any>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const full = localStorage.getItem('sb_last_scan_full');
       if (full) setResult(JSON.parse(full));
+      const report = localStorage.getItem('sb_last_scan_report');
+      if (report) setFullReport(JSON.parse(report));
       const time = localStorage.getItem('sb_last_scan_time');
       if (time) setScanTime(new Date(time).toLocaleString());
     } catch {
@@ -191,6 +194,26 @@ export function QualityView() {
           })}
         </CardContent>
       </Card>
+
+      {/* Quality Scorecard */}
+      {fullReport?.qualityScorecard && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Quality Scorecard</CardTitle>
+            <CardDescription>6-dimensional quality assessment</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {Object.entries(fullReport.qualityScorecard).map(([dim, score]) => (
+                <div key={dim} className="rounded-md border p-3 text-center">
+                  <div className="text-xs text-foreground-muted capitalize">{dim}</div>
+                  <div className={`text-2xl font-bold ${(score as number) >= 80 ? 'text-green-600' : (score as number) >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>{score as number}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Scan Info */}
       <Card>

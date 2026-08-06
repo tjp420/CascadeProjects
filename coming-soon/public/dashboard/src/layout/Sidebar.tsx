@@ -77,6 +77,7 @@ const navGroups: NavGroup[] = [
       { view: 'remediation', label: 'Remediation', icon: Map },
       { view: 'platform', label: 'Platform', icon: BarChart3 },
       { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
+      { view: 'analytics', label: 'Analytics', icon: BarChart3 },
       { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail },
       { view: 'organization', label: 'Organization', icon: Building2 },
       { view: 'enterprise', label: 'Enterprise', icon: Server },

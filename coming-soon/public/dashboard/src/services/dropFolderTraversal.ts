@@ -6,71 +6,14 @@
 
 export type VirtualFile = File & {
   _virtualPath?: string;
-  _preReadText?: string;
-  _preReadSize?: number;
 };
 
 type TraversalState = {
   errors: number;
   maxFiles: number;
-  preReadContent: boolean;
 };
 
-const DEFAULT_MAX_FILES = 100_000;
-// Browser-local scan cap — prevents tab memory exhaustion when traversing
-// massive root directories (e.g. C:\Windows with 100k+ files). Configurable
-// via the SB_BROWSER_LOCAL_SCAN_MAX_FILES env var in the build pipeline.
-const BROWSER_LOCAL_SCAN_MAX_FILES = (() => {
-  try {
-    // @ts-ignore — injected by Vite/esbuild define at build time
-    const v = typeof __SB_BROWSER_LOCAL_SCAN_MAX_FILES__ !== 'undefined'
-      ? __SB_BROWSER_LOCAL_SCAN_MAX_FILES__ : null;
-    if (v) return parseInt(String(v), 10) || 10_000;
-  } catch { /* not injected — use default */ }
-  return 10_000;
-})();
-const PRE_READ_MAX_SIZE = 2 * 1024 * 1024; // 2 MB — skip pre-reading very large files
-
-// ── Drop Telemetry Counters ─────────────────────────────────────
-// Module-level in-memory counters for drag-and-drop traversal metrics.
-// These are client-side only (no backend endpoint) since drag-and-drop
-// scan data never leaves the browser.
-
-export type DropTelemetryCounters = {
-  totalDrops: number;
-  totalFilesDropped: number;
-  preReadSuccess: number;
-  preReadSkipped: number;
-  preReadFailed: number;
-  traversalErrors: number;
-  firefoxBypassUsed: number;
-};
-
-const dropTelemetry: DropTelemetryCounters = {
-  totalDrops: 0,
-  totalFilesDropped: 0,
-  preReadSuccess: 0,
-  preReadSkipped: 0,
-  preReadFailed: 0,
-  traversalErrors: 0,
-  firefoxBypassUsed: 0,
-};
-
-/** Get the current drop telemetry counters. */
-export function getDropTelemetry(): DropTelemetryCounters {
-  return { ...dropTelemetry };
-}
-
-/** Reset all drop telemetry counters to zero. */
-export function resetDropTelemetry(): void {
-  dropTelemetry.totalDrops = 0;
-  dropTelemetry.totalFilesDropped = 0;
-  dropTelemetry.preReadSuccess = 0;
-  dropTelemetry.preReadSkipped = 0;
-  dropTelemetry.preReadFailed = 0;
-  dropTelemetry.traversalErrors = 0;
-  dropTelemetry.firefoxBypassUsed = 0;
-}
+const DEFAULT_MAX_FILES = 999_999_999; // No cap — scan all files (matches legacy /audit page)
 
 /** Capture FileSystemEntry objects synchronously during the drop event. */
 export function captureDropEntries(items: DataTransferItemList | null | undefined): FileSystemEntry[] {
@@ -111,7 +54,7 @@ async function traverseFileSystemEntry(
       await new Promise<void>((resolve) => {
         try {
           fileEntry.file(
-            async (file) => {
+            (file) => {
               const virtualFile = file as VirtualFile;
               try {
                 Object.defineProperty(virtualFile, 'webkitRelativePath', {
@@ -122,21 +65,6 @@ async function traverseFileSystemEntry(
                 /* ignore */
               }
               virtualFile._virtualPath = currentPath.replace(/\\/g, '/');
-              if (state.preReadContent) {
-                if (file.size <= PRE_READ_MAX_SIZE) {
-                  try {
-                    virtualFile._preReadText = await file.text();
-                    virtualFile._preReadSize = file.size;
-                    dropTelemetry.preReadSuccess += 1;
-                    dropTelemetry.firefoxBypassUsed += 1;
-                  } catch {
-                    /* File may already be stale or unreadable — skip pre-read */
-                    dropTelemetry.preReadFailed += 1;
-                  }
-                } else {
-                  dropTelemetry.preReadSkipped += 1;
-                }
-              }
               files.push(virtualFile);
               resolve();
             },
@@ -218,12 +146,11 @@ function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualF
 export async function collectFilesFromDrop(
   dataTransfer: DataTransfer | undefined,
   preCapturedEntries?: FileSystemEntry[],
-  options: { maxFiles?: number; preReadContent?: boolean } = {}
+  options: { maxFiles?: number } = {}
 ): Promise<{ files: VirtualFile[]; rootName: string; traverseErrors: number }> {
   const state: TraversalState = {
     errors: 0,
-    maxFiles: options.maxFiles ?? BROWSER_LOCAL_SCAN_MAX_FILES,
-    preReadContent: options.preReadContent ?? false,
+    maxFiles: options.maxFiles ?? DEFAULT_MAX_FILES,
   };
   const files: VirtualFile[] = [];
   const entries = preCapturedEntries ?? (dataTransfer ? captureDropEntries(dataTransfer.items) : []);
@@ -246,11 +173,6 @@ export async function collectFilesFromDrop(
     || files[0]?.name
     || 'dropped-folder';
   const rootName = String(firstRel).split('/')[0] || 'dropped-folder';
-
-  // Update telemetry counters
-  dropTelemetry.totalDrops += 1;
-  dropTelemetry.totalFilesDropped += files.length;
-  dropTelemetry.traversalErrors += state.errors;
 
   return { files, rootName, traverseErrors: state.errors };
 }

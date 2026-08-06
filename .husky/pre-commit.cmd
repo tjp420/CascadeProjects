@@ -1,4 +1,17 @@
 @echo off
+echo [lint-assets] Running pre-commit encoding ^& path lint...
+node .simplebeacon\qa\lint-assets.cjs
+if errorlevel 1 (
+  echo [lint-assets] Asset hygiene lint failed. Commit aborted.
+  exit /b 1
+)
+echo [lint-assets] Asset hygiene lint passed.
+echo [gitleaks] Running staged-files secret scan...
+node .simplebeacon\qa\pre-commit-gitleaks.cjs
+if errorlevel 1 (
+  echo [gitleaks] Secrets detected in staged files! Commit aborted.
+  exit /b 1
+)
 echo [SimpleBeacon] Syntax-checking staged JS/CJS files...
 for /f "delims=" %%f in ('git diff --cached --name-only --diff-filter=ACM') do (
   echo %%f | findstr /E /R "\.js \.cjs" >nul

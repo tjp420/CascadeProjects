@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -11,23 +11,33 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.CI ? 'http://localhost:3000/dashboard' : 'http://localhost:5173/dashboard',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
 
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173/dashboard/',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: !process.env.CI
+    ? {
+        command: 'npm run dev',
+        url: 'http://localhost:5173/dashboard/',
+        reuseExistingServer: true,
+        timeout: 60_000,
+      }
+    : undefined,
 
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
     },
   ],
 });

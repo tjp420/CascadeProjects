@@ -1,0 +1,9 @@
+# SimpleBeacon Git History Token Redaction Mapping Profile
+# Format: text_to_replace==>replacement_text
+
+# Example AWS keys (replace with your real patterns as needed)
+AKIAIOSFODNN7EXAMPLE==>REDACTED_AWS_KEY_PLACEHOLDER
+wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY==>REDACTED_AWS_SECRET_PLACEHOLDER
+
+# Example generic API token pattern (replace the token string below with the real secret to redact)
+my-service-api-key-EXAMPLETOKEN==>REDACTED_MY_SERVICE_API_KEY

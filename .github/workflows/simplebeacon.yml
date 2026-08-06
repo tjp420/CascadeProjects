@@ -36,8 +36,32 @@ jobs:
         run: npm run build --workspace=simplebeacon
 
       - name: Run local scan
+        id: scan
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan --complete --gate --path . --format json --output .simplebeacon/report.json
+
+      - name: Print blocking issues on failure
+        if: failure()
+        run: |
+          node -e "
+            const fs = require('fs');
+            try {
+              const r = JSON.parse(fs.readFileSync('.simplebeacon/report.json', 'utf8'));
+              const rep = r.report || r;
+              const gate = rep.gate || rep.summary?.gate || {};
+              console.log('Gate pass:', gate.pass);
+              console.log('Blocking count:', gate.blockingCount);
+              const issues = gate.blockingIssues || [];
+              issues.forEach(i => {
+                console.log('---');
+                console.log('  Severity:', i.severity);
+                console.log('  Type:', i.type || i.rule);
+                console.log('  File:', (i.file || i.filePath || i.path || '').replace(process.cwd() + '/', ''));
+                console.log('  Line:', i.line);
+                console.log('  Description:', i.description || i.message || '');
+              });
+            } catch(e) { console.log('Could not read report:', e.message); }
+          "
 
       - name: Redact absolute paths and hash metadata
         run: |

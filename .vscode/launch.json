@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "Launch Dashboard (Port 58000)",
+      "program": "${workspaceFolder}/scripts/start-dashboard.js",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "LOCAL_DASHBOARD_PORT": "58000"
+      },
+      "console": "integratedTerminal",
+      "outputCapture": "std"
+    }
+  ]
+}
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "extensionHost",
+            "request": "launch",
+            "name": "Run SimpleBeacon Extension",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/simplebeacon-vscode-merged"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/simplebeacon-vscode-merged/out/**/*.js"
+            ],
+            "preLaunchTask": "Compile SimpleBeacon Extension"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "http://localhost:8080",
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}
