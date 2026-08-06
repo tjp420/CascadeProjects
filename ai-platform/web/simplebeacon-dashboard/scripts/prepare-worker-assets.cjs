@@ -95,6 +95,19 @@ function main() {
     console.warn('[prepare-worker-assets] No hashed main entry found — skipping unhashed copy');
   }
 
+  // Copy hashed main CSS to unhashed main.css for index.html compatibility.
+  const cssMatch = fs.readdirSync(DIST_ASSETS).find(
+    f => /^main-[a-zA-Z0-9_-]+\.css$/.test(f)
+  );
+  if (cssMatch) {
+    const cssEntryPath = path.join(DIST_ASSETS, cssMatch);
+    const mainCssPath = path.join(DIST_ASSETS, 'main.css');
+    fs.copyFileSync(cssEntryPath, mainCssPath);
+    console.log(`[prepare-worker-assets] Copied ${cssMatch} → main.css`);
+  } else {
+    console.warn('[prepare-worker-assets] No hashed main CSS found — skipping unhashed copy');
+  }
+
   console.log('[prepare-worker-assets] Copied worker dependencies into assets');
   console.log('[prepare-worker-assets] Rewrote assets/scan-worker.js imports to local asset paths');
 }
