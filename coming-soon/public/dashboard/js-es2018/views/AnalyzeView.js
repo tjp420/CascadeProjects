@@ -5687,6 +5687,56 @@ export class AnalyzeView {
                     const entry = (_b = (_a = dt.items[0]).webkitGetAsEntry) === null || _b === void 0 ? void 0 : _b.call(_a);
                     if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                         const folderName = entry.name || '';
+                        // Browser-sandbox fast-path: when on the hosted site without an
+                        // extension bridge, skip resolveFolderPathFromFiles (which returns
+                        // null in browsers anyway since file.path is not exposed) and go
+                        // directly to scanDroppedItems. This avoids the runPathAnalysis
+                        // slow path (agent probes, auth refreshes, API readiness checks).
+                        if (isRemoteDashboardHost() && !hasExtensionBridgeConfigured() &&
+                            dt.items && dt.items.length > 0) {
+                            const itemArray = Array.from(dt.items);
+                            analyzeDropZone.classList.add('drag-active');
+                            try {
+                                const sandboxReport = await scanDroppedItems(itemArray, {
+                                    webkitEntry: entry,
+                                    onLog: (logEntry) => {
+                                        const term = el.querySelector('#sandbox-scan-terminal');
+                                        if (term)
+                                            term.textContent += `\n[${logEntry.level.toUpperCase()}] ${logEntry.message}`;
+                                    },
+                                    onProgress: ({ processed, total }) => {
+                                        const prog = el.querySelector('#analyze-dropzone-progress-detail');
+                                        if (prog)
+                                            prog.textContent = `${processed} / ${total} files`;
+                                    }
+                                });
+                                if (sandboxReport && sandboxReport.discoveredFiles > 2) {
+                                    const cert = sandboxReport.certificate || {};
+                                    const stats = el.querySelector('#analyze-dropzone-result-stats');
+                                    if (stats)
+                                        stats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                                    const certEl = el.querySelector('#sandbox-scanner');
+                                    if (certEl) {
+                                        certEl.style.display = 'block';
+                                        renderAgentCertificate(sandboxReport, certEl);
+                                    }
+                                    this.applySandboxScanResult(sandboxReport);
+                                    showToast(`Scanned "${folderName}" — ${sandboxReport.discoveredFiles} files found`, 'success');
+                                    return;
+                                }
+                                if (sandboxReport && isIncompleteFolderDrop(sandboxReport.discoveredFiles || 0, { isDirectoryDrop: true })) {
+                                    showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
+                                    const nativePicker = el.querySelector('#trigger-native-picker');
+                                    if (nativePicker) setTimeout(() => nativePicker.click(), 100);
+                                    return;
+                                }
+                            }
+                            catch (fastPathErr) {
+                                console['warn']('[AnalyzeView] #analyze-drop-zone fast-path failed, falling back to resolveFolderPathFromFiles:', fastPathErr);
+                            }
+                            analyzeDropZone.classList.remove('drag-active');
+                            // Fall through to existing logic if fast-path failed
+                        }
                         const resolvedPath = this.resolveFolderPathFromFiles(files, folderName);
                         if (resolvedPath) {
                             const pathInput = el.querySelector('#project-path-input');
@@ -6130,6 +6180,49 @@ export class AnalyzeView {
                 if (itemArray.length === 0 && fileArray.length === 0 && !snapshotPath) {
                     setAnalyzeDropzoneState('idle');
                     return;
+                }
+                // Browser-sandbox fast-path: when on the hosted site without an extension
+                // bridge, immediately scan dropped directory entries in-browser via
+                // scanDroppedItems. This bypasses the slow runLocalScan path (double-rAF,
+                // React re-render, ignore-pattern loading, Web Worker init) that adds
+                // 2-5 seconds of latency before scanning visually starts.
+                // Falls through to existing logic if the fast-path fails.
+                if (isRemoteDashboardHost() && !hasExtensionBridgeConfigured() &&
+                    webkitEntry && webkitEntry.isDirectory && itemArray.length > 0) {
+                    setAnalyzeDropzoneState('scanning');
+                    if (analyzeTerminal)
+                        analyzeTerminal.textContent = `Scanning "${folderHint}" in your browser…`;
+                    try {
+                        const sandboxReport = await scanDroppedItems(itemArray, {
+                            webkitEntry,
+                            onLog: (entry) => {
+                                if (analyzeTerminal)
+                                    analyzeTerminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                            },
+                            onProgress: ({ processed, total }) => {
+                                if (analyzeProgress)
+                                    analyzeProgress.textContent = `${processed} / ${total} files`;
+                            }
+                        });
+                        if (sandboxReport && sandboxReport.discoveredFiles > 1) {
+                            const cert = sandboxReport.certificate || {};
+                            if (analyzeResultStats)
+                                analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                            setAnalyzeDropzoneState('done');
+                            const certEl = el.querySelector('#sandbox-scanner');
+                            if (certEl) {
+                                certEl.style.display = 'block';
+                                renderAgentCertificate(sandboxReport, certEl);
+                            }
+                            this.applySandboxScanResult(sandboxReport);
+                            return;
+                        }
+                    }
+                    catch (fastPathErr) {
+                        console['warn']('[AnalyzeView] Browser fast-path scan failed, falling back to full strategy:', fastPathErr);
+                    }
+                    setAnalyzeDropzoneState('idle');
+                    // Fall through to existing logic if fast-path failed
                 }
                 // Hosted: never route absolute local paths to the server — scan dropped files in-browser.
                 // When the extension bridge is available and the drop looks like a directory
