@@ -393,7 +393,7 @@
     ]
   },
   "fullDirectoryScan": true,
-  "fullDirectoryScanMaxFiles": 100000,
+  "fullDirectoryScanMaxFiles": 200000,
   "fullDirectoryScanSkipDirs": [
     ".git",
     "github-cache",
