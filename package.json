@@ -41,7 +41,7 @@
     "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
     "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\"",
     "install-gitleaks": "node .simplebeacon/qa/install-gitleaks.cjs",
-    "dashboard:start": "node scripts/start-dashboard.js"
+    "dashboard:start": "node scripts/start-dashboard.js",
     "test:dashboard-health": "node scripts/verify-dashboard-health.js",
     "dashboard:mock": "node scripts/generate-mock-report.js"
   },

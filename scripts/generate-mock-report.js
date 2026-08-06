@@ -4,6 +4,8 @@ const path = require('path');
 
 const OUT_DIR = process.env.MOCK_REPORT_DIR || path.join(process.cwd(), '.simplebeacon');
 const OUT_FILE = path.join(OUT_DIR, 'report.json');
+const FALLBACK_REPORT = path.join(process.env.HOME || process.env.USERPROFILE || __dirname,
+  '.vscode-insiders', 'extensions', 'simplebeacon.simplebeacon-vscode-3.0.464', 'downloads', '1784861166180-simplebeacon-report-2026-07-24.json');
 
 function nowIso(offsetSec = 0) {
   return new Date(Date.now() + offsetSec * 1000).toISOString();
@@ -39,6 +41,15 @@ const mock = {
 try {
   if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(OUT_FILE, JSON.stringify(mock, null, 2));
+  // Also write to the dashboard server's hardcoded fallback path so local server picks it up
+  try {
+    const fbDir = path.dirname(FALLBACK_REPORT);
+    if (!fs.existsSync(fbDir)) fs.mkdirSync(fbDir, { recursive: true });
+    fs.writeFileSync(FALLBACK_REPORT, JSON.stringify(mock, null, 2));
+    console.log('✅ Also wrote fallback report to', FALLBACK_REPORT);
+  } catch (e) {
+    console.warn('⚠️ Could not write fallback report:', e.message);
+  }
   console.log('✅ Mock report written to', OUT_FILE);
   process.exit(0);
 } catch (err) {
