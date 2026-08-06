@@ -1259,6 +1259,42 @@ async function startServer() {
     logger.error('[Routes] Enterprise analytics not loaded:', err?.message || err);
   }
 
+  // Enterprise onboarding — organizations, seats, trials, audit
+  try {
+    const { setupEnterpriseOnboardingRoutes } = require('./src/api/enterprise-onboarding.cjs');
+    setupEnterpriseOnboardingRoutes(app);
+    logger.info('[Routes] Enterprise onboarding loaded at /api/enterprise/*');
+  } catch (err) {
+    logger.error('[Routes] Enterprise onboarding not loaded:', err?.message || err);
+  }
+
+  // Workspace config — sandbox summaries, budgets, isolation keys
+  try {
+    const workspaceConfigRoutes = require('./server/routes/workspace-config-routes.cjs');
+    app.use('/api/workspace', workspaceConfigRoutes);
+    logger.info('[Routes] Workspace config loaded at /api/workspace');
+  } catch (err) {
+    logger.error('[Routes] Workspace config not loaded:', err?.message || err);
+  }
+
+  // Fine-tuning telemetry — training data collection, datasets, labeling
+  try {
+    const fineTuningTelemetryRoutes = require('./server/routes/fine-tuning-telemetry-routes.cjs');
+    app.use('/api/telemetry', fineTuningTelemetryRoutes);
+    logger.info('[Routes] Fine-tuning telemetry loaded at /api/telemetry');
+  } catch (err) {
+    logger.error('[Routes] Fine-tuning telemetry not loaded:', err?.message || err);
+  }
+
+  // HSM vault — consensus status, key management, failover
+  try {
+    const hsmVaultRoutes = require('./server/routes/hsm-vault-routes.cjs');
+    app.use('/api/vault', hsmVaultRoutes);
+    logger.info('[Routes] HSM vault loaded at /api/vault');
+  } catch (err) {
+    logger.error('[Routes] HSM vault not loaded:', err?.message || err);
+  }
+
   // Semantic cache — vector-based inference response caching
   try {
     const semanticCacheRoutes = require('./server/routes/semantic-cache-routes.cjs');
