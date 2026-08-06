@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "simplebeacon-dashboard",
+  "name": "simplebeacon-dashboard-v2",
   "main": "src/worker.js",
   "compatibility_date": "2026-07-18",
   "routes": [
