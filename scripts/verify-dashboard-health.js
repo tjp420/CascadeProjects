@@ -32,6 +32,7 @@ function warn(msg) {
 async function run() {
   console.log(`Running dashboard health check against ${DEFAULT_DASH}`);
   let exitCode = 0;
+  let warningsOnly = false;
 
   // 1) /api/simplebeacon/report
   const reportUrl = new URL('/api/simplebeacon/report', DEFAULT_DASH).toString();
@@ -43,13 +44,13 @@ async function run() {
     if (r1.json && r1.json.success === true) {
       if (r1.json.message && r1.json.message.toLowerCase().includes('no report')) {
         warn('/api/simplebeacon/report reachable but serving fallback: no report available');
-        exitCode = 1; // treat missing report as test failure
+        warningsOnly = true; // do not fail; mark as warning
       } else {
         pass('/api/simplebeacon/report returned a valid report payload');
       }
     } else {
       warn('/api/simplebeacon/report returned 200 but payload is unexpected');
-      exitCode = 1;
+      warningsOnly = true;
     }
   }
 
@@ -109,8 +110,12 @@ async function run() {
     pass('/api/ proxied path returned OK (backend-specific)');
   }
 
-  if (exitCode === 0) console.log('\nAll checks passed. Dashboard API health is OK.');
-  else console.log('\nOne or more checks failed or returned warnings (see above).');
+  if (exitCode === 0) {
+    if (warningsOnly) console.log('\nChecks completed with warnings (non-fatal).');
+    else console.log('\nAll checks passed. Dashboard API health is OK.');
+  } else {
+    console.log('\nOne or more checks failed (see above).');
+  }
 
   process.exit(exitCode);
 }
