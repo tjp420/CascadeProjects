@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: simplebeacon-api
+    runtime: node
+    plan: standard
+    buildCommand: npm install
+    startCommand: node server.cjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGIN
+        value: https://simplebeacon.ai,https://simplebeacon.pages.dev,https://www.simplebeacon.ai
+      - key: SIMPLEBEACON_LICENSE_SECRET
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: certificates@simplebeacon.ai
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false

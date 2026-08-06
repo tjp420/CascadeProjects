@@ -977,6 +977,10 @@ app.get('/api/metrics/path-health', (_req, res) => {
     res.json({ status: 'success', summary: {}, directories: [], engine: {} });
 });
 
+app.get('/api/webauthn/status', (_req, res) => {
+    res.json({ enabled: false, supported: false });
+});
+
 // ── Dashboard stub endpoints (prevent 404 noise from AnalyzeView) ──
 app.get('/api/auth/me', (_req, res) => res.json({ authenticated: false, user: null }));
 app.get('/api/platform/status', (_req, res) => res.json({ online: true, status: 'ok', version: '3.2.0' }));
@@ -1002,12 +1006,6 @@ app.get('/api/merger-tool/reduction-scan', (_req, res) => res.json({
     totalMerges: 0,
     estimatedSavings: 0
 }));
-
-// Serve other frontend paths
-// Redirect old /coming-soon/ paths to root
-app.get('/coming-soon/*', (req, res) => {
-    res.redirect(301, req.path.replace('/coming-soon', '') || '/');
-});
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found', path: req.path, method: req.method });
