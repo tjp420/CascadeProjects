@@ -78,7 +78,18 @@ const PUBLIC_API_PATHS = new Set([
     // Prompt service — GET /api/prompts/get is read-only and returns the user's custom
     // chatbot prompt (empty for anonymous). Required by the chatbot UI on the public
     // dashboard. POST /set and DELETE /delete remain auth-gated.
-    'prompts/get'
+    'prompts/get',
+    // SSO domain resolution — pre-login lookup for login page auto-detection.
+    // The frontend calls this before the user authenticates to check if SSO is
+    // available for a given email domain. Presets are read-only provider configs.
+    'sso/resolve',
+    'sso/presets',
+    // SSO protocol routes — IdP redirect targets (user is not authenticated yet)
+    'sso/oidc/login',
+    'sso/oidc/callback',
+    'sso/saml/login',
+    'sso/saml/acs',
+    'sso/saml/metadata'
 ]);
 
 /**

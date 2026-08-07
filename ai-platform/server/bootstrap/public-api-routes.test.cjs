@@ -44,4 +44,14 @@ describe('public-api-routes', () => {
     assert.strictEqual(mod.isPublicApiRoute('prompts/set', 'POST'), false);
     assert.strictEqual(mod.isPublicApiRoute('prompts/delete', 'DELETE'), false);
   });
+
+  it('allows SSO domain resolution and presets without auth (pre-login)', () => {
+    assert.strictEqual(mod.isPublicApiRoute('sso/resolve', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('sso/presets', 'GET'), true);
+    // SSO login callbacks should also be public (IdP redirects)
+    assert.strictEqual(mod.isPublicApiRoute('sso/oidc/login', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('sso/oidc/callback', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('sso/saml/login', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('sso/saml/acs', 'POST'), true);
+  });
 });
