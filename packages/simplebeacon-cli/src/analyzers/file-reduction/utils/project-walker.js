@@ -73,40 +73,56 @@ async function walkProjectFiles(projectRoot, options = {}) {
             return;
         }
 
+        const subDirs = [];
+        const fileEntries = [];
+
         for (const entry of entries) {
-            const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
                 if (skipDirs.has(entry.name)) {
                     directories.push({
-                        path: fullPath,
-                        relativePath: normalizeRel(root, fullPath),
+                        path: path.join(dir, entry.name),
+                        relativePath: normalizeRel(root, path.join(dir, entry.name)),
                         name: entry.name,
                         skipped: true
                     });
                     continue;
                 }
                 directories.push({
-                    path: fullPath,
-                    relativePath: normalizeRel(root, fullPath),
+                    path: path.join(dir, entry.name),
+                    relativePath: normalizeRel(root, path.join(dir, entry.name)),
                     name: entry.name
                 });
-                await walk(fullPath, depth + 1);
+                subDirs.push(path.join(dir, entry.name));
                 continue;
             }
             if (!entry.isFile()) continue;
-            try {
-                const stat = await fs.promises.stat(fullPath);
-                files.push({
-                    path: fullPath,
-                    relativePath: normalizeRel(root, fullPath),
+            fileEntries.push(entry);
+        }
+
+        if (fileEntries.length > 0) {
+            const statPromises = fileEntries.map((entry) => {
+                const fullPath = path.join(dir, entry.name);
+                return fs.promises.stat(fullPath).then((stat) => ({
+                    fullPath,
                     name: entry.name,
                     ext: path.extname(entry.name).toLowerCase(),
                     size: stat.size
+                })).catch(() => null);
+            });
+            const stats = await Promise.all(statPromises);
+            for (const s of stats) {
+                if (!s) continue;
+                files.push({
+                    path: s.fullPath,
+                    relativePath: normalizeRel(root, s.fullPath),
+                    name: s.name,
+                    ext: s.ext,
+                    size: s.size
                 });
-            } catch {
-                /* skip unreadable */
             }
         }
+
+        await Promise.all(subDirs.map((subDir) => walk(subDir, depth + 1)));
     }
 
     if (fs.existsSync(root)) {
