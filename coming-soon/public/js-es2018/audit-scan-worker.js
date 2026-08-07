@@ -600,6 +600,13 @@ function shouldSkipAnalyzerFile(name, filePath) {
     if (isTestOrFixturePath(normalized)) return true;
     if (name === 'credentials' && /(?:^|\/)simplebeacon-rule-tests\//i.test(normalized)) return true;
     if (name === 'euAiAct' && isComplianceToolingPath(normalized)) return true;
+    // Skip cloud/security rules in scanner's own source and test fixtures
+    const securityRules = ['awsSecretKey', 'gcpServiceAccount', 'azureKey', 'privateKeyBlock', 'bearerToken', 'jwtHardcoded', 'oauthTokenInSource', 'dockerExposedSecrets', 'suspiciousPackage', 'postInstallScript'];
+    if (securityRules.includes(name)) {
+        if (isComplianceToolingPath(normalized)) return true;
+        if (/(?:^|\/)audit-scan-worker\.js$/i.test(normalized)) return true;
+        if (/(?:^|\/)scanner-patterns|credential-pattern|test-all-patterns|pattern-documentation/i.test(normalized)) return true;
+    }
     return false;
 }
 function detectFileLanguage(path) {

