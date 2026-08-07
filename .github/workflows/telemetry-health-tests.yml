@@ -45,7 +45,7 @@ jobs:
         run: |
           node ai-platform/tools/ci-telemetry/parse-jest-results.cjs ai-platform/test-results/jest-results.json ai-platform/test-results/
 
-      - name: Debug: list test-results
+      - name: 'Debug: list test-results'
         run: |
           echo "test-results listing:"
           ls -la ai-platform/test-results || true

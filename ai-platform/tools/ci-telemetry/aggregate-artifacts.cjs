@@ -24,9 +24,19 @@ const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}`;
 
 function ghApi(pathSuffix) {
   const url = API_BASE + pathSuffix;
-  const res = spawnSync('curl', ['-sS', '-H', `Authorization: token ${TOKEN}`, '-H', 'Accept: application/vnd.github.v3+json', url], { encoding: 'utf8' });
-  if (res.status !== 0) throw new Error(`curl failed: ${res.stderr}`);
-  return JSON.parse(res.stdout);
+  const res = spawnSync('curl', ['-sS', '-f', '-H', `Authorization: token ${TOKEN}`, '-H', 'Accept: application/vnd.github.v3+json', url], { encoding: 'utf8', timeout: 30000 });
+  if (res.status !== 0) {
+    const errMsg = res.stderr || res.stdout || `curl exited with status ${res.status}`;
+    throw new Error(`curl failed for ${pathSuffix}: ${errMsg}`);
+  }
+  if (!res.stdout || res.stdout.trim() === '') {
+    throw new Error(`curl returned empty response for ${pathSuffix}`);
+  }
+  try {
+    return JSON.parse(res.stdout);
+  } catch (e) {
+    throw new Error(`JSON parse failed for ${pathSuffix}: ${e.message}\nResponse: ${res.stdout.slice(0, 200)}`);
+  }
 }
 
 function downloadArtifactZip(url) {
@@ -48,6 +58,29 @@ function unzipFileFromZipBuffer(zipBuffer, filename) {
 
 function ensureOutDir() { fs.mkdirSync(OUT_DIR, { recursive: true }); }
 
+/**
+ * Retry a function with exponential backoff.
+ * @param {Function} fn - Function to retry
+ * @param {number} maxRetries - Max retry attempts
+ * @returns {Promise<*>} Result of fn
+ */
+function withRetry(fn, maxRetries = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return fn();
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxRetries) {
+        const delay = attempt * 2000;
+        console.error(`Attempt ${attempt}/${maxRetries} failed: ${e.message}. Retrying in ${delay}ms...`);
+        spawnSync('sleep', [String(delay / 1000)]);
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function run() {
   ensureOutDir();
   console.log(`Aggregating artifacts for ${OWNER}/${REPO} (branches=${BRANCH_FILTER}, retentionDays=${RETENTION_DAYS}, maxRuns=${MAX_RUNS})`);
@@ -55,7 +88,13 @@ async function run() {
   // list workflow runs (we'll page 1..5 max for now)
   let runs = [];
   for (let page = 1; page <= 5; page++) {
-    const data = ghApi(`/actions/runs?per_page=100&page=${page}`);
+    let data;
+    try {
+      data = withRetry(() => ghApi(`/actions/runs?per_page=100&page=${page}`));
+    } catch (e) {
+      console.error(`Failed to fetch runs page ${page} after retries: ${e.message}`);
+      break;
+    }
     if (!data || !data.workflow_runs) break;
     runs = runs.concat(data.workflow_runs);
     if (data.workflow_runs.length === 0) break;
