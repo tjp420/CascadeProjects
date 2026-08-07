@@ -1966,100 +1966,146 @@ async function processLocalCLIScan(files) {
     appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across ${activeEngineCount} analysis engine${activeEngineCount === 1 ? '' : 's'}...`);
 
     // 3. Heuristic scan loop
-    // Web Worker for large repositories — offloads regex scanning from main thread
+    // Multi-worker parallel scan via AuditScanService — offloads file reading and
+    // regex scanning from the main thread. Falls back to main-thread scan on error.
     let scanWorker = null;
     let workerScanActive = false;
     let workerPromise = null;
-    // Worker disabled: stale pattern registry and File-object transfer can hang/crash
-    // strict browsers (Brave/Zorin). Main-thread scan with cooperative yields is safer.
-    if (false && sourceFiles.length >= 1000 && typeof Worker !== 'undefined') { // simplebeacon-ignore: strict !== comparison
-        try {
-            scanWorker = new Worker('js/scan-worker.js?v=2.0.2');
-            workerScanActive = true;
-            appendTerminalLine('Web Worker initialized for background scanning.', 'success');
-        } catch (err) {
-            appendTerminalLine('Web Worker unavailable — falling back to main-thread scan.', 'warn');
-        }
-    }
-    if (scanWorker) {
-        workerPromise = new Promise((resolve) => {
-            scanWorker.onmessage = (e) => {
-                const msg = e.data;
-                if (msg.type === 'started') {
-                    appendTerminalLine('Worker scan started.', 'info');
-                } else if (msg.type === 'progress') {
-                    const pct = Math.round((msg.processed / msg.total) * 100);
-                    panelProgressBar.style.width = pct + '%';
-                    if (localScanFileName) localScanFileName.textContent = `Worker scanning ${msg.processed.toLocaleString()} of ${msg.total.toLocaleString()} files (${pct}%)...`;
-                } else if (msg.type === 'complete') {
-                    appendTerminalLine(`Worker scan complete: ${msg.issueCount} findings across ${msg.processed} files.`, 'success');
-                    if (msg.findings) {
-                        for (const f of msg.findings) {
-                            const path = f.filePath;
-                            const matches = (f.matches || []).map(m => ({ line: m.line, snippet: m.snippet, type: f.analyzer }));
-                            switch (f.analyzer) {
-                                case 'debugArtifacts':
-                                case 'pythonDebug':
-                                case 'javaDebug':
-                                case 'goDebug':
-                                case 'rustDebug':
-                                case 'phpDebug':
-                                case 'dotnetDebug':
-                                case 'rubyDebug':
-                                    debugHits.push(path);
-                                    debugFindings.push({ file: path, matches });
-                                    break;
-                                case 'credentials':
-                                    credentialHits++;
-                                    credFiles.push(path);
-                                    credentialFindings.push({ file: path, matches });
-                                    break;
-                                case 'euAiAct':
-                                    govHits.push(path);
-                                    govFindings.push({ file: path, matches });
-                                    break;
-                                case 'todoMarkers':
-                                    maintainabilityHits++;
-                                    maintainabilityFindings.push({ file: path, matches });
-                                    break;
-                                case 'mockData':
-                                    productionLeakHits++;
-                                    productionLeakFindings.push({ file: path, matches });
-                                    break;
-                                case 'pythonFramework':
-                                case 'javaFramework':
-                                case 'goFramework':
-                                case 'rustFramework':
-                                case 'phpFramework':
-                                case 'dotnetFramework':
-                                case 'rubyFramework':
-                                    frameworkHits++;
-                                    frameworkFindings.push({ file: path, matches });
-                                    break;
-                            }
-                        }
-                    }
-                    scanWorker.terminate();
-                    scanWorker = null;
-                    workerScanActive = false;
-                    resolve();
-                } else if (msg.type === 'warn') {
-                    appendTerminalLine(`Worker: ${msg.message}`, 'warn');
-                } else if (msg.type === 'error') {
-                    appendTerminalLine(`Worker error: ${msg.error}`, 'error');
-                    scanWorker.terminate();
-                    scanWorker = null;
-                    workerScanActive = false;
-                    resolve();
+    let workerScanResult = null;
+    const _auditScanService = typeof AuditScanService !== 'undefined' ? new AuditScanService() : null;
+    if (_auditScanService && sourceFiles.length >= 50 && typeof Worker !== 'undefined') {
+        workerScanActive = true;
+        appendTerminalLine('Multi-worker scan service initialized — file reading offloaded to background workers.', 'success');
+        workerPromise = _auditScanService.scan({
+            files: sourceFiles,
+            deepScan: deepScan,
+            signal: signal,
+            onProgress: (processed, total, info) => {
+                const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
+                panelProgressBar.style.width = pct + '%';
+                if (localScanFileName) {
+                    const workerInfo = info && info.workerIndex != null ? ` [W${info.workerIndex + 1}/${info.workersTotal || 1}]` : '';
+                    localScanFileName.textContent = `Scanning ${processed.toLocaleString()} of ${total.toLocaleString()} files (${pct}%)${workerInfo}...`;
                 }
-            };
+                if (info && info.currentFile && processed > 0 && processed % 1000 === 0) {
+                    appendTerminalLine(`  Progress: ${processed.toLocaleString()}/${total.toLocaleString()} — ${String(info.currentFile).slice(0, 60)}...`);
+                }
+            },
+            onFindings: (findings) => {
+                // Map worker findings into the same data structures used by the main-thread scan
+                for (const f of findings) {
+                    const path = f.filePath || '';
+                    const ruleName = f.rule || '';
+                    const matches = (f.matches || []).map(m => ({ line: m.line, snippet: m.snippet, type: ruleName }));
+                    switch (ruleName) {
+                        case 'debugArtifacts':
+                        case 'pythonDebug':
+                        case 'javaDebug':
+                        case 'goDebug':
+                        case 'rustDebug':
+                        case 'phpDebug':
+                        case 'dotnetDebug':
+                        case 'rubyDebug':
+                            if (!debugHits.includes(path)) debugHits.push(path);
+                            debugFindings.push({ file: path, matches });
+                            break;
+                        case 'credentials':
+                            credentialHits++;
+                            if (!credFiles.includes(path)) credFiles.push(path);
+                            credentialFindings.push({ file: path, matches });
+                            break;
+                        case 'euAiAct':
+                            if (!govHits.includes(path)) govHits.push(path);
+                            govFindings.push({ file: path, matches });
+                            break;
+                        case 'todoMarkers':
+                            maintainabilityHits++;
+                            maintainabilityFindings.push({ file: path, matches });
+                            break;
+                        case 'productionLeak':
+                        case 'mockPathLeak':
+                        case 'sampleJsonRef':
+                            productionLeakHits++;
+                            productionLeakFindings.push({ file: path, matches });
+                            break;
+                        case 'pythonFramework':
+                        case 'javaFramework':
+                        case 'goFramework':
+                        case 'rustFramework':
+                        case 'phpFramework':
+                        case 'dotnetFramework':
+                        case 'rubyFramework':
+                            frameworkHits++;
+                            frameworkFindings.push({ file: path, matches });
+                            break;
+                        case 'sensitiveData':
+                            if (!govHits.includes(path)) govHits.push(path);
+                            govFindings.push({ file: path, matches });
+                            break;
+                        case 'configDrift':
+                            configDriftHits++;
+                            configDriftFindings.push({ file: path, matches });
+                            break;
+                        case 'llmSlop':
+                        case 'fictionKpi':
+                        case 'hardcodedConfidence':
+                        case 'hardcodedCompletion':
+                        case 'emptyStubFunction':
+                        case 'aiPlaceholderComment':
+                            maintainabilityHits++;
+                            maintainabilityFindings.push({ file: path, matches });
+                            break;
+                        case 'innerHtmlXss':
+                        case 'prototypePollution':
+                        case 'evalDanger':
+                        case 'weakCryptography':
+                            securityHits++;
+                            securityFindings.push({ file: path, matches });
+                            break;
+                        case 'missingRateLimit':
+                        case 'dbAntiPattern':
+                            frameworkHits++;
+                            frameworkFindings.push({ file: path, matches });
+                            break;
+                        case 'markdownFenceLeak':
+                            productionLeakHits++;
+                            productionLeakFindings.push({ file: path, matches });
+                            break;
+                        case 'secretInComment':
+                        case 'loggingSecrets':
+                        case 'insecureRandom':
+                            credentialHits++;
+                            if (!credFiles.includes(path)) credFiles.push(path);
+                            credentialFindings.push({ file: path, matches });
+                            break;
+                        default:
+                            // Unknown rule — add to maintainability as fallback
+                            maintainabilityHits++;
+                            maintainabilityFindings.push({ file: path, matches });
+                            break;
+                    }
+                }
+            },
+            onLog: (message, level) => {
+                appendTerminalLine(message, level || 'info');
+            }
+        }).then(result => {
+            workerScanResult = result;
+            scanned = result.processed || scanned;
+            appendTerminalLine(`Worker scan complete: ${result.issueCount} findings across ${result.processed} files.`, 'success');
+            if (result.ignoreMeta) {
+                appendTerminalLine(`  Ignore patterns: ${result.ignoreMeta.patternCount} (${result.ignoreMeta.source})`, 'info');
+            }
+            if (result.hashCacheSize > 0) {
+                appendTerminalLine(`  Hash cache: ${result.hashCacheSize} entries`, 'info');
+            }
+            if (result.textErrors > 0) {
+                appendTerminalLine(`  Worker read errors: ${result.textErrors}`, 'warn');
+            }
+        }).catch(err => {
+            appendTerminalLine(`Worker scan failed: ${err.message} — falling back to main-thread scan.`, 'warn');
+            workerScanActive = false;
         });
-        // Post File objects to worker (structured-cloneable in modern browsers)
-        const workerFiles = sourceFiles.map(f => ({
-            fileObj: f,
-            path: f.webkitRelativePath || f.name
-        }));
-        scanWorker.postMessage({ type: 'scan', files: workerFiles, scanId: Date.now(), deepScan: deepScan });
     }
     // Robust file reader: File.text() with FileReader fallback for older browsers
     const MAX_SCANNABLE_FILE_BYTES = 10 * 1024 * 1024; // 10 MB — avoid OOM on minified/model dumps
@@ -2086,6 +2132,13 @@ async function processLocalCLIScan(files) {
     // Sampling is disabled — all files are scanned regardless of repo size
     // Pre-build a Set of all normalized paths for fast sibling lockfile lookups
     const allFilePaths = new Set(sourceFiles.map(f => (f.webkitRelativePath || f.name).replace(/\\/g, '/')));
+    // === Main-thread scan loop ===
+    // Only runs if the multi-worker scan is not active or failed.
+    // The worker scan handles file reading + pattern matching off the main thread.
+    // The main-thread loop still handles cross-file analysis (architecture drift,
+    // process.env refs, sync I/O patterns) that the worker cannot do.
+    const _runMainThreadScan = !workerScanActive;
+    if (_runMainThreadScan) {
     for (let i = 0; i < sourceFiles.length; i++) {
         if (i > 0 && i % SCAN_BATCH_SIZE === 0) {
             await new Promise(r => setTimeout(r, 0));
@@ -2677,6 +2730,7 @@ async function processLocalCLIScan(files) {
             }
         }
     }
+    } // end if (_runMainThreadScan)
 
     // Wait for worker scan to complete before cross-file analysis
     if (workerPromise) {
@@ -2715,9 +2769,14 @@ async function processLocalCLIScan(files) {
     appendTerminalLine(`  Main thread scanned: <strong>${scanned.toLocaleString()}</strong>`);
     appendTerminalLine(`  Read errors: <strong>${readErrors.toLocaleString()}</strong>`);
     if (largeFileSkips > 0) appendTerminalLine(`  Large files skipped (>10 MB): <strong>${largeFileSkips.toLocaleString()}</strong>`, 'warn');
-    if (scanWorker) {
-        appendTerminalLine(`  Worker files posted: <strong>${Math.min(sourceFiles.length, 100000).toLocaleString()}</strong> (cap: 100000)`);
-        appendTerminalLine(`  <span style="color:#F59E0B;">&#9888; Worker receives path objects only — file.text() will silently fail. Main thread does actual scanning.</span>`, 'warn');
+    if (workerScanResult) {
+        appendTerminalLine(`  Multi-worker scan: <strong>${workerScanResult.processed.toLocaleString()}</strong> files processed by background workers`);
+        if (workerScanResult.binarySkipped > 0) appendTerminalLine(`  Binary files skipped: <strong>${workerScanResult.binarySkipped.toLocaleString()}</strong>`, 'info');
+        if (workerScanResult.ignoredDir > 0) appendTerminalLine(`  Ignored dirs: <strong>${workerScanResult.ignoredDir.toLocaleString()}</strong>`, 'info');
+        if (workerScanResult.ignoredByPattern > 0) appendTerminalLine(`  Ignored by pattern: <strong>${workerScanResult.ignoredByPattern.toLocaleString()}</strong>`, 'info');
+        if (workerScanResult.textErrors > 0) appendTerminalLine(`  Worker read errors: <strong>${workerScanResult.textErrors.toLocaleString()}</strong>`, 'warn');
+        if (workerScanResult.hashCacheSize > 0) appendTerminalLine(`  Hash cache entries: <strong>${workerScanResult.hashCacheSize.toLocaleString()}</strong>`, 'info');
+        if (workerScanResult.resumed) appendTerminalLine(`  <span style="color:#10B981;">&#10003; Scan resumed from checkpoint</span>`, 'success');
     }
     const unaccounted = sourceFiles.length - scanned - readErrors - largeFileSkips - sampledOut;
     if (unaccounted > 0) {
