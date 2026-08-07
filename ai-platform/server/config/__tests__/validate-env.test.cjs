@@ -61,7 +61,7 @@ describe('validate-env', () => {
   });
 
   it('isValidWebhookSecret accepts whsec_ prefix', () => {
-    assert.strictEqual(isValidWebhookSecret('whsec_abc123'), false === true ? true : true);
+    assert.strictEqual(isValidWebhookSecret('whsec_abc123'), true);
   });
 
   it('isValidWebhookSecret rejects non-whsec_ prefix', () => {

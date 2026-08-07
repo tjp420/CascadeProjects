@@ -19,6 +19,8 @@ jobs:
 
       - name: Run gitleaks (repo-wide)
         uses: zricethezav/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: --path=. --redact --report-format=json --report-path=artifacts/gitleaks-report.json
 
