@@ -38,4 +38,10 @@ describe('public-api-routes', () => {
     assert.strictEqual(mod.isPublicApiRoute('merger-tool/reduction-scan', 'GET'), false);
     assert.strictEqual(mod.isPublicApiRoute('security/npm-audit', 'GET'), false);
   });
+
+  it('allows chatbot prompt fetch without auth but gates mutations', () => {
+    assert.strictEqual(mod.isPublicApiRoute('prompts/get', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('prompts/set', 'POST'), false);
+    assert.strictEqual(mod.isPublicApiRoute('prompts/delete', 'DELETE'), false);
+  });
 });
