@@ -74,4 +74,6 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: CF_BEACON_TOKEN
+        sync: false
     healthCheckPath: /health

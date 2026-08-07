@@ -601,6 +601,26 @@ if (dashboardFallbackDir) {
   app.use('/dashboard/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), dashboardStaticOptsFinal));
 }
 
+// Also serve landing/root-level assets that are referenced by the dashboard HTML
+// at root paths (e.g. <script src="/site-config.js"> and /js-es2018/referral-capture.js).
+// The dashboard HTML references these at root paths, but the dashboard static assets
+// are under /dashboard/. These root-level handlers ensure the files resolve regardless
+// of landingAtRoot mode.
+app.use('/site-config.js', express.static(path.join(dashboardStaticDir, 'site-config.js'), dashboardStaticOpts));
+if (dashboardFallbackDir) {
+  app.use('/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), dashboardStaticOptsFinal));
+}
+if (landingRootExists) {
+  app.use('/site-config.js', express.static(path.join(landingRoot, 'site-config.js'), dashboardStaticOpts));
+}
+app.use('/js-es2018/referral-capture.js', express.static(path.join(dashboardStaticDir, 'js-es2018', 'referral-capture.js'), dashboardStaticOpts));
+if (dashboardFallbackDir) {
+  app.use('/js-es2018/referral-capture.js', express.static(path.join(dashboardFallbackDir, 'js-es2018', 'referral-capture.js'), dashboardStaticOptsFinal));
+}
+if (landingRootExists) {
+  app.use('/js-es2018/referral-capture.js', express.static(path.join(landingRoot, 'js-es2018', 'referral-capture.js'), dashboardStaticOpts));
+}
+
 app.get('/', async (req, res) => {
   // For internal dashboard, prioritize dashboard over landing page
   if (internalDashboard) {
@@ -904,10 +924,60 @@ if (landingRootExists) {
 }
 
 // Prevent Cloudflare from auto-injecting stale beacon scripts with broken SRI hashes
+// and strip `integrity` / `crossorigin` attributes server-side for beacon script tags
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path === '/' || !path.extname(req.path)) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   }
+
+  // Helper to remove integrity and crossorigin attributes from beacon script tags
+  function stripBeaconSRI(html) {
+    if (typeof html !== 'string' || html.indexOf('static.cloudflareinsights.com') === -1) return html;
+    try {
+      return html.replace(/(<script\b[^>]*\bsrc=["'][^"']*static\.cloudflareinsights\.com\/beacon\.min\.js[^"']*["'][^>]*?)>/gi, function(m, p1) {
+        return p1.replace(/\s+(?:integrity|crossorigin)\s*=\s*(["'])[\s\S]*?\1/gi, '') + '>';
+      });
+    } catch (e) {
+      return html;
+    }
+  }
+
+  // Wrap res.send to sanitize HTML responses
+  const origSend = res.send.bind(res);
+  res.send = function (body) {
+    try {
+      const ct = String(res.getHeader('Content-Type') || '');
+      if (typeof body === 'string' && /text\/(html|xhtml)/i.test(ct)) {
+        body = stripBeaconSRI(body);
+      }
+    } catch (e) { /* fallthrough to original send */ }
+    return origSend(body);
+  };
+
+  // Wrap res.sendFile for HTML files so we can sanitize before sending
+  const origSendFile = res.sendFile.bind(res);
+  res.sendFile = function (filePath, options, callback) {
+    try {
+      if (typeof filePath === 'string' && filePath.endsWith('.html')) {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+          if (err) return origSendFile(filePath, options, callback);
+          try {
+            const sanitized = stripBeaconSRI(data);
+            res.type('text/html');
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+            return origSend(sanitized);
+          } catch (e) {
+            return origSendFile(filePath, options, callback);
+          }
+        });
+        return;
+      }
+    } catch (e) {
+      // ignore and fall through to original
+    }
+    return origSendFile(filePath, options, callback);
+  };
+
   next();
 });
 
