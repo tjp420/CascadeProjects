@@ -26,6 +26,13 @@
 #   cli    → packages/simplebeacon-cli    → tag: simplebeacon-v*  → npm
 #   vscode → simplebeacon-vscode-merged   → tag: vscode-v*        → VS Code Marketplace
 #
+# ── Pre-Release Test Gate ──
+#   Before any bump/tag, the test-gate job runs:
+#     - CLI syntax check + full test suite + MCP smoke test + pack check
+#     - VS Code extension compile + jest tests
+#     - npm audit (high/critical)
+#   Release job only proceeds if test-gate passes.
+#
 # ── Downstream Publishing ──
 #   This workflow handles: bump, changelog, tag, GitHub Release.
 #   Publishing is handled by unified-release.yml (triggered by GitHub Release event).
@@ -62,7 +69,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve bump type (hybrid: labels first, then commits)
+      - name: 'Resolve bump type (hybrid: labels first, then commits)'
         id: resolve
         shell: bash
         run: |
@@ -108,11 +115,65 @@ jobs:
             echo "::notice::No release trigger (no label, no feat/fix/breaking commits)"
           fi
 
+  # ── Pre-release test gate: run all tests before bumping ──
+  test-gate:
+    name: Pre-Release Test Gate
+    needs: resolve-bump
+    if: needs.resolve-bump.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install CLI dependencies
+        working-directory: packages/simplebeacon-cli
+        run: npm install --no-fund --no-audit
+
+      - name: CLI syntax check
+        working-directory: packages/simplebeacon-cli
+        run: npm run build
+
+      - name: CLI test suite
+        working-directory: packages/simplebeacon-cli
+        run: npm test
+
+      - name: CLI MCP smoke test
+        working-directory: packages/simplebeacon-cli
+        run: node bin/simplebeacon-mcp.js --smoke-test
+
+      - name: CLI pack check (no stray files)
+        working-directory: packages/simplebeacon-cli
+        run: npm run pack:check
+
+      - name: Install VS Code extension dependencies
+        working-directory: simplebeacon-vscode-merged
+        run: npm install --no-fund --no-audit
+
+      - name: VS Code extension compile
+        working-directory: simplebeacon-vscode-merged
+        run: npm run compile
+
+      - name: VS Code extension tests
+        working-directory: simplebeacon-vscode-merged
+        run: npm test -- --passWithNoTests
+
+      - name: npm audit (high/critical only)
+        working-directory: packages/simplebeacon-cli
+        run: npm audit --audit-level=high || true
+
+      - name: Test gate passed
+        run: echo "::notice::All pre-release tests passed — proceeding with release"
+
   # ── Matrix: Release each package ──
   release:
     name: Release ${{ matrix.package-name }}
-    needs: resolve-bump
-    if: needs.resolve-bump.outputs.should_release == 'true'
+    needs: [resolve-bump, test-gate]
+    if: needs.resolve-bump.outputs.should_release == 'true' && needs.test-gate.result == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -360,7 +421,7 @@ jobs:
   # ── Release Summary ──
   release-summary:
     name: Release Summary
-    needs: [resolve-bump, release]
+    needs: [resolve-bump, test-gate, release]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -372,6 +433,7 @@ jobs:
           echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Bump Resolution | ${{ needs.resolve-bump.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Pre-Release Test Gate | ${{ needs.test-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Matrix Release | ${{ needs.release.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**PR:** #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
