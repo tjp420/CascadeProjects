@@ -7,40 +7,58 @@
 
 | Field | Value |
 |-------|-------|
-| Feature / change | ZKP-Identity Test Suite Expansion + Timing-Attack Fix |
+| Feature / change | .env.production Guard — pre-commit safety check for production env files |
 | Author (Builder) | Devin |
 | Date | 2026-08-07 |
-| Branch | feature/zkp-identity-tests |
-| Packages touched | ai-platform (server/lib/hsm-adapter) |
+| Branch | feature/env-production-guard |
+| Packages touched | .simplebeacon/qa (pre-commit hook) |
 
 ## Scope
 
 ### Goal
 
-Expand the ZKP identity verification test suite to cover boundary conditions,
-malformed cryptographic proof inputs, and timing-attack protections. Fix the
-existing timing-attack vulnerability in the proof verification code.
+Build a bulletproof pre-commit guard that blocks commits when:
+1. A `.env.production` or `.env.prod` file is staged (even via `git add -f`)
+2. A staged JS/CJS/JSON file contains hardcoded production connection strings
+3. A staged seed/migration script references production database URLs
+
+This protects production data from accidental local script executions or
+accidental commits of production environment files.
 
 ### Architecture
 
-1. **Fix timing-attack vulnerability** — replace `lhs === rhs` BigInt comparison
-   and `Buffer.equals()` with constant-time comparison functions
-2. **Expand test suite** — add tests for malformed inputs, boundary conditions,
-   replay attacks, and timing-attack resistance
+- **env-production-guard.cjs** (`.simplebeacon/qa/`) — fast pre-commit guard script
+  - Scans staged files for `.env.production` / `.env.prod` filenames
+  - Scans staged JS/CJS/JSON/sh files for production connection string patterns
+  - Warns (not blocks) if a local `.env.production` exists but is not staged
+  - Follows existing lint-assets.cjs / pre-commit-gate.cjs patterns
+- **Pre-commit hook integration** — add to both `.husky/pre-commit` and `.husky/pre-commit.cmd`
+
+### Detection Patterns
+
+| Pattern | Example | Action |
+|---------|---------|--------|
+| Staged `.env.production` / `.env.prod` file | `git add -f .env.production` | **BLOCK** |
+| Production DATABASE_URL in staged file | `DATABASE_URL=postgres://prod-db...` | **BLOCK** |
+| Production REDIS_URL in staged file | `REDIS_URL=redis://prod-redis...` | **BLOCK** |
+| Real Stripe secret key in staged file | `STRIPE_SECRET_KEY=sk_live_...` | **BLOCK** |
+| Real Resend API key in staged file | `RESEND_API_KEY=re_...` (12+ chars) | **BLOCK** |
+| NODE_ENV=production in staged .env file | `NODE_ENV=production` | **BLOCK** |
+| Local `.env.production` exists (not staged) | File on disk but not in git | **WARN** |
 
 ### Files in scope
 
-- `ai-platform/server/lib/hsm-adapter/zk-identity-verifier.cjs` — fix constant-time comparison
-- `ai-platform/server/lib/hsm-adapter/ephemeral-hardware-token-splitter.cjs` — fix constant-time comparison
-- `ai-platform/server/lib/hsm-adapter/__tests__/zkp-identity.test.cjs` — expand test suite
+- `.simplebeacon/qa/env-production-guard.cjs` (NEW — guard script)
+- `.husky/pre-commit` (add guard to chain)
+- `.husky/pre-commit.cmd` (add guard to chain)
 
 ### APIs / routes
 
-- N/A — internal library modules only
+- N/A — pre-commit hook only, no API changes
 
 ### UI / IDE surfaces
 
-- N/A
+- N/A — backend/CI only
 
 ---
 
@@ -48,54 +66,25 @@ existing timing-attack vulnerability in the proof verification code.
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on zk-identity-verifier.cjs | `node -c ai-platform/server/lib/hsm-adapter/zk-identity-verifier.cjs` | [ ] |
-| L1-02 | Syntax on ephemeral-hardware-token-splitter.cjs | `node -c ai-platform/server/lib/hsm-adapter/ephemeral-hardware-token-splitter.cjs` | [ ] |
-| L1-03 | Syntax on zkp-identity.test.cjs | `node -c ai-platform/server/lib/hsm-adapter/__tests__/zkp-identity.test.cjs` | [ ] |
-| L1-04 | All existing tests still pass | `cd ai-platform && npx jest --config jest.config.cjs zkp-identity` | [ ] |
-| L1-05 | All new tests pass | `cd ai-platform && npx jest --config jest.config.cjs zkp-identity` | [ ] |
-| L1-06 | SimpleBeacon gate (staged files) | Pre-commit hook | [ ] |
-| L1-07 | No secrets in diff | Manual / gate token rules | [ ] |
+| L1-01 | Syntax on env-production-guard.cjs | `node -c .simplebeacon/qa/env-production-guard.cjs` | [ ] |
+| L1-02 | Guard passes with no staged files | `node .simplebeacon/qa/env-production-guard.cjs` (clean tree) | [ ] |
+| L1-03 | Guard passes with normal staged files | Stage a normal .js file, run guard | [ ] |
+| L1-04 | SimpleBeacon gate (staged files) | Pre-commit hook | [ ] |
+| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
 
 ---
 
 ## Level 2 — Behavioral
 
-### Timing-Attack Fix Tests
-
-| ID | Scenario | Expected | Pass |
-|----|----------|----------|------|
-| L2-01 | verifyProof uses constant-time comparison | Verification time is data-independent | [ ] |
-| L2-02 | token verify uses timingSafeEqual | Token comparison is constant-time | [ ] |
-| L2-03 | Valid proof still verifies after fix | `verifyProof` returns true for valid proof | [ ] |
-| L2-04 | Invalid proof still fails after fix | `verifyProof` returns false for tampered proof | [ ] |
-
-### Malformed Input Tests
-
-| ID | Scenario | Expected | Pass |
-|----|----------|----------|------|
-| L2-05 | Proof with wrong t buffer size | Returns false (not crash) | [ ] |
-| L2-06 | Proof with wrong s buffer size | Returns false (not crash) | [ ] |
-| L2-07 | Proof with null/undefined t | Returns false (not crash) | [ ] |
-| L2-08 | Proof with null/undefined s | Returns false (not crash) | [ ] |
-| L2-09 | Public key with wrong size | Returns false (not crash) | [ ] |
-| L2-10 | Empty context string | Proof verifies (empty context is valid) | [ ] |
-| L2-11 | Buffer context (not string) | Proof verifies with Buffer context | [ ] |
-
-### Boundary Condition Tests
-
-| ID | Scenario | Expected | Pass |
-|----|----------|----------|------|
-| L2-12 | Proof with s = 0 | Returns false (invalid response) | [ ] |
-| L2-13 | Proof with t = 0 | Returns false (invalid commitment) | [ ] |
-| L2-14 | External challenge parameter | Proof verifies with external challenge | [ ] |
-| L2-15 | External challenge mismatch | Proof fails with wrong external challenge | [ ] |
-
-### Replay Attack Tests
-
-| ID | Scenario | Expected | Pass |
-|----|----------|----------|------|
-| L2-16 | Same proof replayed with different context | Fails (context-bound) | [ ] |
-| L2-17 | Same proof with different public key | Fails (key-bound) | [ ] |
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Blocks staged .env.production file | Create `.env.production`, `git add -f`, run guard | Exit 1, error message about .env.production | [ ] |
+| L2-02 | Blocks staged .env.prod file | Create `.env.prod`, `git add -f`, run guard | Exit 1, error message about .env.prod | [ ] |
+| L2-03 | Blocks production DATABASE_URL in staged JS | Stage JS file with `postgres://prod-...`, run guard | Exit 1, error with file and line | [ ] |
+| L2-04 | Blocks sk_live_ Stripe key in staged file | Stage file with `sk_live_...`, run guard | Exit 1, error with file and line | [ ] |
+| L2-05 | Warns when local .env.production exists (not staged) | Create `.env.production` (don't stage), run guard | Exit 0, warning message | [ ] |
+| L2-06 | Does not block .env.example files | Stage `.env.example`, run guard | Exit 0, no errors | [ ] |
+| L2-07 | Does not block test/dev connection strings | Stage file with `postgres://localhost:5432/test` | Exit 0, no errors | [ ] |
 
 ---
 
@@ -103,10 +92,11 @@ existing timing-attack vulnerability in the proof verification code.
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | All existing tests still pass | No regressions | [ ] |
-| L3-02 | Large field (256-bit default) proof | Verifies correctly | [ ] |
-| L3-03 | Multiple proofs with same key | Each verifies independently | [ ] |
-| L3-04 | Audit events still emitted after fix | IDENTITY_PROOF_GENERATED + ZERO_KNOWLEDGE_VERIFIED | [ ] |
+| L3-01 | Empty .env.production file staged | Exit 1 — filename alone is a risk | [ ] |
+| L3-02 | .env.production in subdirectory staged | Exit 1 — detected regardless of path depth | [ ] |
+| L3-03 | Commented-out production URL in staged file | Exit 0 — comments are not active config | [ ] |
+| L3-04 | Existing pre-commit chain still works | Run full pre-commit hook, all stages pass | [ ] |
+| L3-05 | Guard runs in <1 second | Time the guard execution | <1000ms | [ ] |
 
 ---
 
@@ -114,10 +104,10 @@ existing timing-attack vulnerability in the proof verification code.
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | Constant-time comparison for proof verification | [ ] |
-| S-02 | Constant-time comparison for token verification | [ ] |
-| S-03 | No private key material in error messages | [ ] |
-| S-04 | No timing leak in malformed input handling | [ ] |
+| S-01 | Guard does not log actual secret values | [ ] |
+| S-02 | Guard only shows file names and line numbers, not values | [ ] |
+| S-03 | Guard itself contains no hardcoded secrets | [ ] |
+| S-04 | Guard cannot be bypassed by renaming file to .env.PRODUCTION | [ ] |
 
 ---
 

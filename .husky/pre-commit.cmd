@@ -6,6 +6,13 @@ if errorlevel 1 (
   exit /b 1
 )
 echo [lint-assets] Asset hygiene lint passed.
+echo [env-guard] Running production environment safety check...
+node .simplebeacon\qa\env-production-guard.cjs
+if errorlevel 1 (
+  echo [env-guard] Production safety check failed! Commit aborted.
+  exit /b 1
+)
+echo [env-guard] Production safety check passed.
 echo [gitleaks] Running staged-files secret scan...
 node .simplebeacon\qa\pre-commit-gitleaks.cjs
 if errorlevel 1 (

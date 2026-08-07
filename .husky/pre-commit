@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
+. "$(dirname -- "$0")/_/husky.sh"
 
 echo "Running pre-commit: simplebeacon staged asset & secrets checks"
 npm run sb:hook:pre-commit
@@ -11,31 +11,3 @@ if [ $exit_code -ne 0 ]; then
 fi
 
 exit 0
-# --- Fast asset hygiene lint (sub-second: encoding + path regressions) ---
-echo "[lint-assets] Running pre-commit encoding & path lint..."
-node .simplebeacon/qa/lint-assets.cjs
-LINT_RESULT=$?
-if [ $LINT_RESULT -ne 0 ]; then
-  echo "[lint-assets] Asset hygiene lint failed (exit $LINT_RESULT). Commit aborted." >&2
-  exit $LINT_RESULT
-fi
-echo "[lint-assets] Asset hygiene lint passed."
-
-# --- Gitleaks staged-files secret scan (soft-warn if missing, Track113 runs as fallback) ---
-echo "[gitleaks] Running staged-files secret scan..."
-node .simplebeacon/qa/pre-commit-gitleaks.cjs
-GITLEAKS_RESULT=$?
-if [ $GITLEAKS_RESULT -ne 0 ]; then
-  echo "[gitleaks] Secrets detected in staged files! Commit aborted." >&2
-  exit $GITLEAKS_RESULT
-fi
-
-# Run fast staged-only secret scanner (strict local gate)
-echo "Running fast staged-only pre-commit secret scanner..."
-node scripts/sb-precommit-fast.js
-FAST_RESULT=$?
-if [ $FAST_RESULT -ne 0 ]; then
-  echo "Fast pre-commit secret scan failed. Commit aborted." >&2
-  exit $FAST_RESULT
-fi
-echo "Fast pre-commit secret scan passed. Proceeding with commit."
