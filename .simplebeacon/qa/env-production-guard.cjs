@@ -52,8 +52,9 @@ const PROD_PATTERNS = [
     label: 'live Stripe secret key (sk_live_*)',
   },
   {
-    // Live Resend API key (re_ followed by 8+ chars)
-    regex: /re_[A-Za-z0-9]{8,}/,
+    // Live Resend API key (re_ followed by 8+ chars, at word boundary or start of quoted value)
+    // Avoids false positive on strings like 'sb_feature_discovery_dismissed'
+    regex: /(?:["'`]|^|[\s=:])re_[A-Za-z0-9]{8,}/,
     label: 'live Resend API key (re_*)',
   },
   {
