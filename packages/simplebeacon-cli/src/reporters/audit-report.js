@@ -9,6 +9,7 @@ const {
     buildHowToFixSection,
     buildPersonalizedActionPlan
 } = require('./remediation-guides');
+const { enrichFindingsWithAlerts } = require('./alert-templates');
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 
@@ -54,7 +55,8 @@ function normalizeIssue(issue) {
 
 function collectIssues(report) {
     const raw = report.rawIssues || report.detectedIssues || report.issues || [];
-    return Array.isArray(raw) ? raw.map(normalizeIssue) : [];
+    const enriched = enrichFindingsWithAlerts(Array.isArray(raw) ? raw : []);
+    return enriched.map(normalizeIssue);
 }
 
 function resolveSeverityCounts(report, issues) {
@@ -541,6 +543,7 @@ function formatFileLocation(issue) {
 }
 
 function findingTitle(issue) {
+    if (issue.alertTemplate?.title) return issue.alertTemplate.title;
     const type = String(issue.type || '');
     const pattern = issue.pattern;
 
@@ -567,6 +570,7 @@ function formatRule(issue) {
 }
 
 function findingRisk(issue) {
+    if (issue.alertTemplate?.impact) return issue.alertTemplate.impact;
     const type = String(issue.type || '').toLowerCase();
     if (/credential/i.test(type)) {
         return 'If this branch is pushed to a client repo, staging host, or public fork, infrastructure credentials may be exposed.';
@@ -584,6 +588,7 @@ function findingRisk(issue) {
 }
 
 function defaultRemediation(issue) {
+    if (issue.alertTemplate?.immediateAction) return issue.alertTemplate.immediateAction;
     const type = String(issue.type || '').toLowerCase();
     if (/credential/i.test(type)) {
         return 'Remove the hardcoded string. Load from environment or a secret manager. Rotate the credential if it was ever real.';
@@ -614,6 +619,25 @@ function formatFindingTable(issue) {
 
     rows.push(['Risk', findingRisk(issue)]);
     rows.push(['Remediation', issue.recommendedAction || defaultRemediation(issue)]);
+
+    if (issue.alertTemplate) {
+        const at = issue.alertTemplate;
+        if (at.cwe) {
+            rows.push(['CWE', at.cwe]);
+        }
+        if (at.remediationSteps && at.remediationSteps.length > 0) {
+            rows.push(['Remediation steps', at.remediationSteps.map((s, i) => `${i + 1}. ${s}`).join('  ')]) ;
+        }
+        if (at.preventionGuidance) {
+            rows.push(['Prevention', at.preventionGuidance]);
+        }
+        if (at.references && at.references.length > 0) {
+            rows.push(['References', at.references.join(', ')]);
+        }
+        if (at.rotationRequired) {
+            rows.push(['Rotation required', 'Yes — rotate any credentials that may have been exposed']);
+        }
+    }
 
     const body = rows.map(([label, value]) => `| **${label}** | ${value} |`).join('\n');
     return `| Field | Detail |\n|-------|--------|\n${body}`;

@@ -7,6 +7,7 @@ const {
     issueKind,
     collectActiveGuideIds
 } = require('./remediation-guides');
+const { enrichFindingsWithAlerts } = require('./alert-templates');
 
 const COLORS = {
     reset: '\x1b[0m',
@@ -47,7 +48,17 @@ function severityRank(severity) {
 }
 
 function remediationText(issue) {
+    if (issue.alertTemplate?.immediateAction) return issue.alertTemplate.immediateAction;
     return (issue.suggestion || issue.fix || issue.remediation || '').trim();
+}
+
+function alertTitle(issue) {
+    return issue.alertTemplate?.title || '';
+}
+
+function alertRemediationSteps(issue) {
+    if (!issue.alertTemplate?.remediationSteps) return [];
+    return issue.alertTemplate.remediationSteps;
 }
 
 function formatTextReport(report, gateResult = null) {
@@ -102,7 +113,7 @@ function formatTextReport(report, gateResult = null) {
         lines.push('');
     }
 
-    const issues = report.rawIssues || [];
+    const issues = enrichFindingsWithAlerts(report.rawIssues || []);
     if (issues.length === 0) {
         lines.push(paint('No issues detected.', 'green'));
         return lines.join('\n');
@@ -125,9 +136,17 @@ function formatTextReport(report, gateResult = null) {
         lines.push(paint('Top Remediation Actions (do these first):', 'cyan'));
         for (const [idx, issue] of prioritized.entries()) {
             const action = remediationText(issue);
+            const title = alertTitle(issue);
+            const label = title ? `${issue.type} → ${title}` : issue.type;
             lines.push(
-                `  ${idx + 1}. ${paint(`[${String(issue.severity || 'low').toUpperCase()}]`, severityColor(issue.severity))} ${issue.type}: ${action}`
+                `  ${idx + 1}. ${paint(`[${String(issue.severity || 'low').toUpperCase()}]`, severityColor(issue.severity))} ${label}: ${action}`
             );
+            const steps = alertRemediationSteps(issue);
+            if (steps.length > 0) {
+                for (const [stepIdx, step] of steps.entries()) {
+                    lines.push(`     ${stepIdx + 1}. ${step}`);
+                }
+            }
         }
         lines.push('');
     }
@@ -146,11 +165,22 @@ function formatTextReport(report, gateResult = null) {
         if (!list || list.length === 0) continue;
         lines.push(`  ${paint(sev.toUpperCase(), severityColor(sev))} (${list.length})`);
         for (const issue of list) {
-            const label = `${issue.type}: ${issue.description}`;
+            const title = alertTitle(issue);
+            const label = title ? `${issue.type}: ${title} — ${issue.description}` : `${issue.type}: ${issue.description}`;
             lines.push(`    - ${label}`);
             const action = remediationText(issue);
             if (action) {
                 lines.push(`      Fix: ${action}`);
+            }
+            const steps = alertRemediationSteps(issue);
+            if (steps.length > 0) {
+                lines.push(`      Steps:`);
+                for (const [stepIdx, step] of steps.entries()) {
+                    lines.push(`        ${stepIdx + 1}. ${step}`);
+                }
+            }
+            if (issue.alertTemplate?.cwe) {
+                lines.push(`      CWE: ${issue.alertTemplate.cwe}`);
             }
         }
     }
