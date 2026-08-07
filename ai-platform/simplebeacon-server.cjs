@@ -638,6 +638,24 @@ app.get(/^\/dashboard\/?$/, async (req, res) => {
   return sendSimplebeaconDashboard(res);
 });
 
+// Vite chunk fallback: redirect /dashboard/<chunk>.js to /dashboard/assets/<chunk>.js
+// when the file exists in the assets directory. This handles cases where a cached
+// main.js resolves relative imports without the assets/ prefix.
+app.get('/dashboard/:filename.js', (req, res, next) => {
+  const filename = req.params.filename + '.js';
+  const assetsPath = path.join(dashboardStaticDir, 'assets', filename);
+  if (fs.existsSync(assetsPath)) {
+    return res.redirect(302, '/dashboard/assets/' + filename);
+  }
+  if (dashboardFallbackDir) {
+    const fallbackPath = path.join(dashboardFallbackDir, 'assets', filename);
+    if (fs.existsSync(fallbackPath)) {
+      return res.redirect(302, '/dashboard/assets/' + filename);
+    }
+  }
+  next();
+});
+
 // SPA sub-routes (e.g. /dashboard/analyze) — let the client router handle the path
 // Note: Express 5 / path-to-regexp requires named wildcard params (* alone is invalid)
 app.get('/dashboard/*splat', async (req, res) => {

@@ -856,6 +856,24 @@ app.get(['/dashboard', '/dashboard/'], async (req, res) => {
   return sendDashboardWithRuntimeConfig(req, res);
 });
 
+// Vite chunk fallback: redirect /dashboard/<chunk>.js to /dashboard/assets/<chunk>.js
+// when the file exists in the assets directory. Handles stale cached main.js
+// that resolves relative imports without the assets/ prefix.
+app.get('/dashboard/:filename.js', (req, res, next) => {
+  const filename = req.params.filename + '.js';
+  const assetsPath = path.join(dashDir, 'assets', filename);
+  if (fs.existsSync(assetsPath)) {
+    return res.redirect(302, '/dashboard/assets/' + filename);
+  }
+  if (dashboardFallbackDir) {
+    const fallbackPath = path.join(dashboardFallbackDir, 'assets', filename);
+    if (fs.existsSync(fallbackPath)) {
+      return res.redirect(302, '/dashboard/assets/' + filename);
+    }
+  }
+  next();
+});
+
 // SPA fallback for /dashboard/* sub-routes
 app.get(/^\/dashboard\/.*$/, async (req, res) => {
   return sendDashboardWithRuntimeConfig(req, res);
