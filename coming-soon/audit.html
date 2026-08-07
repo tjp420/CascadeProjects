@@ -2,8 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>SimpleBeacon — Audit</title>
+    <meta name="description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
+    <link rel="canonical" href="https://simplebeacon.ai/audit.html">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="SimpleBeacon — Audit">
+    <meta property="og:description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://simplebeacon.ai/audit.html">
+    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="SimpleBeacon — Audit">
+    <meta name="twitter:description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SimpleBeacon — Privacy-first source code scanner. Analyze your repository for security, compliance, and quality issues entirely in your browser. Zero data leaves your device.">
+    
     <meta name="theme-color" content="#0a0a0a">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -16,7 +29,7 @@
         } catch (e) {}
       })();
     </script>
-    <title>SimpleBeacon — Audit</title>
+    
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
     <script>
@@ -90,7 +103,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     <script src="js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
     <script src="js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
     <link rel="stylesheet" href="css/dashboard.css?h=1781475000013">
-    <script src="/js-es2018/auth.js" defer></script>
+    <script>(function(){var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();</script>
 </head>
 <body>
     <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-main);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;pointer-events:none;">
@@ -131,7 +144,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     </style>
 <nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
   <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
-  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/app/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
+  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/dashboard/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
     <div class="sb-nav-more-wrap">
       <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
       <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
@@ -156,6 +169,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
             <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use high-speed local regex heuristics across 52 rule engines. For deep AST analysis, use the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a> or <a href="http://127.0.0.1:58000/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">CLI</a>.</p>
+            <div style="margin-top:14px;padding:10px 18px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:10px;font-size:0.8rem;color:var(--text-secondary);text-align:center;">
+                <strong style="color:#22c55e;">Skip the $10,000 consultant.</strong> Drop your folder below and get a full audit in under 5 minutes &mdash; no upload, no NDA, no procurement. <a href="/pricing" style="color:var(--accent-hover);text-decoration:underline;">Get a $149 board-ready certificate &rarr;</a>
+            </div>
         </header>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
