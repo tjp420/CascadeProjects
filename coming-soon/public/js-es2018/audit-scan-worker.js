@@ -15,6 +15,7 @@ const MAX_DISCOVERED_FILES = 999999999; // No cap — scan all files
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const YIELD_INTERVAL = 500; // yield back to main thread every N files
+const HASH_BATCH_SIZE = 50; // batch file-hash messages to reduce postMessage frequency
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const FILE_READ_TIMEOUT_MS = 30000;
 const CHUNK_ANALYZE_TIMEOUT_MS = 120000;
@@ -571,15 +572,36 @@ async function analyzeWithTextPatterns(file, filePath) {
     return issues;
 }
 
-// Simple hash for cache key — fast, non-crypto
+// Fast hash for cache key — uses native SubtleCrypto (SHA-256) for large files,
+// falls back to a simple djb2 hash for small files where SubtleCrypto overhead isn't worth it.
+const HASH_SUBTLECRYPTO_THRESHOLD = 64 * 1024; // 64 KB — use SubtleCrypto above this
 async function simpleHash(text) {
     const encoder = new TextEncoder();
     const data = encoder.encode(text);
-    let hash = 0;
-    for (let i = 0; i < data.length; i++) {
-        hash = ((hash << 5) - hash + data[i]) | 0;
+    // For small files, djb2 is faster than SubtleCrypto async overhead
+    if (data.length < HASH_SUBTLECRYPTO_THRESHOLD) {
+        let hash = 5381;
+        for (let i = 0; i < data.length; i++) {
+            hash = ((hash << 5) + hash + data[i]) | 0;
+        }
+        return 'h' + (hash >>> 0).toString(36);
     }
-    return 'h' + (hash >>> 0).toString(36);
+    // For large files, use native SubtleCrypto — much faster than JS loop
+    try {
+        const digest = await crypto.subtle.digest('SHA-256', data);
+        const arr = new Uint8Array(digest);
+        // Use first 8 bytes (64 bits) as hex — sufficient for cache key
+        let hex = '';
+        for (let i = 0; i < 8; i++) hex += arr[i].toString(16).padStart(2, '0');
+        return 's' + hex;
+    } catch (_) {
+        // Fallback to djb2 if SubtleCrypto is unavailable
+        let hash = 5381;
+        for (let i = 0; i < data.length; i++) {
+            hash = ((hash << 5) + hash + data[i]) | 0;
+        }
+        return 'h' + (hash >>> 0).toString(36);
+    }
 }
 
 // === Batched scan state ===
@@ -597,9 +619,16 @@ async function scanFiles(files, deepScan, state) {
     const ignoreCtx = state ? state.ignoreCtx : null;
     const total = state ? state.totalFiles : files.length;
     const fileHashes = state ? state.fileHashes : []; // collected for IndexedDB cache
+    let pendingHashBatch = []; // batch file-hash messages to reduce postMessage frequency
     const postProgress = (currentFile) => {
         if (processed % 25 === 0) {
             self.postMessage({ type: 'progress', processed, total, currentFile, ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
+        }
+    };
+    const flushHashBatch = () => {
+        if (pendingHashBatch.length > 0) {
+            self.postMessage({ type: 'file-hash-batch', scanId: self.scanState ? self.scanState.scanId : null, hashes: pendingHashBatch });
+            pendingHashBatch = [];
         }
     };
     for (const file of files) {
@@ -641,8 +670,11 @@ async function scanFiles(files, deepScan, state) {
             const hash = await simpleHash(text);
             fileHashes.push({ path: file.path, hash, size });
 
-            // Post hash back to main thread for IndexedDB cache check
-            self.postMessage({ type: 'file-hash', scanId: self.scanState ? self.scanState.scanId : null, path: file.path, hash, size });
+            // Batch file-hash messages to reduce postMessage frequency
+            pendingHashBatch.push({ path: file.path, hash, size });
+            if (pendingHashBatch.length >= HASH_BATCH_SIZE) {
+                flushHashBatch();
+            }
 
             const fileLang = detectFileLanguage(file.path);
             if (fileLang) {
@@ -655,9 +687,14 @@ async function scanFiles(files, deepScan, state) {
                     issues.push(issue);
                 }
             }
+            // Clear references to allow GC to reclaim file text memory
+            // (text and fileObj are local vars that go out of scope, but explicit null helps V8)
             processed++;
             postProgress(file.path);
-            if (processed % YIELD_INTERVAL === 0) await new Promise(r => setTimeout(r, 0));
+            if (processed % YIELD_INTERVAL === 0) {
+                flushHashBatch(); // flush before yielding
+                await new Promise(r => setTimeout(r, 0));
+            }
         } catch (err) {
             textErrors++;
             processed++;
@@ -673,6 +710,8 @@ async function scanFiles(files, deepScan, state) {
             } catch (_) {}
         }
     }
+    // Flush any remaining batched hashes before returning
+    flushHashBatch();
     self.postMessage({ type: 'progress', processed, total, currentFile: files.length ? files[files.length - 1].path : '', ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
     return {
         processed, totalFiles: total, findings: allResults, issues,

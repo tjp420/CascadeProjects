@@ -233,11 +233,13 @@ async function extractIgnorePatternsFromFilesAsync(files) {
 
 // === Multi-worker scan orchestrator ===
 
-const WORKER_URL = 'js-es2018/audit-scan-worker.js?v=20260808audit1';
+const WORKER_URL = 'js-es2018/audit-scan-worker.js?v=20260809perf1';
 const MAX_WORKERS = 4;
 const MIN_WORKERS = 1;
 const BATCH_SIZE = 400;
 const CHECKPOINT_INTERVAL = 1000; // checkpoint every N files
+const PROGRESS_THROTTLE_MS = 100; // throttle progress callbacks to max 10/sec
+const MAX_FINDINGS_IN_MEMORY = 5000; // cap in-memory findings; rest stay in IndexedDB
 
 function getWorkerCount() {
     try {
@@ -477,8 +479,9 @@ window.AuditScanService = class AuditScanService {
         }
 
         // === 6. Spawn workers and run parallel scan ===
-        const allFindings = [];
-        const allHashes = [];
+        const allFindings = []; // capped — overflow goes to IndexedDB only
+        const allHashes = []; // capped — overflow is discarded (hash cache is best-effort)
+        let totalFindingsCount = 0; // exact count even when allFindings is capped
         let totalProcessed = resumeIndex;
         let totalTextErrors = 0;
         let totalBinarySkipped = 0;
@@ -486,6 +489,31 @@ window.AuditScanService = class AuditScanService {
         let totalHeavyVendor = 0;
         let totalIgnoredByPattern = 0;
         let issuesTruncated = false;
+
+        // Progress throttling — coalesce progress callbacks to avoid flooding the main thread
+        let lastProgressTime = 0;
+        let pendingProgress = null;
+        let progressRafId = 0;
+        function flushProgress() {
+            progressRafId = 0;
+            if (pendingProgress) {
+                onProgress(pendingProgress.processed, pendingProgress.total, pendingProgress.info);
+                pendingProgress = null;
+            }
+        }
+        function throttledProgress(processed, total, info) {
+            const now = performance.now();
+            if (now - lastProgressTime >= PROGRESS_THROTTLE_MS) {
+                lastProgressTime = now;
+                onProgress(processed, total, info);
+            } else {
+                // Store latest and schedule a flush
+                pendingProgress = { processed, total, info };
+                if (!progressRafId) {
+                    progressRafId = requestAnimationFrame(flushProgress);
+                }
+            }
+        }
 
         const workerPromises = [];
 
@@ -505,24 +533,32 @@ window.AuditScanService = class AuditScanService {
                     patterns: ignoreCtx.patterns
                 },
                 onProgress: (processed, total, info) => {
-                    // Aggregate progress across all workers
-                    // Each worker reports its own processed/total — we map to global
-                    onProgress(totalProcessed + processed, totalFiles, {
+                    // Aggregate progress across all workers via throttled callback
+                    throttledProgress(totalProcessed + processed, totalFiles, {
                         ...info,
                         workerIndex,
                         workersTotal: workerCount
                     });
                 },
                 onBatchFindings: (findings) => {
-                    // Stream findings to IndexedDB and accumulate
-                    allFindings.push(...findings);
+                    // Stream findings to IndexedDB; cap in-memory accumulation
+                    totalFindingsCount += findings.length;
+                    if (allFindings.length < MAX_FINDINGS_IN_MEMORY) {
+                        const remaining = MAX_FINDINGS_IN_MEMORY - allFindings.length;
+                        if (remaining >= findings.length) {
+                            allFindings.push(...findings);
+                        } else {
+                            for (let i = 0; i < remaining; i++) allFindings.push(findings[i]);
+                        }
+                    }
                     onFindings(findings);
                     this._streamFindings(this.scanId, findings);
                 },
                 onFileHash: (path, hash, size) => {
-                    allHashes.push({ path, hash, size });
-                    // Check if file hash matches cache — if so, we could skip it
-                    // but since the worker already read the file, we just record it
+                    // Cap hash accumulation — hash cache is best-effort
+                    if (allHashes.length < MAX_FINDINGS_IN_MEMORY) {
+                        allHashes.push({ path, hash, size });
+                    }
                 },
                 onFileError: (file, err) => {
                     totalTextErrors++;
@@ -572,13 +608,16 @@ window.AuditScanService = class AuditScanService {
         }
 
         // === 9. Build and return result ===
+        // Flush any pending progress before finalizing
+        if (progressRafId) { cancelAnimationFrame(progressRafId); flushProgress(); }
         const result = {
             scanId: this.scanId,
             processed: totalProcessed,
             totalFiles,
             findings: allFindings,
             issues: allFindings,
-            issueCount: allFindings.length,
+            issueCount: totalFindingsCount,
+            findingsCapped: totalFindingsCount > allFindings.length,
             textErrors: totalTextErrors,
             binarySkipped: totalBinarySkipped,
             ignoredDir: totalIgnoredDir,
@@ -708,6 +747,18 @@ window.AuditScanService = class AuditScanService {
                     case 'file-hash':
                         onFileHash(msg.path, msg.hash, msg.size);
                         allHashes.push({ path: msg.path, hash: msg.hash, size: msg.size });
+                        break;
+
+                    case 'file-hash-batch':
+                        // Batched file hashes — process all at once
+                        if (msg.hashes && msg.hashes.length) {
+                            for (const h of msg.hashes) {
+                                onFileHash(h.path, h.hash, h.size);
+                                if (allHashes.length < MAX_FINDINGS_IN_MEMORY) {
+                                    allHashes.push({ path: h.path, hash: h.hash, size: h.size });
+                                }
+                            }
+                        }
                         break;
 
                     case 'file-error':
