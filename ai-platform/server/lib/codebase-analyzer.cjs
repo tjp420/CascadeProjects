@@ -383,42 +383,56 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
     const total = files.length;
     const cap = options.findingsCap || MAX_FINDINGS_DASHBOARD;
 
-    for (let offset = 0; offset < files.length; offset += concurrency) {
-        const batch = files.slice(offset, offset + concurrency);
-        const results = await Promise.all(batch.map((file) => analyzeFileContent(file, rootDir, { ...options, findingsCap: cap })));
-        // Yield to event loop every few batches so the server stays responsive
-        if ((offset / concurrency) % 4 === 0 && offset > 0) {
-            await new Promise((resolve) => setImmediate(resolve));
+    let nextIndex = 0;
+    let completedCount = 0;
+    let yieldCounter = 0;
+
+    async function processOne(file) {
+        const fileResult = await analyzeFileContent(file, rootDir, { ...options, findingsCap: cap });
+        for (const finding of fileResult.findings) {
+            pushFinding(findings, finding, cap);
         }
-        for (let i = 0; i < results.length; i += 1) {
-            const fileResult = results[i];
-            const file = batch[i];
-            for (const finding of fileResult.findings) {
-                pushFinding(findings, finding, cap);
-            }
-            if (fileResult.structure && structureSamples.length < MAX_STRUCTURE_SAMPLES) {
-                structureSamples.push({
-                    filePath: file.relativePath,
-                    language: fileResult.structure.language,
-                    lineCount: fileResult.structure.lineCount,
-                    approximateFunctions: fileResult.structure.approximateFunctions,
-                    approximateClasses: fileResult.structure.approximateClasses,
-                    importOrIncludeCount: fileResult.structure.importOrIncludeCount,
-                    complexity: fileResult.structure.complexity,
-                    tier: fileResult.structure.tier || 'baseline'
-                });
-            }
-            if (typeof onProgress === 'function') {
-                const current = offset + i + 1;
-                onProgress({
-                    current,
-                    total,
-                    filename: file.name || file.relativePath || '',
-                    percent: Math.round((current / total) * 100)
-                });
+        if (fileResult.structure && structureSamples.length < MAX_STRUCTURE_SAMPLES) {
+            structureSamples.push({
+                filePath: file.relativePath,
+                language: fileResult.structure.language,
+                lineCount: fileResult.structure.lineCount,
+                approximateFunctions: fileResult.structure.approximateFunctions,
+                approximateClasses: fileResult.structure.approximateClasses,
+                importOrIncludeCount: fileResult.structure.importOrIncludeCount,
+                complexity: fileResult.structure.complexity,
+                tier: fileResult.structure.tier || 'baseline'
+            });
+        }
+        completedCount++;
+        if (typeof onProgress === 'function') {
+            onProgress({
+                current: completedCount,
+                total,
+                filename: file.name || file.relativePath || '',
+                percent: Math.round((completedCount / total) * 100)
+            });
+        }
+    }
+
+    async function worker() {
+        while (nextIndex < files.length) {
+            const file = files[nextIndex++];
+            await processOne(file);
+            // Yield to event loop periodically so the server stays responsive
+            yieldCounter++;
+            if (yieldCounter % (concurrency * 4) === 0) {
+                await new Promise((resolve) => setImmediate(resolve));
             }
         }
     }
+
+    // Launch `concurrency` workers that pull from the shared queue
+    const workers = [];
+    for (let i = 0; i < concurrency && i < files.length; i++) {
+        workers.push(worker());
+    }
+    await Promise.all(workers);
 
     return { findings, structureSamples };
 }
