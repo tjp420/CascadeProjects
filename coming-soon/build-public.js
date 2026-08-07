@@ -283,7 +283,11 @@ if (fs.existsSync(dashboardSrc)) {
   if (fs.existsSync(dashboardIndex)) {
     let dashHtml = fs.readFileSync(dashboardIndex, 'utf8');
     // Make marketing site config available to the dashboard for vsixDownloadUrl and pricing fallbacks.
-    dashHtml = dashHtml.replace(/<\/head>/i, '  <script src="/site-config.js"></script>\n  <script src="/js-es2018/referral-capture.js" defer></script>\n</head>');
+    // Inject a minimal inline `site-config` fallback so the dashboard has
+    // reasonable defaults if the external `site-config.js` hasn't propagated
+    // to every CDN edge yet. The external script (when present) will override
+    // these defaults after it loads.
+    dashHtml = dashHtml.replace(/<\/head>/i, '  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>\n  <script src="/site-config.js"></script>\n  <script src="/js-es2018/referral-capture.js" defer></script>\n</head>');
     if (!/<title>/i.test(dashHtml)) {
       dashHtml = dashHtml.replace(/<head[^>]*>/i, '$&\n  <title>SimpleBeacon Dashboard</title>');
     }
