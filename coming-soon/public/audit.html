@@ -100,6 +100,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000015" defer></script>
     <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000001" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
+    <script src="js-es2018/compliance-report-generator.js?h=1781475000020" defer></script>
     <script src="js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
     <script src="js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
     <link rel="stylesheet" href="css/dashboard.css?h=1781475000014">
@@ -669,6 +671,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                                 <button id="cancelScanBtn" style="display:none;padding:2px 8px;border:1px solid var(--error);background:transparent;color:var(--error);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#9209; Cancel</button>
                                 <button id="downloadLogBtn" style="display:none;padding:2px 8px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#128229; Log</button>
                                 <button id="copyLogBtn" style="display:none;padding:2px 8px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#128203; Copy</button>
+                                <button id="downloadComplianceReportBtn" style="display:none;padding:2px 10px;border:1px solid var(--success);background:rgba(16,185,129,0.08);color:var(--success);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#128196; Compliance Report</button>
                             </div>
                             <div id="integrity-hash" class="terminal-hash">HASH: NOT_YET_CALCULATED</div>
                         </div>

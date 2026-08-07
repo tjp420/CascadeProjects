@@ -1491,6 +1491,48 @@ async function processLocalCLIScan(files) {
         }
     }
 
+    // Wire compliance report download button
+    const complianceReportBtn = document.getElementById('downloadComplianceReportBtn');
+    if (complianceReportBtn) {
+        complianceReportBtn.onclick = async () => {
+            try {
+                if (!window.ComplianceReportGenerator) {
+                    showToast('Compliance report generator not loaded', 'error');
+                    return;
+                }
+                if (!window.lastScanResult) {
+                    showToast('No scan results to export — run a scan first', 'warning');
+                    return;
+                }
+                complianceReportBtn.disabled = true;
+                complianceReportBtn.textContent = '\uD83D\uDD04 Generating...';
+                const result = await window.ComplianceReportGenerator.generateComplianceReport(window.lastScanResult, {
+                    projectName: window.lastScanResult.scanId || 'Local Environment',
+                    scanDate: Date.now()
+                });
+                // Download the PDF blob
+                const url = URL.createObjectURL(result.blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                showToast('Compliance report downloaded — generated entirely in your browser!', 'success');
+                complianceReportBtn.textContent = '\uD83D\uDC4D Downloaded';
+                setTimeout(() => {
+                    complianceReportBtn.textContent = '\uD83D\uDC4D Compliance Report';
+                    complianceReportBtn.disabled = false;
+                }, 3000);
+            } catch (err) {
+                showToast('Failed to generate compliance report: ' + (err.message || err), 'error');
+                complianceReportBtn.textContent = '\uD83D\uDC4B Compliance Report';
+                complianceReportBtn.disabled = false;
+            }
+        };
+    }
+
     try {
     // Scan always runs 'complete' so all modules have data; ZIP filters to selected modules
     const profileKey = 'complete';
@@ -3666,6 +3708,11 @@ async function processLocalCLIScan(files) {
     renderPreview(reportData);
     scanPreview.style.display = 'block';
     updateSubmit();
+
+    // Store scan result for compliance report generation
+    window.lastScanResult = reportData;
+    const complianceBtn = document.getElementById('downloadComplianceReportBtn');
+    if (complianceBtn) complianceBtn.style.display = 'inline-block';
     // Auto-scroll to certificate section after scan
     setTimeout(() => {
         document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
