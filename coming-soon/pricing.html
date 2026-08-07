@@ -488,8 +488,8 @@
           <div class="price-card-header">
             <span class="price-tag">Individual</span>
             <h3>Developer</h3>
-            <div class="price-amount" id="teamPrice">$49<span class="price-unit">/mo</span></div>
-            <p id="teamAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$588/yr</span> <span style="color:var(--success);font-weight:600;">$490/yr</span> <span class="save-badge">Save 17%</span></p>
+            <div class="price-amount" id="developerPrice">$49<span class="price-unit">/mo</span></div>
+            <p id="developerAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$588/yr</span> <span style="color:var(--success);font-weight:600;">$490/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
           <p class="price-desc">Unlimited local scans, CI gate integration, and full JSON exports for individual developers.</p>
           <ul class="price-features">
@@ -509,8 +509,8 @@
           <div class="price-card-header">
             <span class="price-tag">Team</span>
             <h3>Team Pro</h3>
-            <div class="price-amount" id="compliancePrice">$149<span class="price-unit">/mo</span></div>
-            <p id="complianceAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$1,788/yr</span> <span style="color:var(--success);font-weight:600;">$1,490/yr</span> <span class="save-badge">Save 17%</span></p>
+            <div class="price-amount" id="teamProPrice">$149<span class="price-unit">/mo</span></div>
+            <p id="teamProAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$1,788/yr</span> <span style="color:var(--success);font-weight:600;">$1,490/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
           <p class="price-desc">Board-ready compliance documentation, EU AI Act evidence packs, and team collaboration.</p>
           <ul class="price-features">
@@ -524,11 +524,11 @@
           <div style="margin:12px 0;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;text-align:center;">
             <p style="font-size:0.8rem;color:var(--text-secondary);margin:0 0 8px;">5 seats included &middot; add more for $15/mo each</p>
             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-              <button type="button" id="seatDecrement" onclick="adjustSeats(-1)" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);font-size:1rem;cursor:pointer;">&minus;</button>
-              <span id="extraSeatsDisplay" style="font-size:0.9rem;color:var(--text-primary);font-weight:600;min-width:80px;">5 seats</span>
-              <button type="button" id="seatIncrement" onclick="adjustSeats(1)" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);font-size:1rem;cursor:pointer;">+</button>
+              <button type="button" id="seatDecrement" onclick="adjustSeats(-1)" aria-label="Remove one seat" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);font-size:1rem;cursor:pointer;">&minus;</button>
+              <span id="extraSeatsDisplay" style="font-size:0.9rem;color:var(--text-primary);font-weight:600;min-width:90px;text-align:center;">5 seats</span>
+              <button type="button" id="seatIncrement" onclick="adjustSeats(1)" aria-label="Add one seat" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-primary);font-size:1rem;cursor:pointer;">+</button>
             </div>
-            <p style="font-size:0.75rem;color:var(--text-muted);margin:8px 0 0;"><span id="seatTotalDisplay">$149/mo</span> &middot; <span id="seatBreakdownDisplay">5 included</span></p>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin:8px 0 0;"><span id="seatTotalDisplay">$149/mo</span> &middot; <span id="seatBreakdownDisplay">5 seats included</span></p>
           </div>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
           <button class="price-btn checkout-btn" data-tier="team_pro" data-price-id="price_team_pro_monthly" data-annual-price-id="price_team_pro_annual" id="teamProSubscribeBtn">Subscribe</button>
@@ -878,12 +878,25 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     var extraSeats = 0;
     var SEAT_PRICE_MONTHLY = 15;
     var SEAT_PRICE_ANNUAL = 180; // 15 * 12 - ~17% saving baked in via annual
+    var INCLUDED_SEATS = 5;
+    var MAX_EXTRA_SEATS = 50;
     function adjustSeats(delta) {
-      extraSeats = Math.max(0, Math.min(50, extraSeats + delta));
+      extraSeats = Math.max(0, Math.min(MAX_EXTRA_SEATS, extraSeats + delta));
       var display = document.getElementById('extraSeatsDisplay');
       if (display) {
-        var totalSeats = 5 + extraSeats;
+        var totalSeats = INCLUDED_SEATS + extraSeats;
         display.textContent = totalSeats + (totalSeats === 1 ? ' seat' : ' seats');
+      }
+      // Visual feedback: disable minus button at 0 extra, plus button at max
+      var decBtn = document.getElementById('seatDecrement');
+      var incBtn = document.getElementById('seatIncrement');
+      if (decBtn) {
+        decBtn.style.opacity = extraSeats === 0 ? '0.4' : '1';
+        decBtn.style.cursor = extraSeats === 0 ? 'not-allowed' : 'pointer';
+      }
+      if (incBtn) {
+        incBtn.style.opacity = extraSeats >= MAX_EXTRA_SEATS ? '0.4' : '1';
+        incBtn.style.cursor = extraSeats >= MAX_EXTRA_SEATS ? 'not-allowed' : 'pointer';
       }
       updateSeatTotal();
     }
@@ -897,7 +910,11 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       totalEl.textContent = '$' + total.toLocaleString() + unit;
       var breakdownEl = document.getElementById('seatBreakdownDisplay');
       if (breakdownEl) {
-        breakdownEl.textContent = extraSeats === 0 ? '5 included' : ('5 included + ' + extraSeats + ' extra');
+        if (extraSeats === 0) {
+          breakdownEl.textContent = INCLUDED_SEATS + ' seats included';
+        } else {
+          breakdownEl.textContent = INCLUDED_SEATS + ' included + ' + extraSeats + ' extra' + (extraSeats === 1 ? ' seat' : ' seats');
+        }
       }
     }
 
@@ -945,17 +962,17 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       var annualLabelEl = document.getElementById('annualLabel');
       if (monthlyLabelEl) monthlyLabelEl.classList.toggle('active', !isAnnual);
       if (annualLabelEl) annualLabelEl.classList.toggle('active', isAnnual);
-      var teamPrice = document.getElementById('teamPrice');
-      var compliancePrice = document.getElementById('compliancePrice');
+      var developerPrice = document.getElementById('developerPrice');
+      var teamProPrice = document.getElementById('teamProPrice');
       var entPrice = document.getElementById('entPrice');
-      var teamNote = document.getElementById('teamAnnualNote');
-      var complianceNote = document.getElementById('complianceAnnualNote');
+      var developerNote = document.getElementById('developerAnnualNote');
+      var teamProNote = document.getElementById('teamProAnnualNote');
       var entNote = document.getElementById('entAnnualNote');
-      if (teamPrice) teamPrice.innerHTML = isAnnual ? '$490<span class="price-unit">/yr</span>' : '$49<span class="price-unit">/mo</span>';
-      if (compliancePrice) compliancePrice.innerHTML = isAnnual ? '$1,490<span class="price-unit">/yr</span>' : '$149<span class="price-unit">/mo</span>';
+      if (developerPrice) developerPrice.innerHTML = isAnnual ? '$490<span class="price-unit">/yr</span>' : '$49<span class="price-unit">/mo</span>';
+      if (teamProPrice) teamProPrice.innerHTML = isAnnual ? '$1,490<span class="price-unit">/yr</span>' : '$149<span class="price-unit">/mo</span>';
       if (entPrice) entPrice.innerHTML = 'Custom';
-      if (teamNote) teamNote.style.display = isAnnual ? 'block' : 'none';
-      if (complianceNote) complianceNote.style.display = isAnnual ? 'block' : 'none';
+      if (developerNote) developerNote.style.display = isAnnual ? 'block' : 'none';
+      if (teamProNote) teamProNote.style.display = isAnnual ? 'block' : 'none';
       if (entNote) entNote.style.display = 'none';
       updateSeatTotal();
     }
