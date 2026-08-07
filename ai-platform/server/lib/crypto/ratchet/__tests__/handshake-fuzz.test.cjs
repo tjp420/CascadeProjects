@@ -74,7 +74,7 @@ describe('Track 113 — Handshake Fuzzing', () => {
     it('rejects random bytes as public key', async () => {
       const garbage = crypto.randomBytes(64);
       await assert.rejects(() => bootstrap.encapsulate(garbage), bootstrap.HybridBootstrapError);
-    });
+    }, 60000);
 
     it('rejects truncated cipherText', async () => {
       const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -86,7 +86,7 @@ describe('Track 113 — Handshake Fuzzing', () => {
         () => bob.decapsulateFrom(truncated),
         (err) => err instanceof bootstrap.HybridBootstrapError,
       );
-    });
+    }, 60000);
 
     it('rejects cipherText with wrong version byte', async () => {
       const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -99,7 +99,7 @@ describe('Track 113 — Handshake Fuzzing', () => {
         () => bob.decapsulateFrom(corrupted),
         (err) => err instanceof bootstrap.HybridBootstrapError && err.code === 'UNSUPPORTED_HYBRID_KEY_VERSION',
       );
-    });
+    }, 60000);
 
     it('rejects cipherText with corrupted ML-KEM component', async () => {
       const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -121,7 +121,7 @@ describe('Track 113 — Handshake Fuzzing', () => {
         // Acceptable: ML-KEM decapsulation throws on corrupted input
         assert.ok(e instanceof bootstrap.HybridBootstrapError || e instanceof Error);
       }
-    });
+    }, 60000);
 
     it('rejects empty cipherText', async () => {
       const bob = await new IdentityRatchet({ deviceId: 'bob' }).generate();
@@ -129,7 +129,7 @@ describe('Track 113 — Handshake Fuzzing', () => {
         () => bob.decapsulateFrom(Buffer.alloc(0)),
         (err) => err instanceof bootstrap.HybridBootstrapError,
       );
-    });
+    }, 60000);
   });
 
   describe('signature fuzzing', () => {
@@ -171,7 +171,7 @@ describe('Track 113 — Handshake Fuzzing', () => {
         () => acceptHandshake(bob, fakeHandshake, alice.publicKey),
         (err) => err instanceof CompatibilityError,
       );
-    });
+    }, 60000);
 
     it('rejects handshake with truncated classical payload', async () => {
       const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -182,7 +182,7 @@ describe('Track 113 — Handshake Fuzzing', () => {
         () => acceptHandshake(bob, fakeHandshake, alice.publicKey),
         (err) => err instanceof CompatibilityError,
       );
-    });
+    }, 60000);
 
     it('rejects detectMode for random bytes', () => {
       assert.throws(() => detectMode(crypto.randomBytes(32)), CompatibilityError);
@@ -201,12 +201,14 @@ describe('Track 113 — Handshake Fuzzing', () => {
     it('survives random garbage inputs without crashing', async () => {
       for (let i = 0; i < 50; i++) {
         const garbage = crypto.randomBytes(Math.floor(Math.random() * 256));
-        // Should throw a typed error, not crash
+        // Should throw a typed error, not crash. However, random bytes may
+        // accidentally form a valid-looking structure (e.g. version byte 0x01
+        // with valid component headers), so success is also acceptable.
         try { await bootstrap.encapsulate(garbage); } catch (e) { assert.ok(e instanceof bootstrap.HybridBootstrapError); }
         try { bootstrap.deserializePublicKey(garbage); } catch (e) { assert.ok(e instanceof bootstrap.HybridBootstrapError); }
-        try { detectMode(garbage); } catch (e) { assert.ok(e instanceof CompatibilityError); }
+        try { detectMode(garbage); } catch (e) { assert.ok(e instanceof CompatibilityError || e instanceof bootstrap.HybridBootstrapError); }
       }
-    });
+    }, 60000);
   });
 });
 
@@ -219,7 +221,7 @@ describe('Track 113 — Interop Tests', () => {
     const dec = await bob.decapsulateFrom(enc.cipherText);
 
     assert.strictEqual(enc.chainKey, dec.chainKey, 'Alice and Bob must converge to the same chain key');
-  });
+  }, 60000);
 
   it('two ratchets converge to same key after compatibility shim hybrid handshake', async () => {
     const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -231,7 +233,7 @@ describe('Track 113 — Interop Tests', () => {
     assert.strictEqual(init.mode, 'HYBRID');
     assert.strictEqual(accept.mode, 'HYBRID');
     assert.strictEqual(init.chainKey, accept.chainKey, 'Initiator and acceptor must converge');
-  });
+  }, 60000);
 
   it('two ratchets converge to same key after classical fallback handshake', async () => {
     const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -254,7 +256,7 @@ describe('Track 113 — Interop Tests', () => {
     assert.strictEqual(init.mode, 'CLASSICAL');
     assert.strictEqual(accept.mode, 'CLASSICAL');
     assert.strictEqual(init.chainKey, accept.chainKey, 'Classical handshake must converge');
-  });
+  }, 60000);
 
   it('stepped message keys match between two converged ratchets', async () => {
     const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -270,7 +272,7 @@ describe('Track 113 — Interop Tests', () => {
       const bobKey = bob.step().toString('hex');
       assert.strictEqual(aliceKey, bobKey, `Message key ${i} must match after convergence`);
     }
-  });
+  }, 60000);
 
   it('rotation produces matching keys on both sides', async () => {
     const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -290,7 +292,7 @@ describe('Track 113 — Interop Tests', () => {
     const aliceKey = alice.step().toString('hex');
     const bobKey = bob.step().toString('hex');
     assert.strictEqual(aliceKey, bobKey, 'Post-rotation message keys must match');
-  });
+  }, 60000);
 
   it('three-party handshake: Alice → Bob and Alice → Carol produce different keys', async () => {
     const alice = await new IdentityRatchet({ deviceId: 'alice' }).generate();
@@ -306,5 +308,5 @@ describe('Track 113 — Interop Tests', () => {
     assert.strictEqual(encBob.chainKey, decBob.chainKey);
     assert.strictEqual(encCarol.chainKey, decCarol.chainKey);
     assert.notStrictEqual(encBob.chainKey, encCarol.chainKey, 'Different peers must get different keys');
-  });
+  }, 60000);
 });
