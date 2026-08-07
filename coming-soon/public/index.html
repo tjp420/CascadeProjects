@@ -876,20 +876,21 @@
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
 
     <!-- Google Analytics + SimpleBeacon Analytics Dispatcher -->
+    <!-- GA_MEASUREMENT_ID is injected dynamically by the Cloudflare Worker via <meta name="ga-id"> -->
     <script>
     (function() {
-        var GA_ID = '';
+        var gaMeta = document.querySelector('meta[name="ga-id"]');
+        var GA_ID = gaMeta ? gaMeta.getAttribute('content') : '';
+        if (!GA_ID || GA_ID.indexOf('G-XXXX') !== -1) return;
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         window.gtag = gtag;
         gtag('js', new Date());
-        if (GA_ID && GA_ID.indexOf('G-XXXX') === -1) {
-            gtag('config', GA_ID);
-            var s = document.createElement('script');
-            s.async = true;
-            s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_ID);
-            document.head.appendChild(s);
-        }
+        gtag('config', GA_ID);
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_ID);
+        document.head.appendChild(s);
     })();
     </script>
     <script src="/js-es2018/analytics.js"></script>

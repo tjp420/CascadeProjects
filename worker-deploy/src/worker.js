@@ -599,6 +599,29 @@ export default {
       headers.set('X-SB-Worker', 'catchall-assets');
       headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       headers.set('CDN-Cache-Control', 'no-store');
+
+      // Dynamic GA4 Measurement ID injection for HTML pages
+      // Reads GA_MEASUREMENT_ID from wrangler.jsonc vars and injects it
+      // into a <meta name="ga-id"> tag so the client-side analytics
+      // loader can pick it up without hardcoding the ID in HTML.
+      const gaId = String(env.GA_MEASUREMENT_ID || '').trim();
+      const isHtml = (headers.get('Content-Type') || '').includes('text/html') ||
+                     url.pathname.endsWith('.html') ||
+                     url.pathname === '/' ||
+                     (!url.pathname.includes('.') && assetResp.headers.get('Content-Type', '').includes('text/html'));
+      if (gaId && isHtml) {
+        const rewriter = new HTMLRewriter()
+          .on('head', {
+            element(element) {
+              element.prepend(
+                `<meta name="ga-id" content="${gaId.replace(/[^a-zA-Z0-9\-]/g, '')}">`,
+                { html: true }
+              );
+            }
+          });
+        return rewriter.transform(new Response(assetResp.body, { status: assetResp.status, headers }));
+      }
+
       return new Response(assetResp.body, { status: assetResp.status, headers });
     }
 
