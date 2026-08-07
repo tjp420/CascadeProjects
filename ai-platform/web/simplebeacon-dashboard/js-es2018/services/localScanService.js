@@ -85,7 +85,7 @@ async function ensureReadPermission(dirHandle) {
  * @param {Array<{path:string, handle:FileSystemFileHandle}>} files
  * @returns {Promise<Array<{path:string, handle:FileSystemFileHandle}>>}
  */
-async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = null) {
+async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = null, onCollectProgress = null) {
     if (files.length >= MAX_FILES)
         return files;
     if (ignoreCtx && pathPrefix && isIgnoredVirtualPath(pathPrefix, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
@@ -98,6 +98,7 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
     let ignoredCount = 0;
     let skippedDirCount = 0;
     let firstEntries = [];
+    let lastProgressAt = 0;
     for await (const [name, handle] of dirHandle.entries()) {
         if (entryCount < 5 && !pathPrefix) {
             firstEntries.push(`${name} (${handle.kind})`);
@@ -115,7 +116,7 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
             try {
                 const subDirHandle = await dirHandle.getDirectoryHandle(name);
                 if (await ensureReadPermission(subDirHandle)) {
-                    await collectFiles(subDirHandle, fullPath, files, ignoreCtx);
+                    await collectFiles(subDirHandle, fullPath, files, ignoreCtx, onCollectProgress);
                 }
             } catch (dirErr) {
                 console.warn('[collectFiles] Could not traverse directory:', fullPath, dirErr);
@@ -133,6 +134,10 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
         if (files.length >= MAX_FILES)
             break;
         entryCount += 1;
+        if (onCollectProgress && files.length - lastProgressAt >= 100) {
+            lastProgressAt = files.length;
+            onCollectProgress(files.length, pathPrefix || dirHandle.name);
+        }
         if (entryCount % 500 === 0) {
             await new Promise((resolve) => setTimeout(resolve, 0));
         }
@@ -636,7 +641,10 @@ export async function runLocalScan(options = {}) {
             }
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(picked);
             ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
-            files = await collectFiles(picked, '', [], ignoreCtx);
+            if (onFilePrepProgress) onFilePrepProgress(0, 0, 'Discovering files...');
+            files = await collectFiles(picked, '', [], ignoreCtx, (count, currentDir) => {
+                if (onFilePrepProgress) onFilePrepProgress(count, 0, `Discovering files... ${count.toLocaleString()} found in ${currentDir}`);
+            });
         }
         else {
             projectName = options.projectPath || dirHandle.name || 'local-project';
@@ -648,7 +656,10 @@ export async function runLocalScan(options = {}) {
             }
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(dirHandle);
             ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
-            files = await collectFiles(dirHandle, '', [], ignoreCtx);
+            if (onFilePrepProgress) onFilePrepProgress(0, 0, 'Discovering files...');
+            files = await collectFiles(dirHandle, '', [], ignoreCtx, (count, currentDir) => {
+                if (onFilePrepProgress) onFilePrepProgress(count, 0, `Discovering files... ${count.toLocaleString()} found in ${currentDir}`);
+            });
         }
     }
     const beforeIgnoreCount = files.length;

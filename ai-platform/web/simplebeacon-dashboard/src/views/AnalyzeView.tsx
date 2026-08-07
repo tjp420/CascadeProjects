@@ -636,7 +636,7 @@ export function AnalyzeView() {
             setProgress(Math.min(15, Math.round((processed / total) * 15)));
             setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
           } else {
-            setProgress(2);
+            setProgress(Math.min(10, 2 + Math.round(processed / 500)));
             setProgressLabel(label);
           }
         },
@@ -874,7 +874,7 @@ export function AnalyzeView() {
               setProgress(pct);
               setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
             } else {
-              setProgress(5);
+              setProgress(Math.min(10, 2 + Math.round(processed / 500)));
               setProgressLabel(label);
             }
           },
