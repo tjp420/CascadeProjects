@@ -272,6 +272,9 @@ export default {
           headers.set('Content-Type', 'text/html; charset=utf-8');
           headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
           headers.set('CDN-Cache-Control', 'no-store');
+          headers.set('Edge-Cache-TTL', '0');
+          headers.set('X-SB-Worker-Entry', entryPath);
+          headers.set('X-SB-Worker-Deploy', '2026-08-07-v3');
           return new Response(candidate.body, { status: candidate.status, headers });
         }
       }
