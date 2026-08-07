@@ -4,7 +4,7 @@
  * Tests for High-Risk Finding Alert Templates
  *
  * Tests cover:
- * - ALERT_TEMPLATES: structure and completeness of all 12 templates
+ * - ALERT_TEMPLATES: structure and completeness of all 22 templates
  * - getAlertTemplate: lookup by rule ID
  * - enrichFindingWithAlert: attaching templates to findings
  * - enrichFindingsWithAlerts: batch enrichment
@@ -45,6 +45,16 @@ const EXPECTED_RULES = {
     'SB-SEC-023': 'medium',    // Unpinned Dependency
     'SB-SEC-009': 'critical',  // .env Committed
     'SB-SEC-013': 'critical',  // CI/CD Secret
+    'credentials': 'medium',   // Hardcoded credentials
+    'evalDanger': 'high',      // eval() usage
+    'sensitiveData': 'high',   // Sensitive data exposure
+    'dbAntiPattern': 'high',   // Database anti-pattern
+    'innerHtmlXss': 'medium',  // innerHTML XSS risk
+    'prototypePollution': 'high', // Prototype pollution
+    'configDrift': 'medium',   // Configuration drift
+    'loggingSecrets': 'high',  // Secrets in logs
+    'productionLeak': 'medium', // Production leak risk
+    'hallucinatedImport': 'medium', // Hallucinated import
 };
 
 const REQUIRED_TEMPLATE_FIELDS = [
@@ -59,9 +69,9 @@ const REQUIRED_TEMPLATE_FIELDS = [
 
 describe('ALERT_TEMPLATES structure', () => {
 
-    test('has all 12 expected rule IDs', () => {
+    test('has all 22 expected rule IDs', () => {
         const ruleIds = Object.keys(ALERT_TEMPLATES);
-        assert.equal(ruleIds.length, 12, `Expected 12 templates, got ${ruleIds.length}`);
+        assert.equal(ruleIds.length, 22, `Expected 22 templates, got ${ruleIds.length}`);
         for (const expectedId of Object.keys(EXPECTED_RULES)) {
             assert.ok(ALERT_TEMPLATES[expectedId], `Missing template for ${expectedId}`);
         }
@@ -253,7 +263,7 @@ describe('enrichFindingsWithAlerts', () => {
         assert.deepEqual(enriched, []);
     });
 
-    test('enriches all 12 known rule IDs', () => {
+    test('enriches all 22 known rule IDs', () => {
         const findings = Object.keys(EXPECTED_RULES).map(ruleId => ({
             pattern: ruleId,
             severity: EXPECTED_RULES[ruleId],
@@ -320,9 +330,9 @@ describe('formatAlertMarkdown', () => {
 
 describe('getAllAlertTemplates', () => {
 
-    test('returns all 12 templates sorted by severity', () => {
+    test('returns all 22 templates sorted by severity', () => {
         const all = getAllAlertTemplates();
-        assert.equal(all.length, 12);
+        assert.equal(all.length, 22);
         // Critical should come first
         assert.equal(all[0].severity, 'critical');
         // Low should come last
