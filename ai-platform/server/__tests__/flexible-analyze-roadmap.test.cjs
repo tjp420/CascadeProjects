@@ -1,5 +1,10 @@
 'use strict';
 
+// Ensure tests run under a generous memory ceiling when executed inside Jest.
+// Jest's runner adds RSS/heap overhead and can trip the module's memory guard;
+// set a safe default here so the suite is self-contained.
+process.env.ROADMAP_MEMORY_LIMIT_MB = process.env.ROADMAP_MEMORY_LIMIT_MB || '1024';
+
 jest.mock('../lib/flexible-analyze-utils.cjs', () => ({
   normalizeStringList: jest.fn().mockReturnValue([]),
   safeBasename: jest.fn().mockReturnValue('project')
