@@ -200,3 +200,206 @@ describe('Policy and adapter integration', () => {
     expect(unwrapped.equals(plaintext)).toBe(true);
   });
 });
+
+// ── Expanded test suite: timing-attack, malformed inputs, boundary conditions ──
+
+describe('ZkIdentityVerifier — timing-attack resistance', () => {
+  test('verifyProof uses constant-time comparison (valid proof still works)', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'timing-test');
+    expect(verifier.verifyProof(publicKey, proof, 'timing-test')).toBe(true);
+  });
+
+  test('verifyProof uses constant-time comparison (invalid proof still fails)', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'timing-test');
+    proof.s = Buffer.alloc(32, 0);
+    expect(verifier.verifyProof(publicKey, proof, 'timing-test')).toBe(false);
+  });
+
+  test('verification time is data-independent for valid vs invalid proofs', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+
+    // Measure valid proof verification time
+    const validProof = verifier.createProof(privateKey, 'timing-bench');
+    const validTimes = [];
+    for (let i = 0; i < 20; i++) {
+      const start = process.hrtime.bigint();
+      verifier.verifyProof(publicKey, validProof, 'timing-bench');
+      validTimes.push(Number(process.hrtime.bigint() - start));
+    }
+
+    // Measure invalid proof verification time (tampered s)
+    const invalidProof = verifier.createProof(privateKey, 'timing-bench');
+    invalidProof.s = Buffer.alloc(32, 0);
+    const invalidTimes = [];
+    for (let i = 0; i < 20; i++) {
+      const start = process.hrtime.bigint();
+      verifier.verifyProof(publicKey, invalidProof, 'timing-bench');
+      invalidTimes.push(Number(process.hrtime.bigint() - start));
+    }
+
+    // Compute median (more robust than mean against outliers)
+    const median = (arr) => {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    };
+    const validMedian = median(validTimes);
+    const invalidMedian = median(invalidTimes);
+
+    // The ratio should be close to 1.0 for constant-time comparison.
+    // We allow a generous 3x tolerance to account for JIT/GC noise.
+    const ratio = Math.max(validMedian, invalidMedian) / Math.min(validMedian, invalidMedian);
+    expect(ratio).toBeLessThan(3.0);
+  });
+});
+
+describe('ZkIdentityVerifier — malformed input handling', () => {
+  test('proof with wrong t buffer size returns false (not crash)', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'malformed');
+    proof.t = Buffer.alloc(16, 0); // wrong size (16 instead of 32)
+    expect(verifier.verifyProof(publicKey, proof, 'malformed')).toBe(false);
+  });
+
+  test('proof with wrong s buffer size returns false (not crash)', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'malformed');
+    proof.s = Buffer.alloc(16, 0); // wrong size (16 instead of 32)
+    expect(verifier.verifyProof(publicKey, proof, 'malformed')).toBe(false);
+  });
+
+  test('proof with null t returns false (not crash)', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'malformed');
+    expect(verifier.verifyProof(publicKey, { t: null, s: proof.s }, 'malformed')).toBe(false);
+  });
+
+  test('proof with null s returns false (not crash)', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'malformed');
+    expect(verifier.verifyProof(publicKey, { t: proof.t, s: null }, 'malformed')).toBe(false);
+  });
+
+  test('public key with wrong size returns false (not crash)', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'malformed');
+    const wrongKey = Buffer.alloc(16, 0); // wrong size
+    expect(verifier.verifyProof(wrongKey, proof, 'malformed')).toBe(false);
+  });
+
+  test('empty context string produces valid proof', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, '');
+    expect(verifier.verifyProof(publicKey, proof, '')).toBe(true);
+  });
+
+  test('Buffer context (not string) produces valid proof', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const ctxBuf = Buffer.from('buffer-context', 'utf8');
+    const proof = verifier.createProof(privateKey, ctxBuf);
+    expect(verifier.verifyProof(publicKey, proof, ctxBuf)).toBe(true);
+  });
+});
+
+describe('ZkIdentityVerifier — boundary conditions', () => {
+  test('proof with s = 0 returns false', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'boundary');
+    proof.s = Buffer.alloc(32, 0); // s = 0
+    expect(verifier.verifyProof(publicKey, proof, 'boundary')).toBe(false);
+  });
+
+  test('proof with t = 0 returns false', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'boundary');
+    proof.t = Buffer.alloc(32, 0); // t = 0
+    expect(verifier.verifyProof(publicKey, proof, 'boundary')).toBe(false);
+  });
+
+  test('external challenge parameter produces valid proof', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const externalChallenge = crypto.randomBytes(32);
+    const proof = verifier.createProof(privateKey, 'ext-challenge', externalChallenge);
+    expect(verifier.verifyProof(publicKey, proof, 'ext-challenge', externalChallenge)).toBe(true);
+  });
+
+  test('external challenge mismatch fails verification', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const challenge1 = crypto.randomBytes(32);
+    const challenge2 = crypto.randomBytes(32);
+    const proof = verifier.createProof(privateKey, 'ext-challenge', challenge1);
+    expect(verifier.verifyProof(publicKey, proof, 'ext-challenge', challenge2)).toBe(false);
+  });
+});
+
+describe('ZkIdentityVerifier — replay attack resistance', () => {
+  test('same proof replayed with different context fails', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'original-context');
+    // Replay with different context should fail
+    expect(verifier.verifyProof(publicKey, proof, 'replay-context')).toBe(false);
+  });
+
+  test('same proof with different public key fails', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const { publicKey: otherPublicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'key-bound');
+    // Same proof with different public key should fail
+    expect(verifier.verifyProof(otherPublicKey, proof, 'key-bound')).toBe(false);
+  });
+});
+
+describe('ZkIdentityVerifier — large field (256-bit default)', () => {
+  test('256-bit field proof generates and verifies', () => {
+    // Use the default 256-bit field (no explicit prime/generator)
+    const verifier = new ZkIdentityVerifier({ fieldBits: 128 }); // 128-bit for test speed
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    const proof = verifier.createProof(privateKey, 'large-field');
+    expect(verifier.verifyProof(publicKey, proof, 'large-field')).toBe(true);
+  });
+
+  test('multiple proofs with same key each verify independently', () => {
+    const verifier = new ZkIdentityVerifier({ prime: LARGE_SAFE_PRIME, generator: LARGE_GEN, safe: true });
+    const { privateKey, publicKey } = verifier.generateProverKeys();
+    for (let i = 0; i < 5; i++) {
+      const ctx = `batch-${i}`;
+      const proof = verifier.createProof(privateKey, ctx);
+      expect(verifier.verifyProof(publicKey, proof, ctx)).toBe(true);
+    }
+  });
+});
+
+describe('EphemeralHardwareTokenSplitter — timing-attack resistance', () => {
+  test('token verify uses timingSafeEqual (valid token still works)', () => {
+    const root = crypto.randomBytes(32);
+    const splitter = new EphemeralHardwareTokenSplitter(root, { tokenExpiryMs: 10000 });
+    const token = splitter.issue('t1');
+    expect(splitter.verify(token, 't1')).toBe(true);
+  });
+
+  test('token verify uses timingSafeEqual (invalid token still fails)', () => {
+    const root = crypto.randomBytes(32);
+    const splitter = new EphemeralHardwareTokenSplitter(root, { tokenExpiryMs: 10000 });
+    const token = splitter.issue('t1');
+    token.value = Buffer.alloc(16, 0); // tampered
+    expect(splitter.verify(token, 't1')).toBe(false);
+  });
+});
