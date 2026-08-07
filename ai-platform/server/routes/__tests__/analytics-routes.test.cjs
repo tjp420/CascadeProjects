@@ -14,21 +14,34 @@ const ROUTE_PATH = require.resolve('../analytics-routes.cjs');
  */
 function loadAnalyticsModule(stubs) {
   delete require.cache[ROUTE_PATH];
-  const originalLoad = Module._load;
-  Module._load = function patchedLoad(requestPath, parent, isMain) {
-    // Match by basename to handle relative path variations
-    const basename = requestPath.split('/').pop();
-    for (const key of Object.keys(stubs)) {
-      const stubBasename = key.split('/').pop();
-      if (stubBasename === basename) return stubs[key];
+
+  return jest.isolateModules(() => {
+    const mockMap = {
+      '../lib/app-logger.cjs': stubs['app-logger.cjs'],
+      '../middleware/auth.cjs': stubs['auth.cjs'],
+      '../middleware/authorize.cjs': stubs['authorize.cjs'],
+      '../middleware/validate-params.cjs': stubs['validate-params.cjs'],
+      '../lib/usage-analytics-store.cjs': stubs['usage-analytics-store.cjs'],
+      '../lib/ticket-status-store.cjs': stubs['ticket-status-store.cjs'],
+      '../lib/webhook-config-store.cjs': stubs['webhook-config-store.cjs'],
+      '../lib/report-schedule-store.cjs': stubs['report-schedule-store.cjs'],
+      '../lib/report-scheduler.cjs': stubs['report-scheduler.cjs'],
+      '../lib/audit-logger.cjs': stubs['audit-logger.cjs'],
+      '../lib/response-helpers.cjs': stubs['response-helpers.cjs'],
+      '../lib/siem/siem-broker.cjs': stubs['siem-broker.cjs'],
+    };
+
+    for (const [reqPath, impl] of Object.entries(mockMap)) {
+      if (!impl) continue;
+      jest.doMock(reqPath, () => impl, { virtual: false });
     }
-    return originalLoad.call(this, requestPath, parent, isMain);
-  };
-  try {
-    return require('../analytics-routes.cjs');
-  } finally {
-    Module._load = originalLoad;
-  }
+
+    // Require the module under test with mocks in place
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    const router = require('../analytics-routes.cjs');
+
+    return router;
+  });
 }
 
 function createTestApp(options) {

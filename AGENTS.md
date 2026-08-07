@@ -9,13 +9,24 @@ The project has automated pre-commit hooks configured to ensure code quality bef
 - **Windows**: `.husky/pre-commit.cmd` - lint-assets + gitleaks + syntax checks + gate scan
 - **CI backstop**: `.github/workflows/pr-hygiene.yml` - mirrors all 5 stages on PRs (catches `--no-verify` bypasses)
 
-### Local Pre-Commit Chain (3 stages, ~10s total)
+### Local Pre-Commit Chain (4 stages, ~10s total)
 
 ```
-[lint-assets.cjs]  -->  [gitleaks]  -->  [sb:hook:pre-commit (30s timeout)]
-   (<0.5s)               (~0.2s)           (secrets-gate + pre-commit-gate)
-  Fail-closed          Soft-warn          30s timeout, soft-fail
+[lint-assets.cjs]  -->  [env-production-guard.cjs]  -->  [gitleaks]  -->  [sb:hook:pre-commit (30s timeout)]
+   (<0.5s)               (<0.3s)                         (~0.2s)           (secrets-gate + pre-commit-gate)
+  Fail-closed          Fail-closed                     Soft-warn          30s timeout, soft-fail
 ```
+
+### Production Environment Guard (fast pre-commit safety check)
+- **Script**: `.simplebeacon/qa/env-production-guard.cjs`
+- **Runs**: Second in the pre-commit chain (sub-second), via `sb:hook:pre-commit` npm script
+- **Checks**:
+  1. **Staged `.env.production` / `.env.prod` files** — blocks commits that stage production env files (even via `git add -f`)
+  2. **Production connection strings** — blocks staged JS/CJS/JSON/sh files with non-local DATABASE_URL, REDIS_URL, live Stripe keys (sk_live_*), live Resend keys (re_*), NODE_ENV=production, or DASHBOARD_VAULT_PASSWORD
+  3. **Local `.env.production` warning** — warns when a `.env.production` file exists on disk but is not staged
+- **Scope**: Staged files only (`git diff --cached`)
+- **Behavior**: Strict fail-closed — blocks commit on any BLOCK violation, warns on local file existence
+- **Security**: Never logs secret values — only shows filenames and line numbers
 
 ### Asset Hygiene Lint (fast pre-commit guard)
 - **Script**: `.simplebeacon/qa/lint-assets.cjs`
