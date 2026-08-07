@@ -393,20 +393,25 @@ function setupSubscriptionWebhook(app) {
             }
             const customer = allCustomers[0];
 
-            // Infer tier from subscription amount or customer record
+            // Infer tier from subscription amount using exact price matching
+            // Using >= ranges breaks for annual prices (e.g. developer annual 49000 >= team_pro monthly 14900)
             const unitAmount = sub.items?.data?.[0]?.price?.unit_amount || 0;
-            let detectedTier = 'developer';
-            if (unitAmount >= PRICE_ENTERPRISE_MONTHLY) {
-                detectedTier = 'enterprise';
-            } else if (unitAmount >= PRICE_COMPLIANCE_MONTHLY) {
-                detectedTier = 'compliance';
-            } else if (unitAmount >= PRICE_TEAM_PRO_MONTHLY) {
-                detectedTier = 'team_pro';
-            } else if (unitAmount >= PRICE_TEAM_MONTHLY) {
-                detectedTier = 'team';
-            } else if (unitAmount >= PRICE_DEVELOPER_MONTHLY) {
-                detectedTier = 'developer';
-            }
+            const interval = sub.items?.data?.[0]?.price?.recurring?.interval || 'month';
+            const PRICE_TIER_MAP = {
+                [PRICE_DEVELOPER_MONTHLY]: 'developer',
+                [PRICE_DEVELOPER_ANNUAL]: 'developer',
+                [PRICE_TEAM_PRO_MONTHLY]: 'team_pro',
+                [PRICE_TEAM_PRO_ANNUAL]: 'team_pro',
+                [PRICE_TEAM_MONTHLY]: 'team',
+                [PRICE_TEAM_ANNUAL]: 'team',
+                [PRICE_COMPLIANCE_MONTHLY]: 'compliance',
+                [PRICE_COMPLIANCE_ANNUAL]: 'compliance',
+                [PRICE_ENTERPRISE_MONTHLY]: 'enterprise',
+                [PRICE_ENTERPRISE_ANNUAL]: 'enterprise',
+                [PRICE_PRO_MONTHLY]: 'pro',
+                [PRICE_PRO_ANNUAL]: 'pro'
+            };
+            let detectedTier = PRICE_TIER_MAP[unitAmount] || 'developer';
             const finalTier = customer.tier && customer.tier !== 'community' ? customer.tier : detectedTier;
             const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite Enterprise' : finalTier === 'compliance' ? 'Compliance Suite' : finalTier === 'team_pro' ? 'SimpleBeacon Team Pro' : finalTier === 'team' ? 'Continuous Shield Team' : finalTier === 'developer' ? 'SimpleBeacon Developer' : 'AI Slop Cop Pro';
             const features = finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro'
@@ -482,6 +487,19 @@ function setupSubscriptionWebhook(app) {
                 const customer = allCustomers[0];
                 db.updateCustomerSubscription(customer.email, 'canceled', customer.tier);
                 logger.info('[SubscriptionWebhook] Subscription canceled for:', customer.email);
+
+                try {
+                    const { sendEmail } = require('../services/email.cjs');
+                    await sendEmail({
+                        to: customer.email,
+                        subject: 'SimpleBeacon Subscription Canceled',
+                        text: `Your SimpleBeacon subscription has been canceled.\n\nYou will retain access until the end of your current billing period. After that, your account will revert to the free tier.\n\nWe hope to see you again soon.`,
+                        html: `<h2>Subscription Canceled</h2><p>Your SimpleBeacon subscription has been canceled.</p><p>You will retain access until the end of your current billing period. After that, your account will revert to the free tier.</p><p>We hope to see you again soon.</p>`
+                    });
+                    logger.info('[SubscriptionWebhook] Cancellation email sent to', customer.email);
+                } catch (emailErr) {
+                    logger.error('[SubscriptionWebhook] Cancellation email failed:', emailErr.message);
+                }
             }
         }
 

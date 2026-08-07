@@ -13,7 +13,7 @@ const express = require('express');
 const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
 const { getTierConfigByPriceId } = require('../config/stripe.cjs');
-const { setSubscriptionActive, getSubscriptionByEmail } = require('../lib/simplebeacon-subscription-store.cjs');
+const { setSubscriptionActive, getSubscriptionByEmail, upsertSubscription, readStore } = require('../lib/simplebeacon-subscription-store.cjs');
 const { sendEmail } = require('../lib/email-service.cjs');
 const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
@@ -119,10 +119,12 @@ function verifyStripeSignature(payload, signatureHeader, secret) {
     .update(signedPayload)
     .digest('hex');
 
-  if (!crypto.timingSafeEqual(
-    Buffer.from(v1Signature),
-    Buffer.from(expectedSignature)
-  )) {
+  const expectedSigBuf = Buffer.from(expectedSignature);
+  const receivedSigBuf = Buffer.from(v1Signature);
+  if (expectedSigBuf.length !== receivedSigBuf.length) {
+    throw new Error('Signature length mismatch');
+  }
+  if (!crypto.timingSafeEqual(expectedSigBuf, receivedSigBuf)) {
     throw new Error('Signature mismatch');
   }
 
@@ -217,6 +219,23 @@ async function handleCheckoutCompleted(event, headers = {}) {
 }
 
 /**
+ * Look up a subscription by Stripe customer ID.
+ * @param {string} customerId - Stripe customer ID.
+ * @returns {Promise<SubscriptionRecord|null>}
+ */
+async function findSubscriptionByCustomerId(customerId) {
+  if (!customerId) return null;
+  const store = await readStore();
+  for (const email of Object.keys(store.subscriptions)) {
+    const record = store.subscriptions[email];
+    if (record.stripeCustomerId === customerId) {
+      return record;
+    }
+  }
+  return null;
+}
+
+/**
  * Handle customer.subscription.updated — update tier if changed.
  * @param {Object} event - Stripe event object.
  */
@@ -234,8 +253,27 @@ async function handleSubscriptionUpdated(event) {
   }
 
   logger.info('[StripeWebhook] subscription.updated: tier', tierConfig.tier, 'for customer', customerId);
-  // Note: we need the customer email to update the store.
-  // In production, retrieve it from Stripe customer object.
+
+  // Look up existing subscription by stripeCustomerId to get the email
+  const existing = await findSubscriptionByCustomerId(customerId);
+  if (!existing) {
+    logger.warn('[StripeWebhook] subscription.updated: no existing subscription for customer', customerId);
+    return;
+  }
+
+  const periodStart = subscription.current_period_start
+    ? new Date(subscription.current_period_start * 1000).toISOString()
+    : new Date().toISOString();
+
+  await setSubscriptionActive(existing.email, subscription.status === 'active', {
+    tier: tierConfig.tier,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscription.id,
+    stripePriceId: priceId,
+    periodStart
+  });
+
+  logger.info('[StripeWebhook] subscription.updated: store updated for', existing.email, 'tier:', tierConfig.tier, 'active:', subscription.status === 'active');
 }
 
 /**
@@ -248,7 +286,31 @@ async function handleSubscriptionDeleted(event) {
 
   const customerId = subscription.customer;
   logger.info('[StripeWebhook] subscription.deleted for customer', customerId);
-  // In production, look up email by stripeCustomerId and deactivate.
+
+  const existing = await findSubscriptionByCustomerId(customerId);
+  if (!existing) {
+    logger.warn('[StripeWebhook] subscription.deleted: no existing subscription for customer', customerId);
+    return;
+  }
+
+  await setSubscriptionActive(existing.email, false, {
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscription.id
+  });
+
+  logger.info('[StripeWebhook] subscription.deleted: deactivated for', existing.email);
+
+  try {
+    await sendEmail({
+      to: existing.email,
+      subject: 'SimpleBeacon Subscription Canceled',
+      text: 'Your SimpleBeacon subscription has been canceled.\n\nYou will retain access until the end of your current billing period. After that, your account will revert to the free tier.\n\nWe hope to see you again soon.',
+      html: '<h2>Subscription Canceled</h2><p>Your SimpleBeacon subscription has been canceled.</p><p>You will retain access until the end of your current billing period. After that, your account will revert to the free tier.</p><p>We hope to see you again soon.</p>'
+    });
+    logger.info('[StripeWebhook] Cancellation email sent to', existing.email);
+  } catch (emailErr) {
+    logger.error('[StripeWebhook] Cancellation email failed:', emailErr.message);
+  }
 }
 
 /**
