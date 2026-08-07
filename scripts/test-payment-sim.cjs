@@ -113,6 +113,20 @@ const server = app.listen(0, () => {
         { product: 'eu_ai_act_sprint',       scans: ['eu_ai_act_sprint'],       expectedCents: 249900, label: 'EU AI Act Sprint ($2,499)' },
     ];
 
+    // Validation test cases (expect 400 errors)
+    const validationCases = [
+        { label: 'Invalid email format (no @)', payload: { email: 'notanemail', projectName: 'test', scans: ['one_time_certificate'] },
+          expectStatus: 400 },
+        { label: 'Invalid email format (no domain)', payload: { email: 'a@', projectName: 'test', scans: ['one_time_certificate'] },
+          expectStatus: 400 },
+        { label: 'Missing projectName', payload: { email: 'test@example.com', scans: ['one_time_certificate'] },
+          expectStatus: 400 },
+        { label: 'Control chars in projectName (stripped)', payload: { email: 'test@example.com', projectName: 'test\x00\x01\x02project', scans: ['one_time_certificate'], product: 'one_time_certificate' },
+          expectStatus: 200, expectMetaValue: 'testproject' },
+        { label: 'Long projectName (truncated to 200)', payload: { email: 'test@example.com', projectName: 'A'.repeat(300), scans: ['one_time_certificate'], product: 'one_time_certificate' },
+          expectStatus: 200, expectMetaLen: 200 },
+    ];
+
     let passed = 0;
     let failed = 0;
 
@@ -203,21 +217,8 @@ const server = app.listen(0, () => {
 
     function runOneTimeTests(idx) {
         if (idx >= oneTimeCases.length) {
-            console.log('\n========================================');
-            console.log('Results: ' + passed + ' passed, ' + failed + ' failed');
-            console.log('========================================');
-            if (stripeCallLog.length > 0) {
-                console.log('\nStripe session.create call log:');
-                stripeCallLog.forEach((c, i) => {
-                    const li = c.line_items || [];
-                    console.log('  Call ' + (i+1) + ': ' + li.length + ' line item(s)' +
-                        ' | base=' + li[0]?.price_data?.unit_amount + ' ' + (li[0]?.price_data?.recurring?.interval || 'one-time') +
-                        ' "' + li[0]?.price_data?.product_data?.name + '"' +
-                        (li[1] ? ' | add-on=' + li[1]?.price_data?.unit_amount + ' ×' + li[1]?.quantity + ' "' + li[1]?.price_data?.product_data?.name + '"' : ''));
-                });
-            }
-            server.close();
-            process.exit(failed > 0 ? 1 : 0);
+            // Run validation tests next
+            runValidationTests(0);
             return;
         }
 
@@ -273,6 +274,83 @@ const server = app.listen(0, () => {
             console.log('[ERROR] ' + tc.label + ': ' + e.message);
             failed++;
             runOneTimeTests(idx + 1);
+        });
+
+        req.write(body);
+        req.end();
+    }
+
+    function runValidationTests(idx) {
+        if (idx >= validationCases.length) {
+            // All tests done — print results
+            console.log('\n========================================');
+            console.log('Results: ' + passed + ' passed, ' + failed + ' failed');
+            console.log('========================================');
+            if (stripeCallLog.length > 0) {
+                console.log('\nStripe session.create call log:');
+                stripeCallLog.forEach((c, i) => {
+                    const li = c.line_items || [];
+                    console.log('  Call ' + (i+1) + ': ' + li.length + ' line item(s)' +
+                        ' | base=' + li[0]?.price_data?.unit_amount + ' ' + (li[0]?.price_data?.recurring?.interval || 'one-time') +
+                        ' "' + li[0]?.price_data?.product_data?.name + '"' +
+                        (li[1] ? ' | add-on=' + li[1]?.price_data?.unit_amount + ' ×' + li[1]?.quantity + ' "' + li[1]?.price_data?.product_data?.name + '"' : ''));
+                });
+            }
+            server.close();
+            process.exit(failed > 0 ? 1 : 0);
+            return;
+        }
+
+        const tc = validationCases[idx];
+        const body = JSON.stringify(tc.payload);
+        const req = http.request({
+            hostname: 'localhost',
+            port: port,
+            path: '/api/create-checkout-session',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body),
+                'X-Forwarded-For': '10.0.0.' + (idx + 200)
+            }
+        }, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                const statusOk = res.statusCode === tc.expectStatus;
+                let metaOk = true;
+                const stripeCall = stripeCallLog[stripeCallLog.length - 1];
+
+                if (tc.expectStatus === 200 && stripeCall) {
+                    const meta = stripeCall.metadata || {};
+                    if (tc.expectMetaValue) {
+                        metaOk = meta.projectName === tc.expectMetaValue;
+                    }
+                    if (tc.expectMetaLen) {
+                        metaOk = metaOk && meta.projectName && meta.projectName.length === tc.expectMetaLen;
+                    }
+                }
+
+                const pass = statusOk && metaOk;
+                if (pass) { passed++; } else { failed++; }
+
+                console.log('\n[' + (pass ? 'PASS' : 'FAIL') + '] ' + tc.label);
+                console.log('  Expected: HTTP ' + tc.expectStatus +
+                    (tc.expectMetaValue ? ', projectName="' + tc.expectMetaValue + '"' : '') +
+                    (tc.expectMetaLen ? ', projectName.length=' + tc.expectMetaLen : ''));
+                console.log('  Actual:   HTTP ' + res.statusCode +
+                    (stripeCall?.metadata?.projectName ? ', projectName="' + stripeCall.metadata.projectName.substring(0, 50) + (stripeCall.metadata.projectName.length > 50 ? '...' : '') + '"' : '') +
+                    (stripeCall?.metadata?.projectName ? ' (len=' + stripeCall.metadata.projectName.length + ')' : ''));
+                console.log('  Response: ' + data.substring(0, 200));
+
+                runValidationTests(idx + 1);
+            });
+        });
+
+        req.on('error', (e) => {
+            console.log('[ERROR] ' + tc.label + ': ' + e.message);
+            failed++;
+            runValidationTests(idx + 1);
         });
 
         req.write(body);

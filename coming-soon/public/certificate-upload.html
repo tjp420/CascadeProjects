@@ -1161,6 +1161,15 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     } else {
                         document.getElementById('pageSubtitle').innerHTML += '<br><em style="color:var(--accent);">Payment confirmed. Check your email for the license token.</em>';
                     }
+                    // Add receipt download button
+                    var receiptBtn = document.createElement('a');
+                    receiptBtn.href = API_BASE + '/api/receipt/' + encodeURIComponent(sessionId);
+                    receiptBtn.innerHTML = '&#128196; Download Corporate Expense Receipt (PDF)';
+                    receiptBtn.style.cssText = 'display:inline-block;margin-top:12px;padding:10px 20px;background:#22c55e;color:#0a0e18;font-weight:600;font-size:0.85rem;text-decoration:none;border-radius:10px;transition:all 0.2s;';
+                    receiptBtn.onmouseover = function() { this.style.transform = 'translateY(-1px)'; };
+                    receiptBtn.onmouseout = function() { this.style.transform = ''; };
+                    var subtitle = document.getElementById('pageSubtitle');
+                    if (subtitle) { subtitle.appendChild(document.createElement('br')); subtitle.appendChild(receiptBtn); }
                 } catch (e) {
                     document.getElementById('pageSubtitle').innerHTML += '<br><em style="color:var(--accent);">Payment confirmed. Check your email for the license token.</em>';
                 }

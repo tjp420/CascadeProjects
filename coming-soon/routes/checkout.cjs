@@ -275,6 +275,25 @@ router.post('/api/create-checkout-session', async (req, res) => {
         if (!email || !projectName || !Array.isArray(scans) || scans.length === 0) {
             return res.status(400).json({ error: 'Email, project name, and at least one scan are required.' });
         }
+
+        // Validate email format
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!EMAIL_RE.test(String(email))) {
+            return res.status(400).json({ error: 'A valid email address is required.' });
+        }
+
+        // Sanitize string inputs: strip control characters, enforce length
+        function sanitize(str, maxLen) {
+            return String(str || '').replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, maxLen);
+        }
+        const cleanProjectName = sanitize(projectName, 200);
+        const cleanClientName = sanitize(clientName || email, 200);
+        const cleanEmail = sanitize(email, 254);
+
+        if (!cleanProjectName) {
+            return res.status(400).json({ error: 'Project name must not be empty.' });
+        }
+
         const checkoutProduct = product || 'custom_plan';
 
         const lineItems = [];
@@ -301,15 +320,15 @@ router.post('/api/create-checkout-session', async (req, res) => {
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
-            customer_email: email,
+            customer_email: cleanEmail,
             line_items: lineItems,
             success_url: successUrl,
             cancel_url: cancelUrl,
             metadata: {
                 product: checkoutProduct,
-                email,
-                projectName: String(projectName).slice(0, 200),
-                clientName: String(clientName || email).slice(0, 200),
+                email: cleanEmail,
+                projectName: cleanProjectName,
+                clientName: cleanClientName,
                 scans: scans.join(','),
                 total: String(total || ''),
                 ...referralMetadata
@@ -420,7 +439,11 @@ function setupCheckoutWebhook(app) {
             token,
             email,
             projectName,
+            clientName,
             tier: config.tier,
+            product,
+            amount: session.amount_total || (total ? Math.round(parseFloat(total) * 100) : 0),
+            billingInterval: 'one-time',
             createdAt: Date.now()
         });
 
@@ -495,5 +518,46 @@ function setupCheckoutWebhook(app) {
         res.json({ received: true });
     });
 }
+
+// PDF Receipt Download — generates a corporate expense-optimized receipt
+router.get('/api/receipt/:sessionId', async (req, res) => {
+    try {
+        const sessionId = req.params.sessionId;
+        if (!sessionId || !/^[A-Za-z0-9_\-]+$/.test(sessionId)) {
+            return res.status(400).json({ error: 'Invalid session ID.' });
+        }
+
+        // Look up session data from in-memory store
+        const entry = sessionTokenStore.get(sessionId);
+        if (!entry) {
+            return res.status(404).json({ error: 'Receipt not found or session expired.' });
+        }
+
+        const { generateReceiptPdf, receiptFilename } = require('../services/pdf-generator.cjs');
+        const sessionData = {
+            orderId: sessionId,
+            amount: entry.amount || 0,
+            date: entry.createdAt || Date.now(),
+            tier: entry.tier,
+            companyName: entry.clientName || '',
+            projectName: entry.projectName || '',
+            customerEmail: entry.email || '',
+            billingInterval: entry.billingInterval,
+            extraSeats: entry.extraSeats,
+            paymentMethod: entry.paymentMethod
+        };
+
+        const { buffer } = await generateReceiptPdf(sessionData);
+        const filename = receiptFilename(sessionData);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', buffer.length);
+        res.send(buffer);
+    } catch (error) {
+        logger.error('[ReceiptDownload] Error:', error.message);
+        res.status(500).json({ error: 'Failed to generate receipt.' });
+    }
+});
 
 module.exports = { router, setupCheckoutWebhook };
