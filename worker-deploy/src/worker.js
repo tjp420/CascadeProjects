@@ -223,7 +223,8 @@ export default {
         status: 302,
         headers: {
           'Location': redirectUrl.toString(),
-          'Cache-Control': 'no-store',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'CDN-Cache-Control': 'no-store',
         },
       });
     }
@@ -246,12 +247,26 @@ export default {
     // Redirect /app/<non-asset-path> to /dashboard/<non-asset-path>
     if (url.pathname.startsWith('/app/') && !url.pathname.startsWith('/app/assets/') && !url.pathname.startsWith('/app/js/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
       const newPath = '/dashboard/' + url.pathname.substring(5);
-      return Response.redirect(new URL(newPath, url.origin).toString(), 302);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': new URL(newPath, url.origin).toString(),
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'CDN-Cache-Control': 'no-store',
+        },
+      });
     }
 
     // Redirect /demo to the landing page
     if (url.pathname === '/demo' || url.pathname.startsWith('/demo/')) {
-      return Response.redirect(new URL('/', url.origin).toString(), 302);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': new URL('/', url.origin).toString(),
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'CDN-Cache-Control': 'no-store',
+        },
+      });
     }
 
     // SPA fallback for /dashboard/* and /app/* routes — serve the entry HTML
@@ -582,6 +597,7 @@ export default {
       }
       headers.set('X-Content-Type-Options', 'nosniff');
       headers.set('X-SB-Worker', 'catchall-assets');
+      headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       headers.set('CDN-Cache-Control', 'no-store');
       return new Response(assetResp.body, { status: assetResp.status, headers });
     }
@@ -595,18 +611,28 @@ export default {
     return new Response('Not Found', { status: 404, headers: notFoundHeaders });
   },
 
-  // Scheduled event: keep Render backend warm every 10 minutes
-  // Render free tier spins down after 15 min of inactivity, causing 502s
+  // Scheduled event: keep Render backend warm every 5 minutes
+  // Render free tier spins down after 15 min of inactivity, causing 502s/500s.
+  // The 5-min interval gives a 10-min safety buffer. If the first probe fails
+  // (backend mid-spin-up), retry up to 2 more times with 3s delays.
   async scheduled(event, env) {
     const backendUrl = String(env.API_BACKEND || '');
     if (!backendUrl) return;
-    try {
-      await fetch(backendUrl.replace(/\/+$/, '') + '/api/health', {
-        method: 'GET',
-        headers: { 'User-Agent': 'simplebeacon-keepalive/1.0' },
-      });
-    } catch (_) {
-      // Backend may still be spinning up — ignore errors
+    const healthUrl = backendUrl.replace(/\/+$/, '') + '/api/health';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(healthUrl, {
+          method: 'GET',
+          headers: { 'User-Agent': 'simplebeacon-keepalive/1.0' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (res.ok) return; // Backend is warm
+      } catch (_) {
+        // Backend may still be spinning up — retry after a short delay
+      }
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 3000));
+      }
     }
   },
 };
