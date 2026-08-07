@@ -25,10 +25,21 @@ const tmp = require('tmp');
 const rateLimit = require('express-rate-limit');
 const unzipper = require('unzipper');
 const { optionalAuthenticate, authenticate, requireDashboardWrite } = require('../middleware/auth.cjs');
-// Dynamic reload wrapper: always load the latest codebase-analyzer.cjs to pick up patches without server restart
+// Dynamic reload wrapper: reload codebase-analyzer.cjs only when the file changes on disk
+let _cachedAnalyzer = null;
+let _cachedAnalyzerMtime = 0;
 function getAnalyzeCodebase() {
     const modulePath = require.resolve('../lib/codebase-analyzer.cjs');
-    // Clear cache for the analyzer and its direct submodules so patches take effect immediately
+    let currentMtime;
+    try {
+        currentMtime = fs.statSync(modulePath).mtimeMs;
+    } catch {
+        currentMtime = 0;
+    }
+    if (_cachedAnalyzer && currentMtime === _cachedAnalyzerMtime) {
+        return _cachedAnalyzer;
+    }
+    // File changed (or first load): clear cache for analyzer and direct submodules
     const keysToDelete = Object.keys(require.cache).filter((key) => key.includes('server/lib/codebase-analyzer') || key.includes('server/lib/scan-content-patterns') || key.includes('server/lib/universal-language-config'));
     for (const key of keysToDelete) {
         delete require.cache[key];
@@ -38,7 +49,9 @@ function getAnalyzeCodebase() {
     if (!analyzer || typeof analyzer.analyzeCodebase !== 'function') {
         throw new Error('codebase-analyzer module did not export a valid analyzeCodebase function');
     }
-    return analyzer.analyzeCodebase;
+    _cachedAnalyzer = analyzer.analyzeCodebase;
+    _cachedAnalyzerMtime = currentMtime;
+    return _cachedAnalyzer;
 }
 const { resolveScanProfile } = require('../lib/universal-language-config.cjs');
 const { analyzeWithModel } = require('../services/model-inference-service.cjs');

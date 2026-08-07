@@ -6,12 +6,35 @@
 // Exports: async checkAndRecordRateLimit(orgId) -> { allowed: bool, retryAfterMs?: number }
 
 const QUOTA = {
-  RATE_LIMIT_MAX_PER_WINDOW: 3,
-  RATE_LIMIT_WINDOW_MS: 60 * 1000,
+  RATE_LIMIT_MAX_PER_WINDOW: Number(process.env.AGENTIC_RATE_LIMIT_MAX) || 3,
+  RATE_LIMIT_WINDOW_MS: Number(process.env.AGENTIC_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
 };
+
+const REDIS_RETRY_BASE_MS = Number(process.env.REDIS_RETRY_BASE_MS) || 1000;
+const REDIS_RETRY_MAX_MS = Number(process.env.REDIS_RETRY_MAX_MS) || 30000;
 
 let redisClient = null;
 let usingRedis = false;
+let redisErrorUntil = 0;
+let redisRetryAttempt = 0;
+
+function isRedisAvailable() {
+  if (!usingRedis || !redisClient) return false;
+  if (redisErrorUntil > 0 && Date.now() < redisErrorUntil) return false;
+  return true;
+}
+
+function markRedisError() {
+  redisRetryAttempt++;
+  const delay = Math.min(REDIS_RETRY_BASE_MS * Math.pow(2, redisRetryAttempt - 1), REDIS_RETRY_MAX_MS);
+  redisErrorUntil = Date.now() + delay;
+}
+
+function markRedisSuccess() {
+  redisRetryAttempt = 0;
+  redisErrorUntil = 0;
+}
+
 try {
   const IORedis = require('ioredis');
   const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
@@ -51,7 +74,7 @@ const ACTIVE_COUNT_TTL_SECONDS = parseInt(process.env.AGENTIC_ACTIVE_COUNT_TTL_S
 async function checkAndRecordRateLimit(orgId) {
   const now = Date.now();
   const windowMs = QUOTA.RATE_LIMIT_WINDOW_MS;
-  if (usingRedis && redisClient) {
+  if (isRedisAvailable()) {
     const key = `agentic:ratelimit:${orgId}`;
     // Atomic script: remove old scores, check count, optionally add current timestamp
     const script = `
@@ -73,6 +96,7 @@ async function checkAndRecordRateLimit(orgId) {
     try {
       if (typeof redisClient.agenticRateLimit === 'function') {
         const res = await redisClient.agenticRateLimit(key, now, windowMs, QUOTA.RATE_LIMIT_MAX_PER_WINDOW);
+        markRedisSuccess();
         const allowed = Number(res[0]) === 1;
         if (allowed) return { allowed: true };
         const earliest = Number(res[1]) || now;
@@ -80,14 +104,14 @@ async function checkAndRecordRateLimit(orgId) {
         return { allowed: false, retryAfterMs };
       }
       const res = await redisClient.send_command('EVAL', [script, '1', key, now, windowMs, QUOTA.RATE_LIMIT_MAX_PER_WINDOW]);
+      markRedisSuccess();
       const allowed = Number(res[0]) === 1;
       if (allowed) return { allowed: true };
       const earliest = Number(res[1]) || now;
       const retryAfterMs = (earliest + windowMs) - now;
       return { allowed: false, retryAfterMs };
     } catch (e) {
-      // If Redis eval fails, fall back to in-memory implementation below
-      usingRedis = false;
+      markRedisError();
     }
   }
 
@@ -106,16 +130,17 @@ async function checkAndRecordRateLimit(orgId) {
 
 // Active execution counters (cluster-safe when Redis is available)
 async function incrementActiveExecutions(orgId) {
-  if (usingRedis && redisClient) {
+  if (isRedisAvailable()) {
     const key = `agentic:active:${orgId}`;
     try {
       const cnt = await redisClient.incr(key);
       if (Number(cnt) === 1) {
         await redisClient.expire(key, ACTIVE_COUNT_TTL_SECONDS);
       }
+      markRedisSuccess();
       return Number(cnt);
     } catch (e) {
-      usingRedis = false;
+      markRedisError();
     }
   }
   // fallback in-memory
@@ -126,17 +151,19 @@ async function incrementActiveExecutions(orgId) {
 }
 
 async function decrementActiveExecutions(orgId) {
-  if (usingRedis && redisClient) {
+  if (isRedisAvailable()) {
     const key = `agentic:active:${orgId}`;
     try {
       const cnt = await redisClient.decr(key);
       if (cnt <= 0) {
         await redisClient.del(key);
+        markRedisSuccess();
         return 0;
       }
+      markRedisSuccess();
       return Number(cnt);
     } catch (e) {
-      usingRedis = false;
+      markRedisError();
     }
   }
   const cur = Math.max(0, (inMemoryActiveCounts.get(orgId) || 0) - 1);
@@ -145,13 +172,14 @@ async function decrementActiveExecutions(orgId) {
 }
 
 async function getActiveCount(orgId) {
-  if (usingRedis && redisClient) {
+  if (isRedisAvailable()) {
     const key = `agentic:active:${orgId}`;
     try {
       const v = await redisClient.get(key);
+      markRedisSuccess();
       return v ? Number(v) : 0;
     } catch (e) {
-      usingRedis = false;
+      markRedisError();
     }
   }
   return inMemoryActiveCounts.get(orgId) || 0;
@@ -163,7 +191,9 @@ module.exports = {
   decrementActiveExecutions,
   getActiveCount,
   _debug: {
-    usingRedis: () => usingRedis,
+    usingRedis: () => isRedisAvailable(),
     inMemoryWindows,
+    markRedisError,
+    markRedisSuccess,
   },
 };

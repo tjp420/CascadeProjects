@@ -119,7 +119,14 @@ async function invalidateAllSnapshotCaches(redis, config = getRedisConfig()) {
     if (!redis) return 0;
     try {
         const pattern = `${config.keyPrefix}${SNAPSHOT_PREFIX}*`;
-        const keys = await redis.keys(pattern);
+        const keys = [];
+        let cursor = '0';
+        do {
+            const reply = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+            cursor = reply.cursor ?? reply[0];
+            const batch = reply.keys ?? reply[1] ?? [];
+            if (Array.isArray(batch)) keys.push(...batch);
+        } while (cursor !== '0');
         if (keys.length) {
             await redis.del(keys);
         }
