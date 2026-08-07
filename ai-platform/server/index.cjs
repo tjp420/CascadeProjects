@@ -95,6 +95,7 @@ const { setupPrIntegrationAPI } = require('./routes/pr-integration-api.cjs');
 const fixOrchestratorRouter = require('./routes/fix-orchestrator-api.cjs');
 const ssoRoutes = require('./routes/sso-routes.cjs');
 const ssoConfigRoutes = require('./routes/sso-config-routes.cjs');
+const ssoAuthHandler = require('./routes/sso-auth-handler.cjs');
 const tokenBudgetRoutes = require('./routes/token-budget-allocation-routes.cjs');
 const workspaceConfigRoutes = require('./routes/workspace-config-routes.cjs');
 const fineTuningTelemetryRoutes = require('./routes/fine-tuning-telemetry-routes.cjs');
@@ -614,7 +615,15 @@ for (const p of ['/dashboard/css', '/dashboard/images', '/dashboard/fonts']) {
   app.use(p, express.static(path.join(dashDir, sub)));
 }
 app.use('/dashboard/assets', noStoreStatic(path.join(dashDir, 'assets')));
-app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')));
+app.get('/site-config.js', (req, res, next) => {
+  const filePath = path.join(dashDir, 'site-config.js');
+  if (fs.existsSync(filePath)) {
+    res.set('Content-Type', 'application/javascript; charset=utf-8');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+    return res.sendFile(filePath);
+  }
+  next();
+});
 
 // Dashboard static asset fallback ΓÇö also check coming-soon/public/dashboard for vendor files
 const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
@@ -625,7 +634,15 @@ if (dashboardFallbackDir) {
     const sub = p.replace('/dashboard/', '');
     app.use(p, express.static(path.join(dashboardFallbackDir, sub), { fallthrough: false }));
   }
-  app.use('/dashboard/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), { fallthrough: false }));
+  app.get('/dashboard/site-config.js', (req, res, next) => {
+    const filePath = path.join(dashboardFallbackDir, 'site-config.js');
+    if (fs.existsSync(filePath)) {
+      res.set('Content-Type', 'application/javascript; charset=utf-8');
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+      return res.sendFile(filePath);
+    }
+    next();
+  });
 }
 
 // Fallback: serve landing assets from root for pages served under /coming-soon/
@@ -1140,6 +1157,10 @@ app.use('/api/v2/auth', authRoutes);
 // Enterprise SSO ΓÇö SAML + OIDC callbacks
 app.use('/api/v2/auth/sso', ssoRoutes);
 logger.info('[SSO] Enterprise SSO routes mounted at /api/v2/auth/sso');
+
+// SSO auth handler ΓÇö OIDC/SAML login flows + domain resolution for login page
+app.use('/api/sso', ssoAuthHandler);
+logger.info('[SSO] Auth handler routes mounted at /api/sso');
 
 // Enterprise SSO configuration ΓÇö CRUD endpoints for per-org provider configs
 app.use('/api/enterprise/sso', ssoConfigRoutes);
