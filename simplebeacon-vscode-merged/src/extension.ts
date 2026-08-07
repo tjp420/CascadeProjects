@@ -36,6 +36,7 @@ import {
   exportScanResultToJson,
   SlopCopQuickFixProvider,
   LocalRemediationCodeActionProvider,
+  SecurityQuickFixProvider,
   registerReferralEngine,
   SimpleBeaconProvider,
   ScanIssue,
@@ -923,6 +924,16 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.languages.registerCodeActionsProvider(
         { scheme: 'file', language: '*' },
         new LocalRemediationCodeActionProvider(),
+        { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+      )
+    );
+
+    // Register the security quick-fix provider for auto-remediation of
+    // workspace analyzer security patterns (evalDanger, innerHtmlXss, etc.)
+    context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider(
+        { scheme: 'file', language: '*' },
+        new SecurityQuickFixProvider(),
         { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
       )
     );

@@ -19,6 +19,7 @@ export { ScanResult, ScanProfile, exportScanResultToJson } from '../analyzers/wo
 export { RemediationProvider } from '../fixes/remediationProvider';
 export { SlopCopQuickFixProvider } from '../fixes/slopCopQuickFixProvider';
 export { LocalRemediationCodeActionProvider } from '../fixes/localRemediationCodeActionProvider';
+export { SecurityQuickFixProvider } from '../fixes/securityQuickFixProvider';
 export { registerReferralEngine, evaluateReferralPrompt } from '../referralEngine';
 export { SimpleBeaconProvider, ScanIssue } from '../aiPlatform/simplebeaconProvider';
 export { UploadPanel } from '../aiPlatform/uploadPanel';
