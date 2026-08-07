@@ -132,8 +132,9 @@ function checkPathIntegrity(filePath, relPath) {
 const staged = getStagedFiles();
 
 // --- Entry file external script check (always runs, even with no staged files) ---
-// Dashboard entry HTML files must not reference /site-config.js or
-// /js-es2018/referral-capture.js externally — these 404 on Cloudflare Pages.
+// Dashboard entry HTML files and coming-soon pages must not reference
+// site-config.js, app-links.js, auth.js, or referral-capture.js externally —
+// these cause NS_BINDING_ABORTED on Firefox / 404 on Cloudflare Pages.
 const ENTRY_FILES = [
   'coming-soon/public/dashboard/__entry',
   'coming-soon/public/dashboard/entry-20260806.html',
@@ -141,8 +142,14 @@ const ENTRY_FILES = [
   'coming-soon/public/app/__entry',
   'coming-soon/public/app/entry-20260806.html',
   'ai-platform/web/simplebeacon-dashboard/index.html',
+  'coming-soon/public/pricing.html',
+  'coming-soon/public/audit.html',
+  'coming-soon/public/certificate-upload.html',
+  'coming-soon/public/community.html',
+  'coming-soon/public/contact.html',
+  'coming-soon/public/roadmap.html',
 ];
-const FORBIDDEN_SCRIPT_RE = /<script\s+src="\/(?:site-config\.js|js-es2018\/referral-capture\.js)\?v=\d+"/;
+const FORBIDDEN_SCRIPT_RE = /<script\s+src=["']\/?(?:site-config\.js|js-es2018\/referral-capture\.js|js-es2018\/auth\.js|app-links\.js)(\?[^"']*)?["'][^>]*>\s*<\/script>/i;
 
 let totalViolations = 0;
 
