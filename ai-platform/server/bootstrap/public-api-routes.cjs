@@ -74,7 +74,11 @@ const PUBLIC_API_PATHS = new Set([
     'enterprise/trial',
     // Whitelabel branding — public resolve + CSS endpoints for dashboard BrandContext
     'whitelabel/resolve',
-    'whitelabel/brand.css'
+    'whitelabel/brand.css',
+    // Prompt service — GET /api/prompts/get is read-only and returns the user's custom
+    // chatbot prompt (empty for anonymous). Required by the chatbot UI on the public
+    // dashboard. POST /set and DELETE /delete remain auth-gated.
+    'prompts/get'
 ]);
 
 /**
