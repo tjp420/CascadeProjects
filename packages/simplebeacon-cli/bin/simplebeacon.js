@@ -2218,6 +2218,19 @@ async function main() {
 
     validateCommandOptions(options);
 
+    // Non-blocking update check (skipped for --offline, --air-gapped, --quiet)
+    // Runs in the background — never delays scan execution
+    try {
+        const { checkForUpdates } = require('../src/lib/update-check');
+        checkForUpdates({
+            offline: options.offline,
+            airGapped: options.airGapped,
+            quiet: options.quiet
+        }).catch(() => { /* non-blocking */ });
+    } catch {
+        /* update-check module not available — skip silently */
+    }
+
     const commandHandler = COMMAND_REGISTRY[options.command];
     if (!commandHandler) {
         console.error(`Command "${options.command}" is not yet implemented.`);
