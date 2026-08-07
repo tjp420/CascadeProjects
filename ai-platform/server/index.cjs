@@ -453,6 +453,9 @@ const VAULT_AUTH_PREFIX_PATHS = [
 ];
 
 app.use((req, res, next) => {
+  if (req.path.startsWith('/api/whitelabel')) {
+    logger.info(`[DEBUG-VAULT] path=${req.path} NODE_ENV=${process.env.NODE_ENV} VAULT_PWD_SET=${!!process.env.DASHBOARD_VAULT_PASSWORD}`);
+  }
   if (process.env.NODE_ENV === 'development') return next();
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();
   if (!req.path.startsWith('/api/')) return next();
@@ -836,6 +839,12 @@ app.use((req, res, next) => {
   return _webRootStatic(req, res, next);
 });
 app.use('/assets', express.static(path.join(webRoot, 'assets')));
+
+// Debug: log all /api/whitelabel requests before route mount
+app.use('/api/whitelabel', (req, res, next) => {
+  logger.info(`[DEBUG-WL] ${req.method} ${req.originalUrl} path=${req.path} reached whitelabel router`);
+  next();
+});
 
 // Whitelabel partner branding API - public resolve endpoint for dashboard BrandContext
 // Mounted after whitelabelMiddleware so req.brand is populated; resolve returns default brand for unknown domains
