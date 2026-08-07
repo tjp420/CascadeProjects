@@ -743,15 +743,15 @@
             <input type="hidden" id="modalTier" value="">
             <div class="modal-field">
               <label>Email *</label>
-              <input type="email" id="modalEmail" required placeholder="you@company.com" autocomplete="email">
+              <input type="email" id="modalEmail" required maxlength="254" placeholder="you@company.com" autocomplete="email">
             </div>
             <div class="modal-field">
               <label>Project Name *</label>
-              <input type="text" id="modalProjectName" required placeholder="My-AI-App" autocomplete="organization">
+              <input type="text" id="modalProjectName" required maxlength="200" placeholder="My-AI-App" autocomplete="organization">
             </div>
             <div class="modal-field">
               <label>Client / Company Name</label>
-              <input type="text" id="modalClientName" placeholder="Your Company" autocomplete="organization">
+              <input type="text" id="modalClientName" maxlength="200" placeholder="Your Company" autocomplete="organization">
             </div>
             <button type="submit" id="modalSubmitBtn" class="modal-btn">Proceed to Payment</button>
             <p id="modalError" class="modal-error"></p>
@@ -1022,6 +1022,25 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
       if (!email || !projectName) {
         errorEl.textContent = 'Email and project name are required.';
+        errorEl.style.display = 'block';
+        return false;
+      }
+
+      var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!EMAIL_RE.test(email)) {
+        errorEl.textContent = 'Please enter a valid email address.';
+        errorEl.style.display = 'block';
+        return false;
+      }
+
+      if (projectName.length > 200) {
+        errorEl.textContent = 'Project name must be 200 characters or less.';
+        errorEl.style.display = 'block';
+        return false;
+      }
+
+      if (clientName && clientName.length > 200) {
+        errorEl.textContent = 'Client/company name must be 200 characters or less.';
         errorEl.style.display = 'block';
         return false;
       }

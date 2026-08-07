@@ -79,6 +79,24 @@ router.post('/api/create-subscription-session', async (req, res) => {
             return res.status(400).json({ error: 'Email and project name are required.' });
         }
 
+        // Validate email format
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!EMAIL_RE.test(String(email))) {
+            return res.status(400).json({ error: 'A valid email address is required.' });
+        }
+
+        // Sanitize string inputs: strip control characters, enforce length
+        function sanitize(str, maxLen) {
+            return String(str || '').replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, maxLen);
+        }
+        const cleanProjectName = sanitize(projectName, 200);
+        const cleanClientName = sanitize(clientName || email, 200);
+        const cleanEmail = sanitize(email, 254);
+
+        if (!cleanProjectName) {
+            return res.status(400).json({ error: 'Project name must not be empty.' });
+        }
+
         // Validate extraSeats for team_pro tier
         const seatCount = (tier === 'team_pro' && extraSeats) ? Math.max(0, Math.min(50, parseInt(extraSeats, 10) || 0)) : 0;
 
@@ -131,21 +149,21 @@ router.post('/api/create-subscription-session', async (req, res) => {
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
-        const customer = db.getOrCreateCustomer(email);
+        const customer = db.getOrCreateCustomer(cleanEmail);
 
         // Update customer tier so webhook knows which license to generate
-        db.updateCustomerSubscription(email, customer.subscription_status || 'inactive', selectedTier);
+        db.updateCustomerSubscription(cleanEmail, customer.subscription_status || 'inactive', selectedTier);
 
         // Use existing Stripe customer ID or create new
         let stripeCustomerId = customer.stripe_customer_id;
         if (!stripeCustomerId) {
             const stripeCustomer = await stripe.customers.create({
-                email: email,
-                name: clientName || email,
-                metadata: { projectName: String(projectName).slice(0, 200), tier: selectedTier }
+                email: cleanEmail,
+                name: cleanClientName,
+                metadata: { projectName: cleanProjectName, tier: selectedTier }
             });
             stripeCustomerId = stripeCustomer.id;
-            db.updateCustomerStripeId(email, stripeCustomerId);
+            db.updateCustomerStripeId(cleanEmail, stripeCustomerId);
         }
 
         const successUrl = `${PUBLIC_URL}/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`;
@@ -192,9 +210,9 @@ router.post('/api/create-subscription-session', async (req, res) => {
             metadata: {
                 product: tier || 'continuous_shield',
                 billing: isAnnual ? 'annual' : 'monthly',
-                email,
-                projectName: String(projectName).slice(0, 200),
-                clientName: String(clientName || email).slice(0, 200),
+                email: cleanEmail,
+                projectName: cleanProjectName,
+                clientName: cleanClientName,
                 apiKey: customer.api_key,
                 ...(seatCount > 0 ? { extraSeats: String(seatCount) } : {}),
                 ...referralMetadata
