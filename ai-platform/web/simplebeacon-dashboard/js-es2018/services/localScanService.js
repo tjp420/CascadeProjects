@@ -584,24 +584,29 @@ export async function runLocalScan(options = {}) {
         ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
         console.warn('[localScan] fileInput', fileArray.length, 'files; projectName=', projectName, 'firstRel=', firstRel, 'ignoreSource=', ignoreCtx.source, 'ignorePatterns=', ignoreCtx.patterns.length);
         if (onFilePrepProgress) onFilePrepProgress(0, fileArray.length, 'Filtering files...');
-        files = fileArray
-            .filter((f, i) => {
-                if (onFilePrepProgress && i % 5000 === 0) onFilePrepProgress(i, fileArray.length, 'Filtering files...');
-                const path = f._virtualPath || f.webkitRelativePath || f.name;
-                return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
-            })
-            .map((f) => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
+        // Async filter to yield to UI every 5000 files (prevents freezing on large lists)
+        files = [];
+        for (let i = 0; i < fileArray.length; i++) {
+            const f = fileArray[i];
+            if (onFilePrepProgress && i % 5000 === 0) onFilePrepProgress(i, fileArray.length, 'Filtering files...');
+            const path = f._virtualPath || f.webkitRelativePath || f.name;
+            if (!isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+                files.push({ path, handle: f });
+            }
+            if (i % 5000 === 0 && i > 0) await new Promise(r => setTimeout(r, 0));
+        }
         // Deduplicate by normalized path — Windows symlinks/junctions (pnpm node_modules)
         // cause the same file to appear multiple times during recursive directory traversal.
         if (onFilePrepProgress) onFilePrepProgress(files.length, fileArray.length, 'Deduplicating paths...');
         const _seen = new Set();
-        files = files.filter((f, i) => {
+        const deduped = [];
+        for (let i = 0; i < files.length; i++) {
             if (onFilePrepProgress && i % 5000 === 0) onFilePrepProgress(i, files.length, 'Deduplicating paths...');
-            const key = String(f.path).replace(/\\/g, '/').toLowerCase();
-            if (_seen.has(key)) return false;
-            _seen.add(key);
-            return true;
-        });
+            const key = String(files[i].path).replace(/\\/g, '/').toLowerCase();
+            if (!_seen.has(key)) { _seen.add(key); deduped.push(files[i]); }
+            if (i % 5000 === 0 && i > 0) await new Promise(r => setTimeout(r, 0));
+        }
+        files = deduped;
         // If the user's .simplebeaconignore filtered out every file, fall back to built-in
         // exclusions so a misconfigured catch-all doesn't silently block the scan.
         if (files.length === 0 && fileArray.length > 0) {

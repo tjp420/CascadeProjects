@@ -1,0 +1,5 @@
+﻿# Azure pipeline for org-ratmggd
+trigger: none
+pool: default
+steps:
+  - script: echo "Hello from mock"

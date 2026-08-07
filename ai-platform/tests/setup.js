@@ -314,14 +314,32 @@ afterAll(async () => {
       const mod = require(rel);
       if (mod && typeof mod.shutdown === 'function') {
         try {
-          // Timeout the shutdown after 5s to avoid hanging global teardown
-          await Promise.race([mod.shutdown(), new Promise((r) => setTimeout(r, 5000))]);
+          // Use a cancellable timeout so the timer is cleared when shutdown completes.
+          await new Promise(async (resolve) => {
+            const timer = setTimeout(() => resolve(), 5000);
+            try {
+              await mod.shutdown();
+            } catch (e) {
+              // ignore individual shutdown errors
+            }
+            clearTimeout(timer);
+            resolve();
+          });
         } catch (e) {
           // ignore individual shutdown errors
         }
       } else if (mod && typeof mod.close === 'function') {
         try {
-          await Promise.race([mod.close(), new Promise((r) => setTimeout(r, 5000))]);
+          await new Promise(async (resolve) => {
+            const timer = setTimeout(() => resolve(), 5000);
+            try {
+              await mod.close();
+            } catch (e) {
+              // ignore individual close errors
+            }
+            clearTimeout(timer);
+            resolve();
+          });
         } catch (e) {}
       }
     } catch (e) {

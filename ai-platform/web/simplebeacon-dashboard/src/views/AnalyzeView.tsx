@@ -1624,8 +1624,13 @@ export function AnalyzeView() {
         return;
       }
     }
-    // 2. Try browser-native directory picker
+    // 2. Try browser-native directory picker (Chrome/Edge)
+    // On Firefox (no showDirectoryPicker), click the webkitdirectory input
+    // synchronously to preserve the user gesture chain.
     if (typeof (window as any).showDirectoryPicker !== 'function') {
+      // Must call .click() synchronously — no awaits before this point
+      // or Firefox will break the user gesture chain.
+      // The bridgeBase check above is the only async path, and it returns early.
       folderInputRef.current?.click();
       return;
     }
@@ -1963,6 +1968,11 @@ export function AnalyzeView() {
               >
                 <Folder className="mx-auto h-10 w-10 text-foreground-muted" />
                 <p className="mt-2 text-sm text-foreground-muted">Drag a folder here to scan immediately, or browse</p>
+                {typeof (window as any).showDirectoryPicker !== 'function' && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    For large folders (3,000+ files), drag-and-drop is recommended — the file picker has a browser-imposed limit.
+                  </p>
+                )}
                 <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
                   Browse Folder
                 </Button>

@@ -6,8 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const STORE_PATH = process.env.SIMPLEBEACON_CI_TELEMETRY_STORE
-  || path.join(__dirname, '../../.simplebeacon', 'ci-telemetry.json');
+function getStorePath() {
+  return process.env.SIMPLEBEACON_CI_TELEMETRY_STORE
+    || path.join(__dirname, '../../.simplebeacon', 'ci-telemetry.json');
+}
 const MAX_EVENTS = Number(process.env.SIMPLEBEACON_CI_TELEMETRY_MAX || 50000);
 
 /** Rolling retention for team telemetry events (Phase 1 constant). */
@@ -47,6 +49,7 @@ const COMMIT_SHA = /^[0-9a-f]{7,40}$/i;
 const WORKSPACE_FINGERPRINT = /^[0-9a-f]{24}$/i;
 
 function readStore() {
+  const STORE_PATH = getStorePath();
   try {
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
@@ -57,10 +60,63 @@ function readStore() {
 }
 
 function writeStore(store) {
+  const STORE_PATH = getStorePath();
+  // Debug: log where we are attempting to write during tests
+  try { console.log('[ci-telemetry] writeStore ->', STORE_PATH); } catch (e) {}
   fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
+  try {
+    console.error('[ci-telemetry] debug: storePath', STORE_PATH);
+    console.error('[ci-telemetry] debug: storeDir listing ->', fs.readdirSync(path.dirname(STORE_PATH)));
+  } catch (e) {
+    try { console.error('[ci-telemetry] debug: listing failed:', e && e.message); } catch (ee) {}
+  }
   const tmp = `${STORE_PATH}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
-  fs.renameSync(tmp, STORE_PATH);
+  const content = `${JSON.stringify(store, null, 2)}\n`;
+  fs.writeFileSync(tmp, content, 'utf8');
+  try { console.error('[ci-telemetry] debug: wrote tmp', tmp, 'tmpExists', fs.existsSync(tmp)); } catch (e) {}
+  try {
+    fs.renameSync(tmp, STORE_PATH);
+    try { console.error('[ci-telemetry] debug: renameSync ok, exists', fs.existsSync(STORE_PATH)); } catch (e) {}
+  } catch (e) {
+    try { console.error('[ci-telemetry] rename failed, falling back to direct write:', e && e.message); } catch (ee) {}
+    // On some Windows environments rename can fail if the target is locked.
+    // Fall back to a direct write to ensure tests relying on the file do not fail.
+    try {
+      fs.writeFileSync(STORE_PATH, content, 'utf8');
+      try { fs.unlinkSync(tmp); } catch (e2) {}
+    } catch (e2) {
+      try { console.error('[ci-telemetry] fallback write failed:', e2 && e2.message); } catch (ee) {}
+      // If fallback also fails, rethrow the original error for visibility.
+      throw e;
+    }
+  }
+
+  // Ensure visibility: some test environments (Jest on Windows) may need
+  // a short synchronous retry loop for the file to become readable.
+  try {
+    const exists = fs.existsSync(STORE_PATH);
+    if (!exists) {
+      const sleep = (ms) => {
+        try {
+          const sab = new Int32Array(new SharedArrayBuffer(4));
+          Atomics.wait(sab, 0, 0, ms);
+        } catch (e) {
+          const end = Date.now() + ms;
+          while (Date.now() < end) { /* busy-wait fallback */ }
+        }
+      };
+      let attempts = 0;
+      while (attempts < 6 && !fs.existsSync(STORE_PATH)) {
+        attempts += 1;
+        sleep(50);
+        try {
+          fs.writeFileSync(STORE_PATH, content, 'utf8');
+        } catch (e) {}
+      }
+    }
+  } catch (e) {
+    try { console.error('[ci-telemetry] post-write visibility check failed:', e && e.message); } catch (ee) {}
+  }
 }
 
 function accountKey(email) {
