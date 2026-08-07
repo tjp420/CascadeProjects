@@ -30,12 +30,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: packages/simplebeacon-cli/package-lock.json
 
       - name: Install dependencies
         working-directory: packages/simplebeacon-cli
-        run: npm ci || npm install --no-fund --no-audit
+        run: npm install --no-fund --no-audit
 
       - name: Syntax check
         working-directory: packages/simplebeacon-cli
