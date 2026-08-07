@@ -411,11 +411,19 @@ window.AuditScanService = class AuditScanService {
 
         this.scanId = options.resumeScanId || ('scan-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8));
         this.aborted = false;
+        this._pendingRejects = []; // track reject functions to fire on abort
 
         if (signal) {
             signal.addEventListener('abort', () => {
                 this.aborted = true;
                 this._terminateAll();
+                // Reject all pending worker promises so Promise.all doesn't hang
+                const err = new Error('Scan aborted by user');
+                err.name = 'AbortError';
+                for (const reject of this._pendingRejects) {
+                    try { reject(err); } catch (_) {}
+                }
+                this._pendingRejects = [];
             }, { once: true });
         }
 
@@ -594,8 +602,43 @@ window.AuditScanService = class AuditScanService {
             await this._checkpoint(this.scanId, totalProcessed, resumeIndex + totalProcessed);
         }, 5000);
 
-        // Wait for all workers to complete
-        await Promise.all(workerPromises);
+        // Wait for all workers to complete (or abort)
+        try {
+            await Promise.all(workerPromises);
+        } catch (err) {
+            if (this.aborted) {
+                // Abort is expected — return partial results
+                clearInterval(checkpointTimer);
+                if (progressRafId) { cancelAnimationFrame(progressRafId); flushProgress(); }
+                const partialResult = {
+                    scanId: this.scanId,
+                    processed: totalProcessed,
+                    totalFiles,
+                    findings: allFindings,
+                    issues: allFindings,
+                    issueCount: totalFindingsCount,
+                    findingsCapped: totalFindingsCount > allFindings.length,
+                    textErrors: totalTextErrors,
+                    binarySkipped: totalBinarySkipped,
+                    ignoredDir: totalIgnoredDir,
+                    heavyVendor: totalHeavyVendor,
+                    ignoredByPattern: totalIgnoredByPattern,
+                    issuesTruncated,
+                    aborted: true,
+                    ignoreMeta: {
+                        source: ignoreCtx.source,
+                        patternCount: ignoreCtx.patterns.length,
+                        scanRootName: ignoreCtx.scanRootName
+                    },
+                    hashCacheSize: hashCache.size,
+                    filesSkippedByHashCache: 0,
+                    resumed: resumeIndex > 0
+                };
+                onLog(`Scan aborted: ${partialResult.processed}/${partialResult.totalFiles} files processed before abort`, 'warn');
+                return partialResult;
+            }
+            throw err;
+        }
         clearInterval(checkpointTimer);
 
         // Final checkpoint
@@ -659,9 +702,19 @@ window.AuditScanService = class AuditScanService {
             let ignoredByPattern = 0;
             let issuesTruncated = false;
 
+            // Register reject so abort can unblock this promise
+            if (this._pendingRejects) {
+                this._pendingRejects.push(reject);
+            }
+
             const cleanup = () => {
                 worker.onmessage = null;
                 worker.onerror = null;
+                // Remove from pending rejects
+                if (this._pendingRejects) {
+                    const idx = this._pendingRejects.indexOf(reject);
+                    if (idx >= 0) this._pendingRejects.splice(idx, 1);
+                }
             };
 
             const finish = () => {
