@@ -589,37 +589,33 @@ const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
   }
 };
 const dashboardStaticOptsFinal = { ...dashboardStaticOpts, fallthrough: false };
-['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets'].forEach(p => {
+['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets', '/dashboard/utils-lib'].forEach(p => {
   const sub = p.substring('/dashboard/'.length);
   app.use(p, express.static(path.join(dashboardStaticDir, sub), dashboardStaticOpts));
   if (dashboardFallbackDir) {
     app.use(p, express.static(path.join(dashboardFallbackDir, sub), dashboardStaticOptsFinal));
   }
 });
-app.use('/dashboard/site-config.js', express.static(path.join(dashboardStaticDir, 'site-config.js'), dashboardStaticOpts));
-if (dashboardFallbackDir) {
-  app.use('/dashboard/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), dashboardStaticOptsFinal));
+function serveRootFile(relativePath, contentType) {
+  return (req, res, next) => {
+    const candidates = [
+      path.join(dashboardStaticDir, relativePath),
+      dashboardFallbackDir ? path.join(dashboardFallbackDir, relativePath) : null,
+      landingRootExists ? path.join(landingRoot, relativePath) : null
+    ].filter(Boolean);
+    for (const filePath of candidates) {
+      if (fs.existsSync(filePath)) {
+        if (contentType) res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+        return res.sendFile(filePath);
+      }
+    }
+    next();
+  };
 }
-
-// Also serve landing/root-level assets that are referenced by the dashboard HTML
-// at root paths (e.g. <script src="/site-config.js"> and /js-es2018/referral-capture.js).
-// The dashboard HTML references these at root paths, but the dashboard static assets
-// are under /dashboard/. These root-level handlers ensure the files resolve regardless
-// of landingAtRoot mode.
-app.use('/site-config.js', express.static(path.join(dashboardStaticDir, 'site-config.js'), dashboardStaticOpts));
-if (dashboardFallbackDir) {
-  app.use('/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), dashboardStaticOptsFinal));
-}
-if (landingRootExists) {
-  app.use('/site-config.js', express.static(path.join(landingRoot, 'site-config.js'), dashboardStaticOpts));
-}
-app.use('/js-es2018/referral-capture.js', express.static(path.join(dashboardStaticDir, 'js-es2018', 'referral-capture.js'), dashboardStaticOpts));
-if (dashboardFallbackDir) {
-  app.use('/js-es2018/referral-capture.js', express.static(path.join(dashboardFallbackDir, 'js-es2018', 'referral-capture.js'), dashboardStaticOptsFinal));
-}
-if (landingRootExists) {
-  app.use('/js-es2018/referral-capture.js', express.static(path.join(landingRoot, 'js-es2018', 'referral-capture.js'), dashboardStaticOpts));
-}
+app.get('/dashboard/site-config.js', serveRootFile('site-config.js', 'application/javascript; charset=utf-8'));
+app.get('/site-config.js', serveRootFile('site-config.js', 'application/javascript; charset=utf-8'));
+app.get('/js-es2018/referral-capture.js', serveRootFile(path.join('js-es2018', 'referral-capture.js'), 'application/javascript; charset=utf-8'));
 
 app.get('/', async (req, res) => {
   // For internal dashboard, prioritize dashboard over landing page
@@ -1083,10 +1079,10 @@ app.use(async (req, res, next) => {
 // Serve dashboard assets from root when internal dashboard is active
 if (!landingAtRoot) {
   const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
-  ['/css', '/js', '/js-es2018', '/images', '/fonts', '/assets'].forEach(p => {
+  ['/css', '/js', '/js-es2018', '/images', '/fonts', '/assets', '/utils-lib'].forEach(p => {
     app.use(p, express.static(path.join(dashDir, p.substring(1))));
   });
-  app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')));
+  app.get('/site-config.js', serveRootFile('site-config.js', 'application/javascript; charset=utf-8'));
 }
 
 app.use((req, res, next) => {
