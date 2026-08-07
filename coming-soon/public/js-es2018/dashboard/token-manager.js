@@ -44,7 +44,8 @@ const selectAllModules = document.getElementById('selectAllModules');
 const selectAllCount = document.getElementById('selectAllCount');
 
 const PRODUCT_CONFIG = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.products) || {};
-const TIER_PROFILES = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.tierProfiles) || {
+const _siteTierProfiles = window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.tierProfiles;
+const TIER_PROFILES = (_siteTierProfiles && Object.keys(_siteTierProfiles).length > 0) ? _siteTierProfiles : {
     locked: [],
     community: ['gate'],
     instant: ['gate', 'instant', 'mock-data'],

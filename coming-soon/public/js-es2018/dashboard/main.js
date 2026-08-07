@@ -1260,7 +1260,7 @@ if (typeof bindPresetButtons === 'function') bindPresetButtons();
 
 function filterScanProfiles(tier, features) {
     const isCustom = tier === 'custom' && Array.isArray(features) && features.length > 0;
-    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal);
+    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal || []);
 
     let firstEnabled = null;
     // Update hidden select
