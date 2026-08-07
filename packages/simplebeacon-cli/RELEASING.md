@@ -106,35 +106,114 @@ This means `auto-release.yml` and `release-tagger.yml` can coexist without creat
 
 ## Rollback Procedure
 
-If a release needs to be reverted:
+### Severity Levels and Escalation
 
-### 1. Delete the GitHub Release
+| Severity | Scenario | Who Acts | Timeframe |
+|----------|----------|----------|-----------|
+| **P1 — Critical** | Major version published with breaking changes, users impacted | Engineering Lead + npm owner | Immediate (< 1 hour) |
+| **P2 — High** | Minor version published with a regression, limited impact | Release engineer on call | < 4 hours |
+| **P3 — Standard** | Patch version published with a minor bug, no user impact | Any developer | Next business day |
+
+### P1/P2: Emergency Rollback (published to npm)
+
+> **npm's 72-hour rule**: You can unpublish a package version within 72 hours of publishing. After 72 hours, you must publish a new version with the fix instead.
+
+#### Step 1: Notify the Team
+
+```bash
+# Post to the engineering channel
+echo "🚨 ROLLBACK: v<version> is being reverted — reason: <brief description>" | <team-notification>
+```
+
+If the release was published to npm, the npm account owner must act within 72 hours.
+
+#### Step 2: Unpublish from npm (within 72 hours)
+
+```bash
+# Check if the version exists on npm
+npm view simplebeacon@<version>
+
+# Unpublish the specific version
+npm unpublish simplebeacon@<version>
+```
+
+> If 72 hours have passed, **do not unpublish**. Instead, publish a new patch version with the fix and deprecate the bad version:
+> ```bash
+> npm deprecate simplebeacon@<version> "Known issue — please upgrade to <fixed-version>"
+> ```
+
+#### Step 3: Delete the GitHub Release
 
 ```bash
 gh release delete v<version> --yes --cleanup-tag
 ```
 
-### 2. Delete the Git Tag
+#### Step 4: Delete the Git Tag
 
 ```bash
 git tag -d v<version>
 git push origin --delete v<version>
 ```
 
-### 3. Revert the Version Bump Commit
+#### Step 5: Revert the Version Bump Commit
 
 ```bash
+# Find the release commit
+git log --oneline --grep="chore(release): v<version>"
+
+# Revert it
 git revert <commit-hash>
 git push origin main
 ```
 
-### 4. Restore package.json Version (if needed)
+#### Step 6: Restore package.json Version (if revert is insufficient)
 
-If the revert doesn't restore the correct version, manually edit `packages/simplebeacon-cli/package.json` and set the `version` field back to the previous value.
+If the revert commit doesn't cleanly restore the version (e.g., due to subsequent commits), manually fix:
 
-### 5. Remove the Changelog Entry
+```bash
+cd packages/simplebeacon-cli
+# Edit package.json and set "version" back to the previous value
+git add package.json
+git commit -m "fix: restore version to <previous-version> after rollback"
+git push origin main
+```
 
-Edit `packages/simplebeacon-cli/CHANGELOG.md` and remove the entry for the rolled-back version.
+#### Step 7: Remove the Changelog Entry
+
+Edit `packages/simplebeacon-cli/CHANGELOG.md` and remove the `## [<version>]` section for the rolled-back version.
+
+#### Step 8: Post-Rollback Verification
+
+```bash
+# Verify the version is correct
+cd packages/simplebeacon-cli
+node -p "require('./package.json').version"  # Should show previous version
+
+# Verify tests still pass
+npm test
+
+# Verify the tag is gone
+git tag -l "v<version>"  # Should return empty
+
+# Verify npm no longer has the version (if unpublished)
+npm view simplebeacon@<version>  # Should return 404
+```
+
+#### Step 9: Document the Incident
+
+Create a post-mortem entry in the engineering wiki or incident log:
+- What was released and why it needed rollback
+- Root cause (bad merge, missed test, etc.)
+- Time to detection and time to resolution
+- Preventive measures added
+
+### P3: Standard Rollback (not published to npm)
+
+If the release was tagged but not published to npm (no `NPM_TOKEN` set), skip Steps 1-2 above and proceed directly to Steps 3-7. No npm unpublish is needed.
+
+### Re-release After Rollback
+
+Once the fix is ready, create a new PR with the appropriate release label. The pipeline will bump the version and create a fresh release. The version number from the rolled-back release **can be reused** since it was fully removed from git, npm, and GitHub.
 
 ## npm Token Setup
 
