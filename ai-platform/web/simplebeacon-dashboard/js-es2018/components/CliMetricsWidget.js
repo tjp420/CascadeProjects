@@ -21,9 +21,10 @@
  *   widget.renderTrend(cliReportArray);
  */
 
-import { adaptCliReport, adaptCliReportHistory } from './cli-report-adapter.js';
-import { TrendChart } from '../components/TrendChart.js';
-import { TeamGatePassTrendChart } from '../components/TeamGatePassTrendChart.js';
+import { adaptCliReport, adaptCliReportHistory } from '../utils/cli-report-adapter.js';
+import { enrichFindingsWithAlerts, renderAlertCard, getAlertTemplate } from '../utils/alert-templates.js';
+import { TrendChart } from './TrendChart.js';
+import { TeamGatePassTrendChart } from './TeamGatePassTrendChart.js';
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
 const SEVERITY_LABELS = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
@@ -58,6 +59,7 @@ export class CliMetricsWidget {
         this.container.appendChild(this._renderHeader(report));
         this.container.appendChild(this._renderGateAndScore(report));
         this.container.appendChild(this._renderSeverityChips(report));
+        this.container.appendChild(this._renderHighRiskAlerts(report));
         this.container.appendChild(this._renderFindingsTable(report));
         this.container.appendChild(this._renderRuleCoverage(report));
         this.container.appendChild(this._renderScanTiming(report));
@@ -230,6 +232,40 @@ export class CliMetricsWidget {
                 ${chips}
             </div>
         `;
+        return card;
+    }
+
+    _renderHighRiskAlerts(report) {
+        const issues = report.detectedIssues || [];
+        // Enrich issues with alert templates (in case they aren't already)
+        const enriched = enrichFindingsWithAlerts(issues);
+        // Only render alerts for findings that have alert templates
+        const alertFindings = enriched.filter(f => f.alertTemplate);
+        if (alertFindings.length === 0) return document.createElement('div');
+
+        const card = document.createElement('div');
+        card.className = 'cli-metrics-alerts-card mb-3';
+
+        const header = document.createElement('div');
+        header.className = 'd-flex justify-content-between align-items-center mb-3';
+        header.innerHTML = `
+            <h4 class="h6 mb-0">High-Risk Finding Alerts</h4>
+            <span class="text-muted text-sm">${alertFindings.length} alert${alertFindings.length === 1 ? '' : 's'}</span>
+        `;
+        card.appendChild(header);
+
+        const alertContainer = document.createElement('div');
+        alertContainer.className = 'cli-alert-cards-container';
+        for (const finding of alertFindings) {
+            const alertHtml = renderAlertCard(finding);
+            if (alertHtml) {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = alertHtml;
+                alertContainer.appendChild(wrapper.firstElementChild);
+            }
+        }
+        card.appendChild(alertContainer);
+
         return card;
     }
 

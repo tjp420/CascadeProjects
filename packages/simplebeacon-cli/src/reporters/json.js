@@ -9,6 +9,7 @@
 const { sanitizeScanReport } = require('../lib/report-sanitizer');
 const { reconcileScanReport } = require('../lib/normalize-scan-report');
 const { detectTier } = require('../lib/tier-detector');
+const { enrichFindingsWithAlerts } = require('./alert-templates');
 
 function formatJsonReport(report, gateResult = null) {
     const tierInfo = detectTier();
@@ -453,8 +454,14 @@ function formatJsonReport(report, gateResult = null) {
     //     enrichedGate.remediation = (enrichedGate.remediation || []).slice(0, 1);
     // }
 
+    // Enrich rawIssues and detectedIssues with high-risk alert templates
+    const enrichedRawIssues = enrichFindingsWithAlerts(report.rawIssues || []);
+    const enrichedDetectedIssues = enrichFindingsWithAlerts(report.detectedIssues || []);
+
     const payload = reconcileScanReport({
         ...report,
+        rawIssues: enrichedRawIssues,
+        detectedIssues: enrichedDetectedIssues,
         gate: enrichedGate,
         consolidation,
         codebase,
