@@ -31,8 +31,63 @@
     </script>
     
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+    <script>
+// SimpleBeacon Site Configuration (inlined to avoid 404 on Cloudflare Pages)
+window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
+  env: 'production',
+  githubUrl: 'https://github.com/tjp420/simplebeacon',
+  vsixDownloadUrl: 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix',
+  sampleReportUrl: 'sample-report.html',
+  sampleCertificateUrl: 'sample-certificate.html',
+  sampleEuAiActReportUrl: null,
+  pricingUrl: 'pricing.html',
+  communityUrl: 'community.html',
+  contactUrl: 'contact.html',
+  contactPageUrl: 'contact.html',
+  termsUrl: 'terms.html',
+  privacyUrl: 'privacy.html',
+  refundUrl: 'refund.html',
+  cloudTeamsUrl: null,
+  auditEmail: null,
+  pricing: {
+    developer: { name: 'Free', price: 0, stripeLink: null, testStripeLink: null },
+    startup: { name: 'Pro', price: 9, stripeLink: null, testStripeLink: null },
+    compliance: { name: 'Compliance Suite', price: 399, stripeLink: null, testStripeLink: null },
+    enterprise: { name: 'Enterprise Air-Gapped', price: null, stripeLink: null, testStripeLink: null }
+  },
+  instantReportLink: 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07',
+  stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
+  euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
+  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === 'simplebeacon.ai' || location.hostname === 'www.simplebeacon.ai' || location.hostname.endsWith('.onrender.com'))) ? '' : 'https://simplebeacon.ai',
+  dashboardUrl: '/dashboard/',
+  dashboardAppUrl: '/dashboard/',
+  stagingMode: false,
+  paymentsEnabled: true,
+  closedSource: false,
+  products: {},
+  analysisTypes: {},
+  tierProfiles: {},
+  features: [],
+  faqs: []
+};
+(function () {
+  try {
+    const apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
+    fetch(apiBase + '/api/config/pricing')
+      .then(function (res) { if (!res.ok) return null; return res.json(); })
+      .then(function (data) {
+        if (!data || !data.success || !data.pricing) return;
+        const cfg = window.SIMPLEBEACON_SITE;
+        const p = data.pricing;
+        if (p.instant && p.instant.stripeLink) { cfg.pricing.instant.stripeLink = p.instant.stripeLink; cfg.instantReportLink = p.instant.stripeLink; }
+        if (p.executive && p.executive.stripeLink) { cfg.pricing.executive.stripeLink = p.executive.stripeLink; cfg.stripePaymentLink = p.executive.stripeLink; }
+        if (p.euSprint && p.euSprint.stripeLink) { cfg.pricing.euSprint.stripeLink = p.euSprint.stripeLink; cfg.euAiActPackLink = p.euSprint.stripeLink; }
+      }).catch(function () { });
+  } catch (e) { }
+})();
+    </script>
     <script src="/js-es2018/token-entry-guard.js" defer></script>
-    <script src="site-config.js?h=1781475000000" defer></script>
     <script src="js-es2018/scan-utils.js?h=1781475000001" defer></script>
     <script src="js-es2018/dashboard/utils.js?h=1781475000000" defer></script>
     <script src="js-es2018/dashboard/token-manager.js?h=1781475000300" defer></script>
@@ -1891,7 +1946,7 @@
         }
     })();
     </script>
-    <script src="js-es2018/dashboard/main.js?h=1784596919635" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=1786127552" defer></script>
     <script>
     // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
     (function() {
@@ -1930,6 +1985,22 @@
         setTimeout(updateDiag, 2000);
     })();
     </script>
-  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>
+// Referral capture (inlined to avoid 404 on Cloudflare Pages)
+(function () {
+    try {
+        var params = new URLSearchParams(window.location.search);
+        var ref = params.get('ref');
+        if (!ref) return;
+        try { localStorage.setItem('sb_ref_slug', ref); } catch (_) { }
+        fetch('/api/referral/capture', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ref: ref, channel: 'web' })
+        }).catch(function () { });
+    } catch (_) { }
+})();
+  </script>
 </body>
 </html>
