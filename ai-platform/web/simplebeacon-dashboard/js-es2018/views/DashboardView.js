@@ -6,6 +6,7 @@ import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js?v=20260724trend1';
 import { mountTeamGatePassTrendChart } from '../components/TeamGatePassTrendChart.js?v=20260804team1';
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
+import { mountMetricsCards } from '../components/MetricsCards.js?v=20260807metrics1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { mountPolicyEditor } from '../components/PolicyEditor.js?v=20260807policy1';
 import { isDemoMode } from '../demoMode.js';
@@ -226,6 +227,13 @@ export class DashboardView {
             defaultProjectPath: this.app.state.defaultProjectPath
         }));
         container.appendChild(scanSlot);
+
+        // Metrics cards: show summary KPIs when a report or history exists
+        const metricsCardsSlot = document.createElement('div');
+        metricsCardsSlot.id = 'metrics-cards-slot';
+        metricsCardsSlot.className = 'metrics-cards-section';
+        mountMetricsCards(metricsCardsSlot, report, this.app.state.history);
+        container.appendChild(metricsCardsSlot);
 
         if (scanning) {
             container.appendChild(this.renderScanProgress());

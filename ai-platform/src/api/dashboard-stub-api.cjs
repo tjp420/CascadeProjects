@@ -435,6 +435,49 @@ const { resolvePlatformRoot } = require('../../server/lib/simplebeacon-proxy.cjs
         res.json({ success: true, data });
     });
 
+    // Aggregated metrics endpoint for dashboard KPI cards
+    dashboardRouter.get('/api/dashboard-metrics', async (_req, res) => {
+        const report = await loadLatestReport();
+        const gate = report?.gate || {};
+        const sev = report?.severityCounts || {};
+        const totalFindings = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
+
+        // Load scan history for pass-rate calculation
+        let history = [];
+        try {
+            const historyPath = path.join(webRoot, '..', '.simplebeacon', 'trust-history.json');
+            const raw = await fs.readFile(historyPath, 'utf8');
+            const parsed = JSON.parse(raw);
+            history = Array.isArray(parsed?.entries) ? parsed.entries : [];
+        } catch { /* no history yet */ }
+
+        const totalScans = history.length;
+        const passedScans = history.filter(h => h && h.gate && h.gate.pass).length;
+        const gatePassRate = totalScans > 0 ? Math.round((passedScans / totalScans) * 100) : null;
+
+        res.json({
+            success: true,
+            data: {
+                totalScans,
+                gatePassRate,
+                severityCounts: {
+                    critical: sev.critical || 0,
+                    high: sev.high || 0,
+                    medium: sev.medium || 0,
+                    low: sev.low || 0,
+                    total: totalFindings
+                },
+                filesAnalyzed: report?.filesAnalyzed || report?.ruleScopedFilesAnalyzed || 0,
+                repositoryFiles: report?.repositoryFilesTotal || report?.totalFiles || 0,
+                consistencyScore: report?.consistencyScore ?? null,
+                schemaCompliance: report?.schemaCompliance ?? null,
+                gatePass: Boolean(gate.pass),
+                gateBlockingCount: gate.blockingCount || 0,
+                hasReport: Boolean(report)
+            }
+        });
+    });
+
     dashboardRouter.get('/api/status', async (req, res) => {
         await snapshotSend(res, 'api-status-summary', async () => {
             const sample = await loadAPISample(webRoot);
