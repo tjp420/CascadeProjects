@@ -7,7 +7,8 @@ const { analyzeStrategicInsights } = require('../../lib/strategic-insights-engin
 // Memory threshold (MB) — abort roadmap scan if heap usage exceeds this to prevent OOM crashes
 // on resource-constrained hosting (Render starter = 512MB RAM). V8 default heap limit is ~4GB
 // but the container OOM killer fires at the RSS level, so we guard well below 512MB.
-const ROADMAP_MEMORY_LIMIT_MB = 350;
+// Allow overriding in tests or CI via the `ROADMAP_MEMORY_LIMIT_MB` env var.
+const ROADMAP_MEMORY_LIMIT_MB = Number(process.env.ROADMAP_MEMORY_LIMIT_MB) || 350;
 
 function checkMemoryLimit() {
     const mem = process.memoryUsage();
