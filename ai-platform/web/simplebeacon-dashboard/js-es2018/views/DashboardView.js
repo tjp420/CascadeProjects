@@ -7,6 +7,7 @@ import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js
 import { mountTeamGatePassTrendChart } from '../components/TeamGatePassTrendChart.js?v=20260804team1';
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { mountMetricsCards } from '../components/MetricsCards.js?v=20260807metrics1';
+import { renderScanHistorySection, mountScanHistoryChart } from '../components/ScanHistoryChart.js?v=20260807chart1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
@@ -233,6 +234,16 @@ export class DashboardView {
         metricsCardsSlot.className = 'metrics-cards-section';
         mountMetricsCards(metricsCardsSlot, report, this.app.state.history);
         container.appendChild(metricsCardsSlot);
+
+        // Scan history chart: show historical trends when history exists
+        const history = this.app.state.history;
+        if (Array.isArray(history) && history.length > 0) {
+            const chartSlot = document.createElement('div');
+            chartSlot.id = 'scan-history-chart-slot';
+            chartSlot.className = 'scan-history-chart-section';
+            setSafeHTML(chartSlot, renderScanHistorySection(history));
+            container.appendChild(chartSlot);
+        }
 
         if (scanning) {
             container.appendChild(this.renderScanProgress());
@@ -956,6 +967,10 @@ export class DashboardView {
         requestAnimationFrame(() => {
             const trendSlot = view.querySelector('#slot-trend');
             this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
+            const chartSlot = view.querySelector('#scan-history-chart-slot');
+            if (chartSlot) {
+                this._scanHistoryCleanup = mountScanHistoryChart(chartSlot, this.app.state.history) || null;
+            }
         });
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
@@ -966,6 +981,8 @@ export class DashboardView {
             this._trendCleanup();
         if (this._teamTrendCleanup)
             this._teamTrendCleanup();
+        if (this._scanHistoryCleanup)
+            this._scanHistoryCleanup();
         this.stopScanProgressPolling();
     }
 }
