@@ -12,6 +12,8 @@ describe('ci-telemetry-store', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-ci-telemetry-'));
     storePath = path.join(tmpDir, 'ci-telemetry.json');
     process.env.SIMPLEBEACON_CI_TELEMETRY_STORE = storePath;
+    // Forcibly drop stale compiled module cache so module re-reads env in each test
+    delete require.cache[require.resolve('../ci-telemetry-store.cjs')];
     delete process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS;
   });
 
