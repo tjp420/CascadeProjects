@@ -875,6 +875,25 @@
     </div>
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
 
+    <!-- Google Analytics + SimpleBeacon Analytics Dispatcher -->
+    <script>
+    (function() {
+        var GA_ID = '';
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        if (GA_ID && GA_ID.indexOf('G-XXXX') === -1) {
+            gtag('config', GA_ID);
+            var s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_ID);
+            document.head.appendChild(s);
+        }
+    })();
+    </script>
+    <script src="/js-es2018/analytics.js"></script>
+
     <!-- HERO -->
     <section class="hero">
         <div class="hero-card">
@@ -883,8 +902,8 @@
             <p>AI-generated code doesn't look like a bug &mdash; it looks like a <strong style="color:#fff;">comment</strong>, a <strong style="color:#fff;">placeholder URL</strong>, or a <strong style="color:#fff;">hardcoded metric</strong> nobody questioned. SimpleBeacon's 52 deterministic engines catch it locally, in seconds, before it reaches CI. <strong style="color:#34D399;">No upload, no LLM, no false positives.</strong></p>
 
             <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:24px;">
-                <a href="/audit" id="link-audit" class="btn btn-primary">Run Free Local Scan &rarr;</a>
-                <a href="/terminal-walkthrough" class="btn btn-ghost">Explore CLI Deployment Spec &rarr;</a>
+                <a href="/audit" id="link-audit" class="btn btn-primary" onclick="if(window.SbAnalytics)SbAnalytics.trackCta('run_free_scan','hero')">Run Free Local Scan &rarr;</a>
+                <a href="/terminal-walkthrough" class="btn btn-ghost" onclick="if(window.SbAnalytics)SbAnalytics.trackCta('explore_cli_spec','hero')">Explore CLI Deployment Spec &rarr;</a>
             </div>
             <script>
             (function() {
@@ -999,7 +1018,7 @@
             </div>
             <script src="/js-es2018/terminal-simulation.js"></script>
             <p style="text-align:center;margin-top:20px;font-size:14px;color:var(--text-muted);">
-                Want to clean your own code? Run <code>simplebeacon fix --dry-run</code> locally, or <a href="/community" style="color:#60A5FA;text-decoration:none;">install the free CLI</a> and <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" style="color:#60A5FA;text-decoration:none;">get the VS Code extension</a>.
+                Want to clean your own code? Run <code>simplebeacon fix --dry-run</code> locally, or <a href="/community" style="color:#60A5FA;text-decoration:none;" onclick="if(window.SbAnalytics)SbAnalytics.trackCta('install_free_cli','terminal_demo')">install the free CLI</a> and <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" style="color:#60A5FA;text-decoration:none;" onclick="if(window.SbAnalytics)SbAnalytics.trackExtensionInstall('terminal_demo')">get the VS Code extension</a>.
             </p>
         </div>
     </section>

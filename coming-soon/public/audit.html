@@ -140,6 +140,24 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
             document.documentElement.classList.add('iframe-embed');
         }
     </script>
+    <!-- Google Analytics + SimpleBeacon Analytics Dispatcher -->
+    <script>
+    (function() {
+        var GA_ID = '';
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        if (GA_ID && GA_ID.indexOf('G-XXXX') === -1) {
+            gtag('config', GA_ID);
+            var s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_ID);
+            document.head.appendChild(s);
+        }
+    })();
+    </script>
+    <script src="/js-es2018/analytics.js"></script>
     <style>
         .iframe-embed .sb-site-nav { display: none !important; }
         .iframe-embed .container { padding-top: 20px; }
@@ -179,14 +197,14 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#60A5FA;margin-bottom:8px;">Low Friction &middot; Instant</div>
                     <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Browser Triage</h3>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Drag &amp; drop a folder for instant string/regex heuristics across 52 rule engines. 100% local &mdash; no AST, no npm audit, no upload.</p>
-                    <button type="button" onclick="document.getElementById('tab-browser').click();document.getElementById('audit-dropzone').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Drop Folder Here &rarr;</button>
+                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('browser_triage');document.getElementById('tab-browser').click();document.getElementById('audit-dropzone').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Drop Folder Here &rarr;</button>
                 </div>
                 <!-- Right: Deep Scan -->
                 <div style="padding:20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;text-align:left;">
                     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#34D399;margin-bottom:8px;">Full Power &middot; Complete</div>
                     <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Deep Scan (CLI)</h3>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Run <code style="font-size:0.75rem;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">npx simplebeacon scan</code> in your terminal for AST parsing, npm audit integration, and unlimited file coverage.</p>
-                    <button type="button" onclick="document.getElementById('tab-cli').click();document.getElementById('cli-setup-panel').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:transparent;color:#34D399;border:1px solid rgba(16,185,129,0.3);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">View CLI Setup &rarr;</button>
+                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('deep_scan');document.getElementById('tab-cli').click();document.getElementById('cli-setup-panel').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:transparent;color:#34D399;border:1px solid rgba(16,185,129,0.3);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">View CLI Setup &rarr;</button>
                 </div>
             </div>
 
@@ -204,7 +222,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
         <div class="simplebeacon-banner" id="simplebeacon-banner" style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
             <span style="display:flex;align-items:center;gap:6px;color:var(--warning);font-weight:600;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Simplebeacon</span>
             <span>52 deterministic engines detect placeholder debris, markdown fences, hardcoded metrics, and security risks. Browser triage runs regex heuristics locally; deep AST analysis and npm audit require the CLI or server dashboard. The gate scanner is 100% deterministic &mdash; no LLM, no external calls.</span>
-            <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;">Get VS Code Extension &rarr;</a>
+            <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;" onclick="if(window.SbAnalytics)SbAnalytics.trackExtensionInstall('audit_banner')">Get VS Code Extension &rarr;</a>
         </div>
 
         <!-- Visual Stepper -->

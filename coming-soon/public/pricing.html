@@ -43,6 +43,7 @@
       document.head.appendChild(s);
     })();
   </script>
+  <script src="/js-es2018/analytics.js"></script>
   <style>
     /* Redesigned Pricing Page Styles */
     .pricing-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; position: relative; }
@@ -1524,7 +1525,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
         clean.onclick = function(e) {
           e.preventDefault();
           e.stopPropagation();
-          if (typeof gtag === 'function') {
+          if (typeof SbAnalytics !== 'undefined') {
+            SbAnalytics.trackBeginCheckout(tier, tier === 'team_pro' ? 149 : (tier === 'developer' ? 49 : 0));
+          } else if (typeof gtag === 'function') {
             gtag('event', 'begin_checkout', { event_category: 'ecommerce', event_label: tier, value: tier === 'team_pro' ? 149 : (tier === 'developer' ? 49 : 0) });
           }
           openCheckoutModal(tier);
