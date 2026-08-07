@@ -107,6 +107,7 @@ const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
 const DatabaseAdapter = require('./lib/database-adapter.cjs');
 const { whitelabelMiddleware, buildBrandInjection } = require('./lib/whitelabel-middleware.cjs');
+const whitelabelRoutes = require('./routes/whitelabel-routes.cjs');
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy hop for rate-limit IP accuracy
@@ -835,6 +836,10 @@ app.use((req, res, next) => {
   return _webRootStatic(req, res, next);
 });
 app.use('/assets', express.static(path.join(webRoot, 'assets')));
+
+// Whitelabel partner branding API - public resolve endpoint for dashboard BrandContext
+// Mounted after whitelabelMiddleware so req.brand is populated; resolve returns default brand for unknown domains
+app.use('/api/whitelabel', whitelabelRoutes);
 
 // Health, status, and VS Code heartbeat routes
 app.use('/api', require('./routes/health-routes.cjs'));

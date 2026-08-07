@@ -2546,11 +2546,12 @@ exports.buildValidMerkleProof = function (leafCount = 2, opts = {}) {
  * @param {object} [opts.fuzzProfile.prng] ΓÇö deterministic PRNG
  * @returns {object} ΓÇö { total, accepted, rejected, mutated, passed, failures }
  */
-exports.runZkVerificationRunner = async function (opts) {
+exports.runMutationFuzzRunner = async function (opts) {
   opts = opts || {};
-  const verifyFn = (typeof opts.verifyFn === 'function')
-    ? opts.verifyFn
-    : () => ({ valid: true });
+  if (typeof opts.verifyFn !== 'function') {
+    throw new Error('runMutationFuzzRunner: opts.verifyFn is required');
+  }
+  const verifyFn = opts.verifyFn;
   const validProofs = opts.validProofs || [];
   const fuzz = opts.fuzzProfile || {};
   const mutationRate = fuzz.mutationRate !== undefined ? fuzz.mutationRate : 0.5;

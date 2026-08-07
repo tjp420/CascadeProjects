@@ -15,6 +15,7 @@ const KEY_TTL_MS = 24 * 60 * 60 * 1000;
 let redisClient = null;
 let usingRedis = false;
 let _redisReady = false;
+let _shuttingDown = false;
 // Allow tests or ops to disable Redis usage explicitly. This avoids background
 // connection attempts during `NODE_ENV=test` runs or CI diagnostics when the
 // environment cannot reach a Redis instance.
@@ -68,11 +69,11 @@ try {
   redisClient.connect().then(() => {
     usingRedis = true;
     _redisReady = true;
-    logger.info('Redis throttle backend connected');
+    if (!_shuttingDown) logger.info('Redis throttle backend connected');
   }).catch((err) => {
     usingRedis = false;
     _redisReady = false;
-    logger.info('Redis not available; admin-throttle running in in-memory mode', { error: err.message });
+    if (!_shuttingDown) logger.info('Redis not available; admin-throttle running in in-memory mode', { error: err.message });
   });
   // Hook into ioredis native events for automatic recovery.
   // ioredis auto-reconnects by default; when the connection is restored
@@ -80,7 +81,7 @@ try {
   // throttle exits the in-memory fallback mode.
   redisClient.on('ready', () => {
     if (!usingRedis) {
-      logger.info('Redis connection restored; re-enabling distributed throttle');
+      if (!_shuttingDown) logger.info('Redis connection restored; re-enabling distributed throttle');
     }
     usingRedis = true;
     _redisReady = true;
@@ -219,7 +220,8 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
     redis.call('PEXPIRE', key, ${KEY_TTL_MS})
     return {allowed, newTokens}
   `;
-  try {
+    try {
+      if (_shuttingDown) return _consumeFromMemory(bucketKey, consume, reserve);
     try {
       if (typeof redisClient.tokenBucketConsume === 'function') {
         const res = await redisClient.tokenBucketConsume(bucketKey, CAPACITY, LEAK_RATE, now, consume, reserveTokens);
@@ -232,12 +234,12 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
     // Use send_command to avoid literal eval token in source which can trigger scanners
     const res = await redisClient.send_command('EVAL', [script, '1', bucketKey, CAPACITY, LEAK_RATE, now, consume, reserveTokens]);
     return { allowed: Number(res[0]) === 1, tokens: Number(res[1]) };
-  } catch (e) {
+    } catch (e) {
     // Temporarily disable Redis — the 'ready' event handler will
     // re-enable usingRedis when ioredis reconnects. This avoids a
     // permanent downgrade to in-memory from a single transient blip.
     usingRedis = false;
-    logger.warn('Redis token bucket failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
+      if (!_shuttingDown) logger.warn('Redis token bucket failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
     if (lastKnown && lastKnown[0] !== null && lastKnown[1] !== null) {
       inMemoryBuckets.set(bucketKey, {
         tokens: Number(lastKnown[0]),
@@ -267,7 +269,7 @@ async function _drainFromRedis(bucketKey) {
   } catch (e) {
     // Temporary disable — 'ready' event will re-enable on reconnect.
     usingRedis = false;
-    logger.warn('Redis drain failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
+    if (!_shuttingDown) logger.warn('Redis drain failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
     _drainFromMemory(bucketKey);
   }
 }
@@ -376,7 +378,7 @@ async function _probeRedisHealth() {
   try {
     await redisClient.ping();
     if (!usingRedis) {
-      logger.info('Redis health probe succeeded; re-enabling distributed throttle');
+      if (!_shuttingDown) logger.info('Redis health probe succeeded; re-enabling distributed throttle');
     }
     usingRedis = true;
     _redisReady = true;
@@ -401,4 +403,32 @@ module.exports = {
   middleware,
   _probeRedisHealth,
   _isRedisEnabled: () => usingRedis,
+  // Graceful shutdown for tests and process teardown. Attempts to stop
+  // background redis activity, remove event listeners, and clear in-memory state.
+  shutdown: async () => {
+    // Mark shutting down early to suppress any new logs or retries
+    _shuttingDown = true;
+    try {
+      // Remove ioredis listeners to avoid logging after tests finish
+      if (redisClient && typeof redisClient.removeAllListeners === 'function') {
+        try { redisClient.removeAllListeners('ready'); } catch (e) {}
+        try { redisClient.removeAllListeners('error'); } catch (e) {}
+        try { redisClient.removeAllListeners('close'); } catch (e) {}
+      }
+      if (redisClient) {
+        try {
+          if (typeof redisClient.quit === 'function') await redisClient.quit();
+          else if (typeof redisClient.disconnect === 'function') await redisClient.disconnect();
+        } catch (e) {
+          // best-effort, ignore errors during shutdown
+        }
+      }
+    } finally {
+      // Reset internal state so subsequent tests don't see stale handles
+      try { inMemoryBuckets.clear(); } catch (e) {}
+      try { redisClient = null; } catch (e) {}
+      usingRedis = false;
+      _redisReady = false;
+    }
+  },
 };

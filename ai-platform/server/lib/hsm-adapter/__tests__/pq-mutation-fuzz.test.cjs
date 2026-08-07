@@ -8,7 +8,7 @@ const {
   mutateStructuralNoise,
   applyRandomMutation,
   buildValidMerkleProof,
-  runZkVerificationRunner,
+  runMutationFuzzRunner,
 } = require('./tenant-fuzz-harness.cjs');
 
 const PoRepVerifier = require('../track112/poRep-verifier.cjs');
@@ -205,11 +205,11 @@ describe('Post-Quantum Mutation Fuzzing Utilities', () => {
   });
 });
 
-describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
+describe('runMutationFuzzRunner — Fail-Closed Mutation Fuzzing', () => {
   test('ZK-RUN-01: valid proofs are accepted without mutation', async () => {
     const verifier = new PoRepVerifier();
     const validProof = buildValidMerkleProof(2);
-    const result = await runZkVerificationRunner({
+    const result = await runMutationFuzzRunner({
       verifyFn: (proof) => verifier.verify(proof),
       validProofs: [validProof],
       fuzzProfile: {
@@ -226,7 +226,7 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
   test('ZK-RUN-02: 100% mutation rate rejects all mutated proofs', async () => {
     const verifier = new PoRepVerifier();
     const validProof = buildValidMerkleProof(2);
-    const result = await runZkVerificationRunner({
+    const result = await runMutationFuzzRunner({
       verifyFn: (proof) => verifier.verify(proof),
       validProofs: [validProof],
       fuzzProfile: {
@@ -245,7 +245,7 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
     const validProof = buildValidMerkleProof(2, {
       prng: makeHashChainPrng(FUZZ_SEED + '-zk-run-3'),
     });
-    const result = await runZkVerificationRunner({
+    const result = await runMutationFuzzRunner({
       verifyFn: (proof) => verifier.verify(proof),
       validProofs: [validProof],
       fuzzProfile: {
@@ -266,7 +266,7 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
       buildValidMerkleProof(2, { prng: makeHashChainPrng(FUZZ_SEED + '-inv-2') }),
       buildValidMerkleProof(4, { prng: makeHashChainPrng(FUZZ_SEED + '-inv-4') }),
     ];
-    const result = await runZkVerificationRunner({
+    const result = await runMutationFuzzRunner({
       verifyFn: (proof) => verifier.verify(proof),
       validProofs,
       fuzzProfile: {
@@ -282,12 +282,11 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
   });
 
   test('ZK-RUN-05: rejects on missing verifyFn', async () => {
-    const result = runZkVerificationRunner({});
-    await expect(result).rejects.toThrow('verifyFn');
+    await expect(runMutationFuzzRunner({})).rejects.toThrow('verifyFn');
   });
 
   test('ZK-RUN-06: handles empty validProofs array gracefully', async () => {
-    const result = await runZkVerificationRunner({
+    const result = await runMutationFuzzRunner({
       verifyFn: () => ({ valid: true }),
       validProofs: [],
       fuzzProfile: { iterations: 10 },
@@ -298,7 +297,7 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
   test('ZK-RUN-07: handles verifyFn that throws on mutated input', async () => {
     const verifier = new PoRepVerifier();
     const validProof = buildValidMerkleProof(2);
-    const result = await runZkVerificationRunner({
+    const result = await runMutationFuzzRunner({
       verifyFn: (proof) => {
         if (proof.__malformed) throw new Error('PARSE_ERROR');
         return verifier.verify(proof);
@@ -318,7 +317,7 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
     const validProof = buildValidMerkleProof(2, {
       prng: makeHashChainPrng(FUZZ_SEED + '-det-run'),
     });
-    const r1 = await runZkVerificationRunner({
+    const r1 = await runMutationFuzzRunner({
       verifyFn: (proof) => verifier.verify(proof),
       validProofs: [validProof],
       fuzzProfile: {
@@ -327,7 +326,7 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
         prng: makeHashChainPrng(FUZZ_SEED + '-det-runner'),
       },
     });
-    const r2 = await runZkVerificationRunner({
+    const r2 = await runMutationFuzzRunner({
       verifyFn: (proof) => verifier.verify(proof),
       validProofs: [validProof],
       fuzzProfile: {
@@ -381,7 +380,7 @@ describe('runZkVerificationRunner — Fail-Closed Mutation Fuzzing', () => {
       buildValidMerkleProof(4, { prng: makeHashChainPrng(FUZZ_SEED + '-stress-4') }),
       buildValidMerkleProof(1, { prng: makeHashChainPrng(FUZZ_SEED + '-stress-1') }),
     ];
-    const result = await runZkVerificationRunner({
+    const result = await runMutationFuzzRunner({
       verifyFn: (proof) => verifier.verify(proof),
       validProofs,
       fuzzProfile: {

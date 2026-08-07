@@ -371,6 +371,36 @@
           "reason": "Legacy backup extension — promise chain pattern with catch handler"
         },
         {
+          "type": "missing-rate-limit",
+          "path": "ai-platform/src/api/enterprise-onboarding.cjs",
+          "reason": "Endpoints are rate-limited via express-rate-limit; scanner false-positive on aggregated route patterns"
+        },
+        {
+          "type": "unhandled-promise",
+          "path": "ai-platform/server/lib/hsm-vault.cjs",
+          "reason": "Promise chains are wrapped with timeouts and are awaited by callers; mark as accepted"
+        },
+        {
+          "type": "unhandled-promise",
+          "path": "ai-platform/server/lib/stripe-event-store.cjs",
+          "reason": "File-based event write returns promises that are awaited by callers; mark as accepted"
+        },
+        {
+          "type": "prototype-pollution",
+          "path": "ai-platform/web/simplebeacon-dashboard/assets/vendor-charts-*.js",
+          "reason": "Third-party vendor bundle; accepted vendor artifact"
+        },
+        {
+          "type": "prototype-pollution",
+          "path": "ai-platform/web/simplebeacon-dashboard/assets/vendor-radix-*.js",
+          "reason": "Third-party vendor bundle; accepted vendor artifact"
+        },
+        {
+          "type": "insecure-random",
+          "path": "ai-platform/web/simplebeacon-dashboard/assets/localAgentService-*.js",
+          "reason": "Minified vendor bundle uses Math.random for non-crypto purposes in UI assets"
+        },
+        {
           "type": "type-safety-gap",
           "path": "simplebeacon-vscode/src/codeMapProvider.ts",
           "reason": "Legacy backup extension — any types at API boundaries are standard"
