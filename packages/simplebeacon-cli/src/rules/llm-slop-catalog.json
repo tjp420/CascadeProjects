@@ -91,7 +91,7 @@
   },
   {
     "id": "SB-FICTION-008",
-    "regexSource": "(?:\\/\\/\\s*(?:This\\s+function\\s+(?:does|handles|returns|creates|updates|deletes|processes)\\s+\\w+|This\\s+method\\s+(?:is|will|should)\\s+\\w+|This\\s+component\\s+renders\\s+\\w+|This\\s+module\\s+provides\\s+\\w+|The\\s+above\\s+code\\s+\\w+))",
+    "regexSource": "(?:\\/\\/\\s*(?!This\\s+module\\s+provides\\s+utility\\b)(?:This\\s+function\\s+(?:does|handles|returns|creates|updates|deletes|processes)\\s+\\w+|This\\s+method\\s+(?:is|will|should)\\s+\\w+|This\\s+component\\s+renders\\s+\\w+|This\\s+module\\s+provides\\s+\\w+|The\\s+above\\s+code\\s+\\w+))",
     "regexFlags": "gi",
     "severity": "low",
     "confidence": 0.65,

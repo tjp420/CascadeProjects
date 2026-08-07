@@ -17,7 +17,7 @@ test('validateFormat accepts action-plan', () => {
 test('validateFormat rejects invalid format', () => {
     assert.throws(() => validateFormat('xml'), /Invalid --format/);
     assert.throws(() => validateFormat(''), /Invalid --format/);
-    assert.throws(() => validateFormat('markdown'), /Invalid --format/);
+    assert.throws(() => validateFormat('yaml'), /Invalid --format/);
 });
 
 test('selectPayload returns JSON for json format', () => {
