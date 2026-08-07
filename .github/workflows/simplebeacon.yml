@@ -39,6 +39,86 @@ jobs:
         id: scan
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan --complete --gate --path . --format json --output .simplebeacon/report.json
+        continue-on-error: true
+
+      - name: Generate PR comment and step summary
+        if: always()
+        run: |
+          node -e "
+            const fs = require('fs');
+            const { formatGithubComment, formatGithubStepSummary } = require('./packages/simplebeacon-cli/src/reporters/github-comment');
+            let report, gate;
+            try {
+              const raw = JSON.parse(fs.readFileSync('.simplebeacon/report.json', 'utf8'));
+              report = raw.report || raw;
+              gate = report.gate || null;
+            } catch (e) {
+              console.log('Could not read report:', e.message);
+              process.exit(0);
+            }
+            // Write step summary
+            const stepSummary = formatGithubStepSummary(report, gate);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY || '/dev/null', stepSummary + '\n');
+            // Write PR comment body to file for next step
+            const comment = formatGithubComment(report, gate, {
+              repo: process.env.GITHUB_REPOSITORY,
+              serverUrl: process.env.GITHUB_SERVER_URL || 'https://github.com',
+              ref: process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'main'
+            });
+            fs.writeFileSync('.simplebeacon/pr-comment.md', comment);
+            console.log('PR comment generated (' + comment.length + ' chars)');
+          "
+
+      - name: Post PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('.simplebeacon/pr-comment.md')) {
+              console.log('No PR comment to post');
+              return;
+            }
+            const body = fs.readFileSync('.simplebeacon/pr-comment.md', 'utf8');
+            // Find and update existing SimpleBeacon comment, or create new one
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number
+            });
+            const existing = comments.data.find(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('52 Deterministic Engines')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+              console.log('Updated existing SimpleBeacon comment:', existing.id);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body
+              });
+              console.log('Posted new SimpleBeacon comment');
+            }
+
+      - name: Set gate status
+        if: always()
+        run: |
+          if [ -f .simplebeacon/report.json ]; then
+            GATE_PASS=$(node -e "const r=require('./.simplebeacon/report.json');const rep=r.report||r;console.log(rep.gate?.pass?'true':'false')" 2>/dev/null || echo "false")
+            if [ "$GATE_PASS" = "false" ]; then
+              echo "Gate failed — exiting with code 1"
+              exit 1
+            fi
+          fi
 
       - name: Print blocking issues on failure
         if: failure()

@@ -83,7 +83,7 @@ function formatGithubComment(report, gateResult = null, options = {}) {
         : '❌ SimpleBeacon gate **failed** — merge blocked until blocking findings are resolved.';
 
     const lines = [
-        '## 🔦 SimpleBeacon — AI Circuit Breaker',
+        '## 🔦 SimpleBeacon — 52 Deterministic Engines',
         '',
         headline,
         ''
@@ -148,7 +148,7 @@ function formatGithubComment(report, gateResult = null, options = {}) {
     lines.push('---');
     lines.push(`[Team dashboard](${dashboardUrl}) · [Upgrade for org-wide CI history](${pricingUrl})`);
     lines.push('');
-    lines.push('_SimpleBeacon gates AI slop, credential leaks, and mock-path drift — complementary to Snyk/GHAS._');
+    lines.push('_52 deterministic engines catch AI code debt that traditional linting misses — no upload, no LLM, no false positives._');
 
     return lines.join('\n');
 }
@@ -163,7 +163,7 @@ function formatGithubStepSummary(report, gateResult = null) {
         ? ` · 🏖️ Sandbox Mode — [upgrade to unlock team features](${report.sandbox.upgradeUrl || 'https://simplebeacon.ai/pricing'})`
         : '';
     return [
-        '## SimpleBeacon',
+        '## SimpleBeacon — 52 Deterministic Engines',
         '',
         gate ? (gate.pass ? '✅ Gate **PASS**' : '❌ Gate **FAIL**') : 'Gate not evaluated',
         '',
