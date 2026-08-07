@@ -294,6 +294,7 @@ const FLAG_MAP = [
     { aliases: ['--secrets-only'], key: 'secretsOnly', type: 'boolean' },
     { aliases: ['--offline'], key: 'offline', type: 'boolean' },
     { aliases: ['--air-gapped'], key: 'airGapped', type: 'boolean' },
+    { aliases: ['--strict-license'], key: 'strictLicense', type: 'boolean' },
     { aliases: ['--recursive'], key: 'recursive', type: 'boolean' },
     { aliases: ['--anonymous'], key: 'anonymous', type: 'boolean' },
     { aliases: ['--no-trust-banner'], key: 'noTrustBanner', type: 'boolean' },
@@ -566,6 +567,8 @@ Scan options:
   --offline           Fail if any outbound network activity occurs during scan
   --air-gapped        Enterprise air-gapped mode: implies --offline, skips remote license
                       validation and telemetry, uses only local cache for registry lookups
+  --strict-license    Fail-closed on expired or invalid license tokens (default: fail-open
+                      to community mode with warning, so pipelines are not blocked)
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
   --no-referral-nudge Suppress post-scan referral share banner (also SIMPLEBEACON_REFERRAL_NUDGE=false)
   --slop-cop          Run AI Slop Cop (LLM residue / mock-data detection) during scan
@@ -1016,7 +1019,7 @@ async function runScanCommand(options) {
         console.error(`${paint('✓', 'green')} Air-gapped mode — remote license validation and telemetry disabled`);
     }
 
-    const license = await resolveCiLicense({ failOpenOnNetwork: true, allowRemote: !airGapped, airGapped });
+    const license = await resolveCiLicense({ failOpenOnNetwork: true, failOpenOnExpired: !options.strictLicense, allowRemote: !airGapped, airGapped });
     if (!license.ok) {
         console.error(`[simplebeacon] ${license.message || 'Invalid SIMPLEBEACON_LICENSE_TOKEN'}`);
         return 1;

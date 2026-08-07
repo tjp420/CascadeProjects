@@ -85,11 +85,12 @@ async function tryRemoteValidation(token) {
 
 /**
  * Resolve license for CI runs.
- * @param {{ failOpenOnNetwork?: boolean, allowRemote?: boolean }} [options]
+ * @param {{ failOpenOnNetwork?: boolean, failOpenOnExpired?: boolean, allowRemote?: boolean, airGapped?: boolean }} [options]
  * @returns {Promise<Object>}
  */
 async function resolveCiLicense(options = {}) {
     const failOpenOnNetwork = options.failOpenOnNetwork !== false;
+    const failOpenOnExpired = options.failOpenOnExpired !== false;
     const airGapped = options.airGapped === true;
     const token = process.env.SIMPLEBEACON_LICENSE_TOKEN || resolveLicenseToken();
     const isPipeline = isPipelineScan();
@@ -170,6 +171,19 @@ async function resolveCiLicense(options = {}) {
                 upgradeUrl: DEFAULT_UPGRADE_URL,
                 mode: 'offline-fallback',
                 warning: 'License server unreachable — running community gate (scan not blocked).'
+            };
+        }
+        if (failOpenOnExpired) {
+            return {
+                ok: true,
+                tier: 'developer',
+                paid: false,
+                limits: getTierLimits('developer'),
+                active: false,
+                sandbox: isPipeline,
+                upgradeUrl: DEFAULT_UPGRADE_URL,
+                mode: 'expired-fallback',
+                warning: 'SIMPLEBEACON_LICENSE_TOKEN is expired or invalid. Running community gate (scan not blocked). Renew at ' + DEFAULT_UPGRADE_URL + ' or set --strict-license to enforce.'
             };
         }
         return {

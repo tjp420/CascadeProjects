@@ -62,3 +62,92 @@ test('resolveCiLicense allows community mode without token', async () => {
     assert.equal(license.ok, true);
     assert.equal(license.mode, 'community');
 });
+
+test('resolveCiLicense fail-open on remote-rejected expired token (default)', async () => {
+    process.env.SIMPLEBEACON_LICENSE_TOKEN = 'expired-or-invalid-token';
+    process.env.CI = 'true';
+    delete process.env.SIMPLEBEACON_LICENSE_SECRET;
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({}) });
+    try {
+        const license = await resolveCiLicense({ failOpenOnExpired: true, allowRemote: true });
+        assert.equal(license.ok, true);
+        assert.equal(license.mode, 'expired-fallback');
+        assert.ok(license.warning, 'should have a warning message');
+        assert.match(license.warning, /strict-license/);
+    } finally {
+        globalThis.fetch = origFetch;
+        delete process.env.SIMPLEBEACON_LICENSE_TOKEN;
+        delete process.env.CI;
+    }
+});
+
+test('resolveCiLicense fail-closed on remote-rejected expired token with --strict-license', async () => {
+    process.env.SIMPLEBEACON_LICENSE_TOKEN = 'expired-or-invalid-token';
+    process.env.CI = 'true';
+    delete process.env.SIMPLEBEACON_LICENSE_SECRET;
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({}) });
+    try {
+        const license = await resolveCiLicense({ failOpenOnExpired: false, allowRemote: true });
+        assert.equal(license.ok, false);
+        assert.equal(license.error, 'invalid_token');
+    } finally {
+        globalThis.fetch = origFetch;
+        delete process.env.SIMPLEBEACON_LICENSE_TOKEN;
+        delete process.env.CI;
+    }
+});
+
+test('resolveCiLicense fail-open on remote-rejected token (default)', async () => {
+    process.env.SIMPLEBEACON_LICENSE_TOKEN = 'bad-token';
+    process.env.CI = 'true';
+    delete process.env.SIMPLEBEACON_LICENSE_SECRET;
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({}) });
+    try {
+        const license = await resolveCiLicense({ failOpenOnExpired: true, allowRemote: true });
+        assert.equal(license.ok, true);
+        assert.equal(license.mode, 'expired-fallback');
+        assert.ok(license.warning, 'should have warning with renewal link');
+        assert.match(license.warning, /strict-license/);
+    } finally {
+        globalThis.fetch = origFetch;
+        delete process.env.SIMPLEBEACON_LICENSE_TOKEN;
+        delete process.env.CI;
+    }
+});
+
+test('resolveCiLicense fail-closed on remote-rejected token with --strict-license', async () => {
+    process.env.SIMPLEBEACON_LICENSE_TOKEN = 'bad-token';
+    process.env.CI = 'true';
+    delete process.env.SIMPLEBEACON_LICENSE_SECRET;
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({}) });
+    try {
+        const license = await resolveCiLicense({ failOpenOnExpired: false, allowRemote: true });
+        assert.equal(license.ok, false);
+        assert.equal(license.error, 'invalid_token');
+    } finally {
+        globalThis.fetch = origFetch;
+        delete process.env.SIMPLEBEACON_LICENSE_TOKEN;
+        delete process.env.CI;
+    }
+});
+
+test('resolveCiLicense network error fail-open regardless of strict-license', async () => {
+    process.env.SIMPLEBEACON_LICENSE_TOKEN = 'some-token';
+    process.env.CI = 'true';
+    delete process.env.SIMPLEBEACON_LICENSE_SECRET;
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async () => { throw new Error('network down'); };
+    try {
+        const license = await resolveCiLicense({ failOpenOnExpired: false, allowRemote: true });
+        assert.equal(license.ok, true);
+        assert.equal(license.mode, 'offline-fallback');
+    } finally {
+        globalThis.fetch = origFetch;
+        delete process.env.SIMPLEBEACON_LICENSE_TOKEN;
+        delete process.env.CI;
+    }
+});
