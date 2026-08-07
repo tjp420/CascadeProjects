@@ -603,14 +603,16 @@ const noStoreStatic = (dir) => express.static(dir, {
 
 app.use('/js-es2018', noStoreStatic(path.join(dashDir, 'js-es2018')));
 app.use('/js', noStoreStatic(path.join(dashDir, 'js')));
+app.use('/utils-lib', noStoreStatic(path.join(dashDir, 'utils-lib')));
 app.use('/dashboard/js-es2018', noStoreStatic(path.join(dashDir, 'js-es2018')));
 app.use('/dashboard/js', noStoreStatic(path.join(dashDir, 'js')));
+app.use('/dashboard/utils-lib', noStoreStatic(path.join(dashDir, 'utils-lib')));
 for (const p of ['/css', '/images', '/fonts']) {
   app.use(p, express.static(path.join(dashDir, p.substring(1))));
 }
 app.use('/assets', noStoreStatic(path.join(dashDir, 'assets')));
 // Also serve under /dashboard/ prefix so relative paths work for /dashboard/* routes
-for (const p of ['/dashboard/css', '/dashboard/images', '/dashboard/fonts']) {
+for (const p of ['/dashboard/css', '/dashboard/images', '/dashboard/fonts', '/dashboard/utils-lib']) {
   const sub = p.replace('/dashboard/', '');
   app.use(p, express.static(path.join(dashDir, sub)));
 }
@@ -624,13 +626,28 @@ app.get('/site-config.js', (req, res, next) => {
   }
   next();
 });
+app.get('/js-es2018/referral-capture.js', (req, res, next) => {
+  const candidates = [
+    path.join(dashDir, 'js-es2018', 'referral-capture.js'),
+    path.join(landingRoot, 'dashboard', 'js-es2018', 'referral-capture.js'),
+    path.join(landingRoot, 'js-es2018', 'referral-capture.js')
+  ];
+  for (const filePath of candidates) {
+    if (fs.existsSync(filePath)) {
+      res.set('Content-Type', 'application/javascript; charset=utf-8');
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+      return res.sendFile(filePath);
+    }
+  }
+  next();
+});
 
 // Dashboard static asset fallback ΓÇö also check coming-soon/public/dashboard for vendor files
 const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
   ? path.join(landingRoot, 'dashboard')
   : null;
 if (dashboardFallbackDir) {
-  for (const p of ['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets']) {
+  for (const p of ['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets', '/dashboard/utils-lib']) {
     const sub = p.replace('/dashboard/', '');
     app.use(p, express.static(path.join(dashboardFallbackDir, sub), { fallthrough: false }));
   }

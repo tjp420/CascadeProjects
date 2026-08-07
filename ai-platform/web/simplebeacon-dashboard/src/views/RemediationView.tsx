@@ -116,6 +116,7 @@ export function RemediationView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ projectPath, analysisType: 'roadmap' }),
+        signal: AbortSignal.timeout(35000),
       });
       if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
       const json = await resp.json();
