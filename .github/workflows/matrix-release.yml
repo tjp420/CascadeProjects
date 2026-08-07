@@ -1,0 +1,380 @@
+# Matrix Release Pipeline for SimpleBeacon monorepo.
+#
+# Replaces auto-release.yml and release-tagger.yml with a unified matrix
+# that releases multiple packages in parallel from a single PR merge.
+#
+# ── Trigger ──
+#   PR merge to main (pull_request closed + merged == true)
+#
+# ── Bump Type Resolution (hybrid) ──
+#   1. PR labels take priority:
+#        release:patch  — bug fixes, small tweaks
+#        release:minor  — new features, no breaking changes
+#        release:major  — breaking changes
+#   2. If no release label, fall back to commit message conventions:
+#        breaking:/BREAKING CHANGE → major
+#        feat:/feature:            → minor
+#        fix:/bugfix:/resolve:     → patch
+#        (only chores/docs)        → no release
+#
+# ── Release Scope ──
+#   release:cli-only     → only CLI package
+#   release:vscode-only  → only VS Code extension
+#   (default)            → both packages
+#
+# ── Matrix Packages ──
+#   cli    → packages/simplebeacon-cli    → tag: simplebeacon-v*  → npm
+#   vscode → simplebeacon-vscode-merged   → tag: vscode-v*        → VS Code Marketplace
+#
+# ── Downstream Publishing ──
+#   This workflow handles: bump, changelog, tag, GitHub Release.
+#   Publishing is handled by unified-release.yml (triggered by GitHub Release event).
+#
+# ── Secrets ──
+#   GITHUB_TOKEN — automatic, used for git push + GitHub Release creation
+
+name: Matrix Release on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  # ── Resolve bump type from PR labels or commit messages ──
+  resolve-bump:
+    name: Resolve Bump Type
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    outputs:
+      should_release: ${{ steps.resolve.outputs.should_release }}
+      bump_type: ${{ steps.resolve.outputs.bump_type }}
+      release_scope: ${{ steps.resolve.outputs.release_scope }}
+      source: ${{ steps.resolve.outputs.source }}
+    steps:
+      - name: Checkout (full history for commit analysis)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve bump type (hybrid: labels first, then commits)
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Get PR labels as JSON array
+          LABELS_JSON='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          echo "PR labels: $LABELS_JSON"
+
+          # Get commit messages from the PR range
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          # Fetch the PR commits if not already present
+          git fetch origin "$BASE_SHA" 2>/dev/null || true
+          git fetch origin "$HEAD_SHA" 2>/dev/null || true
+
+          COMMIT_MSGS=""
+          if git rev-parse "$BASE_SHA" >/dev/null 2>&1 && git rev-parse "$HEAD_SHA" >/dev/null 2>&1; then
+            COMMIT_MSGS=$(git log --pretty=%s "${BASE_SHA}..${HEAD_SHA}" 2>/dev/null || echo "")
+          fi
+
+          # Use the resolve script for deterministic logic
+          RESULT=$(node scripts/resolve-bump-type.cjs \
+            --labels "$LABELS_JSON" \
+            --commits "$COMMIT_MSGS")
+
+          echo "Resolution result: $RESULT"
+
+          SHOULD_RELEASE=$(echo "$RESULT" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).shouldRelease")
+          BUMP_TYPE=$(echo "$RESULT" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).bumpType || ''")
+          SCOPE=$(echo "$RESULT" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).scope")
+          SOURCE=$(echo "$RESULT" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).source")
+
+          echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "release_scope=$SCOPE" >> $GITHUB_OUTPUT
+          echo "source=$SOURCE" >> $GITHUB_OUTPUT
+
+          if [ "$SHOULD_RELEASE" = "true" ]; then
+            echo "::notice::Release triggered — bump: $BUMP_TYPE, scope: $SCOPE, source: $SOURCE"
+          else
+            echo "::notice::No release trigger (no label, no feat/fix/breaking commits)"
+          fi
+
+  # ── Matrix: Release each package ──
+  release:
+    name: Release ${{ matrix.package-name }}
+    needs: resolve-bump
+    if: needs.resolve-bump.outputs.should_release == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package-name: cli
+            package-path: packages/simplebeacon-cli
+            tag-prefix: simplebeacon-v
+            changelog-path: packages/simplebeacon-cli/CHANGELOG.md
+          - package-name: vscode
+            package-path: simplebeacon-vscode-merged
+            tag-prefix: vscode-v
+            changelog-path: simplebeacon-vscode-merged/CHANGELOG.md
+    runs-on: ubuntu-latest
+    # Skip package if scope is restricted
+    steps:
+      - name: Check scope
+        id: scope-check
+        shell: bash
+        run: |
+          SCOPE="${{ needs.resolve-bump.outputs.release_scope }}"
+          PKG="${{ matrix.package-name }}"
+          if [ "$SCOPE" = "cli" ] && [ "$PKG" != "cli" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::notice::Skipping $PKG — scope is cli-only"
+          elif [ "$SCOPE" = "vscode" ] && [ "$PKG" != "vscode" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::notice::Skipping $PKG — scope is vscode-only"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip (out of scope)
+        if: steps.scope-check.outputs.skip == 'true'
+        run: echo "Skipping — package not in release scope"
+
+      - name: Checkout (full history for changelog)
+        if: steps.scope-check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Initialize Git Identity
+        if: steps.scope-check.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Node.js
+        if: steps.scope-check.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Bump version
+        id: bump
+        if: steps.scope-check.outputs.skip != 'true'
+        working-directory: ${{ matrix.package-path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUMP="${{ needs.resolve-bump.outputs.bump_type }}"
+          CURRENT=$(node -p "require('./package.json').version")
+
+          # Semver bump using the resolve script's bumpVersion function
+          NEW_VERSION=$(node -e "
+            const { bumpVersion } = require('${{ github.workspace }}/scripts/resolve-bump-type.cjs');
+            console.log(bumpVersion('$CURRENT', '$BUMP'));
+          ")
+
+          # Update package.json
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT" >> $GITHUB_OUTPUT
+          echo "::notice::Bumping ${{ matrix.package-name }}: $CURRENT -> $NEW_VERSION ($BUMP)"
+
+      - name: Generate changelog
+        id: changelog
+        if: steps.scope-check.outputs.skip != 'true'
+        working-directory: ${{ matrix.package-path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          BUMP="${{ needs.resolve-bump.outputs.bump_type }}"
+          TAG_PREFIX="${{ matrix.tag-prefix }}"
+
+          # Get last tag for this package
+          LAST_TAG=$(git tag -l "${TAG_PREFIX}*" --sort=-v:refname | head -n1 || echo "")
+
+          # Get commits since last tag (or last 20 if no previous tag)
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"%s (%h)" --no-merges 2>/dev/null || echo "")
+          else
+            COMMITS=$(git log --pretty=format:"%s (%h)" --no-merges -20 2>/dev/null || echo "")
+          fi
+
+          TODAY=$(date +%Y-%m-%d)
+
+          # Build changelog entry
+          {
+            echo "## [${NEW_VERSION}] - ${TODAY}"
+            echo ""
+            echo "### $(echo "$BUMP" | sed 's/^./\U&/') release from ${{ steps.bump.outputs.current_version }}"
+            echo ""
+          } > /tmp/changelog_entry.md
+
+          # Categorize commits
+          FEATURES=$(echo "$COMMITS" | grep -iE '^(feat|feature|add)[:(]' || echo "")
+          FIXES=$(echo "$COMMITS" | grep -iE '^(fix|bugfix|hotfix|resolve|patch)[:(]' || echo "")
+          CHORES=$(echo "$COMMITS" | grep -iE '^(chore|refactor|style|docs|test|ci|build|perf)[:(]' || echo "")
+          OTHERS=$(echo "$COMMITS" | grep -ivE '^(feat|feature|add|fix|bugfix|hotfix|resolve|patch|chore|refactor|style|docs|test|ci|build|perf)[:(]' || echo "")
+
+          if [ -n "$FEATURES" ]; then
+            echo "### Features" >> /tmp/changelog_entry.md
+            echo "" >> /tmp/changelog_entry.md
+            while IFS= read -r line; do
+              [ -n "$line" ] && echo "- $line" >> /tmp/changelog_entry.md
+            done <<< "$FEATURES"
+            echo "" >> /tmp/changelog_entry.md
+          fi
+
+          if [ -n "$FIXES" ]; then
+            echo "### Bug Fixes" >> /tmp/changelog_entry.md
+            echo "" >> /tmp/changelog_entry.md
+            while IFS= read -r line; do
+              [ -n "$line" ] && echo "- $line" >> /tmp/changelog_entry.md
+            done <<< "$FIXES"
+            echo "" >> /tmp/changelog_entry.md
+          fi
+
+          if [ -n "$CHORES" ]; then
+            echo "### Maintenance" >> /tmp/changelog_entry.md
+            echo "" >> /tmp/changelog_entry.md
+            while IFS= read -r line; do
+              [ -n "$line" ] && echo "- $line" >> /tmp/changelog_entry.md
+            done <<< "$CHORES"
+            echo "" >> /tmp/changelog_entry.md
+          fi
+
+          if [ -n "$OTHERS" ]; then
+            echo "### Other Changes" >> /tmp/changelog_entry.md
+            echo "" >> /tmp/changelog_entry.md
+            while IFS= read -r line; do
+              [ -n "$line" ] && echo "- $line" >> /tmp/changelog_entry.md
+            done <<< "$OTHERS"
+            echo "" >> /tmp/changelog_entry.md
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            echo "_No changes since last release._" >> /tmp/changelog_entry.md
+            echo "" >> /tmp/changelog_entry.md
+          fi
+
+          # Update or create CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            # Insert new entry after header (before first version entry)
+            FIRST_VERSION_LINE=$(grep -n '^## \[' CHANGELOG.md | head -n1 | cut -d: -f1 || echo "")
+            if [ -n "$FIRST_VERSION_LINE" ]; then
+              head -n $((FIRST_VERSION_LINE - 1)) CHANGELOG.md > /tmp/new_changelog.md
+              echo "" >> /tmp/new_changelog.md
+              cat /tmp/changelog_entry.md >> /tmp/new_changelog.md
+              echo "" >> /tmp/new_changelog.md
+              tail -n +$FIRST_VERSION_LINE CHANGELOG.md >> /tmp/new_changelog.md
+            else
+              cat CHANGELOG.md > /tmp/new_changelog.md
+              echo "" >> /tmp/new_changelog.md
+              cat /tmp/changelog_entry.md >> /tmp/new_changelog.md
+            fi
+            mv /tmp/new_changelog.md CHANGELOG.md
+          else
+            {
+              echo "# Changelog"
+              echo ""
+              echo "All notable changes to the ${{ matrix.package-name }} package are documented here."
+              echo ""
+              echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),"
+              echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+              echo ""
+              cat /tmp/changelog_entry.md
+            } > CHANGELOG.md
+          fi
+
+          # Count commits for summary
+          TOTAL=$(echo "$COMMITS" | grep -c . || echo "0")
+          echo "commit_count=$TOTAL" >> $GITHUB_OUTPUT
+          echo "::notice::Changelog generated — $TOTAL commits"
+
+      - name: Commit version bump + changelog
+        if: steps.scope-check.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Rebase on latest main in case another matrix job pushed first
+          git fetch origin main
+          git rebase origin/main
+
+          git add "${{ matrix.package-path }}/package.json" "${{ matrix.changelog-path }}"
+          git commit -m "chore(release): ${{ matrix.package-name }} v${{ steps.bump.outputs.new_version }}
+
+          Bump type: ${{ needs.resolve-bump.outputs.bump_type }}
+          Triggered by: PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}
+          Source: ${{ needs.resolve-bump.outputs.source }}"
+
+          git push origin main --no-verify
+
+      - name: Create git tag
+        id: tag
+        if: steps.scope-check.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ matrix.tag-prefix }}${{ steps.bump.outputs.new_version }}"
+          git tag -a "$TAG" -m "Release ${{ matrix.package-name }} v${{ steps.bump.outputs.new_version }}"
+          git push origin "$TAG"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "::notice::Tagged $TAG"
+
+      - name: Create GitHub Release
+        if: steps.scope-check.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ matrix.package-name }} v${{ steps.bump.outputs.new_version }}
+          generate_release_notes: true
+          body: |
+            ## ${{ matrix.package-name }} v${{ steps.bump.outputs.new_version }}
+
+            **Bump type:** ${{ needs.resolve-bump.outputs.bump_type }}
+            **Triggered by:** PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}
+            **Source:** ${{ needs.resolve-bump.outputs.source }}
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/${{ matrix.changelog-path }}) for full details.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Release Summary ──
+  release-summary:
+    name: Release Summary
+    needs: [resolve-bump, release]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Emit Summary
+        shell: bash
+        run: |
+          echo "## Matrix Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Bump Resolution | ${{ needs.resolve-bump.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Matrix Release | ${{ needs.release.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Bump:** ${{ needs.resolve-bump.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Scope:** ${{ needs.resolve-bump.outputs.release_scope }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** ${{ needs.resolve-bump.outputs.source }}" >> $GITHUB_STEP_SUMMARY

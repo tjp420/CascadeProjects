@@ -7,7 +7,13 @@
 #
 # Secrets: NPM_TOKEN — granular token with publish + bypass 2FA
 
-name: Publish simplebeacon to npm
+# DISABLED — Replaced by unified-release.yml (2026-08-07)
+# This workflow was redundant with unified-release.yml, which also publishes
+# the CLI to npm when triggered by GitHub Release events. Running both would
+# cause double-publish. The matrix-release.yml creates the GitHub Releases
+# that trigger unified-release.yml for publishing.
+# To re-enable: remove the `if: false` condition below.
+name: Publish simplebeacon to npm (DISABLED)
 
 on:
   workflow_dispatch:
@@ -26,6 +32,7 @@ jobs:
   build-check:
     name: Build & Pack (checks)
     runs-on: ubuntu-latest
+    if: false  # DISABLED — unified-release.yml handles npm publishing
     outputs:
       package-tgz: ${{ steps.pack.outputs.tgz_path }}
     steps:

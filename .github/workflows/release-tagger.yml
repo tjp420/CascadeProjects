@@ -1,4 +1,9 @@
-name: Automated Semantic Release Tagger
+# DISABLED — Replaced by matrix-release.yml (2026-08-07)
+# This workflow created unprefixed v* tags on every push to main, conflicting
+# with auto-release.yml and unified-release.yml (which expect prefixed tags).
+# The matrix release pipeline uses prefixed tags (simplebeacon-v*, vscode-v*).
+# To re-enable: remove the `if: false` condition below.
+name: Automated Semantic Release Tagger (DISABLED)
 
 on:
   push:
@@ -13,6 +18,7 @@ jobs:
   check-skip:
     name: Check if release is needed
     runs-on: ubuntu-latest
+    if: false  # DISABLED — replaced by matrix-release.yml
     outputs:
       should_run: ${{ steps.skip-check.outputs.should_run }}
     steps:

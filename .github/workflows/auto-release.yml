@@ -15,7 +15,11 @@
 #                if absent, the workflow tags and creates a GitHub Release
 #                but skips npm publish)
 
-name: Auto-Release CLI on PR Merge
+# DISABLED — Replaced by matrix-release.yml (2026-08-07)
+# This workflow is superseded by the unified matrix release pipeline which
+# handles both CLI and VS Code extension releases in parallel.
+# To re-enable: remove the `if: false` condition below.
+name: Auto-Release CLI on PR Merge (DISABLED)
 
 on:
   pull_request:
@@ -31,7 +35,7 @@ jobs:
   check-release-label:
     name: Check Release Label
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    if: false  # DISABLED — replaced by matrix-release.yml
     outputs:
       should_release: ${{ steps.label.outputs.should_release }}
       bump_type: ${{ steps.label.outputs.bump_type }}
