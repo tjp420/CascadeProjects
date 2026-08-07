@@ -101,6 +101,7 @@ const fineTuningTelemetryRoutes = require('./routes/fine-tuning-telemetry-routes
 const tokenThrottleRoutes = require('./routes/token-throttle-routes.cjs');
 const hsmVaultRoutes = require('./routes/hsm-vault-routes.cjs');
 const track112UploadRoutes = require('./routes/track112-upload-routes.cjs');
+const replicationRoutes = require('./routes/replication-routes.cjs');
 const { registerOutreachRoutes } = require('./lib/outreach-route.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
@@ -1372,6 +1373,9 @@ app.use('/api/vault', hsmVaultRoutes);
 
 // Track 112 — disk-backed multipart upload session routes
 app.use('/api/track112', track112UploadRoutes);
+
+// Regional replication — cross-zone scan report & telemetry sync
+app.use('/api/replication', replicationRoutes);
 
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));

@@ -199,20 +199,39 @@ function createInMemoryBloomFilter() {
  */
 async function createRedisBloomFilter(redis) {
   const key = 'hybrid:ticket-nonces';
+  // Compatibility wrapper for command invocation across clients
+  function sendCmd(parts) {
+    if (typeof redis.sendCommand === 'function') return redis.sendCommand(parts);
+    if (typeof redis.executeCommand === 'function') return redis.executeCommand(parts);
+    if (typeof redis.call === 'function') {
+      const cmd = parts[0];
+      const args = parts.slice(1);
+      return redis.call(cmd, ...args);
+    }
+    throw new Error('redis client does not support command invocation');
+  }
+
   // Probe for RedisBloom module using BF.INFO; fallback to set semantics
   try {
-    // If BF.INFO exists the module is available; use BF.ADD/BF.EXISTS
-    await redis.sendCommand(['BF.INFO', key]);
+    await sendCmd(['BF.INFO', key]);
     return {
       type: 'bloom',
       has: async (nonce) => {
-        const res = await redis.sendCommand(['BF.EXISTS', key, nonce.toString('hex')]);
+        const res = await sendCmd(['BF.EXISTS', key, nonce.toString('hex')]);
         // RedisBloom returns 1/0
         return res === 1 || res === true;
       },
       add: async (nonce, ttlMs) => {
-        await redis.sendCommand(['BF.ADD', key, nonce.toString('hex')]);
-        if (ttlMs) await redis.pExpire(key, ttlMs);
+        await sendCmd(['BF.ADD', key, nonce.toString('hex')]);
+        if (ttlMs) {
+          if (typeof redis.pExpire === 'function') {
+            await redis.pExpire(key, ttlMs);
+          } else if (typeof redis.pexpire === 'function') {
+            await redis.pexpire(key, ttlMs);
+          } else {
+            await sendCmd(['PEXPIRE', key, String(ttlMs)]);
+          }
+        }
       },
     };
   } catch (err) {
@@ -220,15 +239,97 @@ async function createRedisBloomFilter(redis) {
     return {
       type: 'set',
       has: async (nonce) => {
-        const res = await redis.sIsMember(key, nonce.toString('hex'));
-        return res === 1 || res === true;
+        const member = nonce.toString('hex');
+        // Support multiple redis client method namings (ioredis, node-redis, redis-mock)
+        if (typeof redis.sIsMember === 'function') {
+          const res = await redis.sIsMember(key, member);
+          return res === 1 || res === true;
+        }
+        if (typeof redis.sismember === 'function') {
+          const res = await redis.sismember(key, member);
+          return res === 1 || res === true;
+        }
+        try {
+          const res = await sendCmd(['SISMEMBER', key, member]);
+          return res === 1 || res === true;
+        } catch (e) {
+          // fall through to raw RESP fallback below
+        }
+        // Fallback: attempt a raw TCP RESP call to local Redis instance
+        try {
+          const host = (redis && redis.options && redis.options.url && redis.options.url.includes('://')) ? null : null;
+          const res = await rawRedisIntegerCommand('127.0.0.1', 6379, ['SISMEMBER', key, member]);
+          return res === 1 || res === true;
+        } catch (e) {
+          throw new Error('redis client does not support SISMEMBER');
+        }
       },
       add: async (nonce, ttlMs) => {
-        await redis.sAdd(key, nonce.toString('hex'));
-        if (ttlMs) await redis.pExpire(key, ttlMs);
+        const member = nonce.toString('hex');
+        if (typeof redis.sAdd === 'function') {
+          await redis.sAdd(key, member);
+        } else if (typeof redis.sadd === 'function') {
+          await redis.sadd(key, member);
+        } else {
+          try {
+            await sendCmd(['SADD', key, member]);
+          } catch (e) {
+            // Fallback to raw TCP RESP SADD
+            try {
+              await rawRedisIntegerCommand('127.0.0.1', 6379, ['SADD', key, member]);
+            } catch (e2) {
+              throw new Error('redis client does not support SADD');
+            }
+          }
+        }
+        if (ttlMs) {
+          if (typeof redis.pExpire === 'function') {
+            await redis.pExpire(key, ttlMs);
+          } else if (typeof redis.pexpire === 'function') {
+            await redis.pexpire(key, ttlMs);
+          } else {
+            try { await sendCmd(['PEXPIRE', key, String(ttlMs)]); } catch (e) { /* best-effort */ }
+          }
+        }
       },
     };
   }
+}
+
+// Minimal RESP client helper for integer-returning commands (SISMEMBER, SADD, PEXPIRE)
+const net = require('net');
+function rawRedisIntegerCommand(host, port, parts, timeout = 2000) {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection(port, host, () => {
+      // Build RESP array
+      let cmd = `*${parts.length}\r\n`;
+      for (const p of parts) {
+        const s = String(p);
+        cmd += `$${Buffer.byteLength(s)}\r\n${s}\r\n`;
+      }
+      socket.write(cmd);
+    });
+    let data = '';
+    const onData = (chunk) => { data += chunk.toString('utf8'); if (data.includes('\r\n')) finish(); };
+    const finish = () => {
+      try {
+        // Simple integer reply parsing
+        if (data[0] === ':') {
+          const m = data.match(/^:(-?\d+)\r\n/);
+          if (m) return resolve(Number(m[1]));
+        }
+        // Simple OK or +OK
+        if (data.startsWith('+')) return resolve(1);
+        reject(new Error('unexpected redis reply: ' + data));
+      } finally {
+        socket.removeListener('data', onData);
+        socket.destroy();
+      }
+    };
+    socket.on('data', onData);
+    socket.on('error', (err) => { socket.destroy(); reject(err); });
+    socket.setTimeout(timeout, () => { socket.destroy(); reject(new Error('redis raw command timeout')); });
+  });
 }
 
 /**
