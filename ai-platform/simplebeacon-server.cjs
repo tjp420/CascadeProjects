@@ -181,6 +181,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// Respond to CORS preflight early to ensure required headers are present
+app.options('*', (req, res) => {
+  try {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,X-SimpleBeacon-Bridge-Token,Access-Control-Request-Private-Network');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    // PNA support
+    if (typeof req.headers['access-control-request-private-network'] !== 'undefined') {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+  } catch (e) {
+    // ignore
+  }
+  return res.status(204).end();
+});
+
 app.use(cors({
     origin: (origin, callback) => {
         if (isAllowedCorsOrigin(origin)) {
@@ -191,9 +209,26 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password', 'X-SimpleBeacon-Bridge-Token'],
     maxAge: 86400
 }));
+
+// Ensure bridge token header is always allowed in CORS preflight responses.
+app.use((req, res, next) => {
+  try {
+    const existing = res.getHeader('Access-Control-Allow-Headers') || '';
+    const existingStr = Array.isArray(existing) ? existing.join(',') : String(existing || '');
+    if (!/x-simplebeacon-bridge-token/i.test(existingStr)) {
+      const toSet = existingStr && existingStr.trim().length > 0
+        ? existingStr + ', X-SimpleBeacon-Bridge-Token'
+        : 'X-SimpleBeacon-Bridge-Token';
+      res.setHeader('Access-Control-Allow-Headers', toSet);
+    }
+  } catch (e) {
+    // ignore header-setting errors
+  }
+  next();
+});
 
 // Security headers (lightweight helmet alternative — zero dependencies)
 app.use((req, res, next) => {

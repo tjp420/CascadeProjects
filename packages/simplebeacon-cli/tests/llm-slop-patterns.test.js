@@ -89,3 +89,69 @@ test('scanLlmSlopPatterns walks repo and finds placeholder in source', async () 
     assert.ok(result.issues.some((i) => i.pattern === 'SB-FICTION-001'));
     assert.ok(result.issues.some((i) => i.pattern === 'SB-FICTION-003'));
 });
+
+test('scanTextPatterns flags hallucinated API method .fetchAllRecords()', () => {
+    const content = 'const records = await db.fetchAllRecords();\n';
+    const hits = scanTextPatterns('src/api/service.js', content, '.js');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-005'));
+});
+
+test('scanTextPatterns flags hallucinated browser.ai namespace', () => {
+    const content = 'const result = await browser.ai.generateResponse(prompt);\n';
+    const hits = scanTextPatterns('src/ai-bridge.js', content, '.js');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-005'));
+});
+
+test('scanTextPatterns flags AI conversational debris in TODO comment', () => {
+    const content = '// TODO: as discussed, we need to add rate limiting here\n';
+    const hits = scanTextPatterns('src/middleware/auth.js', content, '.js');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-006'));
+});
+
+test('scanTextPatterns flags "per your request" in FIXME', () => {
+    const content = '// FIXME: per your request, this timeout should be configurable\n';
+    const hits = scanTextPatterns('src/config.js', content, '.js');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-006'));
+});
+
+test('scanTextPatterns does not flag plain TODO without AI debris', () => {
+    const content = '// TODO: add input validation\n';
+    const hits = scanTextPatterns('src/utils.js', content, '.js');
+    assert.ok(!hits.some((h) => h.pattern === 'SB-FICTION-006'));
+});
+
+test('scanTextPatterns flags mock return true with TODO comment', () => {
+    const content = 'function isAuthenticated() {\n  return true; // TODO: implement real check\n}\n';
+    const hits = scanTextPatterns('src/auth.js', content, '.js');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-007'));
+});
+
+test('scanTextPatterns flags return null with placeholder comment', () => {
+    const content = '  return null; // placeholder\n';
+    const hits = scanTextPatterns('src/service.js', content, '.js');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-007'));
+});
+
+test('scanTextPatterns does not flag plain return true without placeholder comment', () => {
+    const content = 'function isValid() {\n  return true;\n}\n';
+    const hits = scanTextPatterns('src/validator.js', content, '.js');
+    assert.ok(!hits.some((h) => h.pattern === 'SB-FICTION-007'));
+});
+
+test('scanTextPatterns flags boilerplate "This function does" comment', () => {
+    const content = '// This function handles user authentication\nfunction auth() {}\n';
+    const hits = scanTextPatterns('src/auth.js', content, '.js');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-008'));
+});
+
+test('scanTextPatterns flags boilerplate "This component renders" comment', () => {
+    const content = '// This component renders the user profile card\nconst Profile = () => {};\n';
+    const hits = scanTextPatterns('src/Profile.tsx', content, '.tsx');
+    assert.ok(hits.some((h) => h.pattern === 'SB-FICTION-008'));
+});
+
+test('scanTextPatterns does not flag SB-FICTION-008 in markdown files', () => {
+    const content = '// This function handles user authentication\n';
+    const hits = scanTextPatterns('docs/readme.md', content, '.md');
+    assert.ok(!hits.some((h) => h.pattern === 'SB-FICTION-008'));
+});

@@ -199,10 +199,10 @@ function scanTextPatterns(relativePath, content, ext, options = {}) {
                 }
             }
 
-            if (isAllowlistedMatch(line, match[0])) continue;
+            if (isAllowlistedMatch(line, match[0]) && rule.id !== 'SB-FICTION-007') continue;
             if (isFenceDetectorMetaLine(line, relativePath, rule.id)) continue;
             if (rule.id === 'SB-FICTION-002' && isJSDocLine(line)) continue;
-            if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002' && rule.id !== 'SB-FICTION-001' && rule.id !== 'SB-FICTION-005') continue;
+            if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002' && rule.id !== 'SB-FICTION-001' && rule.id !== 'SB-FICTION-005' && rule.id !== 'SB-FICTION-006' && rule.id !== 'SB-FICTION-008') continue;
 
             const cardType = rule.id === 'SB-FICTION-002' ? 'markdown-fence-leak'
                 : rule.id === 'SB-FICTION-001' ? 'ai-placeholder-comment'

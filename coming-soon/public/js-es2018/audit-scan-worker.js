@@ -319,6 +319,145 @@ const PATTERN_REGISTRY = {
         appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'generic'],
         pattern: /SELECT\s+.*['"]\s*\+\s*['"]|query\s*\(\s*['"].*\+\s*['"]|raw\s*\(\s*['"].*\$\{|\.findAll\s*\(\s*\)(?!.*limit)/i,
         maxMatches: 3
+    },
+    // === Cloud IAM & Secret Detection ===
+    awsSecretKey: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|aws_secret_access_key\s*[:=]\s*['"`][A-Za-z0-9/+=]{40}['"`]|aws_access_key_id\s*[:=]\s*['"`]AKIA[0-9A-Z]{16}['"`]/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder|template|documentation/i.test(filePath)) return false;
+            if (/AKIAEXAMPLE|AKIATEST|AKIA0000|XXXXXXXX|your-access-key|replace_me/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    gcpServiceAccount: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /"type"\s*:\s*"service_account"|"private_key"\s*:\s*"-----BEGIN PRIVATE KEY-----|projects\/\d+\/secrets\/|GOOGLE_APPLICATION_CREDENTIALS\s*[:=]\s*['"`][^'"`]+['"`]/i,
+        maxMatches: 2,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    azureKey: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /AccountKey\s*=\s*[A-Za-z0-9+/=]{88}|DefaultEndpointsProtocol.*AccountKey\s*=\s*[A-Za-z0-9+/=]{50,}|AZURE_CLIENT_SECRET\s*[:=]\s*['"`][A-Za-z0-9_\-]{34,}['"`]/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
+            if (/your-account-key|XXXXXXXX|replace_me|dummy/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    privateKeyBlock: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/i,
+        maxMatches: 2,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder|template|\.pem\.example/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    // === Unencrypted API Token Detection ===
+    bearerToken: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /Bearer\s+[A-Za-z0-9_\-\.]{20,}/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
+            if (/Bearer\s+your_token|Bearer\s+\$\{|Bearer\s+\+|Bearer\s+tokenVar|Bearer\s+accessToken|Bearer\s+authToken|Bearer\s+jwt/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    jwtHardcoded: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}/i,
+        maxMatches: 2,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    oauthTokenInSource: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /(?:access_token|refresh_token|oauth_token)\s*[:=]\s*['"`](?:ya29\.|gh[opsu]_|xox[bpoa]-|sk_live_|rk_live_)[A-Za-z0-9_\-]{10,}/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    // === Docker / Container Misconfiguration ===
+    dockerPrivileged: {
+        appliesTo: ['generic'],
+        pattern: /privileged\s*:\s*true|--privileged/i,
+        maxMatches: 2,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    dockerRootUser: {
+        appliesTo: ['generic'],
+        pattern: /USER\s+root\b(?!.*(?:\s+#|\s*&&))/i,
+        maxMatches: 2,
+        contextFilter: (snippet, filePath) => {
+            if (!/Dockerfile|dockerfile|\.docker/i.test(filePath) && !/docker-compose|compose\.ya?ml/i.test(filePath)) return false;
+            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    dockerExposedSecrets: {
+        appliesTo: ['generic'],
+        pattern: /(?:ENV|environment)\s+(?:[A-Z_]*SECRET|[A-Z_]*PASSWORD|[A-Z_]*KEY|[A-Z_]*TOKEN)\s*=\s*['"]?[A-Za-z0-9_\-]{8,}['"]?(?!\s*\$\{)/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example|sample|placeholder/i.test(filePath)) return false;
+            if (/changeme|example|placeholder|your-secret|replace_me|XXXX/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    dockerNoHealthCheck: {
+        appliesTo: ['generic'],
+        pattern: /FROM\s+/i,
+        maxMatches: 1,
+        contextFilter: (snippet, filePath) => {
+            if (!/Dockerfile|dockerfile/i.test(filePath)) return false;
+            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    // === Supply Chain Checks ===
+    suspiciousPackage: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /(?:from\s+['"]|require\s*\(\s*['"]|import\s+['"])(?:[^'"]*npm[^'"]*|[^'"]*typosquat)[^'"]*['"]|(?:npm|yarn|pnpm)\s+install\s+[@a-z0-9_\-]+(?:[a-z0-9_\-]*\.js|nodejs|nodjs|nodel|node-js)/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
+            if (/package\.json|package-lock\.json|yarn\.lock/i.test(filePath)) return false;
+            return true;
+        }
+    },
+    postInstallScript: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /"postinstall"\s*:\s*['"`](?:curl|wget|node\s+-e|python\s+-c|bash\s+-c|powershell|sh\s+-c)/i,
+        maxMatches: 2,
+        contextFilter: (snippet, filePath) => {
+            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
+            if (/build|compile|tsc|webpack|babel|eslint|prettier/i.test(snippet)) return false;
+            return true;
+        }
+    },
+    pinnedVersionMissing: {
+        appliesTo: ['javascript', 'generic'],
+        pattern: /"(?:dependencies|devDependencies)"\s*:\s*\{[^}]*"[a-z@][^"]*"\s*:\s*['"`](?:\^|~|latest|\*|>=)/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (!/package\.json/i.test(filePath)) return false;
+            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
+            return true;
+        }
     }
 };
 const SEVERITY_MAP = {
@@ -346,7 +485,25 @@ const SEVERITY_MAP = {
     aiPlaceholderComment: 'low',
     markdownFenceLeak: 'low',
     missingRateLimit: 'medium',
-    dbAntiPattern: 'high'
+    dbAntiPattern: 'high',
+    // Cloud IAM & secrets
+    awsSecretKey: 'critical',
+    gcpServiceAccount: 'critical',
+    azureKey: 'critical',
+    privateKeyBlock: 'critical',
+    // Unencrypted API tokens
+    bearerToken: 'high',
+    jwtHardcoded: 'high',
+    oauthTokenInSource: 'high',
+    // Docker misconfiguration
+    dockerPrivileged: 'high',
+    dockerRootUser: 'medium',
+    dockerExposedSecrets: 'critical',
+    dockerNoHealthCheck: 'low',
+    // Supply chain
+    suspiciousPackage: 'high',
+    postInstallScript: 'high',
+    pinnedVersionMissing: 'medium'
 };
 const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
 const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data|euAiAct|eu-ai-act)/i;

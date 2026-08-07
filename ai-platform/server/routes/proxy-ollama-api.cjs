@@ -21,13 +21,31 @@ function setupProxyOllamaAPI(app, options = {}) {
     const baseUrl = String(process.env.OLLAMA_BASE_URL || options.baseUrl || DEFAULT_OLLAMA_URL).replace(/\/$/, '');
     const fetch = getFetch();
 
+    // Normalize IP addresses to be safe for IPv6/IPv4 mappings and proxies.
+    function normalizeIpForRateLimit(req) {
+        // Prefer req.ip (Express-aware), then X-Forwarded-For, then socket remote address
+        let ip = (req && (req.ip || (req.headers && req.headers['x-forwarded-for'] && String(req.headers['x-forwarded-for']).split(',')[0].trim()) || (req.socket && req.socket.remoteAddress))) || 'unknown';
+        if (typeof ip !== 'string') ip = String(ip);
+        // Handle IPv6 loopback and IPv4-mapped IPv6 addresses
+        if (ip === '::1') return '127.0.0.1';
+        if (ip.startsWith('::ffff:')) return ip.split('::ffff:')[1];
+        return ip;
+    }
+
     const limiter = rateLimit({
         windowMs: 15 * 60 * 1000,
         max: Number(process.env.PROXY_OLLAMA_RATE_LIMIT || 30),
         standardHeaders: true,
         legacyHeaders: false,
         message: { success: false, error: 'Too many requests — please try again later.' },
-        keyGenerator: (req) => req.ip || req.socket?.remoteAddress || 'unknown',
+        keyGenerator: (req) => {
+            try {
+                const ip = normalizeIpForRateLimit(req);
+                return rateLimit.ipKeyGenerator ? rateLimit.ipKeyGenerator(ip) : ip;
+            } catch (e) {
+                return normalizeIpForRateLimit(req);
+            }
+        },
     });
 
     app.get('/api/proxy/ollama/models', limiter, async (req, res) => {

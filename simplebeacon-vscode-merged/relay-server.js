@@ -223,7 +223,7 @@ iframe{width:100%;height:100%;border:none;display:block}
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With, X-SimpleBeacon-Bridge-Token');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);

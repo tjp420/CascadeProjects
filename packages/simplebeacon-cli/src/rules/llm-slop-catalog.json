@@ -43,5 +43,65 @@
       "ext": [".css", ".scss", ".less", ".svg"],
       "linePrefixes": ["// simplebeacon-ignore"]
     }
+  },
+  {
+    "id": "SB-FICTION-005",
+    "regexSource": "(?:\\.getOrCreate\\(\\s*['\"](?:user|account|session)['\"]\\s*\\)|\\.fetchAllRecords\\(\\)|\\.syncEverything\\(\\)|\\.autoResolve\\(\\)|context\\.window\\.\\w+|browser\\.ai\\.\\w+|window\\.copilot\\.\\w+|navigator\\.ai\\.\\w+)",
+    "regexFlags": "gi",
+    "severity": "high",
+    "confidence": 0.85,
+    "description": "Hallucinated SDK/API method call that does not exist in any known library",
+    "type": "hallucinated-api-method",
+    "message": "Hallucinated SDK/API method call — verify this method exists in the target library",
+    "suggestion": "Check the official documentation for the correct method name and signature",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".d.ts", ".example.js"],
+      "linePrefixes": ["// simplebeacon-ignore"]
+    }
+  },
+  {
+    "id": "SB-FICTION-006",
+    "regexSource": "(?:\\/\\/\\s*(?:TODO|FIXME|HACK|XXX)\\s*[-:]?\\s*(?:as\\s+(?:discussed|requested|mentioned)|per\\s+your\\s+(?:request|instructions)|based\\s+on\\s+(?:our|the)\\s+(?:conversation|discussion)|you\\s+(?:mentioned|asked|requested)|following\\s+our\\s+(?:chat|call|discussion)))",
+    "regexFlags": "gi",
+    "severity": "medium",
+    "confidence": 0.78,
+    "description": "AI conversational debris in TODO/FIXME comments referencing chat context",
+    "type": "ai-conversational-debris",
+    "message": "TODO/FIXME comment contains AI chat context references — clean up before merge",
+    "suggestion": "Replace conversational references with technical context: describe what needs to be done, not who asked",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts"],
+      "linePrefixes": []
+    }
+  },
+  {
+    "id": "SB-FICTION-007",
+    "regexSource": "(?:return\\s+(?:true|false|null|\\[\\]|\\{\\})\\s*;?\\s*\\/\\/\\s*(?:TODO|FIXME|placeholder|mock|stub|temporary|temp\\b)|return\\s+(?:true|false|null)\\s*;?\\s*\\/\\/\\s*always\\s+(?:succeed|fail|return))",
+    "regexFlags": "gi",
+    "severity": "high",
+    "confidence": 0.82,
+    "description": "Hardcoded mock return value with TODO/placeholder comment in production code",
+    "type": "mock-return-value",
+    "message": "Hardcoded mock return value with placeholder comment — implement real logic",
+    "suggestion": "Replace the mock return with actual business logic or move to a test fixture",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".mock.js", ".mock.ts"],
+      "linePrefixes": ["// simplebeacon-ignore"]
+    }
+  },
+  {
+    "id": "SB-FICTION-008",
+    "regexSource": "(?:\\/\\/\\s*(?:This\\s+function\\s+(?:does|handles|returns|creates|updates|deletes|processes)\\s+\\w+|This\\s+method\\s+(?:is|will|should)\\s+\\w+|This\\s+component\\s+renders\\s+\\w+|This\\s+module\\s+provides\\s+\\w+|The\\s+above\\s+code\\s+\\w+))",
+    "regexFlags": "gi",
+    "severity": "low",
+    "confidence": 0.65,
+    "description": "AI-generated boilerplate comment that restates the function name without adding context",
+    "type": "boilerplate-comment",
+    "message": "Boilerplate comment restates function name — remove or replace with meaningful context",
+    "suggestion": "Delete the obvious restatement or add architectural context (why, not what)",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".md", ".mdx", ".markdown"],
+      "linePrefixes": ["// simplebeacon-ignore"]
+    }
   }
 ]
