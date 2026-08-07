@@ -1644,12 +1644,18 @@ export function AnalyzeView() {
         setPath(handle.name);
         toast.info(`Folder selected: ${handle.name}`);
         (window as any).__sbDroppedDirHandle = handle;
+        // Auto-start scan using the directory handle (bypasses webkitdirectory ~3000 file cap)
+        await runBrowserLocalScan({
+          dirHandle: handle,
+          projectPath: handle.name,
+          logLabel: `Browser local scan via File System Access API (${handle.name})`,
+        });
       }
     } catch {
-      // User cancelled or permission denied — fall back to input
+      // User cancelled or permission denied — fall back to webkitdirectory input
       folderInputRef.current?.click();
     }
-  }, [bridgeBase, bridgeToken, hosted]);
+  }, [bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
 
   const modeTabs: { key: ScanMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = websiteMode
     ? [
@@ -2048,7 +2054,7 @@ export function AnalyzeView() {
                   size="sm"
                   onClick={() => {
                     setRequiresManualTrigger(false);
-                    folderInputRef.current?.click();
+                    handleBrowseFolder();
                   }}
                 >
                   Select Folder
