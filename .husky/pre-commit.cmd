@@ -1,6 +1,6 @@
 @echo off
 echo [lint-assets] Running pre-commit encoding ^& path lint...
-node .simplebeacon\qa\lint-assets.cjs
+node .simplebeacon\qa\lint-assets.cjs --fix
 if errorlevel 1 (
   echo [lint-assets] Asset hygiene lint failed. Commit aborted.
   exit /b 1

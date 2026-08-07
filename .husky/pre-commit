@@ -13,7 +13,7 @@ fi
 exit 0
 # --- Fast asset hygiene lint (sub-second: encoding + path regressions) ---
 echo "[lint-assets] Running pre-commit encoding & path lint..."
-node .simplebeacon/qa/lint-assets.cjs
+node .simplebeacon/qa/lint-assets.cjs --fix
 LINT_RESULT=$?
 if [ $LINT_RESULT -ne 0 ]; then
   echo "[lint-assets] Asset hygiene lint failed (exit $LINT_RESULT). Commit aborted." >&2
