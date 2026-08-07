@@ -71,7 +71,10 @@ const PUBLIC_API_PATHS = new Set([
     // Enterprise onboarding — org provisioning, seat management, trial, Azure DevOps
     'enterprise/onboard',
     'enterprise/organizations',
-    'enterprise/trial'
+    'enterprise/trial',
+    // Whitelabel branding — public resolve + CSS endpoints for dashboard BrandContext
+    'whitelabel/resolve',
+    'whitelabel/brand.css'
 ]);
 
 /**
