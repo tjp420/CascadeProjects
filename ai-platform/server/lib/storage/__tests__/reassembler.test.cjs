@@ -5,6 +5,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const reassembler = require('../reassembler.cjs');
+const hsmMetrics = require('../../hsm-adapter/hsm-metrics.cjs');
 
 function tmpDir(prefix) {
   const d = path.join(os.tmpdir(), `${prefix}-${crypto.randomBytes(4).toString('hex')}`);
@@ -66,10 +67,49 @@ async function testFinalizeFailureCleansStaging() {
   assert.ok(!fs.existsSync(staging), 'staging must be removed on failure');
 }
 
+async function testStageAndFinalizeDefaultMetrics() {
+  hsmMetrics.reset();
+  const staging = tmpDir('reass-stage');
+  const live = path.join(tmpDir('reass-live-root'), 'tenant3', 'shardC');
+  const chunk = { filename: 'blk3.json', payload: JSON.stringify({ seq: 3, data: 'z' }) };
+  const expectedHash = sha256HexOfObj(JSON.parse(chunk.payload));
+  await reassembler.stageChunks(staging, [chunk]);
+  const manifest = { expectedLeafHashes: { 'blk3.json': expectedHash }, labels: { tenantId: 'tenant3', shardId: 'shardC' } };
+
+  const res = await reassembler.finalizeRehydration(staging, live, manifest);
+  assert.ok(res.success, 'finalize must return success');
+
+  const metrics = hsmMetrics.getMetrics();
+  assert.strictEqual(metrics.hsm_shard_reconstructed_blocks_total, 1, 'hsm_shard_reconstructed_blocks_total should be 1');
+  assert.strictEqual(metrics.hsm_shard_reassembly_attempts_total, 1, 'hsm_shard_reassembly_attempts_total should be 1');
+  assert.ok(metrics.hsm_shard_reassembly_duration_ms_count && metrics.hsm_shard_reassembly_duration_ms_count >= 1, 'histogram count should be >=1');
+}
+
+async function testFinalizeFailureDefaultMetrics() {
+  hsmMetrics.reset();
+  const staging = tmpDir('reass-stage');
+  const live = path.join(tmpDir('reass-live-root'), 'tenant4', 'shardD');
+  const chunk = { filename: 'blk4.json', payload: JSON.stringify({ seq: 4, data: 'q' }) };
+  await reassembler.stageChunks(staging, [chunk]);
+  const manifest = { expectedLeafHashes: { 'blk4.json': 'bad-hash' }, labels: { tenantId: 'tenant4', shardId: 'shardD' } };
+  let threw = false;
+  try {
+    await reassembler.finalizeRehydration(staging, live, manifest);
+  } catch (e) {
+    threw = true;
+  }
+  assert.ok(threw, 'finalize must throw on hash mismatch');
+  const metrics = hsmMetrics.getMetrics();
+  assert.strictEqual(metrics.hsm_shard_reassembly_attempts_total, 1, 'failed attempt should increment attempts_total');
+  assert.ok(metrics.hsm_shard_reassembly_duration_ms_count && metrics.hsm_shard_reassembly_duration_ms_count >= 1, 'histogram count should be >=1 after failure');
+}
+
 async function run() {
   await testCanonicalization();
   await testStageAndFinalizeSuccess();
   await testFinalizeFailureCleansStaging();
+  await testStageAndFinalizeDefaultMetrics();
+  await testFinalizeFailureDefaultMetrics();
   console.log('reassembler tests OK');
 }
 

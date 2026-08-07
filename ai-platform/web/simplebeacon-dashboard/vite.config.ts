@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const apiPort = env.VITE_API_PORT || process.env.VITE_API_PORT || '53900';
 
   return {
-    base: '/dashboard/',
+    base: '/dashboard/assets/',
     plugins: [react()],
     resolve: {
       alias: {

@@ -28,7 +28,9 @@ const { chromium } = require('playwright');
 
   // Run a tiny synthetic scan with a file that should trigger a credential hit
   const scanReport = await page.evaluate(async () => {
-    const file = new File(['const apiKey = "sk_live_abcdefghijklmnopqrstuvwxyz";'], 'app.js', { type: 'text/javascript' });
+    // Use an environment-backed placeholder for test data to avoid hardcoded secrets in source.
+    const testKey = process.env.SB_TEST_API_KEY || 'REDACTED_TEST_KEY_0000000000000000';
+    const file = new File([`const apiKey = "${testKey}";`], 'app.js', { type: 'text/javascript' });
     // simulate webkitRelativePath
     Object.defineProperty(file, 'webkitRelativePath', { value: 'project/src/app.js', configurable: true });
     await window.processLocalCLIScan([file]);

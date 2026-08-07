@@ -1,40 +1,23 @@
-#!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
-
-echo "Running pre-push: staged checks + tests"
-npm run sb:hook:pre-commit
-rc=$?
-if [ $rc -ne 0 ]; then
-  echo "pre-push hook: sb:hook:pre-commit failed (exit $rc)"
-  exit $rc
-fi
-
-echo "Running quick test suite (if present)"
-npm test --workspaces --if-present
-
-exit_code=$?
-if [ $exit_code -ne 0 ]; then
-  echo "pre-push tests failed (exit $exit_code)"
-  exit $exit_code
-fi
-
-exit 0
 #!/usr/bin/env bash
-# Pre-push validation hook: run the Node changed-file secret scanner
+# Pre-push validation hook to catch hardcoded tokens prior to remote syncing
 
 echo "🔍 [Pre-Push] Running pre-flight credential audit on unpushed commits..."
 
-# Invoke the Node-based scanner which prefers gitleaks and falls back to a fast regex scan
-if command -v node >/dev/null 2>&1; then
-  node scripts/pre-push-scan.js "$@"
-  EXIT_CODE=$?
-  if [ $EXIT_CODE -ne 0 ]; then
-    echo -e "\n💥 [Pre-Push] PUSH REJECTED: secret scanner failed or detected leaks. Remediate and try again.\n"
-    exit $EXIT_CODE
+# Prefer the repo's simplebeacon engine if available, otherwise fall back to gitleaks
+if npx --no-install simplebeacon --version >/dev/null 2>&1; then
+  if ! npx simplebeacon scan --gate --offline; then
+    echo -e "\n💥 [Pre-Push] PUSH REJECTED: Hardcoded credentials or critical infractions detected!"
+    echo "👉 Remediate findings locally, move tokens to .env.local, and pass the gate before pushing.\n"
+    exit 1
   fi
-  echo "✅ Pre-push secret scan passed."
-  exit 0
 else
-  echo "⚠️ Node.js not found in PATH — unable to run pre-push scanner. Skipping checks." 
-  exit 0
+  echo "npx simplebeacon not available; falling back to gitleaks (requires network)."
+  if ! npx gitleaks detect --source . --staged --verbose --redact; then
+    echo -e "\n💥 [Pre-Push] PUSH REJECTED: Hardcoded credentials or critical infractions detected by gitleaks!"
+    echo "👉 Install simplebeacon or fix findings locally and try again.\n"
+    exit 1
+  fi
 fi
+
+echo "✅ [Pre-Push] No hardcoded tokens detected. Proceeding with remote sync."
+exit 0

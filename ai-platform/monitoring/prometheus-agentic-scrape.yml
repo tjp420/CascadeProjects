@@ -10,10 +10,10 @@ scrape_configs:
     scrape_interval: 15s
     metrics_path: '/api/agentic/metrics'
     # If your server requires TLS and a custom CA, configure `tls_config` here.
-    # Example bearer token usage — replace with an appropriately scoped secret.
+    # Example bearer token usage — prefer a token file (mounted via secrets).
     # WARNING: storing long-lived tokens in plaintext is insecure; use a secrets
     # manager or service account mechanism where possible.
-    bearer_token: 'YOUR_ADMIN_ROLE_BEARER_TOKEN'
+    bearer_token_file: '/var/run/secrets/telemetry/token'
 
     static_configs:
       - targets: ['localhost:3000']
