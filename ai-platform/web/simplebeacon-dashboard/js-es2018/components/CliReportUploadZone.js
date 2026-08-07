@@ -18,6 +18,7 @@
  */
 
 import { adaptCliReport } from '../utils/cli-report-adapter.js';
+import { generateSampleReport } from '../utils/sample-report.js';
 import { CliMetricsWidget } from './CliMetricsWidget.js';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
@@ -161,6 +162,9 @@ export class CliReportUploadZone {
                 <button type="button" class="btn btn-outline btn-sm cli-upload-paste-btn">
                     Paste JSON
                 </button>
+                <button type="button" class="btn btn-ghost btn-sm cli-upload-sample-btn" title="Load a sample report to preview the dashboard">
+                    Try Sample Report
+                </button>
             </div>
             <input type="file" class="cli-upload-file-input" accept=".json,application/json" hidden>
             <div class="cli-upload-paste-area" style="display:none;margin-top:16px;text-align:left;">
@@ -244,6 +248,11 @@ export class CliReportUploadZone {
             if (this._pasteInput) this._pasteInput.value = '';
         };
         pasteCancel?.addEventListener('click', this._boundHandlers.pasteCancel);
+
+        // Sample report button
+        const sampleBtn = this._dropZone.querySelector('.cli-upload-sample-btn');
+        this._boundHandlers.sampleClick = () => this._loadSampleReport();
+        sampleBtn?.addEventListener('click', this._boundHandlers.sampleClick);
     }
 
     _unbindEvents() {
@@ -259,6 +268,7 @@ export class CliReportUploadZone {
                 pasteToggle: this._dropZone.querySelector('.cli-upload-paste-btn'),
                 pasteSubmit: this._dropZone.querySelector('.cli-upload-paste-submit'),
                 pasteCancel: this._dropZone.querySelector('.cli-upload-paste-cancel'),
+                sampleClick: this._dropZone.querySelector('.cli-upload-sample-btn'),
             };
             targets[name]?.removeEventListener(name.replace(/([A-Z])/g, (_, c) => c.toLowerCase()).replace(/^./, c => c.toLowerCase()), handler);
         }
@@ -303,6 +313,16 @@ export class CliReportUploadZone {
     // ═══════════════════════════════════════════════
     // Private: Report processing
     // ═══════════════════════════════════════════════
+
+    _loadSampleReport() {
+        try {
+            const sample = generateSampleReport();
+            this._setStatus('Loading sample report...', 'info');
+            this._processReport(sample);
+        } catch (err) {
+            this._handleError(new Error('Failed to generate sample report: ' + err.message));
+        }
+    }
 
     _processReport(rawReport) {
         // Validate it looks like a SimpleBeacon report
