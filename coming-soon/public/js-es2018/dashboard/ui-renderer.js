@@ -178,15 +178,70 @@ function renderPreview(data) {
     const grade = quality >= 90 ? 'A' : quality >= 80 ? 'B' : quality >= 70 ? 'C' : quality >= 60 ? 'D' : 'F';
     const gradeColor = quality >= 80 ? '#10B981' : quality >= 60 ? '#F59E0B' : '#EF4444';
 
-    // Build issue list HTML with explainability
-    const issueItems = detectedIssues.slice(0, 5).map(issue => {
+    // Build issue list HTML with severity grouping
+    const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
+    const SEVERITY_LABELS = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+    const issuesBySeverity = { critical: [], high: [], medium: [], low: [] };
+    for (const issue of detectedIssues) {
+        const sev = (issue.severity || 'low').toLowerCase();
+        if (issuesBySeverity[sev]) issuesBySeverity[sev].push(issue);
+        else issuesBySeverity.low.push(issue);
+    }
+    const sevCounts = {
+        critical: issuesBySeverity.critical.length,
+        high: issuesBySeverity.high.length,
+        medium: issuesBySeverity.medium.length,
+        low: issuesBySeverity.low.length
+    };
+
+    // Severity summary bar — clickable chips with counts
+    const severitySummaryBar = `
+        <div class="severity-summary-bar">
+            ${SEVERITY_ORDER.map(s => `
+                <div class="severity-summary-chip ${s} ${sevCounts[s] === 0 ? 'empty' : ''}" data-severity-toggle="${s}">
+                    <span class="chip-count">${sevCounts[s]}</span>
+                    <span>${SEVERITY_LABELS[s]}</span>
+                </div>
+            `).join('')}
+        </div>`;
+
+    // Expand/collapse controls
+    const severityControls = `
+        <div class="severity-controls">
+            <button type="button" onclick="document.querySelectorAll('.severity-group').forEach(g => g.classList.remove('collapsed'))">Expand all</button>
+            <button type="button" onclick="document.querySelectorAll('.severity-group').forEach(g => g.classList.add('collapsed'))">Collapse all</button>
+        </div>`;
+
+    // Build grouped issue sections
+    const buildIssueItem = (issue) => {
         const sev = (issue.severity || 'low').toLowerCase();
         const type = issue.type || 'Issue';
         const desc = issue.humanReadable || issue.description || `${type} detected`;
         const confidence = issue.confidence ? `<span style="margin-left:6px;font-size:0.65rem;color:#64748B;">${Math.round(issue.confidence * 100)}% confidence</span>` : '';
         return `<div class="issue-item" data-issue='${JSON.stringify({type: issue.type, severity: issue.severity, description: desc, reasoning: issue.reasoning, confidence: issue.confidence, humanReadable: issue.humanReadable, impact: issue.impact, fix: issue.fix, count: issue.count}).replace(/'/g, "&#39;")}'><span class="severity ${sev}"></span><span class="issue-text">${desc}${confidence}</span></div>`;
-    }).join('');
-    const moreIssues = detectedIssues.length > 5 ? `<div class="issue-item" style="justify-content:center;"><span class="issue-text">+ ${detectedIssues.length - 5} more issues in full report</span></div>` : '';
+    };
+
+    const severityGroups = SEVERITY_ORDER.map(s => {
+        const items = issuesBySeverity[s];
+        if (items.length === 0) return '';
+        const maxShow = s === 'critical' || s === 'high' ? 50 : 25;
+        const visible = items.slice(0, maxShow);
+        const remaining = items.length - visible.length;
+        const issueHtml = visible.map(buildIssueItem).join('');
+        const moreHtml = remaining > 0 ? `<div class="issue-item" style="justify-content:center;"><span class="issue-text">+ ${remaining} more ${SEVERITY_LABELS[s].toLowerCase()} issues</span></div>` : '';
+        return `<div class="severity-group" data-severity="${s}">
+            <div class="severity-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="sev-dot ${s}"></span>
+                <span>${SEVERITY_LABELS[s]}</span>
+                <span class="sev-count">${items.length}</span>
+                <span class="sev-chevron">&#9660;</span>
+            </div>
+            <div class="severity-group-body">${issueHtml}${moreHtml}</div>
+        </div>`;
+    }).filter(Boolean).join('');
+
+    const issueItems = severityGroups;
+    const moreIssues = '';
 
     // SVG score ring
     const circumference = 2 * Math.PI * 52;
@@ -796,6 +851,7 @@ function renderPreview(data) {
                 </div>
             </div>
             ${matrixHtml}
+            ${detectedIssues.length > 0 ? severitySummaryBar + severityControls : ''}
             <div class="issue-list">
                 ${issueItems}
                 ${moreIssues}
