@@ -46,7 +46,14 @@
     "build": "node -c bin/simplebeacon.js && node -c src/index.js",
     "lint": "npx eslint .",
     "format": "npx prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"tests/**/*.js\"",
-    "quality:check": "npm run build && npm run lint && npm test && npm run mcp:smoke"
+    "quality:check": "npm run build && npm run lint && npm test && npm run mcp:smoke",
+    "release:patch": "node scripts/release.cjs patch",
+    "release:minor": "node scripts/release.cjs minor",
+    "release:major": "node scripts/release.cjs major",
+    "release:patch:publish": "node scripts/release.cjs patch --publish",
+    "release:minor:publish": "node scripts/release.cjs minor --publish",
+    "release:major:publish": "node scripts/release.cjs major --publish",
+    "release:dry-run": "node scripts/release.cjs patch --dry-run --skip-tests"
   },
   "keywords": [
     "simplebeacon",
