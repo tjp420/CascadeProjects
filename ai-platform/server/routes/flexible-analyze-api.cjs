@@ -443,13 +443,19 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 isWebsite = resolved.isWebsite;
             } catch (error) {
                 const debug = process.env.DEBUG_CLIENT_ERRORS === '1' || process.env.DEBUG_CLIENT_ERRORS === 'true';
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                const isTimeout = /timeout/i.test(errorMsg);
+                const isWebsiteUrl = /^https?:\/\//i.test(rawPath);
+                const isGithubUrl = /^https?:\/\/github\.com\//i.test(rawPath);
                 const errorPayload = { success: false, error: toClientError(error, 'Invalid projectPath') };
                 logger.warn('[Analyze/Flexible] Path validation failed:', {
                     rawPath,
+                    pathType: isWebsiteUrl ? (isGithubUrl ? 'github-url' : 'website-url') : 'local-path',
+                    isTimeout,
                     baseDir,
                     monorepoRoot,
                     allowedRoots: getAllowedRoots(),
-                    rawError: error instanceof Error ? error.message : String(error)
+                    rawError: errorMsg
                 });
                 if (debug) {
                     errorPayload._debug = {
@@ -899,6 +905,15 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 ...scanResult
             }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            logger.error('[Analyze/Flexible] Analysis request failed:', {
+                rawPath: rawPath || '(empty)',
+                pathType: /^https?:\/\//i.test(rawPath || '') ? (/^https?:\/\/github\.com\//i.test(rawPath || '') ? 'github-url' : 'website-url') : 'local-path',
+                isWebsite: isWebsite || false,
+                analysisType: analysisType || '(unresolved)',
+                aiProvider: aiProvider || '(unresolved)',
+                rawError: errorMsg
+            });
             sendError(res, 400, toClientError(error, 'Analysis request failed'));
         } finally {
             if (tempFetchDir) {
