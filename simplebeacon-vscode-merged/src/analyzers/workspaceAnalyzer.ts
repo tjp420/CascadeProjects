@@ -1824,13 +1824,20 @@ async function findFilesRecursive(root: string, excludeDirs: string[]): Promise<
   const results: string[] = [];
   const normalizedExcludes = excludeDirs.map(normalizeDirPattern);
   const entries = await fs.promises.readdir(root, { withFileTypes: true });
+  const subdirPromises: Promise<string[]>[] = [];
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (!normalizedExcludes.includes(entry.name)) {
-        results.push(...(await findFilesRecursive(path.join(root, entry.name), excludeDirs)));
+        subdirPromises.push(findFilesRecursive(path.join(root, entry.name), excludeDirs));
       }
     } else {
       results.push(path.join(root, entry.name));
+    }
+  }
+  if (subdirPromises.length > 0) {
+    const subdirResults = await Promise.all(subdirPromises);
+    for (const sub of subdirResults) {
+      results.push(...sub);
     }
   }
   return results;

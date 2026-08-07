@@ -5147,13 +5147,15 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     const files: FileInfo[] = [];
     const counts: Record<string, number> = {};
 
-    function walk(dir: string, rel: string) {
+    async function walk(dir: string, rel: string) {
       let entries: fs.Dirent[] = [];
       try {
         entries = fs.readdirSync(dir, { withFileTypes: true });
       } catch {
         /* simplebeacon-ignore error-swallowing — skip unreadable directories */ return;
       }
+      const subdirPromises: Promise<void>[] = [];
+      const fileEntries = entries.filter((e) => e.isFile());
       for (const entry of entries) {
         if (entry.name.startsWith('.') && entry.name !== '.github') continue;
         if (exclude.has(entry.name)) continue;
@@ -5161,27 +5163,49 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
         const r = path.join(rel, entry.name).replace(/\\/g, '/');
         if (matchesGitignore(r)) continue;
         if (entry.isDirectory()) {
-          walk(full, r);
-        } else if (entry.isFile()) {
-          const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
-          if (binaryExts.has(ext)) continue;
-          counts[ext] = (counts[ext] || 0) + 1;
-          let lines = 0;
-          let content = '';
-          let size = 0;
-          try {
-            content = fs.readFileSync(full, 'utf8');
-            lines = content.split(/\r?\n/).length;
-            size = fs.statSync(full).size;
-          } catch {
-            /* simplebeacon-ignore error-swallowing — skip unreadable files */
-          }
-          files.push({ name: entry.name, ext, size, lines, path: r, full, content });
+          subdirPromises.push(walk(full, r));
         }
+      }
+      // Batch file reads + stats with Promise.all
+      const fileInfos = await Promise.all(
+        fileEntries
+          .filter((entry) => {
+            if (entry.name.startsWith('.') && entry.name !== '.github') return false;
+            if (exclude.has(entry.name)) return false;
+            const r = path.join(rel, entry.name).replace(/\\/g, '/');
+            if (matchesGitignore(r)) return false;
+            const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
+            if (binaryExts.has(ext)) return false;
+            return true;
+          })
+          .map(async (entry) => {
+            const full = path.join(dir, entry.name);
+            const r = path.join(rel, entry.name).replace(/\\/g, '/');
+            const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
+            try {
+              const [content, stat] = await Promise.all([
+                fs.promises.readFile(full, 'utf8'),
+                fs.promises.stat(full),
+              ]);
+              const lines = content.split(/\r?\n/).length;
+              return { name: entry.name, ext, size: stat.size, lines, path: r, full, content };
+            } catch {
+              return null;
+            }
+          })
+      );
+      for (const info of fileInfos) {
+        if (info) {
+          counts[info.ext] = (counts[info.ext] || 0) + 1;
+          files.push(info);
+        }
+      }
+      if (subdirPromises.length > 0) {
+        await Promise.all(subdirPromises);
       }
     }
 
-    walk(scanRoot, '');
+    await walk(scanRoot, '');
 
     // Detect architecture
     const has = (ext: string) => (counts[ext] || 0) > 0;

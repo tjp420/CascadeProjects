@@ -1246,6 +1246,7 @@ function getDirectoryMetrics(scanPath: string): {
     } catch {
       return;
     }
+    const filePaths: string[] = [];
     for (const entry of entries) {
       if (skipDirs.has(entry.name)) {
         continue;
@@ -1255,14 +1256,17 @@ function getDirectoryMetrics(scanPath: string): {
         walk(fullPath);
       } else if (entry.isFile()) {
         totalFiles++;
-        try {
-          const stat = fs.statSync(fullPath);
-          totalSize += stat.size;
-        } catch {
-          /* skip inaccessible files */
-        }
         const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
         breakdown[ext] = (breakdown[ext] || 0) + 1;
+        filePaths.push(fullPath);
+      }
+    }
+    // Batch stat calls — collect sizes in a tight loop to reduce I/O overhead
+    for (const fp of filePaths) {
+      try {
+        totalSize += fs.statSync(fp).size;
+      } catch {
+        /* skip inaccessible files */
       }
     }
   }
