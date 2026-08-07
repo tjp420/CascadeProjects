@@ -7,6 +7,7 @@ import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js
 import { mountTeamGatePassTrendChart } from '../components/TeamGatePassTrendChart.js?v=20260804team1';
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
+import { mountPolicyEditor } from '../components/PolicyEditor.js?v=20260807policy1';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
 const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
@@ -229,6 +230,11 @@ export class DashboardView {
         if (scanning) {
             container.appendChild(this.renderScanProgress());
         }
+
+        // Policy editor slot — always visible when config is available
+        const policySlot = document.createElement('div');
+        policySlot.id = 'slot-policy-editor';
+        container.appendChild(policySlot);
 
         if (!report && !scanning) {
             container.appendChild(this.renderQuickStart());
@@ -949,6 +955,12 @@ export class DashboardView {
             const trendSlot = view.querySelector('#slot-trend');
             this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
         });
+        requestAnimationFrame(() => {
+            const policySlot = view.querySelector('#slot-policy-editor');
+            if (policySlot) {
+                this._policyEditorCleanup = mountPolicyEditor(policySlot, this.app) || null;
+            }
+        });
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
     }
@@ -958,6 +970,8 @@ export class DashboardView {
             this._trendCleanup();
         if (this._teamTrendCleanup)
             this._teamTrendCleanup();
+        if (this._policyEditorCleanup)
+            this._policyEditorCleanup();
         this.stopScanProgressPolling();
     }
 }

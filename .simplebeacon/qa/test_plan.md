@@ -7,35 +7,32 @@
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Regional Replication Router — cross-zone scan report & telemetry sync |
+| Feature / change | Interactive Compliance Policy Editor panel (`PolicyEditor.js`) |
 | Author (Builder) | Devin |
 | Date | 2026-08-07 |
-| Branch | feature/regional-replication-router |
-| Packages touched | ai-platform (server backend) |
+| Branch | feature/compliance-policy-editor |
+| Packages touched | ai-platform (dashboard frontend only) |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/regional-replication-router.cjs` (NEW — core router class)
-- `ai-platform/server/lib/__tests__/regional-replication-router.test.cjs` (NEW — unit tests)
-- `ai-platform/server/routes/replication-routes.cjs` (NEW — Express route handler)
-- `ai-platform/server/index.cjs` (mount route)
+- `ai-platform/web/simplebeacon-dashboard/js-es2018/components/PolicyEditor.js` (NEW)
+- `ai-platform/web/simplebeacon-dashboard/css/components.css` (append styles)
+- `ai-platform/web/simplebeacon-dashboard/js-es2018/views/DashboardView.js` (import + mount slot)
 
 ### APIs / routes
 
-- `POST /api/replication/sync` — trigger a sync to one or all zones
-- `GET  /api/replication/status` — get replication status for all zones
-- `GET  /api/replication/status/:zone` — get per-zone replication status
-- `POST /api/replication/resolve-conflict` — manually resolve a conflict
+- `GET /api/config` — existing, used to load current config (profile, gate, rules)
+- `PUT /api/config` — existing, used to save edited config
+- `GET /api/config/presets` — existing, used to load preset profiles
 
 ### UI / IDE surfaces
 
 - [ ] Sidebar webview
-- [ ] Main dashboard iframe / address bar
+- [x] Main dashboard iframe / address bar
 - [ ] Welcome / main window panel
 - [ ] Simple Browser / external browser
-- N/A — backend-only feature
 
 ---
 
@@ -43,13 +40,12 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on regional-replication-router.cjs | `node -c ai-platform/server/lib/regional-replication-router.cjs` | [ ] |
-| L1-02 | Syntax on replication-routes.cjs | `node -c ai-platform/server/routes/replication-routes.cjs` | [ ] |
-| L1-03 | Syntax on index.cjs | `node -c ai-platform/server/index.cjs` | [ ] |
-| L1-04 | Unit tests pass | `node --test ai-platform/server/lib/__tests__/regional-replication-router.test.cjs` | [ ] |
-| L1-05 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-06 | No secrets in diff | Manual / gate token rules | [ ] |
-| L1-07 | npm audit (no deps changed — skip) | N/A | [ ] |
+| L1-01 | Syntax on PolicyEditor.js | `node -c ai-platform/web/simplebeacon-dashboard/js-es2018/components/PolicyEditor.js` | [ ] |
+| L1-02 | Syntax on DashboardView.js | `node -c ai-platform/web/simplebeacon-dashboard/js-es2018/views/DashboardView.js` | [ ] |
+| L1-03 | ai-platform tests (not touched — skip) | N/A | [ ] |
+| L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
+| L1-05 | No secrets in diff | Manual / gate token rules | [ ] |
+| L1-06 | npm audit (no deps changed — skip) | N/A | [ ] |
 
 ---
 
@@ -57,14 +53,14 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Router initializes with default zones | Create router with no config | Three zones (us-east, eu-west, ap-southeast) are registered | [ ] |
-| L2-02 | Sync payload to a single zone | Call sync() with target zone and payload | Payload is queued, sync attempt recorded, status updated | [ ] |
-| L2-03 | Sync to all zones | Call syncAll() with payload | All zones receive the payload, statuses updated | [ ] |
-| L2-04 | Retry on transient failure | Mock fetch to fail once then succeed | Router retries with backoff, sync eventually succeeds | [ ] |
-| L2-05 | Conflict detection | Sync same payload version to two zones with different content | Conflict is detected and recorded with both versions | [ ] |
-| L2-06 | Conflict resolution (latest-wins) | Resolve conflict with LATEST_WINS strategy | Conflict is resolved, winning version is propagated | [ ] |
-| L2-07 | Status endpoint returns all zones | Call getStatus() | Returns map of zone → { lastSync, status, pending, conflicts } | [ ] |
-| L2-08 | Max retries exhausted | Mock fetch to always fail | Router exhausts retries, marks zone as failed, records error | [ ] |
+| L2-01 | Policy editor renders on dashboard | Navigate to dashboard with a loaded report | Policy editor card appears below scan status section with current config values | [ ] |
+| L2-02 | Gate severity toggles work | Click fail-on/warn-on checkboxes for high/medium/low | Checkbox state updates, dirty indicator appears, preview updates | [ ] |
+| L2-03 | Rule engine toggles work | Click toggle switches for individual rules (credentials, json-schema, etc.) | Toggle visual state flips, dirty indicator appears | [ ] |
+| L2-04 | Profile preset selector | Change profile dropdown (minimal/standard/cascade) | Rule toggles update to match preset, dirty indicator appears | [ ] |
+| L2-05 | Save config | Click "Save Policy" button | Config is PUT to server, success toast appears, dirty indicator clears | [ ] |
+| L2-06 | Reset to saved | Click "Reset" button while dirty | All fields revert to last saved state, dirty indicator clears | [ ] |
+| L2-07 | Live preview panel | Toggle rules and gate severities | Preview panel shows effective gate policy summary (fail-on/warn-on counts, enabled rule count) | [ ] |
+| L2-08 | Empty state | Dashboard with no report loaded | Policy editor still renders with config from server (or placeholder if no config) | [ ] |
 
 ---
 
@@ -72,11 +68,11 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Empty payload | Router rejects empty payload with validation error | [ ] |
-| L3-02 | Unknown zone | Router rejects sync to unregistered zone with error | [ ] |
-| L3-03 | Concurrent syncs to same zone | No race condition; syncs are queued sequentially | [ ] |
-| L3-04 | Zone endpoint unreachable | Router marks zone as degraded after max retries | [ ] |
-| L3-05 | Large payload (>1MB) | Router handles large payloads without blocking event loop | [ ] |
+| L3-01 | Website mode vs localhost mode | Embed params preserved; policy editor works in both modes | [ ] |
+| L3-02 | SPA route change | Navigating away and back to dashboard re-mounts policy editor cleanly | [ ] |
+| L3-03 | Config save failure | Server returns error → error toast shown, dirty state retained | [ ] |
+| L3-04 | No config loaded | Policy editor renders with defaults (all rules enabled, failOn: high) | [ ] |
+| L3-05 | Rapid toggle clicks | No race conditions; final state matches last click | [ ] |
 
 ---
 
@@ -85,9 +81,8 @@
 | ID | Requirement | Pass |
 |----|-------------|------|
 | S-01 | No credentials / PII in logs or commits | [ ] |
-| S-02 | Zone endpoints use HTTPS only | [ ] |
-| S-03 | API key per zone stored in env vars, not hardcoded | [ ] |
-| S-04 | Route handlers use authenticate middleware | [ ] |
+| S-02 | Config save uses existing authenticated fetchSimplebeacon helper | [ ] |
+| S-03 | All user-generated content escaped via escapeHtml | [ ] |
 
 ---
 
