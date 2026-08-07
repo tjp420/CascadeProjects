@@ -77,6 +77,20 @@ function _deriveField(bits) {
   return { p, q, g };
 }
 
+/**
+ * Constant-time comparison of two BigInt values.
+ * Converts both to fixed-length byte buffers and uses crypto.timingSafeEqual.
+ * @param {bigint} a
+ * @param {bigint} b
+ * @param {number} [byteLen=32] - Fixed byte length for both buffers
+ * @returns {boolean}
+ */
+function _constantTimeBigIntEqual(a, b, byteLen = 32) {
+  const aBuf = _bigIntToBytes(a, byteLen);
+  const bBuf = _bigIntToBytes(b, byteLen);
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
 class ZkIdentityVerifier {
   /**
    * @param {object} [options]
@@ -169,6 +183,10 @@ class ZkIdentityVerifier {
    * @returns {boolean}
    */
   verifyProof(publicKey, proof, context = '', challenge = null) {
+    // Guard against malformed inputs — return false instead of crashing
+    if (!Buffer.isBuffer(publicKey) || !proof || !Buffer.isBuffer(proof.t) || !Buffer.isBuffer(proof.s)) {
+      return false;
+    }
     const y = _bytesToBigInt(publicKey);
     const t = _bytesToBigInt(proof.t);
     const s = _bytesToBigInt(proof.s);
@@ -178,7 +196,7 @@ class ZkIdentityVerifier {
 
     const lhs = _modPow(this._g, s, this._p);
     const rhs = _mod(t * _modPow(y, c, this._p), this._p);
-    const ok = lhs === rhs;
+    const ok = _constantTimeBigIntEqual(lhs, rhs, 32);
 
     this._audit('ZERO_KNOWLEDGE_VERIFIED', { result: ok, publicKeyPrefix: publicKey.toString('hex').slice(0, 16) });
     return ok;
