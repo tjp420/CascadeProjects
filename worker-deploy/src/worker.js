@@ -582,10 +582,17 @@ export default {
       }
       headers.set('X-Content-Type-Options', 'nosniff');
       headers.set('X-SB-Worker', 'catchall-assets');
+      headers.set('CDN-Cache-Control', 'no-store');
       return new Response(assetResp.body, { status: assetResp.status, headers });
     }
 
-    return textResponse('Not Found', 404, corsOrigin || '');
+    // 404 — never cache negative responses so fixes propagate instantly
+    const notFoundHeaders = { 'Cache-Control': 'no-store', 'CDN-Cache-Control': 'no-store' };
+    if (corsOrigin) {
+      notFoundHeaders['Access-Control-Allow-Origin'] = corsOrigin;
+      notFoundHeaders['Vary'] = 'Origin';
+    }
+    return new Response('Not Found', { status: 404, headers: notFoundHeaders });
   },
 
   // Scheduled event: keep Render backend warm every 10 minutes
