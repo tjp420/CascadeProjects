@@ -56,10 +56,11 @@ RUN_TEST('onboard rate limit enforces 429', async () => {
   }
 
   try {
-    const results = [];
+    const promises = [];
     for (let i = 0; i < 8; i++) {
-      results.push(await sendOnboard(i));
+      promises.push(sendOnboard(i));
     }
+    const results = await Promise.all(promises);
 
     const statusCounts = results.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
 
