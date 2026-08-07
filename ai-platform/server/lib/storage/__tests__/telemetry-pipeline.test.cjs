@@ -225,7 +225,9 @@ describe('CI Telemetry Pipeline: reassembler + repair-worker + reconciler', () =
     const metrics = hsmMetrics.getMetrics();
     expect(metrics.hsm_shard_out_of_sync_total).toBeGreaterThanOrEqual(1);
     expect(metrics.hsm_shard_reconciler_repair_requested_total).toBeGreaterThanOrEqual(1);
-    expect(metrics.hsm_repair_worker_completed_total).toBeGreaterThanOrEqual(1);
-    expect(worker.processed.length).toBeGreaterThanOrEqual(1);
+    const completed = await waitForMetric(() => hsmMetrics.getMetrics().hsm_repair_worker_completed_total, 1, 1000);
+    expect(completed).toBeGreaterThanOrEqual(1);
+    const processed = await waitForMetric(() => worker.processed.length, 1, 1000);
+    expect(processed).toBeGreaterThanOrEqual(1);
   });
 });
