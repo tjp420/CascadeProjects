@@ -6,7 +6,8 @@
  */
 
 const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.php', '.rb', '.go', '.java'
+  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.php', '.rb', '.go', '.java',
+  '.json', '.yaml', '.yml', '.env', '.sh', '.bash', '.dockerfile', '.tf', '.cfg', '.conf', '.ini'
 ]);
 
 const MAX_SCAN_BYTES = 512000;
@@ -24,7 +25,17 @@ const RULE_TYPE_MAP = {
   'SB-SEC-010': 'sensitive-data',
   'SB-SEC-011': 'insecure-random',
   'SB-SEC-012': 'performance',
-  'SB-SEC-013': 'sensitive-data'
+  'SB-SEC-013': 'sensitive-data',
+  'SB-SEC-014': 'gcp-service-account',
+  'SB-SEC-015': 'azure-key',
+  'SB-SEC-016': 'oauth-token',
+  'SB-SEC-017': 'docker-privileged',
+  'SB-SEC-018': 'docker-root-user',
+  'SB-SEC-019': 'docker-exposed-secrets',
+  'SB-SEC-020': 'docker-no-healthcheck',
+  'SB-SEC-021': 'suspicious-package',
+  'SB-SEC-022': 'postinstall-script',
+  'SB-SEC-023': 'unpinned-dependency'
 };
 
 const SECURITY_RULES = [
@@ -127,6 +138,95 @@ const SECURITY_RULES = [
     severity: 'critical',
     description: 'Hardcoded CI/CD secret in workflow/config file',
     pathRegex: /\.(yml|yaml|json)$/
+  },
+  // === Advanced Cloud IAM & Secret Detection (ported from browser scanner) ===
+  {
+    id: 'SB-SEC-014',
+    name: 'GCP Service Account Key',
+    regex: /"type"\s*:\s*"service_account"|"private_key"\s*:\s*"-----BEGIN PRIVATE KEY-----|projects\/\d+\/secrets\/|GOOGLE_APPLICATION_CREDENTIALS\s*[:=]\s*['"`][^'"`]+['"`]/i,
+    severity: 'critical',
+    description: 'GCP service account key or credentials detected in source',
+    skipFiles: /test|spec|fixture|mock|example|sample|placeholder|template/i
+  },
+  {
+    id: 'SB-SEC-015',
+    name: 'Azure Storage Key',
+    regex: /AccountKey\s*=\s*[A-Za-z0-9+/=]{88}|DefaultEndpointsProtocol.*AccountKey\s*=\s*[A-Za-z0-9+/=]{50,}|AZURE_CLIENT_SECRET\s*[:=]\s*['"`][A-Za-z0-9_\-]{34,}['"`]/i,
+    severity: 'critical',
+    description: 'Azure storage account key or client secret detected in source',
+    skipFiles: /test|spec|fixture|mock|example|sample|placeholder|template/i
+  },
+  {
+    id: 'SB-SEC-016',
+    name: 'OAuth Token in Source',
+    regex: /(?:access_token|refresh_token|oauth_token)\s*[:=]\s*['"`](?:ya29\.|gh[opsu]_|xox[bpoa]-|sk_live_|rk_live_)[A-Za-z0-9_\-]{10,}/i,
+    severity: 'high',
+    description: 'Hardcoded OAuth access/refresh token from Google, GitHub, Slack, or Stripe',
+    skipFiles: /test|spec|fixture|mock|example|sample|placeholder|template/i
+  },
+  // === Docker / Container Misconfiguration ===
+  {
+    id: 'SB-SEC-017',
+    name: 'Docker Privileged Mode',
+    regex: /privileged\s*:\s*true|--privileged/i,
+    severity: 'high',
+    description: 'Container running in privileged mode — grants full host access',
+    skipFiles: /test|spec|fixture|mock|example/i,
+    pathRegex: /docker-compose|compose\.ya?ml|Dockerfile|\.docker/i
+  },
+  {
+    id: 'SB-SEC-018',
+    name: 'Docker Root User',
+    regex: /USER\s+root\b(?!.*(?:\s+#|\s*&&))/i,
+    severity: 'medium',
+    description: 'Container running as root user — privilege escalation risk',
+    skipFiles: /test|spec|fixture|mock|example/i,
+    pathRegex: /Dockerfile|dockerfile|\.docker/i
+  },
+  {
+    id: 'SB-SEC-019',
+    name: 'Docker Exposed Secrets',
+    regex: /(?:ENV|environment)\s+(?:[A-Z_]*SECRET|[A-Z_]*PASSWORD|[A-Z_]*KEY|[A-Z_]*TOKEN)\s*=\s*['"]?[A-Za-z0-9_\-]{8,}['"]?(?!\s*\$\{)/i,
+    severity: 'critical',
+    description: 'Hardcoded secret in Docker ENV directive — visible in image layers',
+    skipFiles: /test|spec|fixture|mock|example|sample|placeholder/i,
+    snippetExclusions: /changeme|example|placeholder|your-secret|replace_me|XXXX/i
+  },
+  {
+    id: 'SB-SEC-020',
+    name: 'Docker Missing Health Check',
+    regex: /FROM\s+/i,
+    severity: 'low',
+    description: 'Dockerfile has no HEALTHCHECK instruction — orchestrator cannot monitor container health',
+    skipFiles: /test|spec|fixture|mock|example/i,
+    pathRegex: /Dockerfile|dockerfile/i,
+    negativeRegex: /HEALTHCHECK\s+/i
+  },
+  // === Supply Chain Checks ===
+  {
+    id: 'SB-SEC-021',
+    name: 'Suspicious Package Install',
+    regex: /(?:from\s+['"]|require\s*\(\s*['"]|import\s+['"])(?:[^'"]*npm[^'"]*|[^'"]*typosquat)[^'"]*['"]|(?:npm|yarn|pnpm)\s+install\s+[@a-z0-9_\-]+(?:[a-z0-9_\-]*\.js|\.nodejs|nodejs|nodjs|nodel|node-js)/i,
+    severity: 'high',
+    description: 'Suspicious npm package name — possible typosquat or malicious package',
+    skipFiles: /test|spec|fixture|mock|example|package\.json|package-lock\.json|yarn\.lock/i
+  },
+  {
+    id: 'SB-SEC-022',
+    name: 'Malicious postinstall Script',
+    regex: /"postinstall"\s*:\s*['"`](?:curl|wget|node\s+-e|python\s+-c|bash\s+-c|powershell|sh\s+-c)/i,
+    severity: 'high',
+    description: 'postinstall script executes network call or dynamic code — supply chain attack vector',
+    skipFiles: /test|spec|fixture|mock|example/i
+  },
+  {
+    id: 'SB-SEC-023',
+    name: 'Unpinned Dependency Version',
+    regex: /"(?:dependencies|devDependencies)"\s*:\s*\{[^}]*"[a-z@][^"]*"\s*:\s*['"`](?:\^|~|latest|\*|>=)/i,
+    severity: 'medium',
+    description: 'Dependency uses unpinned version (^, ~, latest, *) — reproducibility and supply chain risk',
+    skipFiles: /test|spec|fixture|mock|example/i,
+    pathRegex: /package\.json$/i
   }
 ];
 
@@ -144,6 +244,8 @@ function scanSecurityPatterns(relativePath, content, ext) {
   for (const rule of SECURITY_RULES) {
     if (rule.skipFiles && rule.skipFiles.test(rel)) continue;
     if (rule.pathRegex && !rule.pathRegex.test(rel)) continue;
+    // negativeRegex: skip file if the negative pattern IS present (e.g., HEALTHCHECK exists)
+    if (rule.negativeRegex && rule.negativeRegex.test(content)) continue;
     const matches = [];
     let match;
     if (rule.pathOnly) {
@@ -153,6 +255,8 @@ function scanSecurityPatterns(relativePath, content, ext) {
       while ((match = regex.exec(content)) !== null) {
         const line = lineNumberAt(content, match.index);
         const snippet = content.slice(match.index, match.index + 120).split('\n')[0];
+        // Skip if snippet matches exclusion pattern (e.g., changeme, placeholder)
+        if (rule.snippetExclusions && rule.snippetExclusions.test(snippet)) continue;
         matches.push({ line, snippet });
         if (matches.length >= 3) break;
       }
