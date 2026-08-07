@@ -104,7 +104,7 @@ class EphemeralHardwareTokenSplitter {
     }
 
     const expected = this._derive(tenantId, token.issuedAt, token.counter || this._counter);
-    const ok = expected.equals(token.value);
+    const ok = crypto.timingSafeEqual(expected, token.value);
     this._audit('TOKEN_VERIFIED', { tenantId: id, ok });
     return ok;
   }
