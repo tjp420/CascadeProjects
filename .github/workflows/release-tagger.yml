@@ -10,12 +10,51 @@ permissions:
   pull-requests: write
 
 jobs:
+  check-skip:
+    name: Check if release is needed
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.skip-check.outputs.should_run }}
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if commit is already a release or tagged
+        id: skip-check
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          # Skip if auto-release.yml already created a release commit
+          if [[ "$LAST_COMMIT_MSG" == "chore(release):"* ]]; then
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "::notice::Skipping — commit is an auto-release commit (chore(release):)"
+            exit 0
+          fi
+
+          # Skip if HEAD already has a tag
+          HEAD_TAG=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "")
+          if [ -n "$HEAD_TAG" ]; then
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "::notice::Skipping — HEAD already tagged as $HEAD_TAG"
+            exit 0
+          fi
+
+          echo "should_run=true" >> $GITHUB_OUTPUT
+          echo "::notice::No existing tag or release commit — proceeding with tag"
+
   tag-and-release:
+    name: Tag and Release
+    needs: check-skip
+    if: needs.check-skip.outputs.should_run == 'true'
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Codebase
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
