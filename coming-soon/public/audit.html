@@ -170,9 +170,28 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use high-speed local regex heuristics across 52 rule engines. For deep AST analysis, use the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a> or <a href="http://127.0.0.1:58000/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">CLI</a>.</p>
+            <p id="pageSubtitle" style="margin-bottom:20px;">100% private. Your source code never leaves your machine. Choose your scanning mode below.</p>
+
+            <!-- SPLIT-CHOICE LAYOUT: Browser Triage vs Deep Scan -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                <!-- Left: Browser Triage -->
+                <div style="padding:20px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.2);border-radius:12px;text-align:left;">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#60A5FA;margin-bottom:8px;">Low Friction &middot; Instant</div>
+                    <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Browser Triage</h3>
+                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Drag &amp; drop a folder for instant string/regex heuristics across 52 rule engines. 100% local &mdash; no AST, no npm audit, no upload.</p>
+                    <button type="button" onclick="document.getElementById('tab-browser').click();document.getElementById('audit-dropzone').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Drop Folder Here &rarr;</button>
+                </div>
+                <!-- Right: Deep Scan -->
+                <div style="padding:20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;text-align:left;">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#34D399;margin-bottom:8px;">Full Power &middot; Complete</div>
+                    <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Deep Scan (CLI)</h3>
+                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Run <code style="font-size:0.75rem;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">npx simplebeacon scan</code> in your terminal for AST parsing, npm audit integration, and unlimited file coverage.</p>
+                    <button type="button" onclick="document.getElementById('tab-cli').click();document.getElementById('cli-setup-panel').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:transparent;color:#34D399;border:1px solid rgba(16,185,129,0.3);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">View CLI Setup &rarr;</button>
+                </div>
+            </div>
+
             <div style="margin-top:14px;padding:10px 18px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:10px;font-size:0.8rem;color:var(--text-secondary);text-align:center;">
-                <strong style="color:#22c55e;">Skip the $10,000 consultant.</strong> Drop your folder below and get a full audit in under 5 minutes &mdash; no upload, no NDA, no procurement. <a href="/pricing" style="color:var(--accent-hover);text-decoration:underline;">Get a $149 board-ready certificate &rarr;</a>
+                <strong style="color:#22c55e;">Skip the $10,000 consultant.</strong> Get a full audit in under 5 minutes &mdash; no upload, no NDA, no procurement. <a href="/pricing" style="color:var(--accent-hover);text-decoration:underline;">Get a $149 board-ready certificate &rarr;</a>
             </div>
         </header>
 
@@ -184,7 +203,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
         <div class="simplebeacon-banner" id="simplebeacon-banner" style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
             <span style="display:flex;align-items:center;gap:6px;color:var(--warning);font-weight:600;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Simplebeacon</span>
-            <span>52 analyzer engines detect placeholder debris, markdown fences, hardcoded metrics, security risks, and performance issues. Real-time protection in VS Code. Browser sandbox runs high-speed local regex heuristics; deep AST analysis requires the CLI or server dashboard.</span>
+            <span>52 deterministic engines detect placeholder debris, markdown fences, hardcoded metrics, and security risks. Browser triage runs regex heuristics locally; deep AST analysis and npm audit require the CLI or server dashboard. The gate scanner is 100% deterministic &mdash; no LLM, no external calls.</span>
             <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;">Get VS Code Extension &rarr;</a>
         </div>
 
