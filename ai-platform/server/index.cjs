@@ -588,6 +588,7 @@ const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
 // JS module directories ΓÇö disable etag to prevent Firefox from reusing stale cached versions
 const noStoreStatic = (dir) => express.static(dir, {
   etag: false,
+  redirect: false,
   setHeaders: (res, path) => {
     if (path.endsWith('.js') || path.endsWith('.mjs')) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, no-transform');
@@ -827,7 +828,7 @@ app.get(/^\/dashboard\/.*$/, async (req, res) => {
 
 // Dashboard / web assets (vault-gated when DASHBOARD_VAULT_PASSWORD is set)
 // Must come AFTER specific routes so it only serves unmatched paths
-const _webRootStatic = express.static(webRoot, { index: false });
+const _webRootStatic = express.static(webRoot, { index: false, redirect: false });
 app.use((req, res, next) => {
   const skipVault = !process.env.DASHBOARD_VAULT_PASSWORD || process.env.NODE_ENV === 'development';
   if (skipVault) {

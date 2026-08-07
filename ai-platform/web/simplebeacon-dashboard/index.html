@@ -15,8 +15,8 @@
         if (!isBeacon(el)) return;
         try { el.removeAttribute('src'); } catch (_) {}
         try { el.type = 'text/plain'; } catch (_) {}
-        el.removeAttribute('integrity');
-        el.removeAttribute('crossorigin');
+        try { el.removeAttribute('integrity'); } catch (_) {}
+        try { el.removeAttribute('crossorigin'); } catch (_) {}
       }
       var origCreate = document.createElement.bind(document);
       document.createElement = function(tag) {
@@ -46,7 +46,13 @@
           });
         });
         mo.observe(document.documentElement, { childList: true, subtree: true });
+        // Stop observing after 5s — edge injection happens during initial load
+        setTimeout(function() { mo.disconnect(); }, 5000);
       }
+      // Sweep existing scripts on DOMContentLoaded for any injected before observer
+      document.addEventListener('DOMContentLoaded', function() {
+        Array.prototype.forEach.call(document.querySelectorAll('script'), neutralize);
+      });
     })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">

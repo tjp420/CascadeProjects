@@ -851,6 +851,7 @@ async function fetchWebsiteToTemp(rawUrl) {
     await fs.promises.mkdir(fetchDir, { recursive: true });
     const indexPath = path.join(fetchDir, 'index.html');
 
+    const fetchTimeoutMs = Number(process.env.SIMPLEBEACON_WEBSITE_FETCH_TIMEOUT_MS) || 30000;
     await new Promise((resolve, reject) => {
         const MAX_REDIRECTS = 5;
         const fetchIndex = (currentUrl, redirects = 0) => {
@@ -859,7 +860,7 @@ async function fetchWebsiteToTemp(rawUrl) {
             }
             const parsedUrl = new NodeURL(currentUrl);
             const client = parsedUrl.protocol === 'https:' ? https : http;
-            const request = client.get(currentUrl, { timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' } }, (response) => {
+            const request = client.get(currentUrl, { timeout: fetchTimeoutMs, headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' } }, (response) => {
                 if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
                     const location = response.headers.location;
                     let redirectUrl;
@@ -889,7 +890,7 @@ async function fetchWebsiteToTemp(rawUrl) {
             request.on('error', reject);
             request.on('timeout', () => {
                 request.destroy();
-                reject(new Error('Request timeout'));
+                reject(new Error(`Website fetch timeout after ${fetchTimeoutMs}ms for ${currentUrl.slice(0, 120)}`));
             });
         };
         fetchIndex(url);
