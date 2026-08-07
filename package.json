@@ -27,9 +27,6 @@
     "sb:hook:secrets-gate": "node packages/simplebeacon-cli/bin/simplebeacon.js secrets-gate --path .",
     "sb:hook:pre-commit": "node .simplebeacon/qa/env-production-guard.cjs && npm run sb:hook:secrets-gate && node .simplebeacon/qa/pre-commit-gate.cjs",
     "check:entry-sync": "node scripts/check-entry-sync.cjs",
-    "release:simplebeacon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PrepareOnly",
-    "release:simplebeacon:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1",
-    "release:simplebeacon:tag:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PushTag",
     "release:vscode:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1 -PrepareOnly",
     "release:vscode:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1",
     "release:vscode:bump:patch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1 -BumpVersion patch",
@@ -50,7 +47,6 @@
     "build:ci": "node scripts/build-ci.js",
     "verify:deployment": "node ai-platform/tools/verify-deployment.cjs"
   },
- 
   "prepare": "husky install",
   "dependencies": {
     "@swc/core": "^1.15.46",
@@ -75,7 +71,8 @@
     "husky": "^8.0.3",
     "jest": "^30.2.0",
     "playwright": "^1.61.1",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "why-is-node-running": "^3.2.2"
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
