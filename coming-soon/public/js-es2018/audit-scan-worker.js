@@ -840,6 +840,22 @@ async function scanFiles(files, deepScan, state) {
                 flushHashBatch();
             }
 
+            // Check hash cache — skip analysis if file is unchanged since last scan
+            const hashCacheMap = state ? state.hashCache : null;
+            const cached = hashCacheMap ? hashCacheMap[file.path] : null;
+            if (cached && cached.hash === hash && cached.size === size) {
+                // Cache hit — file unchanged, skip pattern analysis
+                if (self.scanState) self.scanState.cacheHits++;
+                self.postMessage({ type: 'cache-hit', scanId: self.scanState ? self.scanState.scanId : null, path: file.path });
+                processed++;
+                postProgress(file.path);
+                if (processed % YIELD_INTERVAL === 0) {
+                    flushHashBatch();
+                    await new Promise(r => setTimeout(r, 0));
+                }
+                continue;
+            }
+
             const fileLang = detectFileLanguage(file.path);
             if (fileLang) {
                 const textIssues = await analyzeWithTextPatterns(fileObj, file.path);
@@ -910,7 +926,9 @@ self.onmessage = async (e) => {
             issuesTruncated: false,
             deepScan: Boolean(deepScan),
             ignoreCtx: e.data.ignoreCtx || null,
-            fileHashes: []
+            fileHashes: [],
+            hashCache: e.data.hashCache || null,
+            cacheHits: 0
         };
         self.postMessage({ type: 'started', scanId, totalFiles: self.scanState.totalFiles });
         return;

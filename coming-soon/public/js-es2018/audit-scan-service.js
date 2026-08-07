@@ -453,6 +453,13 @@ window.AuditScanService = class AuditScanService {
         const hashCache = await this._loadHashCache();
         onLog(`Hash cache: ${hashCache.size} entries`, 'info');
 
+        // Build a lightweight hash cache map to pass to workers
+        // Format: { path: { hash, size } } — workers check this after computing hash
+        const workerHashCache = {};
+        for (const [path, entry] of hashCache) {
+            workerHashCache[path] = { hash: entry.hash, size: entry.size };
+        }
+
         // === 4. Check for resume checkpoint ===
         let resumeIndex = 0;
         if (options.resumeScanId) {
@@ -496,6 +503,7 @@ window.AuditScanService = class AuditScanService {
         let totalIgnoredDir = 0;
         let totalHeavyVendor = 0;
         let totalIgnoredByPattern = 0;
+        let totalCacheHits = 0;
         let issuesTruncated = false;
 
         // Progress throttling — coalesce progress callbacks to avoid flooding the main thread
@@ -540,6 +548,8 @@ window.AuditScanService = class AuditScanService {
                     scanRootName: ignoreCtx.scanRootName,
                     patterns: ignoreCtx.patterns
                 },
+                hashCache: workerHashCache,
+                onCacheHit: () => { totalCacheHits++; },
                 onProgress: (processed, total, info) => {
                     // Aggregate progress across all workers via throttled callback
                     throttledProgress(totalProcessed + processed, totalFiles, {
@@ -631,7 +641,7 @@ window.AuditScanService = class AuditScanService {
                         scanRootName: ignoreCtx.scanRootName
                     },
                     hashCacheSize: hashCache.size,
-                    filesSkippedByHashCache: 0,
+                    filesSkippedByHashCache: totalCacheHits,
                     resumed: resumeIndex > 0
                 };
                 onLog(`Scan aborted: ${partialResult.processed}/${partialResult.totalFiles} files processed before abort`, 'warn');
@@ -673,11 +683,14 @@ window.AuditScanService = class AuditScanService {
                 scanRootName: ignoreCtx.scanRootName
             },
             hashCacheSize: hashCache.size,
-            filesSkippedByHashCache: 0, // Future: skip files with matching hash
+            filesSkippedByHashCache: totalCacheHits,
             resumed: resumeIndex > 0
         };
 
         onLog(`Scan complete: ${result.processed}/${result.totalFiles} files, ${result.issueCount} findings`, 'success');
+        if (totalCacheHits > 0) {
+            onLog(`  Cache hits: ${totalCacheHits} files skipped (unchanged since last scan)`, 'info');
+        }
         return result;
     }
 
@@ -814,6 +827,11 @@ window.AuditScanService = class AuditScanService {
                         }
                         break;
 
+                    case 'cache-hit':
+                        // Worker skipped a file because its hash matched the cache
+                        if (options.onCacheHit) options.onCacheHit();
+                        break;
+
                     case 'file-error':
                         onFileError(msg.file, { name: msg.name, message: msg.message });
                         textErrors++;
@@ -858,7 +876,8 @@ window.AuditScanService = class AuditScanService {
                 ignoreCtx: ignoreCtx ? {
                     scanRootName: ignoreCtx.scanRootName,
                     patterns: ignoreCtx.patterns
-                } : null
+                } : null,
+                hashCache: options.hashCache || null
             });
 
             // Timeout: if worker doesn't start in 15s, abort

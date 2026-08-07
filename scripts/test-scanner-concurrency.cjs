@@ -172,7 +172,9 @@ class MockWorker {
                 issues: [],
                 fileHashes: [],
                 deepScan: data.deepScan,
-                ignoreCtx: data.ignoreCtx
+                ignoreCtx: data.ignoreCtx,
+                hashCache: data.hashCache || null,
+                cacheHits: 0
             };
             this._send({ type: 'started', scanId: data.scanId, totalFiles: data.totalFiles });
             return;
@@ -204,6 +206,14 @@ class MockWorker {
                 if (pendingHashBatch.length >= HASH_BATCH_SIZE) {
                     this._send({ type: 'file-hash-batch', scanId: state.scanId, hashes: pendingHashBatch });
                     pendingHashBatch = [];
+                }
+
+                // Check hash cache — skip analysis if file is unchanged
+                const cached = state.hashCache ? state.hashCache[filePath] : null;
+                if (cached && cached.hash === hash && cached.size === (file.size || 0)) {
+                    state.cacheHits++;
+                    this._send({ type: 'cache-hit', scanId: state.scanId, path: filePath });
+                    continue;
                 }
 
                 // Simulate finding generation — configurable rate per file
@@ -733,6 +743,89 @@ async function runTests() {
             assert(!!SEVERITY_MAP[rule], 'Rule "' + rule + '" has severity in SEVERITY_MAP');
         }
         console.log('  All ' + newRules.length + ' new rules registered with severity');
+    }
+
+    // === Test 12: Hash cache skip — second scan should skip unchanged files ===
+    console.log('\n--- Test 12: Hash cache skip on re-scan ---');
+    {
+        MockWorker.instances = [];
+        const service = new AuditScanService();
+
+        // First scan — no cache, all files scanned
+        const files = generateMockFiles(500);
+        const result1 = await service.scan({
+            files,
+            deepScan: true,
+            onProgress: () => {},
+            onFindings: () => {},
+            onLog: () => {}
+        });
+
+        assertEqual(result1.totalFiles, 500, 'First scan: 500 files');
+        assertEqual(result1.filesSkippedByHashCache, 0, 'First scan: 0 cache hits (no cache yet)');
+        console.log('  First scan: ' + result1.processed + ' files, ' + result1.issueCount + ' findings, 0 cache hits');
+
+        // Second scan with the same files — mock worker uses deterministic hash
+        // based on filePath + processed count, so same files = same hashes = cache hits
+        // We need to simulate the hash cache being passed
+        // Since the mock worker generates hash from filePath, we can pre-populate the cache
+        const mockHashCache = {};
+        for (let i = 0; i < 500; i++) {
+            const dir = i % 10 === 0 ? 'src/components' : i % 5 === 0 ? 'src/utils' : 'src';
+            const ext = ['js', 'ts', 'py', 'json', 'md'][i % 5];
+            const filePath = 'project/' + dir + '/file_' + i + '.' + ext;
+            // The mock worker computes hash as: 'h' + (filePath.length * 31 + processedCount).toString(36)
+            // But processedCount varies per worker — we can't predict it exactly.
+            // Instead, we test that the cache-hit mechanism works by checking the service
+            // correctly passes the cache and counts hits from the worker.
+        }
+
+        // For a deterministic test, we use a smaller file set and pre-compute exact hashes
+        // The mock worker's hash is: 'h' + (filePath.length * 31 + state.processed).toString(36)
+        // state.processed increments per file in the batch, starting from 0
+        // With 4 workers and 2 files each, processed goes 1,2 per worker
+        const smallFiles = [
+            createMockFile('project/a.js', 'console.log("a");'),
+            createMockFile('project/b.js', 'console.log("b");'),
+            createMockFile('project/c.js', 'console.log("c");'),
+            createMockFile('project/d.js', 'console.log("d");')
+        ];
+
+        // Pre-populate hash cache with hashes that match what the mock worker will compute
+        // The mock worker processes files in order, incrementing state.processed
+        // With 4 files and 4 workers (MOCK_CORES=8, so 4 workers), each worker gets 1 file
+        // state.processed starts at 0, increments to 1 for each worker
+        // hash = 'h' + (filePath.length * 31 + 1).toString(36)
+        const smallCache = {};
+        for (const f of smallFiles) {
+            const fp = f.webkitRelativePath;
+            // processed will be 1 (first file for each worker)
+            const expectedHash = 'h' + (fp.length * 31 + 1).toString(36);
+            smallCache[fp] = { hash: expectedHash, size: f.size };
+        }
+
+        // Manually inject the cache into the service's IndexedDB
+        // Since we can't use real IndexedDB, we test via the workerHashCache path
+        // by monkey-patching _loadHashCache
+        service._loadHashCache = async function() {
+            const map = new Map();
+            for (const [path, entry] of Object.entries(smallCache)) {
+                map.set(path, { hash: entry.hash, size: entry.size, lastScanned: Date.now() });
+            }
+            return map;
+        };
+
+        const result2 = await service.scan({
+            files: smallFiles,
+            deepScan: true,
+            onProgress: () => {},
+            onFindings: () => {},
+            onLog: () => {}
+        });
+
+        assert(result2.filesSkippedByHashCache > 0, 'Second scan should have cache hits (got ' + result2.filesSkippedByHashCache + ')');
+        assert(result2.issueCount === 0 || result2.issueCount < result1.issueCount / 100, 'Cached scan should have fewer findings (skipped analysis)');
+        console.log('  Second scan: ' + result2.processed + ' files, ' + result2.issueCount + ' findings, ' + result2.filesSkippedByHashCache + ' cache hits');
     }
 
     // === Results ===
