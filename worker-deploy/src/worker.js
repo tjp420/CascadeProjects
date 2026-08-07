@@ -213,7 +213,10 @@ export default {
     // Redirect to the correct path so the browser loads them as proper modules.
     if (url.pathname.startsWith('/dashboard/') && !url.pathname.startsWith('/dashboard/assets/') &&
         /\.(js|mjs|css)$/.test(url.pathname) && !url.pathname.startsWith('/dashboard/js/') &&
-        !url.pathname.startsWith('/dashboard/js-es2018/')) {
+        !url.pathname.startsWith('/dashboard/js-es2018/') &&
+        !url.pathname.startsWith('/dashboard/utils-lib/') &&
+        !url.pathname.startsWith('/dashboard/scripts/') &&
+        !url.pathname.startsWith('/dashboard/src/')) {
       const chunkName = url.pathname.replace('/dashboard/', '');
       const redirectUrl = new URL('/dashboard/assets/' + chunkName, url.origin);
       return new Response(null, {
@@ -562,7 +565,13 @@ export default {
     }
 
     // Catch-all: serve static files from ASSETS binding
-    const assetResp = await env.ASSETS.fetch(request);
+    // Strip query strings before fetching from ASSETS — the binding does file lookups
+    // by path and returns 404 when query params are present (e.g. ?v=20260807)
+    const cleanAssetReq = new Request(new URL(url.pathname, url.origin).toString(), {
+      method: request.method,
+      headers: request.headers
+    });
+    const assetResp = await env.ASSETS.fetch(cleanAssetReq);
     if (assetResp.ok) {
       const headers = new Headers(assetResp.headers);
       // Ensure correct MIME types for JS/CSS
