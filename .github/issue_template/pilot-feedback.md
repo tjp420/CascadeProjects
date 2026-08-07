@@ -27,7 +27,7 @@ Please complete this evaluation at the end of the initial telemetry trial week. 
 1. Did you run the `npm run dev:jitter` harness during local development tasks this week?
    - [ ] Yes
    - [ ] No
-2. Did the pre-flight health checker (`scripts/check-api.js`) successfully flag offline backend instances on your machine?
+2. Did the pre-flight health checker (`scripts/check-api.cjs`) successfully flag offline backend instances on your machine?
    - [ ] Yes
    - [ ] No / False Positive
 

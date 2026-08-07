@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/check-api.js && vite",
+    "dev": "node scripts/check-api.cjs && vite",
     "build": "tsc -b && vite build && node scripts/prepare-worker-assets.cjs",
     "preview": "vite preview",
     "dev:jitter": "node ../../../tools/run-jitter-harness.js",
