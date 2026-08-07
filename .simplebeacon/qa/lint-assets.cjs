@@ -131,14 +131,44 @@ function checkPathIntegrity(filePath, relPath) {
 // --- Main ---
 const staged = getStagedFiles();
 
+// --- Entry file external script check (always runs, even with no staged files) ---
+// Dashboard entry HTML files must not reference /site-config.js or
+// /js-es2018/referral-capture.js externally — these 404 on Cloudflare Pages.
+const ENTRY_FILES = [
+  'coming-soon/public/dashboard/__entry',
+  'coming-soon/public/dashboard/entry-20260806.html',
+  'coming-soon/public/dashboard/index.html',
+  'coming-soon/public/app/__entry',
+  'coming-soon/public/app/entry-20260806.html',
+  'ai-platform/web/simplebeacon-dashboard/index.html',
+];
+const FORBIDDEN_SCRIPT_RE = /<script\s+src="\/(?:site-config\.js|js-es2018\/referral-capture\.js)\?v=\d+"/;
+
+let totalViolations = 0;
+
+for (const relPath of ENTRY_FILES) {
+  const absPath = path.join(REPO_ROOT, relPath);
+  if (!fs.existsSync(absPath)) continue;
+  const content = fs.readFileSync(absPath, 'utf8');
+  const match = content.match(FORBIDDEN_SCRIPT_RE);
+  if (match) {
+    totalViolations++;
+    console.error(`\n  [FAIL] ${relPath}`);
+    console.error(`    -> External script reference: ${match[0]}`);
+    console.error('    -> Inline the script in the HTML instead (see scripts/check-entry-sync.cjs)');
+  }
+}
+
 if (staged.length === 0) {
+  if (totalViolations > 0) {
+    console.error(`\n[lint-assets] FAILED: ${totalViolations} entry file violation(s) found. Commit blocked.`);
+    process.exit(1);
+  }
   console.log('[lint-assets] No staged JS/TS files to check. Skipping.');
   process.exit(0);
 }
 
 console.log(`[lint-assets] Checking ${staged.length} staged file(s) for encoding and path regressions...`);
-
-let totalViolations = 0;
 
 for (const relPath of staged) {
   const absPath = path.join(REPO_ROOT, relPath);

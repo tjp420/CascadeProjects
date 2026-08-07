@@ -264,8 +264,8 @@ export default {
       const cacheBust = `${Date.now()}`;
       const isDashboard = url.pathname.startsWith('/dashboard/');
       const entryCandidates = isDashboard
-        ? ['/dashboard/entry-20260806.html', '/dashboard/index.html', '/dashboard/__entry']
-        : ['/app/entry-20260806.html', '/app/index.html', '/app/__entry'];
+        ? ['/dashboard/__entry', '/dashboard/entry-20260806.html', '/dashboard/index.html']
+        : ['/app/__entry', '/app/entry-20260806.html', '/app/index.html'];
       for (const entryPath of entryCandidates) {
         const assetUrl = new URL(entryPath, url.origin);
         assetUrl.searchParams.set('_cb', cacheBust);

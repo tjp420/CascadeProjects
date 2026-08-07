@@ -26,6 +26,7 @@
     "audit:context:init": "node scripts/audit-context.cjs --init-prd",
     "sb:hook:secrets-gate": "node packages/simplebeacon-cli/bin/simplebeacon.js secrets-gate --path .",
     "sb:hook:pre-commit": "node .simplebeacon/qa/env-production-guard.cjs && npm run sb:hook:secrets-gate && node .simplebeacon/qa/pre-commit-gate.cjs",
+    "check:entry-sync": "node scripts/check-entry-sync.cjs",
     "release:simplebeacon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PrepareOnly",
     "release:simplebeacon:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1",
     "release:simplebeacon:tag:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PushTag",
