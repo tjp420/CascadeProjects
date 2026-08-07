@@ -31,6 +31,7 @@
 #     - CLI syntax check + full test suite + MCP smoke test + pack check
 #     - VS Code extension compile + jest tests
 #     - npm audit (high/critical)
+#     - Scan report JSON generation + markdown audit report build + content verification
 #   Release job only proceeds if test-gate passes.
 #
 # ── Downstream Publishing ──
@@ -165,6 +166,52 @@ jobs:
       - name: npm audit (high/critical only)
         working-directory: packages/simplebeacon-cli
         run: npm audit --audit-level=high || true
+
+      - name: Generate scan report JSON
+        working-directory: packages/simplebeacon-cli
+        run: |
+          node bin/simplebeacon.js scan \
+            --path . \
+            --format json \
+            --output .simplebeacon/ci-report.json \
+            --offline \
+            --no-trust-banner \
+            --no-referral-nudge
+
+      - name: Generate markdown audit report
+        working-directory: packages/simplebeacon-cli
+        run: |
+          node src/reporters/build-report.js \
+            "CI Test Project" \
+            "SimpleBeacon CI" \
+            .simplebeacon/ci-report.json \
+            .simplebeacon/ci-audit-report.md
+
+      - name: Verify audit report content
+        working-directory: packages/simplebeacon-cli
+        run: |
+          if [ ! -f .simplebeacon/ci-audit-report.md ]; then
+            echo "::error::Audit report markdown was not generated"
+            exit 1
+          fi
+          if ! grep -q "Simplebeacon Pre-Launch Code Audit Report" .simplebeacon/ci-audit-report.md; then
+            echo "::error::Audit report missing expected header"
+            exit 1
+          fi
+          if ! grep -q "Detailed findings" .simplebeacon/ci-audit-report.md; then
+            echo "::error::Audit report missing 'Detailed findings' section"
+            exit 1
+          fi
+          if ! grep -q "How to fix" .simplebeacon/ci-audit-report.md; then
+            echo "::error::Audit report missing 'How to fix' section"
+            exit 1
+          fi
+          REPORT_SIZE=$(wc -c < .simplebeacon/ci-audit-report.md)
+          if [ "$REPORT_SIZE" -lt 500 ]; then
+            echo "::error::Audit report is suspiciously small ($REPORT_SIZE bytes)"
+            exit 1
+          fi
+          echo "::notice::Audit report generated and verified ($REPORT_SIZE bytes)"
 
       - name: Test gate passed
         run: echo "::notice::All pre-release tests passed — proceeding with release"

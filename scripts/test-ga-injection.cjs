@@ -86,8 +86,8 @@ describe('worker.js HTMLRewriter injection', () => {
 
     test('worker.js skips injection when GA_ID is empty', () => {
         const worker = readFile('worker-deploy/src/worker.js');
-        // The condition should check gaId is truthy before rewriting
-        assert.match(worker, /if\s*\(gaId\s*&&\s*isHtml\)/);
+        // The withGaInjection helper should check gaId is truthy
+        assert.match(worker, /if\s*\(!gaId\)\s*return\s+response/);
     });
 
     test('worker.js passes node syntax check', () => {

@@ -11,6 +11,42 @@ const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 const LICENSE_TTL_SECONDS = 24 * 60 * 60;
 const STRIPE_TOLERANCE_SECONDS = 300;
 
+/**
+ * Inject GA4 Measurement ID into HTML responses via HTMLRewriter.
+ * Reads GA_MEASUREMENT_ID from env and injects a <meta name="ga-id"> tag
+ * into <head> so client-side analytics can initialize without hardcoding.
+ *
+ * @param {Response} response - The HTML response to transform
+ * @param {string} gaId - The GA4 Measurement ID (already validated non-empty)
+ * @returns {Response} - Transformed response with meta tag injected
+ */
+function injectGaMetaTag(response, gaId) {
+  const sanitized = String(gaId).replace(/[^a-zA-Z0-9\-]/g, '');
+  if (!sanitized) return response;
+  const rewriter = new HTMLRewriter()
+    .on('head', {
+      element(element) {
+        element.prepend(
+          `<meta name="ga-id" content="${sanitized}">`,
+          { html: true }
+        );
+      }
+    });
+  return rewriter.transform(response);
+}
+
+/**
+ * Wrap an HTML response with GA meta tag injection if GA_MEASUREMENT_ID is set.
+ * @param {Response} response - The HTML response
+ * @param {Object} env - Worker environment bindings
+ * @returns {Response} - Original response (no GA ID) or transformed response
+ */
+function withGaInjection(response, env) {
+  const gaId = String(env.GA_MEASUREMENT_ID || '').trim();
+  if (!gaId) return response;
+  return injectGaMetaTag(response, gaId);
+}
+
 class SignatureError extends Error {
   constructor(message) {
     super(message);
@@ -293,7 +329,7 @@ export default {
           headers.set('Edge-Cache-TTL', '0');
           headers.set('X-SB-Worker-Entry', entryPath);
           headers.set('X-SB-Worker-Deploy', '2026-08-07-v3');
-          return new Response(candidate.body, { status: candidate.status, headers });
+          return withGaInjection(new Response(candidate.body, { status: candidate.status, headers }), env);
         }
       }
     }
@@ -540,7 +576,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'root-html');
-        return new Response(body, { status: 200, headers });
+        return withGaInjection(new Response(body, { status: 200, headers }), env);
       }
     }
 
@@ -558,7 +594,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'dashboard-html');
-        return new Response(body, { status: 200, headers });
+        return withGaInjection(new Response(body, { status: 200, headers }), env);
       }
     }
 
@@ -575,7 +611,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'page-html');
-        return new Response(body, { status: 200, headers });
+        return withGaInjection(new Response(body, { status: 200, headers }), env);
       }
     }
 
@@ -600,29 +636,13 @@ export default {
       headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       headers.set('CDN-Cache-Control', 'no-store');
 
-      // Dynamic GA4 Measurement ID injection for HTML pages
-      // Reads GA_MEASUREMENT_ID from wrangler.jsonc vars and injects it
-      // into a <meta name="ga-id"> tag so the client-side analytics
-      // loader can pick it up without hardcoding the ID in HTML.
-      const gaId = String(env.GA_MEASUREMENT_ID || '').trim();
       const isHtml = (headers.get('Content-Type') || '').includes('text/html') ||
                      url.pathname.endsWith('.html') ||
                      url.pathname === '/' ||
                      (!url.pathname.includes('.') && assetResp.headers.get('Content-Type', '').includes('text/html'));
-      if (gaId && isHtml) {
-        const rewriter = new HTMLRewriter()
-          .on('head', {
-            element(element) {
-              element.prepend(
-                `<meta name="ga-id" content="${gaId.replace(/[^a-zA-Z0-9\-]/g, '')}">`,
-                { html: true }
-              );
-            }
-          });
-        return rewriter.transform(new Response(assetResp.body, { status: assetResp.status, headers }));
-      }
-
-      return new Response(assetResp.body, { status: assetResp.status, headers });
+      const response = new Response(assetResp.body, { status: assetResp.status, headers });
+      if (isHtml) return withGaInjection(response, env);
+      return response;
     }
 
     // 404 — never cache negative responses so fixes propagate instantly
