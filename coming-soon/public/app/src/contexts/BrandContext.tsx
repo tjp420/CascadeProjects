@@ -162,7 +162,6 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     async function loadBrand() {
       // 1. Check server-injected brand config (from whitelabel-middleware)
       const injected = (window as any).__SIMPLEBEACON_BRAND__ as BrandInjection | undefined;
-      console.log('[BrandContext] useEffect fired, injected:', !!injected, 'hasBrand:', !!(injected && injected.brand));
       if (injected && injected.brand) {
         if (cancelled) return;
         setBrand(injected.brand);

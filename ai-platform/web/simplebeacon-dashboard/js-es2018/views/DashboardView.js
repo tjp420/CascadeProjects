@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
+import { formatNumber, formatPercent, escapeHtml, showToast, downloadBlob, HarExporter } from '../utils.js';
 import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260726sevfix1';
 import { renderIssueList } from '../components/IssueCard.js';
@@ -317,6 +317,7 @@ export class DashboardView {
             </div>
             <div class="header-actions d-flex gap-2">
                 <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
+                <button class="btn btn-ghost btn-sm" data-action="export-har" title="Export network requests as HAR file for debugging">Export HAR</button>
                 ${adminBtnHtml}
             </div>
         `);
@@ -673,6 +674,9 @@ export class DashboardView {
                     case 'export':
                         this.handleExport();
                         break;
+                    case 'export-har':
+                        this.handleHarExport();
+                        break;
                     case 'send-ai':
                         this.handleSendAi();
                         break;
@@ -826,6 +830,28 @@ export class DashboardView {
         }
     }
 
+    handleHarExport() {
+        try {
+            if (!this._harExporter) {
+                showToast('HAR recorder not started — reload the page and try again', 'error');
+                return;
+            }
+            const har = this._harExporter.exportHar();
+            const entryCount = this._harExporter.getEntryCount();
+            if (entryCount === 0) {
+                showToast('No network requests captured yet — interact with the dashboard first', 'info');
+                return;
+            }
+            const harJson = JSON.stringify(har, null, 2);
+            const blob = new Blob([harJson], { type: 'application/json' });
+            const filename = `simplebeacon-har-${new Date().toISOString().slice(0, 10)}.har`;
+            downloadBlob(blob, filename);
+            showToast(`HAR exported (${entryCount} entries)`, 'success');
+        } catch (err) {
+            showToast('HAR export failed: ' + (err && err.message || String(err)), 'error');
+        }
+    }
+
     async handleSendAi() {
         const report = this.app.state.report;
         if (!report) {
@@ -938,7 +964,11 @@ export class DashboardView {
         if (this._teamTrendCleanup)
             this._teamTrendCleanup();
         this.stopScanProgressPolling();
-        window.setSafeHTML(container, '');; 
+        if (!this._harExporter) {
+            this._harExporter = new HarExporter();
+            this._harExporter.start();
+        }
+        window.setSafeHTML(container, '');;
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);

@@ -69,6 +69,7 @@ import * as PrivacyUtils from './utils-lib/privacy.js';
 import * as VSCodeUtils from './utils-lib/vscode.js';
 import * as EventUtils from './utils-lib/event.js';
 import * as PollingUtils from './utils-lib/polling.js';
+import * as HarExporterUtils from './utils-lib/har-exporter.js';
 /**
  * Barrel metadata shape.
  * @typedef {Object} BarrelMeta
@@ -210,6 +211,7 @@ export const downloadJson = DomUtils.downloadJson;
 export const downloadBlob = DomUtils.downloadBlob;
 export const downloadText = DomUtils.downloadText;
 export const downloadCsv = DomUtils.downloadCsv;
+export const HarExporter = HarExporterUtils.HarExporter;
 export const hasClass = DomUtils.hasClass;
 export const addClass = DomUtils.addClass;
 export const removeClass = DomUtils.removeClass;

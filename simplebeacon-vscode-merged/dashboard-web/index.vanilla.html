@@ -64,8 +64,11 @@
           var origSetAttr = el.setAttribute.bind(el);
           el.setAttribute = function(name, value) {
             if (name === 'src' && typeof value === 'string' && value.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1) {
-              // Strip integrity immediately when src is set to the beacon URL
               try { el.removeAttribute('integrity'); } catch (_) {}
+              try { el.removeAttribute('crossorigin'); } catch (_) {}
+            }
+            if ((name === 'integrity' || name === 'crossorigin') && typeof el.src === 'string' && el.src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1) {
+              return;
             }
             return origSetAttr(name, value);
           };
