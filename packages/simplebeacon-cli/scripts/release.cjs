@@ -41,7 +41,8 @@ function parseArgs(argv) {
         publish: args.includes('--publish'),
         otp: extractOptValue(args, '--otp'),
         dryRun: args.includes('--dry-run'),
-        skipTests: args.includes('--skip-tests')
+        skipTests: args.includes('--skip-tests'),
+        noCleanCheck: args.includes('--no-clean-check')
     };
 }
 
@@ -245,10 +246,12 @@ function main() {
     console.log(`\n  Release: ${currentVersion} -> ${newVersion} (${opts.bump})${opts.dryRun ? ' [DRY RUN]' : ''}\n`);
 
     // Step 1: Check clean tree
-    if (!opts.dryRun) {
+    if (!opts.dryRun && !opts.noCleanCheck) {
         console.log('1. Checking working tree...');
         checkCleanTree();
         console.log('   Clean.');
+    } else if (opts.noCleanCheck) {
+        console.log('1. Skipping clean tree check (--no-clean-check)');
     }
 
     // Step 2: Run tests

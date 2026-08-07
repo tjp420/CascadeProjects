@@ -21,6 +21,13 @@ test('parseArgs extracts bump type', () => {
     assert.strictEqual(args.bump, 'patch');
     assert.strictEqual(args.publish, false);
     assert.strictEqual(args.dryRun, false);
+    assert.strictEqual(args.noCleanCheck, false);
+});
+
+test('parseArgs extracts --no-clean-check flag', () => {
+    const args = parseArgs(['node', 'release.cjs', 'patch', '--no-clean-check', '--skip-tests']);
+    assert.strictEqual(args.noCleanCheck, true);
+    assert.strictEqual(args.skipTests, true);
 });
 
 test('parseArgs extracts --publish and --otp', () => {

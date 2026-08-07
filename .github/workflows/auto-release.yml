@@ -104,7 +104,7 @@ jobs:
           echo "Running release with bump: $BUMP"
 
           # Run release.cjs (tests already passed above)
-          node scripts/release.cjs "$BUMP" --skip-tests
+          node scripts/release.cjs "$BUMP" --skip-tests --no-clean-check
 
           # Extract the new version from package.json
           NEW_VERSION=$(node -p "require('./package.json').version")
