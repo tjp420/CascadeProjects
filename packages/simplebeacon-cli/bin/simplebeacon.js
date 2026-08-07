@@ -545,7 +545,7 @@ Init options:
 Scan options:
   --path, -p <dir>    Project root (default: cwd)
   --config, -c <f>    Config path (default: .simplebeacon/config.json)
-  --format, -f fmt    Output format: text | json (default: text)
+  --format, -f fmt    Output format: text | json | markdown (default: text)
   --output, -o <file> Write report to file
   --report, -r <file> Use existing scan report JSON
   --gate              Exit 1 when gate severities are found
@@ -660,6 +660,7 @@ Examples:
   npx simplebeacon scan --offline --gate
   npx simplebeacon scan --air-gapped --gate
   npx simplebeacon scan --format json --output .simplebeacon/report.json --gate
+  npx simplebeacon scan --format markdown --output .simplebeacon/audit-report.md --gate
   npx simplebeacon scan --gate --complete
   npx simplebeacon scan --format json --api-token sb_xxx --upload https://simplebeacon.ai/api/simplebeacon/cloud-scan
   npx simplebeacon cache prewarm

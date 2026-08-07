@@ -4,7 +4,7 @@
  */
 
 function validateFormat(format) {
-    const valid = ['text', 'json', 'action-plan'];
+    const valid = ['text', 'json', 'markdown', 'action-plan'];
     if (!valid.includes(format)) {
         throw new Error(`Invalid --format "${format}" — use ${valid.join(', ')}`);
     }
@@ -13,6 +13,10 @@ function validateFormat(format) {
 function selectPayload(report, gateResult, jsonReport, format) {
     if (format === 'json') {
         return JSON.stringify(jsonReport, null, 2);
+    }
+    if (format === 'markdown') {
+        const { generateMarkdownReport } = require('../reporters/scan-markdown-report');
+        return generateMarkdownReport(jsonReport);
     }
     const { formatActionPlanReport } = require('../reporters/text');
     if (format === 'action-plan') {
