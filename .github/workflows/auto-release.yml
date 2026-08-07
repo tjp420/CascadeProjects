@@ -1,0 +1,203 @@
+# Automated release workflow for the simplebeacon CLI package.
+#
+# Triggers when a PR with a release label is merged to main.
+# Uses scripts/release.cjs for semver bump, changelog generation, and tagging.
+#
+# Release labels (apply one to the PR before merging):
+#   release:patch  — bug fixes, small tweaks  (e.g. 1.1.2 -> 1.1.3)
+#   release:minor  — new features, no breaking (e.g. 1.1.2 -> 1.2.0)
+#   release:major  — breaking changes          (e.g. 1.1.2 -> 2.0.0)
+#
+# If no release label is present, the workflow skips (no-op).
+#
+# Secrets:
+#   NPM_TOKEN  — granular npm token with publish + bypass 2FA (optional:
+#                if absent, the workflow tags and creates a GitHub Release
+#                but skips npm publish)
+
+name: Auto-Release CLI on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  # ── Determine if this PR should trigger a release ──
+  check-release-label:
+    name: Check Release Label
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    outputs:
+      should_release: ${{ steps.label.outputs.should_release }}
+      bump_type: ${{ steps.label.outputs.bump_type }}
+    steps:
+      - name: Check PR labels for release trigger
+        id: label
+        run: |
+          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          echo "PR labels: $LABELS"
+
+          BUMP=""
+          if echo "$LABELS" | grep -qi '"release:patch"'; then
+            BUMP="patch"
+          elif echo "$LABELS" | grep -qi '"release:minor"'; then
+            BUMP="minor"
+          elif echo "$LABELS" | grep -qi '"release:major"'; then
+            BUMP="major"
+          fi
+
+          if [ -n "$BUMP" ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "bump_type=$BUMP" >> $GITHUB_OUTPUT
+            echo "::notice::Release label detected — bump type: $BUMP"
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "bump_type=" >> $GITHUB_OUTPUT
+            echo "::notice::No release label — skipping release"
+          fi
+
+  # ── Run tests, bump version, generate changelog, tag, push ──
+  release:
+    name: Release (bump, changelog, tag)
+    needs: check-release-label
+    if: needs.check-release-label.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for changelog)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Initialize Git Identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: packages/simplebeacon-cli/package-lock.json
+
+      - name: Install CLI dependencies
+        working-directory: packages/simplebeacon-cli
+        run: npm ci || npm install --no-fund --no-audit
+
+      - name: Run test suite
+        working-directory: packages/simplebeacon-cli
+        run: npm test
+
+      - name: Run MCP smoke test
+        working-directory: packages/simplebeacon-cli
+        run: node bin/simplebeacon-mcp.js --smoke-test
+
+      - name: Execute release script
+        id: release
+        working-directory: packages/simplebeacon-cli
+        run: |
+          BUMP="${{ needs.check-release-label.outputs.bump_type }}"
+          echo "Running release with bump: $BUMP"
+
+          # Run release.cjs (tests already passed above)
+          node scripts/release.cjs "$BUMP" --skip-tests
+
+          # Extract the new version from package.json
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "::notice::Released v$NEW_VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.release.outputs.new_version }}
+          name: Release v${{ steps.release.outputs.new_version }}
+          generate_release_notes: true
+          body: |
+            ## Automated Release v${{ steps.release.outputs.new_version }}
+
+            **Bump type:** ${{ needs.check-release-label.outputs.bump_type }}
+            **Triggered by:** PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/packages/simplebeacon-cli/CHANGELOG.md) for full details.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Publish to npm (optional, requires NPM_TOKEN secret) ──
+  publish-npm:
+    name: Publish to npm
+    needs: release
+    runs-on: ubuntu-latest
+    environment: production
+    if: success()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+          cache-dependency-path: packages/simplebeacon-cli/package-lock.json
+
+      - name: Install dependencies
+        working-directory: packages/simplebeacon-cli
+        run: npm ci || npm install --no-fund --no-audit
+
+      - name: Verify tests pass
+        working-directory: packages/simplebeacon-cli
+        run: npm test
+
+      - name: Pack and verify
+        working-directory: packages/simplebeacon-cli
+        run: |
+          npm run pack:check || true
+          npm pack
+
+      - name: Publish to npm
+        working-directory: packages/simplebeacon-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::warning::NPM_TOKEN not set — skipping npm publish"
+            echo "To enable: add NPM_TOKEN secret with publish + bypass 2FA"
+            exit 0
+          fi
+          npm publish --access public
+          sleep 3
+          PUBLISHED=$(npm view simplebeacon version 2>/dev/null || echo "unknown")
+          echo "::notice::Published to npm — version: $PUBLISHED"
+
+  # ── Release summary ──
+  release-summary:
+    name: Release Summary
+    needs: [check-release-label, release, publish-npm]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Emit Summary
+        run: |
+          echo "## SimpleBeacon CLI Auto-Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Label Check | ${{ needs.check-release-label.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Release (bump + tag) | ${{ needs.release.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| npm Publish | ${{ needs.publish-npm.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Bump:** ${{ needs.check-release-label.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY

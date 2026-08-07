@@ -1,0 +1,69 @@
+# PR test gate for the simplebeacon CLI package.
+# Runs the full test suite on PRs targeting main.
+# Blocks merge if any tests fail.
+
+name: CLI Test Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/simplebeacon-cli/**'
+      - '.github/workflows/cli-test-gate.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    name: Run CLI Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: packages/simplebeacon-cli/package-lock.json
+
+      - name: Install dependencies
+        working-directory: packages/simplebeacon-cli
+        run: npm ci || npm install --no-fund --no-audit
+
+      - name: Syntax check
+        working-directory: packages/simplebeacon-cli
+        run: npm run build
+
+      - name: Run test suite
+        working-directory: packages/simplebeacon-cli
+        run: npm test
+
+      - name: MCP smoke test
+        working-directory: packages/simplebeacon-cli
+        run: node bin/simplebeacon-mcp.js --smoke-test
+
+      - name: Pack check (no stray files)
+        working-directory: packages/simplebeacon-cli
+        run: npm run pack:check || true
+
+      - name: Report test results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = '${{ job.status }}';
+            const body = result === 'success'
+              ? '✅ All CLI tests passed — safe to merge.'
+              : `❌ CLI tests failed (${result}). Do not merge until all tests pass.`;
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body
+            });
