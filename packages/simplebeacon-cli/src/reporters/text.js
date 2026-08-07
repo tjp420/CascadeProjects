@@ -68,6 +68,7 @@ function formatTextReport(report, gateResult = null) {
 
     const lines = [];
     lines.push(paint('Simplebeacon', 'cyan'));
+    lines.push(paint('52 deterministic engines · catch AI code debt traditional linting misses', 'dim'));
     lines.push('==================');
     lines.push(`Root: ${report.projectRoot || 'unknown'}`);
     if (report.repositoryFilesTotal != null) {
