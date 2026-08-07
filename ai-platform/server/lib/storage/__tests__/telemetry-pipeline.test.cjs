@@ -11,6 +11,22 @@ const { RepairWorker } = require('../repair-worker.cjs');
 const reassembler = require('../reassembler.cjs');
 const hsmMetrics = require('../../hsm-adapter/hsm-metrics.cjs');
 
+// Helper: poll until a metric meets or exceeds target or timeout elapses
+async function waitForMetric(getValueFn, target = 1, timeout = 500, interval = 50) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const v = Number(getValueFn()) || 0;
+      if (v >= target) return v;
+    } catch (e) {
+      // ignore and retry
+    }
+    await new Promise((res) => setTimeout(res, interval));
+  }
+  // final attempt
+  return Number(getValueFn()) || 0;
+}
+
 function tmpDir(prefix) {
   const d = path.join(os.tmpdir(), `${prefix}-${crypto.randomBytes(4).toString('hex')}`);
   fs.mkdirSync(d, { recursive: true });
@@ -93,8 +109,8 @@ describe('CI Telemetry Pipeline: reassembler + repair-worker + reconciler', () =
     await new Promise((res) => setTimeout(res, 1200));
 
     expect(worker.processed.length).toBe(1);
-    const metrics = hsmMetrics.getMetrics();
-    expect(metrics.hsm_repair_worker_completed_total).toBeGreaterThanOrEqual(1);
+    const completed = await waitForMetric(() => hsmMetrics.getMetrics().hsm_repair_worker_completed_total, 1, 500);
+    expect(completed).toBeGreaterThanOrEqual(1);
   });
 
   test('L2-03: reassembler success increments hsm-metrics via bridge', async () => {
