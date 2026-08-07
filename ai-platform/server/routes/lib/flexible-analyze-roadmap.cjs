@@ -4,10 +4,29 @@ const fs = require('fs');
 const { normalizeStringList, safeBasename } = require('../../lib/flexible-analyze-utils.cjs');
 const { analyzeStrategicInsights } = require('../../lib/strategic-insights-engine.cjs');
 
+// Memory threshold (MB) — abort roadmap scan if heap usage exceeds this to prevent OOM crashes
+// on resource-constrained hosting (Render starter = 512MB RAM). V8 default heap limit is ~4GB
+// but the container OOM killer fires at the RSS level, so we guard well below 512MB.
+const ROADMAP_MEMORY_LIMIT_MB = 350;
+
+function checkMemoryLimit() {
+    const mem = process.memoryUsage();
+    const heapMB = Math.round(mem.heapUsed / 1048576);
+    const rssMB = Math.round(mem.rss / 1048576);
+    if (rssMB > ROADMAP_MEMORY_LIMIT_MB) {
+        throw new Error(`Roadmap scan aborted: memory usage (RSS ${rssMB}MB, heap ${heapMB}MB) exceeds limit (${ROADMAP_MEMORY_LIMIT_MB}MB). Use a smaller project path or upgrade server resources.`);
+    }
+    return { heapMB, rssMB };
+}
+
 async function buildRoadmapFromPath(projectPath, options = {}) {
     if (projectPath == null || typeof projectPath !== 'string') {
         throw new TypeError('projectPath must be a non-empty string');
     }
+
+    // Pre-flight memory check — abort early if server is already under memory pressure
+    checkMemoryLimit();
+
     const GlobalContextManager = require('../../../src/core/GlobalContextManager.cjs');
     const RoadmapDataAnalyzer = require('../../../src/core/RoadmapDataAnalyzer.cjs');
     const { buildHistoryEntryFromRoadmap } = require('../../lib/roadmap-history-metrics.cjs');
@@ -57,6 +76,8 @@ async function buildRoadmapFromPath(projectPath, options = {}) {
 
     const insightsMode = String(options.roadmapInsightsMode || 'off').toLowerCase();
     if (insightsMode !== 'off' && insightsMode !== 'none') {
+        // Memory check before strategic insights (which can allocate significant additional memory)
+        checkMemoryLimit();
         const userCredentials = options.userCredentials || null;
         const registry = options.registry || null;
         roadmap.strategicInsights = await analyzeStrategicInsights({
