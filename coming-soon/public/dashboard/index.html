@@ -16,8 +16,8 @@
         if (!isBeacon(el)) return;
         try { el.removeAttribute('src'); } catch (_) {}
         try { el.type = 'text/plain'; } catch (_) {}
-        el.removeAttribute('integrity');
-        el.removeAttribute('crossorigin');
+        try { el.removeAttribute('integrity'); } catch (_) {}
+        try { el.removeAttribute('crossorigin'); } catch (_) {}
       }
       var origCreate = document.createElement.bind(document);
       document.createElement = function(tag) {
@@ -51,7 +51,13 @@
           });
         });
         mo.observe(document.documentElement, { childList: true, subtree: true });
+        // Stop observing after 5s — edge injection happens during initial load
+        setTimeout(function() { mo.disconnect(); }, 5000);
       }
+      // Sweep existing scripts on DOMContentLoaded for any injected before observer
+      document.addEventListener('DOMContentLoaded', function() {
+        Array.prototype.forEach.call(document.querySelectorAll('script'), neutralize);
+      });
     })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,7 +71,7 @@
       var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
       var l = document.createElement('link');
       l.rel = 'stylesheet';
-      if (devHost) l.href = '/dashboard/assets/main.css?v=20260806cssfix1'; else l.href = '/dashboard/assets/main.css?v=20260806cssfix1';
+      if (devHost) l.href = '/dashboard/assets/main.css?v=2026072701'; else l.href = '/dashboard/assets/main.css?v=2026072701';
       document.head.appendChild(l);
     })();
   </script>
@@ -217,7 +223,7 @@
   <script src="/site-config.js"></script>
   <script src="/js-es2018/referral-capture.js" defer></script>
 </head>
-<body class="antialiased">
+<body>
   <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
 
   <!-- React mount point -->
@@ -328,12 +334,12 @@
       if (devHost) {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260806cssfix1';
+        s.src = '/dashboard/assets/main.js?v=20260730export1';
         document.head.appendChild(s);
       } else {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260806cssfix1';
+        s.src = '/dashboard/assets/main.js?v=20260730export1';
         document.head.appendChild(s);
       }
     })();
@@ -359,5 +365,4 @@
     })();
   </script>
 </body>
-<!-- v20260806 -->\n<!-- updated 2026-08-06T12:44:57 -->
 </html>

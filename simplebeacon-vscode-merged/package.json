@@ -57,22 +57,7 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onUri",
-    "onView:simplebeacon-modern",
-    "onView:simplebeacon-modern-explorer",
-    "onCommand:simplebeacon.scanWorkspace",
-    "onCommand:simplebeacon.showReport",
-    "onCommand:simplebeacon.clearResults",
-    "onCommand:simplebeacon.setApiToken",
-    "onCommand:simplebeacon.openSettings",
-    "onCommand:simplebeacon.showWelcome",
-    "onCommand:simplebeacon.openAnalyze",
-    "onCommand:simplebeacon.installLocalAgent",
-    "onCommand:simplebeacon.startLocalAgent",
-    "onCommand:simplebeacon.dryRunFix",
-    "onCommand:simplebeacon.applyFixes",
-    "onCommand:simplebeacon.runScan",
-    "onCommand:simplebeacon.remediate"
+    "onUri"
   ],
   "main": "./out/extension.js",
   "contributes": {
