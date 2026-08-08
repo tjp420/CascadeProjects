@@ -255,6 +255,41 @@ function renderProrationNotice(opts = {}) {
   return { subject, text, html: wrapHtml(isUpgrade ? 'Subscription Upgraded' : 'Subscription Changed', bodyContent) };
 }
 
+function renderSubscriptionPaused(opts = {}) {
+  const { tier = 'pro', resumeDate = null } = opts;
+  const tierName = tierDisplayName(tier);
+  const resumeStr = fmtDate(resumeDate);
+
+  const subject = 'SimpleBeacon Subscription Paused';
+  const text = `Your SimpleBeacon ${tierName} subscription has been paused.\n\nDuring the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.\n\nYou can resume your subscription at any time${resumeDate ? ` (no earlier than ${resumeStr})` : ''} by visiting https://simplebeacon.ai/settings/billing`;
+
+  const bodyContent = `
+    <p>Your SimpleBeacon <strong>${tierName}</strong> subscription has been paused.</p>
+    <div class="callout callout-warning">
+      <p>During the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.</p>
+    </div>
+    <p>You can resume your subscription at any time${resumeDate ? ` (no earlier than <strong>${resumeStr}</strong>)` : ''}.</p>
+    <a href="https://simplebeacon.ai/settings/billing" class="btn">Resume Subscription</a>`;
+
+  return { subject, text, html: wrapHtml('Subscription Paused', bodyContent) };
+}
+
+function renderSubscriptionResumed(opts = {}) {
+  const { tier = 'pro' } = opts;
+  const tierName = tierDisplayName(tier);
+
+  const subject = 'SimpleBeacon Subscription Resumed';
+  const text = `Your SimpleBeacon ${tierName} subscription has been resumed.\n\nAll features are restored and billing has restarted. Thank you for coming back!`;
+
+  const bodyContent = `
+    <p>Your SimpleBeacon <strong>${tierName}</strong> subscription has been resumed.</p>
+    <div class="callout callout-success">
+      <p>All features are restored and billing has restarted. Thank you for coming back!</p>
+    </div>`;
+
+  return { subject, text, html: wrapHtml('Subscription Resumed', bodyContent) };
+}
+
 module.exports = {
   renderSubscriptionActivated,
   renderSubscriptionCanceled,
@@ -263,5 +298,7 @@ module.exports = {
   renderTrialEnding,
   renderDisputeAlert,
   renderInvoiceUpcoming,
-  renderProrationNotice
+  renderProrationNotice,
+  renderSubscriptionPaused,
+  renderSubscriptionResumed
 };

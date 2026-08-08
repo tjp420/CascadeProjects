@@ -343,6 +343,8 @@ function setupSubscriptionWebhook(app) {
             'checkout.session.completed',
             'customer.subscription.updated',
             'customer.subscription.deleted',
+            'customer.subscription.paused',
+            'customer.subscription.resumed',
             'invoice.paid',
             'invoice.payment_failed',
             'customer.subscription.trial_will_end',
@@ -667,6 +669,51 @@ function setupSubscriptionWebhook(app) {
                     } catch (emailErr) {
                         logger.error('[SubscriptionWebhook] Invoice upcoming email failed:', emailErr.message);
                     }
+                }
+            }
+        }
+
+        // Subscription paused — suspend features, notify customer
+        if (event.type === 'customer.subscription.paused') {
+            const sub = event.data.object;
+            const customerId = sub.customer;
+            const allCustomers = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').all(customerId);
+            if (allCustomers.length > 0) {
+                const customer = allCustomers[0];
+                db.updateCustomerSubscription(customer.email, 'paused', customer.tier || 'developer');
+                const resumeDate = sub.pause_collection?.resumes_at
+                    ? new Date(sub.pause_collection.resumes_at * 1000).toISOString()
+                    : null;
+                logger.info('[SubscriptionWebhook] Subscription paused for', customer.email, 'resume:', resumeDate);
+                try {
+                    const { sendEmail } = require('../services/email.cjs');
+                    const { renderSubscriptionPaused } = require('../services/billing-email-templates.cjs');
+                    const { subject, text, html } = renderSubscriptionPaused({ tier: customer.tier || 'developer', resumeDate });
+                    await sendEmail({ to: customer.email, subject, text, html });
+                    logger.info('[SubscriptionWebhook] Paused email sent to', customer.email);
+                } catch (emailErr) {
+                    logger.error('[SubscriptionWebhook] Paused email failed:', emailErr.message);
+                }
+            }
+        }
+
+        // Subscription resumed — restore features, notify customer
+        if (event.type === 'customer.subscription.resumed') {
+            const sub = event.data.object;
+            const customerId = sub.customer;
+            const allCustomers = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').all(customerId);
+            if (allCustomers.length > 0) {
+                const customer = allCustomers[0];
+                db.updateCustomerSubscription(customer.email, 'active', customer.tier || 'developer');
+                logger.info('[SubscriptionWebhook] Subscription resumed for', customer.email);
+                try {
+                    const { sendEmail } = require('../services/email.cjs');
+                    const { renderSubscriptionResumed } = require('../services/billing-email-templates.cjs');
+                    const { subject, text, html } = renderSubscriptionResumed({ tier: customer.tier || 'developer' });
+                    await sendEmail({ to: customer.email, subject, text, html });
+                    logger.info('[SubscriptionWebhook] Resumed email sent to', customer.email);
+                } catch (emailErr) {
+                    logger.error('[SubscriptionWebhook] Resumed email failed:', emailErr.message);
                 }
             }
         }

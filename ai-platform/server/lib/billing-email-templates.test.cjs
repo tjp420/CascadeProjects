@@ -10,7 +10,9 @@ const {
   renderTrialEnding,
   renderDisputeAlert,
   renderInvoiceUpcoming,
-  renderProrationNotice
+  renderProrationNotice,
+  renderSubscriptionPaused,
+  renderSubscriptionResumed
 } = require('../lib/billing-email-templates.cjs');
 
 describe('billing-email-templates', () => {
@@ -241,6 +243,54 @@ describe('billing-email-templates', () => {
     });
   });
 
+  describe('renderSubscriptionPaused', () => {
+    it('includes tier name in subject and text', () => {
+      const result = renderSubscriptionPaused({ tier: 'team_pro' });
+      assert.ok(result.subject.includes('Subscription Paused'));
+      assert.ok(result.text.includes('Team Pro'));
+    });
+
+    it('includes resume date when provided', () => {
+      const result = renderSubscriptionPaused({ tier: 'developer', resumeDate: '2026-10-01T00:00:00Z' });
+      assert.ok(result.text.includes('2026'));
+      assert.ok(result.html.includes('2026'));
+    });
+
+    it('omits resume date when not provided', () => {
+      const result = renderSubscriptionPaused({ tier: 'developer' });
+      assert.ok(!result.text.includes('no earlier than'));
+    });
+
+    it('uses warning callout in html', () => {
+      const result = renderSubscriptionPaused({ tier: 'developer' });
+      assert.ok(result.html.includes('callout-warning'));
+    });
+
+    it('includes resume CTA button', () => {
+      const result = renderSubscriptionPaused({ tier: 'developer' });
+      assert.ok(result.html.includes('Resume Subscription'));
+    });
+  });
+
+  describe('renderSubscriptionResumed', () => {
+    it('includes tier name in subject and text', () => {
+      const result = renderSubscriptionResumed({ tier: 'team_pro' });
+      assert.ok(result.subject.includes('Subscription Resumed'));
+      assert.ok(result.text.includes('Team Pro'));
+    });
+
+    it('uses success callout in html', () => {
+      const result = renderSubscriptionResumed({ tier: 'developer' });
+      assert.ok(result.html.includes('callout-success'));
+    });
+
+    it('includes welcome back message', () => {
+      const result = renderSubscriptionResumed({ tier: 'developer' });
+      assert.ok(result.text.includes('Thank you for coming back'));
+      assert.ok(result.html.includes('Thank you for coming back'));
+    });
+  });
+
   describe('all templates share consistent layout', () => {
     const templates = [
       { name: 'activated', fn: () => renderSubscriptionActivated({ tier: 'pro' }) },
@@ -251,6 +301,8 @@ describe('billing-email-templates', () => {
       { name: 'dispute', fn: () => renderDisputeAlert({ chargeId: 'ch_test' }) },
       { name: 'invoice_upcoming', fn: () => renderInvoiceUpcoming({ amountCents: 4900, dueDate: '2026-09-15T00:00:00Z' }) },
       { name: 'proration_notice', fn: () => renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', daysRemaining: 20, netAdjustmentCents: 6667, netAdjustmentDisplay: '$66.67 charge' }) },
+      { name: 'subscription_paused', fn: () => renderSubscriptionPaused({ tier: 'developer' }) },
+      { name: 'subscription_resumed', fn: () => renderSubscriptionResumed({ tier: 'developer' }) },
     ];
 
     for (const { name, fn } of templates) {

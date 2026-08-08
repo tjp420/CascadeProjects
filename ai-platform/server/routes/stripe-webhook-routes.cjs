@@ -18,7 +18,7 @@ const { sendEmail } = require('../lib/email-service.cjs');
 const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
 const { logWebhookEvent } = require('../lib/webhook-event-log.cjs');
-const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert, renderInvoiceUpcoming, renderProrationNotice } = require('../lib/billing-email-templates.cjs');
+const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert, renderInvoiceUpcoming, renderProrationNotice, renderSubscriptionPaused, renderSubscriptionResumed } = require('../lib/billing-email-templates.cjs');
 const { calculateProration } = require('../lib/proration-calculator.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
@@ -118,6 +118,18 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         logAmount = inv?.amount_due ? `$${(inv.amount_due / 100).toFixed(2)}` : null;
         logDetail = 'Invoice coming due';
         await handleInvoiceUpcoming(event);
+        break;
+      }
+      case 'customer.subscription.paused': {
+        const sub = event.data?.object;
+        logDetail = 'Subscription paused';
+        await handleSubscriptionPaused(event);
+        break;
+      }
+      case 'customer.subscription.resumed': {
+        const sub = event.data?.object;
+        logDetail = 'Subscription resumed';
+        await handleSubscriptionResumed(event);
         break;
       }
       default:
@@ -617,6 +629,65 @@ async function handleInvoiceUpcoming(event) {
     logger.info('[StripeWebhook] Invoice upcoming email', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
   } catch (emailErr) {
     logger.error('[StripeWebhook] Invoice upcoming email failed:', emailErr.message);
+  }
+}
+
+/**
+ * Handle customer.subscription.paused — notify customer their subscription is paused.
+ * @param {Object} event - Stripe event object.
+ */
+async function handleSubscriptionPaused(event) {
+  const subscription = event.data?.object;
+  if (!subscription) return;
+
+  const customerId = subscription.customer;
+  const existing = await findSubscriptionByCustomerId(customerId);
+  if (!existing) {
+    logger.warn('[StripeWebhook] subscription.paused: no existing subscription for customer', customerId);
+    return;
+  }
+
+  const tier = existing.tier || 'pro';
+  const resumeDate = subscription.pause_collection?.resumes_at
+    ? new Date(subscription.pause_collection.resumes_at * 1000).toISOString()
+    : null;
+
+  logger.info('[StripeWebhook] subscription.paused for', existing.email, 'tier:', tier, 'resume:', resumeDate);
+
+  try {
+    const { subject, text, html } = renderSubscriptionPaused({ tier, resumeDate });
+    const emailResult = await sendEmail({ to: existing.email, subject, text, html });
+    logger.info('[StripeWebhook] Subscription paused email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+  } catch (emailErr) {
+    logger.error('[StripeWebhook] Subscription paused email failed:', emailErr.message);
+  }
+}
+
+/**
+ * Handle customer.subscription.resumed — notify customer their subscription is active again.
+ * @param {Object} event - Stripe event object.
+ */
+async function handleSubscriptionResumed(event) {
+  const subscription = event.data?.object;
+  if (!subscription) return;
+
+  const customerId = subscription.customer;
+  const existing = await findSubscriptionByCustomerId(customerId);
+  if (!existing) {
+    logger.warn('[StripeWebhook] subscription.resumed: no existing subscription for customer', customerId);
+    return;
+  }
+
+  const tier = existing.tier || 'pro';
+
+  logger.info('[StripeWebhook] subscription.resumed for', existing.email, 'tier:', tier);
+
+  try {
+    const { subject, text, html } = renderSubscriptionResumed({ tier });
+    const emailResult = await sendEmail({ to: existing.email, subject, text, html });
+    logger.info('[StripeWebhook] Subscription resumed email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+  } catch (emailErr) {
+    logger.error('[StripeWebhook] Subscription resumed email failed:', emailErr.message);
   }
 }
 
