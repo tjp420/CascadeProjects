@@ -13,6 +13,7 @@ import { isNotificationsEnabled, setNotificationsEnabled as setNotificationsPref
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { ReferralAnalyticsPanel } from '@/components/ReferralAnalyticsPanel';
+import { ProrationPreview } from '@/components/ProrationPreview';
 
 interface AiKeysState {
   openai: { configured: boolean; hint: string };
@@ -98,6 +99,7 @@ export function SettingsView() {
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="referrals">Referrals</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ai">
@@ -159,6 +161,10 @@ export function SettingsView() {
 
         <TabsContent value="referrals">
           <ReferralAnalyticsPanel userEmail={user?.email} />
+        </TabsContent>
+
+        <TabsContent value="billing">
+          <ProrationPreview />
         </TabsContent>
       </Tabs>
     </div>

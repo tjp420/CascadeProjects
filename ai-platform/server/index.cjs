@@ -916,6 +916,9 @@ app.use('/api/webhook-events', require('./routes/webhook-events-routes.cjs'));
 // Daily ops report API — manual trigger and scheduler status
 app.use('/api/ops-report', require('./routes/ops-report-routes.cjs'));
 
+// Billing API — proration preview and tier pricing
+app.use('/api/billing', require('./routes/billing-routes.cjs'));
+
 // Start the daily ops report scheduler (if enabled via OPS_REPORT_ENABLED=true)
 const { startScheduler: startOpsReportScheduler } = require('./lib/daily-ops-report.cjs');
 startOpsReportScheduler();
