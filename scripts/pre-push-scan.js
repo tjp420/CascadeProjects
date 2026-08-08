@@ -137,17 +137,30 @@ function runGitleaksOnFiles(files) {
     const baseArgs = attempt.args;
     // Attempt per-file invocation to limit memory and allow redaction per-file
     let aggregatedOutput = '';
+    let hadError = false;
     for (const f of files) {
       const a = baseArgs.concat([f, '--redact']);
       const r = runCmd(base, a, { stdio: 'pipe' });
       if (r && r.error && r.error.code === 'ENOENT') break; // binary missing
       aggregatedOutput += (r.stdout || '') + (r.stderr || '');
       if (r.status && r.status !== 0) {
-        // gitleaks non-zero likely indicates findings; surface its output
+        // Distinguish actual findings (exit 1) from errors (other codes)
+        // On Windows, gitleaks fails with "cannot change to '<file>': Invalid argument"
+        // because it treats file paths as directory paths. These errors contain
+        // "fatal: cannot change to" or "The directory name is invalid" — skip them.
+        const errText = (r.stderr || '') + (r.stdout || '');
+        const isWindowsPathError = /cannot change to|directory name is invalid|Invalid argument/i.test(errText);
+        if (isWindowsPathError) {
+          hadError = true;
+          continue; // Skip this file, try the next one
+        }
+        // Actual leak finding — surface its output
         return { success: true, output: aggregatedOutput, code: r.status };
       }
     }
-    // If we reached here without a non-zero status and without ENOENT, assume success
+    // If we reached here, gitleaks either succeeded or had Windows path errors
+    // In both cases, fall through to the regex scanner for a deterministic check
+    if (hadError) return { success: false, output: '' };
     return { success: true, output: aggregatedOutput, code: 0 };
   }
   return { success: false, output: '' };
