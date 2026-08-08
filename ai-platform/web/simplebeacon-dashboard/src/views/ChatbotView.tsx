@@ -311,11 +311,11 @@ export function ChatbotView() {
             modelMap[providerId] = models.filter((m): m is string => typeof m === 'string' && m.trim().length > 0);
           }
         }
-        setProviderModels(modelMap);
         const available = all.filter((p) => p.available);
-        setProviders(all);
         providersFetchedAtRef.current = Date.now();
         if (available.length > 0) {
+          setProviderModels(modelMap);
+          setProviders(all);
           const activeProvider = available[0];
           setSelectedProvider(activeProvider.id);
           const activeModel = (activeProvider.model || '').trim();
@@ -348,8 +348,8 @@ export function ChatbotView() {
                 models: browserModels,
               };
               const updatedAll = all.map((p) => p.id === 'ollama' ? ollamaProvider : p);
-              setProviders(updatedAll);
               const modelMap2: Record<string, string[]> = { ...modelMap, ollama: browserModels };
+              setProviders(updatedAll);
               setProviderModels(modelMap2);
               setSelectedProvider('ollama');
               const savedModel = modelPrefs['ollama'] || '';
@@ -360,6 +360,8 @@ export function ChatbotView() {
               return;
             }
           }
+          setProviderModels(modelMap);
+          setProviders(all);
           setSelectedProvider('');
           setConnectionStatus('offline');
           setConnectionText('No AI provider configured');
