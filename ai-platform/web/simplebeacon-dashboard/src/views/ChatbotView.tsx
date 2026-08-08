@@ -388,7 +388,8 @@ export function ChatbotView() {
     } finally {
       providerFetchInFlightRef.current = null;
     }
-  }, [apiBase, providers.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiBase]);
 
   useEffect(() => {
     if (!selectedProvider) {
@@ -400,7 +401,9 @@ export function ChatbotView() {
       : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []);
     const providerModel = providers.find((p) => p.id === selectedProvider)?.model || '';
     const fromPrefs = modelPrefs[selectedProvider] || '';
-    setSelectedModel(fromPrefs || providerModel || providerOptions[0] || '');
+    const validPrefs = providerOptions.includes(fromPrefs) ? fromPrefs : '';
+    const validProviderModel = providerOptions.includes(providerModel) ? providerModel : '';
+    setSelectedModel(validPrefs || validProviderModel || providerOptions[0] || '');
   }, [selectedProvider, modelPrefs, providerModels, providers]);
 
   const modelOptions = selectedProvider
