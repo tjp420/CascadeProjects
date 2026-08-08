@@ -351,15 +351,18 @@ export function ChatbotView() {
               const modelMap2: Record<string, string[]> = { ...modelMap, ollama: browserModels };
               setProviders(updatedAll);
               setProviderModels(modelMap2);
-              setSelectedProvider('ollama');
+              // Only set provider/model if not already a valid Ollama choice —
+              // avoids clobbering the user's dropdown selection on re-probe.
+              setSelectedProvider((prev) => prev === 'ollama' ? prev : 'ollama');
               const savedModel = modelPrefs['ollama'] || '';
               const validModel = browserModels.includes(savedModel) ? savedModel : browserModels[0];
               setModelPrefs((prev) => {
+                if (prev.ollama && browserModels.includes(prev.ollama)) return prev;
                 const next = { ...prev, ollama: validModel };
                 writeModelPrefs(next);
                 return next;
               });
-              setSelectedModel(validModel);
+              setSelectedModel((prev) => browserModels.includes(prev) ? prev : validModel);
               setConnectionStatus('online');
               setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
               setError(null);
