@@ -353,7 +353,13 @@ export function ChatbotView() {
               setProviderModels(modelMap2);
               setSelectedProvider('ollama');
               const savedModel = modelPrefs['ollama'] || '';
-              setSelectedModel(browserModels.includes(savedModel) ? savedModel : browserModels[0]);
+              const validModel = browserModels.includes(savedModel) ? savedModel : browserModels[0];
+              setModelPrefs((prev) => {
+                const next = { ...prev, ollama: validModel };
+                writeModelPrefs(next);
+                return next;
+              });
+              setSelectedModel(validModel);
               setConnectionStatus('online');
               setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
               setError(null);
@@ -501,9 +507,13 @@ export function ChatbotView() {
       const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
       if (selectedProvider === 'ollama' && isHosted) {
         const systemPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.helpful;
+        const chatModel = selectedModel || providerModels['ollama']?.[0] || '';
+        if (!chatModel) {
+          throw new Error('No Ollama model selected. Please select a model from the dropdown.');
+        }
         const response = await chatWithBrowserOllama(
           BROWSER_OLLAMA_URL,
-          selectedModel || 'llama3.2',
+          chatModel,
           msg,
           messages,
           systemPrompt,
