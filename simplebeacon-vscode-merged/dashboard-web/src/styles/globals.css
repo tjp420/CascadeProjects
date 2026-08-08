@@ -140,6 +140,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Ensure consistent text-size adjustment across browsers */
+  html, :host {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
 }
 
 @layer utilities {
