@@ -24,8 +24,9 @@ if [ $rc -ne 0 ]; then
 fi
 
 # 3. Quick test suite (if present)
+# Skip integration tests that require external services (Docker/Redis)
 echo "Running quick test suite (if present)"
-npm test --workspaces --if-present
+SKIP_REDIS_INTEGRATION=1 npm test --workspaces --if-present
 
 exit_code=$?
 if [ $exit_code -ne 0 ]; then
