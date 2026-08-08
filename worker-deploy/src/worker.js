@@ -520,7 +520,8 @@ export default {
       proxyHeaders.delete('host');
 
       // Retry on failure — Render free tier can drop connections under concurrent load
-      const maxRetries = 2;
+      // or take 30+ seconds to spin up from cold start.
+      const maxRetries = 3;
       let lastErr = null;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
@@ -533,10 +534,10 @@ export default {
             redirect: 'manual'
           });
 
-          // Retry on 502/503/504 from backend (Render overload) for GET/HEAD only
+          // Retry on 502/503/504 from backend (Render overload/cold-start) for GET/HEAD only
           if (canRetry && (proxyResponse.status === 502 || proxyResponse.status === 503 || proxyResponse.status === 504) && attempt < maxRetries) {
-            // Small delay before retry (50ms, then 150ms)
-            await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+            // Progressive delay: 500ms, 1s, 2s — gives Render time to spin up
+            await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
             continue;
           }
 
@@ -554,7 +555,8 @@ export default {
         } catch (err) {
           lastErr = err;
           if (attempt < maxRetries) {
-            await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+            // Progressive delay for network errors too (500ms, 1s, 2s)
+            await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
             continue;
           }
         }
