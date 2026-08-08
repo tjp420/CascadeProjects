@@ -192,7 +192,7 @@ app.options(/.*/, (req, res) => {
   const origin = req.headers.origin || '*';
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,Access-Control-Request-Private-Network');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,X-SimpleBeacon-Bridge-Token,Access-Control-Request-Private-Network');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   return res.sendStatus(204);
 });
@@ -909,6 +909,9 @@ app.use('/api', require('./routes/health-routes.cjs'));
 
 // Stripe webhook ΓÇö must use raw body, mounted before express.json() middleware
 app.use('/api/stripe', require('./routes/stripe-webhook-routes.cjs'));
+
+// Webhook events dashboard API — list and stats for recent Stripe webhook events
+app.use('/api/webhook-events', require('./routes/webhook-events-routes.cjs'));
 
 // /api/status is already handled by health-routes.cjs (mounted at /api above).
 

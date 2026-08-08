@@ -52,7 +52,7 @@ function resolveCorsOptions(overrides = {}) {
     return {
         origin: isAllowedCorsOrigin,
         credentials: true,
-        allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password'],
+        allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password', 'X-SimpleBeacon-Bridge-Token'],
         ...restOverrides
     };
 }

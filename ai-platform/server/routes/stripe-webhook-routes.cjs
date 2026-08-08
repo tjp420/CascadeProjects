@@ -17,6 +17,7 @@ const { setSubscriptionActive, getSubscriptionByEmail, upsertSubscription, readS
 const { sendEmail } = require('../lib/email-service.cjs');
 const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
+const { logWebhookEvent } = require('../lib/webhook-event-log.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
@@ -54,44 +55,76 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   const isFirstSeen = await recordProcessedEvent(event.id);
   if (!isFirstSeen) {
     logger.warn('[StripeWebhook] Duplicate event ignored:', event.id);
+    await logWebhookEvent({ eventId: event.id, eventType: event.type, status: 'duplicate' });
     return res.status(200).json({ received: true, status: 'duplicate_ignored', eventId: event.id });
   }
 
+  let logStatus = 'processed';
+  let logEmail = null;
+  let logTier = null;
+  let logAmount = null;
+  let logReason = null;
+  let logDetail = null;
   try {
     switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event, {
+      case 'checkout.session.completed': {
+        const result = await handleCheckoutCompleted(event, {
           licenseToken: req.headers['x-license-token'] || '',
           licenseTier: req.headers['x-license-tier'] || ''
         });
+        const session = event.data?.object;
+        logEmail = session?.customer_details?.email || session?.customer_email || null;
+        logAmount = session?.amount_total ? `$${(session.amount_total / 100).toFixed(2)}` : null;
+        logDetail = 'Subscription activated';
         break;
+      }
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(event);
+        logDetail = 'Subscription updated';
         break;
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event);
+        logDetail = 'Subscription canceled';
         break;
       case 'invoice.paid':
         await handleInvoicePaid(event);
+        logDetail = 'Payment succeeded';
         break;
-      case 'invoice.payment_failed':
+      case 'invoice.payment_failed': {
+        const inv = event.data?.object;
+        logEmail = inv?.customer_email || inv?.customer_details?.email || null;
+        logReason = inv ? `attempt ${inv.attempt_count || 1}` : null;
+        logDetail = 'Payment failed';
         await handleInvoicePaymentFailed(event);
         break;
+      }
       case 'customer.subscription.trial_will_end':
         await handleTrialWillEnd(event);
+        logDetail = 'Trial ending soon';
         break;
-      case 'charge.dispute.created':
+      case 'charge.dispute.created': {
+        const dispute = event.data?.object;
+        logReason = dispute?.reason || null;
+        logAmount = dispute?.amount ? `$${(dispute.amount / 100).toFixed(2)} ${dispute.currency || 'usd'.toUpperCase()}` : null;
+        logDetail = 'Dispute filed';
         await handleDisputeCreated(event);
         break;
+      }
       default:
         logger.info('[StripeWebhook] Unhandled event type:', event.type);
+        logStatus = 'ignored';
+        await logWebhookEvent({ eventId: event.id, eventType: event.type, status: 'ignored' });
         return res.json({ received: true, ignored: true, type: event.type });
     }
   } catch (err) {
     logger.error('[StripeWebhook] Event handler failed for', event.type, ':', err.message);
+    logStatus = 'error';
+    logDetail = err.message;
+    await logWebhookEvent({ eventId: event.id, eventType: event.type, status: 'error', customerEmail: logEmail, detail: logDetail });
     return sendError(res, 500, 'handler_failed', { type: event.type });
   }
 
+  await logWebhookEvent({ eventId: event.id, eventType: event.type, status: logStatus, customerEmail: logEmail, tier: logTier, amount: logAmount, reason: logReason, detail: logDetail });
   res.json({ received: true, type: event.type });
 });
 

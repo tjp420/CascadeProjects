@@ -6643,7 +6643,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
     const server = http.createServer((req: any, res: any) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-simplebeacon-bridge-token');
       if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
