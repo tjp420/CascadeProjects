@@ -414,7 +414,11 @@ export function ChatbotView() {
   const isCustomModel = Boolean(selectedModel) && !modelOptions.includes(selectedModel);
 
   const handleModelSelectChange = useCallback((nextModel: string) => {
-    if (!selectedProvider || nextModel === '__custom__') return;
+    if (!selectedProvider) return;
+    if (nextModel === '__custom__') {
+      setSelectedModel('');
+      return;
+    }
     const nextPrefs = { ...modelPrefs, [selectedProvider]: nextModel };
     setModelPrefs(nextPrefs);
     writeModelPrefs(nextPrefs);
