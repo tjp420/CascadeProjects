@@ -86,8 +86,22 @@ type Personality = 'helpful' | 'professional' | 'casual' | 'sarcastic' | 'techni
 
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
 const PROVIDER_REFRESH_MIN_INTERVAL_MS = 15000;
+const OLLAMA_REGISTRY_MODELS: string[] = [
+  'llama3.2', 'llama3.1', 'llama3', 'llama2',
+  'mistral', 'mistral-nemo', 'mixtral',
+  'codellama', 'codegemma', 'qwen2.5-coder', 'deepseek-coder-v2',
+  'phi3', 'phi3.5', 'gemma2', 'gemma',
+  'qwen2.5', 'qwen2', 'yi',
+  'llava', 'llava-llama3',
+  'dolphin-llama3', 'dolphin-mistral',
+  'wizardlm2', 'orca2',
+  'command-r', 'command-r-plus',
+  'starcoder2', 'stable-code',
+  'mathstral', 'granite-code',
+  'smollm2', 'llama3.2-vision',
+];
 const PROVIDER_MODEL_OPTIONS: Record<string, string[]> = {
-  ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3', 'qwen2.5-coder'],
+  ollama: OLLAMA_REGISTRY_MODELS,
   openai: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o3-mini'],
   anthropic: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
 };
@@ -403,9 +417,16 @@ export function ChatbotView() {
   }, [apiBase]);
 
   const modelOptions = selectedProvider
-    ? (providerModels[selectedProvider]?.length
-      ? providerModels[selectedProvider]
-      : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []))
+    ? (() => {
+        const discovered = providerModels[selectedProvider] || [];
+        const registry = PROVIDER_MODEL_OPTIONS[selectedProvider] || [];
+        // Discovered (installed) models first, then registry models not already discovered
+        const merged = [...discovered];
+        for (const m of registry) {
+          if (!merged.includes(m)) merged.push(m);
+        }
+        return merged;
+      })()
     : [];
   const isCustomModel = Boolean(selectedModel) && !modelOptions.includes(selectedModel);
 
@@ -511,25 +532,34 @@ export function ChatbotView() {
       if (selectedProvider === 'ollama' && isHosted) {
         const systemPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.helpful;
         const discovered = providerModels['ollama'] || [];
-        const chatModel = discovered.includes(selectedModel)
-          ? selectedModel
-          : discovered[0] || '';
+        // Use the user's selection if it's installed, otherwise fall back to first installed.
+        // Allow selecting registry models that aren't installed yet — Ollama will 404 and
+        // we'll show a helpful "ollama pull" error.
+        const chatModel = selectedModel || discovered[0] || '';
         if (!chatModel) {
           throw new Error('No Ollama model selected. Please select a model from the dropdown.');
         }
-        const response = await chatWithBrowserOllama(
-          BROWSER_OLLAMA_URL,
-          chatModel,
-          msg,
-          messages,
-          systemPrompt,
-        );
+        try {
+          const response = await chatWithBrowserOllama(
+            BROWSER_OLLAMA_URL,
+            chatModel,
+            msg,
+            messages,
+            systemPrompt,
+          );
         setMessages((prev) => {
           const next = [...prev];
           next[assistantIndex] = { role: 'assistant', content: `[AI-Generated via Local AI] ${response}` };
           return next;
         });
         return;
+        } catch (ollamaErr: unknown) {
+          const errMsg = ollamaErr instanceof Error ? ollamaErr.message : String(ollamaErr);
+          if (errMsg.includes('404') || errMsg.includes('not found')) {
+            throw new Error(`Model '${chatModel}' is not installed. Run this command in your terminal to install it:\n\nollama pull ${chatModel}\n\nThen refresh this page.`);
+          }
+          throw ollamaErr;
+        }
       }
 
       const userId = localStorage.getItem('simplebeacon_user_id') || 'anonymous';
