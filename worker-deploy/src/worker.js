@@ -201,7 +201,7 @@ async function signJwtHS256(claims, signingSecret) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const corsOrigin = getCorsOrigin(request, env);
     const debugPath = url.pathname;
@@ -519,6 +519,26 @@ export default {
       const proxyHeaders = new Headers(request.headers);
       proxyHeaders.delete('host');
 
+      // --- KV cache: serve fresh cached response for GET/HEAD (no fetch needed) ---
+      // NOTE: This KV read happens BEFORE the fetch() but does NOT disturb
+      // request.body because we use get() not getWithMetadata(), and we
+      // only read for GET/HEAD methods where request.body is null.
+      if (request.method === 'GET' && env.API_CACHE) {
+        try {
+          const cacheKey = 'api:' + url.pathname + ':' + url.search;
+          const cachedVal = await env.API_CACHE.get(cacheKey, 'text');
+          if (cachedVal !== null && cachedVal !== undefined) {
+            const respHeaders = new Headers({ 'Content-Type': 'application/json' });
+            if (corsOrigin) {
+              respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
+              respHeaders.set('Vary', 'Origin');
+            }
+            respHeaders.set('X-Cache', 'HIT-FRESH');
+            return new Response(cachedVal, { status: 200, headers: respHeaders });
+          }
+        } catch (_) { /* Cache read failure — proceed to fetch */ }
+      }
+
       // Retry on failure — Render free tier can drop connections under concurrent load
       // or take 30+ seconds to spin up from cold start.
       const maxRetries = 3;
@@ -547,6 +567,25 @@ export default {
             responseHeaders.set('Access-Control-Allow-Origin', corsOrigin);
             responseHeaders.set('Vary', 'Origin');
           }
+
+          // KV cache: store successful GET responses for stale-while-revalidate.
+          // IMPORTANT: KV read/write happens AFTER fetch() succeeds, so request.body
+          // is not disturbed. We only cache 2xx/4xx responses (not 5xx errors).
+          const isCacheableMethod = request.method === 'GET' || request.method === 'HEAD';
+          const cacheKey = isCacheableMethod ? 'api:' + url.pathname + ':' + url.search : null;
+          if (cacheKey && env.API_CACHE && proxyResponse.status >= 200 && proxyResponse.status < 500) {
+            try {
+              const respBody = await proxyResponse.text();
+              await env.API_CACHE.put(cacheKey, respBody, { expirationTtl: 300 });
+              responseHeaders.set('X-Cache', 'MISS');
+              return new Response(respBody, {
+                status: proxyResponse.status,
+                statusText: proxyResponse.statusText,
+                headers: responseHeaders
+              });
+            } catch (_) { /* Cache failure — fall through to raw response */ }
+          }
+
           return new Response(proxyResponse.body, {
             status: proxyResponse.status,
             statusText: proxyResponse.statusText,
@@ -560,6 +599,22 @@ export default {
             continue;
           }
         }
+      }
+      // Serve stale cache as fallback before returning 502
+      if (request.method === 'GET' && env.API_CACHE) {
+        try {
+          const staleKey = 'api:' + url.pathname + ':' + url.search;
+          const staleVal = await env.API_CACHE.get(staleKey, 'text');
+          if (staleVal !== null && staleVal !== undefined) {
+            const respHeaders = new Headers({ 'Content-Type': 'application/json' });
+            respHeaders.set('X-Cache', 'HIT-STALE-FALLBACK');
+            if (corsOrigin) {
+              respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
+              respHeaders.set('Vary', 'Origin');
+            }
+            return new Response(staleVal, { status: 200, headers: respHeaders });
+          }
+        } catch (_) { /* Stale fallback read failure */ }
       }
       return json({ error: 'Backend unreachable', detail: lastErr ? lastErr.message : 'timeout' }, 502, corsOrigin);
     }

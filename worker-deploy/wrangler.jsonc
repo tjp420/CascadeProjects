@@ -24,6 +24,12 @@
     "API_BACKEND": "https://cascadeprojects-yzzd.onrender.com",
     "GA_MEASUREMENT_ID": ""
   },
+  "kv_namespaces": [
+    {
+      "binding": "API_CACHE",
+      "id": "f2bca2a5a41442c5bd52fd67cf754e44"
+    }
+  ],
   "triggers": {
     "crons": [
       "*/5 * * * *"
