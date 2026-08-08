@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getSbConfig } from '../utils/vscode';
 import { listDirectories, ServerState } from '../serverState';
+import { enrichFindingsWithAlerts } from '../fixes/alertTemplates';
 
 export function countLocalDirectoryInventory(
   projectPath: string,
@@ -92,15 +93,26 @@ export function handleScanReportRoutes(
     if (!(report as any).projectRoot && serverState.workspacePath) {
       (report as any).projectRoot = serverState.workspacePath;
     }
+    const enrichedReport = { ...(report as any) };
+    if (enrichedReport.rawIssues) {
+      enrichedReport.rawIssues = enrichFindingsWithAlerts(enrichedReport.rawIssues);
+    }
+    if (enrichedReport.detectedIssues) {
+      enrichedReport.detectedIssues = enrichFindingsWithAlerts(enrichedReport.detectedIssues);
+    }
+    if (enrichedReport.findings) {
+      enrichedReport.findings = enrichFindingsWithAlerts(enrichedReport.findings);
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(report));
+    res.end(JSON.stringify(enrichedReport));
     return true;
   }
 
   // All findings
   if (parsed.pathname === '/api/findings') {
     const report = serverState.currentReport;
-    const findings = report?.rawIssues || report?.findings || report?.detectedIssues || [];
+    const rawFindings = report?.rawIssues || report?.findings || report?.detectedIssues || [];
+    const findings = enrichFindingsWithAlerts(rawFindings as any[]);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ findings, count: findings.length }));
     return true;

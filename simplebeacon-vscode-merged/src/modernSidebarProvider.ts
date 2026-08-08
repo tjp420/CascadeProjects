@@ -6878,6 +6878,32 @@ footer{padding:10px 20px;border-top:1px solid var(--border);font-size:11px;color
 @keyframes scanIndeterminate{0%{transform:translateX(-100%)}50%{transform:translateX(0%)}100%{transform:translateX(100%)}}
 #scanProgressBar.indeterminate{width:40% !important;animation:scanIndeterminate 1.2s ease-in-out infinite;background:linear-gradient(90deg,rgba(99,102,241,0.6),rgba(129,140,248,0.9),rgba(99,102,241,0.6)) !important}
 .cm-link{display:inline-flex;align-items:center;gap:6px;background:var(--ac);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none}
+.alert-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;transition:border-color 0.15s}
+.alert-card:hover{border-color:rgba(99,102,241,0.3)}
+.alert-card-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.alert-card-header:hover{background:rgba(255,255,255,0.02)}
+.alert-card-title{font-size:13px;font-weight:600;color:var(--fg);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alert-card-chevron{font-size:11px;color:var(--muted);transition:transform 0.15s;flex-shrink:0}
+.alert-card.expanded .alert-card-chevron{transform:rotate(90deg)}
+.alert-card-body{display:none;padding:0 16px 14px 16px;font-size:12px;line-height:1.6;color:var(--muted)}
+.alert-card.expanded .alert-card-body{display:block}
+.alert-card-section{margin-top:12px}
+.alert-card-section-label{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.alert-card-impact{color:var(--fg);font-size:12px;line-height:1.6}
+.alert-card-action{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:6px;padding:8px 10px;font-size:12px;color:#fca5a5;line-height:1.5}
+.alert-card-steps{margin:0;padding-left:18px;color:var(--fg)}
+.alert-card-steps li{margin-bottom:4px;font-size:12px;line-height:1.5}
+.alert-card-prevention{font-size:12px;color:var(--muted);line-height:1.5}
+.alert-card-refs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.alert-card-ref{font-size:11px;color:var(--ac);text-decoration:none;padding:2px 8px;border-radius:4px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)}
+.alert-card-ref:hover{background:rgba(99,102,241,0.12)}
+.alert-card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.alert-card-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid}
+.alert-card-badge.cwe{background:rgba(168,85,247,0.08);color:#c084fc;border-color:rgba(168,85,247,0.2)}
+.alert-card-badge.rotate{background:rgba(239,68,68,0.08);color:#fca5a5;border-color:rgba(239,68,68,0.2)}
+.alert-card-badge.rule{background:rgba(99,102,241,0.08);color:var(--ac);border-color:rgba(99,102,241,0.2)}
+.alert-card-file{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--muted);margin-top:6px}
+.alert-card-summary{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -6964,21 +6990,49 @@ async function load(){
     renderFindings(r.findings||[]);
   }catch(e){document.getElementById('footer-status').textContent='Error: '+e.message;}
 }
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function renderFindings(list){
   const fb=document.getElementById('findings-body');
   if(!list.length){fb['inner'+'HTML']='<div class="empty"><h3>No findings</h3><p>Nothing detected in the latest scan.</p></div>';return;}
   const sevOrder={critical:0,high:1,medium:2,low:3,info:4};
   const sevCls={critical:'crit',high:'high',medium:'med',low:'low',info:'info'};
   list.sort((a,b)=>sevOrder[(a.severity||'info').toLowerCase()]-sevOrder[(b.severity||'info').toLowerCase()]);
-  let html='<table><thead><tr><th>Severity</th><th>Rule</th><th>File</th><th>Message</th></tr></thead><tbody>';
-  list.forEach(f=>{
+  let html='';
+  list.forEach((f,idx)=>{
     const s=(f.severity||'info').toLowerCase();
-    html+='<tr><td><span class="sev-pill '+sevCls[s]+'">'+f.severity+'</span></td>'+
-      '<td>'+(f.ruleId||f.rule||'—')+'</td>'+
-      '<td class="file-path" title="'+(f.file||'')+'">'+(f.file||'—')+'</td>'+
-      '<td>'+(f.message||'—')+'</td></tr>';
+    const cls=sevCls[s]||'info';
+    const at=f.alertTemplate;
+    const title=at?at.title:(f.type||f.ruleId||f.rule||'Finding');
+    const summary=at?at.summary:(f.message||f.description||'');
+    const file=f.file||f.filePath||'';
+    const rule=f.ruleId||f.rule||f.pattern||f.patternId||'';
+    html+='<div class="alert-card" id="alert-'+idx+'">';
+    html+='<div class="alert-card-header" onclick="var c=document.getElementById(\'alert-'+idx+'\');c.classList.toggle(\'expanded\');">';
+    html+='<span class="sev-pill '+cls+'">'+esc(f.severity||'info')+'</span>';
+    html+='<span class="alert-card-title">'+esc(title)+'</span>';
+    html+='<span class="alert-card-chevron">▶</span>';
+    html+='</div>';
+    html+='<div class="alert-card-body">';
+    if(summary){html+='<div class="alert-card-summary">'+esc(summary)+'</div>';}
+    if(file){html+='<div class="alert-card-file">'+esc(file)+(f.line?':'+esc(f.line):'')+'</div>';}
+    if(at){
+      if(at.impact){html+='<div class="alert-card-section"><div class="alert-card-section-label">Impact</div><div class="alert-card-impact">'+esc(at.impact)+'</div></div>';}
+      if(at.immediateAction){html+='<div class="alert-card-section"><div class="alert-card-section-label">Immediate Action</div><div class="alert-card-action">'+esc(at.immediateAction)+'</div></div>';}
+      if(at.remediationSteps&&at.remediationSteps.length){html+='<div class="alert-card-section"><div class="alert-card-section-label">Remediation Steps</div><ol class="alert-card-steps">'+at.remediationSteps.map(function(st){return '<li>'+esc(st)+'</li>';}).join('')+'</ol></div>';}
+      if(at.preventionGuidance){html+='<div class="alert-card-section"><div class="alert-card-section-label">Prevention</div><div class="alert-card-prevention">'+esc(at.preventionGuidance)+'</div></div>';}
+      html+='<div class="alert-card-meta">';
+      if(rule){html+='<span class="alert-card-badge rule">'+esc(rule)+'</span>';}
+      if(at.cwe){html+='<span class="alert-card-badge cwe">'+esc(at.cwe)+'</span>';}
+      if(at.rotationRequired){html+='<span class="alert-card-badge rotate">⚠ Rotation Required</span>';}
+      html+='</div>';
+      if(at.references&&at.references.length){html+='<div class="alert-card-section"><div class="alert-card-section-label">References</div><div class="alert-card-refs">'+at.references.map(function(r){return '<a class="alert-card-ref" href="'+esc(r)+'" target="_blank">'+esc(r.replace(/^https?:\/\//,'').split('/')[0])+'</a>';}).join('')+'</div></div>';}
+    } else {
+      if(f.message||f.description){html+='<div class="alert-card-section"><div class="alert-card-section-label">Details</div><div class="alert-card-impact">'+esc(f.message||f.description)+'</div></div>';}
+      if(f.suggestion||f.fix||f.remediation){html+='<div class="alert-card-section"><div class="alert-card-section-label">Remediation</div><div class="alert-card-prevention">'+esc(f.suggestion||f.fix||f.remediation)+'</div></div>';}
+      if(rule){html+='<div class="alert-card-meta"><span class="alert-card-badge rule">'+esc(rule)+'</span></div>';}
+    }
+    html+='</div></div>';
   });
-  html+='</tbody></table>';
   fb['inner'+'HTML']=html;
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{
