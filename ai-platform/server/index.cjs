@@ -913,6 +913,13 @@ app.use('/api/stripe', require('./routes/stripe-webhook-routes.cjs'));
 // Webhook events dashboard API — list and stats for recent Stripe webhook events
 app.use('/api/webhook-events', require('./routes/webhook-events-routes.cjs'));
 
+// Daily ops report API — manual trigger and scheduler status
+app.use('/api/ops-report', require('./routes/ops-report-routes.cjs'));
+
+// Start the daily ops report scheduler (if enabled via OPS_REPORT_ENABLED=true)
+const { startScheduler: startOpsReportScheduler } = require('./lib/daily-ops-report.cjs');
+startOpsReportScheduler();
+
 // /api/status is already handled by health-routes.cjs (mounted at /api above).
 
 // Meta routes ΓÇö project structure, releases, backlog
