@@ -353,7 +353,7 @@ export function ChatbotView() {
               setProviderModels(modelMap2);
               setSelectedProvider('ollama');
               const savedModel = modelPrefs['ollama'] || '';
-              setSelectedModel(savedModel || browserModels[0]);
+              setSelectedModel(browserModels.includes(savedModel) ? savedModel : browserModels[0]);
               setConnectionStatus('online');
               setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
               setError(null);
