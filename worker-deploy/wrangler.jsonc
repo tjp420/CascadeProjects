@@ -28,6 +28,10 @@
     {
       "binding": "API_CACHE",
       "id": "f2bca2a5a41442c5bd52fd67cf754e44"
+    },
+    {
+      "binding": "LICENSE_STORE",
+      "id": "5a5a2125a7e14bf6b3e9b7b6d1e4441c"
     }
   ],
   "triggers": {
