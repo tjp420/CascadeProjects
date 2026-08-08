@@ -72,11 +72,93 @@ async function buildReportBundle(licenseToken, reportJson) {
     const email = record.email;
     const deliveryId = `delivery_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Store the uploaded report
+    // Store the uploaded report. Ensure we canonicalize and sign a cloned
+    // payload before any disk write so every write path persists a signed
+    // artifact. This avoids races where another code path might write an
+    // unsigned reference later.
     ensureReportDir();
     const fs = require('fs');
+    const { signReport } = require('../../../server/lib/report-signer.cjs');
     const reportPath = path.join(REPORT_STORE_DIR, `${deliveryId}.json`);
-    fs.writeFileSync(reportPath, JSON.stringify(reportJson, null, 2));
+
+    // Helper: return a deep-cloned, signed copy of the report JSON (not
+    // mutating the original in-memory object used elsewhere).
+    function buildSignedPayload(srcReport) {
+        const signingKey = String(process.env.REPORT_SIGNING_KEY || '').trim() || null;
+        const signingKeyId = String(process.env.REPORT_SIGNING_KEY_ID || '').trim() || null;
+        let cloned;
+        try {
+            cloned = JSON.parse(JSON.stringify(srcReport));
+        } catch (e) {
+            // Fallback to safeStringify if JSON.stringify fails for any reason
+            try { cloned = JSON.parse(safeStringify(srcReport, 2)); } catch (e2) { cloned = srcReport; }
+        }
+        if (!signingKey) {
+            try { console.error('[DIAG] REPORT_SIGNING_KEY not configured — building unsigned snapshot'); } catch (e) {}
+            return cloned;
+        }
+        try {
+            try { console.error('[DIAG] buildSignedPayload signingKey present, keyId=', signingKeyId || null); } catch (e) {}
+            const envelope = signReport(cloned, signingKey, signingKeyId || null);
+            if (envelope) {
+                cloned.cryptoValidation = envelope;
+                try { console.error('[DIAG] buildSignedPayload attached signature length=', (envelope.signature || '').length); } catch (e) {}
+            }
+        } catch (signErr) {
+            logger.warn('[Reports] buildSignedPayload signing failed, continuing without signature:', signErr && signErr.message);
+        }
+        return cloned;
+    }
+
+    // Atomic write with fsync: write the signed payload to temp, fsync, close, then rename.
+    const tmpPath = reportPath + '.tmp';
+    try {
+        try { logger.info('[Reports] about to build signed payload and write file', { deliveryId, reportPath }); } catch (e) {}
+        try { console.error('[DIAG] about to build signed payload for deliveryId=', deliveryId, 'reportPath=', reportPath); } catch (e) {}
+        const signedPayload = buildSignedPayload(reportJson);
+        const toWrite = JSON.stringify(signedPayload, null, 2);
+        try { logger.info('[Reports] pre-write signed hasCryptoValidation=' + (!!signedPayload.cryptoValidation), { deliveryId }); } catch (e) {}
+        try { console.error('[DIAG] pre-write signed hasCryptoValidation=', !!signedPayload.cryptoValidation, 'toWriteLen=', toWrite.length); } catch (e) {}
+        const fd = fs.openSync(tmpPath, 'w', 0o600);
+        try {
+            fs.writeSync(fd, toWrite, null, 'utf8');
+            try { fs.fsyncSync(fd); } catch (e) { /* best-effort flush */ }
+        } finally {
+            try { fs.closeSync(fd); } catch (e) { /* ignore */ }
+        }
+        fs.renameSync(tmpPath, reportPath);
+        try {
+            const after = fs.readFileSync(reportPath, 'utf8');
+            try { console.error('[DIAG] post-rename file snapshot (start)'); } catch (e) {}
+            try { console.error(after.slice(0, 4000)); } catch (e) {}
+            try { console.error('[DIAG] post-rename file snapshot (end)'); } catch (e) {}
+        } catch (e) {
+            try { console.error('[DIAG] post-rename read failed:', e && e.message); } catch (e2) {}
+        }
+
+        // Short-lived watcher: detect any quick subsequent modifications to this file
+        try {
+            const watcher = fs.watch(reportPath, (eventType) => {
+                try {
+                    const now = fs.readFileSync(reportPath, 'utf8');
+                    logger.info('[Reports] watcher detected modification', { deliveryId, eventType });
+                    try { console.error('[DIAG] watcher snapshot (start)'); } catch (e) {}
+                    try { console.error(now.slice(0, 4000)); } catch (e) {}
+                    try { console.error('[DIAG] watcher snapshot (end)'); } catch (e) {}
+                } catch (e) {
+                    try { console.error('[DIAG] watcher read failed:', e && e.message); } catch (e2) {}
+                }
+            });
+            setTimeout(() => {
+                try { watcher.close(); } catch (e) {}
+            }, 2000);
+        } catch (e) {
+            try { console.error('[DIAG] watcher install failed:', e && e.message); } catch (e2) {}
+        }
+    } catch (writeErr) {
+        try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) {}
+        throw writeErr;
+    }
 
     // Load payer-specific agency branding (configured at payment time via certOrgId)
     let branding = null;
@@ -309,6 +391,11 @@ async function buildReportBundle(licenseToken, reportJson) {
         zipBuffer = await streamToBuffer(pass);
         zipFilename = `${root}.zip`;
     }
+
+    // NOTE: final-authoritative overwrite removed — we now write a signed
+    // snapshot at the canonical commit point above. Keeping a second writer
+    // risks re-introducing the original race condition where an unsigned
+    // reference is written later.
 
     return { record, email, deliveryId, certificateHtml, auditReportHtml, zipBuffer, zipFilename };
 }

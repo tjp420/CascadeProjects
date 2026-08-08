@@ -1,5 +1,40 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.495] - 2026-08-07
+
+### Added
+- **Ollama VRAM/Pull Hub in IDE sidebar** — Full Ollama orchestration center ported into the VS Code dashboard webview:
+  - `GET /api/simplebeacon/ollama/health` proxy endpoint in `dataServer.ts` — parallel `Promise.all` fetches `/api/health`, `/api/tags`, and `/api/ps` for combined health, model details, and running model VRAM stats
+  - `POST /api/simplebeacon/ollama/pull` proxy endpoint — streams NDJSON download progress chunks directly from Ollama `/api/pull` to the webview, avoiding server-side memory buffering
+  - `formatBytesLocal()` helper for human-readable byte formatting
+  - Ollama status card UI in `dashboardPanel.ts` with: online/offline/checking badge, latency/model count/VRAM/disk metrics, collapsible running models with VRAM-to-size ratio bars, collapsible all-models list with quantization badges, pull-model input with live streaming progress bars, 30-second auto-poll, and manual refresh
+- **Performance benchmark test** (`realtimeMonitor.bench.test.ts`) — 6 tests covering correctness, speedup assertion, and edge cases for the O(log n) binary search line-lookup optimization
+
+### Changed
+- **Realtime monitor decoration layer optimized** for ultra-low-latency typing performance:
+  - **Pre-compiled RegExp patterns** — `BASE_SECURITY_PATTERNS` and `TYPE_SPECIFIC_PATTERNS_CACHE` moved to module-level constants, eliminating `new RegExp()` per-line × per-pattern on every 500ms debounced analysis pass
+  - **O(log n) binary search line lookup** — Replaced O(n) linear scan in `detectAISlop` with `buildLineOffsets()` + `lineFromOffset()` binary search. Benchmark on 10,000-line file: **290ms → 2ms (140x speedup)** across 50,000 lookups
+  - **Single `content.split('\n')`** — All four detection methods (`detectIssues`, `detectAISlop`, `detectEntropyAnomalies`, `detectASTPatterns`) now share one `lines` array from `analyzeFile`, eliminating 3 redundant splits
+  - **File-size guard** — Files >500KB truncated before pattern analysis to prevent pathological regex backtracking on minified bundles
+  - **Batched output channel writes** — `displayIssues` collects log lines into an array and calls `appendLine` once instead of per-issue, reducing I/O overhead
+  - **Cached `fileHeader` and `prevLine`** — Hoisted `lines[0]` lookup out of inner loop in `detectIssues`
+
+### Performance
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  RealtimeMonitor Line-Lookup Benchmark (10K lines)      │
+├──────────────────────────────────────────────────────────┤
+│  Match positions:       500                              │
+│  Iterations:            100                              │
+│  Total lookups:       50,000                             │
+├──────────────────────────────────────────────────────────┤
+│  Linear scan (old):  290.53 ms                           │
+│  Binary search (new):   2.07 ms                           │
+│  Speedup:             140.51x                            │
+└──────────────────────────────────────────────────────────┘
+```
+
 ## [3.0.494] - 2026-08-05
 
 ### Added

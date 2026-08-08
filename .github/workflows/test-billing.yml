@@ -1,0 +1,53 @@
+name: "💳 Billing Pipeline Verification"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/test-billing.yml'
+
+jobs:
+  verify-billing:
+    name: Run End-to-End Billing Hooks
+    runs-on: ubuntu-latest
+
+    services:
+      local-redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Check out repository code assets
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js environment
+        uses: actions/configure-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'ai-platform/package.json'
+
+      - name: 📦 Install application dependencies
+        run: |
+          cd ai-platform
+          npm ci
+
+      - name: 🧪 Execute Orchestrated Billing Test Sandbox
+        run: |
+          cd ai-platform
+          npm run test:billing
+        env:
+          PORT: '58000'
+          STRIPE_SECRET_KEY: 'sk_test_placeholder'
+          STRIPE_WEBHOOK_SECRET: 'whsec_test_secret_placeholder_54200'
+          SUPPORT_EMAIL: 'support@simplebeacon.ai'
+          ADMIN_THROTTLE_DISABLE_REDIS: 'false'
