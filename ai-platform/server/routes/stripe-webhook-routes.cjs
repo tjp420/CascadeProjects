@@ -18,6 +18,7 @@ const { sendEmail } = require('../lib/email-service.cjs');
 const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
 const { logWebhookEvent } = require('../lib/webhook-event-log.cjs');
+const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert } = require('../lib/billing-email-templates.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
@@ -218,28 +219,18 @@ async function handleCheckoutCompleted(event, headers = {}) {
     extraSeats: extraSeatsCount
   });
 
-  // Build email content — include license token if provided by the Worker
+  // Build email content using centralized template
   const licenseToken = headers.licenseToken || '';
   const licenseTier = headers.licenseTier || tier;
 
-  const seatSummary = extraSeatsCount > 0
-    ? `\n\nYour Team Pro subscription includes 5 base seats plus ${extraSeatsCount} extra seat${extraSeatsCount === 1 ? '' : 's'} (${totalSeats} total).`
-    : (tier === 'team_pro' ? '\n\nYour Team Pro subscription includes 5 seats.' : '');
-
-  let emailText = `Your SimpleBeacon ${tier} subscription is now active.\n\nYou can start using all ${tier} tier features immediately.${seatSummary}\n\nThank you for your purchase.`;
-  let emailHtml = `<h2>Subscription Activated</h2><p>Your SimpleBeacon <strong>${tier}</strong> subscription is now active.</p><p>You can start using all ${tier} tier features immediately.</p>${extraSeatsCount > 0 ? `<p>Your Team Pro subscription includes 5 base seats plus <strong>${extraSeatsCount} extra seat${extraSeatsCount === 1 ? '' : 's'}</strong> (${totalSeats} total).</p>` : (tier === 'team_pro' ? '<p>Your Team Pro subscription includes 5 seats.</p>' : '')}<p>Thank you for your purchase.</p>`;
-
-  if (licenseToken) {
-    emailText += `\n\n--- Your License Key ---\n${licenseToken}\n------------------------\n\nKeep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.\n\nYou can also retrieve it anytime from your dashboard: https://simplebeacon.ai`;
-    emailHtml += `<hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb"><h3>Your License Key</h3><div style="background:#f3f4f6;padding:12px;border-radius:6px;font-family:monospace;font-size:12px;word-break:break-all;border:1px solid #e5e7eb">${licenseToken}</div><p style="margin-top:10px;color:#6b7280;font-size:13px">Keep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.<br>You can also retrieve it anytime from your <a href="https://simplebeacon.ai">dashboard</a>.</p>`;
-  }
+  const { subject, text, html } = renderSubscriptionActivated({ tier, licenseToken, totalSeats, extraSeats: extraSeatsCount });
 
   // Send confirmation email via Resend (with disk queue fallback)
   const emailResult = await sendEmail({
     to: customerEmail,
-    subject: 'SimpleBeacon Subscription Activated',
-    text: emailText,
-    html: emailHtml
+    subject,
+    text,
+    html
   });
 
   logger.info('[StripeWebhook] Confirmation email result:', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail, 'token included:', !!licenseToken);
@@ -343,12 +334,8 @@ async function handleSubscriptionDeleted(event) {
   logger.info('[StripeWebhook] subscription.deleted: deactivated for', existing.email);
 
   try {
-    await sendEmail({
-      to: existing.email,
-      subject: 'SimpleBeacon Subscription Canceled',
-      text: 'Your SimpleBeacon subscription has been canceled.\n\nYou will retain access until the end of your current billing period. After that, your account will revert to the free tier.\n\nWe hope to see you again soon.',
-      html: '<h2>Subscription Canceled</h2><p>Your SimpleBeacon subscription has been canceled.</p><p>You will retain access until the end of your current billing period. After that, your account will revert to the free tier.</p><p>We hope to see you again soon.</p>'
-    });
+    const { subject, text, html } = renderSubscriptionCanceled();
+    await sendEmail({ to: existing.email, subject, text, html });
     logger.info('[StripeWebhook] Cancellation email sent to', existing.email);
   } catch (emailErr) {
     logger.error('[StripeWebhook] Cancellation email failed:', emailErr.message);
@@ -392,12 +379,8 @@ async function handleInvoicePaid(event) {
     periodStart: new Date().toISOString()
   });
 
-  const emailResult = await sendEmail({
-    to: customerEmail,
-    subject: 'SimpleBeacon Subscription Reactivated',
-    text: `Your SimpleBeacon subscription has been reactivated following successful payment.\n\nAll features are restored. Thank you for your continued subscription.`,
-    html: `<h2>Subscription Reactivated</h2><p>Your SimpleBeacon subscription has been reactivated following successful payment.</p><p>All features are restored. Thank you for your continued subscription.</p>`
-  });
+  const { subject, text, html } = renderSubscriptionReactivated();
+  const emailResult = await sendEmail({ to: customerEmail, subject, text, html });
 
   logger.info('[StripeWebhook] Reactivation email result:', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
 }
@@ -462,15 +445,7 @@ async function handleInvoicePaymentFailed(event) {
   logger.info('[StripeWebhook] Subscription marked past_due for', customerEmail, 'attempt:', attemptCount);
 
   try {
-    const isFinalAttempt = !nextRetry;
-    const subject = isFinalAttempt
-      ? 'SimpleBeacon Subscription — Final Payment Attempt Failed'
-      : 'SimpleBeacon Subscription — Payment Failed';
-    const retryLine = nextRetry
-      ? `Stripe will automatically retry the payment on ${new Date(nextRetry).toLocaleDateString()}.`
-      : 'This was the final retry attempt. Your subscription will be deactivated at the end of the current billing period.';
-    const text = `A payment for your SimpleBeacon subscription failed.\n\n${retryLine}\n\nPlease update your payment method at https://simplebeacon.ai/settings/billing to avoid service interruption.\n\nIf you believe this is an error, please contact support@simplebeacon.ai.`;
-    const html = `<h2>Payment Failed</h2><p>A payment for your SimpleBeacon subscription failed.</p><p>${retryLine}</p><p>Please update your payment method at <a href="https://simplebeacon.ai/settings/billing">your billing settings</a> to avoid service interruption.</p><p>If you believe this is an error, please contact <a href="mailto:support@simplebeacon.ai">support@simplebeacon.ai</a>.</p>`;
+    const { subject, text, html } = renderPaymentFailed({ attemptCount, nextRetry });
     const emailResult = await sendEmail({ to: customerEmail, subject, text, html });
     logger.info('[StripeWebhook] Payment failure email', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
   } catch (emailErr) {
@@ -500,17 +475,9 @@ async function handleTrialWillEnd(event) {
     return;
   }
 
-  const trialEndDate = trialEnd ? new Date(trialEnd).toLocaleDateString() : 'soon';
-
   try {
-    const text = `Your SimpleBeacon trial will end on ${trialEndDate}.\n\nTo continue using all features without interruption, please add a payment method at https://simplebeacon.ai/settings/billing.\n\nIf you do not add a payment method, your account will revert to the free tier after the trial ends.`;
-    const html = `<h2>Trial Ending Soon</h2><p>Your SimpleBeacon trial will end on <strong>${trialEndDate}</strong>.</p><p>To continue using all features without interruption, please <a href="https://simplebeacon.ai/settings/billing">add a payment method</a>.</p><p>If you do not add a payment method, your account will revert to the free tier after the trial ends.</p>`;
-    const emailResult = await sendEmail({
-      to: existing.email,
-      subject: 'SimpleBeacon Trial Ending Soon — Add a Payment Method',
-      text,
-      html
-    });
+    const { subject, text, html } = renderTrialEnding({ trialEnd });
+    const emailResult = await sendEmail({ to: existing.email, subject, text, html });
     logger.info('[StripeWebhook] Trial ending email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
   } catch (emailErr) {
     logger.error('[StripeWebhook] Trial ending email failed:', emailErr.message);
@@ -556,12 +523,12 @@ async function handleDisputeCreated(event) {
   }
 
   try {
-    const alertText = `A charge dispute has been filed.\n\nCharge ID: ${chargeId}\nReason: ${reason}\nAmount: ${amount} ${currency.toUpperCase()}\nStatus: ${status}\n\nAction required: Submit evidence in the Stripe Dashboard within 7 days to avoid automatic loss.`;
+    const { subject, text, html } = renderDisputeAlert({ chargeId, reason, status, amountCents: dispute.amount, currency });
     await sendEmail({
       to: process.env.DISPUTE_ALERT_EMAIL || 'support@simplebeacon.ai',
-      subject: `DISPUTE ALERT: ${reason} — $${amount} ${currency.toUpperCase()}`,
-      text: alertText,
-      html: `<h2>Charge Dispute Filed</h2><p><strong>Charge ID:</strong> ${chargeId}</p><p><strong>Reason:</strong> ${reason}</p><p><strong>Amount:</strong> ${amount} ${currency.toUpperCase()}</p><p><strong>Status:</strong> ${status}</p><p style="color:#ef4444"><strong>Action required:</strong> Submit evidence in the Stripe Dashboard within 7 days to avoid automatic loss.</p>`
+      subject,
+      text,
+      html
     });
     logger.info('[StripeWebhook] Dispute alert email sent for charge', chargeId);
   } catch (emailErr) {

@@ -493,12 +493,9 @@ function setupSubscriptionWebhook(app) {
 
                 try {
                     const { sendEmail } = require('../services/email.cjs');
-                    await sendEmail({
-                        to: customer.email,
-                        subject: 'SimpleBeacon Subscription Canceled',
-                        text: `Your SimpleBeacon subscription has been canceled.\n\nYou will retain access until the end of your current billing period. After that, your account will revert to the free tier.\n\nWe hope to see you again soon.`,
-                        html: `<h2>Subscription Canceled</h2><p>Your SimpleBeacon subscription has been canceled.</p><p>You will retain access until the end of your current billing period. After that, your account will revert to the free tier.</p><p>We hope to see you again soon.</p>`
-                    });
+                    const { renderSubscriptionCanceled } = require('../services/billing-email-templates.cjs');
+                    const { subject, text, html } = renderSubscriptionCanceled();
+                    await sendEmail({ to: customer.email, subject, text, html });
                     logger.info('[SubscriptionWebhook] Cancellation email sent to', customer.email);
                 } catch (emailErr) {
                     logger.error('[SubscriptionWebhook] Cancellation email failed:', emailErr.message);
@@ -540,18 +537,9 @@ function setupSubscriptionWebhook(app) {
                     logger.warn('[SubscriptionWebhook] Subscription marked past_due for:', email, 'attempt:', attemptCount);
                     try {
                         const { sendEmail } = require('../services/email.cjs');
-                        const isFinalAttempt = !nextRetry;
-                        const retryLine = nextRetry
-                            ? `Stripe will automatically retry the payment on ${new Date(nextRetry).toLocaleDateString()}.`
-                            : 'This was the final retry attempt. Your subscription will be deactivated at the end of the current billing period.';
-                        await sendEmail({
-                            to: email,
-                            subject: isFinalAttempt
-                                ? 'SimpleBeacon Subscription — Final Payment Attempt Failed'
-                                : 'SimpleBeacon Subscription — Payment Failed',
-                            text: `A payment for your SimpleBeacon subscription failed.\n\n${retryLine}\n\nPlease update your payment method at https://simplebeacon.ai/settings/billing to avoid service interruption.\n\nIf you believe this is an error, please contact support@simplebeacon.ai.`,
-                            html: `<h2>Payment Failed</h2><p>A payment for your SimpleBeacon subscription failed.</p><p>${retryLine}</p><p>Please update your payment method at <a href="https://simplebeacon.ai/settings/billing">your billing settings</a> to avoid service interruption.</p>`
-                        });
+                        const { renderPaymentFailed } = require('../services/billing-email-templates.cjs');
+                        const { subject, text, html } = renderPaymentFailed({ attemptCount, nextRetry });
+                        await sendEmail({ to: email, subject, text, html });
                         logger.info('[SubscriptionWebhook] Payment failure email sent to', email);
                     } catch (emailErr) {
                         logger.error('[SubscriptionWebhook] Payment failure email failed:', emailErr.message);
@@ -570,13 +558,9 @@ function setupSubscriptionWebhook(app) {
                 const customer = allCustomers[0];
                 try {
                     const { sendEmail } = require('../services/email.cjs');
-                    const trialEndDate = trialEnd ? new Date(trialEnd).toLocaleDateString() : 'soon';
-                    await sendEmail({
-                        to: customer.email,
-                        subject: 'SimpleBeacon Trial Ending Soon — Add a Payment Method',
-                        text: `Your SimpleBeacon trial will end on ${trialEndDate}.\n\nTo continue using all features without interruption, please add a payment method at https://simplebeacon.ai/settings/billing.\n\nIf you do not add a payment method, your account will revert to the free tier after the trial ends.`,
-                        html: `<h2>Trial Ending Soon</h2><p>Your SimpleBeacon trial will end on <strong>${trialEndDate}</strong>.</p><p>To continue using all features without interruption, please <a href="https://simplebeacon.ai/settings/billing">add a payment method</a>.</p><p>If you do not add a payment method, your account will revert to the free tier after the trial ends.</p>`
-                    });
+                    const { renderTrialEnding } = require('../services/billing-email-templates.cjs');
+                    const { subject, text, html } = renderTrialEnding({ trialEnd });
+                    await sendEmail({ to: customer.email, subject, text, html });
                     logger.info('[SubscriptionWebhook] Trial ending email sent to', customer.email);
                 } catch (emailErr) {
                     logger.error('[SubscriptionWebhook] Trial ending email failed:', emailErr.message);
@@ -594,11 +578,13 @@ function setupSubscriptionWebhook(app) {
             logger.warn('[SubscriptionWebhook] Dispute CREATED — charge:', chargeId, 'reason:', reason, 'amount:', amount, currency.toUpperCase(), 'status:', status);
             try {
                 const { sendEmail } = require('../services/email.cjs');
+                const { renderDisputeAlert } = require('../services/billing-email-templates.cjs');
+                const { subject, text, html } = renderDisputeAlert({ chargeId, reason, status, amountCents: dispute.amount, currency });
                 await sendEmail({
                     to: process.env.DISPUTE_ALERT_EMAIL || 'support@simplebeacon.ai',
-                    subject: `DISPUTE ALERT: ${reason} — $${amount} ${currency.toUpperCase()}`,
-                    text: `A charge dispute has been filed.\n\nCharge ID: ${chargeId}\nReason: ${reason}\nAmount: ${amount} ${currency.toUpperCase()}\nStatus: ${status}\n\nAction required: Submit evidence in the Stripe Dashboard within 7 days to avoid automatic loss.`,
-                    html: `<h2>Charge Dispute Filed</h2><p><strong>Charge ID:</strong> ${chargeId}</p><p><strong>Reason:</strong> ${reason}</p><p><strong>Amount:</strong> ${amount} ${currency.toUpperCase()}</p><p><strong>Status:</strong> ${status}</p><p style="color:#ef4444"><strong>Action required:</strong> Submit evidence in the Stripe Dashboard within 7 days to avoid automatic loss.</p>`
+                    subject,
+                    text,
+                    html
                 });
                 logger.info('[SubscriptionWebhook] Dispute alert email sent for charge', chargeId);
             } catch (emailErr) {
