@@ -29,6 +29,7 @@ import {
   Briefcase,
   Database,
   Webhook,
+  FileBarChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -84,6 +85,7 @@ const navGroups: NavGroup[] = [
       { view: 'workspace', label: 'Workspace', icon: Briefcase },
       { view: 'fine-tuning', label: 'Fine-Tuning', icon: Database },
       { view: 'webhook-events', label: 'Webhook Events', icon: Webhook },
+      { view: 'ops-report', label: 'Ops Report', icon: FileBarChart },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
     ],
