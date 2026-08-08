@@ -192,7 +192,7 @@ app.options(/.*/, (req, res) => {
   const origin = req.headers.origin || '*';
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,X-SimpleBeacon-Bridge-Token,Access-Control-Request-Private-Network');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,X-SimpleBeacon-Bridge-Token,x-simplebeacon-bridge-token,Access-Control-Request-Private-Network');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   return res.sendStatus(204);
 });
@@ -918,6 +918,9 @@ app.use('/api/ops-report', require('./routes/ops-report-routes.cjs'));
 
 // Billing API — proration preview and tier pricing
 app.use('/api/billing', require('./routes/billing-routes.cjs'));
+
+// Ollama health API — connection status, models, latency for dashboard widget
+app.use('/api/ollama', require('./routes/ollama-health-routes.cjs'));
 
 // Start the daily ops report scheduler (if enabled via OPS_REPORT_ENABLED=true)
 const { startScheduler: startOpsReportScheduler } = require('./lib/daily-ops-report.cjs');
