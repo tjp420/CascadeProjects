@@ -402,27 +402,28 @@ export function ChatbotView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase]);
 
-  useEffect(() => {
-    if (!selectedProvider) {
-      setSelectedModel('');
-      return;
-    }
-    const providerOptions = providerModels[selectedProvider]?.length
-      ? providerModels[selectedProvider]
-      : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []);
-    const providerModel = providers.find((p) => p.id === selectedProvider)?.model || '';
-    const fromPrefs = modelPrefs[selectedProvider] || '';
-    const validPrefs = providerOptions.includes(fromPrefs) ? fromPrefs : '';
-    const validProviderModel = providerOptions.includes(providerModel) ? providerModel : '';
-    setSelectedModel(validPrefs || validProviderModel || providerOptions[0] || '');
-  }, [selectedProvider, modelPrefs, providerModels, providers]);
-
   const modelOptions = selectedProvider
     ? (providerModels[selectedProvider]?.length
       ? providerModels[selectedProvider]
       : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []))
     : [];
   const isCustomModel = Boolean(selectedModel) && !modelOptions.includes(selectedModel);
+
+  const handleProviderChange = useCallback((nextProvider: string) => {
+    setSelectedProvider(nextProvider);
+    if (!nextProvider) {
+      setSelectedModel('');
+      return;
+    }
+    const options = providerModels[nextProvider]?.length
+      ? providerModels[nextProvider]
+      : (PROVIDER_MODEL_OPTIONS[nextProvider] || []);
+    const pref = modelPrefs[nextProvider] || '';
+    const providerModel = providers.find((p) => p.id === nextProvider)?.model || '';
+    const validPref = options.includes(pref) ? pref : '';
+    const validProviderModel = options.includes(providerModel) ? providerModel : '';
+    setSelectedModel(validPref || validProviderModel || options[0] || '');
+  }, [providerModels, modelPrefs, providers]);
 
   const handleModelSelectChange = useCallback((nextModel: string) => {
     if (!selectedProvider) return;
@@ -764,7 +765,7 @@ export function ChatbotView() {
           <div className="flex items-center gap-2">
             <select
               value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
+              onChange={(e) => handleProviderChange(e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Provider"
             >
