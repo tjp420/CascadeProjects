@@ -371,6 +371,28 @@ export default {
       return json({ status: 'COMPLETED', license: licenseToken, tier, capabilities }, 200, corsOrigin);
     }
 
+    // Dynamic Route 1b: GET /api/license/seats
+    // Seat roster lookup — cached at edge for 60s to avoid hitting Render on every dashboard refresh.
+    // Auth is enforced by the backend; the edge cache only stores successful (200) responses.
+    if (url.pathname === '/api/license/seats' && request.method === 'GET') {
+      const cacheKey = 'api:/api/license/seats:' + url.search;
+      if (env.API_CACHE) {
+        try {
+          const cachedVal = await env.API_CACHE.get(cacheKey, 'text');
+          if (cachedVal !== null && cachedVal !== undefined) {
+            const respHeaders = new Headers({ 'Content-Type': 'application/json' });
+            if (corsOrigin) {
+              respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
+              respHeaders.set('Vary', 'Origin');
+            }
+            respHeaders.set('X-Cache', 'HIT-FRESH');
+            return new Response(cachedVal, { status: 200, headers: respHeaders });
+          }
+        } catch (_) { /* Cache read failure — proceed to proxy */ }
+      }
+      // Fall through to backend proxy (below) for cache miss
+    }
+
     // Dynamic Route 2: POST /api/stripe-webhook
     // Listens for checkout completion, forwards to Express for subscription
     // activation + email, then mints the signed JWT license key into KV.

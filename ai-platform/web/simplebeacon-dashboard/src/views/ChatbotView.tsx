@@ -22,8 +22,66 @@ import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 
+const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+
+/**
+ * Probe Ollama directly from the browser. On the hosted dashboard, the server
+ * cannot reach the user's local Ollama, so we check from the browser instead.
+ * Returns the list of available models if reachable, or null if not.
+ */
+async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<string[] | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data.models)) {
+      return data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim());
+    }
+    return [];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Send a chat message directly to Ollama from the browser.
+ * Used when the server can't reach Ollama (hosted dashboard with local Ollama).
+ */
+async function chatWithBrowserOllama(
+  baseUrl: string,
+  model: string,
+  message: string,
+  history: Message[],
+  systemPrompt: string,
+): Promise<string> {
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/chat`;
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+    { role: 'user', content: message },
+  ];
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, messages, stream: false }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Ollama HTTP ${res.status}: ${errText.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return data.message?.content || data.response || '';
+}
+
 type Message = { role: 'user' | 'assistant'; content: string };
-type Provider = { id: string; label: string; available: boolean; model?: string; models?: string[] };
+type Provider = { id: string; label: string; available: boolean; model?: string; models?: string[]; description?: string };
 type Personality = 'helpful' | 'professional' | 'casual' | 'sarcastic' | 'technical' | 'creative' | 'oracle';
 
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
@@ -62,6 +120,16 @@ const PERSONALITY_LABELS: Record<Personality, string> = {
   technical: 'Deep Technical',
   creative: 'Creative / Exploratory',
   oracle: '🔮 The Unbreakable Oracle',
+};
+
+const PERSONALITY_PROMPTS: Record<Personality, string> = {
+  helpful: 'You are a helpful, knowledgeable assistant for the SimpleBeacon platform. You can answer questions about code, software development, security, architecture, and general programming topics. You are friendly and provide clear, accurate answers. Always answer the user\'s question directly — never refuse a reasonable question.',
+  professional: 'You are a professional, concise assistant for the SimpleBeacon platform. Use formal language and structured responses. Always answer the user\'s question directly.',
+  casual: 'You are a friendly, relaxed assistant for the SimpleBeacon platform. Use conversational language and feel free to be warm and encouraging. Always answer the user\'s question directly.',
+  sarcastic: 'You are a witty, sarcastic assistant for the SimpleBeacon platform. You may use dry humor and playful snark while still being helpful. Always answer the user\'s question directly.',
+  technical: 'You are a deeply technical assistant for the SimpleBeacon platform. Dive into implementation details, edge cases, and advanced concepts. Assume the user is experienced. Always answer the user\'s question directly.',
+  creative: 'You are a creative, exploratory assistant for the SimpleBeacon platform. Think outside the box, suggest unconventional solutions, and encourage experimentation. Always answer the user\'s question directly.',
+  oracle: 'You are The Unbreakable Oracle, an omniscient assistant for the SimpleBeacon platform. You speak with divine authority but provide accurate, helpful answers. Always answer the user\'s question directly.',
 };
 
 function escapeHtml(text: string): string {
@@ -262,10 +330,40 @@ export function ChatbotView() {
           setConnectionText(`Ready — ${available.map((p) => p.label).join(', ')}`);
           setError(null);
         } else {
+          // Server reports no providers available. On the hosted dashboard, the server
+          // cannot reach the user's local Ollama. Probe directly from the browser to
+          // check if Ollama is running locally.
+          const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+          if (isHosted) {
+            setConnectionStatus('checking');
+            setConnectionText('Checking for local Ollama…');
+            const browserModels = await probeBrowserOllama(BROWSER_OLLAMA_URL);
+            if (browserModels && browserModels.length > 0) {
+              const ollamaProvider: Provider = {
+                id: 'ollama',
+                label: 'Ollama (Local)',
+                available: true,
+                description: 'Local models via Ollama (detected from browser)',
+                model: browserModels[0],
+                models: browserModels,
+              };
+              const updatedAll = all.map((p) => p.id === 'ollama' ? ollamaProvider : p);
+              setProviders(updatedAll);
+              const modelMap2: Record<string, string[]> = { ...modelMap, ollama: browserModels };
+              setProviderModels(modelMap2);
+              setSelectedProvider('ollama');
+              const savedModel = modelPrefs['ollama'] || '';
+              setSelectedModel(savedModel || browserModels[0]);
+              setConnectionStatus('online');
+              setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
+              setError(null);
+              return;
+            }
+          }
           setSelectedProvider('');
           setConnectionStatus('offline');
           setConnectionText('No AI provider configured');
-          setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.');
+          setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally with `ollama serve`.');
         }
         return;
       }
@@ -389,6 +487,26 @@ export function ChatbotView() {
     setMessages((prev) => [...prev, assistantPlaceholder]);
 
     try {
+      // If using Ollama on the hosted dashboard, send directly from the browser
+      // since the server cannot reach the user's local Ollama instance.
+      const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      if (selectedProvider === 'ollama' && isHosted) {
+        const systemPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.helpful;
+        const response = await chatWithBrowserOllama(
+          BROWSER_OLLAMA_URL,
+          selectedModel || 'llama3.2',
+          msg,
+          messages,
+          systemPrompt,
+        );
+        setMessages((prev) => {
+          const next = [...prev];
+          next[assistantIndex] = { role: 'assistant', content: `[AI-Generated via Local AI] ${response}` };
+          return next;
+        });
+        return;
+      }
+
       const userId = localStorage.getItem('simplebeacon_user_id') || 'anonymous';
       const res = await fetch(apiUrl('/chatbot/message'), {
         method: 'POST',

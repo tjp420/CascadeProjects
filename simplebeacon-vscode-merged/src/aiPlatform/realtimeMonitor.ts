@@ -31,6 +31,174 @@ interface FileMonitor {
   lastCheck: Date;
 }
 
+interface SecurityPattern {
+  regex: RegExp;
+  severity: 'error' | 'warning' | 'info';
+  type: string;
+  message: string;
+  suggestion: string;
+}
+
+const BASE_SECURITY_PATTERNS: SecurityPattern[] = [
+  {
+    regex: /password\s*=\s*["'][^"']+["']/g,
+    severity: 'error',
+    type: 'hardcoded-password',
+    message: 'Hardcoded password detected',
+    suggestion: 'Use environment variables or configuration files',
+  },
+  {
+    regex: /api[_-]?key\s*=\s*["'][^"']+["']/g,
+    severity: 'error',
+    type: 'hardcoded-api-key',
+    message: 'Hardcoded API key detected',
+    suggestion: 'Use environment variables or secure storage',
+  },
+  {
+    regex: /token\s*=\s*["'][^"']+["']/g,
+    severity: 'error',
+    type: 'hardcoded-token',
+    message: 'Hardcoded token detected',
+    suggestion: 'Use environment variables or secure storage',
+  },
+  {
+    regex: /console\.log\(/g,
+    severity: 'warning',
+    type: 'console-log',
+    message: 'Console.log statement found',
+    suggestion: 'Remove or replace with proper logging',
+  },
+  {
+    regex: /debugger;/g,
+    severity: 'warning',
+    type: 'debugger-statement',
+    message: 'Debugger statement found',
+    suggestion: 'Remove debugger statements before production',
+  },
+  {
+    regex: /\b(?:TODO|FIXME|HACK|XXX)\b/g,
+    severity: 'info',
+    type: 'todo-comment',
+    message: 'TODO/FIXME comment found',
+    suggestion: 'Address the TODO or remove the comment',
+  },
+  {
+    regex: /\beval\(/g,
+    severity: 'warning',
+    type: 'eval-usage',
+    message: 'eval() usage detected',
+    suggestion: 'Avoid eval() for security reasons',
+  },
+  {
+    regex: /innerHTML\s*=/g,
+    severity: 'warning',
+    type: 'innerhtml-usage',
+    message: 'innerHTML usage detected',
+    suggestion: 'Use safer alternatives like textContent or DOM manipulation',
+  },
+];
+
+const TYPE_SPECIFIC_PATTERNS_CACHE: Map<string, SecurityPattern[]> = new Map();
+
+function getTypeSpecificPatterns(fileExtension: string): SecurityPattern[] {
+  const cached = TYPE_SPECIFIC_PATTERNS_CACHE.get(fileExtension);
+  if (cached) return cached;
+
+  let patterns: SecurityPattern[] = [];
+  switch (fileExtension) {
+    case 'js':
+    case 'ts':
+    case 'jsx':
+    case 'tsx':
+      patterns = [
+        {
+          regex: /var\s+\w+\s*=/g,
+          severity: 'info',
+          type: 'var-declaration',
+          message: 'var declaration found',
+          suggestion: 'Use let or const instead of var',
+        },
+        {
+          regex: /(?<![=!])==(?!=)\s*["'][^"']+["']|["'][^"']+["']\s*(?<![=!])==(?![=])/g,
+          severity: 'warning',
+          type: 'equality-comparison',
+          message: 'String comparison with == detected',
+          suggestion: 'Use === for strict equality comparison',
+        },
+        {
+          regex: /function\s+\w+\s*\([^)]*\)\s*\{[^}]*}\s*\(/g,
+          severity: 'info',
+          type: 'immediately-invoked-function',
+          message: 'Immediately invoked function expression',
+          suggestion: 'Consider using arrow functions or named functions',
+        },
+      ];
+      break;
+    case 'json':
+      patterns = [
+        {
+          regex: /,\s*[,\s*]/g,
+          severity: 'error',
+          type: 'json-trailing-comma',
+          message: 'Trailing comma in JSON',
+          suggestion: 'Remove trailing comma',
+        },
+      ];
+      break;
+    case 'py':
+      patterns = [
+        {
+          regex: /print\(/g,
+          severity: 'warning',
+          type: 'print-statement',
+          message: 'print statement found',
+          suggestion: 'Use logging module instead of print',
+        },
+        {
+          regex: /except:/g,
+          severity: 'warning',
+          type: 'bare-except',
+          message: 'Bare except clause',
+          suggestion: 'Specify exception types to catch',
+        },
+      ];
+      break;
+  }
+  TYPE_SPECIFIC_PATTERNS_CACHE.set(fileExtension, patterns);
+  return patterns;
+}
+
+function getPatternsForFileType(fileExtension: string): SecurityPattern[] {
+  return [...BASE_SECURITY_PATTERNS, ...getTypeSpecificPatterns(fileExtension)];
+}
+
+/**
+ * Build a line-offset index for O(1) line-number lookups from character offsets.
+ * Returns a sorted array of character offsets where each line starts.
+ */
+function buildLineOffsets(lines: string[]): number[] {
+  const offsets: number[] = new Array(lines.length);
+  let pos = 0;
+  for (let i = 0; i < lines.length; i++) {
+    offsets[i] = pos;
+    pos += lines[i].length + 1; // +1 for \n
+  }
+  return offsets;
+}
+
+/**
+ * Binary search to find line number from a character offset using line offsets array.
+ */
+function lineFromOffset(lineOffsets: number[], charOffset: number): number {
+  let lo = 0, hi = lineOffsets.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (lineOffsets[mid] <= charOffset) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo + 1; // 1-indexed
+}
+
 /**
  * Monitors workspace files in real-time for security issues and updates diagnostics.
  */
@@ -367,23 +535,33 @@ export class RealtimeMonitor {
       const content = Buffer.from(fileContent).toString('utf8');
       const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
 
+      // File-size guard: skip heavy pattern analysis on very large files
+      const MAX_ANALYZE_SIZE = 500000; // 500KB
+      const analyzeContent = content.length > MAX_ANALYZE_SIZE
+        ? content.slice(0, MAX_ANALYZE_SIZE)
+        : content;
+
       const config = getSbConfig();
       const preset = config.get<string>('preset', 'default');
+
+      // Single split shared across all detection methods
+      const lines = analyzeContent.split('\n');
+      const lineOffsets = buildLineOffsets(lines);
 
       const issues: RealtimeIssue[] = [];
 
       if (preset !== 'ai-only') {
-        const detectedIssues = await this.detectIssues(filePath, content, fileExtension);
+        const detectedIssues = await this.detectIssues(filePath, analyzeContent, fileExtension, lines);
         issues.push(...detectedIssues);
       }
 
-      const aiSlopIssues = this.detectAISlop(filePath, content);
+      const aiSlopIssues = this.detectAISlop(filePath, analyzeContent, lines, lineOffsets);
       issues.push(...aiSlopIssues);
 
       // Entropy / AST checks are stylistic noise — skip them in ai-only and low-noise presets
       if (preset !== 'ai-only' && preset !== 'low-noise') {
-        const entropyIssues = this.detectEntropyAnomalies(filePath, content);
-        const astIssues = this.detectASTPatterns(filePath, content, fileExtension);
+        const entropyIssues = this.detectEntropyAnomalies(filePath, lines);
+        const astIssues = this.detectASTPatterns(filePath, analyzeContent, fileExtension, lines);
         issues.push(...entropyIssues, ...astIssues);
       }
 
@@ -500,20 +678,23 @@ export class RealtimeMonitor {
     return false;
   }
 
-  private async detectIssues(filePath: string, content: string, fileExtension: string): Promise<RealtimeIssue[]> {
+  private async detectIssues(filePath: string, content: string, fileExtension: string, lines: string[]): Promise<RealtimeIssue[]> {
     const issues: RealtimeIssue[] = [];
-    const lines = content.split('\n');
-    const patterns = this.getPatternsForFileType(fileExtension);
+    const patterns = getPatternsForFileType(fileExtension);
+    const fileHeader = lines[0] || '';
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const lineNumber = i + 1;
+      const prevLine = lines[lineNumber - 2];
+
       for (const pattern of patterns) {
+        // Reset lastIndex for global regex reuse across lines
+        pattern.regex.lastIndex = 0;
         let matches: IterableIterator<RegExpMatchArray>;
         try {
-          matches = line.matchAll(new RegExp(pattern.regex, 'g'));
-        } catch (regexErr) {
-          this.outputChannel.appendLine(`⚠️ Invalid regex pattern ${pattern.type}: ${pattern.regex}`);
+          matches = line.matchAll(pattern.regex);
+        } catch {
           continue;
         }
         for (const match of matches) {
@@ -522,10 +703,7 @@ export class RealtimeMonitor {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
           }
           // Respect simplebeacon-ignore / slop-cop-disable-next-line suppression
-          if (
-            this.isSuppressed(line, lines[lineNumber - 2], pattern.type) ||
-            this.hasFileLevelSuppression(lines[0], pattern.type)
-          ) {
+          if (this.isSuppressed(line, prevLine, pattern.type) || this.hasFileLevelSuppression(fileHeader, pattern.type)) {
             continue;
           }
           const column = match.index ? match.index + 1 : 1;
@@ -546,148 +724,6 @@ export class RealtimeMonitor {
     const fileIssues = await this.detectFileLevelIssues(filePath, content, fileExtension);
     issues.push(...fileIssues);
     return issues;
-  }
-
-  private getPatternsForFileType(fileExtension: string): Array<{
-    regex: string;
-    severity: 'error' | 'warning' | 'info';
-    type: string;
-    message: string;
-    suggestion: string;
-  }> {
-    const basePatterns = [
-      {
-        regex: 'password\\s*=\\s*["\'][^"\']+["\']',
-        severity: 'error' as const,
-        type: 'hardcoded-password',
-        message: 'Hardcoded password detected',
-        suggestion: 'Use environment variables or configuration files',
-      },
-      {
-        regex: 'api[_-]?key\\s*=\\s*["\'][^"\']+["\']',
-        severity: 'error' as const,
-        type: 'hardcoded-api-key',
-        message: 'Hardcoded API key detected',
-        suggestion: 'Use environment variables or secure storage',
-      },
-      {
-        regex: 'token\\s*=\\s*["\'][^"\']+["\']',
-        severity: 'error' as const,
-        type: 'hardcoded-token',
-        message: 'Hardcoded token detected',
-        suggestion: 'Use environment variables or secure storage',
-      },
-      {
-        regex: 'console\\.log\\(',
-        severity: 'warning' as const,
-        type: 'console-log',
-        message: 'Console.log statement found',
-        suggestion: 'Remove or replace with proper logging',
-      },
-      {
-        regex: 'debug' + 'ger;',
-        severity: 'warning' as const,
-        type: 'debugger-statement',
-        message: 'Debugger statement found',
-        suggestion: 'Remove debugger statements before production',
-      },
-      {
-        regex: '\\b(?:TODO|FIXME|HACK|XXX)\\b',
-        severity: 'info' as const,
-        type: 'todo-comment',
-        message: 'TODO/FIXME comment found',
-        suggestion: 'Address the TODO or remove the comment',
-      },
-      {
-        regex: 'ev' + 'al\\(',
-        severity: 'warning' as const,
-        type: 'eval-usage',
-        message: 'eval() usage detected',
-        suggestion: 'Avoid eval() for security reasons',
-      },
-      {
-        regex: 'innerHTML\\s*=',
-        severity: 'warning' as const,
-        type: 'innerhtml-usage',
-        message: 'innerHTML usage detected',
-        suggestion: 'Use safer alternatives like textContent or DOM manipulation',
-      },
-    ];
-    return [...basePatterns, ...this.getTypeSpecificPatterns(fileExtension)];
-  }
-
-  private getTypeSpecificPatterns(fileExtension: string): Array<{
-    regex: string;
-    severity: 'error' | 'warning' | 'info';
-    type: string;
-    message: string;
-    suggestion: string;
-  }> {
-    switch (fileExtension) {
-      case 'js':
-      case 'ts':
-      case 'jsx':
-      case 'tsx':
-        return [
-          {
-            regex: 'var\\s+\\w+\\s*=',
-            severity: 'info' as const,
-            type: 'var-declaration',
-            message: 'var declaration found',
-            suggestion: 'Use let or const instead of var',
-          },
-          {
-            regex: '(?<![=!])==(?!=)\\s*["\'][^"\']+["\']|["\'][^"\']+["\']\\s*(?<![=!])==(?![=])',
-            severity: 'warning' as const,
-            type: 'equality-comparison',
-            message: 'String comparison with == detected',
-            suggestion: 'Use === for strict equality comparison',
-          },
-          {
-            regex: 'function\\s+\\w+\\s*\\([^)]*\\)\\s*\\{[^}]*}\\s*\\(',
-            severity: 'info' as const,
-            type: 'immediately-invoked-function',
-            message: 'Immediately invoked function expression',
-            suggestion: 'Consider using arrow functions or named functions',
-          },
-        ];
-      case 'json':
-        return [
-          {
-            regex: ',\\s*[,\\s*]',
-            severity: 'error' as const,
-            type: 'json-trailing-comma',
-            message: 'Trailing comma in JSON',
-            suggestion: 'Remove trailing comma',
-          },
-          {
-            regex: '"[^"]*"\\s*:\\s*"[^"]*"\\s*[,\\s*]',
-            severity: 'warning' as const,
-            type: 'json-key-quotes',
-            message: 'JSON key should be quoted',
-            suggestion: 'Ensure all JSON keys are properly quoted',
-          },
-        ];
-      case 'py':
-        return [
-          {
-            regex: 'print\\(',
-            severity: 'warning' as const,
-            type: 'print-statement',
-            message: 'print statement found',
-            suggestion: 'Use logging module instead of print',
-          },
-          {
-            regex: 'except:',
-            severity: 'warning' as const,
-            type: 'bare-except',
-            message: 'Bare except clause',
-            suggestion: 'Specify exception types to catch',
-          },
-        ];
-      default:
-        return [];
-    }
   }
 
   private async detectFileLevelIssues(
@@ -735,31 +771,25 @@ export class RealtimeMonitor {
     return issues;
   }
 
-  private detectAISlop(filePath: string, content: string): RealtimeIssue[] {
+  private detectAISlop(filePath: string, content: string, lines: string[], lineOffsets: number[]): RealtimeIssue[] {
     const issues: RealtimeIssue[] = [];
-    const lines = content.split('\n');
     const minConfidence = this.getEffectiveMinConfidence();
+    const fileHeader = lines[0] || '';
     for (const pattern of this.aiSlopPatterns) {
       if ((pattern.confidence ?? 0) < minConfidence) {
         continue;
       }
+      pattern.regex.lastIndex = 0;
       const matches = content.matchAll(pattern.regex);
       for (const match of matches) {
         const matchIndex = match.index ?? 0;
-        let lineNumber = 1;
-        let charCount = 0;
-        for (let i = 0; i < lines.length; i++) {
-          charCount += lines[i].length + 1;
-          if (charCount > matchIndex) {
-            lineNumber = i + 1;
-            break;
-          }
-        }
+        const lineNumber = lineFromOffset(lineOffsets, matchIndex);
         // Respect line-above ignore comment
         if (lineNumber > 1 && lines[lineNumber - 2]?.toLowerCase().includes('slop-cop-disable-next-line')) {
           continue;
         }
-        const column = match.index ? match.index - content.lastIndexOf('\n', match.index - 1) - 1 : 1;
+        const lineStart = lineOffsets[lineNumber - 1];
+        const column = matchIndex - lineStart;
 
         // Skip matches inside string or regex literals (scanner rule definitions)
         const lineText = lines[lineNumber - 1] ?? '';
@@ -768,7 +798,7 @@ export class RealtimeMonitor {
         }
 
         // Respect file-level simplebeacon-ignore suppression
-        if (this.hasFileLevelSuppression(lines[0], pattern.type)) {
+        if (this.hasFileLevelSuppression(fileHeader, pattern.type)) {
           continue;
         }
 
@@ -789,12 +819,13 @@ export class RealtimeMonitor {
 
   private displayIssues(issues: RealtimeIssue[]): void {
     const diagnosticsMap = new Map<string, vscode.Diagnostic[]>();
+    const logLines: string[] = [];
     for (const issue of issues) {
       const fileName = issue.file.split(/[/\\]/).pop() || issue.file;
       const severityIcon = issue.severity === 'error' ? '❌' : issue.severity === 'warning' ? '⚠️' : 'ℹ️';
-      this.outputChannel.appendLine(`${severityIcon} ${fileName}:${issue.line}:${issue.column} - ${issue.message}`);
+      logLines.push(`${severityIcon} ${fileName}:${issue.line}:${issue.column} - ${issue.message}`);
       if (issue.suggestion) {
-        this.outputChannel.appendLine(`   💡 ${issue.suggestion}`);
+        logLines.push(`   💡 ${issue.suggestion}`);
       }
 
       const diagnosticSeverity =
@@ -814,14 +845,16 @@ export class RealtimeMonitor {
       existing.push(diagnostic);
       diagnosticsMap.set(issue.file, existing);
     }
+    if (logLines.length > 0) {
+      this.outputChannel.appendLine(logLines.join('\n'));
+    }
     for (const [file, fileDiagnostics] of diagnosticsMap) {
       this.diagnosticsCollection.set(vscode.Uri.file(file), fileDiagnostics);
     }
   }
 
-  private detectEntropyAnomalies(filePath: string, content: string): RealtimeIssue[] {
+  private detectEntropyAnomalies(filePath: string, lines: string[]): RealtimeIssue[] {
     const issues: RealtimeIssue[] = [];
-    const lines = content.split('\n');
     if (lines.length < 5) return issues;
 
     // Indentation uniformity — high variance is human, low variance is AI
@@ -902,12 +935,11 @@ export class RealtimeMonitor {
     return issues;
   }
 
-  private detectASTPatterns(filePath: string, content: string, fileExtension: string): RealtimeIssue[] {
+  private detectASTPatterns(filePath: string, content: string, fileExtension: string, lines: string[]): RealtimeIssue[] {
     const issues: RealtimeIssue[] = [];
     if (!['js', 'ts', 'jsx', 'tsx', 'cjs', 'mjs'].includes(fileExtension)) return issues;
 
     // Lightweight AST-style detection without full parser
-    const lines = content.split('\n');
     let functionCount = 0;
     let tryCatchCount = 0;
     let arrowFunctionCount = 0;

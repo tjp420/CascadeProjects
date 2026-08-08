@@ -120,6 +120,32 @@ const STRIPE_TIER_MAP = {
 };
 
 /**
+ * Seat capacity per tier.
+ * Developer = 1 seat (single user), Team Pro = 5 seats, Enterprise = custom.
+ * Used by the license seat management dashboard to enforce seat limits.
+ */
+const TIER_SEAT_MAP = {
+  developer: 1,
+  team_pro: 5,
+  enterprise: Infinity, // custom — set during org onboarding
+  // Legacy tiers
+  pro: 1,
+  team: 10,
+  startup: 1,
+  growth: 5,
+  free: 1
+};
+
+/**
+ * Get the seat capacity for a given tier.
+ * @param {string} tier - Tier name (developer, team_pro, enterprise)
+ * @returns {number} Seat capacity (Infinity for unlimited/custom)
+ */
+function getTierSeatLimit(tier) {
+  return TIER_SEAT_MAP[tier] ?? 1;
+}
+
+/**
  * Resolve tier config by Stripe Price ID.
  * Falls back to null if the Price ID is unknown.
  * @param {string} priceId - Stripe Price ID.
@@ -165,6 +191,8 @@ async function reportScanUsageToStripe(stripeSecretKey, subscriptionItemId, scan
 
 module.exports = {
   STRIPE_TIER_MAP,
+  TIER_SEAT_MAP,
+  getTierSeatLimit,
   getTierConfigByPriceId,
   getTierConfigByProduct,
   reportScanUsageToStripe

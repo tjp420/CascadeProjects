@@ -30,6 +30,7 @@ import {
   Database,
   Webhook,
   FileBarChart,
+  KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -86,6 +87,7 @@ const navGroups: NavGroup[] = [
       { view: 'fine-tuning', label: 'Fine-Tuning', icon: Database },
       { view: 'webhook-events', label: 'Webhook Events', icon: Webhook },
       { view: 'ops-report', label: 'Ops Report', icon: FileBarChart },
+      { view: 'license-manager', label: 'License Manager', icon: KeyRound },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
     ],

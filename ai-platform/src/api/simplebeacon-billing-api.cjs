@@ -691,7 +691,31 @@ function setupSimplebeaconBillingRoutes(app) {
         return res.status(400).json({ success: false, error: 'reportJson is required' });
       }
 
+      // NOTE: Signing is intentionally performed inside buildReportBundle
+      // at the final atomic commit point to avoid write races.
+
+      // Diagnostic: dump report object before bundle build
+      try { console.error('[DIAG] /api/reports/upload reportJson before build:', JSON.stringify(reportJson)); } catch (e) {}
+
       const bundle = await buildReportBundle(licenseToken, reportJson);
+
+      // Diagnostic: immediately inspect the persisted delivery file (if present)
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const reportFile = path.join(REPORT_STORE_DIR, `${bundle.deliveryId}.json`);
+        if (fs.existsSync(reportFile)) {
+          const snap = fs.readFileSync(reportFile, 'utf8');
+          try { logger.info('[DIAG] post-bundle persisted file exists', { deliveryId: bundle.deliveryId, len: snap.length }); } catch (e) {}
+          try { console.error('[DIAG] post-bundle persisted snapshot (start)'); } catch (e) {}
+          try { console.error(snap.slice(0, 4000)); } catch (e) {}
+          try { console.error('[DIAG] post-bundle persisted snapshot (end)'); } catch (e) {}
+        } else {
+          try { logger.info('[DIAG] post-bundle persisted file missing', { deliveryId: bundle.deliveryId }); } catch (e) {}
+        }
+      } catch (e) {
+        try { console.error('[DIAG] post-bundle inspect failed:', e && e.message); } catch (e2) {}
+      }
 
       // Email certificate with ZIP attachment
       const emailResult = await sendEmail({
@@ -714,6 +738,8 @@ function setupSimplebeaconBillingRoutes(app) {
         lastDeliveryStatus: emailResult.sent ? 'delivered' : 'queued',
         certificateHtmlGenerated: true
       });
+
+      // Signing and final write are handled in buildReportBundle to avoid races.
 
       res.json({
         success: true,
@@ -788,6 +814,31 @@ function setupSimplebeaconBillingRoutes(app) {
       });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/reports/verify
+   * Accepts a report JSON in the request body and returns signature verification result.
+   * Body: { reportJson: { ... } }
+   */
+  app.post('/api/reports/verify', async (req, res) => {
+    try {
+      const reportJson = req.body?.reportJson || req.body || null;
+      if (!reportJson || typeof reportJson !== 'object') {
+        return res.status(400).json({ success: false, error: 'reportJson is required in body' });
+      }
+      const { verifyReportSignature } = require('../../server/lib/report-signer.cjs');
+      const signingKey = process.env.REPORT_SIGNING_KEY || null;
+      if (!signingKey) {
+        // If server isn't configured to sign, return not configured
+        return res.status(503).json({ success: false, error: 'REPORT_SIGNING_KEY not configured on server' });
+      }
+      const valid = verifyReportSignature(reportJson, signingKey);
+      res.json({ success: true, valid });
+    } catch (err) {
+      logger.error('[Reports] Verification error:', err.message || err);
+      res.status(500).json({ success: false, error: err.message || 'verification_failed' });
     }
   });
 
