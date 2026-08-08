@@ -233,16 +233,24 @@ function buildExecutiveHtml(report, licenseClaims) {
 <style>
     @page { size: A4; margin: 18mm; }
     body { font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px 48px; color: #1a1a1a; line-height: 1.55; font-size: 14px; }
-    .letterhead { border-bottom: 4px solid #0d6efd; padding-bottom: 16px; margin-bottom: 24px; }
-    .letterhead h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.3px; }
-    .letterhead p { margin: 0; color: #6c757d; font-size: 13px; }
+    .letterhead { border-bottom: 4px solid #0d6efd; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .letterhead-left h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.3px; }
+    .letterhead-left p { margin: 0; color: #6c757d; font-size: 13px; }
+    .letterhead-right { text-align: right; }
+    .letterhead-right .engines-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #0d6efd; background: rgba(13,110,253,0.08); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(13,110,253,0.2); }
+    .letterhead-right .tagline { font-size: 11px; color: #6c757d; margin-top: 6px; max-width: 280px; }
     .grade-badge { display: inline-flex; align-items: center; justify-content: center; width: 90px; height: 90px; border-radius: 50%; font-size: 42px; font-weight: 800; color: #fff; background: ${grade.color}; margin: 16px 0; }
     .grade-label { font-size: 18px; font-weight: 600; margin-left: 16px; }
     .summary-row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 28px; }
     .score-card { background: #f8f9fa; border-radius: 8px; padding: 14px 20px; min-width: 140px; }
     .score-card h3 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; color: #6c757d; letter-spacing: 0.5px; }
     .score-card p { margin: 0; font-size: 22px; font-weight: 700; }
+    .gate-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; font-size: 14px; font-weight: 700; }
+    .gate-pass { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .gate-fail { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
     .risk-tier { font-size: 13px; padding: 4px 10px; border-radius: 4px; font-weight: 600; display: inline-block; margin-top: 6px; }
+    .quality-bar-container { width: 100%; max-width: 300px; height: 24px; background: #e9ecef; border-radius: 12px; overflow: hidden; margin-top: 8px; }
+    .quality-bar-fill { height: 100%; border-radius: 12px; transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; font-weight: 700; color: #fff; }
     h2 { font-size: 18px; margin-top: 32px; border-bottom: 2px solid #dee2e6; padding-bottom: 6px; }
     h3 { font-size: 15px; margin-top: 20px; color: #343a40; }
     .pillar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
@@ -265,13 +273,20 @@ function buildExecutiveHtml(report, licenseClaims) {
     .remediation-block li { margin-bottom: 6px; }
     .disclaimer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #dee2e6; font-size: 11px; color: #6c757d; }
     code { background: #e9ecef; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
+    .tier-footer { margin-top: 24px; padding: 12px 16px; background: rgba(13,110,253,0.04); border-radius: 8px; font-size: 12px; color: #495057; border: 1px solid rgba(13,110,253,0.12); }
 </style>
 </head>
 <body>
 
 <div class="letterhead">
-    <h1>Executive Risk Certificate</h1>
-    <p>Generated: ${generatedAt} &nbsp;|&nbsp; Licensed to: ${licenseClaims.sub || 'Unknown'} &nbsp;|&nbsp; Tier: ${licenseClaims.tier || 'standard'}</p>
+    <div class="letterhead-left">
+        <h1>Executive Risk Certificate</h1>
+        <p>Generated: ${generatedAt} &nbsp;|&nbsp; Licensed to: ${licenseClaims.sub || 'Unknown'} &nbsp;|&nbsp; Tier: ${licenseClaims.tier || 'standard'}</p>
+    </div>
+    <div class="letterhead-right">
+        <div class="engines-badge">52 Deterministic Engines</div>
+        <div class="tagline">Catch AI code debt that traditional linting misses — no upload, no LLM, no false positives.</div>
+    </div>
 </div>
 
 <div class="summary-row">
@@ -281,10 +296,13 @@ function buildExecutiveHtml(report, licenseClaims) {
         <div class="risk-tier" style="background:${grade.color}20;color:${grade.color};border:1px solid ${grade.color}40">
             Compliance Score: ${grade.score}%
         </div>
+        <div class="quality-bar-container">
+            <div class="quality-bar-fill" style="width:${Math.max(grade.score, 3)}%;background:linear-gradient(90deg,${grade.color},${grade.color}dd)">${grade.score}%</div>
+        </div>
     </div>
     <div class="score-card"><h3>Files Scanned</h3><p>${report.repositoryFilesTotal ?? '—'}</p></div>
     <div class="score-card"><h3>Total Findings</h3><p>${grade.totalFindings}</p></div>
-    <div class="score-card"><h3>Gate Status</h3><p style="color:${gate.pass ? '#0f5132' : '#842029'}">${gate.pass ? 'PASS' : 'FAIL'}</p></div>
+    <div class="score-card"><h3>Gate Status</h3><div class="gate-badge ${gate.pass ? 'gate-pass' : 'gate-fail'}">${gate.pass ? '✓ PASS' : '✗ FAIL'}</div></div>
 </div>
 
 <h2>1. The Four Compliance Pillars</h2>
@@ -307,8 +325,12 @@ ${liability.total > 0 ? `
 ${remediationSteps.length > 0 ? remediationSteps.join('') : '<p>No remediation required — codebase meets current compliance thresholds.</p>'}
 
 <div class="disclaimer">
-    <strong>Disclaimer:</strong> This is a static technical pattern review generated locally by SimpleBeacon CLI. No source code was transmitted to any external server. Estimates are illustrative and do not constitute legal advice or a formal conformity assessment. Consult legal counsel before any regulatory filing.
+    <strong>Disclaimer:</strong> This is a static technical pattern review generated locally by SimpleBeacon CLI using 52 deterministic engines. No source code was transmitted to any external server. No LLM or AI narrative was used in the analysis. Estimates are illustrative and do not constitute legal advice or a formal conformity assessment. Consult legal counsel before any regulatory filing.
     <br>License ID: ${licenseClaims.jti || 'N/A'} | Valid until: ${licenseClaims.exp ? new Date(licenseClaims.exp * 1000).toISOString() : 'N/A'}
+</div>
+
+<div class="tier-footer">
+    <strong>SimpleBeacon</strong> — 52 deterministic engines catch AI code debt that traditional linting misses. This certificate was generated on a ${licenseClaims.tier || 'standard'} tier license. <a href="https://simplebeacon.ai/pricing" style="color:#0d6efd;text-decoration:none">Upgrade for team-wide CI history, custom policy rules, and air-gapped enterprise deployment.</a>
 </div>
 
 </body>
