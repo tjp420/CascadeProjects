@@ -14,6 +14,8 @@ const SKIP_GLOBS = [
   '**/*.jpg',
   '**/*.jpeg',
   '**/*.css',
+  // Git hook scripts — gitleaks fails on these (tries to cd into files, not dirs)
+  '.husky/**',
   // Dev database fixtures — test-generated JWT tokens for admin@example.com (not real secrets)
   'ai-platform/server/db/token-registry.json',
 ];
