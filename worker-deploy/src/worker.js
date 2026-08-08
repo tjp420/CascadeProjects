@@ -509,6 +509,11 @@ export default {
     // Dynamic Route 3: /api/* catch-all proxy to Render backend
     // Forwards any unmatched /api/* request to the Express backend on Render.
     // This keeps API calls same-origin from the browser's perspective (no CORS issues).
+    //
+    // Architecture: KV cache (stale-while-revalidate) + pristine retry loop.
+    // The retry loop rebuilds a fresh Headers object and Request on every attempt
+    // to avoid Cloudflare Workers' ReadableStream disturbed errors, which occur
+    // when request.body is referenced after an await or stream-consuming operation.
     if (url.pathname.startsWith('/api/')) {
       const backendUrl = String(env.API_BACKEND || '');
       if (!backendUrl) {
@@ -516,16 +521,42 @@ export default {
       }
 
       const targetUrl = backendUrl.replace(/\/+$/, '') + url.pathname + url.search;
-      const proxyHeaders = new Headers(request.headers);
-      proxyHeaders.delete('host');
+      const isGetOrHead = request.method === 'GET' || request.method === 'HEAD';
+      const cacheKey = isGetOrHead ? 'api:' + url.pathname + ':' + url.search : null;
 
-      // --- KV cache: serve fresh cached response for GET/HEAD (no fetch needed) ---
-      // NOTE: This KV read happens BEFORE the fetch() but does NOT disturb
-      // request.body because we use get() not getWithMetadata(), and we
-      // only read for GET/HEAD methods where request.body is null.
-      if (request.method === 'GET' && env.API_CACHE) {
+      // --- Step 1: Extract body text for non-GET methods BEFORE any await ---
+      // This reads the request body stream once, up front, so the retry loop
+      // can reuse the string without referencing request.body (which would
+      // disturb the stream on the second attempt).
+      let requestBodyText = null;
+      if (!isGetOrHead) {
+        try { requestBodyText = await request.text(); } catch (_) { requestBodyText = null; }
+      }
+
+      // --- Step 2: Build a clean header allowlist (no body-tracking headers) ---
+      // We deliberately do NOT copy request.headers wholesale. Instead we pick
+      // only the headers that the backend needs. This prevents Content-Length,
+      // Transfer-Encoding, and Cloudflare internal headers from contaminating
+      // the outgoing fetch and triggering stream-disturbance errors.
+      const SAFE_FORWARD_HEADERS = [
+        'content-type', 'authorization', 'accept', 'accept-language',
+        'x-requested-with', 'x-csrf-token', 'x-api-key',
+        'x-simplebeacon-bridge-token', 'x-token-password',
+        'x-license-token', 'x-license-tier', 'cookie',
+        'stripe-signature', 'origin', 'referer',
+      ];
+      function buildCleanHeaders() {
+        const h = new Headers();
+        for (const name of SAFE_FORWARD_HEADERS) {
+          const val = request.headers.get(name);
+          if (val) h.set(name, val);
+        }
+        return h;
+      }
+
+      // --- Step 3: KV cache check (GET/HEAD only) ---
+      if (cacheKey && env.API_CACHE) {
         try {
-          const cacheKey = 'api:' + url.pathname + ':' + url.search;
           const cachedVal = await env.API_CACHE.get(cacheKey, 'text');
           if (cachedVal !== null && cachedVal !== undefined) {
             const respHeaders = new Headers({ 'Content-Type': 'application/json' });
@@ -536,26 +567,34 @@ export default {
             respHeaders.set('X-Cache', 'HIT-FRESH');
             return new Response(cachedVal, { status: 200, headers: respHeaders });
           }
-        } catch (_) { /* Cache read failure — proceed to fetch */ }
+        } catch (_) { /* Cache read failure — proceed to proxy */ }
       }
 
-      // Retry on failure — Render free tier can drop connections under concurrent load
-      // or take 30+ seconds to spin up from cold start.
+      // --- Step 4: Retry loop with pristine Request per attempt ---
       const maxRetries = 3;
       let lastErr = null;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          // For retries, we can't reuse request.body (already consumed), so only retry GET/HEAD
-          const canRetry = request.method === 'GET' || request.method === 'HEAD';
-          const proxyResponse = await fetch(targetUrl, {
-            method: request.method,
-            headers: proxyHeaders,
-            body: (request.method !== 'GET' && request.method !== 'HEAD') ? request.body : undefined,
-            redirect: 'manual'
-          });
+          // Build a fresh Headers object on EVERY attempt — never share
+          // across iterations. This is the key fix for stream disturbance.
+          const freshHeaders = buildCleanHeaders();
 
-          // Retry on 502/503/504 from backend (Render overload/cold-start) for GET/HEAD only
-          if (canRetry && (proxyResponse.status === 502 || proxyResponse.status === 503 || proxyResponse.status === 504) && attempt < maxRetries) {
+          // Construct a pristine Request object — no reference to the
+          // original request.body stream. Body comes from the extracted
+          // string (for POST/PUT) or is omitted entirely (for GET/HEAD).
+          const fetchOpts = {
+            method: request.method,
+            headers: freshHeaders,
+            redirect: 'manual',
+          };
+          if (!isGetOrHead && requestBodyText !== null) {
+            fetchOpts.body = requestBodyText;
+          }
+
+          const proxyResponse = await fetch(targetUrl, fetchOpts);
+
+          // Retry on 502/503/504 from backend (Render overload/cold-start)
+          if (isGetOrHead && (proxyResponse.status === 502 || proxyResponse.status === 503 || proxyResponse.status === 504) && attempt < maxRetries) {
             // Progressive delay: 500ms, 1s, 2s — gives Render time to spin up
             await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
             continue;
@@ -568,11 +607,7 @@ export default {
             responseHeaders.set('Vary', 'Origin');
           }
 
-          // KV cache: store successful GET responses for stale-while-revalidate.
-          // IMPORTANT: KV read/write happens AFTER fetch() succeeds, so request.body
-          // is not disturbed. We only cache 2xx/4xx responses (not 5xx errors).
-          const isCacheableMethod = request.method === 'GET' || request.method === 'HEAD';
-          const cacheKey = isCacheableMethod ? 'api:' + url.pathname + ':' + url.search : null;
+          // KV cache: store successful GET responses (read body, cache, return)
           if (cacheKey && env.API_CACHE && proxyResponse.status >= 200 && proxyResponse.status < 500) {
             try {
               const respBody = await proxyResponse.text();
@@ -583,7 +618,7 @@ export default {
                 statusText: proxyResponse.statusText,
                 headers: responseHeaders
               });
-            } catch (_) { /* Cache failure — fall through to raw response */ }
+            } catch (_) { /* Cache write failure — fall through to raw response */ }
           }
 
           return new Response(proxyResponse.body, {
@@ -594,17 +629,16 @@ export default {
         } catch (err) {
           lastErr = err;
           if (attempt < maxRetries) {
-            // Progressive delay for network errors too (500ms, 1s, 2s)
             await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
             continue;
           }
         }
       }
-      // Serve stale cache as fallback before returning 502
-      if (request.method === 'GET' && env.API_CACHE) {
+
+      // --- Step 5: All retries exhausted — serve stale cache as fallback ---
+      if (cacheKey && env.API_CACHE) {
         try {
-          const staleKey = 'api:' + url.pathname + ':' + url.search;
-          const staleVal = await env.API_CACHE.get(staleKey, 'text');
+          const staleVal = await env.API_CACHE.get(cacheKey, 'text');
           if (staleVal !== null && staleVal !== undefined) {
             const respHeaders = new Headers({ 'Content-Type': 'application/json' });
             respHeaders.set('X-Cache', 'HIT-STALE-FALLBACK');
