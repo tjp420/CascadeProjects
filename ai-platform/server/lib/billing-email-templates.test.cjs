@@ -8,7 +8,8 @@ const {
   renderSubscriptionReactivated,
   renderPaymentFailed,
   renderTrialEnding,
-  renderDisputeAlert
+  renderDisputeAlert,
+  renderInvoiceUpcoming
 } = require('../lib/billing-email-templates.cjs');
 
 describe('billing-email-templates', () => {
@@ -142,6 +143,45 @@ describe('billing-email-templates', () => {
     });
   });
 
+  describe('renderInvoiceUpcoming', () => {
+    it('includes amount, currency, and due date in subject', () => {
+      const result = renderInvoiceUpcoming({ amountCents: 4900, currency: 'usd', dueDate: '2026-09-15T00:00:00Z', tier: 'developer' });
+      assert.ok(result.subject.includes('Upcoming Payment'));
+      assert.ok(result.subject.includes('$49.00'));
+      assert.ok(result.subject.includes('USD'));
+    });
+
+    it('includes tier and amount in text body', () => {
+      const result = renderInvoiceUpcoming({ amountCents: 14900, currency: 'usd', dueDate: '2026-09-15T00:00:00Z', tier: 'team_pro' });
+      assert.ok(result.text.includes('team_pro'));
+      assert.ok(result.text.includes('$149.00'));
+      assert.ok(result.text.includes('automated reminder'));
+    });
+
+    it('includes invoice number when provided', () => {
+      const result = renderInvoiceUpcoming({ amountCents: 4900, dueDate: '2026-09-15T00:00:00Z', invoiceNumber: 'INV-2026-001' });
+      assert.ok(result.text.includes('INV-2026-001'));
+      assert.ok(result.html.includes('INV-2026-001'));
+    });
+
+    it('omits invoice number section when not provided', () => {
+      const result = renderInvoiceUpcoming({ amountCents: 4900, dueDate: '2026-09-15T00:00:00Z' });
+      assert.ok(!result.text.includes('Invoice:'));
+    });
+
+    it('handles missing amount gracefully', () => {
+      const result = renderInvoiceUpcoming({ dueDate: '2026-09-15T00:00:00Z' });
+      assert.ok(result.subject.includes('unknown'));
+    });
+
+    it('html has branded layout with CTA button', () => {
+      const result = renderInvoiceUpcoming({ amountCents: 4900, dueDate: '2026-09-15T00:00:00Z' });
+      assert.ok(result.html.includes('<!DOCTYPE html>'));
+      assert.ok(result.html.includes('Review Payment Method'));
+      assert.ok(result.html.includes('callout-info'));
+    });
+  });
+
   describe('all templates share consistent layout', () => {
     const templates = [
       { name: 'activated', fn: () => renderSubscriptionActivated({ tier: 'pro' }) },
@@ -150,6 +190,7 @@ describe('billing-email-templates', () => {
       { name: 'payment_failed', fn: () => renderPaymentFailed({}) },
       { name: 'trial_ending', fn: () => renderTrialEnding({}) },
       { name: 'dispute', fn: () => renderDisputeAlert({ chargeId: 'ch_test' }) },
+      { name: 'invoice_upcoming', fn: () => renderInvoiceUpcoming({ amountCents: 4900, dueDate: '2026-09-15T00:00:00Z' }) },
     ];
 
     for (const { name, fn } of templates) {

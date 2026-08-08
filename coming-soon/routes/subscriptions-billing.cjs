@@ -346,7 +346,8 @@ function setupSubscriptionWebhook(app) {
             'invoice.paid',
             'invoice.payment_failed',
             'customer.subscription.trial_will_end',
-            'charge.dispute.created'
+            'charge.dispute.created',
+            'invoice.upcoming'
         ]);
         if (!allowedEvents.has(event.type)) {
             return res.json({ received: true, ignored: true });
@@ -589,6 +590,37 @@ function setupSubscriptionWebhook(app) {
                 logger.info('[SubscriptionWebhook] Dispute alert email sent for charge', chargeId);
             } catch (emailErr) {
                 logger.error('[SubscriptionWebhook] Dispute alert email failed:', emailErr.message);
+            }
+        }
+
+        if (event.type === 'invoice.upcoming') {
+            const invoice = event.data.object;
+            const subscriptionId = invoice.subscription;
+            if (!subscriptionId) {
+                logger.info('[SubscriptionWebhook] invoice.upcoming: no subscription on invoice', invoice.id);
+            } else {
+                const subRows = db.getDb().prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?').all(subscriptionId);
+                if (subRows.length > 0) {
+                    const email = subRows[0].customer_email;
+                    const customer = db.getDb().prepare('SELECT tier FROM customers WHERE email = ?').get(email);
+                    const tier = customer?.tier || 'pro';
+                    const amountCents = invoice.amount_due || invoice.total;
+                    const currency = invoice.currency || 'usd';
+                    const dueDate = invoice.due_date
+                        ? new Date(invoice.due_date * 1000).toISOString()
+                        : null;
+                    const invoiceNumber = invoice.number || invoice.id || null;
+                    logger.info('[SubscriptionWebhook] Invoice upcoming for:', email, 'amount:', amountCents, currency, 'due:', dueDate);
+                    try {
+                        const { sendEmail } = require('../services/email.cjs');
+                        const { renderInvoiceUpcoming } = require('../services/billing-email-templates.cjs');
+                        const { subject, text, html } = renderInvoiceUpcoming({ amountCents, currency, dueDate, tier, invoiceNumber });
+                        await sendEmail({ to: email, subject, text, html });
+                        logger.info('[SubscriptionWebhook] Invoice upcoming email sent to', email);
+                    } catch (emailErr) {
+                        logger.error('[SubscriptionWebhook] Invoice upcoming email failed:', emailErr.message);
+                    }
+                }
             }
         }
 

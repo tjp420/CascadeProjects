@@ -230,11 +230,42 @@ function renderDisputeAlert(opts = {}) {
   return { subject, text, html: wrapHtml('Charge Dispute Filed', bodyContent) };
 }
 
+/**
+ * Invoice coming due email — notifies customer of an upcoming subscription charge.
+ * @param {Object} opts
+ * @param {number} [opts.amountCents] - Invoice amount in cents
+ * @param {string} [opts.currency] - Currency code
+ * @param {string|null} [opts.dueDate] - ISO date when payment will be collected
+ * @param {string} [opts.tier] - Subscription tier
+ * @param {string|null} [opts.invoiceNumber] - Stripe invoice number
+ * @returns {{subject:string,text:string,html:string}}
+ */
+function renderInvoiceUpcoming(opts = {}) {
+  const { amountCents, currency = 'usd', dueDate = null, tier = 'pro', invoiceNumber = null } = opts;
+  const amount = amountCents ? (amountCents / 100).toFixed(2) : 'unknown';
+  const cur = currency.toUpperCase();
+  const dueDateStr = fmtDate(dueDate);
+
+  const subject = `SimpleBeacon — Upcoming Payment of $${amount} ${cur} on ${dueDateStr}`;
+  const text = `Your SimpleBeacon ${tier} subscription payment of $${amount} ${cur} will be charged on ${dueDateStr}.${invoiceNumber ? `\n\nInvoice: ${invoiceNumber}` : ''}\n\nThis is an automated reminder — no action is needed if your payment method is up to date.\n\nTo review or update your payment method, visit https://simplebeacon.ai/settings/billing`;
+
+  const bodyContent = `
+    <p>Your SimpleBeacon <strong>${tier}</strong> subscription payment of <strong>$${amount} ${cur}</strong> will be charged on <strong>${dueDateStr}</strong>.</p>
+    ${invoiceNumber ? `<div class="meta"><div class="meta-row"><span class="meta-label">Invoice</span><span class="meta-value">${invoiceNumber}</span></div></div>` : ''}
+    <div class="callout callout-info">
+      <p>This is an automated reminder — no action is needed if your payment method is up to date.</p>
+    </div>
+    <a href="https://simplebeacon.ai/settings/billing" class="btn">Review Payment Method</a>`;
+
+  return { subject, text, html: wrapHtml('Upcoming Payment Reminder', bodyContent) };
+}
+
 module.exports = {
   renderSubscriptionActivated,
   renderSubscriptionCanceled,
   renderSubscriptionReactivated,
   renderPaymentFailed,
   renderTrialEnding,
-  renderDisputeAlert
+  renderDisputeAlert,
+  renderInvoiceUpcoming
 };

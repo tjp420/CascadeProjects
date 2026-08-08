@@ -18,7 +18,7 @@ const { sendEmail } = require('../lib/email-service.cjs');
 const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
 const { logWebhookEvent } = require('../lib/webhook-event-log.cjs');
-const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert } = require('../lib/billing-email-templates.cjs');
+const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert, renderInvoiceUpcoming } = require('../lib/billing-email-templates.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
@@ -109,6 +109,14 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         logAmount = dispute?.amount ? `$${(dispute.amount / 100).toFixed(2)} ${dispute.currency || 'usd'.toUpperCase()}` : null;
         logDetail = 'Dispute filed';
         await handleDisputeCreated(event);
+        break;
+      }
+      case 'invoice.upcoming': {
+        const inv = event.data?.object;
+        logEmail = inv?.customer_email || inv?.customer_details?.email || null;
+        logAmount = inv?.amount_due ? `$${(inv.amount_due / 100).toFixed(2)}` : null;
+        logDetail = 'Invoice coming due';
+        await handleInvoiceUpcoming(event);
         break;
       }
       default:
@@ -533,6 +541,46 @@ async function handleDisputeCreated(event) {
     logger.info('[StripeWebhook] Dispute alert email sent for charge', chargeId);
   } catch (emailErr) {
     logger.error('[StripeWebhook] Dispute alert email failed:', emailErr.message);
+  }
+}
+
+/**
+ * Handle invoice.upcoming — notify customer of an upcoming subscription charge.
+ * Stripe sends this event a few days before a subscription renewal payment is collected.
+ * @param {Object} event - Stripe event object.
+ */
+async function handleInvoiceUpcoming(event) {
+  const invoice = event.data?.object;
+  if (!invoice) return;
+
+  if (!invoice.subscription) return;
+
+  const customerEmail = invoice.customer_email || invoice.customer_details?.email;
+  if (!customerEmail) {
+    logger.warn('[StripeWebhook] invoice.upcoming: no customer email on invoice', invoice.id);
+    return;
+  }
+
+  const amountCents = invoice.amount_due || invoice.total;
+  const currency = invoice.currency || 'usd';
+  const dueDate = invoice.due_date
+    ? new Date(invoice.due_date * 1000).toISOString()
+    : invoice.next_payment_attempt
+      ? new Date(invoice.next_payment_attempt * 1000).toISOString()
+      : null;
+  const invoiceNumber = invoice.number || invoice.id || null;
+
+  const existing = await getSubscriptionByEmail(customerEmail);
+  const tier = existing?.tier || 'pro';
+
+  logger.info('[StripeWebhook] invoice.upcoming for', customerEmail, 'amount:', amountCents, currency, 'due:', dueDate);
+
+  try {
+    const { subject, text, html } = renderInvoiceUpcoming({ amountCents, currency, dueDate, tier, invoiceNumber });
+    const emailResult = await sendEmail({ to: customerEmail, subject, text, html });
+    logger.info('[StripeWebhook] Invoice upcoming email', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
+  } catch (emailErr) {
+    logger.error('[StripeWebhook] Invoice upcoming email failed:', emailErr.message);
   }
 }
 
