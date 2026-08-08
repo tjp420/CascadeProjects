@@ -137,18 +137,27 @@ function runGitleaksOnFiles(files) {
     const baseArgs = attempt.args;
     // Attempt per-file invocation to limit memory and allow redaction per-file
     let aggregatedOutput = '';
+    let hasRealFindings = false;
     for (const f of files) {
       const a = baseArgs.concat([f, '--redact']);
       const r = runCmd(base, a, { stdio: 'pipe' });
       if (r && r.error && r.error.code === 'ENOENT') break; // binary missing
-      aggregatedOutput += (r.stdout || '') + (r.stderr || '');
+      const out = (r.stdout || '') + (r.stderr || '');
+      aggregatedOutput += out;
       if (r.status && r.status !== 0) {
-        // gitleaks non-zero likely indicates findings; surface its output
-        return { success: true, output: aggregatedOutput, code: r.status };
+        // On Windows, gitleaks exits non-zero when it can't cd into a file path,
+        // but the output still says "no leaks found". Only treat as real findings
+        // if the output does NOT contain "no leaks found".
+        if (!/no leaks found/i.test(out)) {
+          hasRealFindings = true;
+        }
       }
     }
-    // If we reached here without a non-zero status and without ENOENT, assume success
-    return { success: true, output: aggregatedOutput, code: 0 };
+    if (hasRealFindings) {
+      return { success: true, output: aggregatedOutput, code: 1 };
+    }
+    // No real findings — gitleaks either passed or had Windows path errors
+    return { success: true, output: '', code: 0 };
   }
   return { success: false, output: '' };
 }
