@@ -39,6 +39,14 @@ if (fs.existsSync(envPath)) {
 const { validateEnvironment } = require('./config/validate-env.cjs');
 validateEnvironment();
 
+// Diagnostic: log presence of REPORT_SIGNING_KEY (do not log the key value)
+try {
+  const logger = require('./lib/app-logger.cjs');
+  logger.info('[EnvDiagnostic] REPORT_SIGNING_KEY configured:', { present: !!process.env.REPORT_SIGNING_KEY });
+} catch (e) {
+  /* ignore logging errors */
+}
+
 const logger = require('./lib/app-logger.cjs');
 const { resolveCorsOptions } = require('./lib/cors-config.cjs');
 const { appendContactSubmission } = require('./lib/contact-submissions-store.cjs');
@@ -87,6 +95,7 @@ const {
   setupSimplebeaconBillingRoutes
 } = require('../src/api/simplebeacon-billing-api.cjs');
 const { setupEnterpriseOnboardingRoutes } = require('../src/api/enterprise-onboarding.cjs');
+const licenseSeatRoutes = require('../src/api/license-seat-routes.cjs');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
 const { runNpmAuditAsync } = require('./lib/npm-audit-runner.cjs');
 const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
@@ -1294,6 +1303,13 @@ try {
     setupEnterpriseOnboardingRoutes(app);
 } catch (e) {
     logger.warn('[Enterprise] onboarding routes setup skipped:', e.message);
+}
+
+// License seat management ── self-service seat roster for team admins
+try {
+    app.use('/api/license', licenseSeatRoutes);
+} catch (e) {
+    logger.warn('[LicenseSeats] seat management routes setup skipped:', e.message);
 }
 
 // Public compliance schema endpoint ΓÇö no auth, no project access, no code upload

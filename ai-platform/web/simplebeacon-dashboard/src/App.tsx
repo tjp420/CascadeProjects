@@ -42,6 +42,7 @@ import { WorkspaceConfigView } from './views/WorkspaceConfigView';
 import { FineTuningCurationView } from './views/FineTuningCurationView';
 import { WebhookEventsView } from './views/WebhookEventsView';
 import { OpsReportView } from './views/OpsReportView';
+import { LicenseManagerView } from './views/LicenseManagerView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
@@ -103,6 +104,7 @@ const VIEW_TITLES: Record<string, string> = {
   'fine-tuning': 'Fine-Tuning Curation',
   'webhook-events': 'Webhook Events',
   'ops-report': 'Ops Report',
+  'license-manager': 'License Manager',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -139,6 +141,7 @@ const viewMap: Record<string, React.ComponentType> = {
   'fine-tuning': FineTuningCurationView,
   'webhook-events': WebhookEventsView,
   'ops-report': OpsReportView,
+  'license-manager': LicenseManagerView,
 };
 
 export default function App() {
