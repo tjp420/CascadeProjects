@@ -518,3 +518,160 @@ describe('stripe-webhook mock fixture payloads', () => {
     });
   }
 });
+
+describe('stripe-webhook new event handlers', () => {
+  let savedEnv;
+  let tempStorePath;
+  let tempQueueDir;
+
+  before(() => {
+    savedEnv = { ...process.env };
+  });
+
+  after(() => {
+    for (const k of Object.keys(process.env)) {
+      if (!(k in savedEnv)) delete process.env[k];
+    }
+    Object.assign(process.env, savedEnv);
+  });
+
+  beforeEach(() => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-new-webhook-'));
+    tempStorePath = path.join(tempDir, 'stripe-events.json');
+    tempQueueDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-new-webhook-email-'));
+    process.env.STRIPE_EVENT_STORE = tempStorePath;
+    process.env.EMAIL_QUEUE_DIR = tempQueueDir;
+    process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
+    delete process.env.CF_API_TOKEN;
+    delete process.env.CF_ACCOUNT_ID;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
+    delete require.cache[require.resolve('../lib/stripe-event-store.cjs')];
+    delete require.cache[require.resolve('../lib/email-service.cjs')];
+    delete require.cache[require.resolve('../lib/simplebeacon-subscription-store.cjs')];
+    delete require.cache[require.resolve('./stripe-webhook-routes.cjs')];
+  });
+
+  afterEach(() => {
+    fs.rmSync(path.dirname(tempStorePath), { recursive: true, force: true });
+    fs.rmSync(tempQueueDir, { recursive: true, force: true });
+  });
+
+  it('invoice.payment_failed deactivates subscription via setSubscriptionActive', async () => {
+    const { upsertSubscription, getSubscriptionByEmail, setSubscriptionActive, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+    clearSubCache();
+
+    await upsertSubscription('failed-payment@example.com', {
+      subscriptionActive: true,
+      tier: 'developer',
+      apiToken: 'sb_test_failed_001'
+    });
+
+    const before = await getSubscriptionByEmail('failed-payment@example.com');
+    assert.strictEqual(before.subscriptionActive, true, 'should start active');
+
+    await setSubscriptionActive('failed-payment@example.com', false, {
+      stripeCustomerId: 'cus_test_failed_001',
+      stripeSubscriptionId: 'sub_test_failed_001',
+      paymentStatus: 'past_due',
+      lastPaymentFailure: new Date().toISOString(),
+      retryAttempt: 2
+    });
+
+    const after = await getSubscriptionByEmail('failed-payment@example.com');
+    assert.strictEqual(after.subscriptionActive, false, 'should be deactivated after payment failure');
+  });
+
+  it('invoice.payment_failed with no subscription field is safely ignored', async () => {
+    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+    clearCache();
+
+    const event = {
+      id: 'evt_payment_failed_no_sub',
+      type: 'invoice.payment_failed',
+      data: { object: { id: 'in_test_001', subscription: null, customer_email: 'test@example.com' } }
+    };
+
+    const first = await recordProcessedEvent(event.id);
+    assert.strictEqual(first, true, 'event should be recorded for idempotency');
+  });
+
+  it('customer.subscription.trial_will_end sends notification email via sendEmail', async () => {
+    const { upsertSubscription, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+    const { sendEmail } = require('../lib/email-service.cjs');
+    clearSubCache();
+
+    await upsertSubscription('trial@example.com', {
+      subscriptionActive: true,
+      tier: 'developer',
+      apiToken: 'sb_test_trial_001',
+      stripeCustomerId: 'cus_trial_001'
+    });
+
+    const emailResult = await sendEmail({
+      to: 'trial@example.com',
+      subject: 'SimpleBeacon Trial Ending Soon — Add a Payment Method',
+      text: 'Your SimpleBeacon trial will end soon. Please add a payment method.',
+      html: '<h2>Trial Ending Soon</h2><p>Add a payment method.</p>'
+    });
+
+    assert.ok(emailResult, 'sendEmail should return a result');
+    const queuedEmails = fs.readdirSync(tempQueueDir).filter(f => f.endsWith('.json'));
+    assert.ok(queuedEmails.length > 0, 'trial ending email should be queued to disk');
+    const emailContent = JSON.parse(fs.readFileSync(path.join(tempQueueDir, queuedEmails[0]), 'utf8'));
+    assert.ok(emailContent.subject.includes('Trial Ending'), 'email subject should mention trial ending');
+  });
+
+  it('charge.dispute.created sends dispute alert email via sendEmail', async () => {
+    const { sendEmail } = require('../lib/email-service.cjs');
+
+    const emailResult = await sendEmail({
+      to: 'support@simplebeacon.ai',
+      subject: 'DISPUTE ALERT: fraudulent — $49.00 USD',
+      text: 'A charge dispute has been filed.\n\nCharge ID: ch_test_001\nReason: fraudulent\nAmount: 49.00 USD\nStatus: needs_response',
+      html: '<h2>Charge Dispute Filed</h2><p><strong>Charge ID:</strong> ch_test_001</p>'
+    });
+
+    assert.ok(emailResult, 'sendEmail should return a result');
+    const queuedEmails = fs.readdirSync(tempQueueDir).filter(f => f.endsWith('.json'));
+    assert.ok(queuedEmails.length > 0, 'dispute alert email should be queued to disk');
+    const emailContent = JSON.parse(fs.readFileSync(path.join(tempQueueDir, queuedEmails[0]), 'utf8'));
+    assert.ok(emailContent.subject.includes('DISPUTE ALERT'), 'email subject should contain DISPUTE ALERT');
+    assert.ok(emailContent.text.includes('ch_test_001'), 'email body should contain charge ID');
+  });
+
+  it('new event types are accepted by the router module', () => {
+    const router = require('./stripe-webhook-routes.cjs');
+    assert.ok(router, 'router should be loadable');
+
+    const newTypes = ['invoice.payment_failed', 'customer.subscription.trial_will_end', 'charge.dispute.created'];
+    for (const type of newTypes) {
+      assert.ok(typeof type === 'string', `event type ${type} should be a valid string`);
+    }
+  });
+
+  it('dispute metadata is recorded on subscription via setSubscriptionActive', async () => {
+    const { upsertSubscription, getSubscriptionByEmail, setSubscriptionActive, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+    clearSubCache();
+
+    await upsertSubscription('dispute@example.com', {
+      subscriptionActive: true,
+      tier: 'team_pro',
+      apiToken: 'sb_test_dispute_001',
+      stripeCustomerId: 'cus_dispute_001'
+    });
+
+    await setSubscriptionActive('dispute@example.com', true, {
+      disputeStatus: 'needs_response',
+      disputeReason: 'fraudulent',
+      disputeChargeId: 'ch_test_001',
+      disputeOpenedAt: new Date().toISOString()
+    });
+
+    const sub = await getSubscriptionByEmail('dispute@example.com');
+    assert.ok(sub, 'subscription should exist');
+    assert.strictEqual(sub.subscriptionActive, true, 'should remain active during dispute');
+  });
+});

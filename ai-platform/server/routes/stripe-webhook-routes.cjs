@@ -74,6 +74,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'invoice.paid':
         await handleInvoicePaid(event);
         break;
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event);
+        break;
+      case 'customer.subscription.trial_will_end':
+        await handleTrialWillEnd(event);
+        break;
+      case 'charge.dispute.created':
+        await handleDisputeCreated(event);
+        break;
       default:
         logger.info('[StripeWebhook] Unhandled event type:', event.type);
         return res.json({ received: true, ignored: true, type: event.type });
@@ -371,6 +380,160 @@ function extractPriceIdFromSession(session) {
     return session.subscription_details.price_id;
   }
   return null;
+}
+
+/**
+ * Handle invoice.payment_failed — mark subscription past_due, notify customer.
+ * Stripe sends this when a renewal payment fails. The subscription enters
+ * a grace period (past_due) before being deactivated after retry exhaustion.
+ * @param {Object} event - Stripe event object.
+ */
+async function handleInvoicePaymentFailed(event) {
+  const invoice = event.data?.object;
+  if (!invoice) return;
+
+  if (!invoice.subscription) return;
+
+  const customerEmail = invoice.customer_email || invoice.customer_details?.email;
+  if (!customerEmail) {
+    logger.warn('[StripeWebhook] invoice.payment_failed: no customer email on invoice', invoice.id);
+    return;
+  }
+
+  const attemptCount = invoice.attempt_count || 1;
+  const nextRetry = invoice.next_payment_attempt
+    ? new Date(invoice.next_payment_attempt * 1000).toISOString()
+    : null;
+
+  logger.warn(
+    '[StripeWebhook] Payment FAILED for', customerEmail,
+    'invoice:', invoice.id,
+    'attempt:', attemptCount,
+    'nextRetry:', nextRetry || 'none'
+  );
+
+  const existing = await getSubscriptionByEmail(customerEmail);
+  if (!existing) {
+    logger.info('[StripeWebhook] invoice.payment_failed: no existing subscription for', customerEmail);
+    return;
+  }
+
+  await setSubscriptionActive(customerEmail, false, {
+    stripeCustomerId: invoice.customer,
+    stripeSubscriptionId: invoice.subscription,
+    paymentStatus: 'past_due',
+    lastPaymentFailure: new Date().toISOString(),
+    retryAttempt: attemptCount
+  });
+
+  logger.info('[StripeWebhook] Subscription marked past_due for', customerEmail, 'attempt:', attemptCount);
+
+  try {
+    const isFinalAttempt = !nextRetry;
+    const subject = isFinalAttempt
+      ? 'SimpleBeacon Subscription — Final Payment Attempt Failed'
+      : 'SimpleBeacon Subscription — Payment Failed';
+    const retryLine = nextRetry
+      ? `Stripe will automatically retry the payment on ${new Date(nextRetry).toLocaleDateString()}.`
+      : 'This was the final retry attempt. Your subscription will be deactivated at the end of the current billing period.';
+    const text = `A payment for your SimpleBeacon subscription failed.\n\n${retryLine}\n\nPlease update your payment method at https://simplebeacon.ai/settings/billing to avoid service interruption.\n\nIf you believe this is an error, please contact support@simplebeacon.ai.`;
+    const html = `<h2>Payment Failed</h2><p>A payment for your SimpleBeacon subscription failed.</p><p>${retryLine}</p><p>Please update your payment method at <a href="https://simplebeacon.ai/settings/billing">your billing settings</a> to avoid service interruption.</p><p>If you believe this is an error, please contact <a href="mailto:support@simplebeacon.ai">support@simplebeacon.ai</a>.</p>`;
+    const emailResult = await sendEmail({ to: customerEmail, subject, text, html });
+    logger.info('[StripeWebhook] Payment failure email', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
+  } catch (emailErr) {
+    logger.error('[StripeWebhook] Payment failure email failed:', emailErr.message);
+  }
+}
+
+/**
+ * Handle customer.subscription.trial_will_end — notify customer 3 days before trial ends.
+ * Stripe sends this event 3 days before a trial period expires.
+ * @param {Object} event - Stripe event object.
+ */
+async function handleTrialWillEnd(event) {
+  const subscription = event.data?.object;
+  if (!subscription) return;
+
+  const customerId = subscription.customer;
+  const trialEnd = subscription.trial_end
+    ? new Date(subscription.trial_end * 1000).toISOString()
+    : null;
+
+  logger.info('[StripeWebhook] trial_will_end for customer', customerId, 'trial ends:', trialEnd);
+
+  const existing = await findSubscriptionByCustomerId(customerId);
+  if (!existing) {
+    logger.warn('[StripeWebhook] trial_will_end: no existing subscription for customer', customerId);
+    return;
+  }
+
+  const trialEndDate = trialEnd ? new Date(trialEnd).toLocaleDateString() : 'soon';
+
+  try {
+    const text = `Your SimpleBeacon trial will end on ${trialEndDate}.\n\nTo continue using all features without interruption, please add a payment method at https://simplebeacon.ai/settings/billing.\n\nIf you do not add a payment method, your account will revert to the free tier after the trial ends.`;
+    const html = `<h2>Trial Ending Soon</h2><p>Your SimpleBeacon trial will end on <strong>${trialEndDate}</strong>.</p><p>To continue using all features without interruption, please <a href="https://simplebeacon.ai/settings/billing">add a payment method</a>.</p><p>If you do not add a payment method, your account will revert to the free tier after the trial ends.</p>`;
+    const emailResult = await sendEmail({
+      to: existing.email,
+      subject: 'SimpleBeacon Trial Ending Soon — Add a Payment Method',
+      text,
+      html
+    });
+    logger.info('[StripeWebhook] Trial ending email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+  } catch (emailErr) {
+    logger.error('[StripeWebhook] Trial ending email failed:', emailErr.message);
+  }
+}
+
+/**
+ * Handle charge.dispute.created — log dispute, mark subscription for review.
+ * Stripe sends this when a customer disputes a charge with their bank.
+ * @param {Object} event - Stripe event object.
+ */
+async function handleDisputeCreated(event) {
+  const dispute = event.data?.object;
+  if (!dispute) return;
+
+  const chargeId = dispute.charge;
+  const reason = dispute.reason || 'unspecified';
+  const status = dispute.status || 'needs_response';
+  const amount = dispute.amount ? (dispute.amount / 100).toFixed(2) : 'unknown';
+  const currency = dispute.currency || 'usd';
+
+  logger.warn(
+    '[StripeWebhook] Dispute CREATED — charge:', chargeId,
+    'reason:', reason,
+    'amount:', amount, currency.toUpperCase(),
+    'status:', status
+  );
+
+  const customerEmail = dispute.evidence_details?.customer_email ||
+    (dispute.metadata && dispute.metadata.customer_email);
+
+  if (customerEmail) {
+    const existing = await getSubscriptionByEmail(customerEmail);
+    if (existing) {
+      await setSubscriptionActive(customerEmail, existing.subscriptionActive, {
+        disputeStatus: status,
+        disputeReason: reason,
+        disputeChargeId: chargeId,
+        disputeOpenedAt: new Date().toISOString()
+      });
+      logger.warn('[StripeWebhook] Dispute recorded for', customerEmail, 'reason:', reason);
+    }
+  }
+
+  try {
+    const alertText = `A charge dispute has been filed.\n\nCharge ID: ${chargeId}\nReason: ${reason}\nAmount: ${amount} ${currency.toUpperCase()}\nStatus: ${status}\n\nAction required: Submit evidence in the Stripe Dashboard within 7 days to avoid automatic loss.`;
+    await sendEmail({
+      to: process.env.DISPUTE_ALERT_EMAIL || 'support@simplebeacon.ai',
+      subject: `DISPUTE ALERT: ${reason} — $${amount} ${currency.toUpperCase()}`,
+      text: alertText,
+      html: `<h2>Charge Dispute Filed</h2><p><strong>Charge ID:</strong> ${chargeId}</p><p><strong>Reason:</strong> ${reason}</p><p><strong>Amount:</strong> ${amount} ${currency.toUpperCase()}</p><p><strong>Status:</strong> ${status}</p><p style="color:#ef4444"><strong>Action required:</strong> Submit evidence in the Stripe Dashboard within 7 days to avoid automatic loss.</p>`
+    });
+    logger.info('[StripeWebhook] Dispute alert email sent for charge', chargeId);
+  } catch (emailErr) {
+    logger.error('[StripeWebhook] Dispute alert email failed:', emailErr.message);
+  }
 }
 
 module.exports = router;
