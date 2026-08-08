@@ -177,7 +177,7 @@ function main() {
   console.log(`ℹ️ Scanning ${filtered.length} changed files for secrets...`);
 
   const gRes = runGitleaksOnFiles(filtered);
-  if (gRes.success && gRes.output && gRes.output.trim()) {
+  if (gRes.success && gRes.code !== 0 && gRes.output && gRes.output.trim()) {
     console.error('💥 gitleaks reported findings:\n', gRes.output);
     process.exit(1);
   }
