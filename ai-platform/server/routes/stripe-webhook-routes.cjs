@@ -18,7 +18,8 @@ const { sendEmail } = require('../lib/email-service.cjs');
 const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
 const { logWebhookEvent } = require('../lib/webhook-event-log.cjs');
-const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert, renderInvoiceUpcoming } = require('../lib/billing-email-templates.cjs');
+const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert, renderInvoiceUpcoming, renderProrationNotice } = require('../lib/billing-email-templates.cjs');
+const { calculateProration } = require('../lib/proration-calculator.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
@@ -302,19 +303,54 @@ async function handleSubscriptionUpdated(event) {
     return;
   }
 
+  // Detect tier change for proration notification
+  const oldTier = existing.tier;
+  const newTier = tierConfig.tier;
+  const tierChanged = oldTier && oldTier !== newTier;
+
   const periodStart = subscription.current_period_start
     ? new Date(subscription.current_period_start * 1000).toISOString()
     : new Date().toISOString();
 
   await setSubscriptionActive(existing.email, subscription.status === 'active', {
-    tier: tierConfig.tier,
+    tier: newTier,
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscription.id,
     stripePriceId: priceId,
     periodStart
   });
 
-  logger.info('[StripeWebhook] subscription.updated: store updated for', existing.email, 'tier:', tierConfig.tier, 'active:', subscription.status === 'active');
+  logger.info('[StripeWebhook] subscription.updated: store updated for', existing.email, 'tier:', newTier, 'active:', subscription.status === 'active');
+
+  // Send proration notice email if tier changed
+  if (tierChanged) {
+    const isAnnual = tierConfig.product && tierConfig.product.includes('annual');
+    const proration = calculateProration({
+      fromTier: oldTier,
+      toTier: newTier,
+      periodStart: subscription.current_period_start,
+      periodEnd: subscription.current_period_end,
+      isAnnual,
+    });
+
+    logger.info('[StripeWebhook] Tier change detected for', existing.email, ':', oldTier, '→', newTier, 'proration:', proration.netAdjustmentDisplay);
+
+    try {
+      const { subject, text, html } = renderProrationNotice({
+        fromTier: oldTier,
+        toTier: newTier,
+        isUpgrade: proration.isUpgrade,
+        daysRemaining: proration.daysRemaining,
+        netAdjustmentCents: proration.netAdjustmentCents,
+        netAdjustmentDisplay: proration.netAdjustmentDisplay,
+        isAnnual,
+      });
+      const emailResult = await sendEmail({ to: existing.email, subject, text, html });
+      logger.info('[StripeWebhook] Proration notice email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+    } catch (emailErr) {
+      logger.error('[StripeWebhook] Proration notice email failed:', emailErr.message);
+    }
+  }
 }
 
 /**

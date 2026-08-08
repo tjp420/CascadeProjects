@@ -68,6 +68,17 @@ function fmtDate(iso) {
   catch { return iso; }
 }
 
+const TIER_DISPLAY_NAMES = {
+  developer: 'Developer',
+  team_pro: 'Team Pro',
+  enterprise: 'Enterprise',
+  pro: 'Pro (Legacy)',
+};
+
+function tierDisplayName(tier) {
+  return TIER_DISPLAY_NAMES[tier] || tier;
+}
+
 /**
  * Subscription activated email.
  * @param {Object} opts
@@ -260,6 +271,56 @@ function renderInvoiceUpcoming(opts = {}) {
   return { subject, text, html: wrapHtml('Upcoming Payment Reminder', bodyContent) };
 }
 
+/**
+ * Proration notice email — sent when a customer upgrades or downgrades tier mid-cycle.
+ * @param {Object} opts
+ * @param {string} opts.fromTier - Previous tier name
+ * @param {string} opts.toTier - New tier name
+ * @param {boolean} [opts.isUpgrade] - Whether this is an upgrade (true) or downgrade (false)
+ * @param {number} [opts.daysRemaining] - Days remaining in current billing cycle
+ * @param {number} [opts.netAdjustmentCents] - Net adjustment in cents (positive=charge, negative=credit)
+ * @param {string} [opts.netAdjustmentDisplay] - Pre-formatted display string (e.g. "$12.34 charge")
+ * @param {boolean} [opts.isAnnual] - Whether the subscription is annual
+ * @returns {{subject:string,text:string,html:string}}
+ */
+function renderProrationNotice(opts = {}) {
+  const {
+    fromTier = 'developer',
+    toTier = 'developer',
+    isUpgrade = true,
+    daysRemaining = 0,
+    netAdjustmentCents = 0,
+    netAdjustmentDisplay = '$0.00',
+    isAnnual = false,
+  } = opts;
+
+  const fromName = tierDisplayName(fromTier);
+  const toName = tierDisplayName(toTier);
+  const cycleLabel = isAnnual ? 'annual' : 'monthly';
+  const action = isUpgrade ? 'upgraded' : 'changed';
+  const calloutClass = isUpgrade ? 'callout-info' : 'callout-success';
+  const direction = netAdjustmentCents > 0 ? 'charged' : 'credited';
+
+  const subject = `SimpleBeacon — Subscription ${isUpgrade ? 'Upgrade' : 'Change'}: ${fromName} → ${toName}`;
+  const text = `Your SimpleBeacon subscription has been ${action} from ${fromName} to ${toName}.\n\nProration for remaining ${daysRemaining} days of your ${cycleLabel} billing cycle:\n  Adjustment: ${netAdjustmentDisplay} (${direction} to your next invoice)\n\nYour new ${toName} tier features are now active.\n\nTo review your subscription details, visit https://simplebeacon.ai/settings/billing`;
+
+  const bodyContent = `
+    <p>Your SimpleBeacon subscription has been <strong>${action}</strong> from <strong>${fromName}</strong> to <strong>${toName}</strong>.</p>
+    <div class="meta">
+      <div class="meta-row"><span class="meta-label">Previous Plan</span><span class="meta-value">${fromName}</span></div>
+      <div class="meta-row"><span class="meta-label">New Plan</span><span class="meta-value">${toName}</span></div>
+      <div class="meta-row"><span class="meta-label">Billing Cycle</span><span class="meta-value">${cycleLabel.charAt(0).toUpperCase() + cycleLabel.slice(1)}</span></div>
+      <div class="meta-row"><span class="meta-label">Days Remaining</span><span class="meta-value">${daysRemaining}</span></div>
+      <div class="meta-row"><span class="meta-label">Proration Adjustment</span><span class="meta-value">${netAdjustmentDisplay}</span></div>
+    </div>
+    <div class="callout ${calloutClass}">
+      <p>The adjustment above will be ${direction} to your next invoice. Your new ${toName} tier features are now active.</p>
+    </div>
+    <a href="https://simplebeacon.ai/settings/billing" class="btn">Review Subscription</a>`;
+
+  return { subject, text, html: wrapHtml(isUpgrade ? 'Subscription Upgraded' : 'Subscription Changed', bodyContent) };
+}
+
 module.exports = {
   renderSubscriptionActivated,
   renderSubscriptionCanceled,
@@ -267,5 +328,6 @@ module.exports = {
   renderPaymentFailed,
   renderTrialEnding,
   renderDisputeAlert,
-  renderInvoiceUpcoming
+  renderInvoiceUpcoming,
+  renderProrationNotice
 };

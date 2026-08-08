@@ -9,7 +9,8 @@ const {
   renderPaymentFailed,
   renderTrialEnding,
   renderDisputeAlert,
-  renderInvoiceUpcoming
+  renderInvoiceUpcoming,
+  renderProrationNotice
 } = require('../lib/billing-email-templates.cjs');
 
 describe('billing-email-templates', () => {
@@ -182,6 +183,64 @@ describe('billing-email-templates', () => {
     });
   });
 
+  describe('renderProrationNotice', () => {
+    it('includes tier names in subject for upgrade', () => {
+      const result = renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', isUpgrade: true, daysRemaining: 20, netAdjustmentCents: 6667, netAdjustmentDisplay: '$66.67 charge' });
+      assert.ok(result.subject.includes('Upgrade'));
+      assert.ok(result.subject.includes('Developer'));
+      assert.ok(result.subject.includes('Team Pro'));
+    });
+
+    it('uses "Change" in subject for downgrade', () => {
+      const result = renderProrationNotice({ fromTier: 'team_pro', toTier: 'developer', isUpgrade: false, daysRemaining: 15, netAdjustmentCents: -5000, netAdjustmentDisplay: '$50.00 credit' });
+      assert.ok(result.subject.includes('Change'));
+    });
+
+    it('includes proration details in text body', () => {
+      const result = renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', isUpgrade: true, daysRemaining: 20, netAdjustmentCents: 6667, netAdjustmentDisplay: '$66.67 charge' });
+      assert.ok(result.text.includes('upgraded'));
+      assert.ok(result.text.includes('Developer'));
+      assert.ok(result.text.includes('Team Pro'));
+      assert.ok(result.text.includes('$66.67 charge'));
+      assert.ok(result.text.includes('20 days'));
+    });
+
+    it('includes metadata grid in html', () => {
+      const result = renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', isUpgrade: true, daysRemaining: 20, netAdjustmentCents: 6667, netAdjustmentDisplay: '$66.67 charge' });
+      assert.ok(result.html.includes('meta-row'));
+      assert.ok(result.html.includes('Previous Plan'));
+      assert.ok(result.html.includes('New Plan'));
+      assert.ok(result.html.includes('Days Remaining'));
+      assert.ok(result.html.includes('Proration Adjustment'));
+    });
+
+    it('uses info callout for upgrades', () => {
+      const result = renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', isUpgrade: true, daysRemaining: 20, netAdjustmentCents: 6667, netAdjustmentDisplay: '$66.67 charge' });
+      assert.ok(result.html.includes('callout-info'));
+    });
+
+    it('uses success callout for downgrades', () => {
+      const result = renderProrationNotice({ fromTier: 'team_pro', toTier: 'developer', isUpgrade: false, daysRemaining: 15, netAdjustmentCents: -5000, netAdjustmentDisplay: '$50.00 credit' });
+      assert.ok(result.html.includes('callout-success'));
+    });
+
+    it('indicates credit direction for negative adjustment', () => {
+      const result = renderProrationNotice({ fromTier: 'team_pro', toTier: 'developer', isUpgrade: false, daysRemaining: 15, netAdjustmentCents: -5000, netAdjustmentDisplay: '$50.00 credit' });
+      assert.ok(result.text.includes('credited'));
+    });
+
+    it('indicates charge direction for positive adjustment', () => {
+      const result = renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', isUpgrade: true, daysRemaining: 20, netAdjustmentCents: 6667, netAdjustmentDisplay: '$66.67 charge' });
+      assert.ok(result.text.includes('charged'));
+    });
+
+    it('includes annual cycle label when isAnnual is true', () => {
+      const result = renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', isUpgrade: true, daysRemaining: 200, netAdjustmentCents: 50000, netAdjustmentDisplay: '$500.00 charge', isAnnual: true });
+      assert.ok(result.text.includes('annual'));
+      assert.ok(result.html.includes('Annual'));
+    });
+  });
+
   describe('all templates share consistent layout', () => {
     const templates = [
       { name: 'activated', fn: () => renderSubscriptionActivated({ tier: 'pro' }) },
@@ -191,6 +250,7 @@ describe('billing-email-templates', () => {
       { name: 'trial_ending', fn: () => renderTrialEnding({}) },
       { name: 'dispute', fn: () => renderDisputeAlert({ chargeId: 'ch_test' }) },
       { name: 'invoice_upcoming', fn: () => renderInvoiceUpcoming({ amountCents: 4900, dueDate: '2026-09-15T00:00:00Z' }) },
+      { name: 'proration_notice', fn: () => renderProrationNotice({ fromTier: 'developer', toTier: 'team_pro', daysRemaining: 20, netAdjustmentCents: 6667, netAdjustmentDisplay: '$66.67 charge' }) },
     ];
 
     for (const { name, fn } of templates) {

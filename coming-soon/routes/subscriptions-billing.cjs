@@ -427,6 +427,53 @@ function setupSubscriptionWebhook(app) {
             db.updateCustomerSubscription(customer.email, status, finalTier);
             db.addPaidSubscription(customer.email, sub.id, priceId, status, periodStart, periodEnd);
 
+            // Detect tier change for proration notification
+            const oldTier = customer.tier;
+            const tierChanged = oldTier && oldTier !== 'community' && oldTier !== finalTier;
+            if (tierChanged && status === 'active') {
+                const isAnnual = interval === 'year';
+                try {
+                    const { renderProrationNotice } = require('../services/billing-email-templates.cjs');
+                    const { sendEmail } = require('../services/email.cjs');
+                    const TIER_PRICES = {
+                        developer: { monthly: 4900, annual: 49000 },
+                        team_pro: { monthly: 14900, annual: 149000 },
+                        team: { monthly: 1500, annual: 15000 },
+                        compliance: { monthly: 39900, annual: 399000 },
+                        enterprise: { monthly: 49900, annual: 499000 },
+                        pro: { monthly: 900, annual: 9000 },
+                    };
+                    const oldPrice = TIER_PRICES[oldTier] ? (isAnnual ? TIER_PRICES[oldTier].annual : TIER_PRICES[oldTier].monthly) : 0;
+                    const newPrice = TIER_PRICES[finalTier] ? (isAnnual ? TIER_PRICES[finalTier].annual : TIER_PRICES[finalTier].monthly) : 0;
+                    const cycleDays = isAnnual ? 365 : 30;
+                    const now = Date.now();
+                    const periodEndMs = sub.current_period_end ? sub.current_period_end * 1000 : now + cycleDays * 24 * 60 * 60 * 1000;
+                    const daysRemaining = Math.max(0, Math.round((periodEndMs - now) / (24 * 60 * 60 * 1000)));
+                    const oldDaily = Math.round(oldPrice / cycleDays);
+                    const newDaily = Math.round(newPrice / cycleDays);
+                    const netCents = (newDaily * daysRemaining) - (oldDaily * daysRemaining);
+                    const absAmt = Math.abs(netCents);
+                    const display = `$${(absAmt / 100).toFixed(2)} ${netCents > 0 ? 'charge' : 'credit'}`;
+                    const isUpgrade = newPrice > oldPrice;
+
+                    logger.info('[SubscriptionWebhook] Tier change:', oldTier, '→', finalTier, 'proration:', display);
+
+                    const { subject, text, html } = renderProrationNotice({
+                        fromTier: oldTier,
+                        toTier: finalTier,
+                        isUpgrade,
+                        daysRemaining,
+                        netAdjustmentCents: netCents,
+                        netAdjustmentDisplay: display,
+                        isAnnual,
+                    });
+                    await sendEmail({ to: customer.email, subject, text, html });
+                    logger.info('[SubscriptionWebhook] Proration notice sent to', customer.email);
+                } catch (prorationErr) {
+                    logger.error('[SubscriptionWebhook] Proration notice failed:', prorationErr.message);
+                }
+            }
+
             if (status === 'active') {
                 const licenseSecret = process.env.SIMPLEBEACON_LICENSE_SECRET;
                 if (licenseSecret) {
