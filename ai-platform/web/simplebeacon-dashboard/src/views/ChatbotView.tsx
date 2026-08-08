@@ -415,9 +415,8 @@ export function ChatbotView() {
       setSelectedModel('');
       return;
     }
-    const options = providerModels[nextProvider]?.length
-      ? providerModels[nextProvider]
-      : (PROVIDER_MODEL_OPTIONS[nextProvider] || []);
+    // Only use discovered models — never hardcoded fallbacks
+    const options = providerModels[nextProvider] || [];
     const pref = modelPrefs[nextProvider] || '';
     const providerModel = providers.find((p) => p.id === nextProvider)?.model || '';
     const validPref = options.includes(pref) ? pref : '';
@@ -511,7 +510,10 @@ export function ChatbotView() {
       const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
       if (selectedProvider === 'ollama' && isHosted) {
         const systemPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.helpful;
-        const chatModel = selectedModel || providerModels['ollama']?.[0] || '';
+        const discovered = providerModels['ollama'] || [];
+        const chatModel = discovered.includes(selectedModel)
+          ? selectedModel
+          : discovered[0] || '';
         if (!chatModel) {
           throw new Error('No Ollama model selected. Please select a model from the dropdown.');
         }
