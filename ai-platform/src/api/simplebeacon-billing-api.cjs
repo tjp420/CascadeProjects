@@ -471,7 +471,7 @@ function setupSimplebeaconBillingRoutes(app) {
     ]);
     const successPath = teamCheckoutProducts.has(product)
       ? '/dashboard/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}'
-      : '/coming-soon/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}';
+      : '/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}';
 
     try {
       const projectName = String(req.body?.projectName || req.body?.certProjectName || '').trim();
@@ -482,7 +482,7 @@ function setupSimplebeaconBillingRoutes(app) {
         customer_email: email,
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${baseUrl}${successPath}`,
-        cancel_url: `${baseUrl}/dashboard/pricing?canceled=true`,
+        cancel_url: `${baseUrl}/pricing?canceled=true`,
         metadata: { email, product, projectName, certClientName, ...buildReferralCheckoutMetadata(req, req.body) }
       };
 

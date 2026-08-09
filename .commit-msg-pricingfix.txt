@@ -1,0 +1,15 @@
+Fix pricing page to call correct billing checkout endpoint
+
+The pricing page was calling /api/create-subscription-session (old
+endpoint from subscriptions-billing.cjs) which is not mounted on the
+Render server. Updated to call /api/simplebeacon/billing/checkout
+with the correct payload format (product key instead of tier+mode).
+
+Also fixed the success/cancel URLs in the billing API to use paths
+that work on Cloudflare Pages (/certificate-upload.html instead of
+/coming-soon/certificate-upload.html, /pricing instead of
+/dashboard/pricing).
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

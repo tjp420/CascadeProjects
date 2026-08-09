@@ -1100,13 +1100,14 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       if (subscriptionTiers.indexOf(product) >= 0) {
         var subTierMap = { developer_tier: 'developer', team_pro_tier: 'team_pro' };
         var subTier = subTierMap[product] || 'developer';
-        var payload = { email: email, projectName: projectName, clientName: clientName || email, tier: subTier, mode: isAnnual ? 'annual' : 'monthly' };
+        var productKey = subTier + '_' + (isAnnual ? 'annual' : 'monthly');
+        var payload = { email: email, product: productKey, projectName: projectName, certClientName: clientName || email };
         if (subTier === 'team_pro' && extraSeats > 0) {
           payload.extraSeats = extraSeats;
         }
         var referralSlug = getReferralSlug();
         if (referralSlug) payload.referralSlug = referralSlug;
-        var endpoint = apiBase + '/api/create-subscription-session';
+        var endpoint = apiBase + '/api/simplebeacon/billing/checkout';
         fetch(endpoint, {
           method: 'POST',
           credentials: 'include',
@@ -1115,7 +1116,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (data.success && data.url) {
+          if (data.url) {
             window.location.href = data.url;
           } else {
             errorEl.textContent = data.error || data.message || 'Checkout failed. Please try again.';
