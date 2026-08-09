@@ -94,11 +94,18 @@ async function chatWithBrowserOllama(
   systemPrompt: string,
 ): Promise<string> {
   const url = `${baseUrl.replace(/\/+$/, '')}/api/chat`;
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...history.map((m) => ({ role: m.role, content: m.content })),
-    { role: 'user', content: message },
-  ];
+  // Models with built-in system prompts (via Modelfile) should NOT have their
+  // system prompt overridden by the chatbot's personality prompt — it causes
+  // conflicting instructions and incoherent output on small models.
+  const modelsWithBuiltInPrompt = ['unbreakable-oracle', 'unbreakable-oracle-final', 'unbreakable-oracle-single'];
+  const skipSystemPrompt = modelsWithBuiltInPrompt.some((m) => model.startsWith(m));
+  const messages = skipSystemPrompt
+    ? [...history.map((m) => ({ role: m.role, content: m.content })), { role: 'user', content: message }]
+    : [
+        { role: 'system', content: systemPrompt },
+        ...history.map((m) => ({ role: m.role, content: m.content })),
+        { role: 'user', content: message },
+      ];
 
   const res = await fetch(url, {
     method: 'POST',
