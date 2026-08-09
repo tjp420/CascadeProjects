@@ -601,10 +601,21 @@ function getOrCreateReferralLink(referrerId, channel) {
 
     const crypto = require('crypto');
     const id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
-    db.prepare(
-        `INSERT INTO referral_links (id, referrer_id, slug, channel)
-         VALUES (?, ?, ?, ?)`
-    ).run(id, referrerId, referrer.partner_code, channel || 'web');
+    try {
+        db.prepare(
+            `INSERT INTO referral_links (id, referrer_id, slug, channel)
+             VALUES (?, ?, ?, ?)`
+        ).run(id, referrerId, referrer.partner_code, channel || 'web');
+    } catch (err) {
+        // UNIQUE constraint on slug — another channel already created a link
+        // with this partner_code as slug. Return the existing link since all
+        // channels for the same referrer share the same shareable URL.
+        if (err.message && err.message.includes('UNIQUE constraint failed') && err.message.includes('slug')) {
+            const existingBySlug = db.prepare('SELECT * FROM referral_links WHERE slug = ?').get(referrer.partner_code);
+            if (existingBySlug) return existingBySlug;
+        }
+        throw err;
+    }
     return db.prepare('SELECT * FROM referral_links WHERE id = ?').get(id);
 }
 

@@ -5,7 +5,7 @@ import { isTokenExpired } from '../config';
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isFreeTier, setIsFreeTier] = useState(true);
-  const [user, setUser] = useState<{ email?: string; name?: string; role?: string } | null>(null);
+  const [user, setUser] = useState<{ email?: string; name?: string; role?: string; plan?: string; tier?: string } | null>(null);
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {

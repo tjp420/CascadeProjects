@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Shield, ShieldAlert, ShieldCheck, RefreshCw, AlertCircle, Bug, Lock, FileWarning, Database, KeyRound } from 'lucide-react';
+import { Shield, ShieldAlert, ShieldCheck, RefreshCw, AlertCircle, Bug, Lock, FileWarning, Database, KeyRound, Crown } from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { useAuth } from '@/hooks/useAuth';
 import { ProviderFailoverDashboard } from '@/components/ProviderFailoverDashboard';
 import { IdentityFederationDashboard } from '@/components/IdentityFederationDashboard';
 import { SemanticCacheDashboard } from '@/components/SemanticCacheDashboard';
@@ -98,6 +99,14 @@ export function SecurityView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const apiBase = getApiBase();
+  const { user } = useAuth();
+
+  // Enterprise dashboards (ProviderFailover, IdentityFederation, SemanticCache,
+  // WebhookSigning, AgenticOrchestration, ToolSchemaValidation) require
+  // enterprise tier or admin role. Non-enterprise users see an upgrade CTA.
+  const userTier = String(user?.plan || user?.tier || '').toLowerCase();
+  const userRole = String(user?.role || '').toLowerCase();
+  const isEnterprise = userTier === 'enterprise' || ['admin', 'owner', 'superuser', 'superadmin'].includes(userRole);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -388,16 +397,35 @@ export function SecurityView() {
         </Card>
       )}
 
-      <ProviderFailoverDashboard />
-      <IdentityFederationDashboard />
-      <SemanticCacheDashboard />
-      <WebhookSigningDashboard />
-      <AgenticOrchestrationDashboard />
-      <ToolSchemaValidationDashboard />
-      <StreamInterdictionDashboard />
-      <QuarantineLogBrowser />
-      <PolicySyncer />
-      <PolicySyncHistory />
+      {isEnterprise ? (
+        <>
+          <ProviderFailoverDashboard />
+          <IdentityFederationDashboard />
+          <SemanticCacheDashboard />
+          <WebhookSigningDashboard />
+          <AgenticOrchestrationDashboard />
+          <ToolSchemaValidationDashboard />
+          <StreamInterdictionDashboard />
+          <QuarantineLogBrowser />
+          <PolicySyncer />
+          <PolicySyncHistory />
+        </>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12">
+            <Crown className="h-12 w-12 text-amber-500" />
+            <h3 className="text-lg font-bold">Enterprise Security Operations</h3>
+            <p className="text-sm text-foreground-muted text-center max-w-md">
+              Provider failover, identity federation, semantic cache, webhook signing,
+              agentic orchestration, and tool schema validation are available on the
+              Enterprise plan.
+            </p>
+            <Button size="sm" className="mt-2" onClick={() => window.open('/pricing', '_blank')}>
+              <Crown className="h-4 w-4 mr-2" /> Upgrade to Enterprise
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
