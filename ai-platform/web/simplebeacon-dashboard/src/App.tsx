@@ -203,7 +203,7 @@ export default function App() {
           isFreeTier={isFreeTier}
           user={user}
         >
-          <ErrorBoundary>
+          <ErrorBoundary key={route.view}>
           <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
             <CurrentView />
           </Suspense>

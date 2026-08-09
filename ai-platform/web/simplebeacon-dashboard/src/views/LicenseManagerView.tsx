@@ -75,7 +75,16 @@ export function LicenseManagerView() {
         throw new Error(`HTTP ${res.status}`);
       }
       const data = await res.json();
-      setRoster(data);
+      // Normalize — API may omit empty arrays or numeric fields
+      setRoster({
+        seats: data.seats || [],
+        pendingInvites: data.pendingInvites || [],
+        maxSeats: data.maxSeats ?? 0,
+        seatsUsed: data.seatsUsed ?? 0,
+        seatsRemaining: data.seatsRemaining ?? 0,
+        tier: data.tier || 'free',
+        ...data,
+      });
     } catch (err: any) {
       setError(err.message || 'Failed to load seat roster');
     } finally {
@@ -173,7 +182,7 @@ export function LicenseManagerView() {
 
   if (!roster) return null;
 
-  const allSeats = [...roster.seats, ...roster.pendingInvites];
+  const allSeats = [...(roster.seats || []), ...(roster.pendingInvites || [])];
   const seatUtilization = roster.maxSeats === Infinity ? 0 : (roster.seatsUsed / roster.maxSeats) * 100;
   const isUnlimited = roster.maxSeats === Infinity;
 
