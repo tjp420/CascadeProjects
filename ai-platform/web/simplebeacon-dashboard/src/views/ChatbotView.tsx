@@ -19,6 +19,7 @@ import {
   Loader2,
   Sparkles,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
@@ -390,6 +391,7 @@ export function ChatbotView() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showOracleInstall, setShowOracleInstall] = useState(false);
   const [ollamaProbeResult, setOllamaProbeResult] = useState<OllamaProbeResult | null>(null);
   const [personality, setPersonality] = useState<Personality>(() => {
     try {
@@ -1037,6 +1039,53 @@ export function ChatbotView() {
         />
       )}
 
+      {showOracleInstall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowOracleInstall(false)}>
+          <div className="mx-4 max-w-lg rounded-lg border bg-background p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Install Unbreakable Oracle</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(false)}>×</Button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              The Unbreakable Oracle is a custom LLM model based on llama3.2 (3.2B) with a unique system prompt.
+              Install it on your local Ollama to use it in the chatbot.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium mb-1">Option 1: One-command install (recommended)</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`ollama run unbreakable-oracle`}</pre>
+                <p className="text-xs text-muted-foreground mt-1">This will download and run the model automatically.</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Option 2: Manual install from SimpleBeacon CDN</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile
+ollama create unbreakable-oracle -f Modelfile
+ollama run unbreakable-oracle`}</pre>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Downloads the Modelfile from our CDN. Requires ~2GB disk space.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Option 3: If you already have llama3.2</p>
+                <p className="text-xs text-muted-foreground">
+                  The Oracle is llama3.2 with a custom system prompt. If you already have llama3.2 installed,
+                  just select it from the dropdown above — the personality is built into the chatbot.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowOracleInstall(false)}>Close</Button>
+              <Button size="sm" onClick={() => {
+                navigator.clipboard.writeText('ollama run unbreakable-oracle');
+                toast.success('Copied to clipboard');
+              }}>
+                <Copy className="h-3.5 w-3.5 mr-1" /> Copy command
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2">
@@ -1079,6 +1128,9 @@ export function ChatbotView() {
               placeholder="Custom model"
               disabled={!selectedProvider}
             />
+            <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model">
+              <Download className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt">
               <FileText className="h-4 w-4" />
             </Button>
