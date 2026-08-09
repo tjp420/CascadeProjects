@@ -252,16 +252,22 @@ function setupSimplebeaconBillingWebhook(app) {
             } else if (session.mode === 'subscription') {
               const isContinuousShield = product === 'continuous_shield';
               const isRuntimeShield = product === 'runtime_shield';
+              const isDeveloper = product === 'developer_tier' || product === 'developer_monthly' || product === 'developer_annual';
               const isPro = product === 'pro_monthly' || product === 'pro_annual' || product === 'startup_monthly' || product === 'startup_annual';
+              const isTeamPro = product === 'team_pro_tier' || product === 'team_pro_monthly' || product === 'team_pro_annual';
               const isTeam = product === 'team_monthly' || product === 'team_annual' || product === 'growth_monthly' || product === 'growth_annual';
-              const subTier = isContinuousShield ? 'operator' : isRuntimeShield ? 'operator' : isTeam ? 'team' : isPro ? 'pro' : 'community';
+              const subTier = isContinuousShield ? 'operator' : isRuntimeShield ? 'operator' : isTeamPro ? 'team_pro' : isTeam ? 'team' : isDeveloper ? 'developer' : isPro ? 'pro' : 'community';
               const subFeatures = isRuntimeShield
                 ? ['runtime-shield', 'eu-ai-act', 'pdf-generation', 'certificate', 'continuous-shield']
-                : isTeam
-                  ? ['team-management', 'shared-configs', 'pdf-generation', 'certificate', 'priority-support']
-                  : isPro
-                    ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation']
-                    : ['continuous-shield', 'pdf-generation', 'certificate'];
+                : isTeamPro
+                  ? ['eu-ai-act', 'soc2', 'pdf-generation', 'certificate', 'priority-support', 'team-management']
+                  : isTeam
+                    ? ['team-management', 'shared-configs', 'pdf-generation', 'certificate', 'priority-support']
+                    : isDeveloper
+                      ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation', 'ci-gate']
+                      : isPro
+                        ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation']
+                        : ['continuous-shield', 'pdf-generation', 'certificate'];
               const subExpiryMinutes = 365 * 24 * 60; // 1 year — renewed by subscription
 
               const licenseToken = generateLicenseToken(
