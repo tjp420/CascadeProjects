@@ -1398,10 +1398,16 @@ export function AnalyzeView() {
       setProgressLabel(`Reading dropped files... (${capturedEntries.length} ${capturedEntries.length === 1 ? 'entry' : 'entries'})`);
       setTerminalOutput([`[SimpleBeacon] Traversing dropped ${capturedEntries.length === 1 ? 'item' : 'items'}...`]);
       setRequiresManualTrigger(false);
+      let lastProgressUpdate = 0;
       try {
         const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries, {
           onProgress: (count) => {
-            setProgressLabel(`Reading dropped files... ${count.toLocaleString()} files found`);
+            // Throttle progress updates to once per 100ms to avoid flooding React
+            const now = Date.now();
+            if (now - lastProgressUpdate > 100) {
+              lastProgressUpdate = now;
+              setProgressLabel(`Reading dropped files... ${count.toLocaleString()} files found`);
+            }
           },
         });
         if (files.length > 0) {
