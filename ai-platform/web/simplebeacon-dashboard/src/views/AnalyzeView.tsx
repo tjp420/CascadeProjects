@@ -1393,8 +1393,17 @@ export function AnalyzeView() {
     }
 
     if (capturedEntries.length > 0) {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel(`Reading dropped files... (${capturedEntries.length} ${capturedEntries.length === 1 ? 'entry' : 'entries'})`);
+      setTerminalOutput([`[SimpleBeacon] Traversing dropped ${capturedEntries.length === 1 ? 'item' : 'items'}...`]);
+      setRequiresManualTrigger(false);
       try {
-        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries);
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries, {
+          onProgress: (count) => {
+            setProgressLabel(`Reading dropped files... ${count.toLocaleString()} files found`);
+          },
+        });
         if (files.length > 0) {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
@@ -1447,6 +1456,11 @@ export function AnalyzeView() {
     }
 
     if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel('Reading dropped folder...');
+      setTerminalOutput(['[SimpleBeacon] Resolving dropped folder via File System Access API...']);
+      setRequiresManualTrigger(false);
       try {
         const handle = await firstItem.getAsFileSystemHandle();
         if (handle && handle.kind === 'directory') {
@@ -1465,6 +1479,11 @@ export function AnalyzeView() {
     }
 
     if (dtFiles.length > 0) {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel(`Reading ${dtFiles.length.toLocaleString()} dropped file${dtFiles.length === 1 ? '' : 's'}...`);
+      setTerminalOutput([`[SimpleBeacon] Processing ${dtFiles.length} dropped file${dtFiles.length === 1 ? '' : 's'}...`]);
+      setRequiresManualTrigger(false);
       const flatFiles: VirtualFile[] = [];
       const hasRelativePath = dtFiles.some((f) => {
         const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
