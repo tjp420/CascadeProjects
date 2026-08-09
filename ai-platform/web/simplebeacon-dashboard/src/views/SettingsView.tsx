@@ -26,11 +26,50 @@ interface AiKeysState {
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
 const PROVIDER_DISCOVERY_CACHE_KEY = 'simplebeacon_provider_discovery_cache';
 const PROVIDER_DISCOVERY_TTL_MS = 15000;
+const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+const OLLAMA_REGISTRY_MODELS: string[] = [
+  'llama3.2', 'llama3.1', 'llama3', 'llama2',
+  'mistral', 'mistral-nemo', 'mixtral',
+  'codellama', 'codegemma', 'qwen2.5-coder', 'deepseek-coder-v2',
+  'phi3', 'phi3.5', 'gemma2', 'gemma',
+  'qwen2.5', 'qwen2', 'yi',
+  'llava', 'llava-llama3',
+  'dolphin-llama3', 'dolphin-mistral',
+  'wizardlm2', 'orca2',
+  'command-r', 'command-r-plus',
+  'starcoder2', 'stable-code',
+  'mathstral', 'granite-code',
+  'smollm2', 'llama3.2-vision',
+];
 const PROVIDER_MODEL_OPTIONS: Record<'ollama' | 'openai' | 'anthropic', string[]> = {
-  ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3', 'qwen2.5-coder'],
+  ollama: OLLAMA_REGISTRY_MODELS,
   openai: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o3-mini'],
   anthropic: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
 };
+
+/**
+ * Probe Ollama directly from the browser (for hosted dashboard where server
+ * can't reach user's local Ollama). Returns discovered model names or null.
+ */
+async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<string[] | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data.models)) {
+      return data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim());
+    }
+    return [];
+  } catch {
+    return null;
+  }
+}
 
 function readModelPrefs(): Record<string, string> {
   if (typeof window === 'undefined') return {};
@@ -368,8 +407,29 @@ function AiProvidersTab() {
           const discoveredModels = Array.isArray(ollamaMeta?.models)
             ? ollamaMeta.models.filter((m: any) => typeof m === 'string' && m.trim())
             : [];
-          setDynamicOllamaModels(discoveredModels);
-          writeProviderDiscoveryCache(discoveredModels);
+          if (discoveredModels.length > 0) {
+            setDynamicOllamaModels(discoveredModels);
+            writeProviderDiscoveryCache(discoveredModels);
+          }
+        }
+      }
+
+      // On the hosted dashboard, the server can't reach the user's local Ollama.
+      // Probe directly from the browser to discover installed models.
+      const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      if (isHosted) {
+        const browserModels = await probeBrowserOllama(BROWSER_OLLAMA_URL);
+        if (browserModels && browserModels.length > 0) {
+          // Merge discovered (installed) models with registry models — installed first
+          const merged = [...browserModels];
+          for (const m of OLLAMA_REGISTRY_MODELS) {
+            if (!merged.includes(m)) merged.push(m);
+          }
+          setDynamicOllamaModels(merged);
+          writeProviderDiscoveryCache(merged);
+        } else if (browserModels && browserModels.length === 0) {
+          // Ollama running but no models — show registry list
+          setDynamicOllamaModels(OLLAMA_REGISTRY_MODELS);
         }
       }
     } catch {
@@ -395,8 +455,10 @@ function AiProvidersTab() {
     setSelectedModel(fromPrefs || stored || fallback);
   }, [selectedProvider, modelPrefs, ollamaModel, openaiModel, anthropicModel, dynamicOllamaModels]);
 
-  const availableModelOptions = selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
-    ? dynamicOllamaModels
+  const availableModelOptions = selectedProvider === 'ollama'
+    ? (dynamicOllamaModels.length > 0
+      ? dynamicOllamaModels
+      : PROVIDER_MODEL_OPTIONS[selectedProvider])
     : PROVIDER_MODEL_OPTIONS[selectedProvider];
   const isCustomModel = Boolean(selectedModel) && !availableModelOptions.includes(selectedModel);
 
