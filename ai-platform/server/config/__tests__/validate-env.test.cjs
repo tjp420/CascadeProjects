@@ -52,6 +52,11 @@ describe('validate-env', () => {
     assert.strictEqual(isValidStripeSecretKey('sk_live_abc123'), true);
   });
 
+  it('isValidStripeSecretKey accepts rk_ restricted key prefix', () => {
+    assert.strictEqual(isValidStripeSecretKey('rk_live_abc123'), true);
+    assert.strictEqual(isValidStripeSecretKey('rk_test_abc123'), true);
+  });
+
   it('isValidStripeSecretKey rejects pk_ prefix (publishable key)', () => {
     assert.strictEqual(isValidStripeSecretKey('pk_test_abc123'), false);
   });

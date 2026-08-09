@@ -21,12 +21,12 @@ const REQUIRED_STRIPE_VARS = [
 ];
 
 /**
- * Validate that STRIPE_SECRET_KEY starts with sk_ (accepts both sk_test_ and sk_live_).
+ * Validate that STRIPE_SECRET_KEY starts with sk_ or rk_ (restricted key).
  * @param {string} val - The env var value.
  * @returns {boolean}
  */
 function isValidStripeSecretKey(val) {
-  return typeof val === 'string' && val.startsWith('sk_');
+  return typeof val === 'string' && (val.startsWith('sk_') || val.startsWith('rk_'));
 }
 
 /**
