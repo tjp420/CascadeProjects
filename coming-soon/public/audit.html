@@ -198,14 +198,14 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#60A5FA;margin-bottom:8px;">Low Friction &middot; Instant</div>
                     <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Browser Triage</h3>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Drag &amp; drop a folder for instant string/regex heuristics across 52 rule engines. 100% local &mdash; no AST, no npm audit, no upload.</p>
-                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('browser_triage');document.getElementById('tab-browser').click();document.getElementById('audit-dropzone').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Drop Folder Here &rarr;</button>
+                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('browser_triage');document.getElementById('tab-browser').click();var dz=document.getElementById('browser-folder-dropzone');if(dz)dz.scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Drop Folder Here &rarr;</button>
                 </div>
                 <!-- Right: Deep Scan -->
                 <div style="padding:20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;text-align:left;">
                     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#34D399;margin-bottom:8px;">Full Power &middot; Complete</div>
                     <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Deep Scan (CLI)</h3>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Run <code style="font-size:0.75rem;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">npx simplebeacon scan</code> in your terminal for AST parsing, npm audit integration, and unlimited file coverage.</p>
-                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('deep_scan');document.getElementById('tab-cli').click();document.getElementById('cli-setup-panel').scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:transparent;color:#34D399;border:1px solid rgba(16,185,129,0.3);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">View CLI Setup &rarr;</button>
+                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('deep_scan');document.getElementById('tab-cli').click();var p=document.getElementById('view-cli-setup');if(p)p.scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:transparent;color:#34D399;border:1px solid rgba(16,185,129,0.3);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">View CLI Setup &rarr;</button>
                 </div>
             </div>
 
