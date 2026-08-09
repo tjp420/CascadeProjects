@@ -393,6 +393,13 @@ export function ChatbotView() {
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showOracleInstall, setShowOracleInstall] = useState(false);
   const [ollamaProbeResult, setOllamaProbeResult] = useState<OllamaProbeResult | null>(null);
+  const [showOracleBanner, setShowOracleBanner] = useState(() => {
+    try {
+      return localStorage.getItem('simplebeacon_oracle_banner_dismissed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
   const [personality, setPersonality] = useState<Personality>(() => {
     try {
       const s = JSON.parse(localStorage.getItem('simplebeacon_chatbot_settings') || '{}');
@@ -633,6 +640,7 @@ export function ChatbotView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase]);
 
+  const ORACLE_MODEL_ID = 'unbreakable-oracle';
   const modelOptions = selectedProvider
     ? (() => {
         const discovered = providerModels[selectedProvider] || [];
@@ -646,6 +654,7 @@ export function ChatbotView() {
       })()
     : [];
   const isCustomModel = Boolean(selectedModel) && !modelOptions.includes(selectedModel);
+  const oracleInstalled = selectedProvider === 'ollama' && modelOptions.includes(ORACLE_MODEL_ID);
 
   const handleProviderChange = useCallback((nextProvider: string) => {
     setSelectedProvider(nextProvider);
@@ -1005,6 +1014,29 @@ export function ChatbotView() {
         </div>
       )}
 
+      {showOracleBanner && connectionStatus !== 'checking' && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-purple-400/30 bg-purple-50/30 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 shrink-0 text-purple-600" />
+            <div>
+              <div className="font-medium">Try the Unbreakable Oracle</div>
+              <div className="text-xs text-foreground-muted">
+                Our custom local AI model — built on llama3.2 with a unique system prompt. Free to download.
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowOracleInstall(true)}>
+              <Download className="h-3.5 w-3.5 mr-1" /> Install
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => {
+              setShowOracleBanner(false);
+              try { localStorage.setItem('simplebeacon_oracle_banner_dismissed', 'true'); } catch { /* ignore */ }
+            }}>Dismiss</Button>
+          </div>
+        </div>
+      )}
+
       {connectionStatus === 'offline' && (
         <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-400/30 bg-blue-50/30 px-4 py-3 text-sm">
           <div className="flex items-center gap-2">
@@ -1116,13 +1148,26 @@ export function ChatbotView() {
             </select>
             <select
               value={isCustomModel ? '__custom__' : selectedModel}
-              onChange={(e) => handleModelSelectChange(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value === '__oracle_install__') {
+                  setShowOracleInstall(true);
+                  return;
+                }
+                handleModelSelectChange(e.target.value);
+              }}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Model"
               disabled={!selectedProvider}
               title="Select AI model"
             >
               {!selectedProvider && <option value="" disabled>Select provider first</option>}
+              {selectedProvider === 'ollama' && (
+                oracleInstalled ? (
+                  <option value={ORACLE_MODEL_ID}>★ unbreakable-oracle (installed)</option>
+                ) : (
+                  <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
+                )
+              )}
               {modelOptions.map((model) => (
                 <option key={model} value={model}>{model}</option>
               ))}

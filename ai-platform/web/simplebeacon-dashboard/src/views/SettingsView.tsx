@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor } from 'lucide-react';
+import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor, Copy } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -461,6 +461,7 @@ function AiProvidersTab() {
       : PROVIDER_MODEL_OPTIONS[selectedProvider])
     : PROVIDER_MODEL_OPTIONS[selectedProvider];
   const isCustomModel = Boolean(selectedModel) && !availableModelOptions.includes(selectedModel);
+  const oracleInstalledSettings = selectedProvider === 'ollama' && availableModelOptions.includes('unbreakable-oracle');
 
   const handleSave = async () => {
     setSaving(true);
@@ -546,11 +547,22 @@ function AiProvidersTab() {
               <select
                 value={isCustomModel ? '__custom__' : selectedModel}
                 onChange={(e) => {
+                  if (e.target.value === '__oracle_install__') {
+                    window.open('/dashboard/#/chatbot', '_blank');
+                    return;
+                  }
                   if (e.target.value === '__custom__') return;
                   setSelectedModel(e.target.value);
                 }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
+                {selectedProvider === 'ollama' && (
+                  oracleInstalledSettings ? (
+                    <option value="unbreakable-oracle">★ unbreakable-oracle (installed)</option>
+                  ) : (
+                    <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
+                  )
+                )}
                 {availableModelOptions.map((model) => (
                   <option key={model} value={model}>{model}</option>
                 ))}
@@ -584,6 +596,43 @@ function AiProvidersTab() {
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             {selectedProvider === 'ollama' ? 'Save Ollama Settings' : 'Save Model Preference'}
           </Button>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-purple-600" />
+            <h4 className="text-sm font-semibold">Custom Models</h4>
+          </div>
+          <div className="rounded-lg border border-purple-400/30 bg-purple-50/30 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Unbreakable Oracle</p>
+                <p className="text-xs text-foreground-muted mt-1">
+                  Custom LLM based on llama3.2 (3.2B) with a unique system prompt. Free to download, runs locally.
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant={oracleInstalledSettings ? 'default' : 'secondary'} className="text-xs">
+                    {oracleInstalledSettings ? 'Installed' : 'Not installed'}
+                  </Badge>
+                  <span className="text-xs text-foreground-muted">1.88 GB · Q4_K_M · llama3.2 family</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium">Install in your terminal:</p>
+              <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile
+ollama create unbreakable-oracle -f Modelfile
+ollama run unbreakable-oracle`}</pre>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => {
+              navigator.clipboard.writeText('curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle');
+              toast.success('Copied install commands to clipboard');
+            }}>
+              <Copy className="h-3.5 w-3.5 mr-1" /> Copy install commands
+            </Button>
+          </div>
         </div>
 
         <Separator />
