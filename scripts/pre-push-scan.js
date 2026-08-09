@@ -18,6 +18,12 @@ const SKIP_GLOBS = [
   '.husky/**',
   // Dev database fixtures — test-generated JWT tokens for admin@example.com (not real secrets)
   'ai-platform/server/db/token-registry.json',
+  // Scanner source files — contain credential pattern definitions and allowlist entries (not real secrets)
+  'packages/simplebeacon-cli/src/lib/credential-pattern-scanner.js',
+  // Test fixtures — contain known false-positive secrets for testing scanner rules
+  'packages/simplebeacon-cli/tests/git-history-secret-scanner.test.js',
+  'packages/simplebeacon-cli/tests/cve-dependency-scanner.test.js',
+  'packages/simplebeacon-cli/tests/sbom-generator.test.js',
 ];
 
 const MAX_BYTES = 1024 * 1024; // 1MB per-file read cap for regex scanning
