@@ -59,7 +59,9 @@ const PROFILE_RULES = {
         roadmap: { enabled: false },
         'production-leak': { enabled: true, severity: 'high' },
         'agency-handoff-patterns': { enabled: true, severity: 'medium' },
-        'jest-baseline': { enabled: false, runTests: false }
+        'jest-baseline': { enabled: false, runTests: false },
+        'cve-dependency': { enabled: true, includeDev: false },
+        'git-history-secret': { enabled: true, maxCommits: 1000 }
     },
     standard: {
         credentials: { enabled: true, scanProduction: true },
@@ -75,7 +77,10 @@ const PROFILE_RULES = {
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true }
+        'file-reduction': { enabled: true, dryRun: true },
+        'cve-dependency': { enabled: true, includeDev: true },
+        'sbom-generator': { enabled: true, includeDev: true },
+        'git-history-secret': { enabled: true, maxCommits: 1000 }
     },
     'eu-ai-act': {
         credentials: { enabled: true, scanProduction: true },
@@ -92,7 +97,10 @@ const PROFILE_RULES = {
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true }
+        'file-reduction': { enabled: true, dryRun: true },
+        'cve-dependency': { enabled: true, includeDev: true },
+        'sbom-generator': { enabled: true, includeDev: true },
+        'git-history-secret': { enabled: true, maxCommits: 1000 }
     },
     cascade: {
         credentials: { enabled: true, scanProduction: true },

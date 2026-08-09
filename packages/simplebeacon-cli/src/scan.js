@@ -43,6 +43,9 @@ const { scanHallucinatedImports } = require('./rules/hallucinated-import-scanner
 const { scanDependencyGraph } = require('./rules/dependency-graph-scanner');
 const { scanAstStructural } = require('./rules/ast-structural-scanner');
 const { scanComprehensive } = require('./rules/comprehensive-scanner');
+const { scanCveDependencies } = require('./rules/cve-dependency-scanner');
+const { generateSbom } = require('./rules/sbom-generator');
+const { scanGitHistorySecrets } = require('./rules/git-history-secret-scanner');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, sanitizeConfigForTier } = require('./config');
 const { detectTier } = require('./lib/tier-detector');
 const { checkLocalScanQuota, incrementLocalScan, incrementPipelineScan, isPipelineScan } = require('./lib/scan-usage-tracker');
@@ -958,7 +961,8 @@ function buildScanReport(opts) {
         fileReduction, hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
-        dependencyGraphScan, comprehensiveScan
+        dependencyGraphScan, comprehensiveScan,
+        cveDependencyScan, sbomScan, gitHistorySecretScan
     } = resolved;
 
     const scanScope = {
@@ -1106,6 +1110,15 @@ function buildScanReport(opts) {
         astAvailable: astStructuralScan.astAvailable || false,
         dependencyGraphFilesScanned: scannedCount(dependencyGraphScan),
         dependencyGraphFindings: findingsCount(dependencyGraphScan),
+        cveDependencyScanned: scannedCount(cveDependencyScan),
+        cveDependencyFindings: findingsCount(cveDependencyScan),
+        cveDependencySummary: cveDependencyScan?.summary || null,
+        sbomGenerated: sbomScan?.summary?.lockfileFound === true,
+        sbomComponentCount: sbomScan?.summary?.componentCount || 0,
+        sbomOutputPath: sbomScan?.summary?.outputPath || null,
+        gitHistorySecretScanned: scannedCount(gitHistorySecretScan),
+        gitHistorySecretFindings: findingsCount(gitHistorySecretScan),
+        gitHistorySecretSummary: gitHistorySecretScan?.summary || null,
         jestBaselineChecked: jestBaseline.checked,
         jestBaselinePassed: jestBaseline.passed,
         jestSummary: jestBaseline.summary || null,
@@ -1662,7 +1675,20 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             key: 'comprehensive', varName: 'comprehensiveScan',
             alwaysRun: true,
             run: () => scanComprehensive(uniqueFiles, { rootDir: root })
-        }
+        },
+        scannerEntry('cve-dependency', 'cveDependencyScan', scanCveDependencies, (opts) => ({
+            includeDev: opts.includeDev !== false,
+            lockfilePath: opts.lockfilePath || null
+        })),
+        scannerEntry('sbom-generator', 'sbomScan', generateSbom, (opts) => ({
+            includeDev: opts.includeDev !== false,
+            outputPath: opts.outputPath || null
+        })),
+        scannerEntry('git-history-secret', 'gitHistorySecretScan', scanGitHistorySecrets, (opts) => ({
+            maxCommits: opts.maxCommits || 1000,
+            timeoutMs: opts.timeoutMs || 30000,
+            paths: opts.paths || config.productionPaths || []
+        }))
     ];
 
     // --- Selective rule execution ---
@@ -1765,7 +1791,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         fileReduction, hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
-        dependencyGraphScan, comprehensiveScan
+        dependencyGraphScan, comprehensiveScan,
+        cveDependencyScan, sbomScan, gitHistorySecretScan
     } = resolved;
 
     if (roadmapValidation.issues?.length) {
@@ -1797,6 +1824,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     normalizeScannerOutput(issues, hallucinatedImportScan, 'ai-residue', 'SB-FICTION-004', 'Import of package not in package.json');
     normalizeScannerOutput(issues, comprehensiveScan);
     normalizeScannerOutput(issues, dependencyGraphScan, 'dependency-graph', 'SB-DEPS-001', 'Dependency graph issue', 'medium');
+    normalizeScannerOutput(issues, cveDependencyScan, 'cve-vulnerability', 'SB-CVE-001', 'Known CVE vulnerability in dependency');
+    normalizeScannerOutput(issues, sbomScan, 'sbom-generated', 'SB-SBOM-001', 'SBOM generation result', 'info');
+    normalizeScannerOutput(issues, gitHistorySecretScan, 'git-history-secret', 'SB-GITSEC-001', 'Secret found in git history');
     if (fileReduction.allFindings?.length) {
         for (const finding of fileReduction.allFindings) {
             issues.push({

@@ -29,7 +29,19 @@ const VALID_RULES = new Set([
     'redos-risk',
     'pii-logging',
     'dead-code',
-    'memory-leak'
+    'memory-leak',
+    'type-safety',
+    'hallucinated-import',
+    'dependency-graph',
+    'ast-structural',
+    'owasp-llm-patterns',
+    'regional-ai-safety-patterns',
+    'enterprise-guardrail-patterns',
+    'comprehensive',
+    'security-patterns',
+    'cve-dependency',
+    'sbom-generator',
+    'git-history-secret'
 ]);
 
 const VALID_SCANNER_ACTIONS = new Set(['BLOCK', 'WARN', 'SKIP']);

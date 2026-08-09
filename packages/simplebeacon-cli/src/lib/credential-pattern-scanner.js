@@ -258,6 +258,7 @@ async function scanCredentialPatterns(files, options = {}) {
 
 module.exports = {
     CREDENTIAL_PATTERNS,
+    ALLOWLIST_SNIPPETS,
     scanCredentialPatterns,
     scanTextContent
 };

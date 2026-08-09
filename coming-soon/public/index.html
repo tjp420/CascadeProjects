@@ -1158,6 +1158,11 @@ ollama run unbreakable-oracle</pre>
                     <p>14 deterministic fix generators instantly rewrite AI slop patterns across Python, Go, and JavaScript — no LLM required. Stub functions, token bleed, SQL injection, and redundant error handlers are auto-patched with safe search/replace diffs before the LLM fallback engages.</p>
                 </div>
                 <div class="feature-card">
+                    <span class="feature-icon">&#128737;</span>
+                    <h3>Enterprise CVE &amp; SBOM Scanners</h3>
+                    <p>Three high-impact scanners that auditors actually ask for: <strong>CVE Dependency Scanner</strong> matches your lockfile against a local NVD mirror (offline, no network calls) and flags known vulnerabilities with CVSS scores and fixed versions. <strong>SBOM Generator</strong> produces CycloneDX 1.5 JSON — required for EO 14028, SOC 2, and EU AI Act procurement. <strong>Git History Secret Scanner</strong> runs credential patterns against <code>git log -p</code> to catch secrets committed in history but later removed. Run <code>npx simplebeacon update-cve-db</code> to refresh the local CVE database from NVD feeds.</p>
+                </div>
+                <div class="feature-card">
                     <span class="feature-icon">&#128202;</span>
                     <h3>Team Analytics Telemetry</h3>
                     <p>Aggregate anonymous compliance metrics across multiple projects with salted SHA-256 project identifiers. Export anonymized JSON rollups for organizational dashboards — gate pass rates, severity distributions, and quality score trends — without exposing repository paths or names.</p>

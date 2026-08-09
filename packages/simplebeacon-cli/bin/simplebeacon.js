@@ -66,7 +66,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics']);
+const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics', 'update-cve-db']);
 
 let _cliDebugMode = false;
 
@@ -2144,6 +2144,31 @@ function runFixCommand(options) {
     return 0;
 }
 
+/**
+ * Execute the update-cve-db command — downloads NVD feeds and builds a local CVE database.
+ * @param {Object} options
+ * @returns {Promise<number>}
+ */
+async function runUpdateCveDbCommand(options) {
+    const { updateCveDb } = require('../scripts/update-cve-db.cjs');
+    const dryRun = options.dryRun === true;
+    const years = options.year ? [parseInt(options.year, 10)] : undefined;
+
+    try {
+        const result = await updateCveDb({ dryRun, years });
+        console.log(`\nCVE database ${dryRun ? 'preview' : 'update'} complete:`);
+        console.log(`  Packages: ${result.packages}`);
+        console.log(`  CVEs:     ${result.cves}`);
+        if (result.outputPath) {
+            console.log(`  Output:   ${result.outputPath}`);
+        }
+        return 0;
+    } catch (err) {
+        console.error('Failed to update CVE database:', err.message);
+        return 1;
+    }
+}
+
 const COMMAND_REGISTRY = {
     init: runInitCommand,
     comment: runCommentCommand,
@@ -2172,7 +2197,8 @@ const COMMAND_REGISTRY = {
     refer: runReferCommand,
     doctor: runDoctorCommand,
     cache: runCacheCommand,
-    'team-metrics': runTeamMetricsCommand
+    'team-metrics': runTeamMetricsCommand,
+    'update-cve-db': runUpdateCveDbCommand
 };
 
 async function main() {
