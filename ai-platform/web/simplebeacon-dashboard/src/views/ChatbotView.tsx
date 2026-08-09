@@ -11,12 +11,14 @@ import {
   Send,
   Trash2,
   Settings2,
+  Settings,
   FileText,
   Copy,
   Check,
   AlertCircle,
   Loader2,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
@@ -24,12 +26,19 @@ import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwo
 
 const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
 
+type OllamaProbeResult =
+  | { status: 'online'; models: string[] }
+  | { status: 'cors_blocked' }
+  | { status: 'not_running' }
+  | { status: 'network_denied' }
+  | { status: 'unknown_error'; error: string };
+
 /**
  * Probe Ollama directly from the browser. On the hosted dashboard, the server
  * cannot reach the user's local Ollama, so we check from the browser instead.
- * Returns the list of available models if reachable, or null if not.
+ * Returns detailed status info for the setup wizard.
  */
-async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<string[] | null> {
+async function probeBrowserOllamaDetailed(baseUrl: string, timeoutMs = 2500): Promise<OllamaProbeResult> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -38,15 +47,38 @@ async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<st
       headers: { 'Content-Type': 'application/json' },
     });
     clearTimeout(timer);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (Array.isArray(data.models)) {
-      return data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim());
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.models)) {
+        const models = data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim());
+        return { status: 'online', models };
+      }
+      return { status: 'online', models: [] };
     }
-    return [];
-  } catch {
-    return null;
+    if (res.status === 403) return { status: 'cors_blocked' };
+    return { status: 'unknown_error', error: `HTTP ${res.status}` };
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return { status: 'not_running' };
+    // TypeError: Failed to fetch — could be CORS preflight failure or network denied
+    if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+      // Distinguish CORS from not-running: CORS preflight failures also throw TypeError
+      // but the connection was reachable. We can't reliably distinguish, so check
+      // if it's a secure context → localhost issue (Private Network Access).
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:' && window.isSecureContext) {
+        return { status: 'network_denied' };
+      }
+      return { status: 'not_running' };
+    }
+    return { status: 'unknown_error', error: err?.message || String(err) };
   }
+}
+
+/**
+ * Backwards-compatible probe that returns just the model list (or null).
+ */
+async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<string[] | null> {
+  const result = await probeBrowserOllamaDetailed(baseUrl, timeoutMs);
+  return result.status === 'online' ? result.models : null;
 }
 
 /**
@@ -183,6 +215,159 @@ function formatMessage(content: string): string {
   return processed;
 }
 
+/**
+ * Ollama Setup Wizard — guides users through installing and configuring Ollama
+ * to work with the hosted dashboard. Handles CORS, Private Network Access,
+ * and model installation.
+ */
+function OllamaSetupWizard({
+  probeResult,
+  onRetry,
+  onClose,
+}: {
+  probeResult: OllamaProbeResult | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+  const isWindows = typeof navigator !== 'undefined' && /Win/i.test(navigator.platform);
+  const shellName = isMac ? 'Terminal' : 'Command Prompt / PowerShell';
+  const corsCmd = isWindows
+    ? '$env:OLLAMA_ORIGINS="https://simplebeacon.ai"; ollama serve'
+    : 'OLLAMA_ORIGINS=https://simplebeacon.ai ollama serve';
+
+  const status = probeResult?.status;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="text-lg font-bold">Ollama Setup Wizard</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>×</Button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4 text-sm">
+          {/* Step 1: Install Ollama */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">1</span>
+              <span className="font-medium">Install Ollama</span>
+              {status !== 'not_running' && status !== 'unknown_error' && (
+                <span className="text-green-600 text-xs">✓ Detected</span>
+              )}
+            </div>
+            <div className="pl-8 text-foreground-muted">
+              {status === 'not_running' || status === 'unknown_error' ? (
+                <>
+                  <p>Download and install from <a href="https://ollama.com/download" target="_blank" rel="noopener" className="text-blue-600 underline">ollama.com/download</a></p>
+                  <p className="text-xs mt-1">After installing, Ollama should start automatically. If not, open {shellName} and run:</p>
+                  <pre className="mt-1 rounded bg-muted px-3 py-2 text-xs overflow-x-auto">ollama serve</pre>
+                </>
+              ) : (
+                <p className="text-xs">Ollama is installed and running.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Step 2: Configure CORS */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">2</span>
+              <span className="font-medium">Allow this website to connect</span>
+              {status === 'online' && <span className="text-green-600 text-xs">✓ Connected</span>}
+              {status === 'cors_blocked' && <span className="text-red-600 text-xs">✗ Blocked</span>}
+            </div>
+            <div className="pl-8 text-foreground-muted">
+              {status === 'cors_blocked' ? (
+                <>
+                  <p>Ollama blocks requests from websites by default. You need to set the <code className="bg-muted px-1 rounded">OLLAMA_ORIGINS</code> environment variable.</p>
+                  <p className="text-xs mt-1">Open {shellName} and run (stop any running Ollama first with <code className="bg-muted px-1 rounded">Ctrl+C</code>):</p>
+                  <pre className="mt-1 rounded bg-muted px-3 py-2 text-xs overflow-x-auto select-all">{corsCmd}</pre>
+                  <p className="text-xs mt-2">This allows only simplebeacon.ai to connect. To allow all websites, use <code className="bg-muted px-1 rounded">OLLAMA_ORIGINS=*</code> instead.</p>
+                </>
+              ) : status === 'network_denied' ? (
+                <>
+                  <p>Your browser is blocking access to localhost from this website.</p>
+                  <p className="text-xs mt-1">Click the lock icon next to the URL → Site Settings → allow "Local Network Access". Then refresh this page.</p>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => {
+                    window.open('https://support.google.com/chrome/answer/14227606', '_blank', 'noopener');
+                  }}>How to allow in Chrome</Button>
+                </>
+              ) : status === 'online' ? (
+                <p className="text-xs">CORS is configured correctly.</p>
+              ) : (
+                <p className="text-xs">Complete step 1 first, then configure CORS.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Step 3: Install models */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">3</span>
+              <span className="font-medium">Install AI models</span>
+              {status === 'online' && probeResult?.models.length && probeResult.models.length > 0 ? (
+                <span className="text-green-600 text-xs">✓ {probeResult.models.length} model(s) found</span>
+              ) : status === 'online' ? (
+                <span className="text-yellow-600 text-xs">⚠ No models installed</span>
+              ) : null}
+            </div>
+            <div className="pl-8 text-foreground-muted">
+              <p className="text-xs">Install models in {shellName}:</p>
+              <pre className="mt-1 rounded bg-muted px-3 py-2 text-xs overflow-x-auto">ollama pull llama3.2</pre>
+              <p className="text-xs mt-2">Popular models:</p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {['llama3.2', 'mistral', 'phi3', 'codellama', 'gemma2', 'qwen2.5'].map(m => (
+                  <code key={m} className="rounded bg-muted px-2 py-0.5 text-xs select-all">ollama pull {m}</code>
+                ))}
+              </div>
+              {status === 'online' && probeResult?.models.length && probeResult.models.length > 0 && (
+                <>
+                  <p className="text-xs mt-2 font-medium">Your installed models:</p>
+                  <ul className="mt-1 text-xs list-disc list-inside">
+                    {probeResult.models.map(m => <li key={m}>{m}</li>)}
+                  </ul>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Step 4: Verify */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">4</span>
+              <span className="font-medium">Verify connection</span>
+            </div>
+            <div className="pl-8">
+              <p className="text-xs text-foreground-muted mb-2">After completing the steps above, click retry to test the connection.</p>
+              <Button size="sm" onClick={onRetry}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Retry connection
+              </Button>
+            </div>
+          </div>
+
+          {/* Current status summary */}
+          {probeResult && (
+            <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs">
+              <div className="font-medium mb-1">Current status: {
+                status === 'online' ? '🟢 Connected' :
+                status === 'cors_blocked' ? '🔴 CORS blocked' :
+                status === 'network_denied' ? '🟡 Network permission needed' :
+                status === 'not_running' ? '🔴 Ollama not running' :
+                '🔴 Unknown error'
+              }</div>
+              {status === 'unknown_error' && <div className="text-foreground-muted">Error: {probeResult.error}</div>}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChatbotView() {
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
@@ -204,6 +389,8 @@ export function ChatbotView() {
   const [localNetworkDenied, setLocalNetworkDenied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [ollamaProbeResult, setOllamaProbeResult] = useState<OllamaProbeResult | null>(null);
   const [personality, setPersonality] = useState<Personality>(() => {
     try {
       const s = JSON.parse(localStorage.getItem('simplebeacon_chatbot_settings') || '{}');
@@ -351,8 +538,10 @@ export function ChatbotView() {
           if (isHosted) {
             setConnectionStatus('checking');
             setConnectionText('Checking for local Ollama…');
-            const browserModels = await probeBrowserOllama(BROWSER_OLLAMA_URL);
-            if (browserModels && browserModels.length > 0) {
+            const probeResult = await probeBrowserOllamaDetailed(BROWSER_OLLAMA_URL);
+            setOllamaProbeResult(probeResult);
+            if (probeResult.status === 'online' && probeResult.models.length > 0) {
+              const browserModels = probeResult.models;
               const ollamaProvider: Provider = {
                 id: 'ollama',
                 label: 'Ollama (Local)',
@@ -381,7 +570,33 @@ export function ChatbotView() {
               setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
               setError(null);
               return;
+            } else if (probeResult.status === 'online' && probeResult.models.length === 0) {
+              // Ollama running but no models installed
+              setProviderModels(modelMap);
+              setProviders(all);
+              setSelectedProvider('');
+              setConnectionStatus('offline');
+              setConnectionText('Ollama running — no models installed');
+              setError('Ollama is running but has no models installed. Run `ollama pull llama3.2` in your terminal to install a model.');
+              return;
+            } else if (probeResult.status === 'cors_blocked') {
+              setProviderModels(modelMap);
+              setProviders(all);
+              setSelectedProvider('');
+              setConnectionStatus('offline');
+              setConnectionText('Ollama CORS blocked');
+              setError('Ollama is running but blocking requests from this website. Click "Setup Ollama" for instructions.');
+              return;
+            } else if (probeResult.status === 'network_denied') {
+              setLocalNetworkDenied(true);
+              setProviderModels(modelMap);
+              setProviders(all);
+              setSelectedProvider('');
+              setConnectionStatus('offline');
+              setConnectionText('Local Network Access blocked');
+              return;
             }
+            // not_running or unknown_error — fall through to offline
           }
           setProviderModels(modelMap);
           setProviders(all);
@@ -786,6 +1001,40 @@ export function ChatbotView() {
             }}>How to allow</Button>
           </div>
         </div>
+      )}
+
+      {connectionStatus === 'offline' && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-400/30 bg-blue-50/30 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Settings className="h-4 w-4 shrink-0 text-blue-600 mt-0.5" />
+            <div>
+              <div className="font-medium">No AI provider connected</div>
+              <div className="text-xs text-foreground-muted">
+                {ollamaProbeResult?.status === 'cors_blocked'
+                  ? 'Ollama detected but CORS is blocking requests.'
+                  : ollamaProbeResult?.status === 'not_running'
+                  ? 'Ollama is not running or not installed.'
+                  : 'Set up Ollama or add an API key to start chatting.'}
+              </div>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setShowSetupWizard(true)}>
+            <Settings className="h-3.5 w-3.5 mr-1" /> Setup Ollama
+          </Button>
+        </div>
+      )}
+
+      {showSetupWizard && (
+        <OllamaSetupWizard
+          probeResult={ollamaProbeResult}
+          onRetry={async () => {
+            setShowSetupWizard(false);
+            setConnectionStatus('checking');
+            setConnectionText('Re-checking for local Ollama…');
+            await refreshProviders(true);
+          }}
+          onClose={() => setShowSetupWizard(false)}
+        />
       )}
 
       <Card>
