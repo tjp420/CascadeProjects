@@ -529,8 +529,8 @@ export default {
     }
 
     // Model file serving from R2 — serves custom Ollama models and Modelfiles to users
-    // GET /models/<filename> → streams from R2 bucket
-    if (url.pathname.startsWith('/models/') && request.method === 'GET') {
+    // GET/HEAD /models/<filename> → streams from R2 bucket
+    if (url.pathname.startsWith('/models/') && (request.method === 'GET' || request.method === 'HEAD')) {
       const key = url.pathname.slice('/models/'.length);
       if (!key || key.includes('..') || key.includes('//')) {
         return json({ error: 'Invalid model path' }, 400, corsOrigin);
@@ -550,7 +550,9 @@ export default {
       headers.set('Content-Disposition', `attachment; filename="${key.split('/').pop()}"`);
       headers.set('Cache-Control', 'public, max-age=86400');
       headers.set('Access-Control-Allow-Origin', '*');
-      return new Response(object.body, { status: 200, headers });
+      // For HEAD requests, return headers only (no body)
+      const body = request.method === 'HEAD' ? null : object.body;
+      return new Response(body, { status: 200, headers });
     }
 
     // Dynamic Route 3: /api/* catch-all proxy to Render backend
