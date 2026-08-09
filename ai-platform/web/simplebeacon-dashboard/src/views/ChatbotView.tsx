@@ -1047,39 +1047,47 @@ export function ChatbotView() {
               <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(false)}>×</Button>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              The Unbreakable Oracle is a custom LLM model based on llama3.2 (3.2B) with a unique system prompt.
-              Install it on your local Ollama to use it in the chatbot.
+              The Unbreakable Oracle is a custom LLM based on llama3.2 (3.2B) with a unique system prompt
+              ("Reality's Immune System"). Install it on your local Ollama to use it in the chatbot.
             </p>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium mb-1">Option 1: One-command install (recommended)</p>
-                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`ollama run unbreakable-oracle`}</pre>
-                <p className="text-xs text-muted-foreground mt-1">This will download and run the model automatically.</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium mb-1">Option 2: Manual install from SimpleBeacon CDN</p>
-                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile
-ollama create unbreakable-oracle -f Modelfile
-ollama run unbreakable-oracle`}</pre>
+                <p className="text-sm font-medium mb-1">Step 1: Download the Modelfile</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile`}</pre>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Downloads the Modelfile from our CDN. Requires ~2GB disk space.
+                  This downloads a small text file (2 KB). The actual 1.88 GB model file is fetched automatically in Step 2.
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium mb-1">Option 3: If you already have llama3.2</p>
+                <p className="text-sm font-medium mb-1">Step 2: Create the model in Ollama</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`ollama create unbreakable-oracle -f Modelfile`}</pre>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This downloads the 1.88 GB GGUF file from our CDN and registers the model. Takes ~5 min on average broadband.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Step 3: Run it</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`ollama run unbreakable-oracle`}</pre>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Or just select "unbreakable-oracle" from the model dropdown above and start chatting.
+                </p>
+              </div>
+              <div className="border-t pt-3">
+                <p className="text-sm font-medium mb-1">Already have llama3.2 installed?</p>
                 <p className="text-xs text-muted-foreground">
-                  The Oracle is llama3.2 with a custom system prompt. If you already have llama3.2 installed,
-                  just select it from the dropdown above — the personality is built into the chatbot.
+                  The Oracle is llama3.2 with a custom system prompt. If you already have llama3.2,
+                  just select it from the dropdown — the Oracle personality is applied automatically by the chatbot.
+                  No need to install anything extra.
                 </p>
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowOracleInstall(false)}>Close</Button>
               <Button size="sm" onClick={() => {
-                navigator.clipboard.writeText('ollama run unbreakable-oracle');
-                toast.success('Copied to clipboard');
+                navigator.clipboard.writeText('curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle');
+                toast.success('Copied all 3 commands to clipboard');
               }}>
-                <Copy className="h-3.5 w-3.5 mr-1" /> Copy command
+                <Copy className="h-3.5 w-3.5 mr-1" /> Copy all commands
               </Button>
             </div>
           </div>
