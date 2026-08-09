@@ -618,11 +618,21 @@ export function AnalyzeView() {
     }
     if (scanInFlightRef.current) return;
     scanInFlightRef.current = true;
+    // Clear stale scan data from previous scans so ResultsView doesn't show old findings
+    try {
+      localStorage.removeItem('sb_last_scan_full');
+      localStorage.removeItem('sb_last_scan_report');
+      localStorage.removeItem('sb_last_scan_time');
+      localStorage.removeItem('sb_last_scan_report_storage');
+      removeLargeItem('sb_last_scan_report');
+    } catch { /* ignore */ }
     setScanState('scanning');
     setProgress(2);
     setProgressLabel('Preparing files for scanning...');
     setTerminalOutput([]);
     setRequiresManualTrigger(false);
+    setResult(null);
+    setFullReport(null);
     setPath(options.projectPath);
     appendLog(`[SimpleBeacon] ${options.logLabel || 'Browser local scan'}...`);
     try {
@@ -790,6 +800,16 @@ export function AnalyzeView() {
       return;
     }
     scanInFlightRef.current = true;
+    // Clear stale scan data from previous scans so ResultsView doesn't show old findings
+    try {
+      localStorage.removeItem('sb_last_scan_full');
+      localStorage.removeItem('sb_last_scan_report');
+      localStorage.removeItem('sb_last_scan_time');
+      localStorage.removeItem('sb_last_scan_report_storage');
+      removeLargeItem('sb_last_scan_report');
+    } catch { /* ignore */ }
+    setResult(null);
+    setFullReport(null);
     let scanInput = path.trim();
 
     // Reject page URL or fragment as scan path

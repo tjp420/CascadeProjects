@@ -504,7 +504,7 @@ export function ResultsView() {
               <CardHeader>
                 <CardTitle>Findings Breakdown</CardTitle>
                 <CardDescription>
-                  {(result?.issueCount ?? allIssues.reduce((sum, i) => sum + (Number(i.count) || 1), 0)).toLocaleString()} total issue{(result?.issueCount ?? allIssues.length) !== 1 ? 's' : ''}
+                  {Math.max(result?.issueCount ?? 0, allIssues.reduce((sum, i) => sum + (Number(i.count) || 1), 0)).toLocaleString()} total issue{Math.max(result?.issueCount ?? 0, allIssues.length) !== 1 ? 's' : ''}
                   {findingsDetailLimited && ' · detailed list limited — export JSON or use CLI for full paths'}
                   {filter !== 'all' && ` · filtered by ${filter}`}
                   {selectedCell && ` · heatmap: ${selectedCell.impact}/${selectedCell.likelihood}`}
