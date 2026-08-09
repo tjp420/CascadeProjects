@@ -14,29 +14,29 @@
  */
 
 const STRIPE_TIER_MAP = {
-  // --- Current 3-tier products ---
-  'price_developer_monthly': {
+  // --- Current 3-tier products (live Stripe Price IDs, 2026-08-09) ---
+  'price_1U2flyAQ0e20kzI8Y8CYxUWt': {
     tier: 'developer',
     expiryDays: 30,
     product: 'developer',
     basePrice: 4900, // cents ($49/mo)
     metered: false
   },
-  'price_developer_annual': {
+  'price_1U2fmaAQ0e20kzI8YQImSRpQ': {
     tier: 'developer',
     expiryDays: 365,
     product: 'developer_annual',
     basePrice: 49000, // cents ($490/yr)
     metered: false
   },
-  'price_team_pro_monthly': {
+  'price_1U2fn7AQ0e20kzI8lXYh295F': {
     tier: 'team_pro',
     expiryDays: 30,
     product: 'team_pro',
     basePrice: 14900, // cents ($149/mo)
     metered: false
   },
-  'price_team_pro_annual': {
+  'price_1U2fnYAQ0e20kzI8EI2LjRQC': {
     tier: 'team_pro',
     expiryDays: 365,
     product: 'team_pro_annual',
