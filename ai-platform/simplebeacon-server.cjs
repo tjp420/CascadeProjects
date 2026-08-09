@@ -182,11 +182,14 @@ app.use((req, res, next) => {
 });
 
 // Respond to CORS preflight early to ensure required headers are present
-app.options('*', (req, res) => {
+// Note: Use middleware instead of app.options('*', ...) because Express 5 /
+// path-to-regexp v8 rejects bare '*' wildcards.
+app.use((req, res, next) => {
+  if (req.method !== 'OPTIONS') return next();
   try {
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,X-SimpleBeacon-Bridge-Token,Access-Control-Request-Private-Network');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,X-SimpleBeacon-Bridge-Token,x-simplebeacon-bridge-token,Access-Control-Request-Private-Network');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     // PNA support
     if (typeof req.headers['access-control-request-private-network'] !== 'undefined') {
@@ -209,7 +212,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password', 'X-SimpleBeacon-Bridge-Token'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password', 'X-SimpleBeacon-Bridge-Token', 'x-simplebeacon-bridge-token'],
     maxAge: 86400
 }));
 
@@ -220,8 +223,8 @@ app.use((req, res, next) => {
     const existingStr = Array.isArray(existing) ? existing.join(',') : String(existing || '');
     if (!/x-simplebeacon-bridge-token/i.test(existingStr)) {
       const toSet = existingStr && existingStr.trim().length > 0
-        ? existingStr + ', X-SimpleBeacon-Bridge-Token'
-        : 'X-SimpleBeacon-Bridge-Token';
+        ? existingStr + ', x-simplebeacon-bridge-token'
+        : 'x-simplebeacon-bridge-token';
       res.setHeader('Access-Control-Allow-Headers', toSet);
     }
   } catch (e) {
