@@ -34,6 +34,12 @@
       "id": "5a5a2125a7e14bf6b3e9b7b6d1e4441c"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "MODELS_BUCKET",
+      "bucket_name": "simplebeacon-models"
+    }
+  ],
   "triggers": {
     "crons": [
       "*/5 * * * *"

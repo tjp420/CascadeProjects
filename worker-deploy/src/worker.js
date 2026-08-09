@@ -528,6 +528,31 @@ export default {
       }
     }
 
+    // Model file serving from R2 — serves custom Ollama models and Modelfiles to users
+    // GET /models/<filename> → streams from R2 bucket
+    if (url.pathname.startsWith('/models/') && request.method === 'GET') {
+      const key = url.pathname.slice('/models/'.length);
+      if (!key || key.includes('..') || key.includes('//')) {
+        return json({ error: 'Invalid model path' }, 400, corsOrigin);
+      }
+      if (!env.MODELS_BUCKET) {
+        return json({ error: 'Model storage not configured' }, 503, corsOrigin);
+      }
+      const object = await env.MODELS_BUCKET.get(key);
+      if (!object) {
+        return json({ error: 'Model not found' }, 404, corsOrigin);
+      }
+      const headers = new Headers();
+      object.writeHttpMetadata(headers);
+      const isGguf = key.endsWith('.gguf');
+      headers.set('Content-Type', isGguf ? 'application/octet-stream' : 'text/plain');
+      headers.set('Content-Length', object.size.toString());
+      headers.set('Content-Disposition', `attachment; filename="${key.split('/').pop()}"`);
+      headers.set('Cache-Control', 'public, max-age=86400');
+      headers.set('Access-Control-Allow-Origin', '*');
+      return new Response(object.body, { status: 200, headers });
+    }
+
     // Dynamic Route 3: /api/* catch-all proxy to Render backend
     // Forwards any unmatched /api/* request to the Express backend on Render.
     // This keeps API calls same-origin from the browser's perspective (no CORS issues).
