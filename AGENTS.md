@@ -124,6 +124,30 @@ node scripts/test-payment-sim.cjs
 ```
 Stubs `stripe.checkout.sessions.create` — no real API calls. Uses `X-Forwarded-For` headers to bypass the rate limiter. Verifies `unit_amount`, `recurring.interval`, and `product_data.name` for each tier.
 
+### Webhook Idempotency Implementations
+
+The project has two Stripe webhook handlers that use different idempotency strategies, each appropriate for their deployment context:
+
+| Handler | File | Storage | Context |
+|---------|------|---------|---------|
+| ai-platform | `ai-platform/server/routes/stripe-webhook-routes.cjs` | File-based (`stripe-event-store.cjs`) | Single-instance Render server — file store is sufficient |
+| coming-soon | `coming-soon/routes/subscriptions-billing.cjs` | Database (`db.recordWebhookEvent()`) | Cloudflare Pages deployment — DB store survives serverless cold starts |
+
+Both implementations:
+- Check for duplicate event IDs before processing
+- Return `200 { received: true, duplicate: true }` for replayed events
+- Log the duplicate event for audit trails
+
+**Key difference**: The file-based store is simpler but limited to single-instance deployments. The DB-based store is required for serverless/multi-instance deployments where filesystem state is ephemeral.
+
+### Dev Auth Bypass
+
+The `resolveAuth` function in `ai-platform/server/middleware/auth.cjs` requires **two** conditions to activate the dev auth bypass:
+1. `NODE_ENV=development`
+2. `DEV_AUTH_BYPASS=1`
+
+This prevents accidental auth bypass if `NODE_ENV` is misconfigured in production. Set both in your local `.env` file for dev admin access.
+
 ---
 
 ## Monthly Quality Gate Review Schedule

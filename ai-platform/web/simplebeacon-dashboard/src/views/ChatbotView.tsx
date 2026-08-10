@@ -270,7 +270,7 @@ function OllamaSetupWizard({
             <div className="pl-8 text-foreground-muted">
               {status === 'not_running' || status === 'unknown_error' ? (
                 <>
-                  <p>Download and install from <a href="https://ollama.com/download" target="_blank" rel="noopener" className="text-blue-600 underline">ollama.com/download</a></p>
+                  <p>Download and install from <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">ollama.com/download</a></p>
                   <p className="text-xs mt-1">After installing, Ollama should start automatically. If not, open {shellName} and run:</p>
                   <pre className="mt-1 rounded bg-muted px-3 py-2 text-xs overflow-x-auto">ollama serve</pre>
                 </>

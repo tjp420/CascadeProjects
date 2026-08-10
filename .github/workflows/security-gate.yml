@@ -33,9 +33,32 @@ jobs:
           name: gitleaks-report
           path: artifacts/gitleaks-report.json
 
+  npm-audit:
+    name: npm dependency audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Audit root dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit ai-platform dependencies
+        run: cd ai-platform && npm audit --audit-level=high
+
+      - name: Audit coming-soon dependencies
+        run: cd coming-soon && npm audit --audit-level=high
+
   simplebeacon-ai-platform:
     name: SimpleBeacon scan - ai-platform
-    needs: [gitleaks, token-schema]
+    needs: [gitleaks, token-schema, npm-audit]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -319,7 +342,7 @@ jobs:
           --health-timeout 2s
           --health-retries 10
     env:
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://localhost:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4

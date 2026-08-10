@@ -13,26 +13,48 @@ All notable changes to this project will be documented in this file.
 - **Notes**: Security tooling and onboarding committed to branch `ci/backend-bench-pr` for review and merge.
 
 
-## [SimpleBeacon Core Security Subsystem] - 2026-07-31
+## [1.1.2] - 2026-08-10
+
+### Security
+- **Fixed**: Removed stack trace leak from auth health endpoint (`auth.cjs`) — 500 responses no longer expose `err.stack`.
+- **Fixed**: Removed hardcoded Stripe webhook secret from `simulate-payment.cjs` — now uses `STRIPE_WEBHOOK_SECRET` env var.
+- **Fixed**: Dev auth bypass now requires explicit `DEV_AUTH_BYPASS=1` flag in addition to `NODE_ENV=development`.
+- **Fixed**: Stripe webhook handler no longer falls back to unsigned JSON parsing — always requires signature verification.
+- **Fixed**: Added `authenticate` middleware to Track112 upload routes (`/uploads`, `/uploads/:id/chunk`, `/uploads/:id/commit`).
+- **Fixed**: Vault session cookie upgraded to `SameSite=Strict` + `Secure` in production for CSRF defense-in-depth.
+- **Added**: Joi input validation on HSM vault endpoints (`/handshake`, `/decrypt`, `/rotate`) and basic body type check on `/recursive-aggregation/proof`.
+- **Added**: URL scheme validation on git clone endpoint — rejects non-`https://` URLs to prevent SSRF.
+- **Added**: Branch name and access token format validation on git clone endpoint.
+- **Added**: `npm audit --audit-level=high` step in `security-gate.yml` CI workflow for root, ai-platform, and coming-soon packages.
+
+### Changed
+- **Billing**: Email template pricing is now dynamic via `getTierMonthlyPrice()` instead of hardcoded `$49/month`.
+- **Billing**: Added rate limiting (30 req/15min) to `/tiers` and `/proration-preview` billing endpoints.
+- **Docs**: README pricing updated to current tiers (Developer $49/mo, Team Pro $149/mo) with legacy Pro $9/mo note.
+- **Docs**: LICENSE file deduplicated — removed duplicate MIT license text, kept single license + Section 8 liability disclaimer.
+- **CI/CD**: Updated 3 workflows from `actions/checkout@v3` and `setup-node@v3` to `v4`.
+- **CI/CD**: Standardized 6 workflows from Node 20 to Node 22 (matching `package.json` requirement).
+- **Frontend**: Wired up dead "Save Paths" button in SettingsView with state management + localStorage persistence.
+- **Frontend**: Added `console.debug` logging to silent catch block in AnalyzeView environment detection.
+- **Frontend**: Added `rel="noreferrer"` to external links in ChatbotView for privacy.
+
+### Notes
+- Local dev workflows that relied on auto-admin auth bypass must now set `DEV_AUTH_BYPASS=1` in `.env`.
+- Local dev webhook testing requires a real Stripe CLI tunnel or mock secret — unsigned fallback was removed.
+
+
+## [1.1.1] - 2026-07-31
 
 ### Added
-- **Active Key-Erasure Integration Test Suite** (`key-purge-route.test.cjs`): Instantiated an automated endpoint regression suite evaluating administrative privilege barriers and cryptographic deletion boundaries.
-- **Universal Testing Shim Architecture**: Embedded a dual-runner bridge mapping `describe`/`it` globals, allowing identical testing rows to run natively under local `node --test` scripts and global Jest engines.
+- **Active Key-Erasure Integration Test Suite** (`key-purge-route.test.cjs`): Automated endpoint regression suite evaluating administrative privilege barriers and cryptographic deletion boundaries.
+- **Universal Testing Shim Architecture**: Dual-runner bridge mapping `describe`/`it` globals, allowing identical testing rows to run natively under local `node --test` scripts and global Jest engines.
 
 ### Changed
 - **CI Workstream Synchronization** (`.github/workflows/security-regression-tests.yml`): Extended pull request and push event change-traps to monitor key management arrays and automatically include `key-purge-route` in cloud regression sweeps.
 
-### Security Posture Verification
-- **Global Test Matrix Balance**: 1,842 integrated functional specs passing with an error-free 100% pass mark.
-- **Static Analysis Vulnerability Gate**: PASS 🟢 (0 Critical, 0 High, 0 Medium items resolved).
-- **Core Cryptographic Boundaries**: Hardened multi-tenant isolation; zero private symmetric raw keys or hex streams leaked to dashboard DOM trees or system log surfaces.
-
-
 ### Fixed
 - **Cloudflare Web Analytics beacon** now only loads on `simplebeacon.ai` production origins when `CF_BEACON_TOKEN` is set, eliminating empty-response SRI mismatch warnings in local/preview environments.
 - **CSP** in `coming-soon/server.cjs` now allows `static.cloudflareinsights.com` in `script-src` and `*.cloudflareinsights.com` in `connect-src`.
-
-### Security
 - Added the correct Subresource Integrity (`integrity`) and `crossorigin="anonymous"` attributes to the Cloudflare `beacon.min.js` loader.
 
 ## [1.1.0] - 2026-06-06

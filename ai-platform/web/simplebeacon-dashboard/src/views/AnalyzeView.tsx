@@ -325,7 +325,7 @@ export function AnalyzeView() {
         };
       }
     } catch (_e) {
-      // ignore environment detection failures
+      console.debug('[AnalyzeView] Environment detection failed:', _e);
     }
     return () => {
       try { if (typeof window !== 'undefined') delete (window as any).SimpleBeaconStorage; } catch (_e) { }

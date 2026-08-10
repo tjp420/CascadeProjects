@@ -96,6 +96,25 @@ const validationSchemas = {
   login: Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().min(1).required()
+  }),
+
+  // HSM vault handshake
+  vaultHandshake: Joi.object({
+    provider: Joi.string().max(50).optional(),
+    keyId: Joi.string().max(100).optional(),
+    region: Joi.string().max(50).optional()
+  }),
+
+  // HSM vault decrypt
+  vaultDecrypt: Joi.object({
+    ciphertext: Joi.string().required(),
+    orgId: Joi.string().max(100).optional()
+  }),
+
+  // HSM vault rekey
+  vaultRekey: Joi.object({
+    newKeyId: Joi.string().max(100).optional(),
+    newRegion: Joi.string().max(50).optional()
   })
 };
 

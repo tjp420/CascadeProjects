@@ -73,7 +73,18 @@ function isPublicDashboardAssetPath(reqPath) {
 function setVaultSessionCookie(res, secret) {
   const token = getVaultSessionToken(secret || process.env.DASHBOARD_VAULT_PASSWORD);
   if (!token) return;
-  res.setHeader('Set-Cookie', `sb_vault=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
+  const isProduction = process.env.NODE_ENV === 'production';
+  // SameSite=Strict prevents CSRF — cookie is never sent on cross-site requests.
+  // Secure=true in production ensures cookie is only sent over HTTPS.
+  const flags = [
+    `sb_vault=${token}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Strict',
+    `Max-Age=86400`,
+  ];
+  if (isProduction) flags.push('Secure');
+  res.setHeader('Set-Cookie', flags.join('; '));
 }
 
 module.exports = {

@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const hsm = require('../lib/hsm-vault.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
+const { validateInput } = require('../middleware/security.cjs');
 const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 const { RecursiveProofAggregationEngine } = require('../lib/hsm-adapter/recursive-proof-aggregation-engine.cjs');
 const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
@@ -91,7 +92,7 @@ router.get('/status', authorize('admin:all'), runAsync(async (req, res) => {
 }));
 
 // POST /api/vault/handshake
-router.post('/handshake', authorize('admin:all'), runAsync(async (req, res) => {
+router.post('/handshake', validateInput('vaultHandshake'), authorize('admin:all'), runAsync(async (req, res) => {
   const provider = (req.body && req.body.provider) || process.env.HSM_PROVIDER || 'mockhsm';
   const keyId = (req.body && req.body.keyId) || process.env.HSM_KEY_ID || null;
   const region = (req.body && req.body.region) || process.env.HSM_REGION || 'us-east-1';
@@ -100,7 +101,7 @@ router.post('/handshake', authorize('admin:all'), runAsync(async (req, res) => {
 }));
 
 // POST /api/vault/decrypt
-router.post('/decrypt', authorize('admin:all'), runAsync(async (req, res) => {
+router.post('/decrypt', validateInput('vaultDecrypt'), authorize('admin:all'), runAsync(async (req, res) => {
   const orgId = resolveOrgId(req);
   const ciphertext = (req.body && req.body.ciphertext) || null;
   if (!ciphertext) return sendError(res, 400, 'missing_ciphertext');
@@ -173,7 +174,7 @@ router.get('/consensus/status', authorize('admin:all'), function (req, res) {
 });
 
 // POST /api/vault/rotate
-router.post('/rotate', authorize('admin:all'), runAsync(async (req, res) => {
+router.post('/rotate', validateInput('vaultRekey'), authorize('admin:all'), runAsync(async (req, res) => {
   const newKeyId = (req.body && req.body.newKeyId) || null;
   const newRegion = (req.body && req.body.newRegion) || null;
   const result = await hsm.hsmRotate(newKeyId, newRegion);
@@ -690,6 +691,9 @@ function handleHsmError(res, err) {
 // POST /api/vault/recursive-aggregation/proof
 router.post('/recursive-aggregation/proof', authorize('admin:all'), function (req, res) {
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return sendError(res, 400, 'invalid_body', { message: 'Request body must be a JSON object' });
+    }
     const engine = requireRecursiveProofEngine(res);
     if (!engine) return;
     const result = engine.submitProof(req.body);

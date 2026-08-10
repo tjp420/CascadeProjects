@@ -215,16 +215,31 @@ router.post('/git', async (req, res) => {
     const startTime = Date.now();
     
     try {
-        const { 
-            repoUrl, 
-            branch = 'main', 
-            accessToken, 
+        const {
+            repoUrl,
+            branch = 'main',
+            accessToken,
             includeSubmodules = false,
-            includeHistory = false 
+            includeHistory = false
         } = req.body;
 
         if (!repoUrl) {
             return sendError(res, 400, 'Repository URL is required');
+        }
+
+        // Validate URL scheme — only https:// to prevent SSRF via file://, ssh://, git://
+        if (!/^https:\/\/[^\s]+$/i.test(repoUrl)) {
+            return sendError(res, 400, 'Repository URL must use https:// scheme');
+        }
+
+        // Validate branch name — alphanumeric + common git branch characters only
+        if (!/^[a-zA-Z0-9._\-\/]+$/.test(branch)) {
+            return sendError(res, 400, 'Invalid branch name');
+        }
+
+        // Validate accessToken — must be a string if provided
+        if (accessToken !== undefined && (typeof accessToken !== 'string' || accessToken.length > 500)) {
+            return sendError(res, 400, 'Invalid access token format');
         }
 
         // Create temporary directory
