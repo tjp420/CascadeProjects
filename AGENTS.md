@@ -148,6 +148,28 @@ The `resolveAuth` function in `ai-platform/server/middleware/auth.cjs` requires 
 
 This prevents accidental auth bypass if `NODE_ENV` is misconfigured in production. Set both in your local `.env` file for dev admin access.
 
+### Redis-Backed Rate Limiting
+
+The main API rate limiter (`createRateLimiter` in `ai-platform/server/middleware/security.cjs`) supports Redis-backed distributed rate limiting for multi-instance deployments.
+
+**How it works:**
+- When `REDIS_URL` is set, `createRateLimiter` uses a `RedisStore` adapter (`ai-platform/server/lib/redis-rate-limit-store.cjs`) that implements the `express-rate-limit` v8 `Store` interface.
+- Rate limit state is shared across all processes connecting to the same Redis instance.
+- When Redis is unavailable (connection fails, `ioredis` not installed, or `ENABLE_REDIS_RATE_LIMIT=false`), falls back to the default in-memory store.
+- During a Redis outage mid-request, `increment()` fails open (returns `counter=0`) to avoid blocking all API traffic.
+
+**Env vars:**
+- `REDIS_URL` / `REDIS` — Redis connection URL (enables Redis rate limiting when set)
+- `ENABLE_REDIS_RATE_LIMIT` — Set to `false` to disable Redis rate limiting without affecting other Redis features (cache, snapshot, etc.)
+- `REDIS_RATE_LIMIT_PREFIX` — Key prefix for rate limit keys (default: `ratelimit:`)
+
+**Files:**
+- `ai-platform/server/lib/redis-rate-limit-store.cjs` — `RedisStore` adapter + `getRedisStore()` singleton
+- `ai-platform/server/middleware/security.cjs` — `createRateLimiter()` wires in the Redis store
+- `ai-platform/server/lib/__tests__/redis-rate-limit-store.test.cjs` — 21 unit tests
+
+**CI:** The `redis-integration` job in `security-gate.yml` runs the store tests against a real Redis service container.
+
 ---
 
 ## Monthly Quality Gate Review Schedule

@@ -16,6 +16,7 @@ const helmet = require('helmet');
 const Joi = require('joi');
 
 const constants = require('../config/constants.cjs');
+const { getRedisStore } = require('../lib/redis-rate-limit-store.cjs');
 // Security configuration
 const securityConfig = {
   rateLimitWindowMs: constants.RATE_LIMIT_WINDOW_MS, // 15 minutes
@@ -29,11 +30,16 @@ const securityConfig = {
 // Rate limiting middleware
 /**
  * Create rate limiter.
+ *
+ * When Redis is available (REDIS_URL set and ENABLE_REDIS_RATE_LIMIT != 'false'),
+ * rate limit state is shared across all processes connecting to the same Redis
+ * instance. When Redis is unavailable, falls back to the default in-memory store.
+ *
  * @param {Object} options
  * @returns {any}
  */
 const createRateLimiter = (options = {}) => {
-  return rateLimit({
+  const config = {
     windowMs: options.windowMs || securityConfig.rateLimitWindowMs,
     max: options.max || securityConfig.rateLimitMax,
     skip: (req) => {
@@ -53,7 +59,15 @@ const createRateLimiter = (options = {}) => {
     legacyHeaders: false,
     skipSuccessfulRequests: options.skipSuccessfulRequests || securityConfig.rateLimitSkipSuccessfulRequests,
     skipFailedRequests: options.skipFailedRequests || securityConfig.rateLimitSkipFailedRequests
-  });
+  };
+
+  // Use Redis-backed store for distributed rate limiting when available
+  const redisStore = options.store || getRedisStore();
+  if (redisStore) {
+    config.store = redisStore;
+  }
+
+  return rateLimit(config);
 };
 
 // Input validation schemas

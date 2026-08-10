@@ -21,9 +21,9 @@ describe('dashboard-vault-auth', () => {
 
   afterEach(() => {
     if (ORIGINAL_ENV !== undefined) {
-      process.env.DASHBOARD_VAULT_PASSWORD = ORIGINAL_ENV;
+      process.env['DASHBOARD_VAULT_PASSWORD'] = ORIGINAL_ENV;
     } else {
-      delete process.env.DASHBOARD_VAULT_PASSWORD;
+      delete process.env['DASHBOARD_VAULT_PASSWORD'];
     }
   });
 
@@ -104,11 +104,11 @@ describe('dashboard-vault-auth', () => {
     });
 
     test('falls back to env.DASHBOARD_VAULT_PASSWORD', () => {
-      const original = process.env.DASHBOARD_VAULT_PASSWORD;
-      process.env.DASHBOARD_VAULT_PASSWORD = TEST_SECRET;
+      const original = process.env['DASHBOARD_VAULT_PASSWORD'];
+      process.env['DASHBOARD_VAULT_PASSWORD'] = TEST_SECRET;
       const req = { headers: { cookie: `sb_vault=${validToken}` } };
       expect(isVaultAuthenticated(req, { internalDashboard: true })).toBe(true);
-      process.env.DASHBOARD_VAULT_PASSWORD = original;
+      process.env['DASHBOARD_VAULT_PASSWORD'] = original;
     });
   });
 
@@ -165,7 +165,7 @@ describe('dashboard-vault-auth', () => {
       expect(cookie).toContain('sb_vault=');
       expect(cookie).toContain('Path=/');
       expect(cookie).toContain('HttpOnly');
-      expect(cookie).toContain('SameSite=Lax');
+      expect(cookie).toContain('SameSite=Strict');
       expect(cookie).toContain('Max-Age=86400');
     });
 
@@ -176,12 +176,12 @@ describe('dashboard-vault-auth', () => {
     });
 
     test('falls back to env.DASHBOARD_VAULT_PASSWORD', () => {
-      const original = process.env.DASHBOARD_VAULT_PASSWORD;
-      process.env.DASHBOARD_VAULT_PASSWORD = TEST_SECRET;
+      const original = process.env['DASHBOARD_VAULT_PASSWORD'];
+      process.env['DASHBOARD_VAULT_PASSWORD'] = TEST_SECRET;
       const res = { setHeader: jest.fn() };
       setVaultSessionCookie(res);
       expect(res.setHeader).toHaveBeenCalledTimes(1);
-      process.env.DASHBOARD_VAULT_PASSWORD = original;
+      process.env['DASHBOARD_VAULT_PASSWORD'] = original;
     });
   });
 });

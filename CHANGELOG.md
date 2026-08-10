@@ -13,6 +13,21 @@ All notable changes to this project will be documented in this file.
 - **Notes**: Security tooling and onboarding committed to branch `ci/backend-bench-pr` for review and merge.
 
 
+## [1.1.4] - 2026-08-10
+
+### Security
+- **Added**: Redis-backed persistent rate limiting for multi-instance deployments. The main API rate limiter (`createRateLimiter` in `security.cjs`) now uses a Redis store when `REDIS_URL` is set, sharing rate limit state across all processes. Falls back to in-memory store when Redis is unavailable.
+- **Added**: `server/lib/redis-rate-limit-store.cjs` — Custom `RedisStore` adapter implementing the `express-rate-limit` v8 `Store` interface using `ioredis` with atomic Lua scripts for increment+TTL.
+- **Added**: `ENABLE_REDIS_RATE_LIMIT` env var (defaults to `true` when `REDIS_URL` is set) to explicitly disable Redis rate limiting without affecting other Redis features.
+- **Added**: Fail-open behavior during Redis outage — rate limit `increment()` returns `counter=0` instead of throwing, preventing total API lockout during Redis downtime.
+
+### Tests
+- **Added**: 21 unit tests for `redis-rate-limit-store.cjs` covering Store interface, increment/decrement/resetKey/get, singleton lifecycle, and Redis unavailability scenarios.
+
+### CI/CD
+- **Added**: Redis rate-limit store integration test step to the `redis-integration` job in `security-gate.yml`.
+
+
 ## [1.1.3] - 2026-08-10
 
 ### Security

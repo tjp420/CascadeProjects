@@ -368,6 +368,10 @@ jobs:
         run: |
           node --test ai-platform/src/api/__tests__/enterprise-onboard-redis.test.cjs
 
+      - name: Run Redis rate-limit store integration test
+        run: |
+          node --test ai-platform/server/lib/__tests__/redis-rate-limit-store.test.cjs
+
 
   dashboard-watchdog:
     name: Dashboard Watchdog
