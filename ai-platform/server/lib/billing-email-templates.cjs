@@ -80,7 +80,7 @@ function tierDisplayName(tier) {
 }
 
 /**
- * Subscription activated email.
+ * Subscription activated email — onboarding quickstart with license token.
  * @param {Object} opts
  * @param {string} opts.tier - Subscription tier
  * @param {string} [opts.licenseToken] - License token (optional)
@@ -90,32 +90,83 @@ function tierDisplayName(tier) {
  */
 function renderSubscriptionActivated(opts = {}) {
   const { tier = 'pro', licenseToken, totalSeats, extraSeats } = opts;
+  const tierName = tierDisplayName(tier);
   const seatInfo = extraSeats > 0
     ? `\n\nYour Team Pro subscription includes 5 base seats plus ${extraSeats} extra seat${extraSeats === 1 ? '' : 's'} (${totalSeats} total).`
     : (tier === 'team_pro' ? '\n\nYour Team Pro subscription includes 5 seats.' : '');
 
-  const subject = 'SimpleBeacon Subscription Activated';
-  const text = `Your SimpleBeacon ${tier} subscription is now active.\n\nYou can start using all ${tier} tier features immediately.${seatInfo}\n\nThank you for your purchase.${licenseToken ? `\n\n--- Your License Key ---\n${licenseToken}\n------------------------\n\nKeep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.\n\nYou can also retrieve it anytime from your dashboard: https://simplebeacon.ai` : ''}`;
+  const subject = `Welcome to SimpleBeacon ${tierName} — Your License Token Inside`;
+  const text = `Welcome to SimpleBeacon ${tierName}!\n\nThank you for subscribing to SimpleBeacon ${tierName} ($49/month). Your subscription is now active with unlimited scans.${seatInfo}\n\n--- Your License Token ---\n${licenseToken || '(no token generated yet — contact support)'}\n--------------------------\n\nQUICKSTART (3 steps):\n\n1. Install the CLI:\n   npm install -g simplebeacon\n\n2. Activate your license:\n   export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken || '<your-token>'}"\n   # Or save to file:\n   mkdir -p ~/.simplebeacon\n   echo "${licenseToken || '<your-token>'}" > ~/.simplebeacon/license.jwt\n\n3. Run your first scan:\n   simplebeacon scan --gate\n\nThat's it! You now have unlimited scans, CI/CD gate integration, 38 analyzer modules, PDF reports, and all export formats.\n\nOTHER WAYS TO USE SIMPLEBEACON:\n- VS Code extension: Search "simplebeacon" in the Extensions marketplace\n- Dashboard: https://simplebeacon.ai/dashboard\n- CI/CD: Add simplebeacon scan --gate to your pipeline\n\nYour token expires in 1 year (renewed automatically by your subscription).\nRetrieve it anytime: https://simplebeacon.ai\n\nNeed help? Reply to this email or visit https://simplebeacon.ai`;
 
   let bodyContent = `
-    <p>Your SimpleBeacon <strong>${tier}</strong> subscription is now active.</p>
-    <p>You can start using all ${tier} tier features immediately.</p>`;
+    <p>Welcome to SimpleBeacon <strong>${tierName}</strong>! Your subscription is now active.</p>`;
   if (extraSeats > 0) {
     bodyContent += `<p>Your Team Pro subscription includes 5 base seats plus <strong>${extraSeats} extra seat${extraSeats === 1 ? '' : 's'}</strong> (${totalSeats} total).</p>`;
   } else if (tier === 'team_pro') {
     bodyContent += `<p>Your Team Pro subscription includes 5 seats.</p>`;
   }
+
+  // License token callout
   if (licenseToken) {
     bodyContent += `
     <div class="callout callout-info">
-      <p><strong>Your License Key</strong></p>
-      <p style="font-family:monospace;font-size:12px;word-break:break-all;margin-top:8px">${licenseToken}</p>
-      <p style="margin-top:8px">Keep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.<br>You can also retrieve it anytime from your <a href="https://simplebeacon.ai">dashboard</a>.</p>
+      <p><strong>Your License Token</strong></p>
+      <p style="font-family:monospace;font-size:11px;word-break:break-all;margin-top:8px;background:#fff;padding:8px;border-radius:4px;border:1px solid #e5e7eb;">${licenseToken}</p>
+      <p style="margin-top:8px">Keep this token safe. You can also retrieve it anytime from your <a href="https://simplebeacon.ai">dashboard</a>.</p>
     </div>`;
   }
-  bodyContent += `<p>Thank you for your purchase.</p>`;
 
-  return { subject, text, html: wrapHtml('Subscription Activated', bodyContent) };
+  // Quickstart section
+  bodyContent += `
+    <h3 style="color:#111827;font-size:17px;margin:24px 0 12px;">Quickstart — 3 steps to your first scan</h3>
+    <div class="meta" style="background:#1e1e1e;border-radius:8px;padding:20px;margin:16px 0;">
+      <pre style="margin:0;color:#d4d4d4;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-all;"><span style="color:#6a9955;"># 1. Install the CLI</span>
+npm install -g simplebeacon
+
+<span style="color:#6a9955;"># 2. Activate your license</span>
+export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken ? licenseToken.substring(0, 50) + '...' : '<your-token>'}"
+
+<span style="color:#6a9955;"># Or save to file (recommended)</span>
+mkdir -p ~/.simplebeacon
+echo "${licenseToken ? '<token>' : '<your-token>'}" &gt; ~/.simplebeacon/license.jwt
+
+<span style="color:#6a9955;"># 3. Run your first scan</span>
+simplebeacon scan --gate</pre>
+    </div>`;
+
+  // What's included
+  bodyContent += `
+    <h3 style="color:#111827;font-size:17px;margin:24px 0 12px;">What's included</h3>
+    <div class="meta">
+      <div class="meta-row"><span class="meta-label">Scans</span><span class="meta-value">Unlimited</span></div>
+      <div class="meta-row"><span class="meta-label">Analyzer modules</span><span class="meta-value">38 engines</span></div>
+      <div class="meta-row"><span class="meta-label">CI/CD gate</span><span class="meta-value">Included</span></div>
+      <div class="meta-row"><span class="meta-label">PDF reports</span><span class="meta-value">Included</span></div>
+      <div class="meta-row"><span class="meta-label">Export formats</span><span class="meta-value">All formats</span></div>
+      <div class="meta-row"><span class="meta-label">Token expires</span><span class="meta-value">1 year (auto-renewed)</span></div>
+    </div>`;
+
+  // Other ways to use
+  bodyContent += `
+    <h3 style="color:#111827;font-size:17px;margin:24px 0 12px;">Other ways to use SimpleBeacon</h3>
+    <div class="callout callout-success">
+      <p><strong>VS Code Extension</strong> — Search "simplebeacon" in the Extensions marketplace</p>
+    </div>
+    <div class="callout callout-success">
+      <p><strong>Web Dashboard</strong> — Run scans in your browser at <a href="https://simplebeacon.ai/dashboard">simplebeacon.ai/dashboard</a></p>
+    </div>
+    <div class="callout callout-success">
+      <p><strong>CI/CD Pipeline</strong> — Add <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px;">simplebeacon scan --gate</code> to your GitHub Actions / GitLab CI</p>
+    </div>`;
+
+  // CTA buttons
+  bodyContent += `
+    <p style="margin-top:24px;">
+      <a href="https://simplebeacon.ai/dashboard" class="btn">Open Dashboard</a>
+      <a href="https://simplebeacon.ai/docs" class="btn" style="background:#6b7280;margin-left:8px;">Read Docs</a>
+    </p>`;
+
+  return { subject, text, html: wrapHtml(`Welcome to SimpleBeacon ${tierName}`, bodyContent) };
 }
 
 /**

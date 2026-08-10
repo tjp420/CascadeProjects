@@ -1,0 +1,18 @@
+Upgrade subscription activated email with onboarding quickstart
+
+The previous template only showed the license key with no setup
+instructions. Customers had no guidance on how to start using the
+product after paying.
+
+The new template includes:
+- Clear 3-step quickstart (install CLI, activate license, run scan)
+- Dark code block with syntax-highlighted commands
+- "What's included" summary table (scans, analyzers, CI gate, etc.)
+- "Other ways to use" section (VS Code extension, dashboard, CI/CD)
+- CTA buttons (Open Dashboard, Read Docs)
+- Plain-text fallback with full quickstart instructions
+- Branded subject line mentioning the tier name
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>
