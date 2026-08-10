@@ -1,0 +1,35 @@
+Redesign email templates to clean card-based layout
+
+Rebuilt all billing email templates with a clean, professional,
+card-based design inspired by top-tier SaaS billing emails.
+
+Design principles:
+- Clean teal header bar (#0d9488) with brand name + context tagline
+- White card on light gray (#f4f5f7) background with subtle shadow
+- Card-based sections with subtle borders (#e9ecef) and dashed dividers
+- Table-based layout for Outlook/Gmail compatibility
+- Restrained color palette: teal accent, dark gray text, light gray cards
+- No gradients, no emoji icons, no terminal mockups — just clean type
+- Numbered step badges (solid teal circles) for quickstart
+- Dark code blocks (#1a2332) with teal comments — readable, not flashy
+- Feature table with label/value rows and bottom borders
+- 3-column "other ways" table that collapses to stacked on mobile
+- Solid teal CTA button + outlined secondary
+- Light gray footer with brand, links, and copyright
+- Mobile responsive: single-column collapse under 480px
+
+All 8 email templates updated to the new table-row format:
+- renderSubscriptionActivated (full onboarding with token + quickstart)
+- renderSubscriptionCanceled
+- renderSubscriptionReactivated
+- renderPaymentFailed
+- renderTrialEnding
+- renderDisputeAlert
+- renderInvoiceUpcoming
+- renderProrationNotice
+- renderSubscriptionPaused
+- renderSubscriptionResumed
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>
