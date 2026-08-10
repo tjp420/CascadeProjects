@@ -55,11 +55,11 @@ let baseUrl;
 
 before(async () => {
   // Set required env vars for the contact form
-  process.env.CONTACT_NOTIFY_EMAIL = 'support@simplebeacon.ai';
-  process.env.SMTP_USER = 'trevor@simplebeacon.ai';
+  process.env.CONTACT_NOTIFY_EMAIL = 'admin@simplebeacon.ai';
+  process.env.SMTP_USER = 'admin@simplebeacon.ai';
   process.env.SMTP_HOST = 'smtp.zohocloud.ca';
   process.env.SMTP_PASS = 'test-password';
-  process.env.SMTP_FROM = 'certificates@simplebeacon.ai';
+  process.env.SMTP_FROM = 'admin@simplebeacon.ai';
 
   const express = require('express');
   app = express();
@@ -209,7 +209,7 @@ describe('POST /api/contact — contact form SMTP delivery', () => {
 
     const call = getLastSendCall();
     assert.ok(call, 'sendEmail should have been called');
-    assert.strictEqual(call.to, 'support@simplebeacon.ai');
+    assert.strictEqual(call.to, 'admin@simplebeacon.ai');
     assert.ok(call.subject.includes('General compliance question'));
     assert.ok(call.text.includes('Jane Doe'));
     assert.ok(call.text.includes('customer@example.com'));

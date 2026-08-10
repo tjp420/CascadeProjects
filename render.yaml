@@ -57,13 +57,13 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: SMTP_FROM
-        value: certificates@simplebeacon.ai
+        value: admin@simplebeacon.ai
       - key: CONTACT_NOTIFY_EMAIL
-        value: support@simplebeacon.ai
+        value: admin@simplebeacon.ai
       - key: SUPPORT_EMAIL
-        value: support@simplebeacon.ai
+        value: admin@simplebeacon.ai
       - key: DISPUTE_ALERT_EMAIL
-        value: support@simplebeacon.ai
+        value: admin@simplebeacon.ai
       - key: SIMPLEBEACON_APP_URL
         sync: false
       - key: SIMPLEBEACON_LANDING

@@ -182,21 +182,18 @@ SimpleBeacon uses Zoho Mail (Canadian data center — `smtp.zohocloud.ca`) as th
 **Contact form flow:** `POST /api/contact` → `sendEmail()` → delivers to `CONTACT_NOTIFY_EMAIL` (defaults to `SMTP_USER`)
 
 **Mailboxes:**
-- `trevor@simplebeacon.ai` — primary user mailbox
-- `support@simplebeacon.ai` — customer service, contact form delivery, Stripe dispute alerts
-- `certificates@simplebeacon.ai` — outbound `From` address for transactional emails
-- `sales@simplebeacon.ai` — sales inquiries
+- `admin@simplebeacon.ai` — Zoho admin, SMTP login, contact form delivery, customer service, Stripe dispute alerts, outbound From address (single mailbox handles all roles)
 
 **Env vars (set in Render dashboard or `.env`):**
 - `SMTP_HOST=smtp.zohocloud.ca` — Zoho Mail Canadian data center
 - `SMTP_PORT=465` — SSL port
 - `SMTP_SECURE=true` — enable SSL/TLS
-- `SMTP_USER=trevor@simplebeacon.ai` — Zoho mailbox (secret, set in Render dashboard)
+- `SMTP_USER=admin@simplebeacon.ai` — Zoho mailbox (secret, set in Render dashboard)
 - `SMTP_PASS=<zoho-app-specific-password>` — generate in Zoho Mail → Settings → Mail Accounts → SMTP/IMAP (secret)
-- `SMTP_FROM=certificates@simplebeacon.ai` — outbound From address
-- `CONTACT_NOTIFY_EMAIL=support@simplebeacon.ai` — where contact form submissions land
-- `SUPPORT_EMAIL=support@simplebeacon.ai` — used by chatbot API appeal process
-- `DISPUTE_ALERT_EMAIL=support@simplebeacon.ai` — where Stripe dispute alerts land
+- `SMTP_FROM=admin@simplebeacon.ai` — outbound From address
+- `CONTACT_NOTIFY_EMAIL=admin@simplebeacon.ai` — where contact form submissions land
+- `SUPPORT_EMAIL=admin@simplebeacon.ai` — used by chatbot API appeal process
+- `DISPUTE_ALERT_EMAIL=admin@simplebeacon.ai` — where Stripe dispute alerts land
 
 **Files:**
 - `coming-soon/services/email.cjs` — Resend → SMTP → SQLite queue fallback chain

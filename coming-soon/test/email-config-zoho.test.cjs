@@ -20,9 +20,9 @@ const ZOHO_ENV = {
   SMTP_HOST: 'smtp.zohocloud.ca',
   SMTP_PORT: '465',
   SMTP_SECURE: 'true',
-  SMTP_USER: 'trevor@simplebeacon.ai',
+  SMTP_USER: 'admin@simplebeacon.ai',
   SMTP_PASS: 'test-app-password',
-  SMTP_FROM: 'certificates@simplebeacon.ai'
+  SMTP_FROM: 'admin@simplebeacon.ai'
 };
 
 describe('email-config.cjs — Zoho Mail SMTP configuration', () => {
@@ -60,9 +60,9 @@ describe('email-config.cjs — Zoho Mail SMTP configuration', () => {
     assert.strictEqual(smtp.host, 'smtp.zohocloud.ca');
     assert.strictEqual(smtp.port, 465);
     assert.strictEqual(smtp.secure, true);
-    assert.strictEqual(smtp.user, 'trevor@simplebeacon.ai');
+    assert.strictEqual(smtp.user, 'admin@simplebeacon.ai');
     assert.strictEqual(smtp.pass, 'test-app-password');
-    assert.strictEqual(smtp.from, 'certificates@simplebeacon.ai');
+    assert.strictEqual(smtp.from, 'admin@simplebeacon.ai');
     assert.strictEqual(smtp.mode, 'smtp', 'mode should be "smtp" for Zoho (not "resend-smtp-relay")');
   });
 
