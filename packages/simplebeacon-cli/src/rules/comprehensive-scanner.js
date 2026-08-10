@@ -136,6 +136,17 @@ function shouldSkipCheckForPath(checkId, relativePath) {
   if (checkId === 'framework-practices') {
     if (/simplebeacon-dashboard\/src\//.test(rel)) return true;
   }
+  // api-contract: skip the actual contract definition files and CI/infra that references them
+  if (checkId === 'api-contract') {
+    // The OpenAPI/Swagger spec files themselves ARE the contract — don't flag them
+    if (/(?:^|[\\/])(openapi|swagger)\.(yaml|yml|json)$/i.test(rel)) return true;
+    // CI workflows that lint/test the spec are the correct usage pattern
+    if (/(?:^|[\\/])\.github[\\/]workflows[\\/]/.test(rel)) return true;
+    // Docker compose files for Prism/mock-server infrastructure
+    if (/docker-compose.*\.(yaml|yml)$/i.test(rel)) return true;
+    // Spectral ruleset files define OpenAPI linting rules
+    if (/\.spectral\.(yaml|yml|json)$/i.test(rel)) return true;
+  }
   return false;
 }
 
