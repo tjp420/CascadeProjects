@@ -1,0 +1,29 @@
+Redesign onboarding email to 10/10 premium template
+
+Complete rebuild of the subscription activated email with a
+table-based, email-client-compatible layout inspired by top-tier
+SaaS onboarding emails (Linear, Vercel, Resend).
+
+Design improvements:
+- Hero section: gradient banner (slate→teal) with badge, lightning
+  icon, welcome headline, and subtitle — not a plain text header
+- License token: dedicated card with teal-tinted bg, label, and
+  "save this" guidance
+- Quickstart: 3 individual numbered step cards with gradient circle
+  badges, titles, and dark code blocks — not a single code dump
+- Step 3: macOS-style terminal window with traffic light dots,
+  title bar, and simulated scan output showing "Gate: PASS"
+- Feature grid: 2-column table with 6 feature cards (icons, names,
+  descriptions) — not a plain meta table
+- "Other ways": 3-column centered grid with icons — not a bullet list
+- CTA: gradient teal primary button with shadow + outlined secondary
+- Footer: dark slate with brand, tagline, link bar, and copyright
+- Dividers between sections for visual rhythm
+- Mobile responsive: single-column collapse under 480px
+- Table-based layout for Outlook/Gmail compatibility
+- Apple disable-message-reformatting meta tag
+- Body bg: deep slate (#0a0f1a) for premium card-on-dark effect
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>
