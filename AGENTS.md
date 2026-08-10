@@ -170,6 +170,60 @@ The main API rate limiter (`createRateLimiter` in `ai-platform/server/middleware
 
 **CI:** The `redis-integration` job in `security-gate.yml` runs the store tests against a real Redis service container.
 
+### Zoho Mail Email Configuration
+
+SimpleBeacon uses Zoho Mail (Canadian data center — `smtp.zohocloud.ca`) as the SMTP fallback for outbound email and for contact form delivery. Resend REST API remains the primary outbound provider for transactional emails (license tokens, billing notices).
+
+**Email flow:**
+1. **Resend REST API** (primary) — used when `RESEND_API_KEY` is set (must start with `re_`)
+2. **Zoho SMTP** (fallback) — used when Resend API fails, via nodemailer with `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`
+3. **SQLite/disk queue** — used when both Resend and SMTP fail; retried by the email retry worker every 5 minutes
+
+**Contact form flow:** `POST /api/contact` → `sendEmail()` → delivers to `CONTACT_NOTIFY_EMAIL` (defaults to `SMTP_USER`)
+
+**Mailboxes:**
+- `trevor@simplebeacon.ai` — primary user mailbox
+- `support@simplebeacon.ai` — customer service, contact form delivery, Stripe dispute alerts
+- `certificates@simplebeacon.ai` — outbound `From` address for transactional emails
+- `sales@simplebeacon.ai` — sales inquiries
+
+**Env vars (set in Render dashboard or `.env`):**
+- `SMTP_HOST=smtp.zohocloud.ca` — Zoho Mail Canadian data center
+- `SMTP_PORT=465` — SSL port
+- `SMTP_SECURE=true` — enable SSL/TLS
+- `SMTP_USER=trevor@simplebeacon.ai` — Zoho mailbox (secret, set in Render dashboard)
+- `SMTP_PASS=<zoho-app-specific-password>` — generate in Zoho Mail → Settings → Mail Accounts → SMTP/IMAP (secret)
+- `SMTP_FROM=certificates@simplebeacon.ai` — outbound From address
+- `CONTACT_NOTIFY_EMAIL=support@simplebeacon.ai` — where contact form submissions land
+- `SUPPORT_EMAIL=support@simplebeacon.ai` — used by chatbot API appeal process
+- `DISPUTE_ALERT_EMAIL=support@simplebeacon.ai` — where Stripe dispute alerts land
+
+**Files:**
+- `coming-soon/services/email.cjs` — Resend → SMTP → SQLite queue fallback chain
+- `coming-soon/lib/email-config.cjs` — SMTP config detection (`getSmtpSettings()`, `isEmailConfigured()`, `getEmailStatus()`)
+- `ai-platform/server/lib/email-service.cjs` — Cloudflare Email → Resend → SMTP → disk queue fallback chain
+- `coming-soon/server.cjs` line 985 — `POST /api/contact` endpoint
+- `coming-soon/tools/send-test-smtp-email.cjs` — Zoho SMTP test tool
+- `coming-soon/test/email-config-zoho.test.cjs` — 12 unit tests for Zoho SMTP config detection
+- `coming-soon/test/contact-form-smtp.test.cjs` — 7 tests for contact form SMTP delivery
+
+**Test commands:**
+```bash
+# Verify Zoho SMTP connection (no email sent)
+node coming-soon/tools/send-test-smtp-email.cjs --verify
+
+# Send a test email via Zoho SMTP
+node coming-soon/tools/send-test-smtp-email.cjs --to trevor@simplebeacon.ai
+
+# Run unit tests
+node --test coming-soon/test/email-config-zoho.test.cjs
+node --test coming-soon/test/contact-form-smtp.test.cjs
+```
+
+**Health check:** `curl https://simplebeacon.ai/api/health/email` — returns `ok: true` with `providers: { resendApi: true, smtp: true, smtpMode: 'smtp' }` when both Resend and Zoho are configured.
+
+**Note on Resend + Zoho coexistence:** When both `RESEND_API_KEY` and Zoho SMTP vars are set, `getSmtpSettings()` returns the Zoho config (not the Resend SMTP relay) because Zoho's `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` take precedence. The Resend REST API is still tried first in `sendEmail()`. Zoho SMTP is only used when Resend API fails.
+
 ---
 
 ## Monthly Quality Gate Review Schedule

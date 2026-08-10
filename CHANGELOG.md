@@ -4,7 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Security
+## [1.1.5] - 2026-08-10
+
+### Infrastructure
+- **Added**: Zoho Mail SMTP configuration for email delivery fallback. The `render.yaml` now includes `SMTP_HOST=smtp.zohocloud.ca`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `CONTACT_NOTIFY_EMAIL`, `SUPPORT_EMAIL`, and `DISPUTE_ALERT_EMAIL` env vars.
+- **Added**: `coming-soon/tools/send-test-smtp-email.cjs` — Test tool that sends a test email via Zoho Mail SMTP (bypasses Resend) to verify SMTP config. Supports `--verify` for connection-only check.
+- **Added**: `coming-soon/test/email-config-zoho.test.cjs` — 12 unit tests for Zoho SMTP config detection in `email-config.cjs`.
+- **Added**: `coming-soon/test/contact-form-smtp.test.cjs` — 7 tests for `POST /api/contact` endpoint (validation, spam detection, SMTP delivery, queue fallback).
+- **Changed**: `coming-soon/.env.example` — Updated SMTP section with Zoho Mail Canadian data center config. Added `CONTACT_NOTIFY_EMAIL`, `SUPPORT_EMAIL`, `DISPUTE_ALERT_EMAIL`.
+- **Changed**: `ai-platform/.env.example` — Updated SMTP section with Zoho config. Added `DISPUTE_ALERT_EMAIL`.
+- **Changed**: `render.yaml` — `SMTP_PORT` changed from 587 to 465, added `SMTP_SECURE=true`, added `CONTACT_NOTIFY_EMAIL`, `SUPPORT_EMAIL`, `DISPUTE_ALERT_EMAIL`.
+- **Changed**: `AGENTS.md` — Added "Zoho Mail Email Configuration" section documenting mailboxes, env vars, email flow, and test commands.
+
+### Notes
+- No email-sending code changes — the existing `email.cjs` and `email-service.cjs` already supported Zoho SMTP via env vars. This release wires the config, adds test tooling, and documents the setup.
+- Resend remains the primary outbound email provider. Zoho SMTP is the fallback when Resend API fails.
+- Contact form submissions (`POST /api/contact`) deliver to `support@simplebeacon.ai` via the email fallback chain.
+- **Action required after deploy:** Set `SMTP_USER` and `SMTP_PASS` in the Render dashboard (secrets, not committed to repo). Generate a Zoho app-specific password in Zoho Mail → Settings → Mail Accounts → SMTP/IMAP.
+
+## [1.1.4] - 2026-08-10
 
 - **Added**: Husky `pre-push` hook invoking `scripts/pre-push-scan.js` to scan changed/unpushed files and block pushes with detected secrets.
 - **Added**: `scripts/pre-push-scan.js` — resilient changed-file scanner that prefers `gitleaks` (binary or `npx`) and falls back to a conservative regex-based engine when the binary is unavailable.

@@ -47,15 +47,23 @@ services:
       - key: RESEND_FROM
         value: certificates@simplebeacon.ai
       - key: SMTP_HOST
-        sync: false
+        value: "smtp.zohocloud.ca"
       - key: SMTP_PORT
-        value: 587
+        value: 465
+      - key: SMTP_SECURE
+        value: "true"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS
         sync: false
       - key: SMTP_FROM
         value: certificates@simplebeacon.ai
+      - key: CONTACT_NOTIFY_EMAIL
+        value: support@simplebeacon.ai
+      - key: SUPPORT_EMAIL
+        value: support@simplebeacon.ai
+      - key: DISPUTE_ALERT_EMAIL
+        value: support@simplebeacon.ai
       - key: SIMPLEBEACON_APP_URL
         sync: false
       - key: SIMPLEBEACON_LANDING
