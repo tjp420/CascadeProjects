@@ -18,30 +18,45 @@
 
 const BASE_STYLES = `
   <style>
-    body { margin:0; padding:0; background:#f4f5f7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
-    .container { max-width:600px; margin:0 auto; background:#fff; border-radius:8px; overflow:hidden; }
-    .header { background:linear-gradient(135deg,#1e293b 0%,#334155 100%); padding:24px 32px; }
-    .header h1 { color:#fff; font-size:20px; margin:0; font-weight:600; }
-    .header .logo { color:#94a3b8; font-size:13px; margin-top:4px; }
+    body { margin:0; padding:0; background:#f1f5f9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+    .container { max-width:600px; margin:0 auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    .header { background:linear-gradient(135deg,#0f172a 0%,#134e4a 100%); padding:28px 32px; }
+    .header h1 { color:#fff; font-size:21px; margin:0; font-weight:600; letter-spacing:-0.3px; }
+    .header .logo { color:#5eead4; font-size:12px; margin-top:6px; letter-spacing:0.5px; text-transform:uppercase; }
     .body { padding:32px; }
-    .body p { color:#374151; font-size:15px; line-height:1.6; margin:0 0 16px; }
-    .body strong { color:#111827; }
+    .body p { color:#334155; font-size:15px; line-height:1.65; margin:0 0 16px; }
+    .body strong { color:#0f172a; }
+    .body a { color:#0d9488; }
     .callout { border-radius:8px; padding:16px 20px; margin:20px 0; }
-    .callout-success { background:#ecfdf5; border-left:4px solid #10b981; }
-    .callout-warning { background:#fef2f2; border-left:4px solid #ef4444; }
-    .callout-info { background:#eff6ff; border-left:4px solid #3b82f6; }
+    .callout-success { background:#f0fdfa; border-left:3px solid #14b8a6; }
+    .callout-warning { background:#fef2f2; border-left:3px solid #f43f5e; }
+    .callout-info { background:#f0fdfa; border-left:3px solid #14b8a6; }
     .callout p { margin:0; font-size:14px; }
-    .callout-success p { color:#065f46; }
-    .callout-warning p { color:#991b1b; }
-    .callout-info p { color:#1e40af; }
-    .btn { display:inline-block; background:#3b82f6; color:#fff !important; text-decoration:none; padding:12px 28px; border-radius:6px; font-size:15px; font-weight:600; margin:16px 0; }
-    .meta { background:#f9fafb; border-radius:6px; padding:16px; margin:20px 0; }
-    .meta-row { display:flex; justify-content:space-between; padding:4px 0; font-size:14px; }
-    .meta-label { color:#6b7280; }
-    .meta-value { color:#111827; font-weight:500; }
-    .footer { padding:24px 32px; background:#f9fafb; }
-    .footer p { color:#9ca3af; font-size:12px; margin:0; text-align:center; }
-    .footer a { color:#6b7280; }
+    .callout-success p { color:#134e4a; }
+    .callout-warning p { color:#881337; }
+    .callout-info p { color:#134e4a; }
+    .btn { display:inline-block; background:#0d9488; color:#fff !important; text-decoration:none; padding:12px 28px; border-radius:8px; font-size:15px; font-weight:600; margin:16px 0; }
+    .btn-secondary { background:transparent; color:#0d9488 !important; border:1.5px solid #0d9488; }
+    .meta { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:20px 0; }
+    .meta-row { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-bottom:1px solid #f1f5f9; }
+    .meta-row:last-child { border-bottom:none; }
+    .meta-label { color:#64748b; }
+    .meta-value { color:#0f172a; font-weight:500; }
+    .footer { padding:24px 32px; background:#f8fafc; border-top:1px solid #e2e8f0; }
+    .footer p { color:#94a3b8; font-size:12px; margin:0; text-align:center; }
+    .footer a { color:#64748b; }
+    .section-title { color:#0f172a; font-size:16px; font-weight:600; margin:28px 0 12px; }
+    .feature-list { list-style:none; padding:0; margin:12px 0; }
+    .feature-list li { padding:8px 0; font-size:14px; color:#334155; border-bottom:1px solid #f1f5f9; }
+    .feature-list li:last-child { border-bottom:none; }
+    .feature-list li strong { color:#0f172a; }
+    .code-block { background:#0f172a; border-radius:8px; padding:20px; margin:16px 0; overflow-x:auto; }
+    .code-block pre { margin:0; color:#cbd5e1; font-size:13px; line-height:1.75; font-family:'SF Mono',Menlo,Consolas,monospace; white-space:pre-wrap; word-break:break-all; }
+    .code-comment { color:#5eead4; }
+    .code-cmd { color:#e2e8f0; }
+    .token-box { background:#f0fdfa; border:1px solid #99f6e4; border-radius:8px; padding:14px 16px; margin:12px 0; }
+    .token-box code { font-family:'SF Mono',Menlo,Consolas,monospace; font-size:11px; color:#0f766e; word-break:break-all; }
+    .step-num { display:inline-block; background:#0d9488; color:#fff; width:22px; height:22px; line-height:22px; text-align:center; border-radius:50%; font-size:12px; font-weight:700; margin-right:8px; }
   </style>
 `;
 
@@ -106,37 +121,37 @@ function renderSubscriptionActivated(opts = {}) {
     bodyContent += `<p>Your Team Pro subscription includes 5 seats.</p>`;
   }
 
-  // License token callout
+  // License token box
   if (licenseToken) {
     bodyContent += `
-    <div class="callout callout-info">
-      <p><strong>Your License Token</strong></p>
-      <p style="font-family:monospace;font-size:11px;word-break:break-all;margin-top:8px;background:#fff;padding:8px;border-radius:4px;border:1px solid #e5e7eb;">${licenseToken}</p>
-      <p style="margin-top:8px">Keep this token safe. You can also retrieve it anytime from your <a href="https://simplebeacon.ai">dashboard</a>.</p>
+    <div style="margin:24px 0;">
+      <p style="font-size:13px;color:#64748b;margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Your License Token</p>
+      <div class="token-box">
+        <code>${licenseToken}</code>
+      </div>
+      <p style="font-size:13px;color:#64748b;margin:8px 0 0;">Keep this token safe. Retrieve it anytime from your <a href="https://simplebeacon.ai">dashboard</a>.</p>
     </div>`;
   }
 
   // Quickstart section
   bodyContent += `
-    <h3 style="color:#111827;font-size:17px;margin:24px 0 12px;">Quickstart — 3 steps to your first scan</h3>
-    <div class="meta" style="background:#1e1e1e;border-radius:8px;padding:20px;margin:16px 0;">
-      <pre style="margin:0;color:#d4d4d4;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-all;"><span style="color:#6a9955;"># 1. Install the CLI</span>
-npm install -g simplebeacon
+    <p class="section-title">Quickstart — 3 steps to your first scan</p>
+    <div class="code-block"><pre><span class="code-comment"># 1. Install the CLI</span>
+<span class="code-cmd">npm install -g simplebeacon</span>
 
-<span style="color:#6a9955;"># 2. Activate your license</span>
-export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken ? licenseToken.substring(0, 50) + '...' : '<your-token>'}"
+<span class="code-comment"># 2. Activate your license</span>
+<span class="code-cmd">export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken ? licenseToken.substring(0, 50) + '...' : '<your-token>'}"</span>
 
-<span style="color:#6a9955;"># Or save to file (recommended)</span>
-mkdir -p ~/.simplebeacon
-echo "${licenseToken ? '<token>' : '<your-token>'}" &gt; ~/.simplebeacon/license.jwt
+<span class="code-comment"># Or save to file (recommended)</span>
+<span class="code-cmd">mkdir -p ~/.simplebeacon
+echo "&lt;token&gt;" &gt; ~/.simplebeacon/license.jwt</span>
 
-<span style="color:#6a9955;"># 3. Run your first scan</span>
-simplebeacon scan --gate</pre>
-    </div>`;
+<span class="code-comment"># 3. Run your first scan</span>
+<span class="code-cmd">simplebeacon scan --gate</span></pre></div>`;
 
   // What's included
   bodyContent += `
-    <h3 style="color:#111827;font-size:17px;margin:24px 0 12px;">What's included</h3>
+    <p class="section-title">What's included</p>
     <div class="meta">
       <div class="meta-row"><span class="meta-label">Scans</span><span class="meta-value">Unlimited</span></div>
       <div class="meta-row"><span class="meta-label">Analyzer modules</span><span class="meta-value">38 engines</span></div>
@@ -146,24 +161,20 @@ simplebeacon scan --gate</pre>
       <div class="meta-row"><span class="meta-label">Token expires</span><span class="meta-value">1 year (auto-renewed)</span></div>
     </div>`;
 
-  // Other ways to use
+  // Other ways to use — clean list, not heavy callout boxes
   bodyContent += `
-    <h3 style="color:#111827;font-size:17px;margin:24px 0 12px;">Other ways to use SimpleBeacon</h3>
-    <div class="callout callout-success">
-      <p><strong>VS Code Extension</strong> — Search "simplebeacon" in the Extensions marketplace</p>
-    </div>
-    <div class="callout callout-success">
-      <p><strong>Web Dashboard</strong> — Run scans in your browser at <a href="https://simplebeacon.ai/dashboard">simplebeacon.ai/dashboard</a></p>
-    </div>
-    <div class="callout callout-success">
-      <p><strong>CI/CD Pipeline</strong> — Add <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px;">simplebeacon scan --gate</code> to your GitHub Actions / GitLab CI</p>
-    </div>`;
+    <p class="section-title">Other ways to use SimpleBeacon</p>
+    <ul class="feature-list">
+      <li><strong>VS Code Extension</strong> — Search "simplebeacon" in the Extensions marketplace</li>
+      <li><strong>Web Dashboard</strong> — Run scans in your browser at <a href="https://simplebeacon.ai/dashboard">simplebeacon.ai/dashboard</a></li>
+      <li><strong>CI/CD Pipeline</strong> — Add <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;">simplebeacon scan --gate</code> to your GitHub Actions or GitLab CI</li>
+    </ul>`;
 
   // CTA buttons
   bodyContent += `
-    <p style="margin-top:24px;">
+    <p style="margin-top:28px;">
       <a href="https://simplebeacon.ai/dashboard" class="btn">Open Dashboard</a>
-      <a href="https://simplebeacon.ai/docs" class="btn" style="background:#6b7280;margin-left:8px;">Read Docs</a>
+      <a href="https://simplebeacon.ai/docs" class="btn btn-secondary" style="margin-left:8px;">Read Docs</a>
     </p>`;
 
   return { subject, text, html: wrapHtml(`Welcome to SimpleBeacon ${tierName}`, bodyContent) };
