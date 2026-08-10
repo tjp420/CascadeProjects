@@ -1072,7 +1072,11 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'development') return next();
   if (!internalDashboard) return next();
   if (!req.path.startsWith('/api/')) return next();
-  if (req.path.startsWith('/api/simplebeacon/billing/webhook')) return next();
+  if (req.path.startsWith('/api/simplebeacon/billing/')) return next();
+  if (req.path.startsWith('/api/create-subscription-session')) return next();
+  if (req.path.startsWith('/api/create-checkout-session')) return next();
+  if (req.path.startsWith('/api/test-checkout')) return next();
+  if (req.path.startsWith('/api/config/pricing')) return next();
   if (req.path.startsWith('/api/auth/')) return next();
   if (req.path.startsWith('/api/user/')) return next();
   if (req.path === '/api/platform/status') return next();
