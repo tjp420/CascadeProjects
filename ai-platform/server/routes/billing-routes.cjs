@@ -8,14 +8,23 @@
  */
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { authorize } = require('../middleware/authorize.cjs');
 const { calculateProration, getTierMonthlyPrice, getTierAnnualPrice, tierDisplayName } = require('../lib/proration-calculator.cjs');
 
 const router = express.Router();
 
+const billingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many billing requests, please try again later.' },
+});
+
 const TIER_ORDER = ['developer', 'team_pro', 'enterprise'];
 
-router.get('/tiers', authorize('admin:all'), (req, res) => {
+router.get('/tiers', billingLimiter, authorize('admin:all'), (req, res) => {
   const tiers = TIER_ORDER.map((tier) => ({
     id: tier,
     name: tierDisplayName(tier),
@@ -25,7 +34,7 @@ router.get('/tiers', authorize('admin:all'), (req, res) => {
   res.json({ success: true, tiers });
 });
 
-router.post('/proration-preview', authorize('admin:all'), (req, res) => {
+router.post('/proration-preview', billingLimiter, authorize('admin:all'), (req, res) => {
   const { fromTier, toTier, periodStart, periodEnd, isAnnual } = req.body || {};
 
   if (!fromTier || !toTier) {

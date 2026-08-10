@@ -16,6 +16,8 @@
  *   await sendEmail({ to: customerEmail, subject, text, html });
  */
 
+const { getTierMonthlyPrice } = require('./proration-calculator.cjs');
+
 const BASE_STYLES = `
   <style>
     body { margin:0; padding:0; background-color:#f4f5f7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#333333; -webkit-font-smoothing:antialiased; }
@@ -148,7 +150,9 @@ function renderSubscriptionActivated(opts = {}) {
     : (tier === 'team_pro' ? '\n\nYour Team Pro subscription includes 5 seats.' : '');
 
   const subject = `Welcome to SimpleBeacon ${tierName} — Your License Token Inside`;
-  const text = `Welcome to SimpleBeacon ${tierName}!\n\nThank you for subscribing to SimpleBeacon ${tierName} ($49/month). Your subscription is now active with unlimited scans.${seatInfo}\n\n--- Your License Token ---\n${licenseToken || '(no token generated yet — contact support)'}\n--------------------------\n\nQUICKSTART (3 steps):\n\n1. Install the CLI:\n   npm install -g simplebeacon\n\n2. Activate your license:\n   export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken || '<your-token>'}"\n   # Or save to file:\n   mkdir -p ~/.simplebeacon\n   echo "${licenseToken || '<your-token>'}" > ~/.simplebeacon/license.jwt\n\n3. Run your first scan:\n   simplebeacon scan --gate\n\nThat's it! You now have unlimited scans, CI/CD gate integration, 38 analyzer modules, PDF reports, and all export formats.\n\nOTHER WAYS TO USE SIMPLEBEACON:\n- VS Code extension: Search "simplebeacon" in the Extensions marketplace\n- Dashboard: https://simplebeacon.ai/dashboard\n- CI/CD: Add simplebeacon scan --gate to your pipeline\n\nYour token expires in 1 year (renewed automatically by your subscription).\nRetrieve it anytime: https://simplebeacon.ai\n\nNeed help? Reply to this email or visit https://simplebeacon.ai`;
+  const monthlyPriceCents = getTierMonthlyPrice(tier);
+  const monthlyPriceUsd = monthlyPriceCents > 0 ? `$${(monthlyPriceCents / 100).toFixed(0)}/month` : 'custom pricing';
+  const text = `Welcome to SimpleBeacon ${tierName}!\n\nThank you for subscribing to SimpleBeacon ${tierName} (${monthlyPriceUsd}). Your subscription is now active with unlimited scans.${seatInfo}\n\n--- Your License Token ---\n${licenseToken || '(no token generated yet — contact support)'}\n--------------------------\n\nQUICKSTART (3 steps):\n\n1. Install the CLI:\n   npm install -g simplebeacon\n\n2. Activate your license:\n   export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken || '<your-token>'}"\n   # Or save to file:\n   mkdir -p ~/.simplebeacon\n   echo "${licenseToken || '<your-token>'}" > ~/.simplebeacon/license.jwt\n\n3. Run your first scan:\n   simplebeacon scan --gate\n\nThat's it! You now have unlimited scans, CI/CD gate integration, 38 analyzer modules, PDF reports, and all export formats.\n\nOTHER WAYS TO USE SIMPLEBEACON:\n- VS Code extension: Search "simplebeacon" in the Extensions marketplace\n- Dashboard: https://simplebeacon.ai/dashboard\n- CI/CD: Add simplebeacon scan --gate to your pipeline\n\nYour token expires in 1 year (renewed automatically by your subscription).\nRetrieve it anytime: https://simplebeacon.ai\n\nNeed help? Reply to this email or visit https://simplebeacon.ai`;
 
   // ---- Build body (table-row based for email client compat) ----
   let body = '';

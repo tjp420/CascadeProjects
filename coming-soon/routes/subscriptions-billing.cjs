@@ -50,11 +50,6 @@ const WEBHOOK_RATE_LIMIT_MS = 60 * 1000;
 const WEBHOOK_RATE_LIMIT_MAX = 30;
 const webhookRateLog = new Map();
 
-function parseRawWebhookJson(rawBody) {
-    const text = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '{}');
-    return JSON.parse(text);
-}
-
 // Create a Stripe Checkout Session for Continuous Shield subscription
 router.post('/api/create-subscription-session', async (req, res) => {
     try {
@@ -311,20 +306,15 @@ function setupSubscriptionWebhook(app) {
 
         const sig = req.headers['stripe-signature'];
         const secret = process.env.STRIPE_WEBHOOK_SECRET;
-        const isProduction = process.env.NODE_ENV === 'production';
         let event;
         try {
-            if (isProduction && !sig) {
+            if (!sig) {
                 return res.status(400).send('Webhook Error: Missing Stripe signature');
             }
-            if (isProduction && (!stripe || !secret)) {
+            if (!stripe || !secret) {
                 return res.status(503).send('Webhook Error: Stripe webhook is not configured');
             }
-            if (stripe && secret && sig) {
-                event = stripe.webhooks.constructEvent(req.body, sig, secret);
-            } else {
-                event = parseRawWebhookJson(req.body);
-            }
+            event = stripe.webhooks.constructEvent(req.body, sig, secret);
         } catch (err) {
             logger.error('[SubscriptionWebhook] Signature verification failed:', err.message);
             return res.status(400).send('Webhook Error: ' + err.message);

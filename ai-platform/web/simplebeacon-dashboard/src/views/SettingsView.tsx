@@ -122,6 +122,22 @@ function writeProviderDiscoveryCache(ollamaModels: string[]) {
 export function SettingsView() {
   const [enabled, setEnabled] = useState(isNotificationsEnabled());
   const { user } = useAuth();
+  const [defaultProjectPath, setDefaultProjectPath] = useState(() => localStorage.getItem('simplebeacon_default_project_path') || '');
+  const [productionPaths, setProductionPaths] = useState(() => localStorage.getItem('simplebeacon_production_paths') || '');
+  const [savingPaths, setSavingPaths] = useState(false);
+
+  const handleSavePaths = useCallback(() => {
+    setSavingPaths(true);
+    try {
+      localStorage.setItem('simplebeacon_default_project_path', defaultProjectPath);
+      localStorage.setItem('simplebeacon_production_paths', productionPaths);
+      toast.success('Scan paths saved');
+    } catch {
+      toast.error('Failed to save scan paths');
+    } finally {
+      setSavingPaths(false);
+    }
+  }, [defaultProjectPath, productionPaths]);
 
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-6">
@@ -158,13 +174,13 @@ export function SettingsView() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Default Project Path</Label>
-                <Input placeholder="/path/to/project" />
+                <Input placeholder="/path/to/project" value={defaultProjectPath} onChange={(e) => setDefaultProjectPath(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Production Paths</Label>
-                <Input placeholder="server/, src/, web/" />
+                <Input placeholder="server/, src/, web/" value={productionPaths} onChange={(e) => setProductionPaths(e.target.value)} />
               </div>
-              <Button>Save Paths</Button>
+              <Button onClick={handleSavePaths} disabled={savingPaths}>{savingPaths ? 'Saving...' : 'Save Paths'}</Button>
             </CardContent>
           </Card>
         </TabsContent>

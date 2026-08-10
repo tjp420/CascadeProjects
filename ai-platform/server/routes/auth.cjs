@@ -74,7 +74,7 @@ router.get('/health', (req, res) => {
     });
     res.json({ ok: true, jwtWorks: true, token });
   } catch (err) {
-    res.status(500).json({ ok: false, jwtWorks: false, error: err.name, message: err.message, stack: err.stack });
+    res.status(500).json({ ok: false, jwtWorks: false, error: 'jwt_generation_failed' });
   }
 });
 

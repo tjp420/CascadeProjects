@@ -9,9 +9,10 @@
 Catch AI-generated slop, mock metrics, and placeholder credentials before they ship.
 
 - **Free:** MCP snippet scans + 5 core engines (credentials, leaks, slop, dead-code, security) + plaintext output + unlimited for open source
-- **Pro ($9/mo or $79/yr):** All 38 analyzer engines, batch/multi-project CLI, JSON/SARIF/CSV export, VS Code: dashboard, GitHub Actions with exportable reports
-- **Team ($15/dev/mo or $150/dev/yr):** Everything in Pro + shared team configs, seat management, priority support
-- **Enterprise (custom):** SSO/SAML, custom rules, air-gapped deployment, EU AI Act compliance, dedicated support
+- **Developer ($49/mo or $490/yr):** All 38 analyzer engines, batch/multi-project CLI, JSON/SARIF/CSV export, VS Code: dashboard, GitHub Actions with exportable reports
+- **Team Pro ($149/mo or $1,490/yr):** Everything in Developer + shared team configs, 5 seats, EU AI Act compliance, SOC 2 board-ready certs, priority support
+- **Enterprise (custom):** SSO/SAML, custom rules, air-gapped deployment, dedicated analyst, Book Demo
+- **Legacy Pro ($9/mo):** Backward compatible tier for existing customers
 
 ---
 

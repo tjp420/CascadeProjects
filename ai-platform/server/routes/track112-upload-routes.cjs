@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+const { authenticate } = require('../middleware/auth.cjs');
 
 const router = express.Router();
 
@@ -53,7 +54,7 @@ function observeUploadLatency(req) {
   }
 }
 
-router.post('/uploads', express.json(), (req, res) => {
+router.post('/uploads', authenticate, express.json(), (req, res) => {
   const { tenant, maxBytes } = req.body || {};
   try {
     const id = uploadManager.createSession({ tenant, maxBytes, traceId: req.track112TraceId });
@@ -67,7 +68,7 @@ router.post('/uploads', express.json(), (req, res) => {
 });
 
 // Write incoming chunk data directly to a file named by its offset
-router.post('/uploads/:id/chunk', async (req, res) => {
+router.post('/uploads/:id/chunk', authenticate, async (req, res) => {
   const id = req.params.id;
   const q = req.query || {};
   const offset = Number(q.offset || 0);
@@ -85,7 +86,7 @@ router.post('/uploads/:id/chunk', async (req, res) => {
 });
 
 // Commit: compute root over persisted chunk files, verify Ed25519 signature, then remove session data
-router.post('/uploads/:id/commit', express.json(), (req, res) => {
+router.post('/uploads/:id/commit', authenticate, express.json(), (req, res) => {
   const id = req.params.id;
   const { publicKeyPem, signature } = req.body || {};
   if (!publicKeyPem || !signature) {

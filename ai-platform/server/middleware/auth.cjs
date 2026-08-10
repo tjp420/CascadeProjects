@@ -160,7 +160,7 @@ async function tryToken(token, res) {
 }
 
 async function resolveAuth(req, res) {
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_BYPASS === '1') {
     return {
       user: {
         id: 'dev-user-01',
