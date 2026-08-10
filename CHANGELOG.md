@@ -13,6 +13,37 @@ All notable changes to this project will be documented in this file.
 - **Notes**: Security tooling and onboarding committed to branch `ci/backend-bench-pr` for review and merge.
 
 
+## [1.1.3] - 2026-08-10
+
+### Security
+- **Changed**: Extracted hardcoded `https://simplebeacon.ai` URLs from billing email templates into `PUBLIC_URL` env var (falls back to `https://simplebeacon.ai`). Affects 32 references across `ai-platform/server/lib/billing-email-templates.cjs` and `coming-soon/services/billing-email-templates.cjs`.
+- **Changed**: Extracted hardcoded `https://cascadeprojects-yzzd.onrender.com` URLs from VSCode extension and scripts into env vars (`SB_DOWNLOAD_URL`, `LEGACY_RENDER_URL`, `RENDER_URL`).
+- **Fixed**: Replaced 6 `eval()` calls with safer alternatives in build/test scripts:
+  - `build-lucide-custom.cjs` (4 copies): `eval()` → `new Function()` for icon node parsing
+  - `track95-all-in-one.cjs`: `eval()` → `require()` for script execution
+  - `test-scanner-concurrency.cjs`: `eval()` → `vm.runInThisContext()` for browser service loading
+
+### Infrastructure
+- **Added**: `HEALTHCHECK` directives to both Dockerfiles:
+  - `ai-platform/pipeline/Dockerfile`: Python urllib health check on port 8000
+  - `coming-soon/Dockerfile`: Node.js http health check on port 3001
+
+### Tests
+- **Added**: 43 new tests covering Sprint 1-2 security changes:
+  - `upload.test.cjs`: 13 URL/branch/token validation tests (SSRF prevention, branch injection, token format)
+  - `dashboard-vault-auth.test.cjs`: 10 cookie security tests (SameSite=Strict, Secure, HttpOnly, Max-Age)
+  - `security.test.cjs`: 18 Joi schema validation tests (vaultHandshake, vaultDecrypt, vaultRekey, validateInput middleware)
+
+
+## [1.1.2] - 2026-08-10
+
+- **Added**: Husky `pre-push` hook invoking `scripts/pre-push-scan.js` to scan changed/unpushed files and block pushes with detected secrets.
+- **Added**: `scripts/pre-push-scan.js` — resilient changed-file scanner that prefers `gitleaks` (binary or `npx`) and falls back to a conservative regex-based engine when the binary is unavailable.
+- **Added**: `scripts/install-gitleaks.js` — cross-platform helper to bootstrap `gitleaks` (macOS/Homebrew, Windows/winget + PowerShell fallback; manual guidance for Linux).
+- **Changed**: `README.md` updated with onboarding instructions (`npm run install-gitleaks`) and explanation of the pre-push guard.
+- **Notes**: Security tooling and onboarding committed to branch `ci/backend-bench-pr` for review and merge.
+
+
 ## [1.1.2] - 2026-08-10
 
 ### Security

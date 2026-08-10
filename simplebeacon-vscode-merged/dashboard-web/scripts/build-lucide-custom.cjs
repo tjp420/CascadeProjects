@@ -35,7 +35,7 @@ function extractIconNode(filePath) {
   var nodeStr = '[' + match[2] + ']';
   var nodes;
   try {
-    nodes = eval('(' + nodeStr + ')');
+    nodes = new Function('return ' + nodeStr)();
   } catch (e) {
     console.error('Failed to parse icon nodes for', resolved, e.message);
     return null;

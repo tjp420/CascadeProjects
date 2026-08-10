@@ -90,7 +90,7 @@ const req = https.request(options, (res) => {
     if (res.statusCode === 200) {
       console.log('\n✓ Webhook accepted! Simulated payment of $49.00/mo was processed.');
       console.log('  Check the subscription status:');
-      console.log('  curl "https://cascadeprojects-yzzd.onrender.com/api/simplebeacon/billing/status?email=' + TEST_EMAIL + '"');
+      console.log('  curl "' + WEBHOOK_URL.replace(/\/webhook$/, '') + '/api/simplebeacon/billing/status?email=' + TEST_EMAIL + '"');
     } else {
       console.log('\n✗ Webhook rejected. Check the error above.');
     }

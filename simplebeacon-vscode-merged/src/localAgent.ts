@@ -8,6 +8,7 @@ import * as os from 'os';
 import { spawn, execFile } from 'child_process';
 import { promisify } from 'util';
 import { getSbConfig } from './utils/vscode';
+import { getBridgeToken } from './dataServer';
 
 const execFileAsync = promisify(execFile);
 
@@ -56,7 +57,7 @@ export function getAgentDownloadUrl(): string {
     const base = apiUrl.replace(/\/$/, '');
     return `${base}/downloads/simplebeacon-local-agent-portable.zip`;
   }
-  return 'https://cascadeprojects-yzzd.onrender.com/downloads/simplebeacon-local-agent-portable.zip';
+  return process.env.SB_DOWNLOAD_URL || 'https://cascadeprojects-yzzd.onrender.com/downloads/simplebeacon-local-agent-portable.zip';
 }
 
 /**
@@ -248,10 +249,14 @@ export async function scanViaLocalAgent(options: AgentScanOptions, port?: number
         port: agentPort,
         path: '/scan',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        },
+        headers: Object.assign(
+          {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+          },
+          // include bridge token when available to authenticate to local agent/data-server
+          (typeof getBridgeToken === 'function' ? { 'x-simplebeacon-bridge-token': getBridgeToken() } : {})
+        ),
         timeout: 600000,
       },
       (res) => {

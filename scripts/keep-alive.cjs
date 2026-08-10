@@ -28,7 +28,7 @@ const { URL } = require('url');
 
 // --- Configuration ---------------------------------------------------------
 
-const DEFAULT_RENDER_URL = 'https://cascadeprojects-yzzd.onrender.com';
+const DEFAULT_RENDER_URL = process.env.RENDER_URL || 'https://cascadeprojects-yzzd.onrender.com';
 const DEFAULT_INTERVAL_MIN = 10;   // base interval (minutes)
 const JITTER_MIN = 0;              // min jitter (minutes)
 const JITTER_MAX = 4;              // max jitter (minutes) → 10-14 min range

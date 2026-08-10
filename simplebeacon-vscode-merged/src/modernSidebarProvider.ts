@@ -2117,16 +2117,18 @@ $('cancelBtn').addEventListener('click', () => {
               };
               let url = message.url;
               // Canonicalize legacy /coming-soon/*.html URLs to live marketing routes.
+              const PUBLIC_URL = process.env.PUBLIC_APP_URL || 'https://simplebeacon.ai';
+              const RENDER_URL = process.env.LEGACY_RENDER_URL || 'https://cascadeprojects-yzzd.onrender.com';
               const legacyMap: Record<string, string> = {
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing',
-                'https://simplebeacon.ai/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
-                'https://simplebeacon.ai/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
-                'https://simplebeacon.ai/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing',
-                'https://simplebeacon.ai/dashboard/roadmap': 'https://simplebeacon.ai/roadmap',
-                'https://simplebeacon.ai/dashboard/audit': 'https://simplebeacon.ai/audit',
-                'https://simplebeacon.ai/dashboard/pricing': 'https://simplebeacon.ai/pricing',
+                [`${RENDER_URL}/coming-soon/roadmap.html`]: `${PUBLIC_URL}/roadmap`,
+                [`${RENDER_URL}/coming-soon/audit.html`]: `${PUBLIC_URL}/audit`,
+                [`${RENDER_URL}/coming-soon/pricing.html`]: `${PUBLIC_URL}/pricing`,
+                [`${PUBLIC_URL}/coming-soon/roadmap.html`]: `${PUBLIC_URL}/roadmap`,
+                [`${PUBLIC_URL}/coming-soon/audit.html`]: `${PUBLIC_URL}/audit`,
+                [`${PUBLIC_URL}/coming-soon/pricing.html`]: `${PUBLIC_URL}/pricing`,
+                [`${PUBLIC_URL}/dashboard/roadmap`]: `${PUBLIC_URL}/roadmap`,
+                [`${PUBLIC_URL}/dashboard/audit`]: `${PUBLIC_URL}/audit`,
+                [`${PUBLIC_URL}/dashboard/pricing`]: `${PUBLIC_URL}/pricing`,
               };
               if (legacyMap[url]) {
                 url = legacyMap[url];

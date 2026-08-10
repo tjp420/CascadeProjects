@@ -12,6 +12,9 @@
  * - Plain-text fallback for each template
  */
 
+// Public-facing URL for email links — override via env var for staging/whitelabel deployments
+const PUBLIC_URL = process.env.PUBLIC_APP_URL || process.env.SIMPLEBEACON_APP_URL || 'https://simplebeacon.ai';
+
 const BASE_STYLES = `
   <style>
     body { margin:0; padding:0; background:#f4f5f7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
@@ -52,7 +55,7 @@ function wrapHtml(title, bodyContent) {
       ${bodyContent}
     </div>
     <div class="footer">
-      <p>SimpleBeacon, Inc. &middot; <a href="https://simplebeacon.ai">simplebeacon.ai</a> &middot; <a href="mailto:support@simplebeacon.ai">support@simplebeacon.ai</a></p>
+      <p>SimpleBeacon, Inc. &middot; <a href="${PUBLIC_URL}">simplebeacon.ai</a> &middot; <a href="mailto:support@simplebeacon.ai">support@simplebeacon.ai</a></p>
       <p style="margin-top:8px">You receive this email because you have a SimpleBeacon account.</p>
     </div>
   </div></body></html>`;
@@ -82,7 +85,7 @@ function renderSubscriptionActivated(opts = {}) {
     : (tier === 'team_pro' ? '\n\nYour Team Pro subscription includes 5 seats.' : '');
 
   const subject = 'SimpleBeacon Subscription Activated';
-  const text = `Your SimpleBeacon ${tier} subscription is now active.\n\nYou can start using all ${tier} tier features immediately.${seatInfo}\n\nThank you for your purchase.${licenseToken ? `\n\n--- Your License Key ---\n${licenseToken}\n------------------------\n\nKeep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.\n\nYou can also retrieve it anytime from your dashboard: https://simplebeacon.ai` : ''}`;
+  const text = `Your SimpleBeacon ${tier} subscription is now active.\n\nYou can start using all ${tier} tier features immediately.${seatInfo}\n\nThank you for your purchase.${licenseToken ? `\n\n--- Your License Key ---\n${licenseToken}\n------------------------\n\nKeep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.\n\nYou can also retrieve it anytime from your dashboard: ${PUBLIC_URL}` : ''}`;
 
   let bodyContent = `
     <p>Your SimpleBeacon <strong>${tier}</strong> subscription is now active.</p>
@@ -97,7 +100,7 @@ function renderSubscriptionActivated(opts = {}) {
     <div class="callout callout-info">
       <p><strong>Your License Key</strong></p>
       <p style="font-family:monospace;font-size:12px;word-break:break-all;margin-top:8px">${licenseToken}</p>
-      <p style="margin-top:8px">Keep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.<br>You can also retrieve it anytime from your <a href="https://simplebeacon.ai">dashboard</a>.</p>
+      <p style="margin-top:8px">Keep this key safe. You can use it to activate SimpleBeacon in your editor or CLI.<br>You can also retrieve it anytime from your <a href="${PUBLIC_URL}">dashboard</a>.</p>
     </div>`;
   }
   bodyContent += `<p>Thank you for your purchase.</p>`;
@@ -113,7 +116,7 @@ function renderSubscriptionCanceled() {
     <div class="callout callout-info">
       <p>You will retain access until the end of your current billing period. After that, your account will revert to the free tier.</p>
     </div>
-    <p>We hope to see you again soon. <a href="https://simplebeacon.ai/settings/billing">Reactivate anytime</a>.</p>`;
+    <p>We hope to see you again soon. <a href="${PUBLIC_URL}/settings/billing">Reactivate anytime</a>.</p>`;
   return { subject, text, html: wrapHtml('Subscription Canceled', bodyContent) };
 }
 
@@ -141,7 +144,7 @@ function renderPaymentFailed(opts = {}) {
     ? `Stripe will automatically retry the payment on ${retryDate}.`
     : 'This was the final retry attempt. Your subscription will be deactivated at the end of the current billing period.';
 
-  const text = `A payment for your SimpleBeacon subscription failed (attempt ${attemptCount}).\n\n${retryLine}\n\nPlease update your payment method at https://simplebeacon.ai/settings/billing to avoid service interruption.\n\nIf you believe this is an error, please contact support@simplebeacon.ai.`;
+  const text = `A payment for your SimpleBeacon subscription failed (attempt ${attemptCount}).\n\n${retryLine}\n\nPlease update your payment method at ${PUBLIC_URL}/settings/billing to avoid service interruption.\n\nIf you believe this is an error, please contact support@simplebeacon.ai.`;
 
   const bodyContent = `
     <p>A payment for your SimpleBeacon subscription failed <strong>(attempt ${attemptCount})</strong>.</p>
@@ -149,7 +152,7 @@ function renderPaymentFailed(opts = {}) {
       <p>${retryLine}</p>
     </div>
     <p>Please update your payment method to avoid service interruption.</p>
-    <a href="https://simplebeacon.ai/settings/billing" class="btn">Update Payment Method</a>
+    <a href="${PUBLIC_URL}/settings/billing" class="btn">Update Payment Method</a>
     <p>If you believe this is an error, please contact <a href="mailto:support@simplebeacon.ai">support@simplebeacon.ai</a>.</p>`;
 
   return { subject, text, html: wrapHtml('Payment Failed', bodyContent) };
@@ -160,14 +163,14 @@ function renderTrialEnding(opts = {}) {
   const trialEndDate = fmtDate(trialEnd);
 
   const subject = 'SimpleBeacon Trial Ending Soon — Add a Payment Method';
-  const text = `Your SimpleBeacon trial will end on ${trialEndDate}.\n\nTo continue using all features without interruption, please add a payment method at https://simplebeacon.ai/settings/billing.\n\nIf you do not add a payment method, your account will revert to the free tier after the trial ends.`;
+  const text = `Your SimpleBeacon trial will end on ${trialEndDate}.\n\nTo continue using all features without interruption, please add a payment method at ${PUBLIC_URL}/settings/billing.\n\nIf you do not add a payment method, your account will revert to the free tier after the trial ends.`;
 
   const bodyContent = `
     <p>Your SimpleBeacon trial will end on <strong>${trialEndDate}</strong>.</p>
     <div class="callout callout-info">
       <p>To continue using all features without interruption, please add a payment method.</p>
     </div>
-    <a href="https://simplebeacon.ai/settings/billing" class="btn">Add Payment Method</a>
+    <a href="${PUBLIC_URL}/settings/billing" class="btn">Add Payment Method</a>
     <p>If you do not add a payment method, your account will revert to the free tier after the trial ends.</p>`;
 
   return { subject, text, html: wrapHtml('Trial Ending Soon', bodyContent) };
@@ -204,7 +207,7 @@ function renderInvoiceUpcoming(opts = {}) {
   const dueDateStr = fmtDate(dueDate);
 
   const subject = `SimpleBeacon — Upcoming Payment of $${amount} ${cur} on ${dueDateStr}`;
-  const text = `Your SimpleBeacon ${tier} subscription payment of $${amount} ${cur} will be charged on ${dueDateStr}.${invoiceNumber ? `\n\nInvoice: ${invoiceNumber}` : ''}\n\nThis is an automated reminder — no action is needed if your payment method is up to date.\n\nTo review or update your payment method, visit https://simplebeacon.ai/settings/billing`;
+  const text = `Your SimpleBeacon ${tier} subscription payment of $${amount} ${cur} will be charged on ${dueDateStr}.${invoiceNumber ? `\n\nInvoice: ${invoiceNumber}` : ''}\n\nThis is an automated reminder — no action is needed if your payment method is up to date.\n\nTo review or update your payment method, visit ${PUBLIC_URL}/settings/billing`;
 
   const bodyContent = `
     <p>Your SimpleBeacon <strong>${tier}</strong> subscription payment of <strong>$${amount} ${cur}</strong> will be charged on <strong>${dueDateStr}</strong>.</p>
@@ -212,7 +215,7 @@ function renderInvoiceUpcoming(opts = {}) {
     <div class="callout callout-info">
       <p>This is an automated reminder — no action is needed if your payment method is up to date.</p>
     </div>
-    <a href="https://simplebeacon.ai/settings/billing" class="btn">Review Payment Method</a>`;
+    <a href="${PUBLIC_URL}/settings/billing" class="btn">Review Payment Method</a>`;
 
   return { subject, text, html: wrapHtml('Upcoming Payment Reminder', bodyContent) };
 }
@@ -236,7 +239,7 @@ function renderProrationNotice(opts = {}) {
   const direction = netAdjustmentCents > 0 ? 'charged' : 'credited';
 
   const subject = `SimpleBeacon — Subscription ${isUpgrade ? 'Upgrade' : 'Change'}: ${fromName} → ${toName}`;
-  const text = `Your SimpleBeacon subscription has been ${action} from ${fromName} to ${toName}.\n\nProration for remaining ${daysRemaining} days of your ${cycleLabel} billing cycle:\n  Adjustment: ${netAdjustmentDisplay} (${direction} to your next invoice)\n\nYour new ${toName} tier features are now active.\n\nTo review your subscription details, visit https://simplebeacon.ai/settings/billing`;
+  const text = `Your SimpleBeacon subscription has been ${action} from ${fromName} to ${toName}.\n\nProration for remaining ${daysRemaining} days of your ${cycleLabel} billing cycle:\n  Adjustment: ${netAdjustmentDisplay} (${direction} to your next invoice)\n\nYour new ${toName} tier features are now active.\n\nTo review your subscription details, visit ${PUBLIC_URL}/settings/billing`;
 
   const bodyContent = `
     <p>Your SimpleBeacon subscription has been <strong>${action}</strong> from <strong>${fromName}</strong> to <strong>${toName}</strong>.</p>
@@ -250,7 +253,7 @@ function renderProrationNotice(opts = {}) {
     <div class="callout ${calloutClass}">
       <p>The adjustment above will be ${direction} to your next invoice. Your new ${toName} tier features are now active.</p>
     </div>
-    <a href="https://simplebeacon.ai/settings/billing" class="btn">Review Subscription</a>`;
+    <a href="${PUBLIC_URL}/settings/billing" class="btn">Review Subscription</a>`;
 
   return { subject, text, html: wrapHtml(isUpgrade ? 'Subscription Upgraded' : 'Subscription Changed', bodyContent) };
 }
@@ -261,7 +264,7 @@ function renderSubscriptionPaused(opts = {}) {
   const resumeStr = fmtDate(resumeDate);
 
   const subject = 'SimpleBeacon Subscription Paused';
-  const text = `Your SimpleBeacon ${tierName} subscription has been paused.\n\nDuring the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.\n\nYou can resume your subscription at any time${resumeDate ? ` (no earlier than ${resumeStr})` : ''} by visiting https://simplebeacon.ai/settings/billing`;
+  const text = `Your SimpleBeacon ${tierName} subscription has been paused.\n\nDuring the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.\n\nYou can resume your subscription at any time${resumeDate ? ` (no earlier than ${resumeStr})` : ''} by visiting ${PUBLIC_URL}/settings/billing`;
 
   const bodyContent = `
     <p>Your SimpleBeacon <strong>${tierName}</strong> subscription has been paused.</p>
@@ -269,7 +272,7 @@ function renderSubscriptionPaused(opts = {}) {
       <p>During the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.</p>
     </div>
     <p>You can resume your subscription at any time${resumeDate ? ` (no earlier than <strong>${resumeStr}</strong>)` : ''}.</p>
-    <a href="https://simplebeacon.ai/settings/billing" class="btn">Resume Subscription</a>`;
+    <a href="${PUBLIC_URL}/settings/billing" class="btn">Resume Subscription</a>`;
 
   return { subject, text, html: wrapHtml('Subscription Paused', bodyContent) };
 }

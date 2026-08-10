@@ -370,10 +370,11 @@ function setupBrowserGlobals() {
 function loadAuditScanService() {
     const servicePath = path.resolve(__dirname, '..', 'coming-soon', 'public', 'js-es2018', 'audit-scan-service.js');
     const fs = require('fs');
+    const vm = require('vm');
     const code = fs.readFileSync(servicePath, 'utf8');
     // The service attaches to window.AuditScanService — execute in this context
     setupBrowserGlobals();
-    eval(code);
+    vm.runInThisContext(code, { filename: servicePath });
     return globalThis.window.AuditScanService;
 }
 

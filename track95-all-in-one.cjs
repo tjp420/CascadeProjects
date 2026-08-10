@@ -24,8 +24,7 @@ fs.writeFileSync(testPath, testContent);
 console.log('Test file created:', fs.existsSync(testPath));
 
 // Apply all tracked file edits
-const applyScript = fs.readFileSync(path.join(ROOT, 'apply-track95-edits.cjs'), 'utf8');
-eval(applyScript);
+require(path.join(ROOT, 'apply-track95-edits.cjs'));
 
 // Verify syntax
 console.log('\nSyntax checks:');

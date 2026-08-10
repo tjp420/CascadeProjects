@@ -24,6 +24,10 @@ const SKIP_GLOBS = [
   'packages/simplebeacon-cli/tests/git-history-secret-scanner.test.js',
   'packages/simplebeacon-cli/tests/cve-dependency-scanner.test.js',
   'packages/simplebeacon-cli/tests/sbom-generator.test.js',
+  // Test script — loads browser scanner service with example AWS keys and JWTs as test fixtures
+  'scripts/test-scanner-concurrency.cjs',
+  // VSCode extension — contains method names that look like JWTs (onDidDispose, appendLine)
+  'simplebeacon-vscode-merged/src/modernSidebarProvider.ts',
 ];
 
 const MAX_BYTES = 1024 * 1024; // 1MB per-file read cap for regex scanning
