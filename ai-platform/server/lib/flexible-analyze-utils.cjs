@@ -577,7 +577,7 @@ function rejectPaidDeliverable(res, auditCheckoutUrl) {
         success: false,
         publicGateLocked: true,
         error: 'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
-        checkoutUrl: auditCheckoutUrl || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report',
+        checkoutUrl: auditCheckoutUrl || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report',
         auditPriceLabel: '$499'
     });
 }

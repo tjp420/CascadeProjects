@@ -110,7 +110,7 @@ function registerEuAiActAuditRoute(app, options = {}) {
   const publicGateEnabled = options.publicGateEnabled === true;
   const auditCheckoutUrl = options.auditCheckoutUrl
     || process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL
-    || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+    || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
 /**
  * Get allowed roots.

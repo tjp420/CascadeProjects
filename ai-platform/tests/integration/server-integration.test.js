@@ -68,7 +68,7 @@ describe('Server Integration', () => {
             publicGateLocked: false,
             closedVaultMode: false,
             hasAuditDeliverableAccess: true,
-            auditCheckoutUrl: 'mailto:audit@simplebeacon.ai',
+            auditCheckoutUrl: 'mailto:admin@simplebeacon.ai',
             auditPriceLabel: '$499'
           });
         });

@@ -258,7 +258,7 @@ If you want `simplebeacon.ai` on Cloudflare:
 | `PUBLIC_URL` | All | Your live domain |
 | `SIMPLEBEACON_LICENSE_SECRET` | Token gen/verify | Generate once, keep secret |
 | `RESEND_API_KEY` | Email sending | [Resend dashboard](https://resend.com) |
-| `RESEND_FROM` | Email "from" | `certificates@simplebeacon.ai` |
+| `RESEND_FROM` | Email "from" | `admin@simplebeacon.ai` |
 | `STRIPE_LINK_*` | Checkout links | Stripe dashboard |
 | `ALLOWED_ORIGIN` | CORS | Cloudflare Pages domain |
 

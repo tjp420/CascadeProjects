@@ -78,7 +78,7 @@ function buildSampleAuditReportHtml(options = {}) {
     </div>
     <div class="sample-site-nav">
       <span class="brand">🛡️ SimpleBeacon</span>
-      <span><a href="/">Home</a><a href="/sample-report">Sample report</a><a href="mailto:audit@simplebeacon.ai">audit@simplebeacon.ai</a></span>
+      <span><a href="/">Home</a><a href="/sample-report">Sample report</a><a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a></span>
     </div>`;
 
     return auditHtml

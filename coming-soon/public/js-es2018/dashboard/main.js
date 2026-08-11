@@ -1465,11 +1465,11 @@ resendBtn.addEventListener('click', async () => {
             window.location.href = 'pricing.html';
             return;
         } else {
-            resendStatus.textContent = result.error || 'Could ! resend token. Please email ' + ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') + ' for help.';
+            resendStatus.textContent = result.error || 'Could ! resend token. Please email ' + ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'admin@simplebeacon.ai') + ' for help.';
             resendStatus.style.color = 'var(--error)';
         }
     } catch (err) {
-        resendStatus.textContent = "Network error. Please email " + ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') + ' for help.';
+        resendStatus.textContent = "Network error. Please email " + ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'admin@simplebeacon.ai') + ' for help.';
         resendStatus.style.color = 'var(--error)';
     }
     resendStatus.style.display = 'block';

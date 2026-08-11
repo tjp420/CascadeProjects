@@ -111,7 +111,7 @@ export class BillingService {
     }
     getAuditCheckoutUrl(plan = this.plan) {
         return (plan === null || plan === void 0 ? void 0 : plan.auditCheckoutUrl)
-            || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+            || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
     }
     async fetchEntitlements() {
         const resolved = await this.resolveEntitlement();

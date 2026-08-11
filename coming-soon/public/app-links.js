@@ -6,7 +6,7 @@
   var closedSource = cfg.closedSource !== false;
 
   function auditEmail() {
-    return cfg.auditEmail || 'audit@simplebeacon.ai';
+    return cfg.auditEmail || 'admin@simplebeacon.ai';
   }
 
   function isStripeUrl(url) {

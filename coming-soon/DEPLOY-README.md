@@ -24,7 +24,7 @@ The dashboard and API backend still live in `simplebeacon-vscode-merged/src/data
    - `ALLOWED_ORIGIN=https://simplebeacon.ai`
    - `SIMPLEBEACON_LICENSE_SECRET=<your-license-secret>`
    - `RESEND_API_KEY=<resend-key>`
-   - `RESEND_FROM=certificates@simplebeacon.ai`
+   - `RESEND_FROM=admin@simplebeacon.ai`
 3. Render will serve the dashboard at `/dashboard/` and the API at `/api/`.
 
 ## Frontend (Cloudflare Pages)

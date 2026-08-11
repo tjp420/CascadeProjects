@@ -4200,7 +4200,7 @@ export class AnalyzeView {
         const MAX_ROWS = 200;
         const rows = rawIssues.slice(0, MAX_ROWS);
         const hidden = rawIssues.length - rows.length;
-        const checkoutUrl = ((_b = (_a = this.app.billingService) === null || _a === void 0 ? void 0 : _a.getAuditCheckoutUrl) === null || _b === void 0 ? void 0 : _b.call(_a)) || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+        const checkoutUrl = ((_b = (_a = this.app.billingService) === null || _a === void 0 ? void 0 : _a.getAuditCheckoutUrl) === null || _b === void 0 ? void 0 : _b.call(_a)) || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
         const lockedNote = locked
             ? `<div class="card mb-3" style="padding:var(--space-3);border-color:rgba(99,102,241,0.35);">
           <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">

@@ -213,7 +213,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         || process.env.SIMPLEBEACON_CLOSED_VAULT === 'true';
     const auditCheckoutUrl = opts.auditCheckoutUrl
         || process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL
-        || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+        || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
     const sendAnalyzeJsonOpts = { publicGateEnabled, applyPublicGateToAnalyzeResponse };
 

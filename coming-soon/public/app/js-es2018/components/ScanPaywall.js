@@ -1,5 +1,5 @@
 import { escapeHtml, formatNumber } from '../utils.js';
-const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+const DEFAULT_CHECKOUT = 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 /**
  * Build preview findings from scan result.
  * Extracts top findings grouped by type/severity for teaser display.
