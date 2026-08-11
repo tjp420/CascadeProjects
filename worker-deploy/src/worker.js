@@ -47,6 +47,31 @@ function withGaInjection(response, env) {
   return injectGaMetaTag(response, gaId);
 }
 
+/**
+ * Apply security headers to an HTML response.
+ * Mirrors the headers set by the Express server in simplebeacon-server.cjs.
+ * @param {Response} response - The HTML response
+ * @returns {Response} - New response with security headers set
+ */
+function withSecurityHeaders(response) {
+  const headers = new Headers(response.headers);
+  headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('X-XSS-Protection', '0');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:3456 http://localhost:3456 http://127.0.0.1:55000 http://localhost:55000 http://127.0.0.1:3000 http://localhost:3000 http://127.0.0.1:3001 http://localhost:3001 http://127.0.0.1:3002 http://localhost:3002 http://127.0.0.1:4000 http://localhost:4000 http://127.0.0.1:8080 http://localhost:8080 http://127.0.0.1:5000 http://localhost:5000 http://127.0.0.1:38000 http://localhost:38000 http://127.0.0.1:50559 http://localhost:50559 http://127.0.0.1:54358 http://localhost:54358 http://127.0.0.1:55432 http://localhost:55432 http://127.0.0.1:11434 http://localhost:11434 https://*.cloudflareinsights.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'self' vscode-webview: vscode-extension:; base-uri 'self'; form-action 'self';"
+  );
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 class SignatureError extends Error {
   constructor(message) {
     super(message);
@@ -329,7 +354,7 @@ export default {
           headers.set('Edge-Cache-TTL', '0');
           headers.set('X-SB-Worker-Entry', entryPath);
           headers.set('X-SB-Worker-Deploy', '2026-08-07-v3');
-          return withGaInjection(new Response(candidate.body, { status: candidate.status, headers }), env);
+          return withSecurityHeaders(withGaInjection(new Response(candidate.body, { status: candidate.status, headers }), env));
         }
       }
     }
@@ -716,7 +741,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'root-html');
-        return withGaInjection(new Response(body, { status: 200, headers }), env);
+        return withSecurityHeaders(withGaInjection(new Response(body, { status: 200, headers }), env));
       }
     }
 
@@ -734,7 +759,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'dashboard-html');
-        return withGaInjection(new Response(body, { status: 200, headers }), env);
+        return withSecurityHeaders(withGaInjection(new Response(body, { status: 200, headers }), env));
       }
     }
 
@@ -751,7 +776,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'page-html');
-        return withGaInjection(new Response(body, { status: 200, headers }), env);
+        return withSecurityHeaders(withGaInjection(new Response(body, { status: 200, headers }), env));
       }
     }
 
@@ -781,7 +806,7 @@ export default {
                      url.pathname === '/' ||
                      (!url.pathname.includes('.') && assetResp.headers.get('Content-Type', '').includes('text/html'));
       const response = new Response(assetResp.body, { status: assetResp.status, headers });
-      if (isHtml) return withGaInjection(response, env);
+      if (isHtml) return withSecurityHeaders(withGaInjection(response, env));
       return response;
     }
 
