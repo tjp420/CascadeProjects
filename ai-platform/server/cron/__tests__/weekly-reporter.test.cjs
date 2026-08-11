@@ -32,6 +32,23 @@ function createReporter(options) {
   options = options || {};
   var sentEmails = [];
 
+  // Stub telemetry store to return predictable mock data
+  var mockTelemetrySummary = options.telemetrySummary || {
+    total_scans: 3,
+    gates_tripped: 1,
+    criticals_blocked: 1,
+    gate_pass_rate: 0.667,
+    quality_distribution: { p10: 70, p25: 75, p50: 82, p75: 88, p90: 92, sampleSize: 3 },
+    severity_totals: { critical: 1, high: 2, medium: 4, low: 8 },
+    scan_sources: { ci: 2, ide: 1, dashboard: 0 },
+    distinct_workspaces: 2,
+    k_anonymity_met: true
+  };
+  var mockTrend = options.telemetryTrend || [
+    { date: new Date().toISOString().slice(0, 10), scan_count: 2, gate_pass_count: 1, gate_pass_rate: 0.5 },
+    { date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), scan_count: 1, gate_pass_count: 1, gate_pass_rate: 1 }
+  ];
+
   var stubs = {
     'email-service.cjs': {
       sendEmail: async function (opts) {
@@ -41,6 +58,11 @@ function createReporter(options) {
         sentEmails.push(opts);
         return { sent: true, queued: false, id: 'test-' + sentEmails.length };
       }
+    },
+    'ci-telemetry-store.cjs': {
+      summarizeTeamTelemetry: function () { return mockTelemetrySummary; },
+      getTeamTrend: function () { return mockTrend; },
+      resolveOrgKey: function (email) { return 'orgkey_' + String(email || '').slice(0, 8); }
     }
   };
 
@@ -271,12 +293,11 @@ describe('Automated Weekly Reporting Worker', () => {
       assert.strictEqual(records.length, 0);
     });
 
-    it('should return records for valid orgId', async () => {
+    it('should return records for valid orgKey (from telemetry stub)', async () => {
       var reporter = createReporter();
       var records = await reporter.mod.fetchWeeklyOrganizationRecords('org_test_123');
-      assert.ok(records.length > 0, 'should return mock records');
+      assert.ok(records.length > 0, 'should return records from telemetry stub');
       assert.ok(records[0].timestamp, 'records should have timestamp');
-      assert.ok(records[0].filesCount, 'records should have filesCount');
       assert.ok(records[0].complianceScore, 'records should have complianceScore');
     });
   });

@@ -1543,6 +1543,25 @@ app.post('/api/_diagnostic/report-upload-test', express.json(), (req, res) => {
   res.json({ success: true, received: true, bodyPreview: (req.body && typeof req.body === 'object') ? Object.keys(req.body).slice(0,5) : null });
 });
 
+// Internal program improvement report — admin-only, privacy-safe aggregate telemetry
+app.get('/api/admin/improvement-report', async (req, res) => {
+  try {
+    const userEmail = String((req.user && (req.user.email || req.user.sub)) || '').toLowerCase();
+    const superAdminEmail = String(process.env.SUPER_ADMIN_EMAIL || 'admin@simplebeacon.ai').toLowerCase();
+    if (!userEmail || userEmail !== superAdminEmail) {
+      return res.status(403).json({ error: 'admin_required', message: 'Admin access required.' });
+    }
+    const { summarizeAllTelemetry } = require('./lib/ci-telemetry-store.cjs');
+    const { generateImprovementReportMarkdown } = require('./cron/internal-improvement-report.cjs');
+    const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+    const summary = summarizeAllTelemetry({ days });
+    const markdown = generateImprovementReportMarkdown(summary);
+    return res.json({ success: true, days, summary, markdown });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Could not generate improvement report' });
+  }
+});
+
 // 404 handler with audit logging
 app.use(/.*/, (req, res) => {
   logSecurityEvent('route_not_found', {

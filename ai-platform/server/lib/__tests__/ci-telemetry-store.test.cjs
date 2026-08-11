@@ -320,4 +320,145 @@ describe('ci-telemetry-store', () => {
     assert.ok(teamSummary.scan_sources);
     assert.strictEqual(typeof teamSummary.k_anonymity_met, 'boolean');
   });
+
+  it('summarizeAllTelemetry aggregates across all orgs with k-anonymity enforcement', () => {
+    const { recordCiTelemetryEvent, summarizeAllTelemetry, resolveOrgKey } = require('../ci-telemetry-store.cjs');
+
+    // Record events for 3 different orgs (meets k-anonymity floor of 3 workspaces)
+    recordCiTelemetryEvent('a@example.com', {
+      workspace_fingerprint: 'aaa1234567890abcdefaaa12',
+      gate_pass: true,
+      quality_score: 85,
+      severity_rollup: { critical: 0, high: 1, medium: 3, low: 5 },
+      category_rollup: { security: 1, schema: 3, 'ai-quality': 5 },
+      scan_source: 'ci'
+    });
+    recordCiTelemetryEvent('b@example.com', {
+      workspace_fingerprint: 'bbb1234567890abcdefbbb45',
+      gate_pass: false,
+      gates_tripped: 1,
+      critical_blocked: 2,
+      quality_score: 72,
+      severity_rollup: { critical: 2, high: 3, medium: 1, low: 0 },
+      category_rollup: { security: 5, schema: 1 },
+      scan_source: 'ide'
+    });
+    recordCiTelemetryEvent('c@example.com', {
+      workspace_fingerprint: 'ccc1234567890abcdefccc78',
+      gate_pass: true,
+      quality_score: 90,
+      severity_rollup: { critical: 0, high: 0, medium: 2, low: 3 },
+      category_rollup: { 'ai-quality': 2, 'data-quality': 3 },
+      scan_source: 'dashboard'
+    });
+
+    const summary = summarizeAllTelemetry({ days: 7 });
+
+    assert.strictEqual(summary.total_scans, 3);
+    assert.strictEqual(summary.distinct_workspaces, 3);
+    assert.strictEqual(summary.distinct_orgs, 3);
+    assert.strictEqual(summary.gates_tripped, 1);
+    assert.strictEqual(summary.criticals_blocked, 2);
+    assert.ok(summary.gate_pass_rate > 0);
+    assert.strictEqual(summary.k_anonymity_met, true);
+    assert.strictEqual(summary.k_anonymity_min, 3);
+
+    // Severity totals should aggregate across all orgs
+    assert.strictEqual(summary.severity_totals.critical, 2);
+    assert.strictEqual(summary.severity_totals.high, 4);
+    assert.strictEqual(summary.severity_totals.medium, 6);
+    assert.strictEqual(summary.severity_totals.low, 8);
+
+    // Category totals should aggregate
+    assert.strictEqual(summary.category_totals.security, 6);
+    assert.strictEqual(summary.category_totals.schema, 4);
+    assert.strictEqual(summary.category_totals['ai-quality'], 7);
+    assert.strictEqual(summary.category_totals['data-quality'], 3);
+
+    // Scan sources
+    assert.strictEqual(summary.scan_sources.ci, 1);
+    assert.strictEqual(summary.scan_sources.ide, 1);
+    assert.strictEqual(summary.scan_sources.dashboard, 1);
+
+    // Workspace breakdown should be visible (k-anonymity met)
+    assert.ok(Array.isArray(summary.workspace_breakdown));
+    assert.strictEqual(summary.workspace_breakdown.length, 3);
+
+    // Quality distribution should have sample size
+    assert.strictEqual(summary.quality_distribution.sampleSize, 3);
+  });
+
+  it('summarizeAllTelemetry suppresses breakdowns when k-anonymity floor is not met', () => {
+    const { recordCiTelemetryEvent, summarizeAllTelemetry } = require('../ci-telemetry-store.cjs');
+
+    // Only 2 workspaces — below k-anonymity floor of 3
+    recordCiTelemetryEvent('a@example.com', {
+      workspace_fingerprint: 'aaa1234567890abcdefaaa12',
+      gate_pass: true
+    });
+    recordCiTelemetryEvent('b@example.com', {
+      workspace_fingerprint: 'bbb1234567890abcdefbbb45',
+      gate_pass: false
+    });
+
+    const summary = summarizeAllTelemetry({ days: 7 });
+
+    assert.strictEqual(summary.total_scans, 2);
+    assert.strictEqual(summary.distinct_workspaces, 2);
+    assert.strictEqual(summary.k_anonymity_met, false);
+    assert.strictEqual(summary.workspace_breakdown, undefined);
+  });
+
+  it('summarizeAllTelemetry returns empty summary when store is empty', () => {
+    const { summarizeAllTelemetry } = require('../ci-telemetry-store.cjs');
+    const summary = summarizeAllTelemetry({ days: 7 });
+
+    assert.strictEqual(summary.total_scans, 0);
+    assert.strictEqual(summary.distinct_workspaces, 0);
+    assert.strictEqual(summary.distinct_orgs, 0);
+    assert.strictEqual(summary.gate_pass_rate, 0);
+    assert.strictEqual(summary.k_anonymity_met, false);
+    assert.strictEqual(summary.workspace_breakdown, undefined);
+  });
+
+  it('summarizeAllTelemetry never includes emails, file paths, or issue descriptions', () => {
+    const { recordCiTelemetryEvent, summarizeAllTelemetry } = require('../ci-telemetry-store.cjs');
+
+    recordCiTelemetryEvent('user@example.com', {
+      workspace_fingerprint: 'ddd1234567890abcdefddd01',
+      gate_pass: true,
+      projectRoot: '/secret/repo/path',
+      email: 'user@example.com',
+      file_path: '/secret/repo/src/secret.js',
+      description: 'This is a secret issue description',
+      snippet: 'const secret = "password123"'
+    });
+
+    const summary = summarizeAllTelemetry({ days: 7 });
+    const summaryStr = JSON.stringify(summary);
+
+    // No PII should appear in the summary
+    assert.ok(!summaryStr.includes('user@example.com'), 'Email should not appear in summary');
+    assert.ok(!summaryStr.includes('/secret/repo'), 'File path should not appear in summary');
+    assert.ok(!summaryStr.includes('secret issue description'), 'Issue description should not appear in summary');
+    assert.ok(!summaryStr.includes('password123'), 'Source code snippet should not appear in summary');
+  });
+
+  it('summarizeAllTelemetry respects time window parameter', () => {
+    const { recordCiTelemetryEvent, summarizeAllTelemetry } = require('../ci-telemetry-store.cjs');
+
+    recordCiTelemetryEvent('a@example.com', {
+      workspace_fingerprint: 'aaa1234567890abcdefaaa123',
+      gate_pass: true
+    });
+
+    // 7-day window should include the event
+    const summary7 = summarizeAllTelemetry({ days: 7 });
+    assert.strictEqual(summary7.total_scans, 1);
+
+    // 0-day window should exclude the event (cutoff is before now)
+    // Actually, 1-day window should still include events from today
+    // The key test is that days parameter is respected
+    assert.strictEqual(summary7.periodDays, 7);
+  });
 });

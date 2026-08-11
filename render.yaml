@@ -74,6 +74,10 @@ services:
         value: hello@simplebeacon.ai
       - key: NO_REPLY_EMAIL
         value: no-reply@simplebeacon.ai
+      - key: ADMIN_NOTIFY_EMAIL
+        value: admin@simplebeacon.ai
+      - key: SIMPLEBEACON_IMPROVEMENT_REPORT_ENABLED
+        value: "true"
       - key: SIMPLEBEACON_APP_URL
         sync: false
       - key: SIMPLEBEACON_LANDING

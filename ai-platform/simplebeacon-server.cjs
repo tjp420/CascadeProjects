@@ -1585,6 +1585,26 @@ async function startServer() {
     }
   });
 
+  // Internal program improvement report — admin-only, privacy-safe aggregate telemetry
+  app.get('/api/admin/improvement-report', authenticate, async (req, res) => {
+    try {
+      const userEmail = (req.user && (req.user.email || req.user.sub)) || '';
+      const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@simplebeacon.ai';
+      if (userEmail.toLowerCase() !== superAdminEmail.toLowerCase()) {
+        return res.status(403).json({ error: 'admin_required', message: 'Admin access required.' });
+      }
+      const { summarizeAllTelemetry } = require('./server/lib/ci-telemetry-store.cjs');
+      const { generateImprovementReportMarkdown } = require('./server/cron/internal-improvement-report.cjs');
+      const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+      const summary = summarizeAllTelemetry({ days });
+      const markdown = generateImprovementReportMarkdown(summary);
+      return res.json({ success: true, days, summary, markdown });
+    } catch (error) {
+      logger.error('[AdminRoute] Improvement report failed: ' + (error && error.message ? error.message : error));
+      return res.status(500).json({ success: false, error: 'Could not generate improvement report' });
+    }
+  });
+
   // Copy the bundled report shipped with the repo into the runtime .simplebeacon directory
   // so the dashboard has data even though .simplebeacon/*.json is gitignored.
   const bundledReportPath = path.join(__dirname, 'web', 'data', 'simplebeacon-report.json');

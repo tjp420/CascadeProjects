@@ -524,10 +524,114 @@ function getQualityDistribution(orgKey, options = {}) {
   return computeQualityDistribution(filterOrgEvents(orgKey, days));
 }
 
+/**
+ * Aggregate category rollup counts across a set of events.
+ * @param {Object[]} events
+ * @returns {Object<string, number>}
+ */
+function aggregateCategoryTotals(events) {
+  const totals = {};
+  for (const ev of events) {
+    const rollup = ev.category_rollup && typeof ev.category_rollup === 'object'
+      ? ev.category_rollup
+      : null;
+    if (rollup) {
+      for (const cat of Object.keys(rollup)) {
+        totals[cat] = (totals[cat] || 0) + Number(rollup[cat] || 0);
+      }
+    }
+  }
+  return totals;
+}
+
+/**
+ * Collect distinct org keys from a set of events.
+ * @param {Object[]} events
+ * @returns {Set<string>}
+ */
+function collectDistinctOrgs(events) {
+  const orgs = new Set();
+  for (const ev of events) {
+    if (ev.orgKey) orgs.add(String(ev.orgKey));
+  }
+  return orgs;
+}
+
+/**
+ * Cross-org aggregate summary for internal product improvement reports.
+ *
+ * Privacy guarantees:
+ *   - No emails, file paths, repo paths, or issue descriptions
+ *   - Only aggregate counts, severity distributions, and hashed fingerprint counts
+ *   - k-anonymity floor enforced: breakdowns suppressed if < K_ANONYMITY_MIN_WORKSPACES
+ *
+ * @param {{ days?: number, minWorkspaces?: number }} [options]
+ * @returns {Object}
+ */
+function summarizeAllTelemetry(options = {}) {
+  const days = Number(options.days) || 30;
+  const minWorkspaces = Number(options.minWorkspaces) || K_ANONYMITY_MIN_WORKSPACES;
+  const since = Date.now() - (days * 24 * 60 * 60 * 1000);
+
+  const allEvents = readStore().events.filter((ev) => {
+    const ts = Date.parse(ev.recordedAt || ev.timestamp || '');
+    return Number.isFinite(ts) && ts >= since;
+  });
+
+  const workspaces = collectDistinctWorkspaces(allEvents);
+  const orgs = collectDistinctOrgs(allEvents);
+
+  let gatesTripped = 0;
+  let criticalsBlocked = 0;
+  let gatePassCount = 0;
+
+  for (const ev of allEvents) {
+    if (ev.gate_pass === false || (ev.gates_tripped || 0) > 0) gatesTripped += 1;
+    if (ev.gate_pass === true) gatePassCount += 1;
+    criticalsBlocked += Number(ev.critical_blocked || 0);
+  }
+
+  const totalScans = allEvents.length;
+  const gatePassRate = totalScans > 0
+    ? Math.round((gatePassCount / totalScans) * 1000) / 1000
+    : 0;
+
+  const kAnonymityMet = workspaces.size >= minWorkspaces;
+
+  const summary = {
+    periodDays: days,
+    total_scans: totalScans,
+    gates_tripped: gatesTripped,
+    criticals_blocked: criticalsBlocked,
+    gate_pass_rate: gatePassRate,
+    quality_distribution: computeQualityDistribution(allEvents),
+    severity_totals: aggregateSeverityTotals(allEvents),
+    category_totals: aggregateCategoryTotals(allEvents),
+    scan_sources: aggregateScanSources(allEvents),
+    distinct_workspaces: workspaces.size,
+    distinct_orgs: orgs.size,
+    k_anonymity_met: kAnonymityMet,
+    k_anonymity_min: minWorkspaces
+  };
+
+  if (kAnonymityMet) {
+    summary.workspace_breakdown = [...workspaces].sort().map((fingerprint) => ({
+      workspace_fingerprint: fingerprint,
+      scan_count: allEvents.filter((ev) => (
+        ev.workspace_fingerprint === fingerprint
+        || (!ev.workspace_fingerprint && ev.repository === fingerprint)
+      )).length
+    }));
+  }
+
+  return summary;
+}
+
 module.exports = {
   recordCiTelemetryEvent,
   summarizeCiTelemetry,
   summarizeTeamTelemetry,
+  summarizeAllTelemetry,
   getTeamTrend,
   getQualityDistribution,
   sanitizeTeamTelemetryPayload,
@@ -536,6 +640,8 @@ module.exports = {
   accountKey,
   percentileLinear,
   computeQualityDistribution,
+  aggregateCategoryTotals,
+  collectDistinctOrgs,
   TEAM_TELEMETRY_RETENTION_DAYS,
   K_ANONYMITY_MIN_WORKSPACES,
   TEAM_TELEMETRY_ALLOWED_FIELDS,

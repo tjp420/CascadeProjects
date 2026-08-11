@@ -15,6 +15,7 @@
  */
 
 const { generateDashboardMetrics } = require('../lib/dashboard-analytics.cjs');
+const { summarizeTeamTelemetry, getTeamTrend, resolveOrgKey } = require('../lib/ci-telemetry-store.cjs');
 // Email service reference. In production this loads the real implementation.
 let _emailService = null;
 
@@ -30,26 +31,35 @@ function setEmailServiceForTests(es) {
 }
 
 /**
- * Isolates historical telemetry records for a targeted organization over
- * the past 7 days. In production, this queries your persistent storage
- * collection via date-range filters.
- * @param {string} orgId — Organization identifier
- * @returns {Promise<Array>} Raw scan records
+ * Fetches real telemetry records for a targeted organization over
+ * the past 7 days from the CI telemetry store.
+ * @param {string} orgKey — Organization key (hashed)
+ * @param {{ days?: number }} [options]
+ * @returns {Array} Scan records derived from telemetry events
  */
-async function fetchWeeklyOrganizationRecords(orgId) {
-  if (!orgId) return [];
+async function fetchWeeklyOrganizationRecords(orgKey, options = {}) {
+  if (!orgKey) return [];
 
-  // Simulating localized document state retrieval
-  return [
-    {
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-      filesCount: 184,
-      linesCount: 52000,
-      remediationsCount: 42,
-      complianceScore: 88,
-      severities: { critical: 0, high: 1, medium: 4, low: 12 }
+  const days = Number(options.days) || 7;
+  const summary = summarizeTeamTelemetry(orgKey, { days });
+  const trend = getTeamTrend(orgKey, { days });
+
+  if (!summary || summary.total_scans === 0) return [];
+
+  // Map telemetry summary into the format generateDashboardMetrics() expects
+  return trend.map((day) => ({
+    timestamp: new Date(day.date + 'T12:00:00.000Z').toISOString(),
+    filesCount: 0,
+    linesCount: 0,
+    remediationsCount: day.gate_pass_count > 0 ? day.gate_pass_count : 0,
+    complianceScore: summary.quality_distribution.p50 || 0,
+    severities: {
+      critical: summary.severity_totals.critical || 0,
+      high: summary.severity_totals.high || 0,
+      medium: summary.severity_totals.medium || 0,
+      low: summary.severity_totals.low || 0
     }
-  ];
+  }));
 }
 
 /**
@@ -120,7 +130,8 @@ async function executeWeeklyReportingJob(activeSubscriptions) {
         continue;
       }
 
-      var records = await fetchWeeklyOrganizationRecords(subscription.orgId);
+      var orgKey = subscription.orgKey || resolveOrgKey(subscription.adminEmail, subscription);
+      var records = await fetchWeeklyOrganizationRecords(orgKey);
       if (records.length === 0) {
         results.skipped++;
         continue;
