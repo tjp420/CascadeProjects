@@ -779,7 +779,9 @@ export default {
 
     // Other HTML pages (landing pages like /pricing, /faq, etc.)
     if (url.pathname.endsWith('.html') || (!url.pathname.includes('.') && url.pathname !== '/')) {
-      const tryPath = url.pathname.endsWith('.html') ? url.pathname : url.pathname + '.html';
+      let tryPath = url.pathname.endsWith('.html') ? url.pathname : url.pathname + '.html';
+      // Serve dpa-v2.html for /dpa to bypass stale ASSETS binding cache on dpa.html
+      if (tryPath === '/dpa.html') tryPath = '/dpa-v2.html';
       const assetUrl = new URL(tryPath, url.origin);
       assetUrl.searchParams.set('_cb', Date.now().toString());
       const resp = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: 'GET' }));
