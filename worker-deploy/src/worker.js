@@ -318,6 +318,19 @@ export default {
       });
     }
 
+    // Health check endpoint for uptime monitoring and Render health checks
+    if (url.pathname === '/health' || url.pathname === '/healthz') {
+      return new Response(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+          'CDN-Cache-Control': 'no-store',
+          'X-SB-Worker': 'health'
+        }
+      });
+    }
+
     // Redirect /demo to the landing page
     if (url.pathname === '/demo' || url.pathname.startsWith('/demo/')) {
       return new Response(null, {
@@ -575,6 +588,7 @@ export default {
       headers.set('Content-Disposition', `attachment; filename="${key.split('/').pop()}"`);
       headers.set('Cache-Control', 'public, max-age=86400');
       headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Accept-Ranges', 'bytes');
       // For HEAD requests, return headers only (no body)
       const body = request.method === 'HEAD' ? null : object.body;
       return new Response(body, { status: 200, headers });
