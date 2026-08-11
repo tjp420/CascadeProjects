@@ -50,6 +50,7 @@ try {
 const logger = require('./lib/app-logger.cjs');
 const { resolveCorsOptions } = require('./lib/cors-config.cjs');
 const { appendContactSubmission } = require('./lib/contact-submissions-store.cjs');
+const { sendEmail } = require('./lib/email-service.cjs');
 
 // Import enhanced security middleware
 const { 
@@ -1074,14 +1075,48 @@ function sanitizeRequestBody(body) {
 app.post('/api/contact', async (req, res) => {
   try {
     req.body = sanitizeRequestBody(req.body);
-    const { name, email, message } = req.body || {};
+    const { name, email, message, topic, company, title, source } = req.body || {};
     if (!email || typeof email !== 'string' || !email.trim().includes('@')) {
       return res.status(400).json({ success: false, error: 'A valid email is required' });
     }
     if (!message || typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ success: false, error: 'Message is required' });
     }
+
+    // Store the submission locally
     const result = appendContactSubmission({ name, email, message });
+
+    // Deliver to Zoho (or whatever email provider is configured) via the email service
+    const notifyEmail = process.env.CONTACT_NOTIFY_EMAIL || process.env.SMTP_USER || '';
+    if (notifyEmail) {
+      const topicLabel = {
+        'free-audit': 'Free AI Slop Audit request',
+        'certificate': 'Executive Risk Certificate ($499)',
+        'eu-ai-act': 'EU AI Act Readiness Sprint ($2,499)',
+        'enterprise': 'Enterprise contract ($50,000+ annual)',
+        'invoice-w9': 'Request Invoice / W-9',
+        'quarterly': 'Quarterly / Annual Protection Pack',
+        'general': 'General compliance question'
+      }[topic] || topic || 'General';
+
+      const subject = `[SimpleBeacon Contact] ${topicLabel}`;
+      const textBody = `Topic: ${topicLabel}\nFrom: ${name || '(no name)'} <${email}>\nCompany: ${company || '(none)'}\nTitle: ${title || '(none)'}\nSource: ${source || 'contact-page'}\n\nMessage:\n${message}`;
+      const htmlBody = `<h3>New contact form submission</h3><p><strong>Topic:</strong> ${topicLabel}</p><p><strong>From:</strong> ${name || '(no name)'} &lt;${email}&gt;</p><p><strong>Company:</strong> ${company || '(none)'}</p><p><strong>Title:</strong> ${title || '(none)'}</p><p><strong>Source:</strong> ${source || 'contact-page'}</p><hr><p><strong>Message:</strong></p><pre>${message}</pre>`;
+
+      try {
+        const emailResult = await sendEmail({ to: notifyEmail, subject, text: textBody, html: htmlBody });
+        if (emailResult.sent) {
+          logger.info(`[Contact] Email sent to ${notifyEmail} via ${emailResult.provider || 'smtp'} (from ${email})`);
+        } else if (emailResult.queued) {
+          logger.info(`[Contact] Email queued for ${notifyEmail} (from ${email})`);
+        } else {
+          logger.error('[Contact] Email failed:', emailResult.error);
+        }
+      } catch (emailErr) {
+        logger.error('[Contact] Email send error:', emailErr.message);
+      }
+    }
+
     res.json({ success: true, received: true, id: result.id });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

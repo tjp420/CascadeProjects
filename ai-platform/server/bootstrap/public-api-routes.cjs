@@ -89,7 +89,9 @@ const PUBLIC_API_PATHS = new Set([
     'sso/oidc/callback',
     'sso/saml/login',
     'sso/saml/acs',
-    'sso/saml/metadata'
+    'sso/saml/metadata',
+    // Contact form — public endpoint, delivers to Zoho via email service
+    'contact'
 ]);
 
 /**

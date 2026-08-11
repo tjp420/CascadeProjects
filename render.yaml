@@ -45,7 +45,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM
-        value: certificates@simplebeacon.ai
+        value: admin@simplebeacon.ai
       - key: SMTP_HOST
         value: "smtp.zohocloud.ca"
       - key: SMTP_PORT
