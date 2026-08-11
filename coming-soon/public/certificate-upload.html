@@ -889,7 +889,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
         <footer>
             <p>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</p>
-            <p style="margin-top: 4px; opacity: 0.7;">Questions? <a href="mailto:contact@simplebeacon.ai" style="color: #60A5FA; text-decoration: none;">contact@simplebeacon.ai</a></p>
+            <p style="margin-top: 4px; opacity: 0.7;">Questions? <a href="mailto:hello@simplebeacon.ai" style="color: #60A5FA; text-decoration: none;">hello@simplebeacon.ai</a></p>
         </footer>
         </div>
     </div>
@@ -1221,15 +1221,15 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                         resendStatus.style.color = 'var(--error)';
                         return;
                     }
-                    resendStatus.textContent = freeRes.data.error || freeRes.data.message || paidRes.data.error || 'Could not send token email. Try again or contact contact@simplebeacon.ai.';
+                    resendStatus.textContent = freeRes.data.error || freeRes.data.message || paidRes.data.error || 'Could not send token email. Try again or contact hello@simplebeacon.ai.';
                     resendStatus.style.color = 'var(--error)';
                     return;
                 }
 
-                resendStatus.textContent = paidRes.data.error || 'Could not resend token. Please email contact@simplebeacon.ai for help.';
+                resendStatus.textContent = paidRes.data.error || 'Could not resend token. Please email hello@simplebeacon.ai for help.';
                 resendStatus.style.color = 'var(--error)';
             } catch (err) {
-                resendStatus.textContent = 'Network error. Please try again or email contact@simplebeacon.ai for help.';
+                resendStatus.textContent = 'Network error. Please try again or email hello@simplebeacon.ai for help.';
                 resendStatus.style.color = 'var(--error)';
             } finally {
                 resendStatus.style.display = 'block';
@@ -1263,7 +1263,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     resendStatus.style.color = 'var(--error)';
                 }
             } catch (err) {
-                resendStatus.textContent = 'Network error. Please try again or email contact@simplebeacon.ai for help.';
+                resendStatus.textContent = 'Network error. Please try again or email hello@simplebeacon.ai for help.';
                 resendStatus.style.color = 'var(--error)';
             } finally {
                 resendStatus.style.display = 'block';

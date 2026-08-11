@@ -51,7 +51,7 @@ async function main() {
   const port = Number(process.env.SMTP_PORT) || 465;
   const user = String(process.env.SMTP_USER || '').trim();
   const pass = String(process.env.SMTP_PASS || '').trim();
-  const fromAddr = String(args.from || process.env.SMTP_FROM || 'certificates@simplebeacon.ai').trim();
+  const fromAddr = String(args.from || process.env.SMTP_FROM || 'admin@simplebeacon.ai').trim();
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   console.log('\n=== SimpleBeacon Zoho SMTP Test ===\n');
@@ -75,7 +75,7 @@ async function main() {
     console.error('  SMTP_SECURE=true');
     console.error('  SMTP_USER=trevor@simplebeacon.ai');
     console.error('  SMTP_PASS=<zoho-app-specific-password>');
-    console.error('  SMTP_FROM=certificates@simplebeacon.ai');
+    console.error('  SMTP_FROM=admin@simplebeacon.ai');
     process.exit(2);
   }
 

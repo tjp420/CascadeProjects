@@ -9,7 +9,7 @@ function getResendApiKey() {
 }
 
 function getFromAddress() {
-    return String(process.env.RESEND_FROM || process.env.SMTP_FROM || 'certificates@simplebeacon.ai').trim();
+    return String(process.env.RESEND_FROM || process.env.SMTP_FROM || 'admin@simplebeacon.ai').trim();
 }
 
 function hasResendApiKey() {

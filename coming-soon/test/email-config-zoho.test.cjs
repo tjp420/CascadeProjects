@@ -105,12 +105,12 @@ describe('email-config.cjs — Zoho Mail SMTP configuration', () => {
   });
 
   it('getFromAddress() falls back to RESEND_FROM when SMTP_FROM is not set', () => {
-    process.env.RESEND_FROM = 'certificates@simplebeacon.ai';
-    assert.strictEqual(emailConfig.getFromAddress(), 'certificates@simplebeacon.ai');
+    process.env.RESEND_FROM = 'admin@simplebeacon.ai';
+    assert.strictEqual(emailConfig.getFromAddress(), 'admin@simplebeacon.ai');
   });
 
-  it('getFromAddress() defaults to certificates@simplebeacon.ai when neither is set', () => {
-    assert.strictEqual(emailConfig.getFromAddress(), 'certificates@simplebeacon.ai');
+  it('getFromAddress() defaults to admin@simplebeacon.ai when neither is set', () => {
+    assert.strictEqual(emailConfig.getFromAddress(), 'admin@simplebeacon.ai');
   });
 
   it('getEmailStatus() reports smtpMode: "smtp" for Zoho config', () => {

@@ -44,14 +44,14 @@ function getCloudflareConfig() {
   const apiToken = process.env.CF_API_TOKEN || '';
   const accountId = process.env.CF_ACCOUNT_ID || '';
   if (!apiToken || !accountId) return null;
-  const from = process.env.CF_EMAIL_FROM || 'certificates@simplebeacon.ai';
+  const from = process.env.CF_EMAIL_FROM || 'admin@simplebeacon.ai';
   return { apiToken, accountId, from };
 }
 
 function getResendConfig() {
   const key = process.env.RESEND_API_KEY || process.env.SMTP_PASS || '';
   if (!key.startsWith('re_')) return null;
-  const from = process.env.RESEND_FROM || process.env.SMTP_FROM || 'certificates@simplebeacon.ai';
+  const from = process.env.RESEND_FROM || process.env.SMTP_FROM || 'admin@simplebeacon.ai';
   return { key, from };
 }
 
@@ -64,7 +64,7 @@ function getSmtpConfig() {
   const port = Number(process.env.SMTP_PORT) || 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || 'certificates@simplebeacon.ai';
+  const from = process.env.SMTP_FROM || 'admin@simplebeacon.ai';
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   if (!host || !user || !pass) return null;

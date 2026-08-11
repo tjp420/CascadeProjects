@@ -61,9 +61,19 @@ services:
       - key: CONTACT_NOTIFY_EMAIL
         value: admin@simplebeacon.ai
       - key: SUPPORT_EMAIL
-        value: admin@simplebeacon.ai
+        value: support@simplebeacon.ai
       - key: DISPUTE_ALERT_EMAIL
+        value: billing@simplebeacon.ai
+      - key: SUPER_ADMIN_EMAIL
         value: admin@simplebeacon.ai
+      - key: SECURITY_EMAIL
+        value: security@simplebeacon.ai
+      - key: BILLING_EMAIL
+        value: billing@simplebeacon.ai
+      - key: HELLO_EMAIL
+        value: hello@simplebeacon.ai
+      - key: NO_REPLY_EMAIL
+        value: no-reply@simplebeacon.ai
       - key: SIMPLEBEACON_APP_URL
         sync: false
       - key: SIMPLEBEACON_LANDING
