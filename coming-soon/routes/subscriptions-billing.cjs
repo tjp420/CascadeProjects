@@ -15,6 +15,9 @@ try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch {
 
 const DEFAULT_PORT = 3001;
 const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + (process.env.PORT || DEFAULT_PORT));
+// DASHBOARD_URL is the public-facing dashboard URL for email links (must be reachable from the user's browser).
+// Falls back to the production dashboard — never localhost, since users open these links on their own machines.
+const DASHBOARD_URL = process.env.DASHBOARD_URL || 'https://simplebeacon.ai/dashboard/';
 const SUBSCRIPTION_WEBHOOK_SOURCE = 'subscription-webhook';
 
 const PRICE_PRO_MONTHLY = 900;
@@ -501,11 +504,22 @@ function setupSubscriptionWebhook(app) {
                     }
                     try {
                         const { sendEmail } = require('../services/email.cjs');
+                        const { renderLicenseConfirmation } = require('../services/email-templates/license-confirmation-email.cjs');
+                        const emailContent = renderLicenseConfirmation({
+                            tierLabel,
+                            token,
+                            apiKey: customer.api_key,
+                            ttlLabel,
+                            customerEmail: customer.email,
+                            features,
+                            dashboardUrl: DASHBOARD_URL,
+                            signInUrl: DASHBOARD_URL + '#/signin'
+                        });
                         const emailResult = await sendEmail({
                             to: customer.email,
-                            subject: 'Your ' + tierLabel + ' License Token',
-                            text: `Your ${tierLabel} subscription is active.\n\nLicense Token: ${token}\n\nThis token is valid for ${ttlLabel} and unlocks the team dashboard + CI integration.\n\nAPI Key: ${customer.api_key}\n\nUse this API key in your GitHub Action to post scan results to your team dashboard.`,
-                            html: `<p>Your <strong>${tierLabel}</strong> subscription is active.</p><p>License Token: <code>${token}</code></p><p>API Key: <code>${customer.api_key}</code></p><p>Use the API key in your GitHub Action to post scan results to your team dashboard.</p>`
+                            subject: emailContent.subject,
+                            text: emailContent.text,
+                            html: emailContent.html
                         });
                         if (!emailResult.sent && !emailResult.queued) {
                             logger.error('[SubscriptionWebhook] Email could not be sent or queued:', emailResult.error);
