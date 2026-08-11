@@ -38,7 +38,20 @@ function markRedisSuccess() {
 try {
   const IORedis = require('ioredis');
   const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
-  redisClient = new IORedis(url);
+  redisClient = new IORedis(url, {
+    maxRetriesPerRequest: 3,
+    connectTimeout: 2000,
+  });
+  redisClient.on('error', () => {
+    // Suppress unhandled error events — ioredis retries internally.
+    // The isRedisAvailable() check with exponential backoff handles fallout.
+    usingRedis = false;
+    markRedisError();
+  });
+  redisClient.on('ready', () => {
+    usingRedis = true;
+    markRedisSuccess();
+  });
   usingRedis = true;
     // Define a named Lua command to avoid runtime dynamic-eval usage being flagged
     try {
@@ -195,5 +208,19 @@ module.exports = {
     inMemoryWindows,
     markRedisError,
     markRedisSuccess,
+  },
+  // Graceful shutdown for tests
+  shutdown: async () => {
+    try {
+      if (redisClient) {
+        try { await redisClient.quit(); } catch (e) { try { redisClient.disconnect(); } catch (__) {} }
+      }
+    } catch (e) {
+      // ignore
+    }
+    inMemoryWindows.clear();
+    inMemoryActiveCounts.clear();
+    usingRedis = false;
+    redisClient = null;
   },
 };
