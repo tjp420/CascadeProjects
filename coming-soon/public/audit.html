@@ -15,6 +15,19 @@
     <meta name="twitter:title" content="SimpleBeacon — Audit">
     <meta name="twitter:description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <meta name="theme-color" content="#0a0a0a">
@@ -96,15 +109,13 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     <script src="js-es2018/dashboard/scanner-patterns.js?h=1781475000005" defer></script>
     <script src="js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
     <script src="js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="js-es2018/audit-scan-service.js?v=20260809perf1" defer></script>
+    <script src="js-es2018/audit-scan-service.js?v=20260808audit1" defer></script>
     <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000015" defer></script>
-    <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000001" defer></script>
+    <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
-    <script src="js-es2018/compliance-report-generator.js?h=1781475000020" defer></script>
     <script src="js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
     <script src="js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
-    <link rel="stylesheet" href="css/dashboard.css?h=1781475000014">
+    <link rel="stylesheet" href="css/dashboard.css?h=1781475000013">
     <script>(function(){var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();</script>
 </head>
 <body>
@@ -140,25 +151,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
             document.documentElement.classList.add('iframe-embed');
         }
     </script>
-    <!-- Google Analytics + SimpleBeacon Analytics Dispatcher -->
-    <!-- GA_MEASUREMENT_ID is injected dynamically by the Cloudflare Worker via <meta name="ga-id"> -->
-    <script>
-    (function() {
-        var gaMeta = document.querySelector('meta[name="ga-id"]');
-        var GA_ID = gaMeta ? gaMeta.getAttribute('content') : '';
-        if (!GA_ID || GA_ID.indexOf('G-XXXX') !== -1) return;
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        window.gtag = gtag;
-        gtag('js', new Date());
-        gtag('config', GA_ID);
-        var s = document.createElement('script');
-        s.async = true;
-        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_ID);
-        document.head.appendChild(s);
-    })();
-    </script>
-    <script src="/js-es2018/analytics.js"></script>
     <style>
         .iframe-embed .sb-site-nav { display: none !important; }
         .iframe-embed .container { padding-top: 20px; }
@@ -183,34 +175,30 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   </div>
 </nav>
 <style>.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
+<style>
+/* Audit page visual polish — card isolation, accent colors, dark mode backdrop */
+#modeToggleSegmented .mode-tab.active{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 0 16px rgba(37,99,235,0.3);}
+#modeToggleSegmented .mode-tab:not(.active):hover{background:rgba(255,255,255,0.06);color:var(--text-main);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,0.12);transition:border-color 0.2s,box-shadow 0.2s;}
+.card:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.drop-zone{border:2px dashed var(--border);border-radius:12px;transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:rgba(99,102,241,0.04);box-shadow:0 0 20px rgba(99,102,241,0.08);}
+details#advancedScanSettings summary::-webkit-details-marker{display:none;}
+details#advancedScanSettings[open] summary{border-bottom:1px solid var(--border);}
+details#advancedScanSettings summary::after{content:'▾';margin-left:auto;color:var(--text-muted);transition:transform 0.2s;}
+details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
+.cli-code-tab{transition:all 0.15s;}
+.cli-code-tab:not(.active):hover{background:rgba(255,255,255,0.06) !important;color:var(--text-main) !important;}
+</style>
     <div class="container">
         <header>
             <div class="step-badge" id="productBadge">
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle" style="margin-bottom:20px;">100% private. Your source code never leaves your machine. Choose your scanning mode below.</p>
-
-            <!-- SPLIT-CHOICE LAYOUT: Browser Triage vs Deep Scan -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-                <!-- Left: Browser Triage -->
-                <div style="padding:20px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.2);border-radius:12px;text-align:left;">
-                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#60A5FA;margin-bottom:8px;">Low Friction &middot; Instant</div>
-                    <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Browser Triage</h3>
-                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Drag &amp; drop a folder for instant string/regex heuristics across 52 rule engines. 100% local &mdash; no AST, no npm audit, no upload.</p>
-                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('browser_triage');document.getElementById('tab-browser').click();var dz=document.getElementById('browser-folder-dropzone');if(dz)dz.scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Drop Folder Here &rarr;</button>
-                </div>
-                <!-- Right: Deep Scan -->
-                <div style="padding:20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;text-align:left;">
-                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#34D399;margin-bottom:8px;">Full Power &middot; Complete</div>
-                    <h3 style="font-size:1rem;color:var(--text-main);margin:0 0 8px 0;">Deep Scan (CLI)</h3>
-                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px 0;line-height:1.5;">Run <code style="font-size:0.75rem;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">npx simplebeacon scan</code> in your terminal for AST parsing, npm audit integration, and unlimited file coverage.</p>
-                    <button type="button" onclick="if(window.SbAnalytics)SbAnalytics.trackSplitChoice('deep_scan');document.getElementById('tab-cli').click();var p=document.getElementById('view-cli-setup');if(p)p.scrollIntoView({behavior:'smooth',block:'center'})" style="padding:8px 16px;background:transparent;color:#34D399;border:1px solid rgba(16,185,129,0.3);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">View CLI Setup &rarr;</button>
-                </div>
-            </div>
-
+            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use high-speed local regex heuristics across 52 rule engines. For deep AST analysis, use the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a> or <a href="http://127.0.0.1:58000/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">CLI</a>.</p>
             <div style="margin-top:14px;padding:10px 18px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:10px;font-size:0.8rem;color:var(--text-secondary);text-align:center;">
-                <strong style="color:#22c55e;">Skip the $10,000 consultant.</strong> Get a full audit in under 5 minutes &mdash; no upload, no NDA, no procurement. <a href="/pricing" style="color:var(--accent-hover);text-decoration:underline;">Get a $149 board-ready certificate &rarr;</a>
+                <strong style="color:#22c55e;">Skip the $10,000 consultant.</strong> Drop your folder below and get a full audit in under 5 minutes &mdash; no upload, no NDA, no procurement. <a href="/pricing" style="color:var(--accent-hover);text-decoration:underline;">Get a $149 board-ready certificate &rarr;</a>
             </div>
         </header>
 
@@ -222,8 +210,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
         <div class="simplebeacon-banner" id="simplebeacon-banner" style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
             <span style="display:flex;align-items:center;gap:6px;color:var(--warning);font-weight:600;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Simplebeacon</span>
-            <span>52 deterministic engines detect placeholder debris, markdown fences, hardcoded metrics, and security risks. Browser triage runs regex heuristics locally; deep AST analysis and npm audit require the CLI or server dashboard. The gate scanner is 100% deterministic &mdash; no LLM, no external calls.</span>
-            <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;" onclick="if(window.SbAnalytics)SbAnalytics.trackExtensionInstall('audit_banner')">Get VS Code Extension &rarr;</a>
+            <span>52 analyzer engines detect placeholder debris, markdown fences, hardcoded metrics, security risks, and performance issues. Real-time protection in VS Code. Browser sandbox runs high-speed local regex heuristics; deep AST analysis requires the CLI or server dashboard.</span>
+            <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;">Get VS Code Extension &rarr;</a>
         </div>
 
         <!-- Visual Stepper -->
@@ -244,15 +232,15 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
             </div>
         </div>
 
-        <!-- RUNTIME MODE SELECTOR -->
+        <!-- RUNTIME MODE SELECTOR — prominent segmented control -->
         <div style="margin-bottom:20px;">
             <div style="margin-bottom:12px;">
                 <h2 style="margin:0;font-size:1.1rem;color:var(--text-main);">Project Compliance Evaluation</h2>
                 <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 0;">Choose your preferred local static-analysis runtime.</p>
             </div>
-            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;">
-                <button id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;" title="Ctrl+1">&#10095; Terminal (CLI)</button>
-                <button id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;" title="Ctrl+2">&#127758; Browser Sandbox</button>
+            <div id="modeToggleSegmented" style="display:inline-flex;gap:0;background:var(--bg-input);padding:4px;border-radius:12px;border:1px solid var(--border);width:fit-content;box-shadow:0 1px 3px rgba(0,0,0,0.15);">
+                <button id="tab-cli" class="mode-tab" style="flex:none;padding:10px 20px;font-size:0.9rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+1">&#128187; Use Terminal (CLI)</button>
+                <button id="tab-browser" class="mode-tab active" style="flex:none;padding:10px 20px;font-size:0.9rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+2">&#127760; Scan in Browser</button>
             </div>
         </div>
 
@@ -342,23 +330,22 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
               <div id="productDetails"></div>
             </div>
 
-            <!-- Token Status Card -->
-            <div id="tokenStatusCard" style="display:none;margin-top:16px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-                <span id="tokenStatusIcon" style="font-size:1.2rem;">🔑</span>
-                <div style="flex:1;">
-                  <div style="font-weight:600;font-size:0.9rem;color:var(--text-main);" id="tokenStatusTitle">Token Active</div>
-                  <div style="font-size:0.75rem;color:var(--text-muted);" id="tokenStatusSubtitle">Community tier</div>
-                </div>
-                <span id="tokenTierBadge" style="padding:3px 10px;border-radius:6px;font-size:0.7rem;font-weight:600;background:var(--primary-subtle);color:var(--accent);">COMMUNITY</span>
+            <!-- Compact tier pill badge — replaces large status card -->
+            <div id="tokenStatusCard" style="display:none;margin-top:12px;">
+              <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--border);font-size:0.8rem;">
+                <span id="tokenStatusIcon" style="font-size:0.9rem;">🟢</span>
+                <span id="tokenStatusTitle" style="font-weight:600;color:var(--text-main);">Community Tier</span>
+                <span id="tokenTierBadge" style="padding:2px 8px;border-radius:999px;font-size:0.65rem;font-weight:700;background:var(--primary-subtle);color:var(--accent);">COMMUNITY</span>
+                <a href="pricing.html" id="tokenStatusUpgradeLink" style="color:var(--accent);font-weight:600;text-decoration:none;font-size:0.75rem;padding:2px 8px;border-radius:6px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);">Upgrade &rarr;</a>
               </div>
-              <div id="tokenStatusDetails" style="display:none;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;">
+              <div id="tokenStatusSubtitle" style="display:none;"></div>
+              <div id="tokenStatusDetails" style="display:none;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem;color:var(--text-secondary);margin-top:8px;padding:10px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);">
                 <div>📧 <span id="tokenStatusEmail">—</span></div>
                 <div>⏱ <span id="tokenStatusExpiry">—</span></div>
                 <div>🔓 Features: <span id="tokenStatusFeatures">—</span></div>
                 <div>📋 Registered: <span id="tokenStatusRegistered">—</span></div>
               </div>
-              <div id="tokenStatusFree" style="display:none;font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;padding:10px 12px;border-radius:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);">
+              <div id="tokenStatusFree" style="display:none;font-size:0.78rem;color:var(--text-muted);margin-top:8px;padding:10px 12px;border-radius:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);">
                 You're on the free Community tier. <a href="pricing.html" style="color:var(--accent);font-weight:600;text-decoration:none;">Upgrade &rarr;</a> to unlock AST analysis, CI/CD gating, and board-ready certificates.
               </div>
             </div>
@@ -450,129 +437,179 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
             </div>
         </div>
 
-        <!-- VIEW A: CLI WORKFLOW -->
+        <!-- VIEW A: CLI WORKFLOW — two-column layout: CLI commands + Import Report -->
         <div id="view-cli" style="display:none;">
-            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;margin-bottom:16px;">
-                <button id="tab-cli-setup" class="mode-tab active" style="flex:none;padding:8px 16px;">&#10095; CLI Setup</button>
-                <button id="tab-cli-import" class="mode-tab" style="flex:none;padding:8px 16px;">&#128229; Import Report</button>
-            </div>
-            <div id="view-cli-import" style="display:none;">
-            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Import Report</h3>
-                    </div>
-                </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;margin-bottom:16px;">
-                        <button id="tab-import-upload" class="mode-tab active" style="flex:none;padding:8px 16px;">&#128229; Drag &amp; Drop</button>
-                        <button id="tab-import-paste" class="mode-tab" style="flex:none;padding:8px 16px;">&#128203; Copy &amp; Paste</button>
-                    </div>
-                    <div id="view-import-upload">
-                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Drop a <code>report.json</code> generated by the CLI, or load one from a previous scan.</p>
-                        <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:10px;padding:32px 20px;">
-                            <div class="icon" style="font-size:1.6rem;margin-bottom:8px;">&#128229;</div>
-                            <p style="font-size:0.82rem;margin:0;">Drop your <code>report.json</code> here<br><span style="font-size:0.75rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
-                            <p class="file-name" id="cliFileName"></p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" id="cli-two-column">
+                <!-- Left column: Run via CLI with tab switcher -->
+                <div class="card" style="padding:0;overflow:hidden;">
+                    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                            <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#10095;</span>
+                            <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Run via CLI</h3>
                         </div>
-                        <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
-                    </div>
-                    <div id="view-import-paste" style="display:none;">
-                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Paste a <code>report.json</code> generated by the CLI above, or load one from a previous scan.</p>
-                        <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">&#128203; Paste JSON directly</label>
-                        <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
-                        <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:8px;cursor:pointer;">Load JSON Report</button>
-                        <p style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;">Press Ctrl+Enter to submit. Only summary metadata is used for certificate generation.</p>
-                    </div>
-                </div>
-            </div>
-            </div>
-            <div id="view-cli-setup">
-            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">CLI Setup</h3>
-                    </div>
-                </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Run these commands from your repository root (<code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">your-project-root/</code>).</p>
-                        <button id="oneClickInstallBtn" class="btn btn-primary" style="padding:8px 16px;background:var(--success);border:none;border-radius:8px;color:white;font-weight:600;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 12px;">Run from your repository root. Copy a command and paste it into your terminal.</p>
+                        <button id="oneClickInstallBtn" class="btn btn-primary" style="padding:6px 14px;background:var(--success);border:none;border-radius:8px;color:white;font-weight:600;font-size:0.78rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                             <span>&#128229;</span> One-Click Install
                         </button>
+                        <code id="installCommand" style="display:none;">npm install -g file:packages/simplebeacon-cli</code>
                     </div>
-                    <code id="installCommand" style="display:none;">npm install -g file:packages/simplebeacon-cli</code>
-                    <div class="terminal-palette" id="quickCommandsPalette">
-                        <div class="terminal-header">
-                            <span class="term-dot red"></span>
-                            <span class="term-dot yellow"></span>
-                            <span class="term-dot green"></span>
-                            <span class="term-title">Quick Commands</span>
+                    <div style="padding:16px 20px;background:var(--bg-input);">
+                        <!-- Code tab switcher — replaces 5 separate visible blocks -->
+                        <div style="display:flex;gap:2px;background:var(--bg-main);padding:3px;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;flex-wrap:wrap;">
+                            <button class="cli-code-tab active" data-cli-tab="verify" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-weight:500;">Verify</button>
+                            <button class="cli-code-tab" data-cli-tab="standard" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">Standard</button>
+                            <button class="cli-code-tab" data-cli-tab="offline" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">Offline</button>
+                            <button class="cli-code-tab" data-cli-tab="full" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">Full</button>
+                            <button class="cli-code-tab" data-cli-tab="euai" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">EU AI Act</button>
                         </div>
-                        <div class="terminal-body">
-                            <div class="cmd-row">
-                                <span class="cmd-prompt">$</span>
-                                <code id="installCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan --help</code>
-                                <button class="cmd-copy" data-copy-target="installCmd" aria-label="Copy verify CLI command">Copy</button>
-                                <span class="cmd-desc">Verify CLI is ready</span>
+                        <div class="terminal-palette" id="quickCommandsPalette">
+                            <div class="terminal-header">
+                                <span class="term-dot red"></span>
+                                <span class="term-dot yellow"></span>
+                                <span class="term-dot green"></span>
+                                <span class="term-title" id="cliTermTitle">Verify CLI</span>
                             </div>
-                            <div class="cmd-row">
-                                <span class="cmd-prompt">$</span>
-                                <code id="scanCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --format json --output=report.json</code>
-                                <button class="cmd-copy" data-copy-target="scanCmd" aria-label="Copy standard gate scan command">Copy</button>
-                                <span class="cmd-desc">Standard gate scan</span>
-                            </div>
-                            <div class="cmd-row">
-                                <span class="cmd-prompt">$</span>
-                                <code id="scanGateCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --gate --offline</code>
-                                <button class="cmd-copy" data-copy-target="scanGateCmd" aria-label="Copy gate-only scan command">Copy</button>
-                                <span class="cmd-desc">Gate-only (no network)</span>
-                            </div>
-                            <div class="cmd-row">
-                                <span class="cmd-prompt">$</span>
-                                <code id="scanFullCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=report.json</code>
-                                <button class="cmd-copy" data-copy-target="scanFullCmd" aria-label="Copy full coverage scan command">Copy</button>
-                                <span class="cmd-desc">Full coverage + gate</span>
-                            </div>
-                            <div class="cmd-row">
-                                <span class="cmd-prompt">$</span>
-                                <code id="scanEuaiCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=eu-ai-act-report.json</code>
-                                <button class="cmd-copy" data-copy-target="scanEuaiCmd" aria-label="Copy EU AI Act scan command">Copy</button>
-                                <span class="cmd-desc">EU AI Act assessment</span>
-                            </div>
-                        </div>
-                        <p class="terminal-section-label" style="font-size:0.7rem;color:var(--text-secondary);margin:12px 0 4px;padding-top:8px;border-top:1px solid var(--border);">Test this server (PowerShell)</p>
-                        <div class="terminal-body">
-                            <div class="cmd-row">
-                                <span class="cmd-prompt">$</span>
-                                <code id="testHealthCmd">curl http://localhost:PORT/api/simplebeacon</code>
-                                <button class="cmd-copy" data-copy-target="testHealthCmd" aria-label="Copy API health check command">Copy</button>
-                                <span class="cmd-desc">Check API health (replace PORT with your server port)</span>
-                            </div>
-                            <div class="cmd-row">
-                                <span class="cmd-prompt">$</span>
-                                <code id="testCertCmd">curl -X POST http://localhost:PORT/api/certificate/download -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{"reportJson":{"type":"simplebeacon-report"}}'</code>
-                                <button class="cmd-copy" data-copy-target="testCertCmd" aria-label="Copy test certificate endpoint command">Copy</button>
-                                <span class="cmd-desc">Test certificate endpoint (replace PORT with your server port)</span>
+                            <div class="terminal-body">
+                                <div class="cmd-row cli-code-panel" data-cli-panel="verify">
+                                    <span class="cmd-prompt">$</span>
+                                    <code id="installCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan --help</code>
+                                    <button class="cmd-copy" data-copy-target="installCmd" aria-label="Copy verify CLI command">Copy</button>
+                                    <span class="cmd-desc">Verify CLI is ready</span>
+                                </div>
+                                <div class="cmd-row cli-code-panel" data-cli-panel="standard" style="display:none;">
+                                    <span class="cmd-prompt">$</span>
+                                    <code id="scanCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --format json --output=report.json</code>
+                                    <button class="cmd-copy" data-copy-target="scanCmd" aria-label="Copy standard gate scan command">Copy</button>
+                                    <span class="cmd-desc">Standard gate scan</span>
+                                </div>
+                                <div class="cmd-row cli-code-panel" data-cli-panel="offline" style="display:none;">
+                                    <span class="cmd-prompt">$</span>
+                                    <code id="scanGateCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --gate --offline</code>
+                                    <button class="cmd-copy" data-copy-target="scanGateCmd" aria-label="Copy gate-only scan command">Copy</button>
+                                    <span class="cmd-desc">Gate-only (no network)</span>
+                                </div>
+                                <div class="cmd-row cli-code-panel" data-cli-panel="full" style="display:none;">
+                                    <span class="cmd-prompt">$</span>
+                                    <code id="scanFullCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=report.json</code>
+                                    <button class="cmd-copy" data-copy-target="scanFullCmd" aria-label="Copy full coverage scan command">Copy</button>
+                                    <span class="cmd-desc">Full coverage + gate</span>
+                                </div>
+                                <div class="cmd-row cli-code-panel" data-cli-panel="euai" style="display:none;">
+                                    <span class="cmd-prompt">$</span>
+                                    <code id="scanEuaiCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=eu-ai-act-report.json</code>
+                                    <button class="cmd-copy" data-copy-target="scanEuaiCmd" aria-label="Copy EU AI Act scan command">Copy</button>
+                                    <span class="cmd-desc">EU AI Act assessment</span>
+                                </div>
                             </div>
                         </div>
+                        <div style="font-size:0.72rem;color:var(--warning);display:flex;align-items:center;gap:6px;margin-top:10px;">
+                            <span>&#128737;</span>
+                            <span>Zero-Trust: Output is audit metadata only — no source code included.</span>
+                        </div>
+                        <div class="badge-shields" style="margin-top:10px;">
+                            <span class="shield"><span class="shield-dot green"></span>v1.3.0</span>
+                            <span class="shield"><span class="shield-dot blue"></span>MIT License</span>
+                            <span class="shield"><span class="shield-dot purple"></span>0 Dependencies</span>
+                        </div>
                     </div>
-                    <div style="font-size:0.75rem;color:var(--warning);display:flex;align-items:center;gap:6px;margin-top:12px;">
-                        <span>&#128737;</span>
-                        <span>Zero-Trust: Output is audit metadata only — no source code included.</span>
+                </div>
+
+                <!-- Right column: Import Existing Report -->
+                <div class="card" style="padding:0;overflow:hidden;">
+                    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#128229;</span>
+                            <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Import Existing Report</h3>
+                        </div>
                     </div>
-                    <div class="badge-shields">
-                        <span class="shield"><span class="shield-dot green"></span>v1.3.0</span>
-                        <span class="shield"><span class="shield-dot blue"></span>MIT License</span>
-                        <span class="shield"><span class="shield-dot purple"></span>0 Dependencies</span>
-                        <span class="shield"><span class="shield-dot orange"></span>CLI Verified</span>
+                    <div style="padding:16px 20px;background:var(--bg-input);">
+                        <div style="display:flex;gap:2px;background:var(--bg-main);padding:3px;border-radius:8px;border:1px solid var(--border);width:fit-content;margin-bottom:12px;">
+                            <button id="tab-import-upload" class="mode-tab active" style="flex:none;padding:6px 12px;font-size:0.78rem;">&#128229; Drag &amp; Drop</button>
+                            <button id="tab-import-paste" class="mode-tab" style="flex:none;padding:6px 12px;font-size:0.78rem;">&#128203; Paste</button>
+                        </div>
+                        <div id="view-import-upload">
+                            <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">Drop a <code>report.json</code> generated by the CLI.</p>
+                            <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:10px;padding:28px 16px;">
+                                <div class="icon" style="font-size:1.6rem;margin-bottom:8px;">&#128229;</div>
+                                <p style="font-size:0.8rem;margin:0;">Drop your <code>report.json</code> here<br><span style="font-size:0.72rem;opacity:0.7;">Only summary metadata is used for signing.</span></p>
+                                <p class="file-name" id="cliFileName"></p>
+                            </div>
+                            <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
+                        </div>
+                        <div id="view-import-paste" style="display:none;">
+                            <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">Paste a <code>report.json</code> generated by the CLI.</p>
+                            <label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">&#128203; Paste JSON directly</label>
+                            <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:100px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
+                            <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:8px;cursor:pointer;">Load JSON Report</button>
+                            <p style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">Press Ctrl+Enter to submit.</p>
+                        </div>
                     </div>
                 </div>
             </div>
+            <!-- Responsive: stack columns on mobile -->
+            <style>@media(max-width:768px){#cli-two-column{grid-template-columns:1fr !important;}}</style>
+            <!-- Hidden elements retained for compatibility -->
+            <div style="display:none;">
+                <div id="view-cli-setup"></div>
+                <div id="view-cli-import"></div>
+                <p class="terminal-section-label" style="font-size:0.7rem;color:var(--text-secondary);margin:12px 0 4px;padding-top:8px;border-top:1px solid var(--border);">Test this server (PowerShell)</p>
+                <div class="terminal-body">
+                    <div class="cmd-row">
+                        <span class="cmd-prompt">$</span>
+                        <code id="testHealthCmd">curl http://localhost:PORT/api/simplebeacon</code>
+                        <button class="cmd-copy" data-copy-target="testHealthCmd" aria-label="Copy API health check command">Copy</button>
+                        <span class="cmd-desc">Check API health (replace PORT with your server port)</span>
+                    </div>
+                    <div class="cmd-row">
+                        <span class="cmd-prompt">$</span>
+                        <code id="testCertCmd">curl -X POST http://localhost:PORT/api/certificate/download -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{"reportJson":{"type":"simplebeacon-report"}}'</code>
+                        <button class="cmd-copy" data-copy-target="testCertCmd" aria-label="Copy test certificate endpoint command">Copy</button>
+                        <span class="cmd-desc">Test certificate endpoint (replace PORT with your server port)</span>
+                    </div>
+                </div>
             </div>
         </div>
+        <script>
+        // CLI code tab switcher — shows one command at a time
+        (function() {
+            var cliTabs = document.querySelectorAll('.cli-code-tab');
+            var cliPanels = document.querySelectorAll('.cli-code-panel');
+            var cliTermTitle = document.getElementById('cliTermTitle');
+            var tabLabels = {verify:'Verify CLI', standard:'Standard Scan', offline:'Offline Gate', full:'Full Coverage', euai:'EU AI Act'};
+            cliTabs.forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    var target = tab.dataset.cliTab;
+                    cliTabs.forEach(function(t) {
+                        t.classList.remove('active');
+                        t.style.background = 'transparent';
+                        t.style.color = 'var(--text-muted)';
+                    });
+                    tab.classList.add('active');
+                    tab.style.background = 'var(--accent)';
+                    tab.style.color = 'white';
+                    cliPanels.forEach(function(p) {
+                        p.style.display = (p.dataset.cliPanel === target) ? 'flex' : 'none';
+                    });
+                    if (cliTermTitle) cliTermTitle.textContent = tabLabels[target] || 'Command';
+                });
+            });
+            // Import sub-tab toggle (Drag & Drop / Paste)
+            var tabImportUpload = document.getElementById('tab-import-upload');
+            var tabImportPaste = document.getElementById('tab-import-paste');
+            var viewImportUpload = document.getElementById('view-import-upload');
+            var viewImportPaste = document.getElementById('view-import-paste');
+            if (tabImportUpload && tabImportPaste && viewImportUpload && viewImportPaste) {
+                tabImportUpload.addEventListener('click', function() {
+                    tabImportUpload.classList.add('active'); tabImportPaste.classList.remove('active');
+                    viewImportUpload.style.display = 'block'; viewImportPaste.style.display = 'none';
+                });
+                tabImportPaste.addEventListener('click', function() {
+                    tabImportPaste.classList.add('active'); tabImportUpload.classList.remove('active');
+                    viewImportPaste.style.display = 'block'; viewImportUpload.style.display = 'none';
+                });
+            }
+        })();
+        </script>
 
         <!-- Toast Container -->
         <div class="toast-container" id="toastContainer"></div>
@@ -605,50 +642,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div class="form-group" style="margin-bottom:14px;">
-                        <label for="browserScanProfile" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
-                        <select id="browserScanProfile" style="display:none;">
-                            <option value="complete" selected>&#127775; Complete Scan — All engines</option>
-                            <option value="gate">&#127775; Gate Scan — Credential + AI heuristics</option>
-                            <option value="aislopcop">&#127775; Simplebeacon AI Detection — Placeholder debris & markdown fences</option>
-                            <option value="codebase">&#127775; Codebase Audit — Full file analysis</option>
-                            <option value="euai">&#127775; EU AI Act Sprint — AI system indicators</option>
-                            <option value="compliance">&#127775; Compliance Check — Governance + security</option>
-                            <option value="hygiene">&#127775; Hygiene Sweep — Debug artifacts + cleanup</option>
-                        </select>
-                        <div class="analyzer-dropdown" id="analyzerDropdown">
-                            <div class="analyzer-presets" id="analyzerPresets">
-                                <button type="button" class="analyzer-preset-btn" data-preset="essential" title="Essential scans">⚡ Essential</button>
-                                <button type="button" class="analyzer-preset-btn" data-preset="security" title="Security-focused scans">🔒 Security</button>
-                                <button type="button" class="analyzer-preset-btn" data-preset="full" title="All available scans">🔬 Full</button>
-                                <button type="button" class="analyzer-preset-btn is-active" data-preset="custom" title="Manual selection">🔧 Custom</button>
-                            </div>
-                            <div class="select-all-bar" id="selectAllBar" role="button" tabindex="0" aria-expanded="true" aria-controls="analyzerDropdownBody">
-                                <input type="checkbox" id="selectAllModules" checked>
-                                <label for="selectAllModules">Select All Available Modules</label>
-                                <span class="select-all-count" id="selectAllCount"></span>
-                                <span class="select-all-chevron" aria-hidden="true">&#9662;</span>
-                            </div>
-                            <div class="analyzer-dropdown-body" id="analyzerDropdownBody">
-                                <div id="analyzerCardGrid" class="analyzer-grid"></div>
-                            </div>
-                        </div>
-                        <p class="help-text" id="scanProfileHelp">Click modules above to toggle which scans are included in your ZIP report.</p>
-                    </div>
-                    <div class="sandbox-note">
-                        <span class="sandbox-icon">&#127757;</span>
-                        <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs <strong>high-speed local regex heuristics</strong> across 52 rule engines (placeholder debris, markdown fences, hardcoded metrics, credential patterns). For deep AST analysis, use the <strong>CLI tab</strong> or server dashboard.</span>
-                    </div>
-                    <label style="display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
-                        <input type="checkbox" id="includeDepsToggle" style="cursor:pointer;">
-                        <span>Include <code>node_modules</code> & <code>.git</code> in scan (slower, more noise)</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
-                        <input type="checkbox" id="deepScanToggle" checked style="cursor:pointer;">
-                        <span><strong>Deep Scan</strong> — analyze <em>every</em> file (bypasses cache, docs, and scanner-page filters)</span>
-                    </label>
-                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
-
+                    <!-- Clean drop zone at top — prioritized for drag-and-drop action -->
                     <div id="browser-folder-dropzone" class="terminal-shell" style="margin-bottom:16px;">
                         <div class="terminal-header">
                             <div style="display:flex;align-items:center;gap:8px;">
@@ -709,7 +703,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                                 <button id="cancelScanBtn" style="display:none;padding:2px 8px;border:1px solid var(--error);background:transparent;color:var(--error);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#9209; Cancel</button>
                                 <button id="downloadLogBtn" style="display:none;padding:2px 8px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#128229; Log</button>
                                 <button id="copyLogBtn" style="display:none;padding:2px 8px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#128203; Copy</button>
-                                <button id="downloadComplianceReportBtn" style="display:none;padding:2px 10px;border:1px solid var(--success);background:rgba(16,185,129,0.08);color:var(--success);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#128196; Compliance Report</button>
                             </div>
                             <div id="integrity-hash" class="terminal-hash">HASH: NOT_YET_CALCULATED</div>
                         </div>
@@ -725,35 +718,65 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                         <span id="browserHashValue">--</span>
                     </div>
 
-                    <div class="schema-accordion" id="browserSchemaInspector">
-                        <div class="schema-header">
-                            <span>&#128203; Payload Schema Inspector (What we read)</span>
-                            <span class="schema-chevron">&#9654;</span>
-                        </div>
-                        <div class="schema-body">
-                            <pre>{
-  "type": "simplebeacon-report",
-  "version": "1.3.0",
-  "generatedAt": "ISO-8601 timestamp",
-  "projectRoot": "string — redacted project label",
-  "gate": { "pass": boolean, "blockingCount": number },
-  "qualityScore": 0-100,
-  "totalFiles": number,
-  "issueCount": number,
-  "detectedIssues": [
-    { "severity": "low|medium|high|critical",
-      "type": "string — rule category",
-      "count": number,
-      "filePath": "redacted relative path",
-      "rule": "string — pattern ID",
-      "impact": "string — business risk statement",
-      "fix": "string — remediation recipe" }
-  ],
-  "summary": { "gatePass": boolean, "qualityScore": number }
-}</pre>
-                            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">No source code, AST, or file contents are transmitted. Only the summary JSON above leaves your perimeter.</p>
-                        </div>
+                    <!-- Visual empty state — replaces raw JSON schema display -->
+                    <div id="browserEmptyState" style="text-align:center;padding:32px 20px;border:1px dashed var(--border);border-radius:12px;background:var(--bg-main);margin-bottom:16px;">
+                        <div style="font-size:2.4rem;margin-bottom:10px;opacity:0.5;">&#128202;</div>
+                        <p style="font-size:0.9rem;color:var(--text-main);font-weight:600;margin:0 0 4px;">Your local analysis data will appear here</p>
+                        <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">Drop a project folder above to start scanning. Results display automatically.</p>
                     </div>
+
+                    <!-- Collapsible Advanced Scan Settings drawer — hidden by default -->
+                    <details id="advancedScanSettings" style="margin-bottom:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-main);overflow:hidden;">
+                        <summary style="padding:12px 18px;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--text-main);display:flex;align-items:center;gap:8px;list-style:none;user-select:none;">
+                            <span>&#9881;&#65039;</span> Advanced Scan Settings
+                            <span style="margin-left:auto;font-size:0.7rem;color:var(--text-muted);font-weight:400;">Scan profiles, modules, filters</span>
+                        </summary>
+                        <div style="padding:16px 18px;border-top:1px solid var(--border);">
+                            <div class="form-group" style="margin-bottom:14px;">
+                                <label for="browserScanProfile" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
+                                <select id="browserScanProfile" style="display:none;">
+                                    <option value="complete" selected>&#127775; Complete Scan — All engines</option>
+                                    <option value="gate">&#127775; Gate Scan — Credential + AI heuristics</option>
+                                    <option value="aislopcop">&#127775; Simplebeacon AI Detection — Placeholder debris & markdown fences</option>
+                                    <option value="codebase">&#127775; Codebase Audit — Full file analysis</option>
+                                    <option value="euai">&#127775; EU AI Act Sprint — AI system indicators</option>
+                                    <option value="compliance">&#127775; Compliance Check — Governance + security</option>
+                                    <option value="hygiene">&#127775; Hygiene Sweep — Debug artifacts + cleanup</option>
+                                </select>
+                                <div class="analyzer-dropdown" id="analyzerDropdown">
+                                    <div class="analyzer-presets" id="analyzerPresets">
+                                        <button type="button" class="analyzer-preset-btn" data-preset="essential" title="Essential scans">⚡ Essential</button>
+                                        <button type="button" class="analyzer-preset-btn" data-preset="security" title="Security-focused scans">🔒 Security</button>
+                                        <button type="button" class="analyzer-preset-btn" data-preset="full" title="All available scans">🔬 Full</button>
+                                        <button type="button" class="analyzer-preset-btn is-active" data-preset="custom" title="Manual selection">🔧 Custom</button>
+                                    </div>
+                                    <div class="select-all-bar" id="selectAllBar" role="button" tabindex="0" aria-expanded="true" aria-controls="analyzerDropdownBody">
+                                        <input type="checkbox" id="selectAllModules" checked>
+                                        <label for="selectAllModules">Select All Available Modules</label>
+                                        <span class="select-all-count" id="selectAllCount"></span>
+                                        <span class="select-all-chevron" aria-hidden="true">&#9662;</span>
+                                    </div>
+                                    <div class="analyzer-dropdown-body" id="analyzerDropdownBody">
+                                        <div id="analyzerCardGrid" class="analyzer-grid"></div>
+                                    </div>
+                                </div>
+                                <p class="help-text" id="scanProfileHelp">Click modules above to toggle which scans are included in your ZIP report.</p>
+                            </div>
+                            <div class="sandbox-note">
+                                <span class="sandbox-icon">&#127757;</span>
+                                <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs <strong>high-speed local regex heuristics</strong> across 52 rule engines (placeholder debris, markdown fences, hardcoded metrics, credential patterns). For deep AST analysis, use the <strong>CLI tab</strong> or server dashboard.</span>
+                            </div>
+                            <label style="display:flex;align-items:center;gap:8px;margin:8px 0 6px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
+                                <input type="checkbox" id="includeDepsToggle" style="cursor:pointer;">
+                                <span>Include <code>node_modules</code> & <code>.git</code> in scan (slower, more noise)</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
+                                <input type="checkbox" id="deepScanToggle" checked style="cursor:pointer;">
+                                <span><strong>Deep Scan</strong> — analyze <em>every</em> file (bypasses cache, docs, and scanner-page filters)</span>
+                            </label>
+                        </div>
+                    </details>
+                    <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 16px;text-align:center;">No source code, AST, or file contents are transmitted. Only summary metadata leaves your perimeter.</p>
                 </div>
             </div>
         </div>
@@ -1505,7 +1528,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     return header + '.' + payload + '.' + sig;
                 }
 
-                // ── Token Status Card ─────────────────────────────────────────
+                // ── Token Status Pill Badge ───────────────────────────────────
                 function updateTokenStatusCard(token, data) {
                     const card = document.getElementById('tokenStatusCard');
                     if (!card) return;
@@ -1514,21 +1537,26 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     const isAdmin = tier === 'admin';
                     const freeTiers = ['community','starter','instant','free','developer','sandbox'];
                     const isFreeTier = freeTiers.includes(tier.toLowerCase());
-                    document.getElementById('tokenStatusTitle').textContent = isAdmin ? '🔒 Admin Token Active' : 'Token Active';
-                    document.getElementById('tokenStatusSubtitle').textContent = isAdmin ? 'Superuser access' : (tier.charAt(0).toUpperCase() + tier.slice(1)) + ' tier';
+                    // Compact pill badge text
+                    const tierName = (tier.charAt(0).toUpperCase() + tier.slice(1));
+                    document.getElementById('tokenStatusTitle').textContent = isAdmin ? '🔒 Admin' : tierName + ' Tier';
+                    document.getElementById('tokenStatusSubtitle').textContent = isAdmin ? 'Superuser access' : tierName + ' tier';
                     const badge = document.getElementById('tokenTierBadge');
                     badge.textContent = tier.toUpperCase();
                     badge.style.background = isAdmin ? 'rgba(217,119,6,0.15)' : 'var(--primary-subtle)';
                     badge.style.color = isAdmin ? 'var(--warning)' : 'var(--accent)';
-                    // Show details grid for paid tiers, free upgrade message for free tiers
+                    // Show upgrade link for free tiers, details for paid tiers
                     const detailsGrid = document.getElementById('tokenStatusDetails');
                     const freeMsg = document.getElementById('tokenStatusFree');
+                    const upgradeLink = document.getElementById('tokenStatusUpgradeLink');
                     if (isFreeTier) {
                         if (detailsGrid) detailsGrid.style.display = 'none';
                         if (freeMsg) freeMsg.style.display = 'block';
+                        if (upgradeLink) upgradeLink.style.display = 'inline-block';
                     } else {
                         if (detailsGrid) detailsGrid.style.display = 'grid';
                         if (freeMsg) freeMsg.style.display = 'none';
+                        if (upgradeLink) upgradeLink.style.display = 'none';
                         document.getElementById('tokenStatusEmail').textContent = data.email || 'N/A';
                         if (data.expiry) {
                             const expiryDate = new Date(data.expiry * 1000);
@@ -2046,5 +2074,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     } catch (_) { }
 })();
   </script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
 </body>
 </html>
