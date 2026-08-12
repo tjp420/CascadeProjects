@@ -513,7 +513,7 @@ function setupSubscriptionWebhook(app) {
                             customerEmail: customer.email,
                             features,
                             dashboardUrl: DASHBOARD_URL,
-                            signInUrl: DASHBOARD_URL + '#/signin'
+                            signInUrl: DASHBOARD_URL + 'signin'
                         });
                         const emailResult = await sendEmail({
                             to: customer.email,

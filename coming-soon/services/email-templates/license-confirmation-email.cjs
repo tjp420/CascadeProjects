@@ -33,13 +33,16 @@ function renderLicenseConfirmation(opts) {
         signInUrl = 'https://simplebeacon.ai/dashboard/#/signin'
     } = opts;
 
-    // Pre-fill links with token + email so the user doesn't need to copy-paste
+    // Pre-fill links with token + email so the user doesn't need to copy-paste.
+    // Use path-based URLs (not hash-based) because many email clients strip # fragments.
     const tokenEncoded = encodeURIComponent(token);
     const emailEncoded = encodeURIComponent(customerEmail);
     const nameEncoded = encodeURIComponent(customerEmail.split('@')[0]);
-    const activateUrl = signInUrl + (signInUrl.includes('?') ? '&' : '?') + 'mode=license&token=' + tokenEncoded;
-    const registerUrl = signInUrl + (signInUrl.includes('?') ? '&' : '?') + 'mode=register&email=' + emailEncoded + '&name=' + nameEncoded;
-    const loginUrl = signInUrl + (signInUrl.includes('?') ? '&' : '?') + 'mode=signin&email=' + emailEncoded;
+    // Strip any trailing #/signin from signInUrl and use path-based routing instead
+    const signInBase = signInUrl.replace(/\/#\/signin\/?$/, '/signin').replace(/\/#\/signin$/, '/signin');
+    const activateUrl = signInBase + (signInBase.includes('?') ? '&' : '?') + 'mode=license&token=' + tokenEncoded;
+    const registerUrl = signInBase + (signInBase.includes('?') ? '&' : '?') + 'mode=register&email=' + emailEncoded + '&name=' + nameEncoded;
+    const loginUrl = signInBase + (signInBase.includes('?') ? '&' : '?') + 'mode=signin&email=' + emailEncoded;
     const dashboardWithToken = dashboardUrl + (dashboardUrl.includes('?') ? '&' : '?') + 'token=' + tokenEncoded;
 
     const featuresHtml = features.map(f => '<li style="padding:8px 0 8px 28px;font-size:0.88rem;color:#c4b5fd;position:relative;"><span style="position:absolute;left:0;top:11px;color:#fbbf24;">&#10003;</span>' + escapeHtml(f) + '</li>').join('');
