@@ -112,4 +112,37 @@ services:
         sync: false
       - key: CF_BEACON_TOKEN
         sync: false
+      # ── LLM / Ollama (commit e8b4f2040 — num_ctx fix) ───────────────────
+      - key: OLLAMA_BASE_URL
+        value: "http://127.0.0.1:11434"
+      - key: OLLAMA_MODEL
+        value: "unbreakable-oracle:latest"
+      - key: OLLAMA_NUM_CTX
+        value: "8192"
+      - key: OLLAMA_TIMEOUT_MS
+        value: "120000"
+      - key: SIMPLEBEACON_OFFLINE
+        value: "true"
+      # ── Report Signing (tamper-evident evidence packs) ──────────────────
+      - key: REPORT_SIGNING_KEY
+        sync: false
+      - key: REPORT_SIGNING_KEY_ID
+        value: "1"
+      # ── Dashboard Vault (internal dashboard access) ─────────────────────
+      - key: DASHBOARD_VAULT_PASSWORD
+        sync: false
+      # ── Stripe Checkout Links (self-service purchases) ──────────────────
+      - key: STRIPE_LINK_INSTANT
+        sync: false
+      - key: STRIPE_LINK_EXECUTIVE
+        sync: false
+      - key: STRIPE_LINK_EU_SPRINT
+        sync: false
+      # ── Feature Flags (explicit production values) ──────────────────────
+      - key: SIMPLEBEACON_ENABLE_DEMO_REPORT
+        value: "false"
+      - key: ENABLE_EXTERNAL_APIS
+        value: "false"
+      - key: LOG_LEVEL
+        value: "info"
     healthCheckPath: /health
