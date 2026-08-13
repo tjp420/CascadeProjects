@@ -1348,6 +1348,9 @@
                     findings.push({id:p.id,name:p.name,severity:p.severity,count:matches.length,desc:p.desc,examples:matches.slice(0,3)});
                 }
             }
+            // Anonymous analytics — tracks scan event only, no text content sent
+            try{if(typeof gtag==='function'){gtag('event','text_scan_executed',{'event_category':'engagement'});}}catch(e){}
+            try{var cf=window.__cfBeacon;if(cf&&typeof cf.trackEvent==='function'){cf.trackEvent({name:'text_scan_executed'});}}catch(e){}
             var score=Math.max(0,100-findings.reduce(function(s,f){return s+(f.severity==='high'?25:f.severity==='medium'?12:5)*Math.min(f.count,3);},0));
             var sevColor={high:'#ef4444',medium:'#f59e0b',low:'#64748b'};
             var sevLabel={high:'High',medium:'Medium',low:'Low'};
