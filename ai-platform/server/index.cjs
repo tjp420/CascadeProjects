@@ -1281,6 +1281,15 @@ try {
   logger.warn('[Analytics] Usage analytics route not mounted:', e?.message || e);
 }
 
+// Scan counter — free-tier paywall enforcement
+try {
+  const scanCounterRouter = require('./routes/scan-counter-routes.cjs');
+  app.use('/api/scans', scanCounterRouter);
+  logger.info('[ScanCounter] Scan counter routes mounted at /api/scans');
+} catch (e) {
+  logger.warn('[ScanCounter] Scan counter route not mounted:', e?.message || e);
+}
+
 // Dashboard stub APIs ΓÇö dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {
     setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });

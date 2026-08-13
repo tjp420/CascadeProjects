@@ -17,3 +17,11 @@ CREATE TABLE IF NOT EXISTS scan_history (
 
 CREATE INDEX IF NOT EXISTS idx_scan_history_user_scanned
     ON scan_history (user_id, scanned_at DESC);
+
+-- Monthly scan counter for free-tier paywall enforcement
+CREATE TABLE IF NOT EXISTS scan_counts (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    month_bucket DATE NOT NULL,
+    scan_count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, month_bucket)
+);
