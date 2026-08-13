@@ -671,12 +671,12 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       if (devHost) {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260813mobile';
+        s.src = '/dashboard/assets/main.js?v=20260813register';
         document.head.appendChild(s);
       } else {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260813mobile';
+        s.src = '/dashboard/assets/main.js?v=20260813register';
         document.head.appendChild(s);
       }
     })();
