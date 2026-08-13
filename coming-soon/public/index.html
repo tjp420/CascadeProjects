@@ -855,6 +855,16 @@
             .metrics-row { flex-direction: column !important; }
             .feature-grid-3 { grid-template-columns: 1fr !important; }
             .scan-split { grid-template-columns: 1fr !important; }
+            /* Risk calculator: stack inputs and metrics on mobile */
+            #risk-calculator .container > div:last-child { padding: 20px !important; }
+            #risk-calculator div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+            #risk-calculator div[style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns: 1fr !important; gap: 12px !important; }
+            /* Audience breakdown: stack cards on mobile */
+            #text-scanner + section div[style*="grid-template-columns:repeat(auto-fit"] { grid-template-columns: 1fr !important; }
+            /* Text scanner: full width textarea */
+            #text-scan-input { min-height: 120px !important; font-size: 13px !important; }
+            /* CI/CD snippets: smaller font on mobile */
+            pre[id^="ci-"] { font-size: 11px !important; }
         }
 
         /* Comparison: Traditional vs SimpleBeacon */

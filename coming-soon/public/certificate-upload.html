@@ -15,6 +15,19 @@
     <meta name="twitter:title" content="SimpleBeacon — Certificate Upload">
     <meta name="twitter:description" content="Upload a SimpleBeacon scan report to generate a board-ready Executive Risk Certificate and remediation roadmap.">
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -792,7 +805,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                     <div style="display:flex;gap:8px;">
                         <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
                         <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send a Token</button>
-                        <button id="lookupTokenBtn" style="padding:10px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Look Up Token</button>
                     </div>
                     <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
                 </div>
@@ -889,7 +901,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
         <footer>
             <p>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</p>
-            <p style="margin-top: 4px; opacity: 0.7;">Questions? <a href="mailto:hello@simplebeacon.ai" style="color: #60A5FA; text-decoration: none;">hello@simplebeacon.ai</a></p>
+            <p style="margin-top: 4px; opacity: 0.7;">Questions? <a href="mailto:admin@simplebeacon.ai" style="color: #60A5FA; text-decoration: none;">admin@simplebeacon.ai</a></p>
         </footer>
         </div>
     </div>
@@ -1221,54 +1233,20 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                         resendStatus.style.color = 'var(--error)';
                         return;
                     }
-                    resendStatus.textContent = freeRes.data.error || freeRes.data.message || paidRes.data.error || 'Could not send token email. Try again or contact hello@simplebeacon.ai.';
+                    resendStatus.textContent = freeRes.data.error || freeRes.data.message || paidRes.data.error || 'Could not send token email. Try again or contact admin@simplebeacon.ai.';
                     resendStatus.style.color = 'var(--error)';
                     return;
                 }
 
-                resendStatus.textContent = paidRes.data.error || 'Could not resend token. Please email hello@simplebeacon.ai for help.';
+                resendStatus.textContent = paidRes.data.error || 'Could not resend token. Please email admin@simplebeacon.ai for help.';
                 resendStatus.style.color = 'var(--error)';
             } catch (err) {
-                resendStatus.textContent = 'Network error. Please try again or email hello@simplebeacon.ai for help.';
+                resendStatus.textContent = 'Network error. Please try again or email admin@simplebeacon.ai for help.';
                 resendStatus.style.color = 'var(--error)';
             } finally {
                 resendStatus.style.display = 'block';
                 resendBtn.disabled = false;
                 resendBtn.textContent = 'Send a Token';
-            }
-        });
-
-        // Token lookup functionality — shows token on-screen without requiring email
-        const lookupBtn = document.getElementById('lookupTokenBtn');
-        lookupBtn.addEventListener('click', async () => {
-            const email = resendEmail.value.trim();
-            if (!email || !email.includes('@')) {
-                resendStatus.textContent = 'Please enter a valid email address.';
-                resendStatus.style.color = 'var(--error)';
-                resendStatus.style.display = 'block';
-                return;
-            }
-            lookupBtn.disabled = true;
-            lookupBtn.textContent = 'Looking up...';
-            resendStatus.style.display = 'none';
-            try {
-                const res = await fetch(API_BASE + '/api/simplebeacon/billing/license?email=' + encodeURIComponent(email));
-                const data = await res.json();
-                if (res.ok && data.licenseToken) {
-                    applyTokenFromEmail(data.licenseToken);
-                    resendStatus.innerHTML = '<strong style="color:var(--success);">Token found!</strong> Your license (' + (data.tier || 'unknown') + ' tier) has been applied above. <br><details style="margin-top:6px;"><summary style="cursor:pointer;font-size:0.75rem;color:var(--text-muted);">Show raw token</summary><code style="display:block;word-break:break-all;font-size:0.7rem;padding:6px;margin-top:4px;background:var(--bg-main);border-radius:4px;">' + data.licenseToken + '</code></details>';
-                    resendStatus.style.color = 'var(--success)';
-                } else {
-                    resendStatus.textContent = data.error || 'No license found for this email. If you just paid, please wait a moment and try again, or use "Send a Token" to receive it by email.';
-                    resendStatus.style.color = 'var(--error)';
-                }
-            } catch (err) {
-                resendStatus.textContent = 'Network error. Please try again or email hello@simplebeacon.ai for help.';
-                resendStatus.style.color = 'var(--error)';
-            } finally {
-                resendStatus.style.display = 'block';
-                lookupBtn.disabled = false;
-                lookupBtn.textContent = 'Look Up Token';
             }
         });
 
@@ -1819,5 +1797,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
         });
     </script>
   <script>(function(){try{var params=new URLSearchParams(window.location.search);var ref=params.get('ref');if(!ref)return;try{localStorage.setItem('sb_ref_slug',ref);}catch(_){}fetch('/api/referral/capture',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:ref,channel:'web'})}).catch(function(){});}catch(_){}})();</script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
 </body>
 </html>
