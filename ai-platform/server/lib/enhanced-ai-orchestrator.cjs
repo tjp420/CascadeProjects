@@ -12,6 +12,7 @@ const { ensureRegistry } = require('../services/local-model-service.cjs');
 const { getUserAiCredentials } = require('../lib/user-ai-keys-store.cjs');
 const { analyzeSemanticLayer } = require('./code-understanding/semantic-analyzer.cjs');
 const { analyzeContextualLayer } = require('./code-understanding/contextual-analyzer.cjs');
+const { chunkContent, estimateTokens, buildChunkPrompt, resolveContextWindow, DEFAULT_SYSTEM_PROMPT_TOKENS, DEFAULT_RESPONSE_TOKENS } = require('./context-window-chunker.cjs');
 const logger = require('../../src/lib/app-logger.cjs');
 
 /**
@@ -199,36 +200,103 @@ async function performStaticAnalysis(content, context) {
 
 /**
  * Perform AI-powered analysis
+ *
+ * Uses the context-window-chunker to handle large content that exceeds
+ * the model's context window. When content is too large for a single
+ * call, it is chunked and each chunk is analyzed separately, with
+ * results aggregated.
  */
 async function performAIAnalysis(content, context, model, options) {
-    const analysisPrompt = buildAnalysisPrompt(content, context, options);
-    
-    try {
-        const result = await analyzeWithModel(model.id, analysisPrompt, {
-            timeout: options.timeoutMs || 60000,
-            maxTokens: 2048,
-            temperature: 0.3
+    const modelId = model.id || 'default';
+    const chunks = chunkContent(content, {
+        model: modelId,
+        systemPromptTokens: DEFAULT_SYSTEM_PROMPT_TOKENS,
+        responseTokens: DEFAULT_RESPONSE_TOKENS,
+    });
+
+    const totalChunks = chunks.length;
+    const chunkResults = [];
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
+    for (let i = 0; i < chunks.length; i++) {
+        const chunkPrompt = buildChunkPrompt(chunks[i], {
+            ...context,
+            chunkIndex: i,
+            totalChunks,
         });
-        
-        return {
-            model: model.id,
-            provider: model.provider,
-            insights: result.response || result.text || '',
-            confidence: result.confidence || 0.5,
-            processingTime: result.processingTime || 0,
-            tokens: result.tokens || { input: 0, output: 0 }
-        };
-    } catch (error) {
-        throw new Error(`AI analysis with model ${model.id} failed: ${error.message}`);
+
+        try {
+            const result = await analyzeWithModel(modelId, chunkPrompt, {
+                timeout: options.timeoutMs || 60000,
+                maxTokens: 2048,
+                temperature: 0.3
+            });
+
+            chunkResults.push({
+                chunkIndex: i,
+                insights: result.response || result.text || '',
+                confidence: result.confidence || 0.5,
+                tokens: result.tokens || { input: 0, output: 0 },
+            });
+
+            totalInputTokens += result.tokens?.input || 0;
+            totalOutputTokens += result.tokens?.output || 0;
+        } catch (error) {
+            // If a chunk fails, record the error but continue with remaining chunks
+            logger.warn(`[Enhanced Orchestrator] Chunk ${i + 1}/${totalChunks} failed: ${error.message}`);
+            chunkResults.push({
+                chunkIndex: i,
+                error: error.message,
+                insights: '',
+                confidence: 0,
+                tokens: { input: 0, output: 0 },
+            });
+        }
     }
+
+    // Aggregate insights from all chunks
+    const allInsights = chunkResults.map(r => r.insights).filter(Boolean).join('\n\n---\n\n');
+    const avgConfidence = chunkResults.length > 0
+        ? chunkResults.reduce((sum, r) => sum + (r.confidence || 0), 0) / chunkResults.length
+        : 0.5;
+
+    return {
+        model: modelId,
+        provider: model.provider,
+        insights: allInsights,
+        confidence: avgConfidence,
+        processingTime: 0,
+        tokens: { input: totalInputTokens, output: totalOutputTokens },
+        chunkCount: totalChunks,
+        chunkResults,
+    };
 }
 
 /**
  * Build context-aware analysis prompt
+ *
+ * Uses the context-window-chunker to split large content into
+ * context-window-sized chunks instead of hard-truncating at 4000 chars.
+ * When content exceeds the available token budget, only the first chunk
+ * is used for the prompt (subsequent chunks are handled by the multi-file
+ * sweep orchestrator in executeMultiFileSweep).
  */
 function buildAnalysisPrompt(content, context, options) {
     const { filePath, projectPath, analysisType } = context;
     const language = context.language || 'unknown';
+    
+    // Use the chunker to get the first chunk that fits within the model's context window
+    const model = options?.model?.id || 'default';
+    const chunks = chunkContent(content, {
+        model,
+        systemPromptTokens: DEFAULT_SYSTEM_PROMPT_TOKENS,
+        responseTokens: DEFAULT_RESPONSE_TOKENS,
+    });
+    
+    // Use the first chunk (or full content if it fits)
+    const contentChunk = chunks[0] || content;
+    const totalChunks = chunks.length;
     
     let prompt = `Analyze the following ${language} code`;
     
@@ -238,6 +306,10 @@ function buildAnalysisPrompt(content, context, options) {
     
     if (projectPath) {
         prompt += ` in project context`;
+    }
+
+    if (totalChunks > 1) {
+        prompt += ` (chunk 1 of ${totalChunks} — showing first ${Math.floor(contentChunk.length / 3.5)} tokens)`;
     }
     
     prompt += `.\n\nProvide insights on:\n`;
@@ -257,7 +329,7 @@ function buildAnalysisPrompt(content, context, options) {
         prompt += `- Architectural concerns\n`;
     }
     
-    prompt += `\n\nCode:\n\`\`\`${language}\n${content.slice(0, 4000)}\n\`\`\`\n\n`;
+    prompt += `\n\nCode:\n\`\`\`${language}\n${contentChunk}\n\`\`\`\n\n`;
     prompt += `Provide a concise, structured analysis focusing on actionable insights.`;
     
     return prompt;
@@ -359,5 +431,6 @@ module.exports = {
     StreamingAnalyzer,
     performStaticAnalysis,
     performAIAnalysis,
-    performDeterministicAnalysis
+    performDeterministicAnalysis,
+    buildAnalysisPrompt,
 };
