@@ -338,18 +338,18 @@ deploy() {
   log "Deployment complete!"
   info ""
 
-  # Run the validation suite automatically (non-blocking — warn on failure)
+  # Run the validation suite automatically with safe recovery (non-blocking)
   local validate_script="$SCRIPT_DIR/validate-airgap-deploy.sh"
   if [ -f "$validate_script" ]; then
-    info "Running post-deployment validation suite..."
+    info "Running post-deployment validation suite (with safe auto-recovery)..."
     # Wait for containers to settle before validating
     info "Waiting 10s for containers to initialize..."
     sleep 10
-    if bash "$validate_script"; then
+    if bash "$validate_script" --recover-safe; then
       log "Post-deployment validation passed — stack is healthy."
     else
       warn "Post-deployment validation reported failures."
-      warn "Run './scripts/validate-airgap-deploy.sh --verbose' for details."
+      warn "Run './scripts/validate-airgap-deploy.sh --verbose --recover' for recovery attempts."
     fi
   else
     info "Verify the deployment with:"
@@ -412,6 +412,7 @@ Commands:
   verify                  Run the full post-deployment validation suite
                           (delegates to validate-airgap-deploy.sh)
                           Pass --json for JSON output, --verbose for full output
+                          Pass --recover or --recover-safe for auto-recovery
 
   help                    Show this help message
 
