@@ -153,7 +153,11 @@
           var el = document.getElementById('app-main') || document.querySelector('.app-main');
           if (!el) return;
           el.style.setProperty('position', 'fixed', 'important');
-          el.style.setProperty('inset', '64px 0 0 240px', 'important');
+          // Responsive inset: sidebar (240px) only on wide screens (>=1024px).
+          // On mobile/tablet the sidebar is hidden by the React app via lg:hidden,
+          // so the content area must fill the full width (left: 0).
+          var isWide = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
+          el.style.setProperty('inset', isWide ? '64px 0 0 240px' : '64px 0 0 0', 'important');
           el.style.setProperty('overflow', 'auto', 'important');
           el.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
           el.style.setProperty('box-sizing', 'border-box', 'important');
@@ -162,6 +166,8 @@
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
       var n = 0; var iv = setInterval(function(){ apply(); if (++n > 40) clearInterval(iv); }, 100);
       setTimeout(function(){ try{ clearInterval(iv); }catch(e){} }, 3000);
+      // Re-apply on viewport changes (orientation change, mobile browser UI show/hide)
+      window.addEventListener('resize', apply, { passive: true });
     })();
   </script>
 

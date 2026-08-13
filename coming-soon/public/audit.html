@@ -129,6 +129,38 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     <script src="js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
     <link rel="stylesheet" href="css/dashboard.css?h=1786200000000">
     <script>(function(){var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();</script>
+    <script>
+    // Mobile detection: auto-switch to CLI/Import tab when browser scanning is unavailable.
+    // showDirectoryPicker is only available on Chrome/Edge desktop. Mobile browsers
+    // and Safari/Firefox don't support it, so the "Scan in Browser" tab is unusable.
+    // Auto-switch to the CLI tab where users can import a pre-generated JSON report.
+    (function() {
+        var hasDirectoryPicker = typeof window.showDirectoryPicker === 'function';
+        var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        var isMobileBrowser = isTouch && !hasDirectoryPicker;
+        if (isMobileBrowser) {
+            function switchToCliTab() {
+                var tabCli = document.getElementById('tab-cli');
+                var tabBrowser = document.getElementById('tab-browser');
+                var viewCli = document.getElementById('view-cli');
+                var viewBrowser = document.getElementById('view-browser');
+                if (tabCli && viewCli) {
+                    tabCli.classList.add('active');
+                    if (tabBrowser) tabBrowser.classList.remove('active');
+                    viewCli.style.display = 'block';
+                    if (viewBrowser) viewBrowser.style.display = 'none';
+                }
+                var notice = document.getElementById('mobile-scan-notice');
+                if (notice) notice.style.display = 'block';
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', switchToCliTab);
+            } else {
+                switchToCliTab();
+            }
+        }
+    })();
+    </script>
 </head>
 <body>
     <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-main);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;pointer-events:none;">
@@ -813,6 +845,10 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                                     <button type="button" id="select-drive-target-btn" class="btn btn-primary" style="margin-bottom:10px;">&#128193; Select Drive Target</button>
                                     <p style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">Or drag &amp; drop a project directory anywhere in this box</p>
                                     <p class="file-name" id="localScanFileName"></p>
+                                    <div id="mobile-scan-notice" style="display:none;margin-top:12px;padding:10px 14px;border:1px solid var(--warning);border-radius:8px;background:rgba(245,158,11,0.08);font-size:0.72rem;color:var(--text-secondary);line-height:1.5;">
+                                        <strong style="color:var(--warning);">Browser scanning requires Chrome or Edge on desktop.</strong><br>
+                                        On mobile, use the <strong>Use Terminal (CLI)</strong> tab to run SimpleBeacon locally, then import the <code>report.json</code> file here.
+                                    </div>
                                 </div>
                             </div>
                             <div id="terminal-console" class="terminal-log"></div>
