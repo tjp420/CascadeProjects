@@ -46,6 +46,7 @@ import { LicenseManagerView } from './views/LicenseManagerView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
+const TelemetryView = lazy(() => import('./views/TelemetryView').then(m => ({ default: m.TelemetryView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const AUTH_REQUIRED_VIEWS = new Set(['organization', 'workspace']);
@@ -99,6 +100,7 @@ const VIEW_TITLES: Record<string, string> = {
   organization: 'Organization',
   enterprise: 'Enterprise',
   'team-metrics': 'Team Metrics',
+  'telemetry': 'Advanced Telemetry',
   'outreach-analytics': 'Outreach Analytics',
   workspace: 'Workspace',
   'fine-tuning': 'Fine-Tuning Curation',
@@ -136,6 +138,7 @@ const viewMap: Record<string, React.ComponentType> = {
   organization: OrganizationView,
   enterprise: EnterpriseView,
   'team-metrics': TeamMetricsView,
+  'telemetry': TelemetryView,
   'outreach-analytics': OutreachAnalyticsView,
   workspace: WorkspaceConfigView,
   'fine-tuning': FineTuningCurationView,

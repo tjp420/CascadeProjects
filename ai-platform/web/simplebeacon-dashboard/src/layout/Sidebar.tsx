@@ -31,6 +31,7 @@ import {
   Webhook,
   FileBarChart,
   KeyRound,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +81,7 @@ const navGroups: NavGroup[] = [
       { view: 'remediation', label: 'Remediation', icon: Map },
       { view: 'platform', label: 'Platform', icon: BarChart3 },
       { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
+      { view: 'telemetry', label: 'Advanced Telemetry', icon: Activity },
       { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail },
       { view: 'organization', label: 'Organization', icon: Building2 },
       { view: 'enterprise', label: 'Enterprise', icon: Server },
