@@ -53,7 +53,13 @@ function withGaInjection(response, env) {
  */
 const COOKIE_BANNER_HTML = `<div id="sb-cookie-notice" style="position:fixed;bottom:0;left:0;right:0;z-index:99998;background:#0B0F19;border-top:1px solid #1E293B;padding:12px 20px;display:flex;align-items:center;justify-content:center;gap:16px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;color:#94A3B8;transition:opacity .3s,transform .3s;"><span style="color:#F3F4F6;">We use only essential cookies to keep you logged in.</span><a href="/privacy" style="color:#06B6D4;text-decoration:none;">Read our Privacy Policy</a><button onclick="var n=document.getElementById('sb-cookie-notice');n.style.opacity='0';n.style.transform='translateY(100%)';setTimeout(function(){n.style.display='none'},300);try{localStorage.setItem('sb-cookie-dismissed','1')}catch(e){}" style="background:#06B6D4;color:#0B0F19;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Dismiss</button></div><script>try{if(localStorage.getItem('sb-cookie-dismissed')==='1'){var n=document.getElementById('sb-cookie-notice');if(n)n.style.display='none'}}catch(e){}</script>`;
 
-function withCookieBanner(response) {
+function withCookieBanner(response, pathname) {
+  // Skip cookie banner on dashboard/app SPA pages — the fixed-position overlay
+  // (z-index:99998) intercepts touch events on mobile, making the sign-in
+  // button untappable on small screens.
+  if (pathname && (pathname.startsWith('/dashboard') || pathname.startsWith('/app'))) {
+    return response;
+  }
   const rewriter = new HTMLRewriter()
     .on('body', {
       element(element) {
@@ -86,9 +92,9 @@ function withCfAnalytics(response, env) {
  * @param {Object} env - Worker environment bindings
  * @returns {Response} - Transformed response
  */
-function withHtmlInjections(response, env) {
+function withHtmlInjections(response, env, pathname) {
   let r = withGaInjection(response, env);
-  r = withCookieBanner(r);
+  r = withCookieBanner(r, pathname);
   r = withCfAnalytics(r, env);
   return r;
 }
@@ -412,8 +418,8 @@ export default {
           headers.set('CDN-Cache-Control', 'no-store');
           headers.set('Edge-Cache-TTL', '0');
           headers.set('X-SB-Worker-Entry', entryPath);
-          headers.set('X-SB-Worker-Deploy', '2026-08-13-mobile-fix');
-          return withSecurityHeaders(withHtmlInjections(new Response(candidate.body, { status: candidate.status, headers }), env));
+          headers.set('X-SB-Worker-Deploy', '2026-08-13-touch-fix');
+          return withSecurityHeaders(withHtmlInjections(new Response(candidate.body, { status: candidate.status, headers }), env, url.pathname));
         }
       }
     }
@@ -801,7 +807,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'root-html');
-        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env));
+        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env, url.pathname));
       }
     }
 
@@ -819,7 +825,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'dashboard-html');
-        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env));
+        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env, url.pathname));
       }
     }
 
@@ -838,7 +844,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'page-html');
-        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env));
+        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env, url.pathname));
       }
     }
 
@@ -868,7 +874,7 @@ export default {
                      url.pathname === '/' ||
                      (!url.pathname.includes('.') && assetResp.headers.get('Content-Type', '').includes('text/html'));
       const response = new Response(assetResp.body, { status: assetResp.status, headers });
-      if (isHtml) return withSecurityHeaders(withHtmlInjections(response, env));
+      if (isHtml) return withSecurityHeaders(withHtmlInjections(response, env, url.pathname));
       return response;
     }
 
