@@ -1,22 +1,21 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 // SimpleBeacon Token Manager
 // Handles token parsing, tier logic, product UI, and scan profile filtering.
-
 function htmlToFragment(html) { return document.createRange().createContextualFragment(html.trim()); }
-
 function decodeJwtPayload(token) {
-    if (!token || typeof token !== 'string') return null;
+    if (!token || typeof token !== 'string')
+        return null;
     const parts = token.split('.');
     if (parts.length !== 2 && parts.length !== 3) {
-
         return null;
     }
     const payloadBase64url = parts.length === 2 ? parts[0] : parts[1];
-    if (!payloadBase64url) { return null; }
+    if (!payloadBase64url) {
+        return null;
+    }
     const base64 = payloadBase64url.replace(/-/g, '+').replace(/_/g, '/');
     const rem = base64.length % 4;
     if (rem === 1) {
-
         return null;
     }
     const padded = base64 + '='.repeat((4 - rem) % 4);
@@ -25,27 +24,27 @@ function decodeJwtPayload(token) {
         let decoded;
         if (typeof TextDecoder !== 'undefined') {
             const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            for (let i = 0; i < binary.length; i++)
+                bytes[i] = binary.charCodeAt(i);
             decoded = new TextDecoder().decode(bytes);
-        } else {
+        }
+        else {
             decoded = decodeURIComponent(escape(binary));
         }
         return JSON.parse(decoded);
-    } catch (e) {
+    }
+    catch (e) {
         return null;
     }
 }
-
 const licenseInput = document.getElementById('licenseToken');
 const browserScanProfile = document.getElementById('browserScanProfile');
 const scanProfileHelp = document.getElementById('scanProfileHelp');
 const analyzerCardGrid = document.getElementById('analyzerCardGrid');
 const selectAllModules = document.getElementById('selectAllModules');
 const selectAllCount = document.getElementById('selectAllCount');
-
 const PRODUCT_CONFIG = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.products) || {};
-const _siteTierProfiles = window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.tierProfiles;
-const TIER_PROFILES = (_siteTierProfiles && Object.keys(_siteTierProfiles).length > 0) ? _siteTierProfiles : {
+const TIER_PROFILES = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.tierProfiles) || {
     locked: [],
     community: ['gate'],
     instant: ['gate', 'instant', 'mock-data'],
@@ -56,7 +55,6 @@ const TIER_PROFILES = (_siteTierProfiles && Object.keys(_siteTierProfiles).lengt
     universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],
     admin: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
 };
-
 const ALL_MODULES = ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift', 'sync-io', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unhandled-promise', 'magic-number', 'missing-strict-mode', 'uninitialized-read', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets', 'hardcoded-confidence', 'hardcoded-completion', 'mock-path-leak', 'sample-json-ref', 'governance-marker', 'ai-placeholder-comment', 'ai-placeholder-block', 'markdown-fence-leak', 'empty-stub-function', 'arrow-stub', 'roadmap-marker', 'file-naming', 'removable-files'];
 const TIER_PRODUCT_ALIASES = {
     startup: 'pro',
@@ -65,20 +63,18 @@ const TIER_PRODUCT_ALIASES = {
     operator: 'universal',
     sandbox: 'community'
 };
-
 function resolveProductConfig(tier) {
     const key = tier || 'universal';
     return PRODUCT_CONFIG[key] || PRODUCT_CONFIG[TIER_PRODUCT_ALIASES[key]] || PRODUCT_CONFIG.universal || {};
 }
-
 const PAID_TIERS = ['developer', 'pro', 'team', 'enterprise', 'startup', 'growth', 'executive', 'euai', 'euSprint', 'admin', 'superuser', 'operator', 'starter'];
-
 function resolveAllowedModules(tier, json) {
     if (tier === 'custom' && json) {
         const customModules = Array.isArray(json.features) ? json.features : (Array.isArray(json.modules) ? json.modules : null);
         if (customModules && customModules.length > 0) {
             const mapped = customModules.map(m => numToId[m] || m).filter(m => ALL_MODULES.includes(m));
-            if (mapped.length > 0) return mapped;
+            if (mapped.length > 0)
+                return mapped;
         }
     }
     if (PAID_TIERS.includes(tier)) {
@@ -86,21 +82,21 @@ function resolveAllowedModules(tier, json) {
     }
     return TIER_MODULE_MAP[tier] || TIER_MODULE_MAP[TIER_PRODUCT_ALIASES[tier]] || TIER_MODULE_MAP.locked || [];
 }
-
 function getProductCardTitle(tier) {
     const freeTiers = ['community', 'sandbox', 'developer', 'free', 'instant'];
     return freeTiers.includes(tier) ? 'Active Plan' : 'Your Purchase';
 }
-
 function renderProductInfoCard(tier, config) {
     const infoCard = document.getElementById('productInfoCard');
     const productDetails = document.getElementById('productDetails');
     const headingEl = document.getElementById('productInfoHeading');
-    if (!infoCard || !productDetails) return;
+    if (!infoCard || !productDetails)
+        return;
     const isFree = ['community', 'sandbox', 'developer', 'free'].includes(tier)
         || config.price === '$0'
         || config.price === 'Free';
-    if (headingEl) headingEl.textContent = getProductCardTitle(tier);
+    if (headingEl)
+        headingEl.textContent = getProductCardTitle(tier);
     infoCard.classList.toggle('product-plan-strip--free', isFree);
     infoCard.style.display = 'block';
     const priceLabel = isFree ? 'Included free' : (config.price || '');
@@ -113,7 +109,6 @@ function renderProductInfoCard(tier, config) {
         <p class="product-plan-desc">${config.subtitle || ''}</p>
     `));
 }
-
 const TIER_MODULE_MAP = {
     locked: [],
     community: (TIER_PROFILES && TIER_PROFILES.community) || ['gate'],
@@ -131,42 +126,39 @@ const TIER_MODULE_MAP = {
     universal: ALL_MODULES,
     admin: ALL_MODULES
 };
-
 const numToId = {
-    '1':'gate','2':'consolidation','3':'mock-data','4':'roadmap','5':'codebase',
-    '6':'file-reduction','7':'data-quality','8':'cleanup','9':'npm-audit',
-    '10':'compliance','11':'eu-ai-act','12':'dependency-vulns','13':'build-readiness',
-    '14':'ai-indicators','15':'governance','16':'junk-files','17':'ai-residue',
-    '18':'performance','19':'type-safety','20':'documentation','21':'test-coverage',
-    '22':'accessibility','23':'i18n','24':'sensitive-data','25':'config-drift',
-    '26':'security-headers','27':'database-patterns','28':'framework-practices',
-    '29':'workspace-health','30':'unused-deps','31':'api-contract','32':'complexity',
-    '33':'llm-slop','34':'token-bleed','35':'production-leak','36':'fiction-kpi',
-    '37':'architecture-drift','38':'fix-preview','39':'sync-io','40':'eval-danger',
-    '41':'inner-html-xss','42':'prototype-pollution','43':'unhandled-promise',
-    '44':'magic-number','45':'missing-strict-mode','46':'uninitialized-read',
-    '47':'unvalidated-redirect','48':'missing-rate-limit','49':'insecure-random',
-    '50':'logging-secrets','51':'hardcoded-confidence','52':'hardcoded-completion',
-    '53':'mock-path-leak','54':'sample-json-ref','55':'governance-marker',
-    '56':'ai-placeholder-comment','57':'ai-placeholder-block','58':'markdown-fence-leak',
-    '59':'empty-stub-function','60':'arrow-stub','61':'roadmap-marker'
+    '1': 'gate', '2': 'consolidation', '3': 'mock-data', '4': 'roadmap', '5': 'codebase',
+    '6': 'file-reduction', '7': 'data-quality', '8': 'cleanup', '9': 'npm-audit',
+    '10': 'compliance', '11': 'eu-ai-act', '12': 'dependency-vulns', '13': 'build-readiness',
+    '14': 'ai-indicators', '15': 'governance', '16': 'junk-files', '17': 'ai-residue',
+    '18': 'performance', '19': 'type-safety', '20': 'documentation', '21': 'test-coverage',
+    '22': 'accessibility', '23': 'i18n', '24': 'sensitive-data', '25': 'config-drift',
+    '26': 'security-headers', '27': 'database-patterns', '28': 'framework-practices',
+    '29': 'workspace-health', '30': 'unused-deps', '31': 'api-contract', '32': 'complexity',
+    '33': 'llm-slop', '34': 'token-bleed', '35': 'production-leak', '36': 'fiction-kpi',
+    '37': 'architecture-drift', '38': 'fix-preview', '39': 'sync-io', '40': 'eval-danger',
+    '41': 'inner-html-xss', '42': 'prototype-pollution', '43': 'unhandled-promise',
+    '44': 'magic-number', '45': 'missing-strict-mode', '46': 'uninitialized-read',
+    '47': 'unvalidated-redirect', '48': 'missing-rate-limit', '49': 'insecure-random',
+    '50': 'logging-secrets', '51': 'hardcoded-confidence', '52': 'hardcoded-completion',
+    '53': 'mock-path-leak', '54': 'sample-json-ref', '55': 'governance-marker',
+    '56': 'ai-placeholder-comment', '57': 'ai-placeholder-block', '58': 'markdown-fence-leak',
+    '59': 'empty-stub-function', '60': 'arrow-stub', '61': 'roadmap-marker'
 };
-
 const selectedModules = new Set();
-
 function hasValidToken() {
     const val = licenseInput.value.trim();
     return val.length > 20 && val.includes('.');
 }
-
 function updateDropzoneGate() {
-    if (!browserFolderDropzone) return;
+    if (!browserFolderDropzone)
+        return;
     const locked = !hasValidToken();
     browserFolderDropzone.classList.toggle('locked', locked);
     const overlay = document.getElementById('dropzoneGateOverlay');
-    if (overlay) overlay.style.display = locked ? 'flex' : 'none';
+    if (overlay)
+        overlay.style.display = locked ? 'flex' : 'none';
 }
-
 function filterScanProfiles(tier) {
     const allowed = TIER_PROFILES[tier] || TIER_PROFILES.universal;
     let firstEnabled = null;
@@ -174,21 +166,22 @@ function filterScanProfiles(tier) {
         Array.from(browserScanProfile.options).forEach(opt => {
             const ok = allowed.includes(opt.value);
             opt.disabled = !ok;
-            if (ok && !firstEnabled) firstEnabled = opt.value;
+            if (ok && !firstEnabled)
+                firstEnabled = opt.value;
         });
     }
     if (analyzerCardGrid) {
         Array.from(analyzerCardGrid.children).forEach(card => {
             const ok = allowed.includes(card.dataset.value);
             card.classList.toggle('locked', !ok);
-            if (ok && !firstEnabled) firstEnabled = card.dataset.value;
+            if (ok && !firstEnabled)
+                firstEnabled = card.dataset.value;
         });
     }
     if (firstEnabled && browserScanProfile && !allowed.includes(browserScanProfile.value)) {
         browserScanProfile.value = firstEnabled;
     }
 }
-
 function resetScanProfiles() {
     if (browserScanProfile) {
         Array.from(browserScanProfile.options).forEach(opt => {
@@ -202,9 +195,9 @@ function resetScanProfiles() {
     }
     updateDropzoneGate();
 }
-
 function renderAnalyzerCards() {
-    if (!analyzerCardGrid) return;
+    if (!analyzerCardGrid)
+        return;
     analyzerCardGrid.textContent = "";
     MODULE_CARDS.forEach(mod => {
         const card = document.createElement('div');
@@ -234,7 +227,8 @@ function renderAnalyzerCards() {
                     card.classList.add('selected');
                     selectedModules.add(card.dataset.value);
                 });
-            } else {
+            }
+            else {
                 unlocked.forEach(card => {
                     card.classList.remove('selected');
                     selectedModules.delete(card.dataset.value);
@@ -244,30 +238,31 @@ function renderAnalyzerCards() {
         });
     }
 }
-
 function toggleModuleSelection(id, card) {
     if (selectedModules.has(id)) {
         selectedModules.delete(id);
         card.classList.remove('selected');
-    } else {
+    }
+    else {
         selectedModules.add(id);
         card.classList.add('selected');
     }
     updateSelectAllUI();
 }
-
 function updateSelectAllUI() {
-    if (!selectAllModules || !selectAllCount || !analyzerCardGrid) return;
+    if (!selectAllModules || !selectAllCount || !analyzerCardGrid)
+        return;
     const unlocked = Array.from(analyzerCardGrid.children).filter(c => !c.classList.contains('locked'));
     const selectedUnlocked = unlocked.filter(c => c.classList.contains('selected'));
     selectAllModules.checked = unlocked.length > 0 && selectedUnlocked.length === unlocked.length;
     selectAllModules.indeterminate = selectedUnlocked.length > 0 && selectedUnlocked.length < unlocked.length;
     selectAllCount.textContent = `${selectedUnlocked.length}/${unlocked.length} selected`;
 }
-
 function syncModuleSelectionFromTier() {
-    if (!analyzerCardGrid) return;
-    const token = document.getElementById('licenseToken')?.value || '';
+    var _a;
+    if (!analyzerCardGrid)
+        return;
+    const token = ((_a = document.getElementById('licenseToken')) === null || _a === void 0 ? void 0 : _a.value) || '';
     let tier = 'locked';
     let allowed = TIER_MODULE_MAP.locked || [];
     if (token) {
@@ -285,7 +280,8 @@ function syncModuleSelectionFromTier() {
         if (ok) {
             selectedModules.add(card.dataset.value);
             card.classList.add('selected');
-        } else {
+        }
+        else {
             card.classList.remove('selected');
         }
     });
@@ -296,7 +292,6 @@ function syncModuleSelectionFromTier() {
     }
     updateSelectAllUI();
 }
-
 function renderTokenInspector(payload) {
     const panel = document.getElementById('tokenInspector');
     const tierBadge = document.getElementById('tiTierBadge');
@@ -304,18 +299,19 @@ function renderTokenInspector(payload) {
     const project = document.getElementById('tiProject');
     const moduleGrid = document.getElementById('tiModuleGrid');
     const cmdEl = document.getElementById('tiScanCommand');
-    if (!panel) return;
-    if (!payload) { panel.style.display = 'none'; return; }
-
+    if (!panel)
+        return;
+    if (!payload) {
+        panel.style.display = 'none';
+        return;
+    }
     const tier = payload.tier || payload.product || 'community';
     const config = resolveProductConfig(tier);
     const allModules = TIER_MODULE_MAP.universal || [];
     const allowed = resolveAllowedModules(tier, payload);
-
     // Tier badge
     tierBadge.textContent = config.label || tier;
     tierBadge.className = 'ti-badge tier-' + tier;
-
     // Expiry
     const totalDays = (tier === 'euai' || tier === 'euSprint') ? 30 : (tier === 'executive' ? 90 : (tier === 'instant' ? 7 : (tier === 'team' || tier === 'enterprise' ? 365 : 30)));
     let expiryText = '';
@@ -327,23 +323,24 @@ function renderTokenInspector(payload) {
             expiryText = 'EXPIRED';
             expiryClass = 'expired';
             tierBadge.className = 'ti-badge tier-expired';
-        } else if (daysRemaining <= 7) {
+        }
+        else if (daysRemaining <= 7) {
             expiryText = daysRemaining + ' days left';
             expiryClass = 'warning';
-        } else {
+        }
+        else {
             expiryText = daysRemaining + ' days left';
             expiryClass = '';
         }
-    } else {
+    }
+    else {
         expiryText = 'No expiry';
         expiryClass = '';
     }
     expiry.textContent = expiryText;
     expiry.className = 'ti-expiry ' + expiryClass;
-
     // Project
     project.textContent = payload.projectName || payload.clientName || '';
-
     // Module grid
     const moduleLabels = {
         gate: 'Gate', consolidation: 'Consolidation', 'mock-data': 'Mock Data', roadmap: 'Roadmap',
@@ -364,21 +361,19 @@ function renderTokenInspector(payload) {
         const label = moduleLabels[mod] || mod;
         moduleGrid.appendChild(htmlToFragment(`<span class="ti-mod${isUnlocked ? '' : ' locked'}">${isUnlocked ? '&#10003;' : '&#10005;'} ${label}</span>`));
     });
-
     // Scan command
     const scanCmd = config.scanCommand || 'npx simplebeacon scan --gate --offline';
     cmdEl.textContent = scanCmd;
-
     panel.style.display = 'block';
 }
-
 function applyProductFromToken(token) {
     const banner = document.getElementById('sprintBanner');
     if (token && window.TokenEntryGuard) {
         const check = window.TokenEntryGuard.validateNewTokenEntry(token);
         if (!check.ok) {
             const licenseInputEl = document.getElementById('licenseToken');
-            if (licenseInputEl) licenseInputEl.value = '';
+            if (licenseInputEl)
+                licenseInputEl.value = '';
             const tokenError = document.getElementById('tokenError');
             if (tokenError) {
                 tokenError.textContent = check.error;
@@ -390,12 +385,14 @@ function applyProductFromToken(token) {
     }
     if (!token) {
         window._tokenPayload = null;
-        if (banner) banner.style.display = 'none';
+        if (banner)
+            banner.style.display = 'none';
         filterScanProfiles('locked');
         syncModuleSelectionFromTier();
         updateDropzoneGate();
         const infoCard = document.getElementById('productInfoCard');
-        if (infoCard) infoCard.style.display = 'none';
+        if (infoCard)
+            infoCard.style.display = 'none';
         document.getElementById('productLabel').textContent = "";
         document.getElementById('pageTitle').textContent = "Upload Your Scan Report";
         document.getElementById('pageSubtitle').textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
@@ -417,7 +414,8 @@ function applyProductFromToken(token) {
     if (customFeatures && tier === 'custom') {
         filterScanProfiles('custom');
         syncModuleSelectionFromTier();
-    } else {
+    }
+    else {
         filterScanProfiles(tier);
         syncModuleSelectionFromTier();
     }
@@ -459,14 +457,18 @@ function applyProductFromToken(token) {
             fill.style.background = 'linear-gradient(90deg,#EF4444,#991B1B)';
             banner.style.border = '1px solid rgba(239,68,68,0.4)';
             banner.style.background = 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(153,27,27,0.08))';
-        } else {
+        }
+        else {
             daysEl.textContent = daysRemaining;
             tierEl.textContent = config.label;
             projEl.textContent = payload.projectName || 'default-project';
             fill.style.width = pct + '%';
-            if (pct < 15) fill.style.background = 'linear-gradient(90deg,#EF4444,#F59E0B)';
-            else if (pct < 40) fill.style.background = 'linear-gradient(90deg,#F59E0B,#10B981)';
-            else fill.style.background = 'linear-gradient(90deg,#2563EB,#10B981)';
+            if (pct < 15)
+                fill.style.background = 'linear-gradient(90deg,#EF4444,#F59E0B)';
+            else if (pct < 40)
+                fill.style.background = 'linear-gradient(90deg,#F59E0B,#10B981)';
+            else
+                fill.style.background = 'linear-gradient(90deg,#2563EB,#10B981)';
             banner.style.border = '';
             banner.style.background = '';
         }
@@ -474,32 +476,34 @@ function applyProductFromToken(token) {
     }
     updateDropzoneGate();
 }
-
 // Analyzer presets for quick module selection
 const ANALYZER_PRESETS = [
-    { id: 'essential', label: 'Essential', icon: '⚡', modules: ['gate','consolidation','mock-data','roadmap','codebase','file-reduction','data-quality','cleanup','npm-audit','compliance'] },
-    { id: 'security', label: 'Security', icon: '🔒', modules: ['gate','consolidation','mock-data','roadmap','codebase','file-reduction','data-quality','cleanup','npm-audit','compliance','dependency-vulns','sensitive-data','security-headers','config-drift','eval-danger','inner-html-xss','prototype-pollution','unvalidated-redirect','missing-rate-limit','insecure-random','logging-secrets'] },
+    { id: 'essential', label: 'Essential', icon: '⚡', modules: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance'] },
+    { id: 'security', label: 'Security', icon: '🔒', modules: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'dependency-vulns', 'sensitive-data', 'security-headers', 'config-drift', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets'] },
     { id: 'full', label: 'Full', icon: '🔬', modules: (typeof MODULE_CARDS !== 'undefined' ? MODULE_CARDS : []).map(m => m.id) },
     { id: 'custom', label: 'Custom', icon: '🔧', modules: [] }
 ];
-
 function applyAnalyzerPreset(presetId) {
     const preset = ANALYZER_PRESETS.find(p => p.id === presetId);
-    if (!preset) return;
-    if (!analyzerCardGrid) return;
+    if (!preset)
+        return;
+    if (!analyzerCardGrid)
+        return;
     const unlocked = Array.from(analyzerCardGrid.children).filter(c => !c.classList.contains('locked'));
     if (preset.id === 'custom') {
         unlocked.forEach(card => {
             card.classList.remove('selected');
             selectedModules.delete(card.dataset.value);
         });
-    } else {
+    }
+    else {
         unlocked.forEach(card => {
             const id = card.dataset.value;
             if (preset.modules.includes(id)) {
                 card.classList.add('selected');
                 selectedModules.add(id);
-            } else {
+            }
+            else {
                 card.classList.remove('selected');
                 selectedModules.delete(id);
             }
@@ -508,23 +512,22 @@ function applyAnalyzerPreset(presetId) {
     updateSelectAllUI();
     updatePresetActiveState(presetId);
 }
-
 function updatePresetActiveState(activeId) {
     const container = document.getElementById('analyzerPresets');
-    if (!container) return;
+    if (!container)
+        return;
     container.querySelectorAll('.analyzer-preset-btn').forEach(btn => {
         btn.classList.toggle('is-active', btn.dataset.preset === activeId);
     });
 }
-
 function bindPresetButtons() {
     const container = document.getElementById('analyzerPresets');
-    if (!container) return;
+    if (!container)
+        return;
     container.querySelectorAll('.analyzer-preset-btn').forEach(btn => {
         btn.addEventListener('click', () => applyAnalyzerPreset(btn.dataset.preset));
     });
 }
-
 if (typeof window !== 'undefined') {
     window.decodeJwtPayload = decodeJwtPayload;
     window.hasValidToken = hasValidToken;

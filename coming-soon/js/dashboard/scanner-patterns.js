@@ -116,7 +116,6 @@ const LANGUAGE_REGISTRY = {
         ]
     }
 };
-
 /**
  * Registry of analyzer patterns keyed by analyzer ID.
  * Each entry declares which languages it applies to and its detection rules.
@@ -132,9 +131,11 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /(?:const|let|var)\s+(?:aiPattern|AI_INDICATORS_PATTERNS)\b|{\s*id:\s*['"][^'"]+['"],\s*pattern:\s*\//,
         contextFilter: (snippet, filePath) => {
             // Skip dashboard UI labels/comments that merely mention AI providers
-            if (/(label|placeholder|title|tooltip|hint|description|heading)\s*[:=]\s*['"].*\b(openai|anthropic|langchain|huggingface|gpt|claude)/i.test(snippet)) return false;
+            if (/(label|placeholder|title|tooltip|hint|description|heading)\s*[:=]\s*['"].*\b(openai|anthropic|langchain|huggingface|gpt|claude)/i.test(snippet))
+                return false;
             // Skip dashboard UI files that surface AI settings but do not import AI SDKs
-            if (filePath && /\/(simplebeacon-dashboard\/js-es2018\/views|coming-soon\/(js|js-es2018|public\/js-es2018)\/dashboard|coming-soon\/lib\/certificate-utils)\//.test(filePath)) return false;
+            if (filePath && /\/(simplebeacon-dashboard\/js-es2018\/views|coming-soon\/(js|js-es2018|public\/js-es2018)\/dashboard|coming-soon\/lib\/certificate-utils)\//.test(filePath))
+                return false;
             return true;
         },
         message: 'AI SDK usage detected. Review EU AI Act Article 6 applicability.'
@@ -151,15 +152,20 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /PATTERN_REGISTRY|TEST_CASES|shouldMatch|shouldNotMatch|test.*password|test.*api_key|mockFileContent|REDACTED|trello-board|test-all-patterns/i,
         contextFilter: (snippet, filePath) => {
             // Skip test files — test fixtures are intentionally hardcoded
-            if (filePath && /\.(test|spec)\.(js|ts|cjs|mjs)$/.test(filePath)) return false;
+            if (filePath && /\.(test|spec)\.(js|ts|cjs|mjs)$/.test(filePath))
+                return false;
             // Skip token generation using crypto.randomBytes() — produces random tokens, not hardcoded secrets
-            if (/crypto\.randomBytes|Math\.random|Date\.now|require\(['"]crypto['"]\)/.test(snippet)) return false;
+            if (/crypto\.randomBytes|Math\.random|Date\.now|require\(['"]crypto['"]\)/.test(snippet))
+                return false;
             // Skip process.env assignments in test setup (test isolation patterns)
-            if (/process\.env\.(JWT_SECRET|JWT_REFRESH_SECRET|SECRET|TOKEN)\s*=/.test(snippet)) return false;
+            if (/process\.env\.(JWT_SECRET|JWT_REFRESH_SECRET|SECRET|TOKEN)\s*=/.test(snippet))
+                return false;
             // Skip dynamic token generation with template literals
-            if (/`[^`]*\$\{[^}]+\}[^`]*`/.test(snippet) && /token|secret|key/i.test(snippet)) return false;
+            if (/`[^`]*\$\{[^}]+\}[^`]*`/.test(snippet) && /token|secret|key/i.test(snippet))
+                return false;
             // Skip placeholder/example secrets
-            if (/[:=]\s*['"`]\s*(placeholder|example|test|sample|changeme)\s*['"`]/i.test(snippet)) return false;
+            if (/[:=]\s*['"`]\s*(placeholder|example|test|sample|changeme)\s*['"`]/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Potential hardcoded secret detected. Move to environment variables or secret manager.'
@@ -174,26 +180,36 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /console\.error\(['"]\s*(?:Failed|Unhandled|Uncaught|Error|❌|⚠️)|console\.warn\(`?⚠️|console\.log\(['"]\[[Simplebeacon]|console\.log\(`?\[Simplebeacon\]|process\.on\(|Unhandled Rejection|Uncaught Exception|SIMPLEBEACON_LANDING|Auto-enabled|Auto-detected|Found|Scanning|Filtering|Excluding|Discovery|Progress|Stage|Hash|Token|Report|Certificate|Module|Dashboard|Audit|Copy|Upload|Export|Download|Generate|Restore|Clear|Reset|Loading|Done|Complete|Success|Pass|Fail|Error|Warn|Info|Debug|Todo|Fix|Note|Skip|Ignore|Merge|Split|Move|Rename|Delete|Create|Update|Insert|Append|Prepend|Push|Pop|Shift|Unshift|Sort|Filter|Map|Reduce|Find|Index|Slice|Splice|Join|Split|Trim|Replace|Match|Search|Test|Exec|Compile|Build|Deploy|Release|Version|Tag|Branch|Commit|Push|Pull|Fetch|Clone|Checkout|Reset|Revert|Stash|Apply|Drop|Clean|Status|Log|Diff|Blame|Show|Grep|Branch|Merge|Rebase|Cherry|Revert|Tag|Remote|Submodule|Worktree|Sparse|Index|Pack|Unpack|GC|FSCK|Reflog|Hook|Config|Attribute|Ignore|Mailmap|Repl|Bisect|Bugreport|Verify|Maintenance/i,
         contextFilter: (snippet, filePath) => {
             // Skip C++ confirm() function definitions and declarations (not JS confirm())
-            if (/bool\s+confirm\s*\(/.test(snippet) || /confirm\s*\([^)]*\)\s*\{/.test(snippet)) return false;
-            if (filePath && /\.(cpp|c|h|hpp|cc)$/.test(filePath) && /confirm\s*\(/.test(snippet)) return false;
+            if (/bool\s+confirm\s*\(/.test(snippet) || /confirm\s*\([^)]*\)\s*\{/.test(snippet))
+                return false;
+            if (filePath && /\.(cpp|c|h|hpp|cc)$/.test(filePath) && /confirm\s*\(/.test(snippet))
+                return false;
             // Skip Python print() in SCons build scripts and test utilities
             if (filePath && /\.(py)$/.test(filePath) && /\bprint\s*\(/.test(snippet)) {
-                if (/scons|build|test|packageUtils/.test(filePath) || /BUILD ERROR|Test is now looking|Basic checks for/.test(snippet)) return false;
+                if (/scons|build|test|packageUtils/.test(filePath) || /BUILD ERROR|Test is now looking|Basic checks for/.test(snippet))
+                    return false;
             }
             // Skip CLI help text (console.error with 'Usage:')
-            if (/console\.(error|warn|log)\s*\(['"`]\s*Usage:\s*node/.test(snippet)) return false;
+            if (/console\.(error|warn|log)\s*\(['"`]\s*Usage:\s*node/.test(snippet))
+                return false;
             // Skip gated debug logging (if(DEBUG) console.log, if(PROCESSOR_DEBUG) console.log)
-            if (/if\s*\(\s*DEBUG\s*\)|if\s*\(\s*PROCESSOR_DEBUG\s*\)/.test(snippet)) return false;
+            if (/if\s*\(\s*DEBUG\s*\)|if\s*\(\s*PROCESSOR_DEBUG\s*\)/.test(snippet))
+                return false;
             // Skip error handling in catch blocks with console.error or console.warn
-            if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet)) return false;
+            if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet))
+                return false;
             // Skip test files that test quality heuristics themselves
-            if (filePath && /file-quality-heuristics\.test\.|test-all-patterns\./.test(filePath)) return false;
+            if (filePath && /file-quality-heuristics\.test\.|test-all-patterns\./.test(filePath))
+                return false;
             // Skip simplebeacon-ignore comments
-            if (/simplebeacon-ignore/.test(snippet)) return false;
+            if (/simplebeacon-ignore/.test(snippet))
+                return false;
             // Skip promise .catch(console.error/.warn) handlers
-            if (/\.catch\s*\(\s*console\.(error|warn)\s*\)/i.test(snippet)) return false;
+            if (/\.catch\s*\(\s*console\.(error|warn)\s*\)/i.test(snippet))
+                return false;
             // Skip labeled server setup warnings (e.g., console.warn('[Module] ...'))
-            if (/console\.(warn|error|log)\s*\(\s*['"`]\[[^\]]+\]\s+\w+\s+.*not\s+loaded|setup\s+skipped/i.test(snippet)) return false;
+            if (/console\.(warn|error|log)\s*\(\s*['"`]\[[^\]]+\]\s+\w+\s+.*not\s+loaded|setup\s+skipped/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Development-only debug artifact. Remove before production builds.'
@@ -391,13 +407,17 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /pattern\s*:\s*\/[^/]+\/|severity.*vscode\.DiagnosticSeverity|fixSuggestion.*Replace any with specific types|scanner-patterns|extension\.ts|out\/extension\.js|postMessage\s*\(/i,
         contextFilter: (snippet, filePath) => {
             // Skip VS Code extension API callback signatures where any is standard
-            if (/resolve:\s*\(value:\s*any\)\s*=>\s*void|reject:\s*\(reason\?:\s*any\)/.test(snippet)) return false;
+            if (/resolve:\s*\(value:\s*any\)\s*=>\s*void|reject:\s*\(reason\?:\s*any\)/.test(snippet))
+                return false;
             // Skip function parameters for generic post/utility functions
-            if (/function\s+postJson\(.*payload:\s*any|private\s+async\s+_uploadReport\(.*data:\s*any/.test(snippet)) return false;
+            if (/function\s+postJson\(.*payload:\s*any|private\s+async\s+_uploadReport\(.*data:\s*any/.test(snippet))
+                return false;
             // Skip buildHierarchy return type — dynamic tree structure
-            if (/buildHierarchy.*:\s*any\s*\{/.test(snippet)) return false;
+            if (/buildHierarchy.*:\s*any\s*\{/.test(snippet))
+                return false;
             // Skip scanner-engine.js or pattern files that document type safety
-            if (filePath && /scanner-patterns|scanner-engine|ui-renderer/i.test(filePath)) return false;
+            if (filePath && /scanner-patterns|scanner-engine|ui-renderer/i.test(filePath))
+                return false;
             return true;
         },
         message: 'Type safety gap: any type, missing PropTypes, or excessive parameters detected.'
@@ -421,10 +441,13 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /<label[^>]*>\s*.*<(input|textarea|select)|\(\?![^)]*\)/i,
         contextFilter: (snippet) => {
             // Skip hidden inputs (display:none) that have associated labels
-            if (/<input[^>]*style=["'][^"']*display:\s*none/i.test(snippet)) return false;
-            if (/<input[^>]*type=["']file["'][^>]*style=["'][^"']*display:\s*none/i.test(snippet)) return false;
+            if (/<input[^>]*style=["'][^"']*display:\s*none/i.test(snippet))
+                return false;
+            if (/<input[^>]*type=["']file["'][^>]*style=["'][^"']*display:\s*none/i.test(snippet))
+                return false;
             // Skip inputs wrapped in labels
-            if (/<label[^>]*>.*<input/i.test(snippet)) return false;
+            if (/<label[^>]*>.*<input/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Missing alt text, unlabeled input, or inaccessible button detected.'
@@ -450,9 +473,11 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /\b(?:dev@simplebeacon\.ai|demo@simplebeacon\.ai|test@example\.com|alice@example\.com|trevor_punt@live\.com|audit@simplebeacon\.ai|@live\.com|noreply@|no-reply@|example\.com|placeholder.*@|you@company\.com|user@example\.com|localhost|127\.0\.0\.1|0\.0\.0\.0|::1|generate.*token|send.*email|email.*template|outreach|prospect|marketing|invoice|billing|payment|tier|sandbox|demo|test|fixture|mock|sample|dummy|fake|stub)\b/i,
         contextFilter: (snippet, filePath) => {
             // Skip OSS package maintainer emails in copyright/author headers
-            if (/Copyright|Author:|maintainer_email|PACKAGE_BUGREPORT|license|@googlegroups\.com|@google\.com|@apache\.org|@mozilla\.org/.test(snippet)) return false;
+            if (/Copyright|Author:|maintainer_email|PACKAGE_BUGREPORT|license|@googlegroups\.com|@google\.com|@apache\.org|@mozilla\.org/.test(snippet))
+                return false;
             // Skip known vendor/third-party file paths
-            if (filePath && /\/(jquery|modernizr|underscore|bootstrap|lodash|moment|react|vue|angular|protobuf|ossp|sphinxtogithub)\b|\.min\.js$|\.pack\.js$|(^|\/)(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|vendor\/)\//i.test(filePath)) return false;
+            if (filePath && /\/(jquery|modernizr|underscore|bootstrap|lodash|moment|react|vue|angular|protobuf|ossp|sphinxtogithub)\b|\.min\.js$|\.pack\.js$|(^|\/)(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|vendor\/)\//i.test(filePath))
+                return false;
             return true;
         },
         message: 'Potential PII or sensitive data exposure in logs or storage detected.'
@@ -467,23 +492,33 @@ const PATTERN_REGISTRY = {
         redact: true,
         contextFilter: (snippet, filePath) => {
             // Skip VS Code configuration defaults and comments about hardcoded URLs
-            if (/config\.get<|vscode\.workspace\.getConfiguration|\.get\(['"]\w+['"]\s*,\s*['"]/.test(snippet)) return false;
-            if (/\/\/.*hardcoded|\/\*.*hardcoded|move hardcoded|configuration drift/i.test(snippet)) return false;
+            if (/config\.get<|vscode\.workspace\.getConfiguration|\.get\(['"]\w+['"]\s*,\s*['"]/.test(snippet))
+                return false;
+            if (/\/\/.*hardcoded|\/\*.*hardcoded|move hardcoded|configuration drift/i.test(snippet))
+                return false;
             // Skip browser extension localhost bridge defaults (MV3 mixed-content bypass)
-            if (filePath && /browser-extension\//.test(filePath)) return false;
-            if (/DEFAULT_AGENT_ORIGIN|EXTENSION_DATA_SERVER_PORTS|simplebeaconAgentBridge/.test(snippet)) return false;
+            if (filePath && /browser-extension\//.test(filePath))
+                return false;
+            if (/DEFAULT_AGENT_ORIGIN|EXTENSION_DATA_SERVER_PORTS|simplebeaconAgentBridge/.test(snippet))
+                return false;
             // Skip findingConverter.ts rule definitions
-            if (filePath && /findingConverter\.ts$/.test(filePath)) return false;
+            if (filePath && /findingConverter\.ts$/.test(filePath))
+                return false;
             // Skip localhost in comments and doc strings explaining default values
-            if (/\/\/.*localhost|\/\*.*localhost|#.*localhost|default\s*=\s*['"]http:\/\/localhost/.test(snippet)) return false;
+            if (/\/\/.*localhost|\/\*.*localhost|#.*localhost|default\s*=\s*['"]http:\/\/localhost/.test(snippet))
+                return false;
             // Skip localhost in Python argparse defaults and string replace calls (test URLs)
-            if (/default\s*=\s*['"]http:\/\/localhost|\.replace\s*\(\s*['"]localhost/.test(snippet)) return false;
+            if (/default\s*=\s*['"]http:\/\/localhost|\.replace\s*\(\s*['"]localhost/.test(snippet))
+                return false;
             // Skip scanner's own false-positive filter regexes in remediationProvider.ts and similar files
-            if (/\/(hardcoded url|hardcoded secret)\/i\.test\(/.test(snippet)) return false;
+            if (/\/(hardcoded url|hardcoded secret)\/i\.test\(/.test(snippet))
+                return false;
             // Skip explanation text about hardcoded URLs in remediation/fix descriptions
-            if (/(explanations|getSteps|fix:|message:).*(hardcoded|configuration values|deployments fragile)/i.test(snippet)) return false;
+            if (/(explanations|getSteps|fix:|message:).*(hardcoded|configuration values|deployments fragile)/i.test(snippet))
+                return false;
             // Skip remediation provider isCliFalsePositive method body
-            if (/isCliFalsePositive|isBuildArtifact/.test(snippet) && /type\s*===|return true|return false/.test(snippet)) return false;
+            if (/isCliFalsePositive|isBuildArtifact/.test(snippet) && /type\s*===|return true|return false/.test(snippet))
+                return false;
             return true;
         },
         message: 'Hardcoded URL, secret, or .env reference detected. Use environment-based configuration.'
@@ -497,15 +532,20 @@ const PATTERN_REGISTRY = {
         maxMatches: 2,
         contextFilter: (snippet, filePath) => {
             // Skip files that already HAVE CSP meta tags (they have security headers configured)
-            if (/<meta[^>]*http-equiv=["']?Content-Security-Policy/i.test(snippet)) return false;
+            if (/<meta[^>]*http-equiv=["']?Content-Security-Policy/i.test(snippet))
+                return false;
             // Skip CSP source variable references in webview code
-            if (/cspSource|csp-source|origin\s*\+|['"]nonce-/i.test(snippet)) return false;
+            if (/cspSource|csp-source|origin\s*\+|['"]nonce-/i.test(snippet))
+                return false;
             // Skip scanner's own false-positive filter code (remediationProvider.ts, scanner-patterns.js, etc.)
-            if (/(missing security header|security header|content-security-policy)/i.test(snippet) && /return true|return false|\.test\(|\.match\(|contextFilter/i.test(snippet)) return false;
+            if (/(missing security header|security header|content-security-policy)/i.test(snippet) && /return true|return false|\.test\(|\.match\(|contextFilter/i.test(snippet))
+                return false;
             // Skip explanation text in remediation provider fix descriptions
-            if (/Add helmet middleware|reverse proxy with CSP|configure reverse proxy/i.test(snippet)) return false;
+            if (/Add helmet middleware|reverse proxy with CSP|configure reverse proxy/i.test(snippet))
+                return false;
             // Skip explicit header reads/writes — code is already managing these headers
-            if (/headers\.(get|set|append|has|delete)\s*\(\s*['"](Content-Security-Policy|X-Frame-Options|Strict-Transport-Security|Referrer-Policy)['"]/i.test(snippet)) return false;
+            if (/headers\.(get|set|append|has|delete)\s*\(\s*['"](Content-Security-Policy|X-Frame-Options|Strict-Transport-Security|Referrer-Policy)['"]/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Review security header configuration. Ensure CSP, X-Frame-Options, HSTS, and Referrer-Policy are set.'
@@ -519,7 +559,8 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip jQuery DOM element creation misidentified as SQL concatenation
-            if (/jQuery\s*\(\s*['"]<[^'"]+>['"]\s*\)|\.appendTo\s*\(\s*document\.body\s*\)|nodeName/.test(snippet)) return false;
+            if (/jQuery\s*\(\s*['"]<[^'"]+>['"]\s*\)|\.appendTo\s*\(\s*document\.body\s*\)|nodeName/.test(snippet))
+                return false;
             return true;
         },
         message: 'Raw SQL concatenation or unbounded query detected. Use parameterized queries and pagination.'
@@ -534,14 +575,18 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /scanner-patterns|scanner-engine|ui-renderer|token-manager|certificate-module|scan-worker|main\.js|contact\.js|roadmap\.html|upload\.html|server\.cjs|report\.json|explainability\.md|certificate\.html|certificate\.png|executive-summary\.md|remediation-checklist\.md|dev-report\.html|manifest\.json|findings\.md|site-config\.js|generate-token\.js|run-all-tier-scans|free-token|lib\/db|trello-roadmap-export|routes\/(certificates|checkout|subscriptions)|services\/email|modules\/|eslint-report|pattern-documentation|quick-actions|scan-utils|phase-registry|scan-directory|local-scanner-bridge|analyze-directory|count-all-files|count-files|test-all-patterns|run-cli-scan|update-cache|fix-|repair-|js\/dashboard\/utils|ai-slop-cop-report|full-audit-report|cascade-root-report|cli-test-report|coming-soon-report|coming-soon-final|ai-platform-report|report-gate-pass|New folder|simplebeacon-export-operator/i,
         contextFilter: (snippet, filePath) => {
             // Skip scanner/dashboard files that build static HTML templates (no user input)
-            if (/scanner-patterns\.js|scanner-engine\.js|ui-renderer\.js|token-file-system\.js|certificate-module\.js|main\.js/i.test(filePath)) return false;
+            if (/scanner-patterns\.js|scanner-engine\.js|ui-renderer\.js|token-file-system\.js|certificate-module\.js|main\.js/i.test(filePath))
+                return false;
             // Skip VS Code extension webview panels
-            if (/webviewPanel|web2Panel|dashboard2_0|enhancedDashboard|browserPreview|codeMapProvider|scanPanel|uploadPanel/i.test(filePath)) return false;
+            if (/webviewPanel|web2Panel|dashboard2_0|enhancedDashboard|browserPreview|codeMapProvider|scanPanel|uploadPanel/i.test(filePath))
+                return false;
             // Skip static template assignments with no user-input interpolation
             // Safe if innerHTML = `...` contains only static HTML (no ${userInput} or ${data})
-            if (/\.innerHTML\s*=\s*`[^`]*`/.test(snippet) && !/\$\{[^}]*\}/.test(snippet)) return false;
+            if (/\.innerHTML\s*=\s*`[^`]*`/.test(snippet) && !/\$\{[^}]*\}/.test(snippet))
+                return false;
             // Skip dashboard view files that render static UI markup
-            if (filePath && /\/views\/(Audit|Quality|Security|Trust|Profile|Chatbot|SignIn)View\.js$/i.test(filePath) && /container\.innerHTML|recoveryForm\.innerHTML/.test(snippet)) return false;
+            if (filePath && /\/views\/(Audit|Quality|Security|Trust|Profile|Chatbot|SignIn)View\.js$/i.test(filePath) && /container\.innerHTML|recoveryForm\.innerHTML/.test(snippet))
+                return false;
             return true;
         },
         message: 'innerHTML assignment detected. Ensure content is sanitized or from a trusted source to prevent XSS.'
@@ -590,11 +635,14 @@ const PATTERN_REGISTRY = {
             // Exclude when sensitive word is only inside a string literal
             const hasVariable = /\b(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)\s*[,+)]/.test(snippet);
             const onlyInString = /['"][^'"]*(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)[^'"]*['"]/.test(snippet);
-            if (!hasVariable && onlyInString) return false;
+            if (!hasVariable && onlyInString)
+                return false;
             // Exclude commented-out console.log lines
-            if (/\/\/\s*console\.(log|error|warn)/i.test(snippet)) return false;
+            if (/\/\/\s*console\.(log|error|warn)/i.test(snippet))
+                return false;
             // Exclude error handling in catch blocks
-            if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet)) return false;
+            if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Password, token, or secret value being logged. Remove secrets from log statements.'
@@ -609,15 +657,20 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /new\s+RegExp\s*\(|RegExp\s*\(\s*['"`]|message:\s*['"]eval\(\)|severity.*warning.*eval-usage|scanner-patterns|scanner-engine|pattern-documentation/i,
         contextFilter: (snippet, filePath) => {
             // new RegExp() is safe regex construction
-            if (/new\s+RegExp\s*\(/i.test(snippet)) return false;
+            if (/new\s+RegExp\s*\(/i.test(snippet))
+                return false;
             // Exclude 'system' when inside a string literal
-            if (/['"][^'"]*system\s*\(/i.test(snippet) && !/[^'"]\)system\s*\(/.test(snippet)) return false;
+            if (/['"][^'"]*system\s*\(/i.test(snippet) && !/[^'"]\)system\s*\(/.test(snippet))
+                return false;
             // Skip C++ CmdLine::System() process spawning (not JS eval)
-            if (filePath && /\.(cpp|c|h|hpp|cc)$/.test(filePath) && /cmdline\.System|CmdLine::System|\.System\s*\(/.test(snippet)) return false;
+            if (filePath && /\.(cpp|c|h|hpp|cc)$/.test(filePath) && /cmdline\.System|CmdLine::System|\.System\s*\(/.test(snippet))
+                return false;
             // Skip Python os.system() in build scripts
-            if (filePath && /\.(py)$/.test(filePath) && /os\.system\s*\(/.test(snippet) && /build|version|update|test/.test(filePath)) return false;
+            if (filePath && /\.(py)$/.test(filePath) && /os\.system\s*\(/.test(snippet) && /build|version|update|test/.test(filePath))
+                return false;
             // Skip VS Code extension source files that define scanner patterns (not actual eval usage)
-            if (filePath && /simplebeacon-vscode.*\/(?:realtimeMonitor|workspaceAnalyzer|enhancedAIProvider|enhancedDashboard2_0|findingConverter|remediationProvider)\.ts$/i.test(filePath)) return false;
+            if (filePath && /simplebeacon-vscode.*\/(?:realtimeMonitor|workspaceAnalyzer|enhancedAIProvider|enhancedDashboard2_0|findingConverter|remediationProvider)\.ts$/i.test(filePath))
+                return false;
             return true;
         },
         message: 'eval(), new Function(), or dynamic code execution — code injection risk. Use structured parsing instead.'
@@ -641,7 +694,8 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip scanner's own pattern definitions
-            if (filePath && /scanner-patterns|scanner-engine|pattern-documentation/i.test(filePath)) return false;
+            if (filePath && /scanner-patterns|scanner-engine|pattern-documentation/i.test(filePath))
+                return false;
             return true;
         },
         message: 'Credential or secret value found in code comment. Remove before committing.'
@@ -655,7 +709,8 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip when inside a comment describing the weakness
-            if (/\/\/.*weak|deprecated|do not use|avoid/i.test(snippet)) return false;
+            if (/\/\/.*weak|deprecated|do not use|avoid/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Weak hash/cipher (MD5, SHA1, DES, RC4) detected. Use SHA-256+ or AES.'
@@ -669,7 +724,8 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip when regex is a string literal (not constructed)
-            if (/['"`]/.test(snippet) && !/new\s+RegExp/.test(snippet)) return false;
+            if (/['"`]/.test(snippet) && !/new\s+RegExp/.test(snippet))
+                return false;
             return true;
         },
         message: 'Regular expression with nested quantifiers — potential ReDoS. Refactor to avoid catastrophic backtracking.'
@@ -684,8 +740,10 @@ const PATTERN_REGISTRY = {
         pathPattern: /\.(yml|yaml|json)$/,
         contextFilter: (snippet, filePath) => {
             // Only flag if it looks like a real value, not a placeholder or variable reference
-            if (/\$\{\{|\$\w+|secrets\./i.test(snippet)) return false;
-            if (/example|placeholder|your_|my_|change|replace/i.test(snippet)) return false;
+            if (/\$\{\{|\$\w+|secrets\./i.test(snippet))
+                return false;
+            if (/example|placeholder|your_|my_|change|replace/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Hardcoded CI/CD secret in workflow/config file. Use repository secret variables instead.'
@@ -728,19 +786,26 @@ const PATTERN_REGISTRY = {
         // Enhanced context-aware filtering
         contextFilter: (snippet, filePath) => {
             // Skip template files and documentation
-            if (/\.template\.|\.example\.|\.sample\.|_template\.|_example\./i.test(filePath)) return false;
+            if (/\.template\.|\.example\.|\.sample\.|_template\.|_example\./i.test(filePath))
+                return false;
             // Skip README/docs for generic placeholders only, but still check for conversational AI sign-offs
-            if (/readme|docs?|guide|tutorial|example/i.test(filePath) && !/I have (written|implemented|created|updated)|as requested|Let me know if you need|AI Assistant Note/i.test(snippet)) return false;
+            if (/readme|docs?|guide|tutorial|example/i.test(filePath) && !/I have (written|implemented|created|updated)|as requested|Let me know if you need|AI Assistant Note/i.test(snippet))
+                return false;
             // Skip legitimate configuration placeholders
-            if (/\.env\.example|config\.example|docker-compose\.example/i.test(filePath)) return false;
+            if (/\.env\.example|config\.example|docker-compose\.example/i.test(filePath))
+                return false;
             // Skip test fixtures and mocks
-            if (/fixture|mock|test-data|__tests__|spec/i.test(filePath)) return false;
+            if (/fixture|mock|test-data|__tests__|spec/i.test(filePath))
+                return false;
             // Allow legitimate TODO comments in development
-            if (/\/\/\s*TODO:?|\/\/\s*FIXME:?|#\s*TODO:?/i.test(snippet) && !/AI\s+Generated|Placeholder/i.test(snippet)) return false;
+            if (/\/\/\s*TODO:?|\/\/\s*FIXME:?|#\s*TODO:?/i.test(snippet) && !/AI\s+Generated|Placeholder/i.test(snippet))
+                return false;
             // Skip placeholder/test API keys
-            if (/process\.env\.(RESEND_API_KEY|JWT_SECRET|SECRET|TOKEN)\s*=\s*['"][^'"]*(test|placeholder|example)/i.test(snippet)) return false;
+            if (/process\.env\.(RESEND_API_KEY|JWT_SECRET|SECRET|TOKEN)\s*=\s*['"][^'"]*(test|placeholder|example)/i.test(snippet))
+                return false;
             // Skip legitimate markdown in documentation
-            if (/\.md$|\.markdown$/i.test(filePath) && /```[a-z]+\s*$/.test(snippet)) return false;
+            if (/\.md$|\.markdown$/i.test(filePath) && /```[a-z]+\s*$/.test(snippet))
+                return false;
             return true;
         },
         message: 'Unresolved LLM placeholder, markdown code fence leaked into source, or hardcoded AI-default metric copy detected.'
@@ -754,7 +819,8 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip minified Google Maps loader JS files
-            if (filePath && /\/(mapfiles|poly|geometry|stats|usage|visualization|earthbuilder_impl)\.js$|\.pack\.js$|\.min\.js$/i.test(filePath)) return false;
+            if (filePath && /\/(mapfiles|poly|geometry|stats|usage|visualization|earthbuilder_impl)\.js$|\.pack\.js$|\.min\.js$/i.test(filePath))
+                return false;
             return true;
         },
         message: 'Very long string literal (>2000 chars) detected — risk of unchunked context overflow in LLM prompts.'
@@ -770,22 +836,31 @@ const PATTERN_REGISTRY = {
         // Enhanced context-aware filtering
         contextFilter: (snippet, filePath) => {
             // Allow test files to reference test data
-            if (/test|spec|__tests__|\.test\.|\.spec\./i.test(filePath)) return false;
+            if (/test|spec|__tests__|\.test\.|\.spec\./i.test(filePath))
+                return false;
             // Jest/Vitest config negated coverage paths are exclusions, not production leaks
-            if (/jest\.config\.(js|cjs|mjs|ts)$|vitest\.config\.(js|cjs|mjs|ts)$/.test(filePath || '')) return false;
-            if (/^\s*['"`]!/.test(snippet)) return false;
+            if (/jest\.config\.(js|cjs|mjs|ts)$|vitest\.config\.(js|cjs|mjs|ts)$/.test(filePath || ''))
+                return false;
+            if (/^\s*['"`]!/.test(snippet))
+                return false;
             // Allow fixture files to reference other fixtures
-            if (/fixture|mock/i.test(filePath)) return false;
+            if (/fixture|mock/i.test(filePath))
+                return false;
             // Skip configuration and example files
-            if (/\.example\.|\.sample\.|\.template\.|config\.example/i.test(filePath)) return false;
+            if (/\.example\.|\.sample\.|\.template\.|config\.example/i.test(filePath))
+                return false;
             // Allow development and staging references
-            if (/dev|staging|local|test/i.test(snippet)) return false;
+            if (/dev|staging|local|test/i.test(snippet))
+                return false;
             // Skip legitimate variable names containing 'sample' or 'mock' (not path references)
-            if (/\b(?:const|let|var)\s+(?:sampleFiles|sampleUrl|sampleData|recentSamples|sampleCount|mockData|mockUrl)\b/.test(snippet)) return false;
+            if (/\b(?:const|let|var)\s+(?:sampleFiles|sampleUrl|sampleData|recentSamples|sampleCount|mockData|mockUrl)\b/.test(snippet))
+                return false;
             // Skip internal API imports (not production leaks)
-            if (/require\(['"]\.\/.*stub-api['"]\)|setupDashboardStubAPIs/.test(snippet)) return false;
+            if (/require\(['"]\.\/.*stub-api['"]\)|setupDashboardStubAPIs/.test(snippet))
+                return false;
             // Skip error handling messages mentioning stub APIs
-            if (/stub APIs|fallback|using stub/.test(snippet)) return false;
+            if (/stub APIs|fallback|using stub/.test(snippet))
+                return false;
             return true;
         },
         message: 'Mock, fixture, or sample data path referenced in source code. Verify no test data leaks to production.'
@@ -800,9 +875,11 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /rejectedFiction|fiction-kpi|fictionRemoved|fictionVsReality|not model output|baseline false|progressMetrics|scanner-patterns/i,
         contextFilter: (snippet, filePath) => {
             // Skip uploadPanel.ts type detection functions — confidence is a classifier score, not a KPI
-            if (filePath && /uploadPanel\.ts$/i.test(filePath) && /return\s*\{\s*type:\s*['"]/.test(snippet)) return false;
+            if (filePath && /uploadPanel\.ts$/i.test(filePath) && /return\s*\{\s*type:\s*['"]/.test(snippet))
+                return false;
             // Skip type detection mapping where confidence identifies report format
-            if (/detectReportType|classifyReport|identifyFormat|typeField.*confidence/.test(snippet)) return false;
+            if (/detectReportType|classifyReport|identifyFormat|typeField.*confidence/.test(snippet))
+                return false;
             return true;
         },
         message: 'Hardcoded metric or KPI value detected. Verify data is real, not generated fiction.'
@@ -815,21 +892,31 @@ const PATTERN_REGISTRY = {
         pattern: /\bfs\.(readFileSync|writeFileSync|appendFileSync|copyFileSync|mkdirSync|readdirSync|statSync)\s*\(/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (!filePath) return true;
+            if (!filePath)
+                return true;
             const p = filePath.toLowerCase();
             // CLI tools, scripts, and server bootstrap code legitimately use sync I/O
-            if (/(?:^|\/)tools\//.test(p)) return false;
-            if (/(?:^|\/)docs\//.test(p)) return false;
-            if (/(?:^|\/)web\/data\//.test(p)) return false;
-            if (/(?:^|\/)server\/(?:bootstrap|utils|services|routes)\//.test(p)) return false;
-            if (/_find-|_restore-|auto-processor|simplebeacon-server/.test(p)) return false;
+            if (/(?:^|\/)tools\//.test(p))
+                return false;
+            if (/(?:^|\/)docs\//.test(p))
+                return false;
+            if (/(?:^|\/)web\/data\//.test(p))
+                return false;
+            if (/(?:^|\/)server\/(?:bootstrap|utils|services|routes)\//.test(p))
+                return false;
+            if (/_find-|_restore-|auto-processor|simplebeacon-server/.test(p))
+                return false;
             // VS Code extension source files use sync fs for initialization, package.json reads, template loading
-            if (/(?:^|\/)simplebeacon-vscode(?:-merged)?\/src\//.test(p)) return false;
-            if (/(?:^|\/)ai-platform\/simplebeacon-vscode\/src\//.test(p)) return false;
+            if (/(?:^|\/)simplebeacon-vscode(?:-merged)?\/src\//.test(p))
+                return false;
+            if (/(?:^|\/)ai-platform\/simplebeacon-vscode\/src\//.test(p))
+                return false;
             // Build scripts use sync fs for file copying and package generation
-            if (/build-extension\.js|build-public\.js|replace-dashboard\.js/.test(p)) return false;
+            if (/build-extension\.js|build-public\.js|replace-dashboard\.js/.test(p))
+                return false;
             // Skip extension.ts reads of package.json or report.json (initialization only)
-            if (/extension\.ts.*readFileSync.*package\.json|extension\.ts.*readFileSync.*report\.json/.test(snippet)) return false;
+            if (/extension\.ts.*readFileSync.*package\.json|extension\.ts.*readFileSync.*report\.json/.test(snippet))
+                return false;
             return true;
         },
         message: 'Synchronous fs read/write blocks the event loop. Use fs.promises instead. (fs.existsSync is excluded — it is a lightweight stat check.)'
@@ -844,15 +931,20 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip named constants (const FOO = 12345) — already properly named
-            if (/\b(?:const|let|var)\s+\w+\s*=\s*\d+/.test(snippet)) return false;
+            if (/\b(?:const|let|var)\s+\w+\s*=\s*\d+/.test(snippet))
+                return false;
             // Skip completion/status checks like progress === 100 or status === 200
-            if (/\b(?:progress|status|code|length|size|count|total|index)\s*[<>=!]+\s*\d+/.test(snippet)) return false;
+            if (/\b(?:progress|status|code|length|size|count|total|index)\s*[<>=!]+\s*\d+/.test(snippet))
+                return false;
             // Skip display/ truncation limits like slice(0, 300)
-            if (/\b(?:slice|substr|substring|limit|truncate|maxLength|padStart|padEnd)\s*\(\s*[^)]*\d{3,}/.test(snippet)) return false;
+            if (/\b(?:slice|substr|substring|limit|truncate|maxLength|padStart|padEnd)\s*\(\s*[^)]*\d{3,}/.test(snippet))
+                return false;
             // Skip price/cost constants (already named like PRICE_X = 4900)
-            if (/\b(?:PRICE_|COST_|FEE_|RATE_|AMOUNT_)\w+\s*=\s*\d+/.test(snippet)) return false;
+            if (/\b(?:PRICE_|COST_|FEE_|RATE_|AMOUNT_)\w+\s*=\s*\d+/.test(snippet))
+                return false;
             // Skip timeout constants (already named like LOCK_HEARTBEAT_MS = 30000)
-            if (/\b(?:_TIMEOUT_|_INTERVAL_|_HEARTBEAT_|_DELAY_|_MS|_SECONDS?)\w*\s*=\s*\d+/.test(snippet)) return false;
+            if (/\b(?:_TIMEOUT_|_INTERVAL_|_HEARTBEAT_|_DELAY_|_MS|_SECONDS?)\w*\s*=\s*\d+/.test(snippet))
+                return false;
             return true;
         },
         message: 'Hardcoded numeric literal — extract to named constant (e.g., const MAX_RETRIES = 3).'
@@ -867,9 +959,11 @@ const PATTERN_REGISTRY = {
         maxMatches: 1,
         contextFilter: (snippet, filePath) => {
             // Skip JSDoc comment continuation lines (lines starting with * inside a /** block)
-            if (/^\s*\*/.test(snippet)) return false;
+            if (/^\s*\*/.test(snippet))
+                return false;
             // Skip files where 'use strict' appears later in the matched snippet or context
-            if (/'use strict'/.test(snippet)) return false;
+            if (/'use strict'/.test(snippet))
+                return false;
             return true;
         },
         message: "File does not start with 'use strict' — implicit globals and silent errors possible."
@@ -886,9 +980,11 @@ const PATTERN_REGISTRY = {
             // context is the 3-line surrounding context [prev, snippet, next]
             const ctx = Array.isArray(context) ? context.join('\n') : '';
             // Skip standard try/catch initialization patterns (let x; try { x = ... })
-            if (/try\s*\{/.test(ctx)) return false;
+            if (/try\s*\{/.test(ctx))
+                return false;
             // Skip if the variable is assigned on the very next line
-            if (/\b\w+\s*=\s*[^;]+;/.test(ctx)) return false;
+            if (/\b\w+\s*=\s*[^;]+;/.test(ctx))
+                return false;
             return true;
         },
         message: 'Variable declared without an initializer. Initialize at declaration if possible.'
@@ -928,11 +1024,15 @@ const PATTERN_REGISTRY = {
         selfReferenceFilter: /scanner-patterns|scanner-engine|simplebeacon-intelligence|architecture-drift|@simplebeacon\/intelligence/,
         contextFilter: (snippet, filePath) => {
             // Skip JSDoc / block-comment lines where hybrid is used descriptively
-            if (/^\s*\*\s/.test(snippet)) return false;
-            if (/\bhybrid\s+(?:intent|analysis|approach|modeling|system|platform)\b/i.test(snippet)) return false;
-            if (!filePath) return true;
+            if (/^\s*\*\s/.test(snippet))
+                return false;
+            if (/\bhybrid\s+(?:intent|analysis|approach|modeling|system|platform)\b/i.test(snippet))
+                return false;
+            if (!filePath)
+                return true;
             const p = filePath.toLowerCase();
-            if (/(?:^|\/)(scanner-patterns|scanner-engine|simplebeacon-intelligence)/.test(p)) return false;
+            if (/(?:^|\/)(scanner-patterns|scanner-engine|simplebeacon-intelligence)/.test(p))
+                return false;
             return true;
         },
         message: 'Hybrid or state-space model identifier without schema/validator guard. Add zod/ajv validation.'
@@ -964,9 +1064,11 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip test files and fixture files
-            if (filePath && /\.(test|spec)\.|fixture|mock|__tests__/.test(filePath)) return false;
+            if (filePath && /\.(test|spec)\.|fixture|mock|__tests__/.test(filePath))
+                return false;
             // Skip files that legitimately reference web/data (like app-links.js)
-            if (/sampleReportUrl|data-sample-report/.test(snippet)) return false;
+            if (/sampleReportUrl|data-sample-report/.test(snippet))
+                return false;
             return true;
         },
         message: 'Mock or fixture path referenced in production code. Remove mock references.'
@@ -1025,9 +1127,11 @@ const PATTERN_REGISTRY = {
         pattern: /function\s+\w+\s*\([^)]*\)\s*\{\s*\}/,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (!filePath) return true;
+            if (!filePath)
+                return true;
             const p = filePath.toLowerCase();
-            if (/(?:^|\/)(docs\/outreach|demo|fixture|mock|sample|test|stub|noop|placeholder)/.test(p)) return false;
+            if (/(?:^|\/)(docs\/outreach|demo|fixture|mock|sample|test|stub|noop|placeholder)/.test(p))
+                return false;
             return true;
         },
         message: 'Function body is empty — likely AI-generated stub. Implement or remove.'
@@ -1050,13 +1154,17 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             // Skip if the match is inside a regex literal
-            if (/(\/[^\/]*(?:HACK|XXX|WORKAROUND)[^\/]*\/|new RegExp\()/i.test(snippet)) return false;
-            if (!filePath) return true;
+            if (/(\/[^\/]*(?:HACK|XXX|WORKAROUND)[^\/]*\/|new RegExp\()/i.test(snippet))
+                return false;
+            if (!filePath)
+                return true;
             const p = filePath.toLowerCase();
             // Skip scanner/engine files that define regex patterns for these markers
-            if (/(?:^|\/)(scanner-patterns|scanner-engine|production-debug-guard|scan-github-repo|repository-scanner-api|index\.cjs)/.test(p)) return false;
+            if (/(?:^|\/)(scanner-patterns|scanner-engine|production-debug-guard|scan-github-repo|repository-scanner-api|index\.cjs)/.test(p))
+                return false;
             // Skip TODO/FIXME in test files and pattern documentation
-            if (/\.(test|spec)\.|pattern-documentation|test-all-patterns/.test(filePath)) return false;
+            if (/\.(test|spec)\.|pattern-documentation|test-all-patterns/.test(filePath))
+                return false;
             return true;
         },
         message: 'Unresolved roadmap marker detected in source. Resolve or track in issue tracker.'
@@ -1069,8 +1177,10 @@ const PATTERN_REGISTRY = {
         pattern: /api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com|api\.groq\.com|api\.together\.xyz|api\.replicate\.com|proxy\.llm|ollama\.run|localhost:\d+\/v1\/chat\/completions|azure\.openai|\.openai\.azure\.com/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example|docker-compose\.example|\.env\.template/.test(filePath)) return false;
-            if (/README|CHANGELOG|docs?\//i.test(filePath)) return false;
+            if (/\.env\.example|config\.example|docker-compose\.example|\.env\.template/.test(filePath))
+                return false;
+            if (/README|CHANGELOG|docs?\//i.test(filePath))
+                return false;
             return true;
         },
         message: 'Hardcoded LLM API endpoint detected. Consider making configurable for vendor flexibility and EU data residency.'
@@ -1083,8 +1193,10 @@ const PATTERN_REGISTRY = {
         pathPattern: /(^|[\\/])(system[-_]?prompt|prompt[-_]?system|ai[-_]?prompt|llm[-_]?prompt)(\.txt|\.md|\.json|\.yaml|\.yml|\.js|\.py|\.ts)?$/i,
         maxMatches: 2,
         contextFilter: (snippet, filePath) => {
-            if (/\.(test|spec)\.|fixture|mock|__tests__/.test(filePath)) return false;
-            if (/node_modules|vendor|dist|build|\.next|out\//.test(filePath)) return false;
+            if (/\.(test|spec)\.|fixture|mock|__tests__/.test(filePath))
+                return false;
+            if (/node_modules|vendor|dist|build|\.next|out\//.test(filePath))
+                return false;
             return true;
         },
         message: 'System prompt file committed to repository. Prompts may contain business logic or injection surface — consider runtime configuration.'
@@ -1107,9 +1219,12 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         redact: true,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
-            if (/README|CHANGELOG|docs?\//i.test(filePath)) return false;
-            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath))
+                return false;
+            if (/README|CHANGELOG|docs?\//i.test(filePath))
+                return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet))
+                return false;
             return true;
         },
         message: 'Webhook URL committed to source. Rotate the webhook and move the URL to environment variables.'
@@ -1123,8 +1238,10 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         redact: true,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
-            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath))
+                return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet))
+                return false;
             return true;
         },
         message: 'Database connection string with embedded password detected. Use environment variables or a secret manager.'
@@ -1137,7 +1254,8 @@ const PATTERN_REGISTRY = {
         pattern: /Access-Control-Allow-Origin\s*:\s*\*|cors\s*\(\s*\{[^}]*origin\s*:\s*\*|app\.use\s*\(\s*cors\s*\(\s*\)\s*\)/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/localhost|127\.0\.0\.1|dev|staging/.test(filePath)) return false;
+            if (/localhost|127\.0\.0\.1|dev|staging/.test(filePath))
+                return false;
             return true;
         },
         message: 'CORS wildcard (*) allows any origin — security risk in production. Whitelist specific domains.'
@@ -1150,8 +1268,10 @@ const PATTERN_REGISTRY = {
         pattern: /introspection\s*:\s*true|__schema|__type\s*\(|apollo-server.*introspection|graphql\s*\(\s*\{\s*__schema/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/localhost|127\.0\.0\.1|dev|staging|test/.test(filePath)) return false;
-            if (/\.env\.example|config\.example/.test(filePath)) return false;
+            if (/localhost|127\.0\.0\.1|dev|staging|test/.test(filePath))
+                return false;
+            if (/\.env\.example|config\.example/.test(filePath))
+                return false;
             return true;
         },
         message: 'GraphQL introspection enabled in production — schema exposure aids attackers. Disable or gate behind auth.'
@@ -1174,8 +1294,10 @@ const PATTERN_REGISTRY = {
         pattern: /containers\s*:\s*\[[\s\S]{0,400}?\](?!.*resources)(?!.*limits)(?!.*requests)|kind\s*:\s*Deployment[\s\S]{0,600}?containers\s*:[\s\S]{0,400}(?!resources)(?!limits)(?!requests)/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/resources\s*:\s*\n\s+limits/.test(snippet)) return false;
-            if (/resources\s*:\s*\{/.test(snippet) && /limits/.test(snippet)) return false;
+            if (/resources\s*:\s*\n\s+limits/.test(snippet))
+                return false;
+            if (/resources\s*:\s*\{/.test(snippet) && /limits/.test(snippet))
+                return false;
             return true;
         },
         message: 'K8s container spec missing resource limits — risk of noisy-neighbor resource exhaustion.'
@@ -1188,8 +1310,10 @@ const PATTERN_REGISTRY = {
         pattern: /\b(TODO|FIXME|HACK|XXX)\b/gi,
         maxMatches: 10,
         contextFilter: (snippet, filePath) => {
-            if (/\.(test|spec)\.|fixture|mock|__tests__|\.test\.cjs/.test(filePath)) return false;
-            if (/scanner-patterns|scanner-engine|pattern-documentation|patch-strategies/.test(filePath)) return false;
+            if (/\.(test|spec)\.|fixture|mock|__tests__|\.test\.cjs/.test(filePath))
+                return false;
+            if (/scanner-patterns|scanner-engine|pattern-documentation|patch-strategies/.test(filePath))
+                return false;
             return true;
         },
         message: 'High TODO/FIXME density — file may need focused refactoring. Track in issue tracker.'
@@ -1203,7 +1327,8 @@ const PATTERN_REGISTRY = {
         pattern: /"[^"]+"\s*:\s*"git\+(?:ssh|https)?:\/\/[^"]+"|"[^"]+"\s*:\s*"(?:https?:\/\/github\.com\/[^"]+#[^"]+|github:[^"]+)"/i,
         maxMatches: 5,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example/.test(filePath)) return false;
+            if (/\.env\.example|config\.example/.test(filePath))
+                return false;
             return true;
         },
         message: 'Git URL dependency in package.json — supply chain risk (unpublished, unvetted, no audit trail). Prefer npm registry versions.'
@@ -1217,9 +1342,12 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         redact: true,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
-            if (/process\.env\.|os\.environ|env\[|getenv/.test(snippet)) return false;
-            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath))
+                return false;
+            if (/process\.env\.|os\.environ|env\[|getenv/.test(snippet))
+                return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet))
+                return false;
             return true;
         },
         message: 'JWT signing secret hardcoded in config. Use environment variables or a dedicated secret manager.'
@@ -1244,8 +1372,10 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         redact: true,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
-            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath))
+                return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet))
+                return false;
             return true;
         },
         message: 'AWS access key ID detected. Move to IAM roles or environment variables.'
@@ -1259,8 +1389,10 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         redact: true,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
-            if (/test|spec|fixture|mock|__tests__/.test(filePath)) return false;
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath))
+                return false;
+            if (/test|spec|fixture|mock|__tests__/.test(filePath))
+                return false;
             return true;
         },
         message: 'Stripe live secret key detected. Rotate immediately and use environment variables.'
@@ -1274,8 +1406,10 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         redact: true,
         contextFilter: (snippet, filePath) => {
-            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
-            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath))
+                return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet))
+                return false;
             return true;
         },
         message: 'Firebase API key detected. Restrict the key in GCP console and move to environment variables.'
@@ -1306,10 +1440,13 @@ const PATTERN_REGISTRY = {
         pattern: /fetch\s*\(\s*(?:req\.(?:query|body)|url|target)\b|axios\.(?:get|post|put|delete)\s*\(\s*(?:req\.(?:query|body)|url|target)\b|request\s*\(\s*(?:req\.(?:query|body)|url|target)\b|curl\s+['"`][^'"`]*\$\{|curl\s+['"`][^'"`]*\+ /i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/allowlist|whitelist|urlValidator|isValidUrl|URL\s*\(|new\s+URL\s*\(/.test(snippet)) return false;
+            if (/allowlist|whitelist|urlValidator|isValidUrl|URL\s*\(|new\s+URL\s*\(/.test(snippet))
+                return false;
             // Bridge inject exposes fetch(url) API — parameter name triggers false SSRF match
-            if (filePath && /browser-extension\/bridge-inject\.js$/.test(filePath)) return false;
-            if (/async\s+fetch\s*\(\s*url\s*,/.test(snippet)) return false;
+            if (filePath && /browser-extension\/bridge-inject\.js$/.test(filePath))
+                return false;
+            if (/async\s+fetch\s*\(\s*url\s*,/.test(snippet))
+                return false;
             return true;
         },
         message: 'User-controlled URL passed to HTTP client without validation — SSRF risk. Validate against an allowlist.'
@@ -1331,8 +1468,10 @@ const PATTERN_REGISTRY = {
         pattern: /<form\b(?![^>]*\bcsrf_token\b)(?![^>]*\bcsrfmiddlewaretoken\b)(?![^>]*\bname=["']?_csrf\b)[^>]*>/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/method\s*=\s*["']get["']/i.test(snippet)) return false;
-            if (/action\s*=\s*["']#\w+["']/i.test(snippet)) return false;
+            if (/method\s*=\s*["']get["']/i.test(snippet))
+                return false;
+            if (/action\s*=\s*["']#\w+["']/i.test(snippet))
+                return false;
             return true;
         },
         message: 'Form tag without CSRF token protection. Add anti-CSRF token for state-changing POST requests.'
@@ -1345,11 +1484,16 @@ const PATTERN_REGISTRY = {
         pattern: /app\.(?:get|post|put|delete|patch|use)\s*\(\s*['"`][^'"`]+['"`]/i,
         maxMatches: 5,
         contextFilter: (snippet, filePath) => {
-            if (/helmet|cors|csrf|security/.test(filePath)) return false;
-            if (/helmet|cors|csrf|security|app\.use\s*\(\s*(?:helmet|cors|csrf)/i.test(snippet)) return false;
-            if (/local-agent[\\/]agent\.js$/i.test(filePath)) return false;
-            if (/server\.(?:js|cjs)|app\.(?:js|cjs)|index\.(?:js|cjs)/.test(filePath)) return true;
-            if (/route|router|controller|middleware/.test(filePath)) return false;
+            if (/helmet|cors|csrf|security/.test(filePath))
+                return false;
+            if (/helmet|cors|csrf|security|app\.use\s*\(\s*(?:helmet|cors|csrf)/i.test(snippet))
+                return false;
+            if (/local-agent[\\/]agent\.js$/i.test(filePath))
+                return false;
+            if (/server\.(?:js|cjs)|app\.(?:js|cjs)|index\.(?:js|cjs)/.test(filePath))
+                return true;
+            if (/route|router|controller|middleware/.test(filePath))
+                return false;
             return true;
         },
         message: 'Express app routes found but no helmet() or security middleware imported. Add helmet() for security headers.'
@@ -1380,104 +1524,104 @@ const PATTERN_REGISTRY = {
         pattern: /^(\t+ +| +\t+).*$/m,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/\.min\.(js|css)|\.pack\.(js|css)|vendor|node_modules/.test(filePath)) return false;
+            if (/\.min\.(js|css)|\.pack\.(js|css)|vendor|node_modules/.test(filePath))
+                return false;
             return true;
         },
         message: 'Mixed tabs and spaces in same file. Add .editorconfig and run linter to standardize.'
     }
 };
-
 /**
  * Schema overlay for each analyzer: category (for routing) and exclusion profile.
  * Adding a new analyzer only requires one line here instead of 15+ scattered edits.
  */
 const ANALYZER_SCHEMA = {
-    aiIndicators:     { category: 'aiIndicators',  exclusionProfile: 'aiIndicators' },
-    credentials:      { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    debugArtifacts:   { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    pythonDebug:      { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    javaDebug:        { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    pythonFramework:  { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    javaFramework:    { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    goDebug:          { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    goFramework:      { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    rustDebug:        { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    rustFramework:    { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    phpDebug:         { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    phpFramework:     { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    dotnetDebug:      { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    dotnetFramework:  { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    rubyDebug:        { category: 'debug',         exclusionProfile: 'sourceCodeOnly' },
-    rubyFramework:    { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    aiResidueStub:    { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    aiResidueSwallow: { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    aiResidueDeprecated:{ category: 'aiResidue',    exclusionProfile: 'sourceCodeOnly' },
-    aiResidueDeadCode:{ category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    perfNestedLoop:   { category: 'performance',   exclusionProfile: 'noBuildArtifacts' },
-    typeSafetyAny:    { category: 'typeSafety',    exclusionProfile: 'sourceCodeOnly' },
-    missingTest:      { category: 'testCoverage',  exclusionProfile: 'sourceCodeOnly' },
-    a11yGap:          { category: 'accessibility', exclusionProfile: 'sourceCodeOnly' },
-    i18nHardcoded:    { category: 'i18n',          exclusionProfile: 'sourceCodeOnly' },
-    sensitiveData:    { category: 'sensitiveData', exclusionProfile: 'sourceCodeOnly' },
-    configDrift:      { category: 'configDrift',   exclusionProfile: 'sourceCodeOnly' },
-    securityHeaders:  { category: 'securityHeaders', exclusionProfile: 'sourceCodeOnly' },
-    dbAntiPattern:    { category: 'databasePatterns', exclusionProfile: 'sourceCodeOnly' },
-    frameworkPractice:{ category: 'frameworkPractices', exclusionProfile: 'sourceCodeOnly' },
-    unusedDep:        { category: 'unusedDeps',    exclusionProfile: 'sourceCodeOnly' },
-    apiContractDrift: { category: 'apiContract',   exclusionProfile: 'sourceCodeOnly' },
-    complexityMetric: { category: 'complexity',      exclusionProfile: 'noBuildArtifacts' },
-    llmSlop:          { category: 'llmSlop',       exclusionProfile: 'sourceCodeOnly' },
-    tokenBleed:       { category: 'tokenBleed',    exclusionProfile: 'sourceCodeOnly' },
-    productionLeak:   { category: 'productionLeak',  exclusionProfile: 'sourceCodeOnly' },
-    fictionKpi:       { category: 'fictionKpi',    exclusionProfile: 'sourceCodeOnly' },
-    syncIo:           { category: 'performance',   exclusionProfile: 'sourceCodeOnly' },
-    evalDanger:       { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    innerHtmlXss:     { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    prototypePollution:{ category: 'security',     exclusionProfile: 'sourceCodeOnly' },
-    unhandledPromise: { category: 'quality',       exclusionProfile: 'sourceCodeOnly' },
-    magicNumber:      { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' },
-    missingStrictMode:{ category: 'quality',       exclusionProfile: 'sourceCodeOnly' },
-    uninitializedRead:{ category: 'quality',       exclusionProfile: 'sourceCodeOnly' },
-    unvalidatedRedirect:{ category: 'security',    exclusionProfile: 'sourceCodeOnly' },
-    missingRateLimit: { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    insecureRandom:   { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    loggingSecrets:   { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    architectureDrift:{ category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    hardcodedConfidence:{ category: 'fictionKpi',  exclusionProfile: 'sourceCodeOnly' },
-    hardcodedCompletion:{ category: 'fictionKpi',  exclusionProfile: 'sourceCodeOnly' },
-    mockPathLeak:     { category: 'productionLeak', exclusionProfile: 'sourceCodeOnly' },
-    sampleJsonRef:    { category: 'productionLeak', exclusionProfile: 'sourceCodeOnly' },
-    governanceMarker: { category: 'governance',    exclusionProfile: 'sourceCodeOnly' },
-    aiPlaceholderComment:{ category: 'aiResidue',  exclusionProfile: 'sourceCodeOnly' },
-    aiPlaceholderBlock:{ category: 'aiResidue',   exclusionProfile: 'sourceCodeOnly' },
-    markdownFenceLeak:{ category: 'llmSlop',       exclusionProfile: 'sourceCodeOnly' },
-    emptyStubFunction:{ category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    arrowStub:        { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    roadmapMarker:    { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    llmApiEndpoint:   { category: 'aiIndicators',  exclusionProfile: 'sourceCodeOnly' },
-    systemPromptFile:   { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    insecureModelParam:{ category: 'aiIndicators',  exclusionProfile: 'sourceCodeOnly' },
-    webhookUrl:       { category: 'sensitiveData', exclusionProfile: 'sourceCodeOnly' },
-    dbConnectionString:{ category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    corsWildcard:     { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    graphqlIntrospection:{ category: 'security',    exclusionProfile: 'sourceCodeOnly' },
-    dockerfileAntiPattern:{ category: 'security',   exclusionProfile: 'noArtifacts' },
-    k8sMissingLimits: { category: 'security',      exclusionProfile: 'noArtifacts' },
-    todoDensity:      { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' },
-    dependencyGitUrl: { category: 'unusedDeps',    exclusionProfile: 'noArtifacts' },
-    jwtSecretInConfig:{ category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    sshPrivateKey:    { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    awsAccessKey:     { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    stripeLiveKey:    { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    firebaseApiKey:   { category: 'credentials',   exclusionProfile: 'noArtifacts' },
-    insecureCookie:   { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    pathTraversal:    { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    ssrfVector:       { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    nosqlInjection:   { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    missingCsrf:      { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    noHelmet:         { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
-    modelFallback:    { category: 'aiIndicators',  exclusionProfile: 'sourceCodeOnly' },
-    promptInjectionSurface:{ category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    aiIndicators: { category: 'aiIndicators', exclusionProfile: 'aiIndicators' },
+    credentials: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    debugArtifacts: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    pythonDebug: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    javaDebug: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    pythonFramework: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    javaFramework: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    goDebug: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    goFramework: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    rustDebug: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    rustFramework: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    phpDebug: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    phpFramework: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    dotnetDebug: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    dotnetFramework: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    rubyDebug: { category: 'debug', exclusionProfile: 'sourceCodeOnly' },
+    rubyFramework: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    aiResidueStub: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    aiResidueSwallow: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    aiResidueDeprecated: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    aiResidueDeadCode: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    perfNestedLoop: { category: 'performance', exclusionProfile: 'noBuildArtifacts' },
+    typeSafetyAny: { category: 'typeSafety', exclusionProfile: 'sourceCodeOnly' },
+    missingTest: { category: 'testCoverage', exclusionProfile: 'sourceCodeOnly' },
+    a11yGap: { category: 'accessibility', exclusionProfile: 'sourceCodeOnly' },
+    i18nHardcoded: { category: 'i18n', exclusionProfile: 'sourceCodeOnly' },
+    sensitiveData: { category: 'sensitiveData', exclusionProfile: 'sourceCodeOnly' },
+    configDrift: { category: 'configDrift', exclusionProfile: 'sourceCodeOnly' },
+    securityHeaders: { category: 'securityHeaders', exclusionProfile: 'sourceCodeOnly' },
+    dbAntiPattern: { category: 'databasePatterns', exclusionProfile: 'sourceCodeOnly' },
+    frameworkPractice: { category: 'frameworkPractices', exclusionProfile: 'sourceCodeOnly' },
+    unusedDep: { category: 'unusedDeps', exclusionProfile: 'sourceCodeOnly' },
+    apiContractDrift: { category: 'apiContract', exclusionProfile: 'sourceCodeOnly' },
+    complexityMetric: { category: 'complexity', exclusionProfile: 'noBuildArtifacts' },
+    llmSlop: { category: 'llmSlop', exclusionProfile: 'sourceCodeOnly' },
+    tokenBleed: { category: 'tokenBleed', exclusionProfile: 'sourceCodeOnly' },
+    productionLeak: { category: 'productionLeak', exclusionProfile: 'sourceCodeOnly' },
+    fictionKpi: { category: 'fictionKpi', exclusionProfile: 'sourceCodeOnly' },
+    syncIo: { category: 'performance', exclusionProfile: 'sourceCodeOnly' },
+    evalDanger: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    innerHtmlXss: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    prototypePollution: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    unhandledPromise: { category: 'quality', exclusionProfile: 'sourceCodeOnly' },
+    magicNumber: { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' },
+    missingStrictMode: { category: 'quality', exclusionProfile: 'sourceCodeOnly' },
+    uninitializedRead: { category: 'quality', exclusionProfile: 'sourceCodeOnly' },
+    unvalidatedRedirect: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    missingRateLimit: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    insecureRandom: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    loggingSecrets: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    architectureDrift: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    hardcodedConfidence: { category: 'fictionKpi', exclusionProfile: 'sourceCodeOnly' },
+    hardcodedCompletion: { category: 'fictionKpi', exclusionProfile: 'sourceCodeOnly' },
+    mockPathLeak: { category: 'productionLeak', exclusionProfile: 'sourceCodeOnly' },
+    sampleJsonRef: { category: 'productionLeak', exclusionProfile: 'sourceCodeOnly' },
+    governanceMarker: { category: 'governance', exclusionProfile: 'sourceCodeOnly' },
+    aiPlaceholderComment: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    aiPlaceholderBlock: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    markdownFenceLeak: { category: 'llmSlop', exclusionProfile: 'sourceCodeOnly' },
+    emptyStubFunction: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    arrowStub: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    roadmapMarker: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    llmApiEndpoint: { category: 'aiIndicators', exclusionProfile: 'sourceCodeOnly' },
+    systemPromptFile: { category: 'aiResidue', exclusionProfile: 'sourceCodeOnly' },
+    insecureModelParam: { category: 'aiIndicators', exclusionProfile: 'sourceCodeOnly' },
+    webhookUrl: { category: 'sensitiveData', exclusionProfile: 'sourceCodeOnly' },
+    dbConnectionString: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    corsWildcard: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    graphqlIntrospection: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    dockerfileAntiPattern: { category: 'security', exclusionProfile: 'noArtifacts' },
+    k8sMissingLimits: { category: 'security', exclusionProfile: 'noArtifacts' },
+    todoDensity: { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' },
+    dependencyGitUrl: { category: 'unusedDeps', exclusionProfile: 'noArtifacts' },
+    jwtSecretInConfig: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    sshPrivateKey: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    awsAccessKey: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    stripeLiveKey: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    firebaseApiKey: { category: 'credentials', exclusionProfile: 'noArtifacts' },
+    insecureCookie: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    pathTraversal: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    ssrfVector: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    nosqlInjection: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    missingCsrf: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    noHelmet: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    modelFallback: { category: 'aiIndicators', exclusionProfile: 'sourceCodeOnly' },
+    promptInjectionSurface: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
     mixedIndentation: { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' },
     governance: { category: 'governance', exclusionProfile: 'sourceCodeOnly' },
     committedEnvFile: { category: 'configDrift', exclusionProfile: 'noArtifacts' },
@@ -1486,19 +1630,17 @@ const ANALYZER_SCHEMA = {
     redosRisk: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
     cicdSecretExposure: { category: 'credentials', exclusionProfile: 'noArtifacts' }
 };
-
 /**
  * Exclusion rules keyed by profile name. Each receives a context object
  * and returns true when the file should be skipped for that analyzer.
  */
 const EXCLUSION_RULES = {
     aiIndicators: (ctx) => ctx.isNodeModule || ctx.isTestOutput || ctx.isTestFile || ctx.isSimplebeaconCache || ctx.isScannerArtifact || ctx.isBuildArtifact,
-    noArtifacts:    (ctx) => ctx.isNodeModule || ctx.isSampleOrTest || ctx.isTypeScriptDef || ctx.isScannerArtifact,
-    noNodeModules:  (ctx) => ctx.isNodeModule || ctx.isSimplebeaconCache || ctx.isScannerArtifact,
+    noArtifacts: (ctx) => ctx.isNodeModule || ctx.isSampleOrTest || ctx.isTypeScriptDef || ctx.isScannerArtifact,
+    noNodeModules: (ctx) => ctx.isNodeModule || ctx.isSimplebeaconCache || ctx.isScannerArtifact,
     noBuildArtifacts: (ctx) => ctx.isNodeModule || ctx.isBuildArtifact || ctx.isSimplebeaconCache || ctx.isScannerArtifact || ctx.isTestFile || ctx.isSampleOrTest,
     sourceCodeOnly: (ctx) => !ctx.isSourceCode || ctx.isNodeModule || ctx.isCiWorkflow || ctx.isTestFile || ctx.isServerEntry || ctx.isSimplebeaconCache || ctx.isScannerArtifact || ctx.isBuildArtifact
 };
-
 if (typeof window !== 'undefined') {
     window.LANGUAGE_REGISTRY = LANGUAGE_REGISTRY;
     window.PATTERN_REGISTRY = PATTERN_REGISTRY;

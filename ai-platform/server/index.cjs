@@ -1374,6 +1374,20 @@ try {
     }
 }
 
+// One-time checkout routes — certificate passes ($149/$499/$2,499) from coming-soon
+// Required because the pricing page calls /api/create-checkout-session for one-time products
+// The billing webhook at /api/simplebeacon/billing/webhook already handles the webhook side
+try {
+    if (!process.env.PUBLIC_URL) {
+        process.env.PUBLIC_URL = process.env.SIMPLEBEACON_APP_URL || process.env.PUBLIC_APP_URL || 'https://simplebeacon.ai';
+    }
+    const { router: checkoutRouter } = require('../../coming-soon/routes/checkout.cjs');
+    app.use(checkoutRouter);
+    logger.info('[Checkout] One-time checkout routes mounted');
+} catch (e) {
+    logger.warn('[Checkout] Checkout routes not loaded:', e.message);
+}
+
 // Health probe endpoint (used by browser integrations)
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

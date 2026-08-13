@@ -1,8 +1,8 @@
 // SimpleBeacon Dashboard Utilities
 // Pure helper functions extracted from main.js
-
 function escapeHtml(str) {
-    if (!str) return '';
+    if (!str)
+        return '';
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -10,10 +10,9 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
-
 // simpleHash is defined in main.js — use the shared version
 if (typeof window !== 'undefined' && !window.simpleHash) {
-    window.simpleHash = async function(text) {
+    window.simpleHash = async function (text) {
         let hash = 5381;
         for (let i = 0; i < text.length; i++) {
             hash = ((hash << 5) + hash) + text.charCodeAt(i);
@@ -21,7 +20,6 @@ if (typeof window !== 'undefined' && !window.simpleHash) {
         return String(hash >>> 0);
     };
 }
-
 // SHA-256 helper using Web Crypto API
 async function computeSha256(text) {
     const encoder = new TextEncoder();
@@ -30,7 +28,6 @@ async function computeSha256(text) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
 // Robust file reader: File.text() with FileReader fallback for older browsers
 async function readFileText(file) {
     if (typeof file.text === 'function') {
@@ -43,7 +40,6 @@ async function readFileText(file) {
         reader.readAsText(file);
     });
 }
-
 function showHashRibbon(elementId, valueId, text) {
     const ribbon = document.getElementById(elementId);
     const value = document.getElementById(valueId);
@@ -52,7 +48,6 @@ function showHashRibbon(elementId, valueId, text) {
         ribbon.style.display = 'flex';
     }
 }
-
 if (typeof window !== 'undefined') {
     window.escapeHtml = escapeHtml;
     window.simpleHash = simpleHash;

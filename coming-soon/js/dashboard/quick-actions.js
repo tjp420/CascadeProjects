@@ -7,7 +7,6 @@
  *               Strings like "mock", "fixtures", and "sample" are illustrative
  *               examples of anti-patterns, not production code references.
  */
-
 const QUICK_ACTIONS = {
     llmSlop: {
         id: 'llmSlop',
@@ -86,7 +85,6 @@ const QUICK_ACTIONS = {
             'Add proper TODO comments with deadlines for incomplete features'
         ]
     },
-    
     tokenBleed: {
         id: 'tokenBleed',
         name: 'Token Bleed Risk',
@@ -107,7 +105,6 @@ const QUICK_ACTIONS = {
             'Consider if the content is necessary or can be generated dynamically'
         ]
     },
-    
     productionLeak: {
         id: 'productionLeak',
         name: 'Production Data Leak',
@@ -136,7 +133,6 @@ const QUICK_ACTIONS = {
             'Add build-time checks to prevent test data in production builds'
         ]
     },
-    
     fictionKpi: {
         id: 'fictionKpi',
         name: 'Hardcoded Fiction KPI',
@@ -165,7 +161,6 @@ const QUICK_ACTIONS = {
             'Add data validation to ensure metrics are realistic'
         ]
     },
-    
     credentials: {
         id: 'credentials',
         name: 'Credential Pattern',
@@ -203,7 +198,6 @@ const QUICK_ACTIONS = {
             'Rotate any exposed credentials immediately'
         ]
     },
-    
     debugArtifacts: {
         id: 'debugArtifacts',
         name: 'Debug Artifact',
@@ -242,7 +236,6 @@ const QUICK_ACTIONS = {
         ]
     }
 };
-
 /**
  * Get quick action suggestions for a specific pattern
  * @param {string} patternId - The pattern identifier
@@ -251,13 +244,10 @@ const QUICK_ACTIONS = {
  */
 function getQuickAction(patternId, matchedText) {
     const pattern = QUICK_ACTIONS[patternId];
-    if (!pattern) return null;
-    
+    if (!pattern)
+        return null;
     // Find matching quick fix based on the matched text
-    const quickFix = pattern.quickFixes.find(fix => 
-        fix.pattern.test(matchedText)
-    );
-    
+    const quickFix = pattern.quickFixes.find(fix => fix.pattern.test(matchedText));
     if (!quickFix) {
         return {
             patternId: pattern.id,
@@ -266,7 +256,6 @@ function getQuickAction(patternId, matchedText) {
             remediationSteps: pattern.remediationSteps
         };
     }
-    
     return {
         patternId: pattern.id,
         patternName: pattern.name,
@@ -275,7 +264,6 @@ function getQuickAction(patternId, matchedText) {
         remediationSteps: pattern.remediationSteps
     };
 }
-
 /**
  * Get all quick actions for a pattern
  * @param {string} patternId - The pattern identifier
@@ -284,7 +272,6 @@ function getQuickAction(patternId, matchedText) {
 function getAllQuickActions(patternId) {
     return QUICK_ACTIONS[patternId] || null;
 }
-
 /**
  * Format quick action as user-friendly message
  * @param {Object} quickAction - The quick action object
@@ -293,20 +280,16 @@ function getAllQuickActions(patternId) {
 function formatQuickAction(quickAction) {
     let message = `**${quickAction.patternName}**\n\n`;
     message += `Suggestion: ${quickAction.suggestion}\n\n`;
-    
     if (quickAction.example) {
         message += `**Before:**\n\`\`\`\n${quickAction.example.before}\n\`\`\`\n\n`;
         message += `**After:**\n\`\`\`\n${quickAction.example.after}\n\`\`\`\n\n`;
     }
-    
     message += `**Remediation Steps:**\n`;
     quickAction.remediationSteps.forEach((step, index) => {
         message += `${index + 1}. ${step}\n`;
     });
-    
     return message;
 }
-
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {

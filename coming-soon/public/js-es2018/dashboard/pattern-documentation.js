@@ -7,7 +7,6 @@
  *               Strings like "dev-data", "test-datasets", and "drafts" are illustrative
  *               examples of anti-patterns, not production code references.
  */
-
 const PATTERN_DOCUMENTATION = {
     llmSlop: {
         id: 'llmSlop',
@@ -46,7 +45,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Always review AI-generated code before committing. Use linter rules to catch placeholders. Implement pre-commit hooks to block commits with unresolved placeholders.`,
         relatedPatterns: ['fictionKpi', 'tokenBleed', 'productionLeak']
     },
-    
     tokenBleed: {
         id: 'tokenBleed',
         name: 'Token Bleed Risk',
@@ -76,7 +74,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Keep string literals under 2000 characters. Load large content from external files. Use compression for large data. Consider dynamic content generation.`,
         relatedPatterns: ['llmSlop', 'productionLeak']
     },
-    
     productionLeak: {
         id: 'productionLeak',
         name: 'Production Data Leak',
@@ -108,7 +105,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Use environment-specific loading for test data. Ensure production code only references production data sources. Add build-time checks to prevent test data in production builds.`,
         relatedPatterns: ['llmSlop', 'fictionKpi']
     },
-    
     fictionKpi: {
         id: 'fictionKpi',
         name: 'Hardcoded Fiction KPI',
@@ -142,7 +138,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Always calculate metrics from real data. Implement proper metric collection and validation. Add data validation to ensure metrics are realistic and within expected ranges.`,
         relatedPatterns: ['llmSlop', 'tokenBleed']
     },
-    
     credentials: {
         id: 'credentials',
         name: 'Credential Pattern',
@@ -176,7 +171,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Never commit credentials to version control. Use environment variables or secrets managers. Add .env files to .gitignore. Use .env.example files for documentation. Rotate exposed credentials immediately.`,
         relatedPatterns: ['productionLeak', 'configDrift']
     },
-    
     debugArtifacts: {
         id: 'debugArtifacts',
         name: 'Debug Artifact',
@@ -210,7 +204,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Remove all debug statements before production. Use proper logging libraries. Add linter rules to catch debug artifacts. Implement pre-commit hooks to block debug code.`,
         relatedPatterns: ['configDrift', 'performance']
     },
-    
     aiIndicators: {
         id: 'aiIndicators',
         name: 'AI System Indicators',
@@ -238,7 +231,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `No prevention needed - these are informational indicators for documentation and compliance.`,
         relatedPatterns: ['llmSlop', 'fictionKpi']
     },
-    
     configDrift: {
         id: 'configDrift',
         name: 'Configuration Drift',
@@ -271,7 +263,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Use environment variables for all configuration. Provide sensible defaults. Document required environment variables. Use configuration management best practices.`,
         relatedPatterns: ['credentials', 'productionLeak']
     },
-    
     performance: {
         id: 'performance',
         name: 'Performance Issue',
@@ -305,7 +296,6 @@ const PATTERN_DOCUMENTATION = {
         prevention: `Use performance profiling tools. Follow best practices for loops and memory management. Optimize regular expressions. Use efficient algorithms and data structures.`,
         relatedPatterns: ['complexityMetric', 'debugArtifacts']
     },
-    
     complexityMetric: {
         id: 'complexityMetric',
         name: 'High Complexity',
@@ -340,7 +330,6 @@ const PATTERN_DOCUMENTATION = {
         relatedPatterns: ['performance', 'frameworkPractice']
     }
 };
-
 /**
  * Get detailed documentation for a pattern
  * @param {string} patternId - The pattern identifier
@@ -349,7 +338,6 @@ const PATTERN_DOCUMENTATION = {
 function getPatternDocumentation(patternId) {
     return PATTERN_DOCUMENTATION[patternId] || null;
 }
-
 /**
  * Get pattern summary for quick display
  * @param {string} patternId - The pattern identifier
@@ -357,11 +345,10 @@ function getPatternDocumentation(patternId) {
  */
 function getPatternSummary(patternId) {
     const doc = PATTERN_DOCUMENTATION[patternId];
-    if (!doc) return null;
-    
+    if (!doc)
+        return null;
     return `${doc.name} (${doc.severity}): ${doc.description}`;
 }
-
 /**
  * Get all pattern IDs
  * @returns {Array<string>} Array of pattern IDs
@@ -369,7 +356,6 @@ function getPatternSummary(patternId) {
 function getAllPatternIds() {
     return Object.keys(PATTERN_DOCUMENTATION);
 }
-
 /**
  * Search patterns by keyword
  * @param {string} keyword - Search keyword
@@ -377,13 +363,10 @@ function getAllPatternIds() {
  */
 function searchPatterns(keyword) {
     const lowerKeyword = keyword.toLowerCase();
-    return Object.values(PATTERN_DOCUMENTATION).filter(doc => 
-        doc.name.toLowerCase().includes(lowerKeyword) ||
+    return Object.values(PATTERN_DOCUMENTATION).filter(doc => doc.name.toLowerCase().includes(lowerKeyword) ||
         doc.description.toLowerCase().includes(lowerKeyword) ||
-        doc.detailedExplanation.toLowerCase().includes(lowerKeyword)
-    );
+        doc.detailedExplanation.toLowerCase().includes(lowerKeyword));
 }
-
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {

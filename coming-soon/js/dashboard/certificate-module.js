@@ -1,8 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 // Defensive: ensure escapeHtml is available even if utils.js fails to load
 if (typeof window !== 'undefined' && !window.escapeHtml) {
-    window.escapeHtml = function(str) {
-        if (!str) return '';
+    window.escapeHtml = function (str) {
+        if (!str)
+            return '';
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -11,7 +12,6 @@ if (typeof window !== 'undefined' && !window.escapeHtml) {
             .replace(/'/g, '&#039;');
     };
 }
-
 // ============================================================================
 // ZIP Markdown Template Schema — drives uniform module report generation
 // ============================================================================
@@ -64,23 +64,25 @@ const ZIP_MARKDOWN_TEMPLATES = [
     { moduleId: '62', section: 'fileNaming', title: 'File Naming', metricLabel: 'File Naming Issues', advice: 'Standardize naming conventions, remove spaces/special chars, and use descriptive names for data files.', filename: 'file-naming.md' },
     { moduleId: '63', section: 'removableFiles', title: 'Removable Files', metricLabel: 'Removable Files', advice: 'Remove node_modules, build artifacts, caches, logs, and temp files. Add .gitignore entries to prevent recurrence.', filename: 'removable-files.md' }
 ];
-
 function fmtCertBytes(bytes) {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0)
+        return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
-
 function generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectName, dateStr, template) {
-    if (!allowedModules.includes(template.moduleId)) return;
+    if (!allowedModules.includes(template.moduleId))
+        return;
     let data = filteredReport[template.section] || {};
     let hits = Number(data[`${template.section}Hits`]) || 0;
     let rawList = data[`${template.section}Findings`];
     // Fallback for alternate structure (e.g. architectureDrift: { count, findings })
-    if (!hits && data.count != null) hits = Number(data.count) || 0;
-    if (!Array.isArray(rawList) && Array.isArray(data.findings)) rawList = data.findings;
+    if (!hits && data.count != null)
+        hits = Number(data.count) || 0;
+    if (!Array.isArray(rawList) && Array.isArray(data.findings))
+        rawList = data.findings;
     // Fallback for direct findings array on report (e.g. syncIoFindings)
     if (!hits && !Array.isArray(rawList)) {
         const directFindings = filteredReport[`${template.section}Findings`];
@@ -103,9 +105,9 @@ function generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectN
     const md = `# ${template.title} Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| ${template.metricLabel} | ${hits} |\n\n${findingsMd}> ${template.advice}\n`;
     zip.file(template.filename, md);
 }
-
 async function certComputeSha256(text) {
-    if (typeof computeSha256 === 'function') return computeSha256(text);
+    if (typeof computeSha256 === 'function')
+        return computeSha256(text);
     if (typeof window !== 'undefined' && typeof window.computeSha256 === 'function') {
         return window.computeSha256(text);
     }
@@ -114,16 +116,17 @@ async function certComputeSha256(text) {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
 function certIsModulePaidFor(moduleNum) {
     try {
-        if (typeof isModulePaidFor === 'function') return isModulePaidFor(moduleNum);
-    } catch (_) { /* main.js may still be loading */ }
+        if (typeof isModulePaidFor === 'function')
+            return isModulePaidFor(moduleNum);
+    }
+    catch (_) { /* main.js may still be loading */ }
     const numStr = String(moduleNum);
     return numStr === '1' || numStr === '3';
 }
-
 async function generateSovereignCertificate(report, token, options = {}) {
+    var _a, _b, _c, _d, _e, _f;
     if (!window.JSZip) {
         throw new Error('Certificate libraries not loaded. Check your network connection.');
     }
@@ -133,7 +136,6 @@ async function generateSovereignCertificate(report, token, options = {}) {
     if (!report || typeof report !== 'object' || Object.keys(report).length === 0) {
         throw new Error('Report data is missing or empty. Run a scan first.');
     }
-
     const zip = new JSZip();
     const now = new Date();
     const certId = 'SB-' + crypto.getRandomValues(new Uint32Array(1))[0];
@@ -144,7 +146,7 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const profileLabelOverride = options.profileLabel || '';
     const signatoryName = options.signatoryName || 'SimpleBeacon';
     const signatoryTitle = options.signatoryTitle || 'Automated Compliance Engine';
-    const contactEmail = options.contactEmail || 'admin@simplebeacon.ai';
+    const contactEmail = options.contactEmail || 'contact@simplebeacon.ai';
     const fileCount = report.filesAnalyzed || report.totalFiles || report.fileCount || 0;
     const lineCount = report.totalLines || report.linesOfCode || 0;
     const gateReport = report.gateReport || report.gate || {};
@@ -152,20 +154,30 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const qs = Number.isFinite(report.qualityScore) ? report.qualityScore : (report.qualityScore || 0);
     let grade = 'F';
     let gradeColor = '#EF4444';
-    if (qs >= 95) { grade = 'A'; gradeColor = '#34D399'; }
-    else if (qs >= 85) { grade = 'B'; gradeColor = '#60A5FA'; }
-    else if (qs >= 70) { grade = 'C'; gradeColor = '#F59E0B'; }
-    else if (qs >= 50) { grade = 'D'; gradeColor = '#F97316'; }
-
-    const gatePassed = report.gate?.pass === true || report.gate?.status === 'PASS';
+    if (qs >= 95) {
+        grade = 'A';
+        gradeColor = '#10B981';
+    }
+    else if (qs >= 85) {
+        grade = 'B';
+        gradeColor = '#84CC16';
+    }
+    else if (qs >= 70) {
+        grade = 'C';
+        gradeColor = '#F59E0B';
+    }
+    else if (qs >= 50) {
+        grade = 'D';
+        gradeColor = '#F97316';
+    }
+    const gatePassed = ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) === true || ((_b = report.gate) === null || _b === void 0 ? void 0 : _b.status) === 'PASS';
     // Sync summary.gatePass so downstream consumers see consistent state
     if (report.summary && typeof report.summary === 'object') {
         report.summary.gatePass = gatePassed;
     }
-    const gateLabel = gatePassed ? 'PASS' : (report.gate?.blockingCount ? 'BLOCKED' : 'REVIEW');
+    const gateLabel = gatePassed ? 'PASS' : (((_c = report.gate) === null || _c === void 0 ? void 0 : _c.blockingCount) ? 'BLOCKED' : 'REVIEW');
     const gateColor = gatePassed ? '#34D399' : '#EF4444';
-    const profileLabel = profileLabelOverride || (window._tokenPayload?.tier || window._tokenPayload?.product || 'executive').toUpperCase();
-
+    const profileLabel = profileLabelOverride || (((_d = window._tokenPayload) === null || _d === void 0 ? void 0 : _d.tier) || ((_e = window._tokenPayload) === null || _e === void 0 ? void 0 : _e.product) || 'executive').toUpperCase();
     // Map UI module IDs (from analyzer dropdown) to certificate numeric module IDs
     const UI_TO_CERT_MODULE = {
         'gate': '1', 'consolidation': '2', 'mock-data': '3', 'roadmap': '4',
@@ -189,17 +201,17 @@ async function generateSovereignCertificate(report, token, options = {}) {
         allowedModules = Array.from(selectedModules).map(id => UI_TO_CERT_MODULE[id]).filter(Boolean);
     }
     // Always enforce tier-based unlocking — intersect with what the user actually paid for
-    const paidModules = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60','61'].filter(m => certIsModulePaidFor(m));
+    const paidModules = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61'].filter(m => certIsModulePaidFor(m));
     if (allowedModules.length > 0) {
         allowedModules = allowedModules.filter(m => paidModules.includes(m));
-    } else {
+    }
+    else {
         allowedModules = paidModules;
     }
     // Safety net: never generate an empty module list — fall back to all modules
     if (!allowedModules.length) {
-        allowedModules = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60','61'];
+        allowedModules = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61'];
     }
-
     const moduleKeyMap = {
         '1': ['gateReport', 'gate'],
         '2': ['consolidation'],
@@ -275,7 +287,6 @@ async function generateSovereignCertificate(report, token, options = {}) {
         'euAiActFindings', 'euAiActScanned',
         'aiContext'
     ];
-
     const perModuleData = {
         '1': { gateReport: report.gateReport, gate: report.gate },
         '2': { consolidation: report.consolidation },
@@ -339,10 +350,10 @@ async function generateSovereignCertificate(report, token, options = {}) {
         '60': { arrowStub: report.arrowStub, arrowStubFindings: report.arrowStubFindings },
         '61': { roadmapMarker: report.roadmapMarker, roadmapMarkerFindings: report.roadmapMarkerFindings }
     };
-
     // Safety net: derive analyzer sections from detectedIssues when buildAnalyzerSections data is missing
     function deriveAnalyzerSectionsFromDetectedIssues(detectedIssues) {
-        if (!Array.isArray(detectedIssues) || detectedIssues.length === 0) return {};
+        if (!Array.isArray(detectedIssues) || detectedIssues.length === 0)
+            return {};
         const typeToSection = {
             'Debug Artifact': 'aiResidue',
             'License/Governance Marker': 'governanceMarker',
@@ -435,9 +446,11 @@ async function generateSovereignCertificate(report, token, options = {}) {
         const derived = {};
         for (const issue of detectedIssues) {
             const sectionName = typeToSection[issue.type];
-            if (!sectionName) continue;
+            if (!sectionName)
+                continue;
             const schema = sectionSchema.find(s => s.section === sectionName);
-            if (!schema) continue;
+            if (!schema)
+                continue;
             const findings = (issue.findings || []).map(f => ({
                 file: typeof f === 'string' ? f : (f.file || f.filePath || 'unknown'),
                 type: issue.type,
@@ -468,26 +481,26 @@ async function generateSovereignCertificate(report, token, options = {}) {
         }
         return derived;
     }
-
     // Assemble comprehensive report.json with ALL available scan data for rich roadmap generation
     const assembledReport = {};
     for (const key of baseKeys) {
-        if (report[key] != null) assembledReport[key] = report[key];
+        if (report[key] != null)
+            assembledReport[key] = report[key];
     }
     // Merge detectedIssues-derived analyzer sections as safety net
     const derivedSections = deriveAnalyzerSectionsFromDetectedIssues(report.detectedIssues);
     for (const [sectionName, sectionData] of Object.entries(derivedSections)) {
-        if (!assembledReport[sectionName]) assembledReport[sectionName] = sectionData;
+        if (!assembledReport[sectionName])
+            assembledReport[sectionName] = sectionData;
     }
     // Include ALL per-module data regardless of tier so roadmaps have full detail
     for (const data of Object.values(perModuleData)) {
-        Object.entries(data).forEach(([k, v]) => { if (v != null) assembledReport[k] = v; });
+        Object.entries(data).forEach(([k, v]) => { if (v != null)
+            assembledReport[k] = v; });
     }
     const filteredReport = assembledReport;
-
     const reportHash = await certComputeSha256(JSON.stringify(assembledReport));
     const shortHash = reportHash.slice(0, 16) + '...' + reportHash.slice(-8);
-
     // --- Rich Executive Risk Certificate data ---
     const aiResidue = report.aiResidue || {};
     const aiIndicators = report.aiIndicators || {};
@@ -507,7 +520,6 @@ async function generateSovereignCertificate(report, token, options = {}) {
     };
     const gradeInfo = gradeConfig[grade] || gradeConfig['F'];
     const companyInitials = escapeHtml(projectName).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SB';
-
     // Aggregate real findings from detectedIssues when gate buckets are empty
     const detectedIssues = report.detectedIssues || [];
     const issueCounts = { credential: 0, debug: 0, architecture: 0, maintainability: 0, governance: 0, slop: 0, sensitive: 0, other: 0 };
@@ -516,20 +528,28 @@ async function generateSovereignCertificate(report, token, options = {}) {
         const type = (issue.type || '').toLowerCase();
         const count = issue.count || 0;
         const sev = (issue.severity || 'low').toLowerCase();
-        if (severityCounts[sev] != null) severityCounts[sev] += count;
-        if (type.includes('credential')) issueCounts.credential += count;
-        else if (type.includes('debug')) issueCounts.debug += count;
-        else if (type.includes('architecture')) issueCounts.architecture += count;
-        else if (type.includes('maintainability')) issueCounts.maintainability += count;
-        else if (type.includes('license') || type.includes('governance')) issueCounts.governance += count;
-        else if (type.includes('llm slop') || type.includes('ai residue') || type.includes('fiction')) issueCounts.slop += count;
-        else if (type.includes('sensitive') || type.includes('production leak') || type.includes('token bleed')) issueCounts.sensitive += count;
-        else issueCounts.other += count;
+        if (severityCounts[sev] != null)
+            severityCounts[sev] += count;
+        if (type.includes('credential'))
+            issueCounts.credential += count;
+        else if (type.includes('debug'))
+            issueCounts.debug += count;
+        else if (type.includes('architecture'))
+            issueCounts.architecture += count;
+        else if (type.includes('maintainability'))
+            issueCounts.maintainability += count;
+        else if (type.includes('license') || type.includes('governance'))
+            issueCounts.governance += count;
+        else if (type.includes('llm slop') || type.includes('ai residue') || type.includes('fiction'))
+            issueCounts.slop += count;
+        else if (type.includes('sensitive') || type.includes('production leak') || type.includes('token bleed'))
+            issueCounts.sensitive += count;
+        else
+            issueCounts.other += count;
     }
     const aiHits = aiResidueHits || issueCounts.slop || issueCounts.debug;
     const credentialHits = issueCounts.credential || (gateReport.blockingFindings || []).length || gateReport.blockingCount || 0;
     const governanceHits = issueCounts.governance;
-
     // Liability based on severity (conservative per-incident estimates)
     const LIABILITY_MULTIPLIER_CRITICAL = 500000;
     const LIABILITY_MULTIPLIER_HIGH = 250000;
@@ -543,26 +563,29 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const liabilityFormatted = liabilityRaw > 0
         ? (liabilityRaw >= LIABILITY_FORMAT_THRESHOLD ? '$' + (liabilityRaw / LIABILITY_FORMAT_THRESHOLD).toFixed(1) + 'M' : '$' + liabilityRaw.toLocaleString())
         : '$0';
-
     const pillars = [];
     if (aiHits === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'AI Slop & Hallucinations', detail: 'No unresolved LLM placeholders or fake metrics detected' });
-    } else {
+    }
+    else {
         pillars.push({ status: 'warn', statusText: 'WARNING', name: 'AI Slop & Hallucinations', detail: aiHits.toLocaleString() + ' AI residue / debug pattern(s) detected in source' });
     }
     if (credentialHits === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'Credential Leaks', detail: 'No hardcoded credentials or API keys detected in source' });
-    } else {
+    }
+    else {
         pillars.push({ status: 'warn', statusText: 'WARNING', name: 'Credential Leaks', detail: credentialHits.toLocaleString() + ' credential pattern(s) detected — review before release' });
     }
     if (aiSdkCount === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'Shadow AI Systems', detail: 'No undocumented AI integrations detected' });
-    } else {
+    }
+    else {
         pillars.push({ status: gatePassed ? 'pass' : 'warn', statusText: gatePassed ? 'PASS' : 'REVIEW', name: 'Shadow AI Systems', detail: aiSdkCount.toLocaleString() + ' AI SDK reference(s) detected — verify compliance documentation' });
     }
     if (hasLicense && hasSecurity && governanceHits === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'Licensing & IP Verification', detail: licenseCount + ' license file(s), ' + securityCount + ' governance file(s) present' });
-    } else {
+    }
+    else {
         const govDetail = governanceHits > 0
             ? governanceHits.toLocaleString() + ' governance marker(s) detected — review license compatibility'
             : 'Missing governance files — add LICENSE and SECURITY.md';
@@ -576,8 +599,7 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const validThrough = new Date(isoDate);
     validThrough.setFullYear(validThrough.getFullYear() + 1);
     const validThroughStr = validThrough.toLocaleDateString();
-    const tokenDisplay = token.length >= 12 ? token.slice(0,8) + '...' + token.slice(-4) : (token || 'N/A');
-
+    const tokenDisplay = token.length >= 12 ? token.slice(0, 8) + '...' + token.slice(-4) : (token || 'N/A');
     const certHtml = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>SimpleBeacon Executive Risk Certificate — ${escapeHtml(projectName)}</title>
 <style>
@@ -660,6 +682,25 @@ body { font-family: "Inter","Segoe UI",system-ui,sans-serif; color: var(--text);
     <div class="pillars">
 ${pillarsHtml}
     </div>
+
+    <div style="margin-bottom:24px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:10px;">Compliance Framework Alignment</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#2563EB;"></span>SOC 2 Type II</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#d29922;"></span>EU AI Act</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#3B82F6;"></span>GDPR</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#8B5CF6;"></span>ISO 27001</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#58a6ff;"></span>NIST AI RMF</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#3fb950;"></span>HIPAA</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#f85149;"></span>PCI-DSS</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);"><span style="width:8px;height:8px;border-radius:50%;background:#f97316;"></span>CCPA</span>
+        </div>
+    </div>
+
+    <div style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.2);font-size:10px;color:var(--pass);font-weight:600;margin-bottom:24px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Local-First Security &middot; Zero data uploaded &middot; Source never left device
+    </div>
 </div>
 
 <div class="footer-section">
@@ -679,7 +720,6 @@ ${pillarsHtml}
 </div>
 </div>
 </body></html>`;
-
     const readme = `# SimpleBeacon Executive Risk Certificate
 
 **Project:** ${projectName}
@@ -694,11 +734,9 @@ ${pillarsHtml}
 
 Generated entirely in-browser. Zero data uploaded.
 `;
-
     zip.file('certificate.html', certHtml);
     zip.file('report.json', JSON.stringify(assembledReport, null, 2));
     zip.file('README.md', readme);
-
     // Tier-filtered human-readable markdown reports
     if (allowedModules.includes('1')) {
         const gate = filteredReport.gateReport || filteredReport.gate || {};
@@ -722,7 +760,6 @@ Generated entirely in-browser. Zero data uploaded.
         const findingsMd = `# Gate Findings Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Blocking:** ${blocking.length}\n**Warnings:** ${warnings.length}\n\n${items.length ? items.join('\n\n') : 'No blocking or warning issues detected.'}\n`;
         zip.file('findings.md', findingsMd);
     }
-
     // Module 2: Consolidation
     if (allowedModules.includes('2')) {
         const cons = filteredReport.consolidation || {};
@@ -731,7 +768,6 @@ Generated entirely in-browser. Zero data uploaded.
         const consMd = `# Consolidation Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Duplicate Groups | ${dupGroups} |\n\n${dupFiles.length ? `## Duplicate Files\n\n${dupFiles.map(f => `- ${f}`).join('\n')}\n` : ''}> Consolidate duplicate files and standardize naming conventions.\n`;
         zip.file('consolidation.md', consMd);
     }
-
     // Module 3: Mock Data
     if (allowedModules.includes('3')) {
         const mockCats = filteredReport.mockDataCategories || [];
@@ -740,14 +776,12 @@ Generated entirely in-browser. Zero data uploaded.
         const mockMd = `# Mock Data Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Mock / Fixture Files | ${mockTotal} |\n\n${mockCats.length ? `## Categories\n\n${mockCats.map(c => `- ${c.category}: ${c.fileCount || 0} file(s)`).join('\n')}\n` : ''}> Ensure mock data is excluded from production builds.\n`;
         zip.file('mock-data.md', mockMd);
     }
-
     if (allowedModules.includes('4')) {
         const phases = filteredReport.remediationPhases || [];
         const rm = filteredReport.roadmap || {};
-        const roadmapMd = phases.length ? `# 5-Phase Compliance Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Todo Items:** ${rm.todoCount || 0}\n\n${phases.map((p, idx) => `## ${idx + 1}. ${p.title || 'Untitled Phase'}\n\n${p.description || ''}\n\n- **Severity:** ${p.severity || 'N/A'}\n- **Effort:** ${p.effort || 'N/A'}\n- **Status:** ${p.status || 'N/A'}\n- **Progress:** ${p.progress ?? 0}%\n\n${(p.tasks || []).map(t => `- ${t}`).join('\n')}\n`).join('\n\n')}\n` : `# Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n${rm.summary || 'No roadmap data available.'}\n`;
+        const roadmapMd = phases.length ? `# 5-Phase Compliance Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Todo Items:** ${rm.todoCount || 0}\n\n${phases.map((p, idx) => { var _a; return `## ${idx + 1}. ${p.title || 'Untitled Phase'}\n\n${p.description || ''}\n\n- **Severity:** ${p.severity || 'N/A'}\n- **Effort:** ${p.effort || 'N/A'}\n- **Status:** ${p.status || 'N/A'}\n- **Progress:** ${(_a = p.progress) !== null && _a !== void 0 ? _a : 0}%\n\n${(p.tasks || []).map(t => `- ${t}`).join('\n')}\n`; }).join('\n\n')}\n` : `# Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n${rm.summary || 'No roadmap data available.'}\n`;
         zip.file('roadmap.md', roadmapMd);
     }
-
     if (allowedModules.includes('11')) {
         const eu = filteredReport.euAiActSummary || {};
         const euControls = eu.controls || [];
@@ -758,10 +792,8 @@ Generated entirely in-browser. Zero data uploaded.
         const docsFound = eu.documentationFound || [];
         const deadlineDate = new Date('2026-08-02');
         const daysUntil = Math.max(0, Math.ceil((deadlineDate - new Date(dateStr)) / (1000 * 60 * 60 * 24)));
-
         // Control cards
         const controlCards = euControls.length ? euControls.map(c => `### ${c.controlId}: ${c.title}\n\n- **Article:** ${c.article || 'N/A'}\n- **Status:** ${c.status || 'N/A'}\n- **Severity:** ${c.severity || 'N/A'}\n- **Evidence:** ${c.evidence || 'N/A'}\n- **Action:** ${c.action || 'N/A'}\n`).join('\n') : 'No controls data available.';
-
         // Risk matrix — use worst control status to drive overall risk, not just AI counts
         const worstControl = euControls.length ? euControls.reduce((w, c) => {
             const rank = { 'FAIL': 4, 'WARN': 3, 'REVIEW': 2, 'PASS': 1 };
@@ -771,14 +803,14 @@ Generated entirely in-browser. Zero data uploaded.
         const impact = (worstControl && (worstControl.severity === 'critical' || worstControl.severity === 'high')) ? 'High' : (hrCount > 0 ? 'High' : (aiCount > 0 ? 'Medium' : 'Low'));
         const riskLevel = (likelihood === 'High' || impact === 'High') ? 'High' : (likelihood === 'Medium' || impact === 'Medium') ? 'Medium' : 'Low';
         const riskColor = riskLevel === 'High' ? '🔴' : (riskLevel === 'Medium' ? '🟡' : '🟢');
-
         // Remediation guide — PASS = no open task; REVIEW/WARN/FAIL = open task
         const remediationGuide = euControls.map(c => {
-            if (c.status === 'PASS') return `- [ ] **${c.controlId}** — No open action. ${c.action}`;
-            if (c.status === 'FAIL') return `- [ ] **${c.controlId}** — 🚨 **BLOCK RELEASE** until risk assessment and conformity documentation are complete.`;
+            if (c.status === 'PASS')
+                return `- [ ] **${c.controlId}** — No open action. ${c.action}`;
+            if (c.status === 'FAIL')
+                return `- [ ] **${c.controlId}** — 🚨 **BLOCK RELEASE** until risk assessment and conformity documentation are complete.`;
             return `- [ ] **${c.controlId}** — ${c.action}`;
         }).join('\n');
-
         // Documentation checklist
         const requiredDocs = [
             { name: 'Model Card', pattern: /model[-_\s]?card/i, found: docsFound.some(d => /model[-_\s]?card/i.test(d)) },
@@ -788,11 +820,9 @@ Generated entirely in-browser. Zero data uploaded.
             { name: 'EU AI Act Reference', pattern: /eu[-_\s]?ai[-_\s]?act/i, found: docsFound.some(d => /eu[-_\s]?ai[-_\s]?act/i.test(d)) }
         ];
         const docChecklist = requiredDocs.map(d => `- [${d.found ? 'x' : ' '}] ${d.name}`).join('\n');
-
         const euMd = `# EU AI Act Assessment\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n## Executive Summary\n\n| Metric | Value |\n|---|---|\n| AI System Indicators | ${aiCount} |\n| High Risk Indicators | ${hrCount} |\n| Transparency Gaps | ${tgCount} |\n| Documentation Artifacts | ${docCount} |\n| Overall Risk Posture | ${riskColor} ${riskLevel} |\n\n${aiCount > 0 ? `**Risk Posture:** ${aiCount} AI indicator(s) detected; ${hrCount} high-risk; EU AI Act applicability review recommended.` : '**Risk Posture:** No AI indicators detected. EU AI Act obligations not applicable.'}\n\n---\n\n## Control Cards\n\n${controlCards}\n\n---\n\n## Risk Matrix\n\n| | **Impact: Low** | **Impact: Medium** | **Impact: High** |\n|---|---|---|---|\n| **Likelihood: High** | Medium | High | 🔴 **High** |\n| **Likelihood: Medium** | Low | 🟡 **Medium** | High |\n| **Likelihood: Low** | 🟢 **Low** | Low | Medium |\n\n**Position:** Likelihood = ${likelihood}, Impact = ${impact} → **${riskLevel} Risk**\n\n---\n\n## Remediation Guide\n\n${remediationGuide || 'No remediation actions required.'}\n\n---\n\n## Documentation Checklist\n\n${docChecklist}\n\n${docsFound.length ? `## Documentation Found\n\n${docsFound.map(f => `- ${f}`).join('\n')}\n` : ''}\n\n---\n\n## Deadline\n\n> **EU AI Act compliance deadline: August 2, 2026**\n> \n> ${daysUntil} days remaining.\n\n${eu.deadlineNote ? `> ${eu.deadlineNote}` : ''}\n`;
         zip.file('eu-ai-act.md', euMd);
     }
-
     // Module 5: Codebase Analysis
     if (allowedModules.includes('5')) {
         const cb = filteredReport.codebase || {};
@@ -801,7 +831,6 @@ Generated entirely in-browser. Zero data uploaded.
         const cbMd = `# Codebase Analysis\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Total Files | ${cb.totalFiles || 0} |\n| Total Lines | ${(cb.totalLines || 0).toLocaleString()} |\n| Avg Lines/File | ${cb.averageLinesPerFile || 0} |\n\n${langRows ? `## Language Breakdown\n\n| Language | Files |\n|---|---|\n${langRows}\n` : ''}\n`;
         zip.file('codebase.md', cbMd);
     }
-
     // Module 6: File Reduction
     if (allowedModules.includes('6')) {
         const fr = filteredReport.fileReduction || {};
@@ -810,14 +839,12 @@ Generated entirely in-browser. Zero data uploaded.
         const frMd = `# File Reduction Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Unused Asset Candidates | ${unused.length} |\n| Duplicate Content Groups | ${dupGroups} |\n\n${unused.length ? `## Unused Assets\n\n${unused.map(f => `- ${f}`).join('\n')}\n` : ''}> Review and remove unused assets; consolidate duplicate files.\n`;
         zip.file('file-reduction.md', frMd);
     }
-
     // Module 7: Data Quality
     if (allowedModules.includes('7')) {
         const dq = filteredReport.dataQuality || {};
         const dqMd = `# Data Quality Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Invalid JSON | ${dq.invalidJsonCount || 0} |\n| Empty JSON | ${dq.emptyJsonCount || 0} |\n| Schema Compliance | ${dq.schemaCompliance != null ? dq.schemaCompliance + '%' : 'N/A'} |\n\n${dq.summary || 'No data quality issues detected.'}\n`;
         zip.file('data-quality.md', dqMd);
     }
-
     // Module 8: Cleanup & Hygiene
     if (allowedModules.includes('8')) {
         const cl = filteredReport.cleanup || {};
@@ -828,7 +855,6 @@ Generated entirely in-browser. Zero data uploaded.
         const clMd = `# Cleanup & Hygiene Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Debug Artifacts | ${debugCount} |\n| Bloat Files | ${bloatCount} |\n\n${debugFiles.length ? `## Debug Artifacts\n\n${debugFiles.map(f => typeof f === 'string' ? `- ${f}` : `- ${f.file || 'N/A'}`).join('\n')}\n` : ''}${bloatFiles.length ? `## Bloat Files\n\n${bloatFiles.map(f => typeof f === 'string' ? `- ${f}` : `- ${f.file || 'N/A'}`).join('\n')}\n` : ''}> Remove debug artifacts and bloat files before production builds.\n`;
         zip.file('cleanup.md', clMd);
     }
-
     // Module 9: npm Audit
     if (allowedModules.includes('9')) {
         const npm = filteredReport.npmAudit || {};
@@ -836,7 +862,6 @@ Generated entirely in-browser. Zero data uploaded.
         const npmMd = `# npm Audit Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| package.json Files | ${npm.packageJsonCount || 0} |\n| Total Dependencies | ${(npm.dependencyCount || 0).toLocaleString()} |\n| Avg Deps / Package | ${npm.packageJsonCount > 0 ? Math.round((npm.dependencyCount || 0) / npm.packageJsonCount) : 0} |\n\n${pkgFiles.length ? `## package.json Files\n\n${pkgFiles.map(f => `- ${f}`).join('\n')}\n` : ''}\n`;
         zip.file('npm-audit.md', npmMd);
     }
-
     // Module 10: Compliance
     if (allowedModules.includes('10')) {
         const comp = filteredReport.compliance || {};
@@ -845,7 +870,6 @@ Generated entirely in-browser. Zero data uploaded.
         const compMd = `# Compliance & Governance Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| License Files | ${comp.licenseCount || 0} |\n| Security Files | ${comp.securityCount || 0} |\n\n${licFiles.length ? `## License Files\n\n${licFiles.map(f => `- ${f}`).join('\n')}\n` : ''}\n${secFiles.length ? `## Security / Governance Files\n\n${secFiles.map(f => `- ${f}`).join('\n')}\n` : ''}\n`;
         zip.file('compliance.md', compMd);
     }
-
     // Module 12: Dependency Vulnerabilities
     if (allowedModules.includes('12')) {
         const dep = filteredReport.dependencyAudit || filteredReport.vulnerabilityAudit || {};
@@ -856,10 +880,9 @@ Generated entirely in-browser. Zero data uploaded.
         const depMd = `# Dependency Vulnerability Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Total Vulnerabilities | ${vulnCount} |\n| Critical | ${crit} |\n| High | ${high} |\n\n${affected.length ? `## Affected Packages\n\n${affected.map(f => `- ${f}`).join('\n')}\n` : ''}\n${vulnCount ? '> Run `npm audit fix` to auto-resolve patchable issues. Review breaking changes before major version bumps.\n' : ''}\n`;
         zip.file('dependency-vulns.md', depMd);
     }
-
     // Module 13: Build Readiness
     if (allowedModules.includes('13')) {
-        const allFiles = filteredReport.fileList || filteredReport.repositoryInventory?.totalFiles || [];
+        const allFiles = filteredReport.fileList || ((_f = filteredReport.repositoryInventory) === null || _f === void 0 ? void 0 : _f.totalFiles) || [];
         const filePaths = Array.isArray(allFiles) ? allFiles : [];
         const lowerPaths = filePaths.map(f => (typeof f === 'string' ? f : f.path || '').toLowerCase());
         const checks = [
@@ -883,7 +906,6 @@ Generated entirely in-browser. Zero data uploaded.
         const brMd = `# Build Readiness Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n**Score:** ${readinessScore}%\n\n## Present\n\n${present}\n\n## Missing\n\n${missing}\n`;
         zip.file('build-readiness.md', brMd);
     }
-
     // Module 14: AI System Indicators
     if (allowedModules.includes('14')) {
         const ai = filteredReport.aiIndicators || filteredReport.aiSystemIndicators || {};
@@ -891,7 +913,6 @@ Generated entirely in-browser. Zero data uploaded.
         const aiMd = `# AI System Indicators Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| AI SDK Imports | ${ai.sdkCount || ai.aiSystemIndicators || 0} |\n| Model References | ${ai.modelCount || 0} |\n\n${aiFiles.length ? `## Files with AI Indicators\n\n${aiFiles.map(f => `- ${f}`).join('\n')}\n` : ''}\n`;
         zip.file('ai-indicators.md', aiMd);
     }
-
     // Module 15: Governance
     if (allowedModules.includes('15')) {
         const gov = filteredReport.governance || {};
@@ -899,7 +920,6 @@ Generated entirely in-browser. Zero data uploaded.
         const govMd = `# License & Governance Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| License Headers | ${gov.licenseHeaders || 0} |\n| Copyright Notices | ${gov.copyrightNotices || 0} |\n\n${govFiles.length ? `## Files with License Headers\n\n${govFiles.map(f => `- ${f}`).join('\n')}\n` : ''}\n`;
         zip.file('governance.md', govMd);
     }
-
     // Module 16: Junk & Temporary Files
     if (allowedModules.includes('16')) {
         const junk = filteredReport.junkFiles || {};
@@ -907,10 +927,8 @@ Generated entirely in-browser. Zero data uploaded.
         const junkMd = `# Junk & Temporary Files Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Junk / Temp Files | ${junk.fileCount || 0} |\n\n${junkFileList.length ? `## Files Detected\n\n${junkFileList.map(f => `- ${f}`).join('\n')}\n` : ''}\n> Clean up temporary files, editor backups, and OS artifacts before production builds.\n`;
         zip.file('junk-files.md', junkMd);
     }
-
     // Modules 17-32: schema-driven markdown generation
     ZIP_MARKDOWN_TEMPLATES.forEach(t => generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectName, dateStr, t));
-
     // Executive Summary — consolidated overview of all included modules
     const execSections = [];
     if (allowedModules.includes('1')) {
@@ -936,7 +954,7 @@ Generated entirely in-browser. Zero data uploaded.
     if (allowedModules.includes('11')) {
         const eu = filteredReport.euAiActSummary || {};
         const euControls = eu.controls || [];
-        execSections.push(`## EU AI Act\n- AI indicators: ${eu.aiSystemIndicators || 0}\n- High risk: ${eu.highRiskIndicators || 0}\n- Transparency gaps: ${eu.transparencyGaps || 0}\n\n### Controls\n\n| Control ID | Article | Status | Severity | Action |\n|---|---|---|---|---|\n${euControls.map(c => `| ${c.controlId} | ${(c.article || '').split(',').pop()?.trim() || 'N/A'} | ${c.status} | ${c.severity} | ${c.action.substring(0, 60)}${c.action.length > 60 ? '...' : ''} |`).join('\n')}`);
+        execSections.push(`## EU AI Act\n- AI indicators: ${eu.aiSystemIndicators || 0}\n- High risk: ${eu.highRiskIndicators || 0}\n- Transparency gaps: ${eu.transparencyGaps || 0}\n\n### Controls\n\n| Control ID | Article | Status | Severity | Action |\n|---|---|---|---|---|\n${euControls.map(c => { var _a; return `| ${c.controlId} | ${((_a = (c.article || '').split(',').pop()) === null || _a === void 0 ? void 0 : _a.trim()) || 'N/A'} | ${c.status} | ${c.severity} | ${c.action.substring(0, 60)}${c.action.length > 60 ? '...' : ''} |`; }).join('\n')}`);
     }
     if (allowedModules.includes('12')) {
         const dep = filteredReport.dependencyAudit || filteredReport.vulnerabilityAudit || {};
@@ -1019,7 +1037,6 @@ Generated entirely in-browser. Zero data uploaded.
         const execMd = `# Executive Summary\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Grade:** ${grade}\n**Quality Score:** ${qs}/100\n**Gate:** ${gateLabel}\n**Modules Included:** ${allowedModules.length} of 61\n\n---\n\n${execSections.join('\n\n---\n\n')}\n`;
         zip.file('executive-summary.md', execMd);
     }
-
     let createdModules = 0;
     for (const mod of allowedModules) {
         const data = perModuleData[mod];
@@ -1030,19 +1047,16 @@ Generated entirely in-browser. Zero data uploaded.
         zip.file(`module-${mod}.json`, JSON.stringify(cleanData, null, 2));
         createdModules++;
     }
-
-
     zip.file('manifest.json', JSON.stringify({
         generator: 'SimpleBeacon Sovereign Engine v1.4.0',
         timestamp: isoDate,
         certificateId: certId,
-        tokenPrefix: token.slice(0,8) + '...',
+        tokenPrefix: token.slice(0, 8) + '...',
         reportIntegrity: reportHash,
         localOnly: true,
         zeroUpload: true,
         includedModules: allowedModules
     }, null, 2));
-
     try {
         const zipBlob = await zip.generateAsync({
             type: 'blob',
@@ -1060,19 +1074,25 @@ Generated entirely in-browser. Zero data uploaded.
         a.download = certFilename;
         a.style.display = 'none';
         document.body.appendChild(a);
-        try { a.click(); } catch (e) { window.open(url, '_blank'); }
+        try {
+            a.click();
+        }
+        catch (e) {
+            window.open(url, '_blank');
+        }
         if (typeof window.notifyDownloadComplete === 'function') {
             window.notifyDownloadComplete(certFilename);
         }
         // Revoke after 30s to ensure download completes
         setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 30000);
-    } catch (zipErr) {
+    }
+    catch (zipErr) {
         throw new Error('Failed to generate certificate ZIP: ' + (zipErr.message || zipErr));
     }
 }
-
 let __certGenerating = false;
 async function doGenerateCertificate(buttonEl) {
+    var _a;
     if (__certGenerating) {
         showToast('Certificate generation already in progress...', 'info');
         return;
@@ -1080,23 +1100,22 @@ async function doGenerateCertificate(buttonEl) {
     __certGenerating = true;
     const token = licenseInput ? licenseInput.value.trim() : '';
     const tokenError = document.getElementById('tokenError');
-    if (tokenError) tokenError.classList.add('hidden-display');
+    if (tokenError)
+        tokenError.classList.add('hidden-display');
     if (!reportData) {
         __certGenerating = false;
         showToast('No scan report loaded. Upload a JSON || run a browser scan first.', 'error');
         showStatus('No report data. Upload || scan first.', 'error');
         return;
     }
-
     if (buttonEl) {
         buttonEl.disabled = true;
         buttonEl.classList.add('btn-loading');
     }
     showStatus('Generating certificate locally in browser sandbox...', 'loading');
-
     try {
         // #region agent log
-        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3df64e'},body:JSON.stringify({sessionId:'3df64e',hypothesisId:'A,B',location:'certificate-module.js:doGenerateCertificate',message:'cert generate start',data:{hasJSZip:Boolean(window.JSZip),hasReport:Boolean(reportData),reportType:reportData?.type||null,issueCount:reportData?.issueCount??null},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3df64e' }, body: JSON.stringify({ sessionId: '3df64e', hypothesisId: 'A,B', location: 'certificate-module.js:doGenerateCertificate', message: 'cert generate start', data: { hasJSZip: Boolean(window.JSZip), hasReport: Boolean(reportData), reportType: (reportData === null || reportData === void 0 ? void 0 : reportData.type) || null, issueCount: (_a = reportData === null || reportData === void 0 ? void 0 : reportData.issueCount) !== null && _a !== void 0 ? _a : null }, timestamp: Date.now() }) }).catch(() => { });
         // #endregion
         const creds = (typeof getCertificateCredentials === 'function') ? getCertificateCredentials() : {};
         await generateSovereignCertificate(reportData, token, creds);
@@ -1104,11 +1123,13 @@ async function doGenerateCertificate(buttonEl) {
         const CERT_TOAST_DURATION = 6000;
         showToast('Certificate ZIP downloaded — generated entirely in your browser!', 'success', CERT_TOAST_DURATION);
         showStatus('Certificate ZIP generated locally! Zero bytes uploaded to any server.', 'success');
-        if (token && window.TokenEntryGuard) window.TokenEntryGuard.markTokenConsumed(token);
-    } catch (err) {
+        if (token && window.TokenEntryGuard)
+            window.TokenEntryGuard.markTokenConsumed(token);
+    }
+    catch (err) {
         const errMsg = (err && err.message) || (typeof err === 'string' ? err : JSON.stringify(err));
         // #region agent log
-        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3df64e'},body:JSON.stringify({sessionId:'3df64e',hypothesisId:'A,B,C',location:'certificate-module.js:doGenerateCertificate',message:'cert generate failed',data:{errMsg,hasJSZip:Boolean(window.JSZip),hasReport:Boolean(reportData)},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3df64e' }, body: JSON.stringify({ sessionId: '3df64e', hypothesisId: 'A,B,C', location: 'certificate-module.js:doGenerateCertificate', message: 'cert generate failed', data: { errMsg, hasJSZip: Boolean(window.JSZip), hasReport: Boolean(reportData) }, timestamp: Date.now() }) }).catch(() => { });
         // #endregion
         appendTerminalLine(`Certificate generation failed: ${errMsg || 'Unknown error'}`, 'error');
         showToast(errMsg || 'Certificate generation failed', 'error');
@@ -1132,7 +1153,8 @@ async function doGenerateCertificate(buttonEl) {
                 doGenerateCertificate(buttonEl);
             });
         }
-    } finally {
+    }
+    finally {
         __certGenerating = false;
         if (buttonEl) {
             buttonEl.disabled = false;
@@ -1140,7 +1162,6 @@ async function doGenerateCertificate(buttonEl) {
         }
     }
 }
-
 if (typeof window !== 'undefined') {
     window.generateSovereignCertificate = generateSovereignCertificate;
     window.doGenerateCertificate = doGenerateCertificate;
