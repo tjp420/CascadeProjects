@@ -18,11 +18,11 @@ LABEL org.opencontainers.image.source="https://github.com/tjp420/CascadeProjects
 RUN mkdir -p /models /scripts
 
 # Copy Modelfiles and manifest
-COPY coming-soon/public/models/Modelfile ./Modelfile
-COPY coming-soon/public/models/Modelfile.llama32 ./Modelfile.llama32
-COPY coming-soon/public/models/Modelfile.mistral ./Modelfile.mistral
-COPY coming-soon/public/models/Modelfile.qwen25-coder ./Modelfile.qwen25-coder
-COPY coming-soon/public/models/manifest.json ./manifest.json
+COPY coming-soon/public/models/Modelfile /models/Modelfile
+COPY coming-soon/public/models/Modelfile.llama32 /models/Modelfile.llama32
+COPY coming-soon/public/models/Modelfile.mistral /models/Modelfile.mistral
+COPY coming-soon/public/models/Modelfile.qwen25-coder /models/Modelfile.qwen25-coder
+COPY coming-soon/public/models/manifest.json /models/manifest.json
 
 # Copy the init script from the project
 COPY scripts/init-models.sh ./scripts/init-models.sh

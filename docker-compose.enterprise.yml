@@ -95,6 +95,10 @@ services:
     image: simplebeacon-ollama:latest
     container_name: simplebeacon-ollama
     restart: unless-stopped
+    environment:
+      # Signal to init-models.sh that this is an air-gapped deployment —
+      # skip ollama pull attempts for base models (they're pre-loaded in the volume)
+      SIMPLEBEACON_OFFLINE: "true"
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:

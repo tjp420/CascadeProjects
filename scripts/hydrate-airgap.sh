@@ -38,6 +38,10 @@
 
 set -euo pipefail
 
+# Prevent MSYS2/Git Bash from converting container paths (e.g. /out, /data, /models)
+# into Windows paths like C:/.../out, which breaks docker run -v, tar, and ollama create.
+export MSYS_NO_PATHCONV=1
+
 # ── Configuration ──────────────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -107,6 +111,7 @@ package() {
   check_prerequisites
 
   mkdir -p "$output_dir"
+  output_dir="$(cd "$output_dir" && pwd)"
 
   # Step 1: Build Docker images
   log "Step 1/5: Building Docker images..."
@@ -127,7 +132,7 @@ package() {
   # Step 2: Start Ollama and pre-load models
   log "Step 2/5: Pre-loading Ollama models..."
   info "Starting temporary Ollama container for model baking..."
-  docker run -d --name sb-ollama-bake simplebeacon-ollama:latest
+  docker run -d --name sb-ollama-bake --entrypoint ollama -v ollama-models:/root/.ollama simplebeacon-ollama:latest serve
   sleep 10
 
   # Wait for Ollama to be ready
@@ -164,13 +169,19 @@ package() {
 
   # Step 3: Export Ollama model volume
   log "Step 3/5: Exporting Ollama model data..."
+  local win_output_dir
+  win_output_dir=$(cygpath -m "$output_dir" 2>/dev/null || echo "$output_dir")
+  docker run --rm -v ollama-models:/data -v "$win_output_dir":/out alpine:latest tar -czf /out/ollama-models.tar.gz -C /data .
+  info "Exported Ollama models to: $output_dir/ollama-models.tar.gz"
   docker stop sb-ollama-bake 2>/dev/null || true
   docker rm sb-ollama-bake 2>/dev/null || true
 
   # Step 4: Save Docker images to archive
   log "Step 4/5: Saving Docker images to archive..."
   local images_archive="$output_dir/images.tar"
-  docker save "${IMAGE_NAMES[@]}" -o "$images_archive"
+  local win_images_archive
+  win_images_archive=$(cygpath -m "$images_archive" 2>/dev/null || echo "$images_archive")
+  docker save "${IMAGE_NAMES[@]}" -o "$win_images_archive"
   info "Saved images to: $images_archive ($(du -h "$images_archive" | cut -f1))"
 
   # Step 5: Bundle compose files, env template, and Modelfiles
@@ -186,6 +197,7 @@ package() {
   tar -czf "$output_dir/$ARCHIVE_NAME" \
     -C "$output_dir" \
     images.tar \
+    ollama-models.tar.gz \
     "$COMPOSE_FILE" \
     "$GPU_OVERRIDE" \
     "$ENV_TEMPLATE" \
@@ -264,6 +276,15 @@ deploy() {
       warn "Copying template — edit it before starting the stack."
       cp "$deploy_dir/$ENV_TEMPLATE" "$env_file"
     fi
+  fi
+
+  # Import bundled Ollama models into the named volume
+  if [ -f "$deploy_dir/ollama-models.tar.gz" ]; then
+    log "Importing Ollama models..."
+    local win_deploy_dir
+    win_deploy_dir=$(cygpath -m "$deploy_dir" 2>/dev/null || echo "$deploy_dir")
+    docker run --rm -v ollama-models:/data -v "$win_deploy_dir/ollama-models.tar.gz":/out/ollama-models.tar.gz alpine:latest tar -xzf /out/ollama-models.tar.gz -C /data
+    info "Ollama models imported."
   fi
 
   # Step 4: Start the stack

@@ -19,7 +19,7 @@
 # Without PARAMETER num_ctx, Ollama defaults to 2048 tokens, which silently
 # truncates the chunked prompts produced by the SimpleBeacon orchestrator.
 
-FROM https://simplebeacon.ai/models/unbreakable-oracle.gguf
+FROM llama3.2
 
 TEMPLATE """<|start_header_id|>system<|end_header_id|>
 
