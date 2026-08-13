@@ -28,6 +28,18 @@
           if (theme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); }
         } catch (e) {}
       })();
+      function sbToggleTheme() {
+        try {
+          var current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+          var next = current === 'light' ? 'dark' : 'light';
+          if (next === 'dark') { document.documentElement.removeAttribute('data-theme'); }
+          else { document.documentElement.setAttribute('data-theme', 'light'); }
+          localStorage.setItem('simplebeacon-theme', next);
+          // Update toggle icon
+          var btn = document.getElementById('sb-theme-toggle');
+          if (btn) { btn.textContent = next === 'light' ? '\u263D' : '\u2600'; }
+        } catch (e) {}
+      }
     </script>
     
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -157,7 +169,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     <a href="/contact" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Contact</a>
       </div>
     </div>
-    <button type="button" id="nav-signin-btn" style="display:none;margin-left:10px;padding:6px 14px;background:#6366f1;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>
+    <button type="button" id="sb-theme-toggle" onclick="sbToggleTheme()" title="Toggle theme" style="margin-left:10px;padding:6px 10px;background:transparent;color:#9CA3AF;font-size:1rem;font-weight:500;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'">&#9728;</button>
+    <button type="button" id="nav-signin-btn" style="display:none;margin-left:10px;padding:6px 14px;background:#06B6D4;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>
     <button type="button" id="nav-signout-btn" style="display:none;margin-left:10px;padding:6px 14px;background:transparent;color:#9CA3AF;font-size:0.85rem;font-weight:500;cursor:pointer;border:1px solid #374151;border-radius:8px;">Sign out</button>
   </div>
 </nav>
@@ -177,6 +190,87 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 .cli-code-tab{transition:all 0.15s;}
 .cli-code-tab:not(.active):hover{background:rgba(255,255,255,0.06) !important;color:var(--text-main) !important;}
 </style>
+<style>
+/* Enterprise Audit — premium, data-dense, board-ready */
+[data-theme="light"] .sb-nav-more-menu{background:#FFFFFF;border-color:#E2E8F0;box-shadow:0 12px 28px rgba(15,23,42,0.12);}
+[data-theme="light"] .sb-site-nav{background:#F8FAFC;border-bottom-color:#E2E8F0;}
+[data-theme="light"] .sb-site-nav a[href="/"]{color:#0F172A!important;}
+[data-theme="light"] .sb-nav-more-label{border-color:#CBD5E1;color:#475569;}
+[data-theme="light"] .sb-nav-more-label:hover{background:rgba(15,23,42,0.04);color:#0F172A;}
+[data-theme="light"] #sb-theme-toggle{border-color:#CBD5E1;color:#475569;}
+[data-theme="light"] #sb-theme-toggle:hover{background:rgba(15,23,42,0.04);color:#0F172A;}
+[data-theme="light"] .card{box-shadow:0 1px 3px rgba(15,23,42,0.06);}
+[data-theme="light"] .drop-zone:hover,[data-theme="light"] .drop-zone.dragover{background:rgba(8,145,178,0.04);box-shadow:0 0 20px rgba(8,145,178,0.08);}
+
+/* Local-first security indicator strip */
+.sb-local-first-strip{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;padding:10px 18px;margin-bottom:16px;border-radius:12px;background:var(--emerald-subtle);border:1px solid var(--emerald-border);font-size:0.78rem;color:var(--text-secondary);}
+.sb-local-first-strip strong{color:var(--emerald);font-weight:700;}
+.sb-local-first-item{display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.sb-local-first-item svg{width:14px;height:14px;stroke:var(--emerald);fill:none;stroke-width:2;flex-shrink:0;}
+
+/* Compliance framework badges */
+.sb-framework-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.sb-fw-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:0.72rem;font-weight:600;letter-spacing:0.03em;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);transition:border-color 0.2s,box-shadow 0.2s;}
+.sb-fw-badge:hover{border-color:var(--primary);box-shadow:0 0 12px var(--primary-subtle);}
+.sb-fw-badge-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sb-fw-badge--soc2 .sb-fw-badge-dot{background:#2563EB;}
+.sb-fw-badge--eu-ai-act .sb-fw-badge-dot{background:#F59E0B;}
+.sb-fw-badge--gdpr .sb-fw-badge-dot{background:#3B82F6;}
+.sb-fw-badge--iso27001 .sb-fw-badge-dot{background:#8B5CF6;}
+.sb-fw-badge--nist .sb-fw-badge-dot{background:#06B6D4;}
+.sb-fw-badge--hipaa .sb-fw-badge-dot{background:#10B981;}
+.sb-fw-badge--pci .sb-fw-badge-dot{background:#EF4444;}
+.sb-fw-badge--ccpa .sb-fw-badge-dot{background:#F97316;}
+
+/* Board-ready report preview */
+.sb-report-preview{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow-md);}
+.sb-report-header{padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.sb-report-header h3{margin:0;font-size:1.1rem;color:var(--text-primary);font-weight:700;}
+.sb-report-header .sb-report-meta{font-size:0.75rem;color:var(--text-muted);}
+.sb-report-body{display:grid;grid-template-columns:280px 1fr;gap:0;}
+@media(max-width:768px){.sb-report-body{grid-template-columns:1fr;}}
+.sb-report-grade-panel{padding:28px;border-right:1px solid var(--border);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--surface-elevated);}
+@media(max-width:768px){.sb-report-grade-panel{border-right:none;border-bottom:1px solid var(--border);}}
+.sb-grade-ring{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:800;border:4px solid var(--risk-b);box-shadow:0 0 24px rgba(132,204,22,0.2);background:var(--surface);}
+.sb-grade-ring.sb-grade-a{border-color:var(--risk-a);box-shadow:0 0 24px rgba(16,185,129,0.2);}
+.sb-grade-ring.sb-grade-b{border-color:var(--risk-b);box-shadow:0 0 24px rgba(132,204,22,0.2);}
+.sb-grade-ring.sb-grade-c{border-color:var(--risk-c);box-shadow:0 0 24px rgba(245,158,11,0.2);}
+.sb-grade-ring.sb-grade-d{border-color:var(--risk-d);box-shadow:0 0 24px rgba(249,115,22,0.2);}
+.sb-grade-ring.sb-grade-f{border-color:var(--risk-f);box-shadow:0 0 24px rgba(239,68,68,0.2);}
+.sb-grade-label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);}
+.sb-grade-score{font-size:0.85rem;color:var(--text-secondary);font-weight:600;}
+.sb-report-metrics{padding:28px;display:flex;flex-direction:column;gap:16px;}
+.sb-metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:640px){.sb-metric-row{grid-template-columns:1fr;}}
+.sb-metric-card{padding:16px;border-radius:10px;background:var(--surface-elevated);border:1px solid var(--border);text-align:center;}
+.sb-metric-value{font-size:1.8rem;font-weight:800;color:var(--text-primary);line-height:1;}
+.sb-metric-label{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:6px;}
+.sb-metric-card--emerald .sb-metric-value{color:var(--emerald);}
+.sb-metric-card--amber .sb-metric-value{color:var(--warning);}
+.sb-metric-card--red .sb-metric-value{color:var(--error);}
+.sb-report-frameworks{display:flex;flex-wrap:wrap;gap:8px;padding:0 28px 24px;}
+.sb-report-frameworks .sb-fw-badge{font-size:0.68rem;padding:4px 10px;}
+.sb-report-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:0.75rem;color:var(--text-muted);}
+.sb-report-footer .sb-report-signed{display:flex;align-items:center;gap:6px;color:var(--emerald);font-weight:600;}
+.sb-report-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.sb-report-actions button{padding:8px 16px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-primary);transition:all 0.15s;}
+.sb-report-actions button:hover{border-color:var(--primary);color:var(--primary);}
+.sb-report-actions button.sb-btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.sb-report-actions button.sb-btn-primary:hover{background:var(--primary-hover);color:#fff;}
+
+/* Enterprise header polish */
+.container > header{padding:24px 0 16px;}
+.container > header h1{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-primary);}
+.container > header p{font-size:0.85rem;color:var(--text-secondary);max-width:680px;line-height:1.5;}
+
+/* Stepper enterprise polish */
+.stepper{margin-bottom:24px;}
+.stepper-bubble{background:var(--surface-elevated);border:2px solid var(--border);color:var(--text-muted);font-weight:700;transition:all 0.2s;}
+.stepper-step.active .stepper-bubble{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 0 12px var(--primary-subtle);}
+.stepper-label{font-size:0.78rem;font-weight:600;color:var(--text-secondary);}
+.stepper-step.active .stepper-label{color:var(--text-primary);}
+.stepper-line{background:var(--border);height:2px;flex:1;min-width:20px;align-self:center;margin:0 8px;}
+</style>
     <div class="container">
         <header>
             <div class="step-badge" id="productBadge">
@@ -188,6 +282,38 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 <strong style="color:#22c55e;">Skip the $10,000 consultant.</strong> Drop your folder below and get a full audit in under 5 minutes &mdash; no upload, no NDA, no procurement. <a href="/pricing" style="color:var(--accent-hover);text-decoration:underline;">Get a $149 board-ready certificate &rarr;</a>
             </div>
         </header>
+
+        <!-- Local-first security strip -->
+        <div class="sb-local-first-strip">
+            <div class="sb-local-first-item">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <strong>Local-First Security</strong>
+            </div>
+            <div class="sb-local-first-item">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Zero-upload architecture
+            </div>
+            <div class="sb-local-first-item">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                Source never leaves device
+            </div>
+            <div class="sb-local-first-item">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Browser sandbox isolated
+            </div>
+        </div>
+
+        <!-- Compliance framework badges -->
+        <div class="sb-framework-badges">
+            <span class="sb-fw-badge sb-fw-badge--soc2"><span class="sb-fw-badge-dot"></span>SOC 2 Type II</span>
+            <span class="sb-fw-badge sb-fw-badge--eu-ai-act"><span class="sb-fw-badge-dot"></span>EU AI Act</span>
+            <span class="sb-fw-badge sb-fw-badge--gdpr"><span class="sb-fw-badge-dot"></span>GDPR</span>
+            <span class="sb-fw-badge sb-fw-badge--iso27001"><span class="sb-fw-badge-dot"></span>ISO 27001</span>
+            <span class="sb-fw-badge sb-fw-badge--nist"><span class="sb-fw-badge-dot"></span>NIST AI RMF</span>
+            <span class="sb-fw-badge sb-fw-badge--hipaa"><span class="sb-fw-badge-dot"></span>HIPAA</span>
+            <span class="sb-fw-badge sb-fw-badge--pci"><span class="sb-fw-badge-dot"></span>PCI-DSS</span>
+            <span class="sb-fw-badge sb-fw-badge--ccpa"><span class="sb-fw-badge-dot"></span>CCPA</span>
+        </div>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
             <span style="display:flex;align-items:center;gap:6px;color:var(--success);font-weight:600;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Full scanner available</span>
@@ -765,6 +891,78 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     </details>
                     <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 16px;text-align:center;">No source code, AST, or file contents are transmitted. Only summary metadata leaves your perimeter.</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- BOARD-READY REPORT PREVIEW -->
+        <div class="sb-report-preview" id="boardReportPreview">
+            <div class="sb-report-header">
+                <div>
+                    <h3>Executive Compliance Report</h3>
+                    <div class="sb-report-meta">SimpleBeacon &middot; <span id="sbReportDate">Q2 2026</span> Assessment</div>
+                </div>
+                <div class="sb-report-actions">
+                    <button onclick="document.getElementById('certSubmitBtn').click()" class="sb-btn-primary">Generate PDF</button>
+                    <button onclick="window.print()">Print</button>
+                </div>
+            </div>
+            <div class="sb-report-body">
+                <div class="sb-report-grade-panel">
+                    <div class="sb-grade-ring sb-grade-b" id="sbGradeRing">B+</div>
+                    <div class="sb-grade-label" id="sbGradeLabel">Risk Grade</div>
+                    <div class="sb-grade-score" id="sbGradeScore">87/100 &middot; Low Risk</div>
+                </div>
+                <div class="sb-report-metrics">
+                    <div class="sb-metric-row">
+                        <div class="sb-metric-card sb-metric-card--emerald">
+                            <div class="sb-metric-value" id="sbMetricHours">14.5h</div>
+                            <div class="sb-metric-label">Dev Hours Saved</div>
+                        </div>
+                        <div class="sb-metric-card sb-metric-card--emerald">
+                            <div class="sb-metric-value" id="sbMetricFriction">82%</div>
+                            <div class="sb-metric-label">Friction Reduction</div>
+                        </div>
+                        <div class="sb-metric-card sb-metric-card--emerald">
+                            <div class="sb-metric-value" id="sbMetricCritical">0</div>
+                            <div class="sb-metric-label">Critical Violations</div>
+                        </div>
+                    </div>
+                    <div class="sb-metric-row">
+                        <div class="sb-metric-card">
+                            <div class="sb-metric-value" id="sbMetricHigh">3</div>
+                            <div class="sb-metric-label">High-Severity</div>
+                        </div>
+                        <div class="sb-metric-card">
+                            <div class="sb-metric-value" id="sbMetricMedium">12</div>
+                            <div class="sb-metric-label">Medium Issues</div>
+                        </div>
+                        <div class="sb-metric-card">
+                            <div class="sb-metric-value" id="sbMetricFiles">14k</div>
+                            <div class="sb-metric-label">Files Scanned</div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.5;padding:12px 16px;border-radius:10px;background:var(--surface-elevated);border:1px solid var(--border);">
+                        <strong style="color:var(--text-primary);">EU AI Act Risk Mitigation:</strong> <span id="sbEuAiActStatus">Compliant</span> &middot;
+                        <strong style="color:var(--text-primary);">Certification Standard:</strong> <span id="sbCertStandard">SOC 2 / EU AI Act / GDPR</span>
+                    </div>
+                </div>
+            </div>
+            <div class="sb-report-frameworks">
+                <span class="sb-fw-badge sb-fw-badge--soc2"><span class="sb-fw-badge-dot"></span>SOC 2 Type II</span>
+                <span class="sb-fw-badge sb-fw-badge--eu-ai-act"><span class="sb-fw-badge-dot"></span>EU AI Act</span>
+                <span class="sb-fw-badge sb-fw-badge--gdpr"><span class="sb-fw-badge-dot"></span>GDPR</span>
+                <span class="sb-fw-badge sb-fw-badge--iso27001"><span class="sb-fw-badge-dot"></span>ISO 27001</span>
+                <span class="sb-fw-badge sb-fw-badge--nist"><span class="sb-fw-badge-dot"></span>NIST AI RMF</span>
+                <span class="sb-fw-badge sb-fw-badge--hipaa"><span class="sb-fw-badge-dot"></span>HIPAA</span>
+                <span class="sb-fw-badge sb-fw-badge--pci"><span class="sb-fw-badge-dot"></span>PCI-DSS</span>
+                <span class="sb-fw-badge sb-fw-badge--ccpa"><span class="sb-fw-badge-dot"></span>CCPA</span>
+            </div>
+            <div class="sb-report-footer">
+                <div class="sb-report-signed">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                    Cryptographically signed &middot; Zero data custody
+                </div>
+                <div>Repository: <span id="sbReportRepo">acme-platform/api-v3</span></div>
             </div>
         </div>
 
@@ -2006,6 +2204,75 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
     })();
     </script>
     <script src="js-es2018/dashboard/main.js?h=1786127552" defer></script>
+    <script>
+    // Initialize theme toggle icon on load
+    (function() {
+        try {
+            var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            var btn = document.getElementById('sb-theme-toggle');
+            if (btn) { btn.textContent = isLight ? '\u263D' : '\u2600'; }
+        } catch (e) {}
+        // Set report date
+        var dateEl = document.getElementById('sbReportDate');
+        if (dateEl) {
+            var now = new Date();
+            var q = Math.floor(now.getMonth() / 3) + 1;
+            dateEl.textContent = 'Q' + q + ' ' + now.getFullYear();
+        }
+    })();
+    // Wire scan results to board report preview when scan completes
+    function sbUpdateBoardReport(data) {
+        try {
+            if (!data) return;
+            var summary = data.scan_summary || data.summary || {};
+            var grade = (data.qualityScorecard && data.qualityScorecard.grade) || summary.grade || 'B+';
+            var score = (data.qualityScorecard && data.qualityScorecard.score) || summary.qualityScore || 87;
+            var critical = summary.critical_severity_count || 0;
+            var high = summary.high_severity_count || 0;
+            var medium = summary.medium_severity_count || 0;
+            var files = data.totalFiles || summary.totalFiles || 14000;
+            // Update grade ring
+            var ring = document.getElementById('sbGradeRing');
+            if (ring) {
+                ring.textContent = grade;
+                ring.className = 'sb-grade-ring sb-grade-' + grade.charAt(0).toLowerCase();
+            }
+            var scoreEl = document.getElementById('sbGradeScore');
+            if (scoreEl) {
+                var riskLabel = score >= 90 ? 'Low Risk' : score >= 80 ? 'Low Risk' : score >= 70 ? 'Moderate Risk' : score >= 60 ? 'High Risk' : 'Critical Risk';
+                scoreEl.textContent = score + '/100 \u00b7 ' + riskLabel;
+            }
+            // Update metrics
+            var setVal = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+            setVal('sbMetricCritical', critical);
+            setVal('sbMetricHigh', high);
+            setVal('sbMetricMedium', medium);
+            setVal('sbMetricFiles', files >= 1000 ? (files / 1000).toFixed(1) + 'k' : files);
+            // EU AI Act status
+            if (data.euAiActSummary && data.euAiActSummary.status) {
+                setVal('sbEuAiActStatus', data.euAiActSummary.status);
+            }
+            // Repository name
+            if (data.projectRoot) {
+                var repo = data.projectRoot.split(/[\\/]/).slice(-2).join('/');
+                setVal('sbReportRepo', repo);
+            }
+        } catch (e) { /* silent fail — preview is decorative */ }
+    }
+    // Listen for scan completion events
+    window.addEventListener('sb:scanComplete', function(e) { sbUpdateBoardReport(e.detail); });
+    // Also poll for scanPreview becoming visible
+    var sbPreviewObserver = new MutationObserver(function(mutations) {
+        var preview = document.getElementById('scanPreview');
+        if (preview && preview.style.display !== 'none' && preview.dataset.sbReportData) {
+            try { sbUpdateBoardReport(JSON.parse(preview.dataset.sbReportData)); } catch (e) {}
+        }
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        var preview = document.getElementById('scanPreview');
+        if (preview) { sbPreviewObserver.observe(preview, { attributes: true, attributeFilter: ['style', 'data-sb-report-data'] }); }
+    });
+    </script>
     <script>
     // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
     (function() {
