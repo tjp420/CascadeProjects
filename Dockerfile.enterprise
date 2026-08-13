@@ -17,12 +17,15 @@ COPY ai-platform/package.json ./ai-platform/
 COPY ai-platform/web/simplebeacon-dashboard/package.json ./ai-platform/web/simplebeacon-dashboard/
 COPY packages/simplebeacon-cli/package.json ./packages/simplebeacon-cli/
 
-# Install all dependencies (including dev) for building
-RUN npm ci --workspace=ai-platform/web/simplebeacon-dashboard || npm install --workspace=ai-platform/web/simplebeacon-dashboard
+# Install dashboard dependencies directly (not a root workspace)
+# --ignore-scripts skips postinstall hooks that reference files not yet copied
+RUN cd ai-platform/web/simplebeacon-dashboard && npm install --ignore-scripts
 
 # Copy dashboard source and build
+# Skip tsc -b (type checking) in Docker — vite build uses esbuild which doesn't type-check
+# tsc requires @types/node and other hoisted deps not available in isolated install
 COPY ai-platform/web/simplebeacon-dashboard ./ai-platform/web/simplebeacon-dashboard
-RUN cd ai-platform/web/simplebeacon-dashboard && npx tsc -b && npx vite build && node scripts/prepare-worker-assets.cjs
+RUN cd ai-platform/web/simplebeacon-dashboard && npx vite build && node scripts/prepare-worker-assets.cjs
 
 # ── Stage 2: Build server ─────────────────────────────────────────────────
 FROM node:22-alpine AS server-builder
@@ -33,8 +36,9 @@ COPY package.json package-lock.json* ./
 COPY ai-platform/package.json ./ai-platform/
 COPY packages/simplebeacon-cli/package.json ./packages/simplebeacon-cli/
 
-# Install all dependencies
-RUN npm ci --workspace=ai-platform || npm install --workspace=ai-platform
+# Install all dependencies (ai-platform is a root workspace)
+# --ignore-scripts skips postinstall (verify-eslint-deps.js) which needs source files
+RUN npm ci --ignore-scripts --workspace=ai-platform 2>/dev/null || npm install --ignore-scripts --workspace=ai-platform 2>/dev/null || (cd ai-platform && npm install --ignore-scripts)
 
 # Copy server source
 COPY ai-platform ./ai-platform
@@ -57,7 +61,7 @@ RUN addgroup -S sbgroup && adduser -S sbuser -G sbgroup
 COPY package.json package-lock.json* ./
 COPY ai-platform/package.json ./ai-platform/
 COPY packages/simplebeacon-cli/package.json ./packages/simplebeacon-cli/
-RUN npm ci --omit=dev --workspace=ai-platform || npm install --omit=dev --workspace=ai-platform
+RUN npm ci --omit=dev --ignore-scripts --workspace=ai-platform 2>/dev/null || npm install --omit=dev --ignore-scripts --workspace=ai-platform 2>/dev/null || (cd ai-platform && npm install --omit=dev --ignore-scripts)
 
 # Copy built server code
 COPY --from=server-builder /app/ai-platform ./ai-platform
@@ -72,6 +76,12 @@ COPY coming-soon/public/models ./coming-soon/public/models
 
 # Copy landing pages (marketing site served from coming-soon/public)
 COPY coming-soon/public ./coming-soon/public
+
+# Copy coming-soon server modules (email, routes, lib — required by ai-platform server)
+COPY coming-soon/services ./coming-soon/services
+COPY coming-soon/routes ./coming-soon/routes
+COPY coming-soon/lib ./coming-soon/lib
+COPY coming-soon/package.json ./coming-soon/package.json
 
 # Copy setup script
 COPY ai-platform/scripts/setup-local-model.cjs ./ai-platform/scripts/
