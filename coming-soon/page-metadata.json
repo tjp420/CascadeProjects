@@ -3,9 +3,9 @@
   "ogImage": "/favicon.svg",
   "pages": {
     "index.html": {
-      "title": "SimpleBeacon — Auto-Remediate AI Code Debt Before It Becomes Audit Risk",
-      "description": "SimpleBeacon scans your AI-assisted codebases for algorithmic redundancy, credential leaks, and compliance drift—then simplebeacon fix cleans the debris locally before it reaches CI.",
-      "h1": "Auto-Remediate AI Code Debt Before It Becomes Audit Risk.",
+      "title": "SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It",
+      "description": "SimpleBeacon: reduce EU AI Act compliance liability with browser-local scans for AI-generated code debt, credential leaks, and regulatory gaps. Generate board-ready evidence packs without uploading source code.",
+      "h1": "Turn AI Code Debt Into Audit Evidence Before Regulators Find It.",
       "sitemap": { "priority": "1.0", "changefreq": "weekly" },
       "includeNav": true,
       "includeFooter": true
