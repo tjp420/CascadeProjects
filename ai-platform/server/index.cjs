@@ -433,7 +433,9 @@ const VAULT_AUTH_EXACT_PATHS = new Set([
   '/api/reports/upload',
   '/api/analyze',
   '/api/free-token',
-  '/api/tokens/sandbox'
+  '/api/tokens/sandbox',
+  '/api/create-checkout-session',
+  '/api/checkout/webhook'
 ]);
 
 const VAULT_AUTH_PREFIX_PATHS = [
