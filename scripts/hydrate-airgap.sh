@@ -217,6 +217,7 @@ package() {
   mkdir -p "$output_dir/scripts"
   cp "$PROJECT_ROOT/scripts/validate-airgap-deploy.sh" "$output_dir/scripts/"
   cp "$PROJECT_ROOT/scripts/detect-hardware-profile.sh" "$output_dir/scripts/"
+  cp "$PROJECT_ROOT/scripts/export-diagnostics-bundle.sh" "$output_dir/scripts/"
   cp "${BASH_SOURCE[0]}" "$output_dir/hydrate-airgap.sh"
 
   # Create the final compressed archive
@@ -234,7 +235,8 @@ package() {
     FIELD_ENGINEER_RUNBOOK.md \
     hydrate-airgap.sh \
     scripts/validate-airgap-deploy.sh \
-    scripts/detect-hardware-profile.sh
+    scripts/detect-hardware-profile.sh \
+    scripts/export-diagnostics-bundle.sh
 
   rm -f "$images_archive"  # Remove intermediate tar
 
@@ -413,6 +415,7 @@ Commands:
                           (delegates to validate-airgap-deploy.sh)
                           Pass --json for JSON output, --verbose for full output
                           Pass --recover or --recover-safe for auto-recovery
+                          Pass --export-bundle to create a diagnostics archive
 
   help                    Show this help message
 

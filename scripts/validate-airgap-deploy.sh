@@ -12,6 +12,8 @@
 #   ./scripts/validate-airgap-deploy.sh --recover    # Safe auto-recovery + destructive with prompts
 #   ./scripts/validate-airgap-deploy.sh --recover-safe # Safe auto-recovery only (no destructive)
 #   ./scripts/validate-airgap-deploy.sh --recover --yes # Auto-confirm destructive prompts
+#   ./scripts/validate-airgap-deploy.sh --export-bundle # Create diagnostics bundle after validation
+#   ./scripts/validate-airgap-deploy.sh --recover --export-bundle --json  # Full automation
 #
 # Exit codes:
 #   0  All validation checks passed
@@ -42,6 +44,10 @@
 
 set -u
 
+# ── Script location ─────────────────────────────────────────────────────────
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ── Configuration ───────────────────────────────────────────────────────────
 
 OLLAMA_CONTAINER="simplebeacon-ollama"
@@ -57,6 +63,7 @@ OUTPUT_FORMAT="text"
 RECOVER_MODE="none"    # none | safe | all
 AUTO_YES=false         # skip confirmation prompts for destructive recovery
 ARCHIVE_PATH=""        # path to air-gap archive (for model re-import)
+EXPORT_BUNDLE=false    # create diagnostics bundle after validation
 
 REQUIRED_MODELS=(
   "unbreakable-oracle"
@@ -119,6 +126,7 @@ while [[ $# -gt 0 ]]; do
     --recover-safe)  RECOVER_MODE="safe"; shift ;;
     --yes|-y)        AUTO_YES=true; shift ;;
     --archive)       ARCHIVE_PATH="${2:-}"; shift 2 ;;
+    --export-bundle) EXPORT_BUNDLE=true; shift ;;
     --help|-h)
       cat << 'HELP'
 SimpleBeacon Air-Gapped Deployment Validation Suite
@@ -134,6 +142,7 @@ Options:
   --recover-safe    Enable recovery: safe auto only (no destructive operations)
   --yes, -y         Auto-confirm destructive recovery prompts (use with --recover)
   --archive PATH    Path to air-gap archive (for model re-import recovery)
+  --export-bundle   Create a diagnostics bundle after validation (logs, specs, env)
   --help, -h        Show this help message
 
 Recovery model (hybrid):
@@ -1130,10 +1139,28 @@ fi
 
 # ── Summary ─────────────────────────────────────────────────────────────────
 
+# Save JSON report to a temp file for the diagnostics bundle exporter
+JSON_REPORT_FILE=""
+if $EXPORT_BUNDLE; then
+  JSON_REPORT_FILE=$(mktemp)
+fi
+
 if [ "$OUTPUT_FORMAT" = "json" ]; then
   json_results="${json_results%,}"
   json_recoveries="${json_recoveries%,}"
-  echo "{\"summary\":{\"total\":$total_checks,\"passed\":$passed_checks,\"failed\":$failures,\"passed_pct\":$(( total_checks > 0 ? passed_checks * 100 / total_checks : 0 ))},\"recovery\":{\"attempts\":$recovery_attempts,\"successes\":$recovery_successes,\"mode\":\"$RECOVER_MODE\"},\"checks\":[$json_results],\"recoveries\":[$json_recoveries]}"
+  JSON_OUTPUT="{\"summary\":{\"total\":$total_checks,\"passed\":$passed_checks,\"failed\":$failures,\"passed_pct\":$(( total_checks > 0 ? passed_checks * 100 / total_checks : 0 ))},\"recovery\":{\"attempts\":$recovery_attempts,\"successes\":$recovery_successes,\"mode\":\"$RECOVER_MODE\"},\"checks\":[$json_results],\"recoveries\":[$json_recoveries]}"
+  echo "$JSON_OUTPUT"
+  if $EXPORT_BUNDLE && [ -n "$JSON_REPORT_FILE" ]; then
+    echo "$JSON_OUTPUT" > "$JSON_REPORT_FILE"
+  fi
+  # Run diagnostics export if requested (even in JSON mode)
+  if $EXPORT_BUNDLE; then
+    EXPORT_SCRIPT="$SCRIPT_DIR/export-diagnostics-bundle.sh"
+    if [ -f "$EXPORT_SCRIPT" ]; then
+      bash "$EXPORT_SCRIPT" --validate-json "$JSON_REPORT_FILE" --output ./diagnostics > /dev/null 2>&1 || true
+      rm -f "$JSON_REPORT_FILE"
+    fi
+  fi
   exit $(( failures > 0 ? 1 : 0 ))
 fi
 
@@ -1144,7 +1171,6 @@ if [ $failures -eq 0 ]; then
     info "Recovery: $recovery_successes/$recovery_attempts actions succeeded."
   fi
   info "SimpleBeacon air-gapped deployment is healthy and ready for use."
-  exit 0
 else
   echo -e "${RED}[FAIL]${NC} Validation completed with $failures failure(s) out of $total_checks checks."
   if [ $recovery_attempts -gt 0 ]; then
@@ -1156,5 +1182,34 @@ else
     info "  ./scripts/validate-airgap-deploy.sh --recover"
     info "  ./scripts/validate-airgap-deploy.sh --recover-safe  (safe operations only)"
   fi
-  exit 1
 fi
+
+# ── Diagnostics bundle export ───────────────────────────────────────────────
+
+if $EXPORT_BUNDLE; then
+  EXPORT_SCRIPT="$SCRIPT_DIR/export-diagnostics-bundle.sh"
+  if [ -f "$EXPORT_SCRIPT" ]; then
+    info ""
+    info "Creating diagnostics bundle..."
+
+    # Write JSON report to temp file for the exporter
+    if [ -z "$JSON_REPORT_FILE" ]; then
+      JSON_REPORT_FILE=$(mktemp)
+      json_results="${json_results%,}"
+      json_recoveries="${json_recoveries%,}"
+      echo "{\"summary\":{\"total\":$total_checks,\"passed\":$passed_checks,\"failed\":$failures,\"passed_pct\":$(( total_checks > 0 ? passed_checks * 100 / total_checks : 0 ))},\"recovery\":{\"attempts\":$recovery_attempts,\"successes\":$recovery_successes,\"mode\":\"$RECOVER_MODE\"},\"checks\":[$json_results],\"recoveries\":[$json_recoveries]}" > "$JSON_REPORT_FILE"
+    fi
+
+    if bash "$EXPORT_SCRIPT" --validate-json "$JSON_REPORT_FILE" --output ./diagnostics; then
+      info "Diagnostics bundle created in ./diagnostics/"
+      info "Transfer the tarball back over the air-gap for engineering review."
+    else
+      warn "Diagnostics bundle creation failed — see errors above."
+    fi
+    rm -f "$JSON_REPORT_FILE"
+  else
+    warn "Diagnostics export script not found: $EXPORT_SCRIPT"
+  fi
+fi
+
+exit $(( failures > 0 ? 1 : 0 ))
