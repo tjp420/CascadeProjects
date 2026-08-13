@@ -34,6 +34,7 @@ const OUTPUT_DIR = path.resolve(__dirname, './processed_reports');
 const ARCHIVE_DIR = path.resolve(__dirname, './processed_archive');
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'; // simplebeacon-ignore hardcoded-url — default localhost Ollama endpoint, override with OLLAMA_BASE_URL env var
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'unbreakable-oracle:latest';
+const OLLAMA_NUM_CTX = parseInt(process.env.OLLAMA_NUM_CTX, 10) || 8192;
 const OFFLINE_MODE = process.env.SIMPLEBEACON_OFFLINE === 'true' || process.env.NODE_ENV === 'production';
 const PROCESSOR_DEBUG = process.env.PROCESSOR_DEBUG === 'true';
 const MAX_FILE_SIZE_MB = parseInt(process.env.PROCESSOR_MAX_FILE_SIZE_MB || '50', 10);
@@ -76,7 +77,9 @@ async function analyzeWithOllama(prompt) {
       options: {
         temperature: 0.1,
         top_p: 0.9,
-        num_predict: constants.BYTES_PER_KB
+        num_ctx: OLLAMA_NUM_CTX,
+        num_predict: constants.BYTES_PER_KB,
+        repeat_penalty: 1.1
       }
     })
   });

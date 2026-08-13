@@ -1,0 +1,18 @@
+# SimpleBeacon Qwen 2.5 Coder Modelfile
+# Optimized for code analysis with SimpleBeacon's context-window chunker.
+#
+# Usage:
+#   ollama create simplebeacon-qwen-coder -f Modelfile.qwen25-coder
+#   ollama run simplebeacon-qwen-coder
+#
+# Context window: 32768 tokens (qwen2.5-coder native context window)
+# Qwen 2.5 Coder is specifically tuned for code analysis tasks.
+
+FROM qwen2.5-coder
+
+SYSTEM You are a code analysis assistant for SimpleBeacon. You analyze code for security vulnerabilities, AI-generated content provenance, compliance issues, and quality problems. Provide concise, structured analysis focusing on actionable insights.
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER num_ctx 32768
+PARAMETER num_predict 2048
+PARAMETER repeat_penalty 1.1

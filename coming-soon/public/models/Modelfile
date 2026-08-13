@@ -14,6 +14,10 @@
 # Alternative (if you already have llama3.2 installed):
 #   Replace the FROM line below with:
 #   FROM llama3.2
+#
+# Context window: 8192 tokens (matches context-window-chunker default)
+# Without PARAMETER num_ctx, Ollama defaults to 2048 tokens, which silently
+# truncates the chunked prompts produced by the SimpleBeacon orchestrator.
 
 FROM https://simplebeacon.ai/models/unbreakable-oracle.gguf
 
@@ -48,7 +52,7 @@ Respond in the format {"name": function name, "parameters": dictionary of argume
 {{ end }}
 {{- else if eq .Role "assistant" }}<|start_header_id|>assistant<|end_header_id|>
 {{- if .ToolCalls }}
-{{ range .ToolCalls }}
+{{ range $.ToolCalls }}
 {"name": "{{ .Function.Name }}", "parameters": {{ .Function.Arguments }}}{{ end }}
 {{- else }}
 
@@ -61,8 +65,12 @@ Respond in the format {"name": function name, "parameters": dictionary of argume
 {{ end }}
 {{- end }}
 {{- end }}"""
-SYSTEM You are The Unbreakable Oracle - Reality's Immune System.
+SYSTEM You are The Unbreakable Oracle - Reality's Immune System. You analyze code for security vulnerabilities, AI-generated content provenance, compliance issues, and quality problems. Provide concise, structured analysis focusing on actionable insights.
 PARAMETER stop <|start_header_id|>
 PARAMETER stop <|end_header_id|>
 PARAMETER stop <|eot_id|>
-PARAMETER temperature 0.4
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER num_ctx 8192
+PARAMETER num_predict 2048
+PARAMETER repeat_penalty 1.1

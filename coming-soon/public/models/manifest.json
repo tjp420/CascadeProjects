@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "description": "SimpleBeacon local LLM model registry — maps model IDs to their Modelfile, context window, and optimized parameters.",
+  "defaultModel": "unbreakable-oracle",
+  "models": {
+    "unbreakable-oracle": {
+      "modelfile": "Modelfile",
+      "ollamaModel": "unbreakable-oracle",
+      "baseModel": "llama3.2",
+      "contextWindow": 8192,
+      "numPredict": 2048,
+      "temperature": 0.1,
+      "topP": 0.9,
+      "repeatPenalty": 1.1,
+      "description": "SimpleBeacon's default code analysis model — based on llama3.2 with optimized system prompt for security and compliance analysis."
+    },
+    "simplebeacon-llama32": {
+      "modelfile": "Modelfile.llama32",
+      "ollamaModel": "simplebeacon-llama32",
+      "baseModel": "llama3.2",
+      "contextWindow": 4096,
+      "numPredict": 2048,
+      "temperature": 0.1,
+      "topP": 0.9,
+      "repeatPenalty": 1.1,
+      "description": "Llama 3.2 with SimpleBeacon's code analysis system prompt. Smallest context window — best for resource-constrained machines."
+    },
+    "simplebeacon-mistral": {
+      "modelfile": "Modelfile.mistral",
+      "ollamaModel": "simplebeacon-mistral",
+      "baseModel": "mistral",
+      "contextWindow": 32768,
+      "numPredict": 2048,
+      "temperature": 0.1,
+      "topP": 0.9,
+      "repeatPenalty": 1.1,
+      "description": "Mistral 7B with SimpleBeacon's code analysis system prompt. 32K context window allows more files per batch in multi-file sweeps."
+    },
+    "simplebeacon-qwen-coder": {
+      "modelfile": "Modelfile.qwen25-coder",
+      "ollamaModel": "simplebeacon-qwen-coder",
+      "baseModel": "qwen2.5-coder",
+      "contextWindow": 32768,
+      "numPredict": 2048,
+      "temperature": 0.1,
+      "topP": 0.9,
+      "repeatPenalty": 1.1,
+      "description": "Qwen 2.5 Coder — specifically tuned for code analysis. 32K context window with code-optimized tokenization."
+    }
+  },
+  "envVars": {
+    "OLLAMA_BASE_URL": {
+      "default": "http://127.0.0.1:11434",
+      "description": "Ollama API base URL"
+    },
+    "OLLAMA_MODEL": {
+      "default": "unbreakable-oracle:latest",
+      "description": "Model ID to use for inference"
+    },
+    "OLLAMA_NUM_CTX": {
+      "default": null,
+      "description": "Override context window size (tokens). If set, takes precedence over Modelfile PARAMETER num_ctx."
+    },
+    "OLLAMA_TIMEOUT_MS": {
+      "default": 120000,
+      "description": "Inference request timeout in milliseconds"
+    },
+    "PROCESSOR_MAX_FILE_SIZE_MB": {
+      "default": 50,
+      "description": "Maximum file size (MB) for the automated processor"
+    },
+    "SIMPLEBEACON_OFFLINE": {
+      "default": "true",
+      "description": "Force offline mode (local Ollama only, no cloud providers)"
+    }
+  }
+}
