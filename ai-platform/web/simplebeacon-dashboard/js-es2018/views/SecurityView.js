@@ -6,8 +6,7 @@ import { fetchKeyStatus, triggerKeyRotation, forceReKeySweep, fetchReKeyStats, g
 import { fetchQuarantineEntries, verifyQuarantineEntry } from '../services/quarantineService.js';
 import { fetchInterdictions, blockKey, releaseKey } from '../services/interdictionService.js';
 import { fetchRetentionConfig, updateRetentionConfig, fetchRetentionStats, triggerRetentionPurge } from '../services/retentionService.js';
-import { fetchComplianceReport, downloadComplianceCsv } from '../services/complianceService.js';
-import { complianceService } from '../services/complianceService.js';
+import { fetchComplianceReport, downloadComplianceCsv, complianceService } from '../services/complianceService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
