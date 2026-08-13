@@ -18,8 +18,17 @@
 # Context window: 8192 tokens (matches context-window-chunker default)
 # Without PARAMETER num_ctx, Ollama defaults to 2048 tokens, which silently
 # truncates the chunked prompts produced by the SimpleBeacon orchestrator.
+#
+# Quantization: Q4_K_M (4.84 bits/weight) — recommended balance for production.
+# ~4.4 GB VRAM for 7B models, minimal quality loss vs FP16.
+# For constrained hardware, use the minimal profile (see memory-profiles.json).
+# For maximum quality, use Q5_K_M (~5.1 GB VRAM, near-negligible quality loss).
+#
+# GPU offload: num_gpu -1 = auto-detect (Ollama offloads as many layers as fit).
+# Set num_gpu 0 for CPU-only inference on machines without a GPU.
+# Set num_gpu 999 to force maximum GPU offload when Ollama under-detects VRAM.
 
-FROM llama3.2
+FROM llama3.2:3b-q4_K_M
 
 TEMPLATE """<|start_header_id|>system<|end_header_id|>
 
@@ -74,3 +83,5 @@ PARAMETER top_p 0.9
 PARAMETER num_ctx 8192
 PARAMETER num_predict 2048
 PARAMETER repeat_penalty 1.1
+PARAMETER num_gpu -1
+PARAMETER f16_kv true

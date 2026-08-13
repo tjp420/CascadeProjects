@@ -10,7 +10,7 @@
 #   ./hydrate-airgap.sh package [output-dir]
 #
 #   1. Builds Docker images (engine, ollama, postgres)
-#   2. Pulls base Ollama models (llama3.2, mistral, qwen2.5-coder)
+#   2. Pulls base Ollama models with Q4_K_M quantization (llama3.2:3b, mistral:7b, qwen2.5-coder:7b)
 #   3. Creates SimpleBeacon-optimized models from Modelfiles
 #   4. Saves all images + models into a compressed tar archive
 #   5. Includes .env.enterprise.example and docker-compose files
@@ -149,9 +149,18 @@ package() {
     sleep 1
   done
 
-  # Pull base models (requires internet on build machine)
-  info "Pulling base models from Ollama registry..."
-  for model in llama3.2 mistral qwen2.5-coder; do
+  # Pull base models with explicit quantization tags (requires internet on build machine)
+  # Quantization tags ensure reproducible builds — without them, Ollama may resolve
+  # to a different quantization when the registry adds new variants.
+  # Q4_K_M (4.84 bits/weight) is the recommended balance for production:
+  #   - ~4.4 GB VRAM for 7B models
+  #   - Minimal quality loss vs FP16
+  #   - Fits on 6GB VRAM cards (RTX 3060, RTX 4060, A2000)
+  info "Pulling base models with Q4_K_M quantization..."
+  for model in \
+    "llama3.2:3b-q4_K_M" \
+    "mistral:7b-q4_K_M" \
+    "qwen2.5-coder:7b-q4_K_M"; do
     info "  Pulling $model..."
     docker exec sb-ollama-bake ollama pull "$model" || warn "  Failed to pull $model — it may need to be pulled manually."
   done
@@ -190,6 +199,7 @@ package() {
   cp "$PROJECT_ROOT/$GPU_OVERRIDE" "$output_dir/"
   cp "$PROJECT_ROOT/$ENV_TEMPLATE" "$output_dir/" 2>/dev/null || warn "Env template not found: $ENV_TEMPLATE"
   cp "$PROJECT_ROOT/coming-soon/public/models/manifest.json" "$output_dir/"
+  cp "$PROJECT_ROOT/coming-soon/public/models/memory-profiles.json" "$output_dir/"
   cp "$PROJECT_ROOT/docs/PRODUCTION_ENV_VARS.md" "$output_dir/" 2>/dev/null || warn "Env var spec not found"
 
   # Create the final compressed archive
@@ -202,6 +212,7 @@ package() {
     "$GPU_OVERRIDE" \
     "$ENV_TEMPLATE" \
     manifest.json \
+    memory-profiles.json \
     PRODUCTION_ENV_VARS.md
 
   rm -f "$images_archive"  # Remove intermediate tar

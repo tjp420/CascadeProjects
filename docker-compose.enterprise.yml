@@ -99,6 +99,28 @@ services:
       # Signal to init-models.sh that this is an air-gapped deployment —
       # skip ollama pull attempts for base models (they're pre-loaded in the volume)
       SIMPLEBEACON_OFFLINE: "true"
+      # ── Memory Budget Profile ─────────────────────────────────────────────
+      # Selects quantization and context window based on available hardware.
+      # Run scripts/detect-hardware-profile.sh to auto-detect the best profile.
+      # Profiles: minimal (CPU-only, 8GB RAM) | balanced (16GB RAM, 6GB VRAM) | maximum (32GB RAM, 12GB VRAM)
+      OLLAMA_MEMORY_PROFILE: ${OLLAMA_MEMORY_PROFILE:-balanced}
+      # ── GPU Offload ───────────────────────────────────────────────────────
+      # Number of transformer layers to offload to GPU.
+      # -1 = auto-detect (Ollama offloads as many as fit in VRAM)
+      #  0 = CPU only (for machines without a GPU)
+      #  999 = maximum GPU offload (force all layers to GPU)
+      OLLAMA_NUM_GPU: ${OLLAMA_NUM_GPU:--1}
+      # ── Context Window ────────────────────────────────────────────────────
+      # Override the per-model num_ctx from Modelfiles.
+      # Reduce for constrained hardware (2048 for minimal, 4096 for balanced, 8192+ for maximum).
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-8192}
+      # ── Inference Tuning ──────────────────────────────────────────────────
+      # Number of CPU threads for prompt processing (auto-detected if unset)
+      OLLAMA_NUM_THREAD: ${OLLAMA_NUM_THREAD:-0}
+      # Use FP16 KV cache (halves VRAM vs FP32, no quality loss)
+      OLLAMA_F16_KV: "true"
+      # Keep model memory-mapped (faster startup, lower RSS)
+      OLLAMA_USE_MMAP: "true"
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:

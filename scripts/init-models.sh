@@ -28,11 +28,13 @@ if [ "${SIMPLEBEACON_OFFLINE:-false}" = "true" ]; then
   echo "[SimpleBeacon] SIMPLEBEACON_OFFLINE=true — skipping base model pulls (air-gapped mode)."
   echo "[SimpleBeacon] Models should be pre-loaded in the ollama-models volume."
 else
-  echo "[SimpleBeacon] Pulling base models from Ollama registry..."
-  for model in llama3.2 mistral qwen2.5-coder; do
+  echo "[SimpleBeacon] Pulling base models with Q4_K_M quantization..."
+  for model in "llama3.2:3b-q4_K_M" "mistral:7b-q4_K_M" "qwen2.5-coder:7b-q4_K_M"; do
     # Check if model already exists before pulling
-    if curl -s http://localhost:11434/api/tags | grep -q "\"$model\""; then
-      echo "[SimpleBeacon]   $model already exists — skipping pull."
+    # Extract the base name (before the colon) for the existence check
+    base_name="${model%%:*}"
+    if curl -s http://localhost:11434/api/tags | grep -q "\"$base_name\""; then
+      echo "[SimpleBeacon]   $base_name already exists — skipping pull."
     else
       echo "[SimpleBeacon]   Pulling $model..."
       ollama pull "$model" 2>&1 || echo "[SimpleBeacon]   WARN: Failed to pull $model — it may need to be pulled manually."

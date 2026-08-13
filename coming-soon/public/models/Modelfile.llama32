@@ -7,8 +7,10 @@
 #
 # Context window: 4096 tokens (llama3.2 native context window)
 # The context-window chunker automatically sizes chunks to fit this budget.
+#
+# Quantization: Q4_K_M — balanced quality/memory (see memory-profiles.json).
 
-FROM llama3.2
+FROM llama3.2:3b-q4_K_M
 
 SYSTEM You are a code analysis assistant for SimpleBeacon. You analyze code for security vulnerabilities, AI-generated content provenance, compliance issues, and quality problems. Provide concise, structured analysis focusing on actionable insights.
 PARAMETER temperature 0.1
@@ -16,3 +18,5 @@ PARAMETER top_p 0.9
 PARAMETER num_ctx 4096
 PARAMETER num_predict 2048
 PARAMETER repeat_penalty 1.1
+PARAMETER num_gpu -1
+PARAMETER f16_kv true

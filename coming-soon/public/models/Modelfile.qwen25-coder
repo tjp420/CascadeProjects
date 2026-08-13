@@ -7,8 +7,12 @@
 #
 # Context window: 32768 tokens (qwen2.5-coder native context window)
 # Qwen 2.5 Coder is specifically tuned for code analysis tasks.
+# Note: 32K context requires significant VRAM for KV cache. Reduce to 8192
+# on constrained hardware (see memory-profiles.json balanced profile).
+#
+# Quantization: Q4_K_M — balanced quality/memory.
 
-FROM qwen2.5-coder
+FROM qwen2.5-coder:7b-q4_K_M
 
 SYSTEM You are a code analysis assistant for SimpleBeacon. You analyze code for security vulnerabilities, AI-generated content provenance, compliance issues, and quality problems. Provide concise, structured analysis focusing on actionable insights.
 PARAMETER temperature 0.1
@@ -16,3 +20,5 @@ PARAMETER top_p 0.9
 PARAMETER num_ctx 32768
 PARAMETER num_predict 2048
 PARAMETER repeat_penalty 1.1
+PARAMETER num_gpu -1
+PARAMETER f16_kv true
