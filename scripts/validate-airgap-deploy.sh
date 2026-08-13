@@ -14,6 +14,8 @@
 #   ./scripts/validate-airgap-deploy.sh --recover --yes # Auto-confirm destructive prompts
 #   ./scripts/validate-airgap-deploy.sh --export-bundle # Create diagnostics bundle after validation
 #   ./scripts/validate-airgap-deploy.sh --recover --export-bundle --json  # Full automation
+#   ./scripts/validate-airgap-deploy.sh --benchmark     # Run throughput benchmark (Check 15)
+#   ./scripts/validate-airgap-deploy.sh --benchmark --benchmark-runs 5  # Multiple runs for variance
 #
 # Exit codes:
 #   0  All validation checks passed
@@ -40,6 +42,7 @@
 #  12.  Memory profile validation (configured profile vs hardware)
 #  13.  Offline mode verification (no outbound network calls)
 #  14.  Disk space check (model volumes and report storage)
+#  15.  Throughput benchmark (tok/s vs profile expectation) [requires --benchmark]
 #
 
 set -u
@@ -64,6 +67,27 @@ RECOVER_MODE="none"    # none | safe | all
 AUTO_YES=false         # skip confirmation prompts for destructive recovery
 ARCHIVE_PATH=""        # path to air-gap archive (for model re-import)
 EXPORT_BUNDLE=false    # create diagnostics bundle after validation
+BENCHMARK=false        # run throughput benchmark (Check 15)
+BENCHMARK_RUNS=3       # number of benchmark runs for variance calculation
+BENCHMARK_TOKENS=100   # target tokens to generate per run
+BENCHMARK_MODEL="unbreakable-oracle"  # model to benchmark
+
+# Expected throughput ranges by profile (tok/s for llama3.2:3b Q4_K_M)
+# Derived from memory-profiles.json selectionGuide
+declare -A PROFILE_MIN_TOKS
+PROFILE_MIN_TOKS["minimal"]=5
+PROFILE_MIN_TOKS["balanced"]=20
+PROFILE_MIN_TOKS["maximum"]=50
+
+declare -A PROFILE_MAX_TOKS
+PROFILE_MAX_TOKS["minimal"]=15
+PROFILE_MAX_TOKS["balanced"]=50
+PROFILE_MAX_TOKS["maximum"]=100
+
+declare -A PROFILE_CPU_ONLY_MAX
+PROFILE_CPU_ONLY_MAX["minimal"]=15
+PROFILE_CPU_ONLY_MAX["balanced"]=15
+PROFILE_CPU_ONLY_MAX["maximum"]=15
 
 REQUIRED_MODELS=(
   "unbreakable-oracle"
@@ -127,6 +151,9 @@ while [[ $# -gt 0 ]]; do
     --yes|-y)        AUTO_YES=true; shift ;;
     --archive)       ARCHIVE_PATH="${2:-}"; shift 2 ;;
     --export-bundle) EXPORT_BUNDLE=true; shift ;;
+    --benchmark)     BENCHMARK=true; shift ;;
+    --benchmark-runs) BENCHMARK_RUNS="${2:-3}"; shift 2 ;;
+    --benchmark-tokens) BENCHMARK_TOKENS="${2:-100}"; shift 2 ;;
     --help|-h)
       cat << 'HELP'
 SimpleBeacon Air-Gapped Deployment Validation Suite
@@ -143,6 +170,9 @@ Options:
   --yes, -y         Auto-confirm destructive recovery prompts (use with --recover)
   --archive PATH    Path to air-gap archive (for model re-import recovery)
   --export-bundle   Create a diagnostics bundle after validation (logs, specs, env)
+  --benchmark       Run throughput benchmark (Check 15: tok/s vs profile expectation)
+  --benchmark-runs N  Number of benchmark runs for variance (default: 3)
+  --benchmark-tokens N  Target tokens to generate per run (default: 100)
   --help, -h        Show this help message
 
 Recovery model (hybrid):
@@ -181,6 +211,7 @@ Checks:
   12. Memory profile validation
   13. Offline mode verification
   14. Disk space check
+  15. Throughput benchmark [requires --benchmark]
 HELP
       exit 0
       ;;
@@ -875,6 +906,224 @@ if is_running "$OLLAMA_CONTAINER"; then
   fi
 fi
 
+# ── Check 15: Throughput benchmark (optional, requires --benchmark) ─────────
+
+json_benchmark=""
+
+if $BENCHMARK; then
+  info ""
+  info "Check 15/15: Throughput benchmark (${BENCHMARK_RUNS} runs × ${BENCHMARK_TOKENS} tokens)"
+
+  if ! is_running "$OLLAMA_CONTAINER"; then
+    fail "benchmark" "Ollama container not running — cannot benchmark"
+    record_fail "benchmark"
+  elif ! check_model_present "$BENCHMARK_MODEL"; then
+    fail "benchmark" "Model $BENCHMARK_MODEL not present — cannot benchmark"
+    record_fail "benchmark"
+  else
+    # Get the configured memory profile for threshold comparison
+    configured_profile=$(docker exec "$OLLAMA_CONTAINER" printenv OLLAMA_MEMORY_PROFILE 2>/dev/null || echo "balanced")
+    configured_num_gpu=$(docker exec "$OLLAMA_CONTAINER" printenv OLLAMA_NUM_GPU 2>/dev/null || echo "-1")
+
+    profile_min=${PROFILE_MIN_TOKS[$configured_profile]:-20}
+    profile_max=${PROFILE_MAX_TOKS[$configured_profile]:-50}
+    cpu_only_max=${PROFILE_CPU_ONLY_MAX[$configured_profile]:-15}
+    throttle_threshold=$(echo "scale=1; $profile_min * 0.8" | bc 2>/dev/null || echo "$((profile_min * 8 / 10))")
+
+    info "  Profile: $configured_profile (expected ${profile_min}-${profile_max} tok/s, throttle < ${throttle_threshold} tok/s)"
+    info "  GPU offload: NUM_GPU=$configured_num_gpu"
+
+    # Run benchmark
+    benchmark_toks_list=""
+    benchmark_total_tokens=0
+    benchmark_total_time=0
+    benchmark_valid_runs=0
+
+    for run in $(seq 1 "$BENCHMARK_RUNS"); do
+      info "  Run $run/$BENCHMARK_RUNS..."
+
+      # Send a generation request with num_predict=N and stream=false
+      # Ollama /api/generate returns eval_count (tokens generated) and eval_duration (nanoseconds)
+      bench_start=$(date +%s%N 2>/dev/null || python3 -c "import time; print(int(time.time_ns()))" 2>/dev/null || echo 0)
+
+      bench_response=$(docker exec "$OLLAMA_CONTAINER" curl -s --max-time 120 \
+        -X POST "http://localhost:11434/api/generate" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"$BENCHMARK_MODEL\",\"prompt\":\"Write a numbered list of ${BENCHMARK_TOKENS} short words. Start now.\",\"stream\":false,\"options\":{\"num_predict\":$BENCHMARK_TOKENS,\"temperature\":0}}" \
+        2>/dev/null || echo "")
+
+      bench_end=$(date +%s%N 2>/dev/null || python3 -c "import time; print(int(time.time_ns()))" 2>/dev/null || echo 0)
+
+      if [ -z "$bench_response" ]; then
+        warn "  Run $run: no response (timeout or error)"
+        continue
+      fi
+
+      # Extract eval_count and eval_duration from Ollama response
+      # eval_count = number of tokens generated
+      # eval_duration = time spent generating in nanoseconds
+      eval_count=$(echo "$bench_response" | grep -o '"eval_count":[0-9]*' | head -1 | grep -o '[0-9]*' || echo "0")
+      eval_duration_ns=$(echo "$bench_response" | grep -o '"eval_duration":[0-9]*' | head -1 | grep -o '[0-9]*' || echo "0")
+
+      # Also extract total_duration for wall-clock time
+      total_duration_ns=$(echo "$bench_response" | grep -o '"total_duration":[0-9]*' | head -1 | grep -o '[0-9]*' || echo "0")
+
+      if [ "$eval_count" -gt 0 ] 2>/dev/null && [ "$eval_duration_ns" -gt 0 ] 2>/dev/null; then
+        # Calculate tok/s from eval_count and eval_duration (nanoseconds → seconds)
+        # tok/s = eval_count / (eval_duration_ns / 1e9)
+        tok_per_sec=$(echo "scale=2; $eval_count * 1000000000 / $eval_duration_ns" | bc 2>/dev/null || echo "0")
+
+        if [ "$tok_per_sec" != "0" ] 2>/dev/null; then
+          benchmark_valid_runs=$((benchmark_valid_runs + 1))
+          benchmark_toks_list="${benchmark_toks_list}${tok_per_sec} "
+          benchmark_total_tokens=$((benchmark_total_tokens + eval_count))
+          info "  Run $run: ${tok_per_sec} tok/s (${eval_count} tokens in $(echo "scale=2; $eval_duration_ns / 1000000000" | bc 2>/dev/null || echo "?")s)"
+        else
+          warn "  Run $run: could not calculate tok/s (eval_count=$eval_count, eval_duration=$eval_duration_ns)"
+        fi
+      else
+        # Fallback: use wall-clock time
+        if [ "$bench_start" -gt 0 ] 2>/dev/null && [ "$bench_end" -gt 0 ] 2>/dev/null; then
+          wall_ns=$((bench_end - bench_start))
+          if [ "$wall_ns" -gt 0 ] 2>/dev/null; then
+            # Estimate tokens from response length
+            response_text=$(echo "$bench_response" | grep -o '"response":"[^"]*"' | head -1 | sed 's/"response":"//;s/"$//' || echo "")
+            estimated_tokens=$(echo "$response_text" | wc -w 2>/dev/null || echo 0)
+            if [ "$estimated_tokens" -gt 0 ] 2>/dev/null; then
+              tok_per_sec=$(echo "scale=2; $estimated_tokens * 1000000000 / $wall_ns" | bc 2>/dev/null || echo "0")
+              if [ "$tok_per_sec" != "0" ] 2>/dev/null; then
+                benchmark_valid_runs=$((benchmark_valid_runs + 1))
+                benchmark_toks_list="${benchmark_toks_list}${tok_per_sec} "
+                benchmark_total_tokens=$((benchmark_total_tokens + estimated_tokens))
+                info "  Run $run: ${tok_per_sec} tok/s (${estimated_tokens} tokens, wall-clock estimate)"
+              else
+                warn "  Run $run: wall-clock calculation failed"
+              fi
+            else
+              warn "  Run $run: could not estimate token count"
+            fi
+          else
+            warn "  Run $run: wall-clock time was zero"
+          fi
+        else
+          warn "  Run $run: no timing data available"
+        fi
+      fi
+
+      # Brief pause between runs to let GPU/CPU cool
+      if [ "$run" -lt "$BENCHMARK_RUNS" ]; then
+        sleep 2
+      fi
+    done
+
+    # Calculate statistics
+    if [ $benchmark_valid_runs -gt 0 ]; then
+      # Average tok/s
+      avg_toks=0
+      for t in $benchmark_toks_list; do
+        avg_toks=$(echo "scale=2; $avg_toks + $t" | bc 2>/dev/null || echo "$avg_toks")
+      done
+      avg_toks=$(echo "scale=2; $avg_toks / $benchmark_valid_runs" | bc 2>/dev/null || echo "0")
+
+      # Min and max for range
+      min_toks=$(echo $benchmark_toks_list | tr ' ' '\n' | sort -n | head -1)
+      max_toks=$(echo $benchmark_toks_list | tr ' ' '\n' | sort -n | tail -1)
+
+      # Standard deviation (simple: max-min as range proxy)
+      range=$(echo "scale=2; $max_toks - $min_toks" | bc 2>/dev/null || echo "0")
+      # Coefficient of variation (CV = stddev/mean, approximate with range/mean)
+      if [ "$avg_toks" != "0" ] 2>/dev/null; then
+        cv=$(echo "scale=2; ($range / $avg_toks) * 100" | bc 2>/dev/null || echo "0")
+      else
+        cv="0"
+      fi
+
+      info ""
+      info "  Benchmark results:"
+      info "    Average: ${avg_toks} tok/s"
+      info "    Range:   ${min_toks}-${max_toks} tok/s"
+      info "    Variance: ${cv}% (coefficient of variation)"
+      info "    Valid runs: $benchmark_valid_runs/$BENCHMARK_RUNS"
+      info "    Profile expectation: ${profile_min}-${profile_max} tok/s for $configured_profile"
+
+      # Record benchmark result
+      ok "benchmark-avg: ${avg_toks} tok/s average over $benchmark_valid_runs runs"
+
+      # Check 15a: Throughput vs profile minimum
+      info ""
+      info "  Throughput analysis:"
+
+      # Compare avg_toks against profile thresholds
+      # Use integer comparison via awk for reliability
+      below_throttle=$(echo "$avg_toks < $throttle_threshold" | bc 2>/dev/null || echo "0")
+      below_profile_min=$(echo "$avg_toks < $profile_min" | bc 2>/dev/null || echo "0")
+      above_profile_max=$(echo "$avg_toks > $profile_max" | bc 2>/dev/null || echo "0")
+      in_cpu_range=$(echo "$avg_toks <= $cpu_only_max" | bc 2>/dev/null || echo "0")
+
+      if [ "$below_throttle" = "1" ]; then
+        fail "benchmark-throttle" "Throughput ${avg_toks} tok/s is below 80% of ${configured_profile} minimum (${throttle_threshold} tok/s) — possible thermal throttling or resource contention"
+        record_fail "benchmark-throttle"
+      elif [ "$below_profile_min" = "1" ]; then
+        warn_msg "benchmark-below-min" "Throughput ${avg_toks} tok/s is below ${configured_profile} profile minimum (${profile_min} tok/s)"
+      else
+        ok "benchmark-throughput: ${avg_toks} tok/s meets ${configured_profile} profile minimum (${profile_min} tok/s)"
+      fi
+
+      if [ "$above_profile_max" = "1" ]; then
+        ok "benchmark-exceeds: ${avg_toks} tok/s exceeds ${configured_profile} profile maximum (${profile_max} tok/s) — excellent performance"
+      fi
+
+      # Check 15b: GPU offload verification
+      # If GPU is configured but throughput is in CPU-only range, GPU offload may have failed
+      if [ "$configured_num_gpu" != "0" ] && [ "$configured_num_gpu" != "" ]; then
+        # GPU offload is configured (auto or max)
+        if [ "$in_cpu_range" = "1" ] && [ "$below_profile_min" = "1" ]; then
+          warn_msg "benchmark-gpu-failure" "GPU offload configured (NUM_GPU=$configured_num_gpu) but throughput (${avg_toks} tok/s) is in CPU-only range — GPU may not be working"
+        else
+          ok "benchmark-gpu: GPU offload active (NUM_GPU=$configured_num_gpu), throughput ${avg_toks} tok/s"
+        fi
+      fi
+
+      # Check 15c: Variance check (high variance indicates thread contention or thermal instability)
+      high_variance=$(echo "$cv > 20" | bc 2>/dev/null || echo "0")
+      if [ "$high_variance" = "1" ] && [ $benchmark_valid_runs -gt 1 ]; then
+        warn_msg "benchmark-variance" "High variance (${cv}%) across runs — possible thread contention, thermal instability, or background processes"
+      else
+        ok "benchmark-stability: Variance ${cv}% across $benchmark_valid_runs runs (stable)"
+      fi
+
+      # Check 15d: CPU thermal check (if sensors available)
+      cpu_temp=""
+      if command -v sensors > /dev/null 2>&1; then
+        cpu_temp=$(sensors 2>/dev/null | grep -i 'core\|cpu\|package' | grep -o '[0-9]*\.[0-9]' | head -1 || echo "")
+      elif [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+        raw_temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo "0")
+        if [ "$raw_temp" -gt 1000 ] 2>/dev/null; then
+          # Linux reports in millidegrees
+          cpu_temp=$(echo "scale=1; $raw_temp / 1000" | bc 2>/dev/null || echo "")
+        elif [ "$raw_temp" -gt 0 ] 2>/dev/null; then
+          cpu_temp="$raw_temp"
+        fi
+      fi
+
+      if [ -n "$cpu_temp" ]; then
+        thermal_throttle=$(echo "$cpu_temp > 85" | bc 2>/dev/null || echo "0")
+        if [ "$thermal_throttle" = "1" ]; then
+          warn_msg "benchmark-thermal" "CPU temperature ${cpu_temp}°C is above 85°C — thermal throttling likely"
+        else
+          ok "benchmark-thermal: CPU temperature ${cpu_temp}°C (within safe range)"
+        fi
+      fi
+
+      # Build benchmark JSON
+      json_benchmark=",\"benchmark\":{\"model\":\"$BENCHMARK_MODEL\",\"profile\":\"$configured_profile\",\"runs\":$benchmark_valid_runs,\"avgTokPerSec\":$avg_toks,\"minTokPerSec\":$min_toks,\"maxTokPerSec\":$max_toks,\"variancePct\":$cv,\"profileMin\":$profile_min,\"profileMax\":$profile_max,\"throttleThreshold\":$throttle_threshold,\"numGpu\":$configured_num_gpu${cpu_temp:+,\"cpuTemp\":$cpu_temp}}"
+    else
+      fail "benchmark" "All $BENCHMARK_RUNS benchmark runs failed — model may be broken or too slow"
+      record_fail "benchmark"
+    fi
+  fi
+fi
+
 # ── Recovery phase ──────────────────────────────────────────────────────────
 
 if [ "$RECOVER_MODE" != "none" ] && [ -n "$failed_checks" ] && [ $failures -gt 0 ]; then
@@ -1148,7 +1397,7 @@ fi
 if [ "$OUTPUT_FORMAT" = "json" ]; then
   json_results="${json_results%,}"
   json_recoveries="${json_recoveries%,}"
-  JSON_OUTPUT="{\"summary\":{\"total\":$total_checks,\"passed\":$passed_checks,\"failed\":$failures,\"passed_pct\":$(( total_checks > 0 ? passed_checks * 100 / total_checks : 0 ))},\"recovery\":{\"attempts\":$recovery_attempts,\"successes\":$recovery_successes,\"mode\":\"$RECOVER_MODE\"},\"checks\":[$json_results],\"recoveries\":[$json_recoveries]}"
+  JSON_OUTPUT="{\"summary\":{\"total\":$total_checks,\"passed\":$passed_checks,\"failed\":$failures,\"passed_pct\":$(( total_checks > 0 ? passed_checks * 100 / total_checks : 0 ))},\"recovery\":{\"attempts\":$recovery_attempts,\"successes\":$recovery_successes,\"mode\":\"$RECOVER_MODE\"},\"checks\":[$json_results],\"recoveries\":[$json_recoveries]${json_benchmark}}"
   echo "$JSON_OUTPUT"
   if $EXPORT_BUNDLE && [ -n "$JSON_REPORT_FILE" ]; then
     echo "$JSON_OUTPUT" > "$JSON_REPORT_FILE"

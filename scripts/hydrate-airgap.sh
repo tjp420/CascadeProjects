@@ -418,6 +418,7 @@ Commands:
                           Pass --json for JSON output, --verbose for full output
                           Pass --recover or --recover-safe for auto-recovery
                           Pass --export-bundle to create a diagnostics archive
+                          Pass --benchmark to run throughput benchmark (tok/s)
 
   help                    Show this help message
 
