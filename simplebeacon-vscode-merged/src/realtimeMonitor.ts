@@ -40,6 +40,8 @@ const complianceCatalog = require('./rules/compliance-patterns.json') as typeof 
 
 // Engine API client — provides access to the full 38+ CLI scanner suite via localhost:3000
 import { getEngineClient, EngineFinding } from './aiPlatform/engineApiClient';
+// Context guard — truncates/limits engine API payloads to prevent slow scans on large buffers
+import { applyContextGuard } from './aiPlatform/contextGuard';
 
 export function getAuthorizedRulePresets(document: vscode.TextDocument): string[] {
   const config = getSbConfig();
@@ -615,12 +617,19 @@ export class RealtimeMonitor {
         try {
           const engineClient = getEngineClient();
           const filename = filePath.split(/[\\/]/).pop() || filePath;
-          const result = await engineClient.scanContent(content, filename);
+          // Apply context guard — may truncate content or show a toast based on settings
+          const guardResult = applyContextGuard(content, filename);
+          const result = await engineClient.scanContent(guardResult.content, filename);
           if (result && result.findings && result.findings.length > 0) {
             // Convert engine findings to RealtimeIssue format
             for (const finding of result.findings) {
               issues.push(this.engineFindingToIssue(finding, filePath));
             }
+          }
+          if (guardResult.truncated) {
+            this.outputChannel.appendLine(
+              `ℹ️ Context Guard: ${filename} truncated from ${guardResult.originalLength} to ${guardResult.effectiveLength} chars for engine scan. Local regex covers the full file.`
+            );
           }
         } catch (err) {
           // Engine failed — fall back to local regex patterns below
@@ -628,7 +637,9 @@ export class RealtimeMonitor {
         }
       }
 
-      // Local regex patterns — always run as a baseline, or as fallback when engine is unavailable
+      // Local regex patterns — always run as a baseline, or as fallback when engine is unavailable.
+      // When the engine is enabled, local patterns still run on the FULL content (not truncated)
+      // so diagnostics cover the entire file even when the engine payload was truncated.
       if (!useEngineApi || issues.length === 0) {
         // Run security / code-quality patterns unless the user wants AI slop only
         if (preset !== 'ai-only') {

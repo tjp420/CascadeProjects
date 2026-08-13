@@ -794,6 +794,25 @@
           "default": 15000,
           "description": "Timeout in milliseconds for engine API requests. If the engine doesn't respond within this time, the extension falls back to local regex scanning."
         },
+        "simplebeacon.contextGuardMode": {
+          "type": "string",
+          "enum": ["off", "silent", "toast", "both"],
+          "default": "both",
+          "enumDescriptions": [
+            "No context guard — full content always sent to engine",
+            "Silently truncate content exceeding the threshold, no UI notification",
+            "Show a toast notification when content exceeds threshold, but still send full content",
+            "Show toast AND truncate content (recommended)"
+          ],
+          "description": "Controls how the Context Guard handles large editor buffers before sending to the engine API. 'both' (default) shows a toast and truncates the payload to prevent slow scans."
+        },
+        "simplebeacon.contextGuardMaxChars": {
+          "type": "number",
+          "default": 4000,
+          "minimum": 500,
+          "maximum": 100000,
+          "description": "Maximum character count for engine API payloads. When content exceeds this limit, the Context Guard truncates or warns based on contextGuardMode. Default: 4000 (safe for small local models)."
+        },
         "simplebeacon.agentModel": {
           "type": "string",
           "default": "",
