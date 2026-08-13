@@ -4,7 +4,7 @@
   "pages": {
     "index.html": {
       "title": "SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It",
-      "description": "SimpleBeacon: reduce EU AI Act compliance liability with browser-local scans for AI-generated code debt, credential leaks, and regulatory gaps. Generate board-ready evidence packs without uploading source code.",
+      "description": "SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.",
       "h1": "Turn AI Code Debt Into Audit Evidence Before Regulators Find It.",
       "sitemap": { "priority": "1.0", "changefreq": "weekly" },
       "includeNav": true,
