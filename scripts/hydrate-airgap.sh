@@ -218,6 +218,7 @@ package() {
   cp "$PROJECT_ROOT/scripts/validate-airgap-deploy.sh" "$output_dir/scripts/"
   cp "$PROJECT_ROOT/scripts/detect-hardware-profile.sh" "$output_dir/scripts/"
   cp "$PROJECT_ROOT/scripts/export-diagnostics-bundle.sh" "$output_dir/scripts/"
+  cp "$PROJECT_ROOT/scripts/test-airgap-faults.sh" "$output_dir/scripts/"
   cp "${BASH_SOURCE[0]}" "$output_dir/hydrate-airgap.sh"
 
   # Create the final compressed archive
@@ -236,7 +237,8 @@ package() {
     hydrate-airgap.sh \
     scripts/validate-airgap-deploy.sh \
     scripts/detect-hardware-profile.sh \
-    scripts/export-diagnostics-bundle.sh
+    scripts/export-diagnostics-bundle.sh \
+    scripts/test-airgap-faults.sh
 
   rm -f "$images_archive"  # Remove intermediate tar
 
