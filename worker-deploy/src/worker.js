@@ -412,7 +412,7 @@ export default {
           headers.set('CDN-Cache-Control', 'no-store');
           headers.set('Edge-Cache-TTL', '0');
           headers.set('X-SB-Worker-Entry', entryPath);
-          headers.set('X-SB-Worker-Deploy', '2026-08-07-v3');
+          headers.set('X-SB-Worker-Deploy', '2026-08-13-mobile-fix');
           return withSecurityHeaders(withHtmlInjections(new Response(candidate.body, { status: candidate.status, headers }), env));
         }
       }
