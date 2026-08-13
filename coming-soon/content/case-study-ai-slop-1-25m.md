@@ -122,7 +122,7 @@ npx simplebeacon scan --gate
 npx simplebeacon scan --full --gate --format json
 ```
 
-Or install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop) to catch slop as you type.
+Or install the [VS Code extension](/downloads/simplebeacon.vsix) to catch slop as you type.
 
 ---
 

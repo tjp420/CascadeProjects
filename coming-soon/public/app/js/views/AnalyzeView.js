@@ -1685,7 +1685,7 @@ export class AnalyzeView {
         const inVsCode = hasVsCodeApi || inVsCodeHost;
         const badge = inVsCode
             ? `<span class="ti-badge analyze-vscode-active-badge">● Active</span>`
-            : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
+            : `<a href="/downloads/simplebeacon.vsix" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
         const subtitle = inVsCode
             ? (hasVsCodeApi
                 ? 'Extension is running in this editor. Enhanced analysis active: full-directory scan, real-time monitoring, and deep code insights.'
@@ -3953,7 +3953,7 @@ export class AnalyzeView {
               <li>Type a folder path or click <strong>Browse</strong> to select a directory</li>
               <li>Switch to <strong>Complete</strong> mode to run all analysis engines</li>
               <li>Drop a source file on the Quick File Check area for instant in-browser analysis</li>
-              <li>Install the <a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener">VS Code Extension</a> for real-time monitoring</li>
+              <li>Install the <a href="/downloads/simplebeacon.vsix" target="_blank" rel="noopener">VS Code Extension</a> for real-time monitoring</li>
               `}
             </ul>
           </div>

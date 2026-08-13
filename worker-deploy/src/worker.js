@@ -48,6 +48,52 @@ function withGaInjection(response, env) {
 }
 
 /**
+ * Inject a lightweight GDPR essential-cookie consent banner before </body>.
+ * Dismiss state is persisted in localStorage so it only shows once.
+ */
+const COOKIE_BANNER_HTML = `<div id="sb-cookie-notice" style="position:fixed;bottom:0;left:0;right:0;z-index:99998;background:#0B0F19;border-top:1px solid #1E293B;padding:12px 20px;display:flex;align-items:center;justify-content:center;gap:16px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;color:#94A3B8;transition:opacity .3s,transform .3s;"><span style="color:#F3F4F6;">We use only essential cookies to keep you logged in.</span><a href="/privacy" style="color:#06B6D4;text-decoration:none;">Read our Privacy Policy</a><button onclick="var n=document.getElementById('sb-cookie-notice');n.style.opacity='0';n.style.transform='translateY(100%)';setTimeout(function(){n.style.display='none'},300);try{localStorage.setItem('sb-cookie-dismissed','1')}catch(e){}" style="background:#06B6D4;color:#0B0F19;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Dismiss</button></div><script>try{if(localStorage.getItem('sb-cookie-dismissed')==='1'){var n=document.getElementById('sb-cookie-notice');if(n)n.style.display='none'}}catch(e){}</script>`;
+
+function withCookieBanner(response) {
+  const rewriter = new HTMLRewriter()
+    .on('body', {
+      element(element) {
+        element.append(COOKIE_BANNER_HTML, { html: true });
+      }
+    });
+  return rewriter.transform(response);
+}
+
+/**
+ * Inject Cloudflare Web Analytics beacon before </body> if CF_ANALYTICS_TOKEN is set.
+ * The token is obtained from Cloudflare Dashboard → Analytics & Logs → Web Analytics.
+ */
+function withCfAnalytics(response, env) {
+  const token = String(env.CF_ANALYTICS_TOKEN || '').trim();
+  if (!token) return response;
+  const beacon = `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;:&quot;${token.replace(/[^a-zA-Z0-9]/g, '')}&quot;}"></script>`;
+  const rewriter = new HTMLRewriter()
+    .on('body', {
+      element(element) {
+        element.append(beacon, { html: true });
+      }
+    });
+  return rewriter.transform(response);
+}
+
+/**
+ * Apply all HTML injections (GA, cookie banner, CF analytics) to an HTML response.
+ * @param {Response} response - The HTML response
+ * @param {Object} env - Worker environment bindings
+ * @returns {Response} - Transformed response
+ */
+function withHtmlInjections(response, env) {
+  let r = withGaInjection(response, env);
+  r = withCookieBanner(r);
+  r = withCfAnalytics(r, env);
+  return r;
+}
+
+/**
  * Apply security headers to an HTML response.
  * Mirrors the headers set by the Express server in simplebeacon-server.cjs.
  * @param {Response} response - The HTML response
@@ -367,7 +413,7 @@ export default {
           headers.set('Edge-Cache-TTL', '0');
           headers.set('X-SB-Worker-Entry', entryPath);
           headers.set('X-SB-Worker-Deploy', '2026-08-07-v3');
-          return withSecurityHeaders(withGaInjection(new Response(candidate.body, { status: candidate.status, headers }), env));
+          return withSecurityHeaders(withHtmlInjections(new Response(candidate.body, { status: candidate.status, headers }), env));
         }
       }
     }
@@ -755,7 +801,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'root-html');
-        return withSecurityHeaders(withGaInjection(new Response(body, { status: 200, headers }), env));
+        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env));
       }
     }
 
@@ -773,7 +819,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'dashboard-html');
-        return withSecurityHeaders(withGaInjection(new Response(body, { status: 200, headers }), env));
+        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env));
       }
     }
 
@@ -792,7 +838,7 @@ export default {
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
         headers.set('X-SB-Worker', 'page-html');
-        return withSecurityHeaders(withGaInjection(new Response(body, { status: 200, headers }), env));
+        return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env));
       }
     }
 
@@ -822,7 +868,7 @@ export default {
                      url.pathname === '/' ||
                      (!url.pathname.includes('.') && assetResp.headers.get('Content-Type', '').includes('text/html'));
       const response = new Response(assetResp.body, { status: assetResp.status, headers });
-      if (isHtml) return withSecurityHeaders(withGaInjection(response, env));
+      if (isHtml) return withSecurityHeaders(withHtmlInjections(response, env));
       return response;
     }
 

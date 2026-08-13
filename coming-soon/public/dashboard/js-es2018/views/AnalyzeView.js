@@ -1669,7 +1669,7 @@ export class AnalyzeView {
         const inVsCode = hasVsCodeApi || inVsCodeHost;
         const badge = inVsCode
             ? `<span class="ti-badge analyze-vscode-active-badge">● Active</span>`
-            : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
+            : `<a href="/downloads/simplebeacon.vsix" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
         const subtitle = inVsCode
             ? (hasVsCodeApi
                 ? 'Extension is running in this editor. Enhanced analysis active: full-directory scan, real-time monitoring, and deep code insights.'
@@ -3937,7 +3937,7 @@ export class AnalyzeView {
               <li>Type a folder path or click <strong>Browse</strong> to select a directory</li>
               <li>Switch to <strong>Complete</strong> mode to run all analysis engines</li>
               <li>Drop a source file on the Quick File Check area for instant in-browser analysis</li>
-              <li>Install the <a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener">VS Code Extension</a> for real-time monitoring</li>
+              <li>Install the <a href="/downloads/simplebeacon.vsix" target="_blank" rel="noopener">VS Code Extension</a> for real-time monitoring</li>
               `}
             </ul>
           </div>
@@ -5111,14 +5111,23 @@ export class AnalyzeView {
         wizard.appendChild(subtitle);
         const step1 = document.createElement('div');
         step1.className = 'agent-wizard-step';
-        const downloadLink = document.createElement('a');
-        downloadLink.className = 'btn btn-primary agent-download-btn';
-        downloadLink.href = getAgentDownloadUrl(platform);
-        downloadLink.target = '_blank';
-        downloadLink.rel = 'noopener';
-        downloadLink.textContent = 'Download for ' + getPlatformLabel(platform);
-        downloadLink.addEventListener('click', () => this._startAgentWizardPolling());
-        step1.appendChild(downloadLink);
+        const downloadUrl = getAgentDownloadUrl(platform);
+        if (downloadUrl) {
+            const downloadLink = document.createElement('a');
+            downloadLink.className = 'btn btn-primary agent-download-btn';
+            downloadLink.href = downloadUrl;
+            downloadLink.target = '_blank';
+            downloadLink.rel = 'noopener';
+            downloadLink.textContent = 'Download for ' + getPlatformLabel(platform);
+            downloadLink.addEventListener('click', () => this._startAgentWizardPolling());
+            step1.appendChild(downloadLink);
+        } else {
+            const noDownload = document.createElement('p');
+            noDownload.className = 'agent-wizard-subtitle';
+            noDownload.style.color = 'var(--text-muted)';
+            noDownload.textContent = 'Local agent download is not available. Use "Select Folder" above to scan in your browser instead.';
+            step1.appendChild(noDownload);
+        }
         const switchBtn = document.createElement('button');
         switchBtn.type = 'button';
         switchBtn.className = 'btn btn-ghost agent-platform-switch';

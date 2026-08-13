@@ -23,7 +23,7 @@ Everything runs offline. Zero network calls. Zero source code upload.
 The free tier is actually free — install from the VS Code Marketplace, scan 50 files, and decide if it's worth $49/mo for the full rule set.
 
 Demo GIF: [Upload to GitHub releases or CDN and replace this line]
-Marketplace: https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop
+Marketplace: /downloads/simplebeacon.vsix
 GitHub: https://github.com/tjp420/simplebeacon
 
 Happy to answer questions.
@@ -144,7 +144,7 @@ So I built AI Slop Cop: 53 deterministic rules that flag this stuff as you type.
 
 **Enterprise ($499/mo):** +14 rules for AI SDK governance, a11y, i18n, missing tests
 
-Marketplace: https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop
+Marketplace: /downloads/simplebeacon.vsix
 
 GIF demo: [Upload to GitHub releases or CDN and replace this line]
 
@@ -175,7 +175,7 @@ I built two tools:
 
 Everything runs offline. Zero source code upload.
 
-- Extension: https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop
+- Extension: /downloads/simplebeacon.vsix
 - CLI: `npx simplebeacon scan --gate`
 - Case study: https://simplebeacon.ai/blog/case-study-ai-slop-1-25m
 
@@ -209,7 +209,7 @@ We also built SimpleBeacon for deep compliance scanning. One fintech client foun
 
 August 2026 is closer than it looks.
 
-Install free → https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop
+Install free → /downloads/simplebeacon.vsix
 
 #AI #CodeQuality #EUAiAct #DevTools #Startup
 
@@ -261,7 +261,7 @@ EU AI Act deadline: August 2026.
 
 CCOs are asking: "How much AI-generated code is in production that we don't know about?"
 
-Install AI Slop Cop free → https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop
+Install AI Slop Cop free → /downloads/simplebeacon.vsix
 
 Run deep scan → `npx simplebeacon scan --gate`
 

@@ -23,7 +23,7 @@ const PLANS = {
     ],
     footnote: 'No credit card required',
     cta: 'Install Free',
-    ctaLink: 'https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop',
+    ctaLink: '/downloads/simplebeacon.vsix',
     moduleAccess: ['gate', 'llm-slop'],
     limits: { maxFilesPerScan: 50, maxFindingsShown: 5, showQualityScore: false },
     defaultTtlDays: 365,
