@@ -773,6 +773,21 @@
           "default": "",
           "description": "Ollama server URL (e.g. http://localhost:11434). Falls back to OLLAMA_BASE_URL or LOCAL_AI_URL env vars."
         },
+        "simplebeacon.useEngineApi": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use the local SimpleBeacon engine API (localhost:3000) for real-time scanning. When enabled, the extension sends file content to the engine's full 38+ scanner suite. When disabled or engine unavailable, falls back to built-in 35-pattern local regex catalog. All communication is over localhost — no content leaves the machine."
+        },
+        "simplebeacon.engineUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL for the local SimpleBeacon engine API. Only used when useEngineApi is enabled. Default: http://localhost:3000"
+        },
+        "simplebeacon.engineTimeoutMs": {
+          "type": "number",
+          "default": 15000,
+          "description": "Timeout in milliseconds for engine API requests. If the engine doesn't respond within this time, the extension falls back to local regex scanning."
+        },
         "simplebeacon.agentModel": {
           "type": "string",
           "default": "",

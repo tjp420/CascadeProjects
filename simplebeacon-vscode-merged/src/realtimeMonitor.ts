@@ -38,6 +38,9 @@ const securityCatalog = require('./rules/security-patterns.json') as typeof slop
 const owaspLlmCatalog = require('./rules/owasp-llm-patterns.json') as typeof slopCatalog;
 const complianceCatalog = require('./rules/compliance-patterns.json') as typeof slopCatalog;
 
+// Engine API client — provides access to the full 38+ CLI scanner suite via localhost:3000
+import { getEngineClient, EngineFinding } from './aiPlatform/engineApiClient';
+
 export function getAuthorizedRulePresets(document: vscode.TextDocument): string[] {
   const config = getSbConfig();
   const userLicenseToken = config.get<string>('licenseKey', '');
@@ -603,18 +606,40 @@ export class RealtimeMonitor {
 
       const config = getSbConfig();
       const preset = config.get<string>('preset', 'default');
+      const useEngineApi = config.get<boolean>('useEngineApi', false);
 
       const issues: RealtimeIssue[] = [];
 
-      // Run security / code-quality patterns unless the user wants AI slop only
-      if (preset !== 'ai-only') {
-        const detectedIssues = await this.detectIssues(filePath, content, fileExtension);
-        issues.push(...detectedIssues);
+      // Engine API mode: send content to the local engine for full 38+ scanner suite scanning
+      if (useEngineApi) {
+        try {
+          const engineClient = getEngineClient();
+          const filename = filePath.split(/[\\/]/).pop() || filePath;
+          const result = await engineClient.scanContent(content, filename);
+          if (result && result.findings && result.findings.length > 0) {
+            // Convert engine findings to RealtimeIssue format
+            for (const finding of result.findings) {
+              issues.push(this.engineFindingToIssue(finding, filePath));
+            }
+          }
+        } catch (err) {
+          // Engine failed — fall back to local regex patterns below
+          this.outputChannel.appendLine(`⚠️ Engine API scan failed, falling back to local patterns: ${err}`);
+        }
       }
 
-      // Run AI slop detection on all text/code files
-      const aiSlopIssues = this.detectAISlop(filePath, content);
-      issues.push(...aiSlopIssues);
+      // Local regex patterns — always run as a baseline, or as fallback when engine is unavailable
+      if (!useEngineApi || issues.length === 0) {
+        // Run security / code-quality patterns unless the user wants AI slop only
+        if (preset !== 'ai-only') {
+          const detectedIssues = await this.detectIssues(filePath, content, fileExtension);
+          issues.push(...detectedIssues);
+        }
+
+        // Run AI slop detection on all text/code files
+        const aiSlopIssues = this.detectAISlop(filePath, content);
+        issues.push(...aiSlopIssues);
+      }
 
       if (issues.length > 0) {
         this.activeIssues.set(filePath, issues);
@@ -631,6 +656,32 @@ export class RealtimeMonitor {
     } catch (error) {
       this.outputChannel.appendLine(`❌ Error analyzing ${filePath}: ${error}`);
     }
+  }
+
+  /**
+   * Convert an engine API finding to the extension's RealtimeIssue format.
+   * Maps severity strings from the engine to the extension's severity levels.
+   */
+  private engineFindingToIssue(finding: EngineFinding, filePath: string): RealtimeIssue {
+    // Map engine severity to extension severity
+    let severity: 'error' | 'warning' | 'info' = 'info';
+    const sevLower = (finding.severity || '').toLowerCase();
+    if (sevLower === 'critical' || sevLower === 'error' || sevLower === 'high') {
+      severity = 'error';
+    } else if (sevLower === 'medium' || sevLower === 'warning') {
+      severity = 'warning';
+    }
+
+    return {
+      file: filePath,
+      line: finding.line || 1,
+      column: finding.column || 1,
+      severity,
+      type: finding.type,
+      message: finding.description || finding.id,
+      suggestion: finding.recommendedAction || '',
+      timestamp: new Date(),
+    };
   }
 
   private isInsideStringLiteral(line: string, index: number): boolean {
