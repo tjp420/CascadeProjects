@@ -23,11 +23,23 @@
 #   3. Starts the stack with docker compose up
 #
 # ── Verify Phase (on air-gapped target machine) ───────────────────────────
-#   ./hydrate-airgap.sh verify
+#   ./hydrate-airgap.sh verify [--json] [--verbose]
 #
-#   1. Checks all containers are running
-#   2. Tests health endpoints
-#   3. Verifies Ollama model availability
+#   Delegates to validate-airgap-deploy.sh which runs 14 checks:
+#   1. Docker daemon reachable
+#   2. Required containers running
+#   3. Container exposed ports
+#   4. Ollama API health
+#   5. Required models present
+#   6. Model layer integrity
+#   7. Inference smoke test (cheap prompt)
+#   8. Engine health endpoint
+#   9. Engine-to-Ollama connectivity (Docker DNS)
+#  10. PostgreSQL readiness
+#  11. PostgreSQL schema (key tables)
+#  12. Memory profile validation
+#  13. Offline mode verification
+#  14. Disk space check
 #
 # Requirements:
 #   - Docker 24+ with BuildKit
@@ -201,6 +213,11 @@ package() {
   cp "$PROJECT_ROOT/coming-soon/public/models/manifest.json" "$output_dir/"
   cp "$PROJECT_ROOT/coming-soon/public/models/memory-profiles.json" "$output_dir/"
   cp "$PROJECT_ROOT/docs/PRODUCTION_ENV_VARS.md" "$output_dir/" 2>/dev/null || warn "Env var spec not found"
+  cp "$PROJECT_ROOT/docs/FIELD_ENGINEER_RUNBOOK.md" "$output_dir/" 2>/dev/null || warn "Field Engineer Runbook not found"
+  mkdir -p "$output_dir/scripts"
+  cp "$PROJECT_ROOT/scripts/validate-airgap-deploy.sh" "$output_dir/scripts/"
+  cp "$PROJECT_ROOT/scripts/detect-hardware-profile.sh" "$output_dir/scripts/"
+  cp "${BASH_SOURCE[0]}" "$output_dir/hydrate-airgap.sh"
 
   # Create the final compressed archive
   log "Creating compressed archive: $ARCHIVE_NAME"
@@ -213,7 +230,11 @@ package() {
     "$ENV_TEMPLATE" \
     manifest.json \
     memory-profiles.json \
-    PRODUCTION_ENV_VARS.md
+    PRODUCTION_ENV_VARS.md \
+    FIELD_ENGINEER_RUNBOOK.md \
+    hydrate-airgap.sh \
+    scripts/validate-airgap-deploy.sh \
+    scripts/detect-hardware-profile.sh
 
   rm -f "$images_archive"  # Remove intermediate tar
 
@@ -316,8 +337,24 @@ deploy() {
 
   log "Deployment complete!"
   info ""
-  info "Verify the deployment with:"
-  info "  ./hydrate-airgap.sh verify"
+
+  # Run the validation suite automatically (non-blocking — warn on failure)
+  local validate_script="$SCRIPT_DIR/validate-airgap-deploy.sh"
+  if [ -f "$validate_script" ]; then
+    info "Running post-deployment validation suite..."
+    # Wait for containers to settle before validating
+    info "Waiting 10s for containers to initialize..."
+    sleep 10
+    if bash "$validate_script"; then
+      log "Post-deployment validation passed — stack is healthy."
+    else
+      warn "Post-deployment validation reported failures."
+      warn "Run './scripts/validate-airgap-deploy.sh --verbose' for details."
+    fi
+  else
+    info "Verify the deployment with:"
+    info "  ./scripts/validate-airgap-deploy.sh"
+  fi
   info ""
   info "Access the dashboard at: http://localhost:3000"
   info "Ollama API at: http://localhost:11434"
@@ -326,65 +363,32 @@ deploy() {
 # ── Verify Phase ───────────────────────────────────────────────────────────
 
 verify() {
-  log "Verifying SimpleBeacon deployment..."
-  local failures=0
+  local validate_script="$SCRIPT_DIR/validate-airgap-deploy.sh"
+  if [ -f "$validate_script" ]; then
+    log "Running comprehensive validation suite..."
+    bash "$validate_script" "$@"
+  else
+    # Fallback to basic checks if the validation script is not present
+    log "Validation script not found — running basic checks..."
+    local failures=0
 
-  # Check containers
-  info "Checking container status..."
-  for container in simplebeacon-engine simplebeacon-ollama simplebeacon-db; do
-    if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
-      info "  ✓ $container is running"
+    for container in simplebeacon-engine simplebeacon-ollama simplebeacon-db; do
+      if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
+        info "  ✓ $container is running"
+      else
+        err "  ✗ $container is NOT running"
+        failures=$((failures + 1))
+      fi
+    done
+
+    if [ $failures -eq 0 ]; then
+      log "All basic checks passed."
+      info "Dashboard: http://localhost:3000"
+      info "Ollama:    http://localhost:11434"
     else
-      err "  ✗ $container is NOT running"
-      failures=$((failures + 1))
+      err "$failures check(s) failed."
+      exit 1
     fi
-  done
-
-  # Check engine health
-  info "Checking engine health endpoint..."
-  if curl -s http://localhost:3000/health > /dev/null 2>&1; then
-    info "  ✓ Engine health check passed"
-  else
-    err "  ✗ Engine health check failed (http://localhost:3000/health)"
-    failures=$((failures + 1))
-  fi
-
-  # Check Ollama
-  info "Checking Ollama API..."
-  if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-    info "  ✓ Ollama API is responding"
-    # Check for SimpleBeacon models
-    local models
-    models=$(curl -s http://localhost:11434/api/tags | grep -o '"name":"[^"]*"' | sed 's/"name":"//;s/"//')
-    if echo "$models" | grep -q "unbreakable-oracle"; then
-      info "  ✓ unbreakable-oracle model is available"
-    else
-      warn "  ! unbreakable-oracle model not found — run setup-local-model.cjs inside the container"
-    fi
-  else
-    err "  ✗ Ollama API is not responding (http://localhost:11434/api/tags)"
-    failures=$((failures + 1))
-  fi
-
-  # Check database
-  info "Checking PostgreSQL..."
-  if docker exec simplebeacon-db pg_isready -U simplebeacon_user -d simplebeacon > /dev/null 2>&1; then
-    info "  ✓ PostgreSQL is ready"
-  else
-    err "  ✗ PostgreSQL is not ready"
-    failures=$((failures + 1))
-  fi
-
-  # Summary
-  if [ $failures -eq 0 ]; then
-    log "All checks passed! SimpleBeacon is fully operational."
-    info ""
-    info "Dashboard: http://localhost:3000"
-    info "API:       http://localhost:3000/api/simplebeacon/"
-    info "Ollama:    http://localhost:11434"
-  else
-    err "$failures check(s) failed. Review the logs above."
-    exit 1
   fi
 }
 
@@ -405,7 +409,9 @@ Commands:
                           archive defaults to ./dist/simplebeacon-airgap-v1.tar.gz
                           env defaults to .env.enterprise
 
-  verify                  Check that all services are running and healthy
+  verify                  Run the full post-deployment validation suite
+                          (delegates to validate-airgap-deploy.sh)
+                          Pass --json for JSON output, --verbose for full output
 
   help                    Show this help message
 
