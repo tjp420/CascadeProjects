@@ -91,7 +91,13 @@ const PUBLIC_API_PATHS = new Set([
     'sso/saml/acs',
     'sso/saml/metadata',
     // Contact form — public endpoint, delivers to Zoho via email service
-    'contact'
+    'contact',
+    // One-time checkout — certificate passes ($149/$499/$2,499) from coming-soon
+    'create-checkout-session',
+    'test-checkout',
+    'checkout/webhook',
+    'session-token',
+    'receipt'
 ]);
 
 /**

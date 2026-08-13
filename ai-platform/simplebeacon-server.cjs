@@ -1907,6 +1907,17 @@ async function startServer() {
     logger.warn('[FreeToken] free-token routes not loaded:', e.message);
   }
 
+  // One-time checkout routes — certificate passes ($149/$499/$2,499) from coming-soon
+  // Required because the pricing page calls /api/create-checkout-session for one-time products
+  // The billing webhook at /api/simplebeacon/billing/webhook already handles the webhook side
+  try {
+    const { router: checkoutRouter } = require('../coming-soon/routes/checkout.cjs');
+    app.use(checkoutRouter);
+    logger.info('[Checkout] One-time checkout routes mounted');
+  } catch (e) {
+    logger.warn('[Checkout] Checkout routes not loaded:', e.message);
+  }
+
   // License token validation — used by dashboard License Token signin
   try {
     const tokenValidateRoutes = require('../coming-soon/routes/token-validate.cjs');
