@@ -36,7 +36,7 @@ router.post('/register', async (req, res) => {
     if (!email || !password) {
       return sendError(res, 400, 'Email and password required');
     }
-    const result = await registerUser(email, password, name);
+    const result = await registerUser(email, password, name, { db: req.app?.locals?.db || req.db || null });
     if (result.error) {
       return sendError(res, 409, 'Registration failed', { message: result.error });
     }

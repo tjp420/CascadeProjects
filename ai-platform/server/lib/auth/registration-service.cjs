@@ -27,7 +27,8 @@ async function handleRegister(req, res) {
     const pending = registrationRequiresApproval();
     const result = await registerUser(validated.email, validated.password, validated.name, {
         username: validated.username,
-        status: pending ? 'pending' : 'active'
+        status: pending ? 'pending' : 'active',
+        db: req.app?.locals?.db || req.db || null
     });
 
     if (result.error) {

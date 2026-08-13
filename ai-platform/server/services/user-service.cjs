@@ -336,7 +336,53 @@ async function authenticateUser(db, email, password) {
  * @param {string} name
  * @returns {any}
  */
+async function registerUserDatabase(db, email, password, name, options = {}) {
+    if (!db) return null;
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const username = String(options.username || '').trim().toLowerCase() || null;
+    try {
+        const existing = await db.query(
+            'SELECT id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+            [normalizedEmail]
+        );
+        if (existing.rows.length > 0) {
+            return { error: 'An account with this email already exists' };
+        }
+        if (username) {
+            const unameCheck = await db.query(
+                'SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1',
+                [username]
+            );
+            if (unameCheck.rows.length > 0) {
+                return { error: 'That username is already taken' };
+            }
+        }
+        const passwordHash = await hashPassword(password);
+        const userId = 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        const status = options.status || 'active';
+        const result = await db.query(
+            `INSERT INTO users (id, email, username, password_hash, name, trust_level, status, verification_status)
+             VALUES ($1, $2, $3, $4, $5, 'bronze', $6, $7)
+             RETURNING id, email, username, name, trust_level, status, successful_analyses,
+                       security_incidents, community_contributions, verification_status, created_at`,
+            [userId, normalizedEmail, username, passwordHash, name || normalizedEmail.split('@')[0], status, status === 'pending' ? 'pending' : 'email']
+        );
+        return { user: toAuthUser(result.rows[0]) };
+    } catch (err) {
+        logger.warn('[UserService] PostgreSQL registration failed, falling back:', err.message);
+        return null;
+    }
+}
+
 async function registerUser(email, password, name, options = {}) {
+    // Try PostgreSQL first (persistent) when a db instance is available
+    const db = options.db || null;
+    if (db) {
+        const pgResult = await registerUserDatabase(db, email, password, name, options);
+        if (pgResult) return pgResult;
+    }
+
+    // Fall back to SQLite (ephemeral on Render)
     const sqliteResult = registerUserSqlite(email, password, name, options);
     if (sqliteResult) {
         if (sqliteResult.error) return sqliteResult;

@@ -53,6 +53,7 @@ router.post('/auth/login', authLoginRateLimit, validateInput('login'), (req, res
 }, handleLogin);
 
 router.post('/auth/register', authLoginRateLimit, async (req, res, next) => {
+  if (dbAdapter) req.db = dbAdapter;
   try {
     const { handleRegister } = require('../lib/auth/registration-service.cjs');
     return await handleRegister(req, res);

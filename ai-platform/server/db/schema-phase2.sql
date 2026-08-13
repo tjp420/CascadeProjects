@@ -15,6 +15,7 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_key_updated
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    username TEXT,
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     trust_level TEXT NOT NULL DEFAULT 'bronze',
@@ -28,3 +29,4 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users (LOWER(username)) WHERE username IS NOT NULL AND username != '';
