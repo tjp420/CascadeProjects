@@ -81,6 +81,7 @@ import {
   getLocalAgentInstallDir,
   installLocalAgent,
   isLocalAgentInstalled,
+  isLocalAgentInstallComplete,
   probeLocalAgent,
   scanViaLocalAgent,
   startLocalAgent,
@@ -1557,6 +1558,17 @@ export function activate(context: vscode.ExtensionContext) {
             }
             return;
           }
+          if (!isLocalAgentInstallComplete(installDir)) {
+            const choice = await vscode.window.showWarningMessage(
+              'Local agent install is incomplete (missing agent.cjs). Re-install to fix?',
+              'Re-install',
+              'Cancel'
+            );
+            if (choice === 'Re-install') {
+              await installLocalAgent();
+            }
+            return;
+          }
           startLocalAgent(installDir);
           const status = await probeLocalAgent(getAgentPort());
           if (status.available) {
@@ -2441,6 +2453,51 @@ export function activate(context: vscode.ExtensionContext) {
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             vscode.window.showErrorMessage(`Local Ollama remediation failed: ${message}`);
+          }
+        }
+      ),
+      registerCmd(
+        'simplebeacon.remediateDiagnosticInPlace',
+        async (
+          uri?: vscode.Uri,
+          range?: vscode.Range,
+          diagnosticCode?: string,
+          diagnosticMessage?: string,
+          snippet?: string
+        ) => {
+          if (!uri || !range) {
+            vscode.window.showWarningMessage('No diagnostic span was provided for in-place remediation.');
+            return;
+          }
+
+          try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            const text = snippet || doc.getText(range);
+            const { remediateDiagnosticInPlace } = await import('./fixes/localOllamaRemediation');
+            const result = await remediateDiagnosticInPlace({
+              uri,
+              range,
+              diagnosticCode: String(diagnosticCode || 'unknown'),
+              diagnosticMessage: String(diagnosticMessage || 'SimpleBeacon diagnostic'),
+              snippet: text,
+            });
+
+            if (!result.success) {
+              vscode.window.showErrorMessage(
+                `In-place remediation failed: ${result.error || 'Unknown error'}`
+              );
+            } else if (result.applied) {
+              vscode.window.showInformationMessage(
+                `Applied Ollama fix for ${diagnosticCode || 'finding'}.`
+              );
+            } else if (result.replacement === result.originalSnippet.trim()) {
+              vscode.window.showInformationMessage(
+                'Ollama determined this finding is a false positive — no changes applied.'
+              );
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            vscode.window.showErrorMessage(`In-place Ollama remediation failed: ${message}`);
           }
         }
       ),
@@ -4458,22 +4515,31 @@ async function runScan(
     if (!agentStatus.available) {
       const installDir = getLocalAgentInstallDir();
       if (isLocalAgentInstalled(installDir) && config.get<boolean>('localAgent.autoStart', true)) {
-        outputChannel.appendLine('[SimpleBeacon] Starting installed local agent...');
-        startLocalAgent(installDir, agentPort);
-        // Give the agent a moment to bind, then re-probe up to 5 times.
-        for (let i = 0; i < 5; i++) {
-          await new Promise((r) => setTimeout(r, 800));
-          agentStatus = await probeLocalAgent(agentPort);
-          if (agentStatus.available) {
-            break;
+        if (!isLocalAgentInstallComplete(installDir)) {
+          outputChannel.appendLine('[SimpleBeacon] Local agent install is incomplete (missing agent.cjs). Re-installing...');
+        } else {
+          outputChannel.appendLine('[SimpleBeacon] Starting installed local agent...');
+          startLocalAgent(installDir, agentPort);
+          // Give the agent a moment to bind, then re-probe up to 5 times.
+          for (let i = 0; i < 5; i++) {
+            await new Promise((r) => setTimeout(r, 800));
+            agentStatus = await probeLocalAgent(agentPort);
+            if (agentStatus.available) {
+              break;
+            }
           }
         }
       }
     }
 
     if (!agentStatus.available && config.get<boolean>('localAgent.autoInstall', true)) {
+      const installDir = getLocalAgentInstallDir();
+      const incomplete = isLocalAgentInstalled(installDir) && !isLocalAgentInstallComplete(installDir);
+      const promptMsg = incomplete
+        ? 'SimpleBeacon Local Agent install is incomplete (missing agent.cjs). Re-install to fix?'
+        : 'SimpleBeacon Local Agent is not installed. It enables offline scans without requiring the CLI.';
       const choice = await vscode.window.showWarningMessage(
-        'SimpleBeacon Local Agent is not installed. It enables offline scans without requiring the CLI.',
+        promptMsg,
         'Install Now',
         'Use CLI Instead'
       );
@@ -7446,6 +7512,9 @@ body.theme-light .tree-node:not(.clickable) .node-name{color:#94a3b8}
 .graph-legend{position:absolute;top:8px;right:8px;background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;padding:8px 12px;font-size:11px}
 .graph-controls{position:absolute;bottom:12px;left:12px;display:flex;gap:6px;z-index:10;flex-wrap:wrap;max-width:calc(100% - 24px)}
 .graph-controls button{background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:background 0.15s}
+.graph-controls .preset-btn{font-size:15px}
+.graph-controls .preset-btn:hover{border-color:#06b6d4}
+.graph-controls .preset-btn.active{background:#06b6d4;color:#0b1120;border-color:#06b6d4}
 .graph-controls button:hover{background:#1e293b;border-color:#475569}
 .graph-controls button.active{background:#06b6d4;border-color:#06b6d4}
 .graph-filter-bar{position:absolute;top:8px;left:8px;display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;padding:6px 10px;z-index:10;max-width:calc(100% - 140px);flex-wrap:wrap}
@@ -7684,6 +7753,9 @@ body.theme-light .arch-svg line{stroke:#cbd5e1}
         <button id="controlsBtn" title="Set Controls">⌨</button>
         <select id="themeSelect" title="Theme"><option value="dark">Dark</option><option value="light">Light</option><option value="ocean">Ocean</option><option value="black">Black</option></select>
         <select id="layoutSelect" title="Graph layout: Force=physics sim, Radial=circle, Grid=matrix, Tree=top-down levels, City=horizontal layers, Hexagonal=honeycomb architecture sectors"><option value="force">Force</option><option value="radial">Radial</option><option value="grid">Grid</option><option value="tree">Tree</option><option value="city">City</option><option value="hexagonal">Hexagonal</option></select>
+        <button id="presetDarkSkyBtn" class="preset-btn" title="Preset: Dark theme + Stars + Grid">🌌</button>
+        <button id="presetOceanFogBtn" class="preset-btn" title="Preset: Ocean theme + Fog + Grid">🌊</button>
+        <button id="presetCleanBtn" class="preset-btn" title="Preset: Clean (no stars, no grid)">✨</button>
         <div id="zoomLevelDisplay" class="zoom-display">100%</div>
         <div id="coordDisplay" class="coord-display" style="display:none;"></div>
       </div>
@@ -8446,6 +8518,7 @@ if (statsEl) {
   let flyTo = null; // { targetScale, targetPanX, targetPanY, progress }
   let pulseNodes = []; // [{ node, until }]
   let starsVisible = true;
+  let fogColorOverride = null; // when set, overrides theme-derived fogRgb
   const stars = Array.from({length: 200}, () => ({
     x: Math.random(), y: Math.random(),
     size: 0.5 + Math.random() * 1.5,
@@ -9211,12 +9284,14 @@ if (statsEl) {
     focusMode = !focusMode;
     toggleFocusBtn.classList.toggle('active', focusMode);
     toggleFocusBtn.title = focusMode ? 'Exit Focus Mode' : 'Focus Mode';
+    needsRedraw = true;
   });
   const toggleGridBtn = document.getElementById('toggleGridBtn');
   if (toggleGridBtn) toggleGridBtn.addEventListener('click', () => {
     gridMode = gridMode === 'off' ? 'world' : (gridMode === 'world' ? 'screen' : 'off');
     toggleGridBtn.classList.toggle('active', gridMode !== 'off');
     toggleGridBtn.title = gridMode === 'world' ? 'World Grid' : (gridMode === 'screen' ? 'Screen Grid' : 'Grid Off');
+    needsRedraw = true;
   });
   const toggleStarsBtn = document.getElementById('toggleStarsBtn');
   if (toggleStarsBtn) {
@@ -9225,6 +9300,7 @@ if (statsEl) {
       starsVisible = !starsVisible;
       toggleStarsBtn.classList.toggle('active', starsVisible);
       toggleStarsBtn.title = starsVisible ? 'Hide Stars' : 'Show Stars';
+      needsRedraw = true;
     });
   }
   const toggleMinimapBtn = document.getElementById('toggleMinimapBtn');
@@ -9451,7 +9527,7 @@ if (statsEl) {
     try { localStorage.setItem('codemapTheme', val); } catch (e) {}
     if (themeSelect) themeSelect.value = val;
   }
-  themeSelect?.addEventListener('change', e => { applyTheme(e.target.value); });
+  themeSelect?.addEventListener('change', e => { applyTheme(e.target.value); fogColorOverride = null; needsRedraw = true; });
   // Restore saved theme on load
   (function() {
     try {
@@ -9460,6 +9536,42 @@ if (statsEl) {
     } catch (e) {}
   })();
   document.getElementById('layoutSelect')?.addEventListener('change', e => applyLayout(e.target.value));
+
+  // Visual presets — combine theme, stars (sky), grid, and fog color settings
+  function applyVisualPreset(preset) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    if (preset === 'darkSky') {
+      applyTheme('dark');
+      starsVisible = true;
+      gridMode = 'world';
+      fogColorOverride = '148,163,184'; // slate-400 — crisp starry sky
+      if (toggleStarsBtn) { toggleStarsBtn.classList.add('active'); toggleStarsBtn.title = 'Hide Stars'; }
+      if (toggleGridBtn) { toggleGridBtn.classList.add('active'); toggleGridBtn.title = 'World Grid'; }
+      const btn = document.getElementById('presetDarkSkyBtn');
+      if (btn) btn.classList.add('active');
+    } else if (preset === 'oceanFog') {
+      applyTheme('ocean');
+      starsVisible = false;
+      gridMode = 'world';
+      fogColorOverride = '56,189,248'; // sky-400 — deep ocean fog
+      if (toggleStarsBtn) { toggleStarsBtn.classList.remove('active'); toggleStarsBtn.title = 'Show Stars'; }
+      if (toggleGridBtn) { toggleGridBtn.classList.add('active'); toggleGridBtn.title = 'World Grid'; }
+      const btn = document.getElementById('presetOceanFogBtn');
+      if (btn) btn.classList.add('active');
+    } else if (preset === 'clean') {
+      starsVisible = false;
+      gridMode = 'off';
+      fogColorOverride = '226,232,240'; // slate-200 — bright clean look
+      if (toggleStarsBtn) { toggleStarsBtn.classList.remove('active'); toggleStarsBtn.title = 'Show Stars'; }
+      if (toggleGridBtn) { toggleGridBtn.classList.remove('active'); toggleGridBtn.title = 'Grid Off'; }
+      const btn = document.getElementById('presetCleanBtn');
+      if (btn) btn.classList.add('active');
+    }
+    needsRedraw = true;
+  }
+  document.getElementById('presetDarkSkyBtn')?.addEventListener('click', () => applyVisualPreset('darkSky'));
+  document.getElementById('presetOceanFogBtn')?.addEventListener('click', () => applyVisualPreset('oceanFog'));
+  document.getElementById('presetCleanBtn')?.addEventListener('click', () => applyVisualPreset('clean'));
 
   // Key bindings system
   const CONTROL_DEFS = [
@@ -9724,6 +9836,12 @@ if (statsEl) {
       if (is3D) crosshairNode = nodeAt3D(center);
       else crosshairNode = nodeAt(worldPosFromClient(center));
     }
+    // Theme-aware fog/edge color (used by 3D edges, 2D edges, and minimap)
+    // Presets can override via fogColorOverride; manual theme changes clear it
+    const fogRgb = fogColorOverride || (document.body.classList.contains('theme-light') ? '71,85,105'
+      : document.body.classList.contains('theme-ocean') ? '125,211,252'
+      : document.body.classList.contains('theme-black') ? '100,116,139'
+      : '148,163,184');
     if (is3D) {
       // 3D scene background for depth perception (theme-aware)
       if (document.body.classList.contains('theme-black')) {
@@ -9751,20 +9869,31 @@ if (statsEl) {
           ctx.fillStyle = 'rgba(200,220,255,' + (s.alpha * tw) + ')'; ctx.fill();
         }
       }
-      // Draw floor grid for spatial reference
+      // Draw floor grid for spatial reference (with depth fog lighting)
       if (gridMode !== 'off') {
         const gridSize = 4000, gridStep = 400;
-        ctx.strokeStyle = 'rgba(100,116,139,0.12)';
         ctx.lineWidth = 1;
         for (let x = -gridSize; x <= gridSize; x += gridStep) {
           const p1 = project3D({x: x, y: 0, z: -gridSize, radius: 0});
           const p2 = project3D({x: x, y: 0, z: gridSize, radius: 0});
-          if (p1 && p2) { ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+          if (p1 && p2) {
+            const avgZ = (p1.z2 + p2.z2) / 2;
+            const gridFog = Math.max(0.03, Math.min(0.5, 500 / (500 + avgZ * 0.5)));
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = 'rgba(' + fogRgb + ',' + (gridFog * 0.12) + ')';
+            ctx.stroke();
+          }
         }
         for (let z = -gridSize; z <= gridSize; z += gridStep) {
           const p1 = project3D({x: -gridSize, y: 0, z: z, radius: 0});
           const p2 = project3D({x: gridSize, y: 0, z: z, radius: 0});
-          if (p1 && p2) { ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+          if (p1 && p2) {
+            const avgZ = (p1.z2 + p2.z2) / 2;
+            const gridFog = Math.max(0.03, Math.min(0.5, 500 / (500 + avgZ * 0.5)));
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = 'rgba(' + fogRgb + ',' + (gridFog * 0.12) + ')';
+            ctx.stroke();
+          }
         }
       }
       // Project all nodes and edges with depth info — stable sort prevents z-fighting pop
@@ -9784,7 +9913,7 @@ if (statsEl) {
         const fog = Math.max(0.04, Math.min(0.9, 500 / (500 + avgZ * 0.5)));
         const isDimmed = focusMode && connectedIds && !connectedIds.has(edge.source.id) && !connectedIds.has(edge.target.id);
         ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
-        ctx.strokeStyle = isDimmed ? 'rgba(148,163,184,0.03)' : 'rgba(148,163,184,' + (fog * 0.22) + ')';
+        ctx.strokeStyle = isDimmed ? 'rgba(' + fogRgb + ',0.03)' : 'rgba(' + fogRgb + ',' + (fog * 0.22) + ')';
         ctx.lineWidth = Math.max(0.4, fog * 1.5); ctx.stroke();
       }
       // Draw nodes back-to-front with depth cues
@@ -9938,7 +10067,7 @@ if (statsEl) {
         if (!inViewport((e.source.x + e.target.x) / 2, (e.source.y + e.target.y) / 2, Math.max(Math.abs(e.target.x - e.source.x), Math.abs(e.target.y - e.source.y)) + 20)) continue;
         const isDimmed = focusMode && connectedIds && !connectedIds.has(e.source.id) && !connectedIds.has(e.target.id);
         ctx.beginPath(); ctx.moveTo(e.source.x, e.source.y); ctx.lineTo(e.target.x, e.target.y);
-        ctx.strokeStyle = isDimmed ? 'rgba(148,163,184,0.03)' : 'rgba(148,163,184,0.15)';
+        ctx.strokeStyle = isDimmed ? 'rgba(' + fogRgb + ',0.03)' : 'rgba(' + fogRgb + ',0.15)';
         ctx.lineWidth = 1; ctx.stroke();
       }
       for (const n of visNodes) {
@@ -10039,7 +10168,7 @@ if (statsEl) {
         function mmX(x) { return (x - minX + pad) * mmScale + offX; }
         function mmY(y) { return (y - minY + pad) * mmScale + offY; }
         // Draw faint edges
-        mm.strokeStyle = 'rgba(148,163,184,0.08)';
+        mm.strokeStyle = 'rgba(' + fogRgb + ',0.08)';
         mm.lineWidth = 0.5;
         for (const e of GRAPH.edges) {
           const sa = allNodes.find(n => n.id === e.source), ta = allNodes.find(n => n.id === e.target);

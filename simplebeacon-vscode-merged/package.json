@@ -177,6 +177,12 @@
         "icon": "$(book)"
       },
       {
+        "command": "simplebeacon.remediateDiagnosticInPlace",
+        "title": "Fix with Local Ollama (In-Place)",
+        "category": "SimpleBeacon",
+        "icon": "$(wand)"
+      },
+      {
         "command": "simplebeacon.openEnhancedDashboard20",
         "title": "Open Enhanced Dashboard 2.0",
         "category": "SimpleBeacon",
