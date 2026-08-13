@@ -1,0 +1,97 @@
+# SimpleBeacon Enterprise Engine — multi-stage production image
+# Builds the Node.js API server + React dashboard assets into a single
+# immutable image suitable for air-gapped enterprise deployments.
+#
+# Build:
+#   docker build -t simplebeacon-engine:latest -f Dockerfile.enterprise .
+# Run:
+#   docker run -p 3000:3000 simplebeacon-engine:latest
+
+# ── Stage 1: Build React dashboard assets ─────────────────────────────────
+FROM node:22-alpine AS dashboard-builder
+WORKDIR /app
+
+# Copy root package files for workspace resolution
+COPY package.json package-lock.json* ./
+COPY ai-platform/package.json ./ai-platform/
+COPY ai-platform/web/simplebeacon-dashboard/package.json ./ai-platform/web/simplebeacon-dashboard/
+COPY packages/simplebeacon-cli/package.json ./packages/simplebeacon-cli/
+
+# Install all dependencies (including dev) for building
+RUN npm ci --workspace=ai-platform/web/simplebeacon-dashboard || npm install --workspace=ai-platform/web/simplebeacon-dashboard
+
+# Copy dashboard source and build
+COPY ai-platform/web/simplebeacon-dashboard ./ai-platform/web/simplebeacon-dashboard
+RUN cd ai-platform/web/simplebeacon-dashboard && npx tsc -b && npx vite build && node scripts/prepare-worker-assets.cjs
+
+# ── Stage 2: Build server ─────────────────────────────────────────────────
+FROM node:22-alpine AS server-builder
+WORKDIR /app
+
+# Copy root package files
+COPY package.json package-lock.json* ./
+COPY ai-platform/package.json ./ai-platform/
+COPY packages/simplebeacon-cli/package.json ./packages/simplebeacon-cli/
+
+# Install all dependencies
+RUN npm ci --workspace=ai-platform || npm install --workspace=ai-platform
+
+# Copy server source
+COPY ai-platform ./ai-platform
+COPY packages/simplebeacon-cli ./packages/simplebeacon-cli
+
+# Verify server syntax
+RUN node -c ai-platform/simplebeacon-server.cjs
+
+# ── Stage 3: Production runtime ───────────────────────────────────────────
+FROM node:22-alpine AS runtime
+WORKDIR /app
+
+# Install tini for proper PID 1 signal handling
+RUN apk add --no-cache tini
+
+# Create non-root user
+RUN addgroup -S sbgroup && adduser -S sbuser -G sbgroup
+
+# Copy package files and install production dependencies only
+COPY package.json package-lock.json* ./
+COPY ai-platform/package.json ./ai-platform/
+COPY packages/simplebeacon-cli/package.json ./packages/simplebeacon-cli/
+RUN npm ci --omit=dev --workspace=ai-platform || npm install --omit=dev --workspace=ai-platform
+
+# Copy built server code
+COPY --from=server-builder /app/ai-platform ./ai-platform
+COPY --from=server-builder /app/packages/simplebeacon-cli ./packages/simplebeacon-cli
+
+# Copy built dashboard assets (overwrites dashboard dir with built version)
+COPY --from=dashboard-builder /app/ai-platform/web/simplebeacon-dashboard/assets ./ai-platform/web/simplebeacon-dashboard/assets
+COPY --from=dashboard-builder /app/ai-platform/web/simplebeacon-dashboard/index.html ./ai-platform/web/simplebeacon-dashboard/
+
+# Copy Modelfiles and manifest for local model setup
+COPY coming-soon/public/models ./coming-soon/public/models
+
+# Copy landing pages (marketing site served from coming-soon/public)
+COPY coming-soon/public ./coming-soon/public
+
+# Copy setup script
+COPY ai-platform/scripts/setup-local-model.cjs ./ai-platform/scripts/
+
+# Create data directories with correct ownership
+RUN mkdir -p /app/data /app/ai-platform/incoming_user_data /app/ai-platform/processed_reports /app/ai-platform/processed_archive \
+    && chown -R sbuser:sbgroup /app
+
+# Switch to non-root user
+USER sbuser
+
+# Expose the API port
+EXPOSE 3000
+
+# Health check — uses Node.js http module (no curl in alpine)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"
+
+# Entrypoint with tini for signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start the SimpleBeacon server
+CMD ["node", "ai-platform/simplebeacon-server.cjs"]

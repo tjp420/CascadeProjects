@@ -1,0 +1,27 @@
+# SimpleBeacon Enterprise GPU Override
+# Enables NVIDIA GPU acceleration for the Ollama inference service.
+#
+# Usage:
+#   docker compose -f docker-compose.enterprise.yml -f docker-compose.enterprise.gpu.yml up -d
+#
+# Requirements:
+#   - NVIDIA GPU with CUDA support
+#   - NVIDIA Container Toolkit installed (nvidia-container-toolkit)
+#   - Docker daemon configured with NVIDIA runtime
+#
+# Verify GPU availability:
+#   docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
+
+services:
+  simplebeacon-ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      # Ollama auto-detects GPU when NVIDIA runtime is active
+      OLLAMA_GPU_LAYERS: "0"
+      OLLAMA_NUM_PARALLEL: "1"

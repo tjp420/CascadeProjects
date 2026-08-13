@@ -1,0 +1,109 @@
+# SimpleBeacon Ollama Intelligence Service — pre-baked with code analysis models
+# Builds an Ollama image with SimpleBeacon's custom Modelfiles and system prompts
+# pre-loaded. Designed for air-gapped deployments where `ollama pull` is unavailable.
+#
+# Build:
+#   docker build -t simplebeacon-ollama:latest -f Dockerfile.ollama .
+# Run:
+#   docker run -p 11434:11434 --gpus all simplebeacon-ollama:latest
+
+FROM ollama/ollama:latest
+
+# Label for identification
+LABEL org.opencontainers.image.title="SimpleBeacon Ollama Intelligence"
+LABEL org.opencontainers.image.description="Ollama with SimpleBeacon's code analysis Modelfiles pre-baked"
+LABEL org.opencontainers.image.source="https://github.com/tjp420/CascadeProjects"
+
+# Create model directory
+WORKDIR /models
+
+# Copy Modelfiles and manifest
+COPY coming-soon/public/models/Modelfile ./Modelfile
+COPY coming-soon/public/models/Modelfile.llama32 ./Modelfile.llama32
+COPY coming-soon/public/models/Modelfile.mistral ./Modelfile.mistral
+COPY coming-soon/public/models/Modelfile.qwen25-coder ./Modelfile.qwen25-coder
+COPY coming-soon/public/models/manifest.json ./manifest.json
+
+# Create an entrypoint script that pulls base models and creates SimpleBeacon models
+# on first boot. This runs inside the container after Ollama starts.
+RUN cat > /scripts/init-models.sh << 'SCRIPT'
+#!/bin/bash
+set -e
+
+echo "[SimpleBeacon] Starting Ollama initialization..."
+
+# Start Ollama in the background
+ollama serve &
+OLLAMA_PID=$!
+
+# Wait for Ollama to be ready
+echo "[SimpleBeacon] Waiting for Ollama daemon..."
+for i in $(seq 1 30); do
+  if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+    echo "[SimpleBeacon] Ollama daemon is ready."
+    break
+  fi
+  sleep 1
+done
+
+# Pull base models and create SimpleBeacon-optimized models
+# The base models are pulled from Ollama registry during build (or pre-loaded)
+# In air-gapped mode, base models should be pre-loaded via ollama pull before packaging
+
+echo "[SimpleBeacon] Creating SimpleBeacon models from Modelfiles..."
+
+# Create unbreakable-oracle (default model — based on llama3.2)
+if curl -s http://localhost:11434/api/tags | grep -q "unbreakable-oracle"; then
+  echo "[SimpleBeacon] unbreakable-oracle already exists — skipping."
+else
+  echo "[SimpleBeacon] Creating unbreakable-oracle..."
+  ollama create unbreakable-oracle -f /models/Modelfile 2>&1 || \
+    echo "[SimpleBeacon] WARN: Failed to create unbreakable-oracle — base model may need to be pulled first."
+fi
+
+# Create simplebeacon-llama32
+if curl -s http://localhost:11434/api/tags | grep -q "simplebeacon-llama32"; then
+  echo "[SimpleBeacon] simplebeacon-llama32 already exists — skipping."
+else
+  echo "[SimpleBeacon] Creating simplebeacon-llama32..."
+  ollama create simplebeacon-llama32 -f /models/Modelfile.llama32 2>&1 || \
+    echo "[SimpleBeacon] WARN: Failed to create simplebeacon-llama32."
+fi
+
+# Create simplebeacon-mistral
+if curl -s http://localhost:11434/api/tags | grep -q "simplebeacon-mistral"; then
+  echo "[SimpleBeacon] simplebeacon-mistral already exists — skipping."
+else
+  echo "[SimpleBeacon] Creating simplebeacon-mistral..."
+  ollama create simplebeacon-mistral -f /models/Modelfile.mistral 2>&1 || \
+    echo "[SimpleBeacon] WARN: Failed to create simplebeacon-mistral."
+fi
+
+# Create simplebeacon-qwen-coder
+if curl -s http://localhost:11434/api/tags | grep -q "simplebeacon-qwen-coder"; then
+  echo "[SimpleBeacon] simplebeacon-qwen-coder already exists — skipping."
+else
+  echo "[SimpleBeacon] Creating simplebeacon-qwen-coder..."
+  ollama create simplebeacon-qwen-coder -f /models/Modelfile.qwen25-coder 2>&1 || \
+    echo "[SimpleBeacon] WARN: Failed to create simplebeacon-qwen-coder."
+fi
+
+echo "[SimpleBeacon] Model initialization complete."
+echo "[SimpleBeacon] Available models:"
+ollama list
+
+# Bring Ollama to foreground
+wait $OLLAMA_PID
+SCRIPT
+
+RUN chmod +x /scripts/init-models.sh
+
+# Expose Ollama API port
+EXPOSE 11434
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -s http://localhost:11434/api/tags > /dev/null || exit 1
+
+# Use the init script as entrypoint
+ENTRYPOINT ["/scripts/init-models.sh"]
