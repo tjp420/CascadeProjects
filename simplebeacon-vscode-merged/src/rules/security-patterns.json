@@ -1,0 +1,227 @@
+[
+  {
+    "id": "SB-SEC-007a",
+    "regexSource": "(?:password|passwd|pwd)\\s*[:=]\\s*['\"`]?([^\\s'\"`,;)}\\]]{4,})",
+    "regexFlags": "i",
+    "severity": "high",
+    "confidence": 0.88,
+    "description": "Hardcoded password in source code",
+    "type": "secret-password",
+    "message": "Hardcoded password detected — move to environment variable",
+    "suggestion": "Use process.env.PASSWORD or a secrets manager instead of hardcoding credentials",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec"]
+    }
+  },
+  {
+    "id": "SB-SEC-007b",
+    "regexSource": "(?:api[_-]?key|apikey|api_token)\\s*[:=]\\s*['\"`]?([a-zA-Z0-9_\\-]{16,})",
+    "regexFlags": "i",
+    "severity": "high",
+    "confidence": 0.88,
+    "description": "Hardcoded API key in source code",
+    "type": "secret-api-key",
+    "message": "Hardcoded API key detected — move to environment variable",
+    "suggestion": "Use process.env.API_KEY or a secrets manager instead of hardcoding credentials",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec"]
+    }
+  },
+  {
+    "id": "SB-SEC-007c",
+    "regexSource": "(?:token|auth_token|access_token|bearer)\\s*[:=]\\s*['\"`]?([a-zA-Z0-9_\\-]{16,})",
+    "regexFlags": "i",
+    "severity": "high",
+    "confidence": 0.88,
+    "description": "Hardcoded authentication token in source code",
+    "type": "secret-token",
+    "message": "Hardcoded auth token detected — move to environment variable",
+    "suggestion": "Use process.env.AUTH_TOKEN or a secrets manager instead of hardcoding credentials",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec"]
+    }
+  },
+  {
+    "id": "SB-SEC-007e",
+    "regexSource": "(?:AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16})",
+    "regexFlags": "g",
+    "severity": "error",
+    "confidence": 0.98,
+    "description": "AWS access key ID detected in source code",
+    "type": "secret-aws-key",
+    "message": "AWS access key ID detected — this is a live credential leak",
+    "suggestion": "Remove immediately, rotate the key in AWS IAM, and use IAM roles or env vars",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// nosec"]
+    }
+  },
+  {
+    "id": "SB-SEC-007f",
+    "regexSource": "(?:mongodb|postgres|mysql|redis|amqp)[:][/][/][^\\s'\"`,;)}\\]]{8,}",
+    "regexFlags": "i",
+    "severity": "high",
+    "confidence": 0.92,
+    "description": "Database connection string with credentials in source code",
+    "type": "secret-connection-string",
+    "message": "Connection string with credentials detected — move to environment variable",
+    "suggestion": "Use process.env.DATABASE_URL instead of hardcoding connection strings",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec"]
+    }
+  },
+  {
+    "id": "SB-SEC-005b",
+    "regexSource": "(?:https?://|wss?://|\\s|=)(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0)(?::\\d{2,5})?(?:/[^\\s\"'`,;)}\\]]*)?",
+    "regexFlags": "gi",
+    "severity": "info",
+    "confidence": 0.7,
+    "description": "Hardcoded localhost or dev URL in production code",
+    "type": "hardcoded-localhost",
+    "message": "Hardcoded localhost URL — use environment variable for service endpoints",
+    "suggestion": "Replace with process.env.SERVICE_URL or a config variable",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx", ".json"],
+      "linePrefixes": ["// simplebeacon-ignore", "// localhost"]
+    }
+  },
+  {
+    "id": "SB-SEC-005c",
+    "regexSource": "(?:https?://|wss?://|\\s|=)(?:staging|dev|test|uat|qa|internal|private|intranet|api-staging|api-dev|dev-api|staging-api)\\.[a-z0-9.-]+\\.[a-z]{2,}(?::\\d+)?(?:/[^\\s\"'`,;)}\\]]*)?",
+    "regexFlags": "gi",
+    "severity": "warning",
+    "confidence": 0.78,
+    "description": "Hardcoded staging or internal URL in source code",
+    "type": "hardcoded-staging-url",
+    "message": "Hardcoded staging/internal URL — use environment variable for environment-specific endpoints",
+    "suggestion": "Replace with process.env.API_URL or a config variable",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// staging", "// dev", "// test"]
+    }
+  },
+  {
+    "id": "SB-SEC-010b",
+    "regexSource": "(?:console\\.(log|warn|error|info|debug)|logger\\.|log\\(|winston\\.|pino\\.|bunyan\\.)[^;]*(?:password|passwd|pwd|secret|token|api_key|apikey)[^;]*",
+    "regexFlags": "i",
+    "severity": "error",
+    "confidence": 0.92,
+    "description": "Password, secret, or token being logged to console or logger",
+    "type": "pii-credential-logging",
+    "message": "Credential (password/token/secret) is being logged — remove or redact immediately",
+    "suggestion": "Never log credentials. Remove the log statement or redact the sensitive field",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec", "// redact", "// mask", "// sanitize", "// scrub", "// hash"]
+    }
+  },
+  {
+    "id": "SB-SEC-010c",
+    "regexSource": "(?:console\\.(log|warn|error|info|debug)|logger\\.|log\\(|winston\\.|pino\\.|bunyan\\.)[^;]*(?:ssn|social[_-]?security|national[_-]?id|passport)[^;]*",
+    "regexFlags": "i",
+    "severity": "error",
+    "confidence": 0.95,
+    "description": "SSN, national ID, or passport number being logged",
+    "type": "pii-national-id-logging",
+    "message": "National ID / SSN / passport is being logged — this is a GDPR/PII violation",
+    "suggestion": "Never log PII identifiers. Remove the log statement immediately",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec", "// redact", "// mask", "// sanitize"]
+    }
+  },
+  {
+    "id": "SB-SEC-010d",
+    "regexSource": "(?:console\\.(log|warn|error|info|debug)|logger\\.|log\\(|winston\\.|pino\\.|bunyan\\.)[^;]*(?:credit[_-]?card|cc[_-]?num|card[_-]?num|cvv|cvc)[^;]*",
+    "regexFlags": "i",
+    "severity": "error",
+    "confidence": 0.95,
+    "description": "Credit card number or CVV being logged",
+    "type": "pii-credit-card-logging",
+    "message": "Credit card / CVV is being logged — this is a PCI-DSS violation",
+    "suggestion": "Never log payment data. Remove the log statement immediately",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec", "// redact", "// mask", "// sanitize"]
+    }
+  },
+  {
+    "id": "SB-SEC-006a",
+    "regexSource": "(?:createHash|Hash|\\.hash)\\s*\\(\\s*['\"`](md5|sha1|ripemd160)['\"`]|(?:md5|sha1)\\s*\\(|require\\(['\"`](crypto-js/md5|crypto-js/sha1)['\"`]",
+    "regexFlags": "gi",
+    "severity": "warning",
+    "confidence": 0.82,
+    "description": "Weak hash algorithm (MD5, SHA1, RIPEMD160) used for security purposes",
+    "type": "weak-crypto-hash",
+    "message": "Weak hash algorithm detected — use SHA-256 or stronger for security",
+    "suggestion": "Replace MD5/SHA1 with SHA-256 or SHA-512 from the crypto module",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// legacy", "// backward compat", "// compatibility"]
+    }
+  },
+  {
+    "id": "SB-SEC-006b",
+    "regexSource": "Math\\.random\\(\\)|Math\\.floor\\s*\\(\\s*Math\\.random",
+    "regexFlags": "gi",
+    "severity": "warning",
+    "confidence": 0.75,
+    "description": "Math.random() used in a security-sensitive context",
+    "type": "weak-crypto-random",
+    "message": "Math.random() is not cryptographically secure — use crypto.randomBytes() for security",
+    "suggestion": "Replace Math.random() with crypto.randomBytes() or crypto.randomUUID() for security contexts",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".css", ".scss", ".html"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// test", "// demo", "// example", "// sample", "// animation", "// game", "// position", "// color", "// style"]
+    }
+  },
+  {
+    "id": "SB-PERF-001a",
+    "regexSource": "\\b(fs\\.)?readFileSync|writeFileSync|appendFileSync|copyFileSync|mkdirSync|readdirSync|statSync|accessSync|existsSync|unlinkSync|rmdirSync\\b",
+    "regexFlags": "g",
+    "severity": "warning",
+    "confidence": 0.72,
+    "description": "Synchronous file I/O operation detected — blocks the event loop",
+    "type": "sync-io",
+    "message": "Synchronous file I/O blocks the Node.js event loop — use async fs.promises instead",
+    "suggestion": "Replace *Sync methods with their async equivalents (fs.promises.readFile, fs.promises.writeFile, etc.)",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// bin", "// cli", "// script", "// startup", "// bootstrap"]
+    }
+  },
+  {
+    "id": "SB-PERF-002a",
+    "regexSource": "\\.(addEventListener|on)\\s*\\(\\s*['\"`][^'\"`]+['\"`]",
+    "regexFlags": "g",
+    "severity": "info",
+    "confidence": 0.65,
+    "description": "Event listener added without corresponding removal — potential memory leak",
+    "type": "memory-leak-listener",
+    "message": "Event listener added — ensure removeEventListener is called to prevent memory leaks",
+    "suggestion": "Add a matching removeEventListener call in cleanup/dispose, or use { once: true } for one-time listeners",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "SB-PERF-002b",
+    "regexSource": "\\bsetInterval\\s*\\(",
+    "regexFlags": "g",
+    "severity": "info",
+    "confidence": 0.65,
+    "description": "setInterval detected without a matching clearInterval — potential memory leak",
+    "type": "memory-leak-interval",
+    "message": "setInterval detected — ensure clearInterval is called to prevent memory leaks",
+    "suggestion": "Store the interval ID and call clearInterval() in cleanup/dispose, or use setTimeout with recursion",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  }
+]

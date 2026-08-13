@@ -1,0 +1,92 @@
+[
+  {
+    "id": "OWASP-LLM01-001",
+    "regexSource": "(?:prompt|messages|content|userMessage|inputText)\\s*(?:\\+?=|\\.\\s*push\\s*\\()\\s*.*(?:req\\.(?:body|query|params)|userInput|user_input|input_text|request\\.(?:body|query))",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.88,
+    "description": "OWASP LLM01 — Prompt Injection: unsanitized user input concatenated into LLM prompt",
+    "type": "owasp-llm-prompt-injection",
+    "message": "Unsanitized user input flowing into LLM prompt — prompt injection risk (OWASP LLM01)",
+    "suggestion": "Sanitize and validate user input before passing to LLM. Use input allowlists and output validation",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "OWASP-LLM02-001",
+    "regexSource": "(?:openai|anthropic|claude|gpt|llm|chat|completion|embeddings?)\\s*(?:\\.\\s*\\w+)*\\s*\\.\\s*(?:create|complete|generate|chat)\\s*\\(.*(?:email|ssn|password|secret|token|api_?key|credit_?card|phone|address|passport)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.85,
+    "description": "OWASP LLM02 — Sensitive Information Disclosure: PII/credentials passed to LLM API",
+    "type": "owasp-llm-data-disclosure",
+    "message": "Sensitive data (PII/credentials) being sent to LLM API — information disclosure risk (OWASP LLM02)",
+    "suggestion": "Never pass PII or credentials to LLM APIs. Redact or strip sensitive fields before API calls",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "OWASP-LLM05-001",
+    "regexSource": "(?:innerHTML|outerHTML|document\\.write|dangerouslySetInnerHTML|eval\\s*\\(|new\\s+Function\\s*\\()\\s*(?:=|\\()\\s*(?:aiResponse|llmOutput|completion|response\\.text|result\\.content|model\\.output|chatResponse)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.9,
+    "description": "OWASP LLM05 — Improper Output Handling: raw LLM output rendered as HTML or executed",
+    "type": "owasp-llm-unsafe-output",
+    "message": "Raw LLM output being rendered as HTML or executed — XSS/code injection risk (OWASP LLM05)",
+    "suggestion": "Sanitize LLM output before rendering. Use textContent instead of innerHTML, or apply HTML sanitization",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "OWASP-LLM06-001",
+    "regexSource": "(?:exec|spawn|execSync|child_process|fetch|axios\\.(?:get|post|put|delete)|db\\.(?:query|execute|run)|database\\.(?:query|execute)|sql\\.)\\s*\\(\\s*(?:aiCommand|llmResult|aiGenerated|model\\.output|completion\\.text|chatResponse\\.content|llmOutput)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.9,
+    "description": "OWASP LLM06 — Excessive Agency: LLM output used directly for system commands or DB queries",
+    "type": "owasp-llm-excessive-agency",
+    "message": "LLM output being used for system commands or DB queries — excessive agency risk (OWASP LLM06)",
+    "suggestion": "Never let LLM output directly execute commands or queries. Validate and sanitize all LLM-generated actions",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "OWASP-LLM07-001",
+    "regexSource": "(?:role|type)\\s*:\\s*['\"]system['\"]\\s*,?\\s*(?:content|text|prompt)\\s*:\\s*.*(?:api[_-]?key|secret|password|token|credential|private[_-]?key|BEGIN\\s+(?:RSA|EC|OPENSSH))",
+    "regexFlags": "gi",
+    "severity": "warning",
+    "confidence": 0.82,
+    "description": "OWASP LLM07 — System Prompt Leakage: secrets embedded in system prompts",
+    "type": "owasp-llm-system-prompt-leak",
+    "message": "Secrets detected in LLM system prompt — leakage risk (OWASP LLM07)",
+    "suggestion": "Never embed credentials in system prompts. Pass secrets through tool functions or env vars instead",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "OWASP-LLM10-001",
+    "regexSource": "max_?tokens\\s*:\\s*(?:\\d{6,}|999999|Infinity|undefined|null|0x[fF]+)|while\\s*\\(\\s*(?:true|!done|running)\\s*\\)\\s*\\{[^}]*(?:openai|anthropic|llm|chat|completion)\\s*\\.",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.85,
+    "description": "OWASP LLM10 — Unbounded Consumption: excessive token limits or infinite LLM loops",
+    "type": "owasp-llm-unbounded-consumption",
+    "message": "Unbounded LLM token consumption detected — cost and DoS risk (OWASP LLM10)",
+    "suggestion": "Set reasonable max_tokens limits (e.g., 4096) and add loop termination conditions for LLM calls",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  }
+]

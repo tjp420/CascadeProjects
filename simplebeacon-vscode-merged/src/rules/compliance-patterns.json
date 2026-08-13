@@ -1,0 +1,107 @@
+[
+  {
+    "id": "EUAI-HR-001",
+    "regexSource": "\\b(?:resume|curriculum\\s+vitae|cv)\\s*(?:screen|scor|rank|filter|match)|(?:candidate|applicant)\\s*(?:scor|rank|filter|screen)|(?:hiring|recruitment|employment)\\s*(?:decision|ai|model|automated)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.85,
+    "description": "EU AI Act Annex III.4 — High-risk AI system for employment/recruitment",
+    "type": "euai-employment",
+    "message": "AI system for employment/recruitment detected — EU AI Act Annex III.4 high-risk classification",
+    "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "EUAI-HR-002",
+    "regexSource": "\\b(?:credit\\s*score|creditworthiness|loan\\s*approv|lending\\s*decision|underwriting\\s*model|default\\s*risk\\s*model)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.85,
+    "description": "EU AI Act Annex III.5 — High-risk AI system for credit/lending",
+    "type": "euai-credit",
+    "message": "AI system for credit scoring/lending detected — EU AI Act Annex III.5 high-risk classification",
+    "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "EUAI-HR-003",
+    "regexSource": "\\b(?:biometric\\s*identif|facial\\s*recognition|face\\s*match|emotion\\s*detect|gait\\s*recognition)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.88,
+    "description": "EU AI Act Annex III.1 — High-risk biometric identification AI system",
+    "type": "euai-biometric",
+    "message": "Biometric identification AI detected — EU AI Act Annex III.1 high-risk classification",
+    "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "EUAI-HR-004",
+    "regexSource": "\\b(?:exam\\s*grad|student\\s*assessment\\s*automated|admission\\s*decision\\s*ai|education\\s*ai\\s*score)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.85,
+    "description": "EU AI Act Annex III.3 — High-risk AI system for education assessment",
+    "type": "euai-education",
+    "message": "AI system for education assessment detected — EU AI Act Annex III.3 high-risk classification",
+    "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "EUAI-HR-006",
+    "regexSource": "\\b(?:predictive\\s*policing|criminal\\s*risk\\s*score|recidivism\\s*model|law\\s*enforcement\\s*ai)",
+    "regexFlags": "gi",
+    "severity": "error",
+    "confidence": 0.88,
+    "description": "EU AI Act Annex III.7 — High-risk AI system for law enforcement",
+    "type": "euai-law-enforcement",
+    "message": "AI system for law enforcement detected — EU AI Act Annex III.7 high-risk classification",
+    "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "EUAI-HO-002",
+    "regexSource": "\\b(?:auto(?:matic)?\\s*(?:approve|reject|decision)|fully\\s*automated\\s*(?:decision|approval|rejection)|no\\s*human\\s*(?:review|oversight|intervention))\\b",
+    "regexFlags": "gi",
+    "severity": "warning",
+    "confidence": 0.8,
+    "description": "EU AI Act Art. 14 — Missing human oversight for automated decision-making",
+    "type": "euai-no-human-oversight",
+    "message": "Fully automated decision without human oversight — EU AI Act Art. 14 violation risk",
+    "suggestion": "Add human-in-the-loop review for automated decisions, especially for high-risk AI systems",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
+    }
+  },
+  {
+    "id": "EUAI-FRIA-001",
+    "regexSource": "\\b(?:fundamental\\s*rights\\s*impact\\s*assessment|fria)\\b",
+    "regexFlags": "gi",
+    "severity": "info",
+    "confidence": 0.7,
+    "description": "EU AI Act Art. 27 — Fundamental Rights Impact Assessment reference detected",
+    "type": "euai-fria-reference",
+    "message": "FRIA reference detected — ensure assessment is completed before deployment (EU AI Act Art. 27)",
+    "suggestion": "Verify a Fundamental Rights Impact Assessment has been completed for high-risk AI systems",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "linePrefixes": ["// simplebeacon-ignore"]
+    }
+  }
+]

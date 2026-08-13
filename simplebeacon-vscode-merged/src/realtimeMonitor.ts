@@ -32,6 +32,12 @@ const slopCatalog = require('./rules/llm-slop-catalog.json') as Array<{
   contextExclusions?: { ext?: string[]; linePrefixes?: string[] };
 }>;
 
+// Expanded rule catalogs — ported from CLI scanners for real-time IDE diagnostics
+// These cover security (secrets, PII, weak crypto), OWASP LLM Top 10, and EU AI Act compliance
+const securityCatalog = require('./rules/security-patterns.json') as typeof slopCatalog;
+const owaspLlmCatalog = require('./rules/owasp-llm-patterns.json') as typeof slopCatalog;
+const complianceCatalog = require('./rules/compliance-patterns.json') as typeof slopCatalog;
+
 export function getAuthorizedRulePresets(document: vscode.TextDocument): string[] {
   const config = getSbConfig();
   const userLicenseToken = config.get<string>('licenseKey', '');
@@ -262,6 +268,36 @@ export class RealtimeMonitor {
       },
       // SB-FICTION rules loaded from shared CLI catalog
       ...slopCatalog.map((rule) => ({
+        regex: new RegExp(rule.regexSource, rule.regexFlags),
+        severity: rule.severity,
+        confidence: rule.confidence ?? 0.5,
+        type: rule.type,
+        message: rule.message,
+        suggestion: rule.suggestion,
+        contextExclusions: rule.contextExclusions,
+      })),
+      // Security rules — secrets, PII logging, weak crypto, sync I/O, memory leaks
+      ...securityCatalog.map((rule) => ({
+        regex: new RegExp(rule.regexSource, rule.regexFlags),
+        severity: rule.severity,
+        confidence: rule.confidence ?? 0.5,
+        type: rule.type,
+        message: rule.message,
+        suggestion: rule.suggestion,
+        contextExclusions: rule.contextExclusions,
+      })),
+      // OWASP LLM Top 10 — prompt injection, data disclosure, unsafe output, excessive agency
+      ...owaspLlmCatalog.map((rule) => ({
+        regex: new RegExp(rule.regexSource, rule.regexFlags),
+        severity: rule.severity,
+        confidence: rule.confidence ?? 0.5,
+        type: rule.type,
+        message: rule.message,
+        suggestion: rule.suggestion,
+        contextExclusions: rule.contextExclusions,
+      })),
+      // EU AI Act compliance — high-risk AI system detection, human oversight, FRIA
+      ...complianceCatalog.map((rule) => ({
         regex: new RegExp(rule.regexSource, rule.regexFlags),
         severity: rule.severity,
         confidence: rule.confidence ?? 0.5,

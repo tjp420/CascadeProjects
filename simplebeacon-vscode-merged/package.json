@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.495",
+  "version": "3.0.497",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -965,7 +965,7 @@
   "scripts": {
     "build": "npm run compile",
     "vscode:prepublish": "npm run compile",
-    "compile": "node -e \"const fs=require('fs'); fs.mkdirSync('src/rules',{recursive:true}); fs.copyFileSync('../packages/simplebeacon-cli/src/rules/llm-slop-catalog.json','src/rules/llm-slop-catalog.json');\" && tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); fs.copyFileSync('src/rules/llm-slop-catalog.json','out/rules/llm-slop-catalog.json');\"",
+    "compile": "node -e \"const fs=require('fs'); fs.mkdirSync('src/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('../packages/simplebeacon-cli/src/rules/'+f+'.json','src/rules/'+f+'.json');}catch(e){}});\" && tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('src/rules/'+f+'.json','out/rules/'+f+'.json');}catch(e){}});\"",
     "watch": "tsc -watch -p ./",
     "test": "jest",
     "test:coverage": "jest --coverage",
