@@ -1,0 +1,92 @@
+# CI gate for the SimpleBeacon true-positive fixture matrix.
+# Runs the matrix validation runner on PRs that touch scanner code or fixtures.
+# Blocks merge if any engine misses an expected finding (recall < 1.0).
+
+name: Scanner Matrix Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'packages/simplebeacon-cli/src/**'
+      - 'packages/simplebeacon-cli/tests/fixtures/true-positives/**'
+      - 'packages/simplebeacon-cli/tests/matrix-validation.test.js'
+      - '.github/workflows/scanner-matrix-validation.yml'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/simplebeacon-cli/src/**'
+      - 'packages/simplebeacon-cli/tests/fixtures/true-positives/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  matrix-validation:
+    name: True-Positive Matrix Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install dependencies
+        working-directory: packages/simplebeacon-cli
+        run: npm install --no-fund --no-audit
+
+      - name: Install root dependencies (for ajv schema validation)
+        run: npm install --no-fund --no-audit
+
+      - name: Run matrix validation runner
+        working-directory: packages/simplebeacon-cli
+        run: node tests/fixtures/true-positives/run-matrix-validation.cjs
+
+      - name: Validate coverage-map.json against schema
+        run: |
+          node -e "
+            const fs = require('fs');
+            const Ajv = require('ajv');
+            const ajv = new Ajv({ allErrors: true });
+            const schema = JSON.parse(fs.readFileSync('packages/simplebeacon-cli/tests/fixtures/true-positives/coverage-map.schema.json', 'utf8'));
+            const data = JSON.parse(fs.readFileSync('packages/simplebeacon-cli/tests/fixtures/true-positives/coverage-map.json', 'utf8'));
+            const validate = ajv.compile(schema);
+            const ok = validate(data);
+            if (!ok) {
+              console.error('Coverage map schema validation failed:', JSON.stringify(validate.errors, null, 2));
+              process.exit(1);
+            }
+            console.log('Coverage map validates against schema v1');
+          "
+
+      - name: Run node:test wrapper
+        working-directory: packages/simplebeacon-cli
+        run: node --test tests/matrix-validation.test.js
+
+      - name: Upload coverage map artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanner-coverage-map
+          path: packages/simplebeacon-cli/tests/fixtures/true-positives/coverage-map.json
+          retention-days: 30
+
+      - name: Report results on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = '${{ job.status }}';
+            const body = result === 'success'
+              ? '✅ Scanner matrix validation passed — all engines detected expected findings (recall = 1.0).'
+              : `❌ Scanner matrix validation failed (${result}). One or more engines missed expected findings. Check the workflow logs for details.`;
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body
+            });

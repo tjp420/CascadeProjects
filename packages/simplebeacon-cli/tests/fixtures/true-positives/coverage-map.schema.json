@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://simplebeacon.ai/schemas/coverage-map-v1.json",
+  "title": "SimpleBeacon Coverage Map",
+  "description": "Data contract for the true-positive matrix validation coverage map. Emitted by run-matrix-validation.cjs after each suite run and consumed by AuditView.tsx and CI gates.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "suite", "metrics", "engines"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Increment on breaking changes to the contract."
+    },
+    "generatedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "description": "ISO 8601 timestamp of when the coverage map was generated."
+    },
+    "suite": {
+      "type": "object",
+      "required": ["totalFixtures", "totalEngines", "passed", "failed", "errors", "skipped"],
+      "additionalProperties": false,
+      "properties": {
+        "totalFixtures": { "type": "integer", "minimum": 0 },
+        "totalEngines": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["precision", "recall", "f1"],
+      "additionalProperties": false,
+      "properties": {
+        "precision": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "True positives / (true positives + false positives). 1.0 means no false positives."
+        },
+        "recall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "True positives / (true positives + false negatives). 1.0 means all expected findings detected. CI gate requires recall = 1.0."
+        },
+        "f1": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Harmonic mean of precision and recall."
+        }
+      }
+    },
+    "engines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["engineId", "status", "fixturesPassed", "fixturesFailed", "fixturesErrored"],
+        "additionalProperties": false,
+        "properties": {
+          "engineId": {
+            "type": "string",
+            "description": "Engine identifier matching suite-manifest.json fixture engineId values."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pass", "fail"],
+            "description": "pass = all fixtures for this engine detected their expected findings. fail = at least one fixture missed an expected finding or errored."
+          },
+          "fixturesPassed": { "type": "integer", "minimum": 0 },
+          "fixturesFailed": { "type": "integer", "minimum": 0 },
+          "fixturesErrored": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

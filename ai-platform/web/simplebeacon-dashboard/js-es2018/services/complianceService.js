@@ -58,3 +58,19 @@ export async function downloadComplianceCsv(authHeaders = {}) {
     throw new Error(`Failed to download compliance CSV: ${err.message}`);
   }
 }
+
+/**
+ * Compliance service facade exposing a downloadReport dispatcher.
+ * @param {object} [authHeaders] - Auth headers
+ * @param {'json'|'csv'} [format='json'] - Report format
+ * @returns {Promise<object>} JSON report object for 'json', { success: true } for 'csv'
+ */
+async function downloadReport(authHeaders = {}, format = 'json') {
+  if (format === 'csv') {
+    await downloadComplianceCsv(authHeaders);
+    return { success: true };
+  }
+  return fetchComplianceReport(authHeaders);
+}
+
+export const complianceService = { downloadReport };
