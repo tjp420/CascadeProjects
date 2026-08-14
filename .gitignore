@@ -409,3 +409,33 @@ tools/bench-sample/
 ai-platform/.perf/
 ai-platform/server/lib/db/token-registry.json
 ai-platform/server/db/
+
+# Tracked secret keys (must never be committed — remove from index if tracked)
+.simplebeacon/.encryption-key
+.simplebeacon/.webhook-key
+
+# Loose commit-message scratch files
+.commit-msg-*.txt
+.commit-msg.txt
+
+# Air-gapped release tarballs
+*.tar.gz
+
+# PR body scratch files
+.pr-body.md
+PR_BODY_TMP
+
+# Patch-fix scratch files
+*.patch-fix
+
+# Untracked build artifacts (Vite output)
+ai-platform/web/simplebeacon-dashboard/assets/
+coming-soon/public/app/assets/
+coming-soon/public/dashboard/assets/
+simplebeacon-vscode-merged/dashboard-web/assets/
+
+# Playwright reports
+**/playwright-report/
+
+# Field engineer scratch docs
+docs/FIELD_ENGINEER_RUNBOOK.md
