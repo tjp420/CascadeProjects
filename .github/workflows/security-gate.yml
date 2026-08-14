@@ -297,7 +297,7 @@ jobs:
 
       - name: Build ai-platform pipeline image
         run: |
-          docker build -t ai-platform-pipeline:pr -f ai-platform/pipeline/Dockerfile ai-platform
+          docker build -t ai-platform-pipeline:pr -f ai-platform/pipeline/Dockerfile ai-platform/pipeline
 
       - name: Scan coming-soon image with Trivy (SARIF)
         uses: aquasecurity/trivy-action@v0.11.0
