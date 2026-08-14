@@ -62,6 +62,64 @@ function main() {
 
   rewriteWorkerImports(path.join(DIST_ASSETS, 'scan-worker.js'));
 
+  // Copy hashed main entry to unhashed main.js for index.html compatibility.
+  // Chunk files KEEP their hashes so dynamic imports are content-addressed
+  // and never served stale from browser cache (fixes React error #321).
+  const entryMatch = fs.readdirSync(DIST_ASSETS).find(
+    f => /^main-[a-zA-Z0-9_-]+\.js$/.test(f) && !f.endsWith('.map')
+  );
+  if (entryMatch) {
+    const entryPath = path.join(DIST_ASSETS, entryMatch);
+    const mainJsPath = path.join(DIST_ASSETS, 'main.js');
+    fs.copyFileSync(entryPath, mainJsPath);
+    console.log(`[prepare-worker-assets] Copied ${entryMatch} → main.js`);
+
+    // Rewrite chunk imports: replace references to "main-[hash].js" with "main.js"
+    // so chunks can resolve the unhashed entry at runtime.
+    const chunkFiles = fs.readdirSync(DIST_ASSETS).filter(
+      f => /\.js$/.test(f) && !f.endsWith('.map') && f !== entryMatch && f !== 'main.js'
+    );
+    for (const chunkFile of chunkFiles) {
+      const chunkPath = path.join(DIST_ASSETS, chunkFile);
+      const original = fs.readFileSync(chunkPath, 'utf8');
+      const rewritten = original.replace(
+        new RegExp(`from"\\./${entryMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g'),
+        'from"./main.js"'
+      );
+      if (original !== rewritten) {
+        fs.writeFileSync(chunkPath, rewritten, 'utf8');
+        console.log(`[prepare-worker-assets] Rewrote main import in ${chunkFile}`);
+      }
+    }
+  } else {
+    console.warn('[prepare-worker-assets] No hashed main entry found — skipping unhashed copy');
+  }
+
+  // Copy hashed main CSS to unhashed main.css for index.html compatibility.
+  const cssMatch = fs.readdirSync(DIST_ASSETS).find(
+    f => /^main-[a-zA-Z0-9_-]+\.css$/.test(f)
+  );
+  if (cssMatch) {
+    const cssEntryPath = path.join(DIST_ASSETS, cssMatch);
+    const mainCssPath = path.join(DIST_ASSETS, 'main.css');
+    fs.copyFileSync(cssEntryPath, mainCssPath);
+    console.log(`[prepare-worker-assets] Copied ${cssMatch} → main.css`);
+  } else {
+    console.warn('[prepare-worker-assets] No hashed main CSS found — skipping unhashed copy');
+  }
+
+  // Verification: ensure main.js chunk references match files on disk.
+  // This catches stale-hash bugs where main.js references chunks that don't exist.
+  const mainJsContent = fs.readFileSync(path.join(DIST_ASSETS, 'main.js'), 'utf8');
+  const chunkRefs = [...mainJsContent.matchAll(/["']([a-zA-Z0-9_-]+-[a-zA-Z0-9_-]+\.js)["']/g)].map(m => m[1]);
+  const missingChunks = chunkRefs.filter(ref => !fs.existsSync(path.join(DIST_ASSETS, ref)));
+  if (missingChunks.length > 0) {
+    console.error(`[prepare-worker-assets] FATAL: main.js references missing chunks: ${missingChunks.join(', ')}`);
+    console.error('[prepare-worker-assets] Run "npm run build" again to regenerate all assets.');
+    process.exit(1);
+  }
+  console.log(`[prepare-worker-assets] Verified ${chunkRefs.length} chunk references in main.js — all exist on disk`);
+
   console.log('[prepare-worker-assets] Copied worker dependencies into assets');
   console.log('[prepare-worker-assets] Rewrote assets/scan-worker.js imports to local asset paths');
 }
