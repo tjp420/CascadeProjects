@@ -80,7 +80,7 @@ function loadBabelParser() {
     try {
         babelParser = require('@babel/parser');
         return babelParser;
-    } catch (error) {
+    } catch (_error) {
         return null;
     }
 }

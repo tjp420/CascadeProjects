@@ -4,7 +4,6 @@
 
 const { isBenchmarkScanTargetRoot } = require('./benchmark-cache-paths');
 const { redactProjectPathForExport, projectLabelFromPath } = require('./assessment-export-sanitize');
-const constants = require('./constants');
 
 const SIMPLEBEACON_ROADMAP_MARKERS = [
     /docker-compose\.phase2\.yml/i,

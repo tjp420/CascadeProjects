@@ -108,6 +108,11 @@ function callOpenAIChatCompletion(prompt, options = {}) {
         throw new Error('OPENAI_API_KEY is required for --enhance');
     }
 
+    // Offline guard: refuse to call OpenAI API when --offline is active
+    if (options.offline || process.env.SIMPLEBEACON_OFFLINE === '1' || process.env.SIMPLEBEACON_OFFLINE === 'true') {
+        throw new Error('OpenAI enhancement blocked in offline mode — --enhance requires network access. Remove --offline to use --enhance.');
+    }
+
     const model = options.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
     const body = JSON.stringify({
         model,

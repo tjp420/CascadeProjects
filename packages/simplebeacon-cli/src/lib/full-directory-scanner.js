@@ -7,7 +7,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { runTextRulePasses, buildFictionPatterns } = require('./full-tree-rule-pass');
+const { buildFictionPatterns } = require('./full-tree-rule-pass');
 const { runTextRulePassesParallel, resolveWorkerCount } = require('./full-tree-scan-pool');
 const { preflightOrThrow, sampleAndThrow } = require('./resource-guard');
 const {

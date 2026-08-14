@@ -11,7 +11,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'coming-soon/index.html'),
-        upload: resolve(__dirname, 'coming-soon/upload.html'),
         pricing: resolve(__dirname, 'coming-soon/pricing.html')
       },
       output: {

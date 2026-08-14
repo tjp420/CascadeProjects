@@ -152,7 +152,7 @@ function validateLicenseToken(token, secret) {
         } catch {
             return { valid: false, error: 'Malformed payload' };
         }
-        const now = Math.floor(Date.now() / 1000);
+        const _now = Math.floor(Date.now() / 1000);
         // 2-part tokens use milliseconds for exp
         const expMs = payload.exp;
         if (expMs && Date.now() > expMs) {

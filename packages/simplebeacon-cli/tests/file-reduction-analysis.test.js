@@ -27,7 +27,7 @@ class MockScanner {
     constructor(options) {
         this.options = options;
     }
-    async scan(projectRoot, opts) {
+    async scan(_projectRoot, _opts) {
         return this.options._result || { findings: [], summary: {} };
     }
 }

@@ -203,7 +203,7 @@ function parsePnpmLockfile(lockfilePath) {
     const seen = new Set();
     // pnpm v6: "/lodash/4.17.21" or "/@babel/core/7.0.0"
     // pnpm v5: "lodash/4.17.21"
-    const packageRegex = /^\/?(?:@[^/]+\/)?[^/\s]+\/(\d[^/\s]*)/gm;
+    const _packageRegex = /^\/?(?:@[^/]+\/)?[^/\s]+\/(\d[^/\s]*)/gm;
     // More robust: parse line by line in packages section
     const lines = raw.split('\n');
     let inPackages = false;

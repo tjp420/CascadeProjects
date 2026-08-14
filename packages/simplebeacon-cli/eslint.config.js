@@ -24,7 +24,9 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
         AbortController: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
-        crypto: 'readonly'
+        crypto: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly'
       }
     },
     rules: {
@@ -56,7 +58,9 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
         afterEach: 'readonly',
         before: 'readonly',
         after: 'readonly',
-        test: 'readonly'
+        test: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly'
       }
     },
     rules: {

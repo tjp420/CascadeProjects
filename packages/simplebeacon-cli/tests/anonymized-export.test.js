@@ -12,7 +12,6 @@ const {
     verifyAnonymizedExport,
     validateAnonymizedSchema,
     resolveTypeCode,
-    ERROR_TYPE_CODES,
     SEVERITY_BANDS
 } = require('../src/lib/anonymized-export');
 

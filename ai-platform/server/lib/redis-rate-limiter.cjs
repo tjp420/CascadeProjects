@@ -67,8 +67,10 @@ try {
           local earliest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
           return {0, tonumber(earliest[2])}
         end
-        redis.call('ZADD', key, now, tostring(now))
+        local seq = redis.call('INCR', key .. ':seq')
+        redis.call('ZADD', key, now, tostring(now) .. '-' .. tostring(seq))
         redis.call('EXPIRE', key, math.ceil(window/1000) + 1)
+        redis.call('EXPIRE', key .. ':seq', math.ceil(window/1000) + 1)
         return {1, 0}
       `;
       redisClient.defineCommand('agenticRateLimit', { numberOfKeys: 1, lua });
@@ -102,8 +104,10 @@ async function checkAndRecordRateLimit(orgId) {
         local earliest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
         return {0, tonumber(earliest[2])}
       end
-      redis.call('ZADD', key, now, tostring(now))
+      local seq = redis.call('INCR', key .. ':seq')
+      redis.call('ZADD', key, now, tostring(now) .. '-' .. tostring(seq))
       redis.call('EXPIRE', key, math.ceil(window/1000) + 1)
+      redis.call('EXPIRE', key .. ':seq', math.ceil(window/1000) + 1)
       return {1, 0}
     `;
     try {

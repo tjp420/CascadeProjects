@@ -7,8 +7,6 @@ const path = require('path');
 const {
     scanEuAiActPatterns,
     detectComplianceArtifacts,
-    scanComplianceObligations,
-    scanAbsenceComplianceGaps,
     COMPLIANCE_OBLIGATIONS
 } = require('../src/rules/eu-ai-act-patterns');
 

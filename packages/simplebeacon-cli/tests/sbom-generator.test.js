@@ -76,7 +76,7 @@ test('generateSbom components have correct purl format', async () => {
             'node_modules/lodash': { version: '4.17.21' }
         }
     }));
-    const result = await generateSbom(dir);
+    const _result = await generateSbom(dir);
     const sbomPath = path.join(dir, '.simplebeacon', 'sbom.cyclonedx.json');
     const sbom = JSON.parse(fs.readFileSync(sbomPath, 'utf8'));
     const lodash = sbom.components.find((c) => c.name === 'lodash');

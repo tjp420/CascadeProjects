@@ -128,7 +128,7 @@ async function remediateFinding(issue, options = {}) {
     if (!issue || typeof issue !== 'object') {
         return { applied: false, reason: 'Invalid issue object' };
     }
-    const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+    const _opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
     const filePath = issue.filePath || (issue.affectedFiles && issue.affectedFiles[0]);
     if (!filePath) {
         return { applied: false, reason: 'No filePath in issue' };

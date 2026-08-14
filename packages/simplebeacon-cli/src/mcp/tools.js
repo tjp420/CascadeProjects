@@ -30,7 +30,7 @@ function formatMarkdownResult(title, markdown) {
     };
 }
 
-function validateArgs(args, schema) {
+function _validateArgs(args, schema) {
     if (!args || typeof args !== 'object') throw new Error('arguments must be an object');
     const required = schema.required || [];
     for (const key of required) {

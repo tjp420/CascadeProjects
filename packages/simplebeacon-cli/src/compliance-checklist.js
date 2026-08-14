@@ -165,7 +165,7 @@ function buildEvaluationContext(report, options = {}) {
  * @param {number} bytes
  * @returns {string} e.g. "1.5 MB"
  */
-function formatBytes(bytes) {
+function _formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -217,7 +217,6 @@ function evaluateComplianceChecklist(report, options = {}) {
         ? { checklist: options.checklist }
         : loadComplianceChecklist(projectRoot, { checklistProfile: options.checklistProfile });
     if (error) {
-        /* eslint-disable no-console */
         console.warn('[compliance-checklist]', error);
     }
     const context = buildEvaluationContext(report, options);
