@@ -9,7 +9,6 @@
  */
 
 const { execFile } = require('child_process');
-const path = require('path');
 const { CREDENTIAL_PATTERNS, ALLOWLIST_SNIPPETS } = require('../lib/credential-pattern-scanner');
 
 const DEFAULT_MAX_COMMITS = 1000;
@@ -232,7 +231,7 @@ function runGit(rootDir, args, timeoutMs) {
             timeout: timeoutMs,
             maxBuffer: 50 * 1024 * 1024, // 50MB
             windowsHide: true,
-        }, (err, stdout, stderr) => {
+        }, (err, stdout, _stderr) => {
             if (err) return reject(err);
             resolve(stdout);
         });

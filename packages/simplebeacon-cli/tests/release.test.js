@@ -11,7 +11,6 @@ const {
     bumpVersion,
     categorizeCommits,
     generateChangelogEntry,
-    updateChangelog,
     extractOptValue,
     VALID_BUMPS
 } = require('../scripts/release.cjs');
@@ -47,7 +46,7 @@ test('parseArgs extracts --dry-run and --skip-tests', () => {
 test('parseArgs exits on invalid bump type', () => {
     let exited = false;
     const origExit = process.exit;
-    process.exit = (code) => { exited = true; throw new Error('exit'); };
+    process.exit = (_code) => { exited = true; throw new Error('exit'); };
     try {
         parseArgs(['node', 'release.cjs', 'invalid']);
     } catch {
@@ -167,10 +166,6 @@ test('updateChangelog creates new file with header when none exists', () => {
     const changelogPath = path.join(tmpDir, 'CHANGELOG.md');
 
     // Monkey-patch the CHANGELOG_PATH in the module
-    const releaseModule = require('../scripts/release.cjs');
-    const origFsRead = fs.readFileSync;
-    const origFsWrite = fs.writeFileSync;
-
     // We test the logic directly
     const header = '# Changelog\n\nAll notable changes to the simplebeacon CLI package are documented here.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n';
     const newEntry = '## [1.0.1] - 2026-08-07\n\n### Patch release from 1.0.0\n\n### Bug Fixes\n\n- fix: something (abc1234)\n';

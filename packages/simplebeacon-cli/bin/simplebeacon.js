@@ -16,7 +16,7 @@ try {
     ({ orchestratePolicyPipeline } = require('../src/policy/PolicyOrchestrator'));
     ({ TrustStore } = require('../src/policy/signature-verifier'));
     ({ RemediationEngine, STRUCTURAL_RULES } = require('../src/policy/RemediationEngine'));
-} catch (_e) {
+} catch {
     // Policy module not available — functions will throw if called
 }
 const {
@@ -1628,7 +1628,7 @@ function runSecretsGateCommand(options) {
     try {
         const output = execSync('git diff --cached --name-only --diff-filter=ACM', { cwd: root, encoding: 'utf8' });
         stagedFiles = output.trim().split('\n').filter(Boolean);
-    } catch (_e) { /* not a git repo or no staged files */ }
+    } catch { /* not a git repo or no staged files */ }
 
     const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'coverage', '.simplebeacon']);
     const allFindings = [];
@@ -1641,7 +1641,7 @@ function runSecretsGateCommand(options) {
             const content = fs.readFileSync(fullPath, 'utf8');
             allFindings.push(...scanTextContent(content, fullPath));
             scannedFiles++;
-        } catch (_e) { skippedFiles++; }
+        } catch { skippedFiles++; }
     }
     const result = {
         pass: allFindings.length === 0,
@@ -1951,8 +1951,7 @@ async function runTeamMetricsCommand(options) {
         exportAnonymizedReport,
         clearTeamMetrics,
         registerProject,
-        setTeamId,
-        METRICS_FILE
+        setTeamId
     } = require('../src/lib/team-metrics');
 
     const subcommand = options._positional?.[0] || 'report';
@@ -2075,7 +2074,7 @@ function runFixCommand(options) {
             let stat;
             try {
                 stat = fs.statSync(fullPath);
-            } catch (e) {
+            } catch {
                 continue;
             }
             if (stat.isDirectory()) {

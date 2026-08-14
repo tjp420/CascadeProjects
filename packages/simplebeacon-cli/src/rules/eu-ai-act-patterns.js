@@ -287,10 +287,6 @@ function normalizeRel(baseDir, filePath) {
     return path.relative(baseDir, filePath).split(path.sep).join('/');
 }
 
-function lineNumberAt(content, index) {
-    return content.slice(0, Math.max(0, index)).split('\n').length;
-}
-
 function extractLineAt(content, index) {
     const lines = content.split('\n');
     let pos = 0;
@@ -309,7 +305,7 @@ function buildEvidence(rule, lineText, match) {
     return `Matched "${rule.id}" in code: "${snippet}" — ${rule.description}`;
 }
 
-function buildFix(rule, relativePath, lineNumber, lineText) {
+function buildFix(rule, relativePath, lineNumber, _lineText) {
     const fileName = typeof relativePath === 'string' ? path.basename(relativePath) : 'file';
     if (rule.fixTemplate) return rule.fixTemplate;
     if (rule.category === 'high-risk') {
@@ -544,7 +540,7 @@ function scanHumanOversightGaps(relativePath, content, hasHighRiskInFile, severi
     }];
 }
 
-function scanLoggingGaps(relativePath, content, hasAiInFile, severityDefault) {
+function scanLoggingGaps(relativePath, content, hasAiInFile, _severityDefault) {
     if (!hasAiInFile) return [];
     if (LOGGING_PATTERNS.some((pattern) => pattern.test(content))) return [];
     const isDecisionPath = /(?:route|controller|service|handler|api)/i.test(relativePath);
@@ -727,7 +723,6 @@ async function scanEuAiActPatterns(baseDir, options = {}) {
         if (/simplebeacon-ignore/i.test(content.substring(0, 500))) continue;
 
         scanned += 1;
-        const ext = file.ext || path.extname(file.path).toLowerCase();
 
         const highRiskIssues = scanCatalogPatterns(relativePath, content, HIGH_RISK_CATALOG, 'high');
         const aiIssues = scanCatalogPatterns(relativePath, content, AI_SYSTEM_INDICATORS, severityDefault);

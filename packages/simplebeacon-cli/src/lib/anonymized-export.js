@@ -61,14 +61,6 @@ function anonymizeIssue(issue, index) {
     const severity = resolveSeverityBand(issue);
     const count = issue.count || 1;
 
-    // Hash the pattern ID if present — keeps determinism without leaking names
-    const patternHash = issue.pattern || issue.metadata?.patternId
-        ? crypto.createHash('sha256')
-            .update(String(issue.pattern || issue.metadata?.patternId || ''))
-            .digest('hex')
-            .slice(0, 12)
-        : null;
-
     return {
         i: index + 1,                          // anonymous sequence number only
         t: typeMeta.code,                     // type code (e.g., SB-007)

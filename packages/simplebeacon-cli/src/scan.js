@@ -54,10 +54,8 @@ const { countRepositoryInventory } = require('./lib/repository-inventory');
 const { normalizePathKey, displayRelativePath } = require('./lib/path-utils');
 const { sanitizePath } = require('./lib/path-sanitizer');
 const {
-    isExternalBenchmarkCachePath,
     partitionBenchmarkIssues,
-    MOCK_WALK_SKIP_DIRS,
-    FULL_SCAN_SKIP_DIRS
+    MOCK_WALK_SKIP_DIRS
 } = require('./lib/benchmark-cache-paths');
 const { normalizePlatformScanReport, reconcileScanReport } = require('./lib/normalize-scan-report');
 const { evaluateGate } = require('./gate');
@@ -956,12 +954,12 @@ function buildScanReport(opts) {
 
     const {
         roadmapValidation, consistency, credentialScan, productionLeakScan,
-        sourceFictionScan, llmSlopScan, agencyHandoffScan, euAiActScan,
-        jestBaseline, tokenBleedScan, architectureDriftScan, securityPatternScan,
-        fileReduction, hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
+        sourceFictionScan, llmSlopScan, euAiActScan,
+        jestBaseline, securityPatternScan,
+        hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
-        dependencyGraphScan, comprehensiveScan,
+        dependencyGraphScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan
     } = resolved;
 

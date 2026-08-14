@@ -43,7 +43,7 @@ function isExcludedPath(filePath, rootDir) {
     return SKIP_DIRS.has(firstDir);
 }
 
-function parseAst(content, filePath) {
+function parseAst(content, _filePath) {
     if (!babelParser) return null;
     try {
         return babelParser.parse(content, {
@@ -75,7 +75,7 @@ function parseAst(content, filePath) {
     }
 }
 
-function analyzeDeadweightFunctions(ast, relativePath) {
+function analyzeDeadweightFunctions(ast, _relativePath) {
     if (!ast || !babelTraverse) return [];
     const exports = new Map();
     const calls = new Set();
@@ -141,7 +141,7 @@ function analyzeDeadweightFunctions(ast, relativePath) {
     return findings;
 }
 
-function analyzeRedundantTryCatch(ast, relativePath) {
+function analyzeRedundantTryCatch(ast, _relativePath) {
     if (!ast || !babelTraverse) return [];
     let tryCatchCount = 0;
     let functionCount = 0;
@@ -177,7 +177,7 @@ function analyzeRedundantTryCatch(ast, relativePath) {
     return findings;
 }
 
-function analyzePromiseChains(ast, relativePath) {
+function analyzePromiseChains(ast, _relativePath) {
     if (!ast || !babelTraverse) return [];
     let chainCount = 0;
     let identicalCatchCount = 0;

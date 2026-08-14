@@ -28,7 +28,7 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
       }
     },
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'no-undef': 'error',
       'no-constant-condition': 'warn',
       'no-unreachable': 'error',
@@ -60,7 +60,7 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
       }
     },
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'no-undef': 'error'
     }
   },
@@ -77,7 +77,7 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
       }
     },
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'no-undef': 'error'
     }
   }

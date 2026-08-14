@@ -29,10 +29,6 @@ const COMMENT_PATTERNS = [
   /\{\s*\/\/.*$/gm        // JSX inline
 ];
 
-const HASH_COMMENT_PATTERNS = [
-  /#.*$/gm               // Python/Shell/YAML only
-];
-
 const SECRET_PATTERNS = [
   {
     id: 'SB-SEC-007',

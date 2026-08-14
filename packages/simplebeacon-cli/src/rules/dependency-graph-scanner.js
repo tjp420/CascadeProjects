@@ -48,7 +48,7 @@ function isExcludedPath(filePath, rootDir) {
   return SKIP_DIRS.has(firstDir);
 }
 
-function resolveImportPath(importPath, fromFile, sourcePaths) {
+function resolveImportPath(importPath, fromFile, _sourcePaths) {
   if (!importPath.startsWith('.')) {
     // Package import — not part of local dependency graph
     return null;
@@ -259,7 +259,6 @@ function detectUnusedExports(fileExports, allImports) {
 function detectOrphanedModules(fileGraph, fileExports, rootDir) {
   const issues = [];
   for (const [filePath, exports] of fileGraph.entries()) {
-    const deps = fileGraph.get(filePath) || [];
     // A file is orphaned if:
     // 1. No other file imports it (not a dependency of anything)
     // 2. It has no imports (isolated) OR its exports are unused

@@ -18,7 +18,7 @@ function decodeJwtEmail(token) {
         ).toString('utf8');
         const payload = JSON.parse(payloadJson);
         return payload.email || payload.sub || null;
-    } catch (_) {
+    } catch {
         return null;
     }
 }
@@ -28,7 +28,7 @@ function readLicenseTokenFromDisk() {
     try {
         if (!fs.existsSync(licensePath)) return null;
         return fs.readFileSync(licensePath, 'utf8').trim();
-    } catch (_) {
+    } catch {
         return null;
     }
 }
@@ -109,7 +109,7 @@ async function resolveReferralNudgeContext(options = {}) {
             partnerCode: data.partnerCode || data.slug || null,
             personalized: true
         };
-    } catch (_) {
+    } catch {
         return generic;
     }
 }

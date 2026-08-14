@@ -11,9 +11,6 @@ const {
     consolidationCandidateTouchesExcluded,
     filterFuzzyPairs,
     countExcludedFuzzyPairs,
-    isBrowserBuildMirrorPair,
-    isIntentionalMcpExamplePair,
-    isMonorepoPlatformAliasPair,
     countIntentionalPairExclusions
 } = require('./consolidation-path-exclusions');
 

@@ -75,7 +75,7 @@ function resolveProjectName(report = {}) {
 function generateBlogPost(report, options = {}) {
   const { findings, topFindings } = extractScanHighlights(report);
   const projectName = resolveProjectName(report);
-  const tone = resolveTone('blog', options);
+  const _tone = resolveTone('blog', options);
 
   const headline = findings.gatePass
     ? `${projectName} Passes Simplebeacon Hygiene Gate — Here is What We Found`
@@ -141,7 +141,7 @@ function generateBlogPost(report, options = {}) {
   return sections.join('\n');
 }
 
-function generateTwitterThread(report, options = {}) {
+function generateTwitterThread(report, _options = {}) {
   const { findings } = extractScanHighlights(report);
   const projectName = resolveProjectName(report);
 
@@ -182,7 +182,7 @@ function generateTwitterThread(report, options = {}) {
   return tweets.map((t, i) => `${i + 1}/${tweets.length}\n${t}`).join('\n\n---\n\n');
 }
 
-function generateLinkedInPost(report, options = {}) {
+function generateLinkedInPost(report, _options = {}) {
   const { findings, topFindings } = extractScanHighlights(report);
   const projectName = resolveProjectName(report);
 
@@ -215,7 +215,7 @@ function generateLinkedInPost(report, options = {}) {
   return lines.join('\n');
 }
 
-function generateNewsletter(report, options = {}) {
+function generateNewsletter(report, _options = {}) {
   const { findings } = extractScanHighlights(report);
   const projectName = resolveProjectName(report);
 
@@ -318,7 +318,7 @@ function generateCaseStudy(report, options = {}) {
   return lines.join('\n');
 }
 
-function generateOnePager(report, options = {}) {
+function generateOnePager(report, _options = {}) {
   const { findings } = extractScanHighlights(report);
 
   const lines = [
@@ -375,7 +375,7 @@ function generateOnePager(report, options = {}) {
   return lines.join('\n');
 }
 
-function generatePressKit(report, options = {}) {
+function generatePressKit(report, _options = {}) {
   const { findings } = extractScanHighlights(report);
 
   const lines = [
@@ -435,7 +435,7 @@ function generatePressKit(report, options = {}) {
   return lines.join('\n');
 }
 
-function generateLandingPage(report, options = {}) {
+function generateLandingPage(report, _options = {}) {
   const { findings } = extractScanHighlights(report);
   const templatePath = path.join(__dirname, '../../../docs/marketing/content-templates/landing-page-template.html');
   let template;

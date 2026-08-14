@@ -87,68 +87,6 @@ function memoizeAsync(fn, maxSize = 128) {
     };
 }
 
-/**
- * Retry an async function with exponential backoff.
- * @param {Function} fn Function to retry.
- * @param {Object} [opts]
- * @param {number} [opts.retries=3] Max retry attempts.
- * @param {number} [opts.delayMs=1000] Initial delay.
- * @param {number} [opts.backoff=2] Backoff multiplier.
- * @param {number} [opts.maxDelayMs=30000] Max delay cap.
- * @param {Function} [opts.shouldRetry] Predicate to determine if error is retriable.
- * @returns {Promise<any>}
- */
-async function retry(fn, opts = {}) {
-    const {
-        retries = 3,
-        delayMs = 1000,
-        backoff = 2,
-        maxDelayMs = 30000,
-        shouldRetry = () => true
-    } = opts;
-    let attempt = 0;
-    while (true) {
-        try {
-            return await fn();
-        } catch (err) {
-            if (attempt >= retries || !shouldRetry(err)) throw err;
-            const wait = Math.min(delayMs * Math.pow(backoff, attempt), maxDelayMs);
-            await new Promise(r => setTimeout(r, wait));
-            attempt++;
-        }
-    }
-}
-
-/**
- * Race a promise against a timeout.
- * @param {Promise<any>} promise
- * @param {number} ms
- * @param {string} [message='Operation timed out']
- * @returns {Promise<any>}
- */
-async function withTimeout(promise, ms, message = 'Operation timed out') {
-    let timer;
-    try {
-        return await Promise.race([
-            promise,
-            new Promise((_, reject) => {
-                timer = setTimeout(() => reject(new Error(message)), ms);
-            })
-        ]);
-    } finally {
-        clearTimeout(timer);
-    }
-}
-
-/**
- * Promise-based sleep.
- * @param {number} ms
- * @returns {Promise<void>}
- */
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 module.exports = {
     debounceAsync,
     throttleAsync,

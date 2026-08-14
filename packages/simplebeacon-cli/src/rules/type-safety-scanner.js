@@ -47,7 +47,6 @@ const RULES = [
 
 function isScannable(filePath) {
   const ext = path.extname(filePath).toLowerCase();
-  const basename = path.basename(filePath).toLowerCase();
   if (!SCANNABLE_EXTENSIONS.has(ext)) return false;
   if (SKIP_FILES.test(path.basename(filePath))) return false;
   return true;

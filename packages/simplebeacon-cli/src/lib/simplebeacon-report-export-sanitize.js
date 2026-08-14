@@ -33,12 +33,10 @@ function projectLabelFromPath(projectPath) {
 
 function stripInternalReportExportFields(report) {
     if (!report || typeof report !== 'object') return report;
-    const {
-        rawIssues: _rawIssues,
-        sampleFiles: _sampleFiles,
-        benchmarkCloneNoiseIssues: _benchmarkCloneNoiseIssues,
-        ...rest
-    } = report;
+    const rest = { ...report };
+    delete rest.rawIssues;
+    delete rest.sampleFiles;
+    delete rest.benchmarkCloneNoiseIssues;
     return rest;
 }
 

@@ -69,7 +69,7 @@ function _createNamespace(name, path) {
             if (typeof prop !== 'string') return false;
             return prop in _loadModule(name, path);
         },
-        ownKeys(target) {
+        ownKeys(_target) {
             return Reflect.ownKeys(_loadModule(name, path));
         },
         getOwnPropertyDescriptor(target, prop) {
@@ -98,7 +98,7 @@ function _createMultiNamespace(name, paths) {
             }
             return false;
         },
-        ownKeys(target) {
+        ownKeys(_target) {
             const keys = new Set();
             for (const p of paths) {
                 for (const k of Reflect.ownKeys(_loadModule(_key(p), p))) {
@@ -127,16 +127,11 @@ const {
     loadSimplebeaconConfig,
     loadCentralDataConfig,
     resolveScanPaths,
-    resolvePathFromBase,
-    normalizeRelativePath,
-    getInitTemplates,
     DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
     DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
-    DEFAULT_BASELINE,
-    DEFAULT_CONFIG,
-    PROFILE_RULES
+    DEFAULT_BASELINE
 } = configModule;
-const { detectProjectProfile, resolvePlatformRoot } = projectDetect;
+const { resolvePlatformRoot } = projectDetect;
 const { PathError } = errors;
 
 /**
@@ -440,7 +435,7 @@ function _buildLazyFlatExport(specs) {
             }
             return false;
         },
-        ownKeys(target) {
+        ownKeys(_target) {
             const keys = new Set([
                 'version', 'resolveMockDataScanPaths', 'getRepositoryAuditBaseline',
                 'getConsistencyAnchorSamples', 'Simplebeacon',

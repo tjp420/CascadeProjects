@@ -201,7 +201,6 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
       const matchLineIndex = lines.findIndex(l => l.toLowerCase().includes(lowerTerm));
       if (matchLineIndex < 0) continue;
       const matchLine = lines[matchLineIndex];
-      const lowerLine = matchLine.toLowerCase();
 
       // Check for simplebeacon-ignore suppression on the preceding line
       const prevLine = matchLineIndex > 0 ? lines[matchLineIndex - 1] : '';

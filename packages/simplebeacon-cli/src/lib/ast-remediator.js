@@ -55,7 +55,7 @@ function makeDiff(search, replace, fileName) {
 /**
  * SB-PY-FICTION-002: Python stub function → raise NotImplementedError
  */
-function fixPythonStub(snippet, finding) {
+function fixPythonStub(snippet, _finding) {
     // Match: def funcname(...):\n    return None  OR  def funcname(...):\n    pass
     const stubRe = /((?:async\s+)?def\s+(\w+)\s*\([^)]*\)[^:]*:\s*\n)((?:\s+return\s+None\s*\n)|(?:\s+pass\s*\n))/;
     const m = snippet.match(stubRe);
@@ -70,7 +70,7 @@ function fixPythonStub(snippet, finding) {
 /**
  * SB-GO-FICTION-002: Go stub function → panic("implement: ...")
  */
-function fixGoStub(snippet, finding) {
+function fixGoStub(snippet, _finding) {
     // Match: func funcname(...) ... { return nil } or { } or { panic("not implemented") }
     const stubRe = /func\s+(\w+)\s*\([^)]*\)[^{]*\{\s*(?:return\s+(?:nil|""|0|false)\s*)?(?:panic\("[^"]*"\)\s*)?\}/;
     const m = snippet.match(stubRe);
@@ -84,7 +84,7 @@ function fixGoStub(snippet, finding) {
 /**
  * SB-JS-FICTION-002: JavaScript stub function → throw new Error
  */
-function fixJsStub(snippet, finding) {
+function fixJsStub(snippet, _finding) {
     // Match: function funcname(...) { return undefined; } or { return null; } or { return; }
     const stubRe = /((?:async\s+)?function\s+(\w+)\s*\([^)]*\)\s*\{)\s*(?:return\s+(?:undefined|null|void\s+0)\s*;?)?\s*\}/;
     const m = snippet.match(stubRe);
@@ -133,7 +133,7 @@ function fixTokenBleed(snippet, finding) {
  * SB-PY-REDUNDANCY-002: Redundant try/except wrapper → unwrap
  * Only unwraps if the try block has a single statement and the except just passes/logs.
  */
-function fixRedundantTryExcept(snippet, finding) {
+function fixRedundantTryExcept(snippet, _finding) {
     // Match: try:\n    <single_statement>\nexcept Exception:\n    pass (or log)
     const tryRe = /try:\s*\n(\s+)(\S[^\n]*)\n\s*except\s+\w+[^:]*:\s*\n\s+(?:pass|logging\.\w+\([^)]*\)|logger\.\w+\([^)]*\))\s*\n/;
     const m = snippet.match(tryRe);
@@ -150,7 +150,7 @@ function fixRedundantTryExcept(snippet, finding) {
  * Transforms: db.query(`SELECT * FROM users WHERE id = ${id}`)
  * Into:       db.query('SELECT * FROM users WHERE id = ?', [id])
  */
-function fixSqlInjection(snippet, finding) {
+function fixSqlInjection(snippet, _finding) {
     // Match: executor(`SELECT ... ${var} ...`)
     const sqlRe = /(\w+(?:\.\w+)*)\s*\(\s*`((?:SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|EXEC)\s[^`]*)`\s*\)/;
     const m = snippet.match(sqlRe);
@@ -180,7 +180,7 @@ function fixSqlInjection(snippet, finding) {
  * Into:       if err != nil { return handleError(err) }
  * (Only applies when the same handler body appears 3+ times in the snippet)
  */
-function fixGoRepeatedErrorHandlers(snippet, finding) {
+function fixGoRepeatedErrorHandlers(snippet, _finding) {
     const errRe = /if\s+err\s*!=\s*nil\s*\{\s*([^\n}]+)\s*\}/g;
     const handlers = [];
     let m;
@@ -219,7 +219,7 @@ function fixGoRepeatedErrorHandlers(snippet, finding) {
  * SB-GO-REDUNDANCY-003: Deep nesting → suggest guard clause extraction
  * This is a recommendation-only fix (adds a TODO comment with refactor suggestion).
  */
-function fixGoDeepNesting(snippet, finding) {
+function fixGoDeepNesting(snippet, _finding) {
     // Find the function with deep nesting and add a refactor TODO
     const funcRe = /(func\s+(\w+)\s*\([^)]*\)[^{]*\{)/;
     const m = snippet.match(funcRe);
@@ -233,7 +233,7 @@ function fixGoDeepNesting(snippet, finding) {
 /**
  * SB-GO-TB-001: Go LLM call without token limit → add MaxTokens field
  */
-function fixGoTokenBleed(snippet, finding) {
+function fixGoTokenBleed(snippet, _finding) {
     // Match Go struct literal call: client.Chat.Create(ctx, &openai.ChatRequest{Model: "gpt-4"})
     const callRe = /((?:openai|anthropic|client|llm)\.(?:Chat|Complete|Generate|Create|Invoke|Stream|Batch)\w*(?:\.\w+)?)\s*\(\s*(\w+)\s*,\s*&(\w+\.\w+\{)([^}]*)(\}\s*\))/;
     const m = snippet.match(callRe);
@@ -249,7 +249,7 @@ function fixGoTokenBleed(snippet, finding) {
  * SB-GO-REDUNDANCY-001: Duplicate Go function bodies → suggest extraction
  * This is a recommendation-only fix (adds a TODO comment).
  */
-function fixGoDuplicateBody(snippet, finding) {
+function fixGoDuplicateBody(snippet, _finding) {
     const funcRe = /(func\s+(\w+)\s*\([^)]*\)[^{]*\{)/;
     const m = snippet.match(funcRe);
     if (!m) return null;
@@ -264,7 +264,7 @@ function fixGoDuplicateBody(snippet, finding) {
  * Transforms: db.query(sqlString) → db.query(sqlString, [])
  * Adds empty params array to signal intent to parameterize.
  */
-function fixJsSqlUnparameterized(snippet, finding) {
+function fixJsSqlUnparameterized(snippet, _finding) {
     // Match: executor(variableName) where variableName is not a template literal or string literal
     const callRe = /(\w+(?:\.\w+)*)\s*\(\s*(sql\w*|query\w*|stmt\w*)\s*\)/;
     const m = snippet.match(callRe);
@@ -278,7 +278,7 @@ function fixJsSqlUnparameterized(snippet, finding) {
  * SB-PY-REDUNDANCY-004: Python deep nesting → suggest guard clause extraction
  * Adds a TODO comment with refactor suggestion.
  */
-function fixPythonDeepNesting(snippet, finding) {
+function fixPythonDeepNesting(snippet, _finding) {
     const funcRe = /((?:async\s+)?def\s+(\w+)\s*\([^)]*\)[^:]*:)/;
     const m = snippet.match(funcRe);
     if (!m) return null;
@@ -292,7 +292,7 @@ function fixPythonDeepNesting(snippet, finding) {
  * SB-PY-REDUNDANCY-001: Duplicate Python function bodies → suggest extraction
  * Adds a TODO comment with refactor suggestion.
  */
-function fixPythonDuplicateBody(snippet, finding) {
+function fixPythonDuplicateBody(snippet, _finding) {
     const funcRe = /((?:async\s+)?def\s+(\w+)\s*\([^)]*\)[^:]*:)/;
     const m = snippet.match(funcRe);
     if (!m) return null;

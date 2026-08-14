@@ -21,7 +21,7 @@ files.forEach((filePath) => {
                 });
             }
         });
-    } catch (e) {
+    } catch {
         // Suppress file permission reading exceptions safely
     }
 });

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * Dirty fixture for SQL injection AST detection.
  * This file intentionally contains unsafe patterns for testing.

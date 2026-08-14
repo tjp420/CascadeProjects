@@ -86,7 +86,8 @@ function enrichAnalyzerResultForExport(result) {
         : scoringDirection === 'higher_better'
             ? clampScore(100 - metricScore)
             : metricScore;
-    const { score: _score, ...rest } = result;
+    const rest = { ...result };
+    delete rest.score;
     return {
         ...rest,
         metricScore,

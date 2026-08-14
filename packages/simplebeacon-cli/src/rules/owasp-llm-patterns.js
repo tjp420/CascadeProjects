@@ -161,10 +161,6 @@ function normalizeRel(baseDir, filePath) {
     return path.relative(baseDir, filePath).split(path.sep).join('/');
 }
 
-function _lineNumberAt(content, index) {
-    return content.slice(0, Math.max(0, index)).split('\n').length;
-}
-
 function extractLineAt(content, index) {
     const lines = content.split('\n');
     let pos = 0;
@@ -285,7 +281,7 @@ function scanCatalogPatterns(relativePath, content, catalog, severityDefault) {
     return issues;
 }
 
-function collapsePatternIssuesByFile(issues, relativePath) {
+function collapsePatternIssuesByFile(issues, _relativePath) {
     const byRule = new Map();
     for (const issue of issues) {
         const key = issue.metadata?.patternId || issue.id;

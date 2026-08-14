@@ -77,7 +77,7 @@ function singleThreadScan(filePaths, rulesCatalog) {
                     });
                 }
             }
-        } catch (e) {
+        } catch {
             // Suppress file permission errors safely
         }
     }

@@ -4,8 +4,6 @@
  * Surfaces scan results in a clean, engineering-manager-friendly document.
  */
 
-const { formatBytes } = require('../lib/format-utils');
-
 const SEVERITY_EMOJI = {
     critical: '🔴',
     high: '🟠',

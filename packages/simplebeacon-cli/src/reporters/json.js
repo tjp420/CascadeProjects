@@ -13,7 +13,6 @@ const { enrichFindingsWithAlerts } = require('./alert-templates');
 
 function formatJsonReport(report, gateResult = null) {
     const tierInfo = detectTier();
-    const isPaid = tierInfo.paid;
     const totalFiles = report.totalFiles || report.filesAnalyzed || report.repositoryFilesTotal || 0;
     const totalLines = report.totalLines || 0;
 
@@ -293,7 +292,6 @@ function formatJsonReport(report, gateResult = null) {
     const emptyFiles = report.emptyFiles ?? report.dataQuality?.emptyJsonCount ?? null;
     const dupes = report.duplicateGroups ?? report.consolidation?.duplicateGroups ?? null;
     const credFindings = report.credentialFindings ?? enrichedGate?.blockingCount ?? null;
-    const euAiActIndicators = report.euAiActFindings ?? report.euAiAct?.aiSystemIndicators ?? null;
     const todoMarkers = report.todoMarkerCount ?? report.roadmap?.todoCount ?? null;
     const phases = [];
     // Phase 1: Data Integrity

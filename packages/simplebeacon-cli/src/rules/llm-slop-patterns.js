@@ -6,8 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
-const { resolvePackageExists, detectProxyEnvironment } = require('../lib/offline-resolver');
+const { resolvePackageExists } = require('../lib/offline-resolver');
 const { globMatch } = require('./production-leak');
 
 const DEFAULT_SOURCE_PATHS = ['server', 'src', 'web', 'lib', 'packages', 'app'];

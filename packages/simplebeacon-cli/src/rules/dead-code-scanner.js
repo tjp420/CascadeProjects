@@ -21,7 +21,6 @@ const SKIP_DIRS = new Set([
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
-const SKIP_TEMP_FILES = /^(_tmp_|_merged_js|_test_|_test_welcome|inspect_vsix|temp_codemap|tmp-check|__tmp_script|debug-|__test_server|replace-dashboard|test-welcome-load)/i;
 
 function isScannable(filePath) {
   const ext = path.extname(filePath).toLowerCase();
