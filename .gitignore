@@ -441,3 +441,11 @@ simplebeacon-vscode-merged/dashboard-web/assets/
 
 # Field engineer scratch docs
 docs/FIELD_ENGINEER_RUNBOOK.md
+
+# Local scratch payloads (never commit — tokens, SMTP tests, checkout probes)
+.test-contact.json
+.test-contact2.json
+test-token.json
+test-checkout-payload.json
+ai-platform/server/.simplebeacon/stripe-events.json
+ai-platform/server/.simplebeacon/webhook-event-log.json
