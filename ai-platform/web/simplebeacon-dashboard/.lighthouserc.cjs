@@ -1,8 +1,9 @@
 module.exports = {
   ci: {
     collect: {
-      // Build and audit the production distribution folder statically
-      staticDistDir: './assets',
+      // Audit the dashboard page from the prepared serving directory
+      staticDistDir: './lighthouse-dist',
+      url: ['/dashboard/'],
       numberOfRuns: 3,
       settings: {
         chromeFlags: '--no-sandbox --headless --disable-gpu',
