@@ -22,7 +22,7 @@ test('formatGithubComment includes structured finding rows', () => {
         }]
     }, null, { repo: 'org/repo', ref: 'feature/test' });
 
-    assert.match(body, /AI Circuit Breaker/);
+    assert.match(body, /52 Deterministic Engines/);
     assert.match(body, /PR diff \(3 files\)/);
     assert.match(body, /src\/auth\.cjs/);
     assert.match(body, /<details/);
