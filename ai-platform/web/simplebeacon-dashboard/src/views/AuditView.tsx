@@ -896,7 +896,19 @@ function StatusGauge({
   );
 }
 
-function TelemetrySection({ benchmark }: { benchmark: BenchmarkData }) {
+function TelemetrySection({
+  benchmark: initialBenchmark,
+  onRunBenchmark,
+}: {
+  benchmark: BenchmarkData;
+  onRunBenchmark?: () => Promise<BenchmarkData | null>;
+}) {
+  const [liveBenchmark, setLiveBenchmark] = useState<BenchmarkData | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [runElapsed, setRunElapsed] = useState<number | null>(null);
+
+  const benchmark = liveBenchmark || initialBenchmark;
   const avg = benchmark.avgTokPerSec ?? 0;
   const min = benchmark.minTokPerSec ?? avg;
   const max = benchmark.maxTokPerSec ?? avg;
@@ -909,6 +921,26 @@ function TelemetrySection({ benchmark }: { benchmark: BenchmarkData }) {
   const runs = benchmark.runs ?? 0;
   const profile = benchmark.profile ?? 'unknown';
   const model = benchmark.model ?? 'unknown';
+
+  const handleRunBenchmark = useCallback(async () => {
+    if (!onRunBenchmark || isRunning) return;
+    setIsRunning(true);
+    setRunError(null);
+    setRunElapsed(null);
+    try {
+      const result = await onRunBenchmark();
+      if (result) {
+        setLiveBenchmark(result);
+        setRunElapsed(Date.now());
+      } else {
+        setRunError('Benchmark completed but returned no data');
+      }
+    } catch (err) {
+      setRunError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsRunning(false);
+    }
+  }, [onRunBenchmark, isRunning]);
 
   // Determine statuses
   const isThrottled = throttleThreshold ? avg < throttleThreshold : avg < profileMin * 0.8;
@@ -945,6 +977,9 @@ function TelemetrySection({ benchmark }: { benchmark: BenchmarkData }) {
         <Badge variant="outline" className="text-xs">
           {profile} profile
         </Badge>
+        {liveBenchmark && (
+          <Badge variant="info" className="text-xs">Live</Badge>
+        )}
       </div>
 
       <Card>
@@ -956,19 +991,60 @@ function TelemetrySection({ benchmark }: { benchmark: BenchmarkData }) {
                 {model} · {runs} run{runs !== 1 ? 's' : ''} · {profile} profile
               </CardDescription>
             </div>
-            <Badge
-              variant={throughputStatus === 'success' ? 'success' : throughputStatus === 'danger' ? 'danger' : 'warning'}
-              className="text-sm"
-            >
-              {throughputStatus === 'success'
-                ? 'Meets profile'
-                : throughputStatus === 'danger'
-                  ? 'Throttled'
-                  : 'Below min'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {onRunBenchmark && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRunBenchmark}
+                  disabled={isRunning}
+                >
+                  {isRunning ? (
+                    <>
+                      <Activity className="h-4 w-4 animate-pulse" />
+                      Running...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4" />
+                      Execute Live Telemetry Run
+                    </>
+                  )}
+                </Button>
+              )}
+              <Badge
+                variant={throughputStatus === 'success' ? 'success' : throughputStatus === 'danger' ? 'danger' : 'warning'}
+                className="text-sm"
+              >
+                {throughputStatus === 'success'
+                  ? 'Meets profile'
+                  : throughputStatus === 'danger'
+                    ? 'Throttled'
+                    : 'Below min'}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Live run status */}
+          {runError && (
+            <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
+              <AlertCircle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-danger">Benchmark run failed</p>
+                <p className="text-xs text-foreground-muted mt-0.5 font-mono">{runError}</p>
+              </div>
+            </div>
+          )}
+          {liveBenchmark && runElapsed && (
+            <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/5 p-3 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+              <span className="text-success font-semibold">Live benchmark data loaded</span>
+              <span className="text-xs text-foreground-muted ml-auto">
+                {new Date(runElapsed).toLocaleTimeString()}
+              </span>
+            </div>
+          )}
           {/* Throughput bars */}
           <div className="space-y-3">
             <ThroughputBar
@@ -1265,6 +1341,22 @@ export function AuditView() {
     URL.revokeObjectURL(url);
   }, [activeReport, activeResult, isFreeTier]);
 
+  // Execute a live air-gap benchmark via the VS Code extension data server
+  const handleRunBenchmark = useCallback(async (): Promise<BenchmarkData | null> => {
+    const response = await fetch('/api/airgap/benchmark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || data.detail || `HTTP ${response.status}`);
+    }
+    if (!data.success || !data.benchmark) {
+      throw new Error(data.message || data.error || 'Benchmark returned no data');
+    }
+    return data.benchmark as BenchmarkData;
+  }, []);
+
   // ── Empty state ──────────────────────────────────────────────────────────
 
   if (!activeResult && !importedReport) {
@@ -1489,7 +1581,9 @@ export function AuditView() {
       )}
 
       {/* Air-gap telemetry / benchmark */}
-      {benchmark && <TelemetrySection benchmark={benchmark} />}
+      {benchmark && (
+        <TelemetrySection benchmark={benchmark} onRunBenchmark={handleRunBenchmark} />
+      )}
 
       {/* Import section (always available at bottom for loading alternative reports) */}
       {!importedReport && (

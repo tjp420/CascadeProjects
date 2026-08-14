@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
+import { spawn } from 'child_process';
 // bcryptjs replaced with Node.js crypto for zero-dependency VSIX packaging
 function _hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -185,6 +186,10 @@ function getOrCreateBridgeToken(): string {
     void extensionContext.globalState.update(BRIDGE_TOKEN_KEY, token);
   }
   return token;
+}
+
+export function getBridgeToken(): string {
+  return getOrCreateBridgeToken();
 }
 
 function isBridgeTokenValid(req: http.IncomingMessage): boolean {
@@ -1573,6 +1578,13 @@ function resolveDownloadPath(urlOrPath: string, context: vscode.ExtensionContext
   return urlOrPath;
 }
 
+function formatBytesLocal(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 export function startDataServer(context: vscode.ExtensionContext, outputChannel?: vscode.OutputChannel): void {
   if (dataServer) {
     return; // already running
@@ -2294,6 +2306,167 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Ollama health + detailed model info + VRAM stats proxy
+    if (parsed.pathname === '/api/simplebeacon/ollama/health' && req.method === 'GET') {
+      const baseUrl = String(parsed.searchParams.get('baseUrl') || '').trim() || 'http://127.0.0.1:11434';
+      const normalized = baseUrl.replace(/\/+$/, '');
+      const startedAt = Date.now();
+      try {
+        const healthRes = await fetch(`${normalized}/api/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000),
+        });
+        const latencyMs = Date.now() - startedAt;
+        const ok = healthRes.ok;
+
+        let models: string[] = [];
+        let modelDetails: any[] = [];
+        let runningModels: any[] = [];
+        let totalSizeBytes = 0;
+        let totalVRAMBytes = 0;
+
+        if (ok) {
+          try {
+            const tagsRes = await fetch(`${normalized}/api/tags`, { signal: AbortSignal.timeout(5000) });
+            if (tagsRes.ok) {
+              const tagsData = (await tagsRes.json().catch(() => ({}))) as Record<string, any>;
+              const tagModels = Array.isArray(tagsData.models) ? tagsData.models : [];
+              models = tagModels.map((m: any) => m.name || m.model || 'unknown').filter(Boolean);
+              modelDetails = tagModels.map((m: any) => ({
+                name: m.name || m.model || 'unknown',
+                sizeBytes: m.size || 0,
+                sizeDisplay: formatBytesLocal(m.size || 0),
+                quantization: m.details?.quantization_level || null,
+                family: m.details?.family || null,
+                parameterSize: m.details?.parameter_size || null,
+              }));
+              totalSizeBytes = modelDetails.reduce((s: number, m: any) => s + (m.sizeBytes || 0), 0);
+            }
+          } catch { /* tags may fail on older Ollama */ }
+
+          try {
+            const psRes = await fetch(`${normalized}/api/ps`, { signal: AbortSignal.timeout(5000) });
+            if (psRes.ok) {
+              const psData = (await psRes.json().catch(() => ({}))) as Record<string, any>;
+              runningModels = (Array.isArray(psData.models) ? psData.models : []).map((m: any) => ({
+                name: m.name || m.model || 'unknown',
+                sizeVRAMBytes: m.size_vram || 0,
+                sizeVRAMDisplay: formatBytesLocal(m.size_vram || 0),
+                sizeBytes: m.size || 0,
+                sizeDisplay: formatBytesLocal(m.size || 0),
+                expiresAt: m.expires_at || null,
+              }));
+              totalVRAMBytes = runningModels.reduce((s: number, m: any) => s + (m.sizeVRAMBytes || 0), 0);
+            }
+          } catch { /* /api/ps not available on older Ollama */ }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          ok,
+          baseUrl: normalized,
+          latencyMs,
+          models,
+          modelCount: models.length,
+          modelDetails,
+          runningModels,
+          runningModelCount: runningModels.length,
+          totalSizeBytes,
+          totalSizeDisplay: formatBytesLocal(totalSizeBytes),
+          totalVRAMBytes,
+          totalVRAMDisplay: formatBytesLocal(totalVRAMBytes),
+          checkedAt: new Date().toISOString(),
+        }));
+      } catch (e) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          ok: false,
+          baseUrl: normalized,
+          latencyMs: Date.now() - startedAt,
+          models: [],
+          modelCount: 0,
+          modelDetails: [],
+          runningModels: [],
+          runningModelCount: 0,
+          totalSizeBytes: 0,
+          totalSizeDisplay: '0 B',
+          totalVRAMBytes: 0,
+          totalVRAMDisplay: '0 B',
+          error: (e as Error).message || 'Ollama unreachable',
+          checkedAt: new Date().toISOString(),
+        }));
+      }
+      return;
+    }
+
+    // Ollama pull (model download) — streams progress to client via NDJSON
+    if (parsed.pathname === '/api/simplebeacon/ollama/pull' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          const model = String(data.model || '').trim();
+          if (!model) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Model name is required' }));
+            return;
+          }
+          const baseUrl = String(data.baseUrl || '').trim() || 'http://127.0.0.1:11434';
+          const normalized = baseUrl.replace(/\/+$/, '');
+
+          const ollamaRes = await fetch(`${normalized}/api/pull`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: model, stream: true }),
+            signal: AbortSignal.timeout(600000),
+          });
+
+          if (!ollamaRes.ok) {
+            res.writeHead(ollamaRes.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: `Ollama pull failed (${ollamaRes.status})` }));
+            return;
+          }
+
+          res.writeHead(200, {
+            'Content-Type': 'application/x-ndjson',
+            'Cache-Control': 'no-cache',
+            'Transfer-Encoding': 'chunked',
+          });
+
+          const reader = ollamaRes.body?.getReader();
+          if (!reader) {
+            res.end(JSON.stringify({ status: 'success' }) + '\n');
+            return;
+          }
+          const decoder = new TextDecoder('utf-8');
+          let buffer = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed) continue;
+              res.write(trimmed + '\n');
+            }
+          }
+          if (buffer.trim()) {
+            res.write(buffer.trim() + '\n');
+          }
+          res.end();
+        } catch (e) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: (e as Error).message || 'Pull failed' }));
+        }
+      });
+      return;
+    }
+
     // Custom prompt storage — persist in VS Code settings
     if (parsed.pathname === '/api/prompts/get') {
       const cfg = getSbConfig();
@@ -2464,6 +2637,152 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 </svg>`;
       res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
       res.end(svg);
+      return;
+    }
+
+    // ── Air-gap benchmark execution ──────────────────────────────────────────
+    // Executes validate-airgap-deploy.sh --benchmark --json and returns the
+    // benchmark JSON object. Used by the AuditView telemetry "Execute Live
+    // Telemetry Run" button to stream real benchmark results into the UI.
+    if (parsed.pathname === '/api/airgap/benchmark' && req.method === 'POST') {
+      const workspacePath = serverState.workspacePath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+      if (!workspacePath) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No workspace folder open' }));
+        return;
+      }
+
+      // Resolve the validation script path
+      const scriptCandidates = [
+        path.join(workspacePath, 'scripts', 'validate-airgap-deploy.sh'),
+        path.join(workspacePath, 'CascadeProjects', 'scripts', 'validate-airgap-deploy.sh'),
+      ];
+      const scriptPath = scriptCandidates.find((p) => {
+        try {
+          return fs.existsSync(p);
+        } catch {
+          return false;
+        }
+      });
+
+      if (!scriptPath) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'validate-airgap-deploy.sh not found in workspace',
+          searched: scriptCandidates,
+        }));
+        return;
+      }
+
+      // Parse optional params from query string
+      const runs = parseInt(parsed.searchParams.get('runs') || '3', 10);
+      const tokens = parseInt(parsed.searchParams.get('tokens') || '100', 10);
+      const recover = parsed.searchParams.get('recover') === '1';
+
+      // Build command args
+      const args = ['--benchmark', '--json', '--benchmark-runs', String(runs), '--benchmark-tokens', String(tokens)];
+      if (recover) args.push('--recover');
+
+      // Determine shell — use bash on all platforms (Git Bash on Windows, native on Linux/Mac)
+      const isWindows = process.platform === 'win32';
+      const shellCmd = isWindows ? 'bash' : 'bash';
+
+      try {
+        const child = spawn(shellCmd, [scriptPath, ...args], {
+          cwd: path.dirname(scriptPath),
+          env: { ...process.env, FORCE_COLOR: '0' },
+          shell: false,
+          timeout: 120000,
+        });
+
+        let stdout = '';
+        let stderr = '';
+        const startTime = Date.now();
+
+        child.stdout?.on('data', (chunk: Buffer) => {
+          stdout += chunk.toString();
+        });
+        child.stderr?.on('data', (chunk: Buffer) => {
+          stderr += chunk.toString();
+        });
+
+        child.on('error', (err: Error) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'Failed to spawn benchmark process',
+            detail: err.message,
+            hint: isWindows ? 'Ensure Git Bash is available on PATH' : 'Ensure bash is installed',
+          }));
+        });
+
+        child.on('close', (code: number | null) => {
+          const elapsed = Date.now() - startTime;
+
+          if (code !== null && code !== 0) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: `Benchmark script exited with code ${code}`,
+              exitCode: code,
+              elapsed,
+              stderr: stderr.slice(-2000),
+              stdout: stdout.slice(-2000),
+            }));
+            return;
+          }
+
+          // Parse the JSON output from the script
+          try {
+            // The script outputs JSON to stdout — find the JSON object
+            const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                error: 'No JSON output found in benchmark script output',
+                stdout: stdout.slice(-4000),
+                stderr: stderr.slice(-2000),
+              }));
+              return;
+            }
+
+            const parsedOutput = JSON.parse(jsonMatch[0]);
+            const benchmark = parsedOutput.benchmark || null;
+
+            if (!benchmark) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                benchmark: null,
+                message: 'Benchmark completed but no benchmark data in output (may not have --benchmark flag or model missing)',
+                elapsed,
+                exitCode: code,
+                stderr: stderr.slice(-1000),
+              }));
+              return;
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              benchmark,
+              elapsed,
+              exitCode: code,
+            }));
+          } catch (parseErr) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'Failed to parse benchmark JSON output',
+              detail: parseErr instanceof Error ? parseErr.message : String(parseErr),
+              stdout: stdout.slice(-4000),
+            }));
+          }
+        });
+      } catch (spawnErr) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'Failed to start benchmark process',
+          detail: spawnErr instanceof Error ? spawnErr.message : String(spawnErr),
+        }));
+      }
       return;
     }
 
