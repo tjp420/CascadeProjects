@@ -197,11 +197,17 @@ for (const relPath of staged) {
 }
 
 // Check 2: Scan staged files for production connection strings
+
+// Paths that contain intentional test fixtures with fake secrets — skip scanning
+const FIXTURE_ALLOWLIST = /tests\/fixtures\/|__tests__\/|\.test\.|\.spec\.|test-credentials|mock-|fixture-/i;
+
 for (const relPath of staged) {
   // Skip .env.example files (safe templates)
   if (isEnvExampleFile(relPath)) continue;
   // Skip .env.production (already caught above)
   if (isProdEnvFile(relPath)) continue;
+  // Skip test fixtures — they intentionally contain fake secret patterns
+  if (FIXTURE_ALLOWLIST.test(relPath)) continue;
 
   // Only scan files with scannable extensions
   if (!SCANNABLE_EXT.test(relPath)) continue;

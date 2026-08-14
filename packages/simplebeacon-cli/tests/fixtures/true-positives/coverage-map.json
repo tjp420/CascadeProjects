@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-14T21:19:59.260Z",
+  "suite": {
+    "totalFixtures": 7,
+    "totalEngines": 7,
+    "passed": 7,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "metrics": {
+    "precision": 0.563,
+    "recall": 1,
+    "f1": 0.72
+  },
+  "engines": [
+    {
+      "engineId": "credentials",
+      "status": "pass",
+      "fixturesPassed": 1,
+      "fixturesFailed": 0,
+      "fixturesErrored": 0
+    },
+    {
+      "engineId": "llmSlop",
+      "status": "pass",
+      "fixturesPassed": 1,
+      "fixturesFailed": 0,
+      "fixturesErrored": 0
+    },
+    {
+      "engineId": "fictionKpi",
+      "status": "pass",
+      "fixturesPassed": 1,
+      "fixturesFailed": 0,
+      "fixturesErrored": 0
+    },
+    {
+      "engineId": "tokenBleed",
+      "status": "pass",
+      "fixturesPassed": 1,
+      "fixturesFailed": 0,
+      "fixturesErrored": 0
+    },
+    {
+      "engineId": "aiPlaceholderComment",
+      "status": "pass",
+      "fixturesPassed": 1,
+      "fixturesFailed": 0,
+      "fixturesErrored": 0
+    },
+    {
+      "engineId": "dbConnectionString",
+      "status": "pass",
+      "fixturesPassed": 1,
+      "fixturesFailed": 0,
+      "fixturesErrored": 0
+    },
+    {
+      "engineId": "awsAccessKey",
+      "status": "pass",
+      "fixturesPassed": 1,
+      "fixturesFailed": 0,
+      "fixturesErrored": 0
+    }
+  ]
+}

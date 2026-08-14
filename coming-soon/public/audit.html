@@ -124,7 +124,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     <script src="/js-es2018/audit-scan-service.js?v=20260808audit1" defer></script>
     <script src="/js-es2018/dashboard/scanner-engine.js?h=1781475000015" defer></script>
     <script src="/js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+    <script src="/vendor/jszip.min.js" defer></script>
     <script src="/js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
     <script src="/js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
     <link rel="stylesheet" href="/css/dashboard.css?h=1786200000000">
@@ -598,11 +598,16 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             </div>
         </div>
 
-        <!-- VIEW A: CLI WORKFLOW — two-column layout: CLI commands + Import Report -->
+        <!-- VIEW A: CLI WORKFLOW — sub-toggle: Run via CLI / Import Existing Report -->
         <div id="view-cli" style="display:none;">
-            <div style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:20px;margin-bottom:16px;align-items:stretch;" id="cli-two-column">
+            <!-- Sub-toggle between Run via CLI and Import Existing Report -->
+            <div id="cliSubToggle" style="display:inline-flex;gap:0;background:var(--bg-input);padding:4px;border-radius:12px;border:1px solid var(--border);width:fit-content;box-shadow:0 1px 3px rgba(0,0,0,0.15);margin-bottom:16px;">
+                <button id="tab-cli-run" class="mode-tab active" style="flex:none;padding:10px 20px;font-size:0.9rem;font-weight:600;border-radius:8px;transition:all 0.2s;background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;box-shadow:0 0 16px rgba(6,182,212,0.3);">&#128187; Run via CLI</button>
+                <button id="tab-cli-import" class="mode-tab" style="flex:none;padding:10px 20px;font-size:0.9rem;font-weight:600;border-radius:8px;transition:all 0.2s;">&#128229; Import Existing Report</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr;gap:20px;margin-bottom:16px;align-items:stretch;" id="cli-two-column">
                 <!-- Left column: Run via CLI with tab switcher -->
-                <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
+                <div id="cli-run-column" class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
                     <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                             <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#10095;</span>
@@ -677,7 +682,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 </div>
 
                 <!-- Right column: Import Existing Report -->
-                <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
+                <div id="cli-import-column" class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;display:none;">
                     <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#128229;</span>
@@ -709,6 +714,30 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     </div>
                 </div>
             </div>
+
+            <!-- Certificate Verification Section -->
+            <div id="cert-verify-section" class="card" style="padding:0;overflow:hidden;margin-top:20px;display:none;">
+                <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#128274;</span>
+                        <h3 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Compliance Certificate Verification</h3>
+                    </div>
+                    <button id="cert-verify-close" type="button" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;">&times;</button>
+                </div>
+                <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div id="cert-dropzone" style="border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;transition:all 0.2s;cursor:pointer;">
+                        <div style="font-size:2rem;margin-bottom:10px;">&#128203;</div>
+                        <p style="font-size:0.85rem;font-weight:600;color:var(--text-main);margin:0 0 6px;">Drop a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.8rem;">.sbcert</code> file here</p>
+                        <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 12px;">or click to browse — verification runs locally against the edge public key</p>
+                        <input type="file" id="certFileInput" accept=".sbcert,application/json" style="display:none;">
+                        <button type="button" id="cert-browse-btn" class="btn btn-primary" style="padding:8px 18px;font-size:0.8rem;">Browse for .sbcert</button>
+                    </div>
+                    <div id="cert-verify-result" style="display:none;margin-top:16px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Responsive: stack columns on mobile -->
             <style>@media(max-width:768px){#cli-two-column{grid-template-columns:1fr !important;}}</style>
             <!-- Hidden elements retained for compatibility -->
@@ -772,9 +801,251 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 });
             }
         })();
-        </script>
+        // CLI sub-toggle: Run via CLI / Import Existing Report
+        (function() {
+            var tabCliRun = document.getElementById('tab-cli-run');
+            var tabCliImport = document.getElementById('tab-cli-import');
+            var colCliRun = document.getElementById('cli-run-column');
+            var colCliImport = document.getElementById('cli-import-column');
+            function setActive(activeTab, inactiveTab, showCol, hideCol) {
+                activeTab.classList.add('active');
+                activeTab.style.background = 'linear-gradient(135deg,#06b6d4,#0891b2)';
+                activeTab.style.color = '#fff';
+                activeTab.style.boxShadow = '0 0 16px rgba(6,182,212,0.3)';
+                inactiveTab.classList.remove('active');
+                inactiveTab.style.background = 'transparent';
+                inactiveTab.style.color = 'var(--text-main)';
+                inactiveTab.style.boxShadow = 'none';
+                showCol.style.display = 'flex';
+                hideCol.style.display = 'none';
+            }
+            if (tabCliRun && tabCliImport && colCliRun && colCliImport) {
+                tabCliRun.addEventListener('click', function() {
+                    setActive(tabCliRun, tabCliImport, colCliRun, colCliImport);
+                });
+                tabCliImport.addEventListener('click', function() {
+                    setActive(tabCliImport, tabCliRun, colCliImport, colCliRun);
+                    // Show the certificate verification section when Import is active
+                    var certSection = document.getElementById('cert-verify-section');
+                    if (certSection) certSection.style.display = 'block';
+                });
+                // Also show cert section if Run via CLI is clicked (users may have certs from prior scans)
+                tabCliRun.addEventListener('click', function() {
+                    var certSection = document.getElementById('cert-verify-section');
+                    if (certSection) certSection.style.display = 'block';
+                });
+            }
+        })();
 
-        <!-- Toast Container -->
+        // Certificate Verification: drag-and-drop .sbcert files, verify against edge public key
+        (function() {
+            var certDropzone = document.getElementById('cert-dropzone');
+            var certFileInput = document.getElementById('certFileInput');
+            var certBrowseBtn = document.getElementById('cert-browse-btn');
+            var certResult = document.getElementById('cert-verify-result');
+            var certCloseBtn = document.getElementById('cert-verify-close');
+            var certSection = document.getElementById('cert-verify-section');
+            var PUBLIC_KEY_URL = 'https://simplebeacon.ai/api/v1/certify/public-key';
+
+            if (!certDropzone || !certFileInput) return;
+
+            // Close button hides the section
+            if (certCloseBtn) {
+                certCloseBtn.addEventListener('click', function() {
+                    if (certSection) certSection.style.display = 'none';
+                });
+            }
+
+            // Click dropzone to browse
+            certDropzone.addEventListener('click', function() {
+                certFileInput.click();
+            });
+            if (certBrowseBtn) {
+                certBrowseBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    certFileInput.click();
+                });
+            }
+
+            // Drag-and-drop handlers
+            certDropzone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                certDropzone.style.borderColor = 'var(--accent)';
+                certDropzone.style.background = 'rgba(6,182,212,0.05)';
+            });
+            certDropzone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                certDropzone.style.borderColor = 'var(--border)';
+                certDropzone.style.background = 'transparent';
+            });
+            certDropzone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                certDropzone.style.borderColor = 'var(--border)';
+                certDropzone.style.background = 'transparent';
+                var files = e.dataTransfer.files;
+                if (files && files.length > 0) {
+                    handleCertFile(files[0]);
+                }
+            });
+
+            // File input change
+            certFileInput.addEventListener('change', function() {
+                if (certFileInput.files && certFileInput.files.length > 0) {
+                    handleCertFile(certFileInput.files[0]);
+                }
+            });
+
+            function showCertResult(html, isError) {
+                certResult.style.display = 'block';
+                certResult.innerHTML = html;
+                certResult.style.padding = isError ? '14px 16px' : '14px 16px';
+                certResult.style.borderRadius = '10px';
+                certResult.style.border = isError
+                    ? '1px solid var(--error)'
+                    : '1px solid var(--success)';
+                certResult.style.background = isError
+                    ? 'rgba(239,68,68,0.06)'
+                    : 'rgba(16,185,129,0.06)';
+            }
+
+            function showCertLoading(msg) {
+                certResult.style.display = 'block';
+                certResult.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-main);"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;"></div><span style="font-size:0.85rem;color:var(--text-secondary);">' + msg + '</span></div>';
+            }
+
+            async function handleCertFile(file) {
+                if (!file) return;
+                // Accept .sbcert or .json files
+                var name = file.name.toLowerCase();
+                if (!name.endsWith('.sbcert') && !name.endsWith('.json')) {
+                    showCertResult('<div style="font-size:0.85rem;color:var(--error);font-weight:600;">&#9888; Invalid file type</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Please drop a .sbcert file generated by <code>simplebeacon scan --certify</code></div>', true);
+                    return;
+                }
+
+                showCertLoading('Reading certificate file...');
+
+                try {
+                    var text = await file.text();
+                    var certFile = JSON.parse(text);
+
+                    if (!certFile.signature || !certFile.payload || !certFile.payload.hash) {
+                        showCertResult('<div style="font-size:0.85rem;color:var(--error);font-weight:600;">&#9888; Invalid certificate format</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">The file does not contain a valid .sbcert structure.</div>', true);
+                        return;
+                    }
+
+                    showCertLoading('Fetching public key from edge...');
+
+                    // Fetch the public key from the Worker
+                    var pubKeyResponse = await fetch(PUBLIC_KEY_URL);
+                    if (!pubKeyResponse.ok) {
+                        showCertResult('<div style="font-size:0.85rem;color:var(--error);font-weight:600;">&#9888; Public key unavailable</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Could not fetch the verification key (HTTP ' + pubKeyResponse.status + '). Check your connection and try again.</div>', true);
+                        return;
+                    }
+
+                    var keyData = await pubKeyResponse.json();
+                    if (!keyData.publicKey) {
+                        showCertResult('<div style="font-size:0.85rem;color:var(--error);font-weight:600;">&#9888; Public key malformed</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">The edge endpoint returned an invalid key response.</div>', true);
+                        return;
+                    }
+
+                    showCertLoading('Verifying ECDSA signature...');
+
+                    // Import the public key
+                    var publicKey = await crypto.subtle.importKey(
+                        'jwk',
+                        keyData.publicKey,
+                        { name: 'ECDSA', namedCurve: 'P-256' },
+                        false,
+                        ['verify']
+                    );
+
+                    // Reconstruct the canonical message (must match signing canonicalization)
+                    var canonical = JSON.stringify({
+                        hash: certFile.payload.hash,
+                        metadata: certFile.payload.metadata || {},
+                        timestamp: certFile.payload.timestamp
+                    });
+                    var messageBuffer = new TextEncoder().encode(canonical);
+
+                    // Convert hex signature to bytes
+                    var sigHex = certFile.signature;
+                    var sigBytes = new Uint8Array(sigHex.match(/.{2}/g).map(function(h) { return parseInt(h, 16); }));
+
+                    // Verify the signature
+                    var isValid = await crypto.subtle.verify(
+                        { name: 'ECDSA', hash: { name: 'SHA-256' } },
+                        publicKey,
+                        sigBytes,
+                        messageBuffer
+                    );
+
+                    if (isValid) {
+                        var issuedDate = certFile.issuedAt ? new Date(certFile.issuedAt).toLocaleString() : 'Unknown';
+                        var tsDate = certFile.payload.timestamp ? new Date(certFile.payload.timestamp).toLocaleString() : 'Unknown';
+                        var meta = certFile.payload.metadata || {};
+                        var metaRows = '';
+                        var metaKeys = Object.keys(meta).sort();
+                        for (var i = 0; i < metaKeys.length; i++) {
+                            var k = metaKeys[i];
+                            var v = meta[k];
+                            if (typeof v === 'object') v = JSON.stringify(v);
+                            metaRows += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.78rem;"><span style="color:var(--text-muted);">' + escapeHtml(k) + '</span><span style="color:var(--text-main);font-weight:600;font-family:var(--font-mono);">' + escapeHtml(String(v)) + '</span></div>';
+                        }
+
+                        showCertResult(
+                            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+                            '<div style="width:36px;height:36px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                            '<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke:white;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><polyline points="20 6 9 17 4 12"/></svg>' +
+                            '</div>' +
+                            '<div>' +
+                            '<div style="font-size:0.95rem;font-weight:700;color:var(--success);">Certificate Verified</div>' +
+                            '<div style="font-size:0.72rem;color:var(--text-muted);">ECDSA-P256-SHA256 &middot; Key ID: ' + escapeHtml(certFile.verification && certFile.verification.keyId || 'unknown') + '</div>' +
+                            '</div></div>' +
+                            '<div style="margin-bottom:10px;">' +
+                            '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Report Hash</div>' +
+                            '<div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-main);background:var(--bg-main);padding:8px 10px;border-radius:6px;word-break:break-all;">' + escapeHtml(certFile.payload.hash) + '</div>' +
+                            '</div>' +
+                            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">' +
+                            '<div><div style="font-size:0.72rem;color:var(--text-muted);">Scan Timestamp</div><div style="font-size:0.82rem;font-weight:600;">' + escapeHtml(tsDate) + '</div></div>' +
+                            '<div><div style="font-size:0.72rem;color:var(--text-muted);">Issued At</div><div style="font-size:0.82rem;font-weight:600;">' + escapeHtml(issuedDate) + '</div></div>' +
+                            '</div>' +
+                            (metaRows ? '<div style="margin-bottom:8px;"><div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Anonymized Metadata</div>' + metaRows + '</div>' : '') +
+                            '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">Signature verified against the SimpleBeacon edge public key. This confirms the certificate was issued by the SimpleBeacon signing service for the submitted hash and metadata.</div>',
+                            false
+                        );
+                    } else {
+                        showCertResult(
+                            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+                            '<div style="width:36px;height:36px;border-radius:50%;background:var(--error);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                            '<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke:white;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+                            '</div>' +
+                            '<div>' +
+                            '<div style="font-size:0.95rem;font-weight:700;color:var(--error);">Signature Invalid</div>' +
+                            '<div style="font-size:0.72rem;color:var(--text-muted);">The signature does not verify against the SimpleBeacon public key.</div>' +
+                            '</div></div>' +
+                            '<div style="font-size:0.75rem;color:var(--text-muted);">This file may have been tampered with, or was not issued by the SimpleBeacon signing service.</div>',
+                            true
+                        );
+                    }
+                } catch (err) {
+                    showCertResult(
+                        '<div style="font-size:0.85rem;color:var(--error);font-weight:600;">&#9888; Verification error</div>' +
+                        '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">' + escapeHtml(err.message || 'Unknown error') + '</div>',
+                        true
+                    );
+                }
+            }
+
+            function escapeHtml(str) {
+                var div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+        })();
+        </script>
         <div class="toast-container" id="toastContainer"></div>
 
         <div class="local-note">
@@ -1766,6 +2037,8 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     var sig = btoa('demo-sig-' + Math.random().toString(36).slice(2, 10));
                     return header + '.' + payload + '.' + sig;
                 }
+                // Expose globally so main.js triggerDirectoryPicker can auto-generate a token
+                window.generateSandboxToken = generateSandboxToken;
 
                 // ── Token Status Pill Badge ───────────────────────────────────
                 function updateTokenStatusCard(token, data) {
