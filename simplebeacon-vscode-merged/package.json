@@ -1032,7 +1032,7 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.84.0",
     "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
+    "@typescript-eslint/parser": "^8.67.0",
     "@vscode/test-electron": "^3.0.0",
     "dependency-cruiser": "^18.0.0",
     "eslint": "^10.5.0",
