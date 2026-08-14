@@ -597,28 +597,35 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 
         <!-- VIEW A: CLI WORKFLOW — two-column layout: CLI commands + Import Report -->
         <div id="view-cli" style="display:none;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" id="cli-two-column">
+            <div style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:20px;margin-bottom:16px;" id="cli-two-column">
                 <!-- Left column: Run via CLI with tab switcher -->
                 <div class="card" style="padding:0;overflow:hidden;">
-                    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                            <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#10095;</span>
-                            <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Run via CLI</h3>
+                    <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#10095;</span>
+                            <h3 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Run via CLI</h3>
                         </div>
-                        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 12px;">Run from your repository root. Copy a command and paste it into your terminal.</p>
-                        <button id="oneClickInstallBtn" class="btn btn-primary" style="padding:6px 14px;background:var(--success);border:none;border-radius:8px;color:white;font-weight:600;font-size:0.78rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-                            <span>&#128229;</span> One-Click Install
-                        </button>
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;line-height:1.5;">Run from your repository root. Copy a command and paste it into your terminal.</p>
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <button id="oneClickInstallBtn" class="btn btn-primary" style="padding:8px 16px;background:var(--success);border:none;border-radius:10px;color:white;font-weight:600;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                                <span>&#128229;</span> One-Click Install
+                            </button>
+                            <div class="badge-shields" style="margin:0;gap:6px;">
+                                <span class="shield"><span class="shield-dot green"></span>v1.3.0</span>
+                                <span class="shield"><span class="shield-dot blue"></span>MIT</span>
+                                <span class="shield"><span class="shield-dot purple"></span>0 Deps</span>
+                            </div>
+                        </div>
                         <code id="installCommand" style="display:none;">npm install -g file:packages/simplebeacon-cli</code>
                     </div>
-                    <div style="padding:16px 20px;background:var(--bg-input);">
+                    <div style="padding:20px 24px;background:var(--bg-input);">
                         <!-- Code tab switcher — replaces 5 separate visible blocks -->
-                        <div style="display:flex;gap:2px;background:var(--bg-main);padding:3px;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;flex-wrap:wrap;">
-                            <button class="cli-code-tab active" data-cli-tab="verify" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-weight:500;">Verify</button>
-                            <button class="cli-code-tab" data-cli-tab="standard" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">Standard</button>
-                            <button class="cli-code-tab" data-cli-tab="offline" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">Offline</button>
-                            <button class="cli-code-tab" data-cli-tab="full" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">Full</button>
-                            <button class="cli-code-tab" data-cli-tab="euai" style="padding:6px 12px;font-size:0.75rem;border:none;border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;">EU AI Act</button>
+                        <div style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap;">
+                            <button class="cli-code-tab active" data-cli-tab="verify" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:var(--accent);color:white;cursor:pointer;font-weight:600;transition:all 0.15s;">Verify</button>
+                            <button class="cli-code-tab" data-cli-tab="standard" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;transition:all 0.15s;">Standard</button>
+                            <button class="cli-code-tab" data-cli-tab="offline" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;transition:all 0.15s;">Offline</button>
+                            <button class="cli-code-tab" data-cli-tab="full" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;transition:all 0.15s;">Full</button>
+                            <button class="cli-code-tab" data-cli-tab="euai" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;transition:all 0.15s;">EU AI Act</button>
                         </div>
                         <div class="terminal-palette" id="quickCommandsPalette">
                             <div class="terminal-header">
@@ -660,46 +667,42 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                                 </div>
                             </div>
                         </div>
-                        <div style="font-size:0.72rem;color:var(--warning);display:flex;align-items:center;gap:6px;margin-top:10px;">
-                            <span>&#128737;</span>
-                            <span>Zero-Trust: Output is audit metadata only — no source code included.</span>
-                        </div>
-                        <div class="badge-shields" style="margin-top:10px;">
-                            <span class="shield"><span class="shield-dot green"></span>v1.3.0</span>
-                            <span class="shield"><span class="shield-dot blue"></span>MIT License</span>
-                            <span class="shield"><span class="shield-dot purple"></span>0 Dependencies</span>
+                        <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);font-size:0.74rem;color:var(--text-secondary);display:flex;align-items:center;gap:8px;line-height:1.4;">
+                            <span style="font-size:0.9rem;flex-shrink:0;">&#128737;</span>
+                            <span><strong>Zero-Trust:</strong> Output is audit metadata only — no source code included.</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Right column: Import Existing Report -->
-                <div class="card" style="padding:0;overflow:hidden;">
-                    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+                <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
+                    <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                         <div style="display:flex;align-items:center;gap:10px;">
-                            <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#128229;</span>
-                            <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Import Existing Report</h3>
+                            <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#128229;</span>
+                            <h3 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Import Existing Report</h3>
                         </div>
                     </div>
-                    <div style="padding:16px 20px;background:var(--bg-input);">
-                        <div style="display:flex;gap:2px;background:var(--bg-main);padding:3px;border-radius:8px;border:1px solid var(--border);width:fit-content;margin-bottom:12px;">
-                            <button id="tab-import-upload" class="mode-tab active" style="flex:none;padding:6px 12px;font-size:0.78rem;">&#128229; Drag &amp; Drop</button>
-                            <button id="tab-import-paste" class="mode-tab" style="flex:none;padding:6px 12px;font-size:0.78rem;">&#128203; Paste</button>
+                    <div style="padding:20px 24px;background:var(--bg-input);flex:1;display:flex;flex-direction:column;">
+                        <div style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;margin-bottom:16px;">
+                            <button id="tab-import-upload" class="mode-tab active" style="flex:none;padding:7px 14px;font-size:0.78rem;font-weight:600;border-radius:7px;transition:all 0.15s;">&#128229; Drag &amp; Drop</button>
+                            <button id="tab-import-paste" class="mode-tab" style="flex:none;padding:7px 14px;font-size:0.78rem;font-weight:500;border-radius:7px;transition:all 0.15s;">&#128203; Paste</button>
                         </div>
-                        <div id="view-import-upload">
-                            <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">Drop a <code>report.json</code> generated by the CLI.</p>
-                            <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:10px;padding:28px 16px;">
-                                <div class="icon" style="font-size:1.6rem;margin-bottom:8px;">&#128229;</div>
-                                <p style="font-size:0.8rem;margin:0;">Drop your <code>report.json</code> here<br><span style="font-size:0.72rem;opacity:0.7;">Only summary metadata is used for signing.</span></p>
-                                <p class="file-name" id="cliFileName"></p>
+                        <div id="view-import-upload" style="flex:1;display:flex;flex-direction:column;">
+                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 14px;line-height:1.5;">Drop a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.76rem;">report.json</code> generated by the CLI.</p>
+                            <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:0;padding:40px 20px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;">
+                                <div class="icon" style="font-size:2.2rem;margin-bottom:12px;">&#128229;</div>
+                                <p style="font-size:0.85rem;margin:0 0 6px;font-weight:600;color:var(--text-main);">Drop your <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.8rem;">report.json</code> here</p>
+                                <p style="font-size:0.72rem;opacity:0.7;margin:0;">Only summary metadata is used for signing.</p>
+                                <p class="file-name" id="cliFileName" style="margin-top:10px;font-weight:600;"></p>
                             </div>
                             <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
                         </div>
-                        <div id="view-import-paste" style="display:none;">
-                            <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 10px;">Paste a <code>report.json</code> generated by the CLI.</p>
-                            <label style="display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">&#128203; Paste JSON directly</label>
-                            <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:100px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
-                            <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:8px;cursor:pointer;">Load JSON Report</button>
-                            <p style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">Press Ctrl+Enter to submit.</p>
+                        <div id="view-import-paste" style="display:none;flex:1;display:flex;flex-direction:column;">
+                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 14px;line-height:1.5;">Paste a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.76rem;">report.json</code> generated by the CLI.</p>
+                            <label style="display:block;font-size:0.74rem;color:var(--text-muted);margin-bottom:6px;font-weight:500;">&#128203; Paste JSON directly</label>
+                            <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;flex:1;"></textarea>
+                            <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:10px;width:100%;padding:12px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:10px;cursor:pointer;transition:all 0.15s;">Load JSON Report</button>
+                            <p style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;text-align:center;">Press Ctrl+Enter to submit.</p>
                         </div>
                     </div>
                 </div>
