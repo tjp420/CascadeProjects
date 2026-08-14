@@ -28,6 +28,7 @@
     "./doctor": "./src/doctor.js",
     "./fix-dry-run": "./src/fix-dry-run.js",
     "./mcp": "./src/mcp/stdio-server.js",
+    "./src/reporters/github-comment": "./src/reporters/github-comment.js",
     "./package.json": "./package.json"
   },
   "bin": {
