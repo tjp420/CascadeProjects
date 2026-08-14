@@ -201,7 +201,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     </style>
 <nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
   <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
-  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/dashboard/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
+  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:700;white-space:nowrap;padding:6px 12px;border-radius:8px;background:rgba(99,102,241,0.12);box-shadow:inset 0 -2px 0 #6366f1;">Audit</a><a href="/dashboard/" style="color:#9CA3AF;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:500;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s,color 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'">Dashboard</a>
     <div class="sb-nav-more-wrap">
       <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
       <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
@@ -216,7 +216,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     </div>
     <button type="button" id="sb-theme-toggle" onclick="sbToggleTheme()" title="Toggle theme" style="margin-left:10px;padding:6px 10px;background:transparent;color:#9CA3AF;font-size:1rem;font-weight:500;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'">&#9728;</button>
     <button type="button" id="nav-signin-btn" style="display:none;margin-left:10px;padding:6px 14px;background:#06B6D4;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>
-    <button type="button" id="nav-signout-btn" style="display:none;margin-left:10px;padding:6px 14px;background:transparent;color:#9CA3AF;font-size:0.85rem;font-weight:500;cursor:pointer;border:1px solid #374151;border-radius:8px;">Sign out</button>
+    <button type="button" id="nav-signout-btn" style="display:none;margin-left:10px;padding:6px 10px;background:transparent;color:#6B7280;font-size:0.82rem;font-weight:400;cursor:pointer;border:none;border-radius:6px;transition:color 0.15s;" onmouseover="this.style.color='#9CA3AF'" onmouseout="this.style.color='#6B7280'">Sign out</button>
   </div>
 </nav>
 <style>.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
@@ -404,13 +404,16 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 
         <!-- TOKEN GATE — non-coercive -->
         <div class="card" id="audit-token-gate" style="padding:0;overflow:hidden;margin-bottom:16px;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                <h3 style="margin:0;font-size:0.9rem;color:var(--text-main);">Get started — no signup required</h3>
+            <div style="padding:24px 24px 20px;border-bottom:1px solid var(--border);text-align:center;">
+                <h3 style="margin:0;font-size:1rem;color:var(--text-main);font-weight:700;">Get started — no signup required</h3>
+                <p style="margin:6px 0 0;font-size:0.78rem;color:var(--text-muted);">Unlock the scanner with one click, or paste a license token if you have one.</p>
             </div>
             <style>
-              .token-gate-body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 16px; }
-              .token-gate-primary { display: flex; gap: 10px; flex-wrap: wrap; }
-              .token-gate-primary .btn { flex: 1; min-width: 160px; justify-content: center; padding: 12px 18px; font-size: 0.9rem; }
+              .token-gate-body { padding: 28px 32px 32px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+              .token-gate-primary { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 520px; }
+              .token-gate-primary .btn { flex: 1; min-width: 180px; justify-content: center; padding: 14px 24px; font-size: 0.92rem; font-weight: 600; border-radius: 12px; }
+              .token-gate-primary .btn-secondary { background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border); box-shadow: none; }
+              .token-gate-primary .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.04); border-color: var(--accent); color: var(--text-main); transform: translateY(-1px); box-shadow: none; }
               .token-gate-secondary { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); }
               .token-gate-secondary button { color: var(--accent); cursor: pointer; background: none; border: none; font-size: 0.75rem; font-weight: 500; text-decoration: underline; padding: 0; }
               .token-gate-secondary button:hover { color: var(--accent-hover); }
@@ -597,15 +600,15 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 
         <!-- VIEW A: CLI WORKFLOW — two-column layout: CLI commands + Import Report -->
         <div id="view-cli" style="display:none;">
-            <div style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:20px;margin-bottom:16px;" id="cli-two-column">
+            <div style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:20px;margin-bottom:16px;align-items:stretch;" id="cli-two-column">
                 <!-- Left column: Run via CLI with tab switcher -->
-                <div class="card" style="padding:0;overflow:hidden;">
+                <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
                     <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                             <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#10095;</span>
                             <h3 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Run via CLI</h3>
                         </div>
-                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;line-height:1.5;">Run from your repository root. Copy a command and paste it into your terminal.</p>
+                        <p style="font-size:0.8rem;color:var(--text-secondary);margin:0 0 16px;line-height:1.5;">Run from your repository root. Copy a command and paste it into your terminal.</p>
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                             <button id="oneClickInstallBtn" class="btn btn-primary" style="padding:8px 16px;background:var(--success);border:none;border-radius:10px;color:white;font-weight:600;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                                 <span>&#128229;</span> One-Click Install
@@ -618,8 +621,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                         </div>
                         <code id="installCommand" style="display:none;">npm install -g file:packages/simplebeacon-cli</code>
                     </div>
-                    <div style="padding:20px 24px;background:var(--bg-input);">
-                        <!-- Code tab switcher — replaces 5 separate visible blocks -->
+                    <div style="padding:20px 24px;background:var(--bg-input);flex:1;display:flex;flex-direction:column;">
                         <div style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap;">
                             <button class="cli-code-tab active" data-cli-tab="verify" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:var(--accent);color:white;cursor:pointer;font-weight:600;transition:all 0.15s;">Verify</button>
                             <button class="cli-code-tab" data-cli-tab="standard" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;transition:all 0.15s;">Standard</button>
@@ -627,7 +629,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                             <button class="cli-code-tab" data-cli-tab="full" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;transition:all 0.15s;">Full</button>
                             <button class="cli-code-tab" data-cli-tab="euai" style="padding:7px 14px;font-size:0.76rem;border:none;border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:500;transition:all 0.15s;">EU AI Act</button>
                         </div>
-                        <div class="terminal-palette" id="quickCommandsPalette">
+                        <div class="terminal-palette" id="quickCommandsPalette" style="flex:1;">
                             <div class="terminal-header">
                                 <span class="term-dot red"></span>
                                 <span class="term-dot yellow"></span>
@@ -667,8 +669,8 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                                 </div>
                             </div>
                         </div>
-                        <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);font-size:0.74rem;color:var(--text-secondary);display:flex;align-items:center;gap:8px;line-height:1.4;">
-                            <span style="font-size:0.9rem;flex-shrink:0;">&#128737;</span>
+                        <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);font-size:0.78rem;color:#FBBF24;display:flex;align-items:center;gap:8px;line-height:1.4;">
+                            <span style="font-size:0.95rem;flex-shrink:0;">&#128737;</span>
                             <span><strong>Zero-Trust:</strong> Output is audit metadata only — no source code included.</span>
                         </div>
                     </div>
@@ -688,7 +690,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                             <button id="tab-import-paste" class="mode-tab" style="flex:none;padding:7px 14px;font-size:0.78rem;font-weight:500;border-radius:7px;transition:all 0.15s;">&#128203; Paste</button>
                         </div>
                         <div id="view-import-upload" style="flex:1;display:flex;flex-direction:column;">
-                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 14px;line-height:1.5;">Drop a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.76rem;">report.json</code> generated by the CLI.</p>
+                            <p style="font-size:0.8rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.5;">Drop a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.76rem;">report.json</code> generated by the CLI.</p>
                             <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:0;padding:40px 20px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;">
                                 <div class="icon" style="font-size:2.2rem;margin-bottom:12px;">&#128229;</div>
                                 <p style="font-size:0.85rem;margin:0 0 6px;font-weight:600;color:var(--text-main);">Drop your <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.8rem;">report.json</code> here</p>
@@ -698,7 +700,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                             <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
                         </div>
                         <div id="view-import-paste" style="display:none;flex:1;display:flex;flex-direction:column;">
-                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 14px;line-height:1.5;">Paste a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.76rem;">report.json</code> generated by the CLI.</p>
+                            <p style="font-size:0.8rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.5;">Paste a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.76rem;">report.json</code> generated by the CLI.</p>
                             <label style="display:block;font-size:0.74rem;color:var(--text-muted);margin-bottom:6px;font-weight:500;">&#128203; Paste JSON directly</label>
                             <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;flex:1;"></textarea>
                             <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:10px;width:100%;padding:12px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:10px;cursor:pointer;transition:all 0.15s;">Load JSON Report</button>
