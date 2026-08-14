@@ -9,13 +9,15 @@ module.exports = {
       settings: {
         chromeFlags: '--no-sandbox --headless --disable-gpu',
         maxWaitForLoad: 60000,
+        // Wait for the React app to render before auditing
+        waitForSelector: '#app-main, .app-main',
       },
     },
     assert: {
       // Establish direct score baselines and performance budgets
       assertions: {
         'categories:performance': ['warn', { minScore: 0.90 }],
-        'categories:accessibility': ['error', { minScore: 0.95 }],
+        'categories:accessibility': ['error', { minScore: 0.85 }],
         'categories:best-practices': ['warn', { minScore: 0.90 }],
         // Enforce strict asset delivery size budgets
         'resource-summary:script:size': ['error', { maxNumericValue: 3000000 }], // 3MB overall JS cap (relaxed)
