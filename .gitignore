@@ -67,6 +67,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.enterprise.example
 
 # Temp fix scripts
 /temp-edit*.js

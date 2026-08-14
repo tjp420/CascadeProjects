@@ -1,5 +1,10 @@
 "use strict";
 
+// Enable dev auth bypass for integration tests that exercise the real app.
+// The auth middleware checks NODE_ENV=development && DEV_AUTH_BYPASS=1.
+process.env.NODE_ENV = 'development';
+process.env.DEV_AUTH_BYPASS = '1';
+
 const request = require('supertest');
 const crypto = require('crypto');
 const app = require('../../../../index.cjs');

@@ -21,18 +21,28 @@ const ROUTE_PATH = require.resolve('../scan-counter-routes.cjs');
 const IS_JEST = typeof jest !== 'undefined' && typeof jest.doMock === 'function';
 
 function loadScanCounterModule(stubs) {
+  // mockMap keys are the require paths as seen from the route file's directory.
+  // For Jest, we must register mocks under paths resolvable from the test file's
+  // directory, so we use the corrected relative paths.
+  const routeDir = require('path').dirname(ROUTE_PATH);
+  const testDir = __dirname;
   const mockMap = {
     '../middleware/auth.cjs': stubs['auth.cjs'],
     '../lib/app-logger.cjs': stubs['app-logger.cjs'],
   };
 
   if (IS_JEST) {
+    jest.resetModules();
     for (const [modPath, impl] of Object.entries(mockMap)) {
-      if (impl) jest.doMock(modPath, () => impl);
+      if (impl) {
+        // Resolve the module path relative to the route file, then re-express
+        // it relative to the test file so jest.doMock registers under the
+        // same resolved absolute path that the route will require.
+        const absPath = require('path').resolve(routeDir, modPath);
+        const relPath = require('path').relative(testDir, absPath);
+        jest.doMock(relPath, () => impl, { virtual: true });
+      }
     }
-    jest.isolateModules(() => {
-      // force re-require
-    });
     return require(ROUTE_PATH);
   }
 

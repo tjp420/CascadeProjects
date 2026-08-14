@@ -26,6 +26,7 @@ COPY coming-soon/public/models/manifest.json /models/manifest.json
 COPY coming-soon/public/models/memory-profiles.json /models/memory-profiles.json
 
 # Copy the init script from the project
+# init-models.sh runs `ollama create` for each Modelfile at container startup
 COPY scripts/init-models.sh ./scripts/init-models.sh
 RUN chmod +x ./scripts/init-models.sh
 

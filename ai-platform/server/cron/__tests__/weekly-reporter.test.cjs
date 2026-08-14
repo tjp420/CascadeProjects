@@ -6,11 +6,31 @@ const Module = require('module');
 const path = require('path');
 
 const REPORTER_PATH = require.resolve('../weekly-reporter.cjs');
+const IS_JEST = typeof jest !== 'undefined' && typeof jest.doMock === 'function';
 
 /**
  * Load weekly-reporter with stubbed email-service so no real emails fire.
  */
 function loadReporter(stubs) {
+  if (IS_JEST) {
+    jest.resetModules();
+    var routeDir = path.dirname(REPORTER_PATH);
+    var testDir = __dirname;
+    // Map stub basenames to the actual require paths used by weekly-reporter.cjs
+    var requirePathMap = {
+      'email-service.cjs': '../lib/email-service.cjs',
+      'ci-telemetry-store.cjs': '../lib/ci-telemetry-store.cjs',
+      'dashboard-analytics.cjs': '../lib/dashboard-analytics.cjs'
+    };
+    for (var key of Object.keys(stubs)) {
+      var requirePath = requirePathMap[key] || key;
+      var absPath = path.resolve(routeDir, requirePath);
+      var relPath = path.relative(testDir, absPath);
+      jest.doMock(relPath, () => stubs[key], { virtual: true });
+    }
+    return require(REPORTER_PATH);
+  }
+
   delete require.cache[REPORTER_PATH];
   var originalLoad = Module._load;
   Module._load = function patchedLoad(requestPath, parent, isMain) {

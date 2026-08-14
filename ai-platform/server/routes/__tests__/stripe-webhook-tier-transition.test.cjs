@@ -26,8 +26,10 @@ const crypto = require('node:crypto');
 const express = require('express');
 const request = require('supertest');
 const Module = require('module');
+const path = require('path');
 
 const ROUTE_PATH = require.resolve('../stripe-webhook-routes.cjs');
+const IS_JEST = typeof jest !== 'undefined' && typeof jest.doMock === 'function';
 
 // ─── Price IDs from config/stripe.cjs (real Stripe Price IDs) ───────────────
 const PRICE_DEVELOPER_MONTHLY = 'price_1U2flyAQ0e20kzI8Y8CYxUWt';
@@ -254,6 +256,8 @@ function makeMockProrationCalculator() {
  * @returns {Object} The loaded Express router.
  */
 function loadWebhookModule(stubs) {
+  const routeDir = path.dirname(ROUTE_PATH);
+  const testDir = __dirname;
   const mockMap = {
     '../lib/app-logger.cjs': stubs.logger,
     '../lib/simplebeacon-subscription-store.cjs': stubs.subscriptionStore,
@@ -267,6 +271,19 @@ function loadWebhookModule(stubs) {
     // Use real response-helpers.cjs (pure logic, no side effects)
   };
 
+  if (IS_JEST) {
+    jest.resetModules();
+    for (const [modPath, impl] of Object.entries(mockMap)) {
+      if (impl) {
+        const absPath = path.resolve(routeDir, modPath);
+        const relPath = path.relative(testDir, absPath);
+        jest.doMock(relPath, () => impl, { virtual: true });
+      }
+    }
+    return require(ROUTE_PATH);
+  }
+
+  // Node --test: intercept Module._load
   const originalLoad = Module._load;
   Module._load = function (req, parent, isMain) {
     if (parent && parent.filename === ROUTE_PATH && mockMap[req]) {
