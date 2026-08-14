@@ -300,7 +300,7 @@ afterAll(async () => {
   try { global.clearInterval = _origClearInterval; } catch (e) {}
   // Also ensure report scheduler is stopped if started by any module
   try {
-    // eslint-disable-next-line global-require, import/no-dynamic-require
+    // eslint-disable-next-line global-require
     const reportScheduler = require('../server/lib/report-scheduler.cjs');
     if (reportScheduler && typeof reportScheduler.stopScheduler === 'function') {
       try { reportScheduler.stopScheduler(); } catch (e) {}
@@ -310,7 +310,7 @@ afterAll(async () => {
   }
   for (const rel of targets) {
     try {
-      // eslint-disable-next-line global-require, import/no-dynamic-require
+      // eslint-disable-next-line global-require
       const mod = require(rel);
       if (mod && typeof mod.shutdown === 'function') {
         try {

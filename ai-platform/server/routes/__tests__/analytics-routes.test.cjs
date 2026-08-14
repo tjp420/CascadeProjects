@@ -104,7 +104,7 @@ function loadAnalyticsModule(stubs) {
     return origLoad.apply(this, arguments);
   };
 
-  // eslint-disable-next-line global-require, import/no-dynamic-require
+  // eslint-disable-next-line global-require
   const router = require('../analytics-routes.cjs');
   Module._load = origLoad;
 

@@ -58,7 +58,7 @@ const SCANNER_MODULE = path.join(AGENT_ROOT, 'packages', 'simplebeacon-cli', 'sr
 // Static literal require signals to pkg that this module must be bundled.
 // Runtime resolution happens in loadScannerApi() so the filesystem copy is tried first.
 try {
-  // eslint-disable-next-line import/no-dynamic-require, global-require
+  // eslint-disable-next-line global-require
   require('../../packages/simplebeacon-cli/src/index.js');
 } catch {
   // Ignore at runtime; this path is only used during pkg analysis.
@@ -85,7 +85,7 @@ function loadScannerApi() {
   for (const candidate of candidates) {
     try {
       if (!fs.existsSync(candidate)) continue;
-      // eslint-disable-next-line import/no-dynamic-require, global-require
+      // eslint-disable-next-line global-require
       const api = require(candidate);
       if (api && typeof api.runScan === 'function') {
         scannerLoadError = null;
