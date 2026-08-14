@@ -21,13 +21,7 @@ const {
     scanLlmSlopPatterns
 } = require('../src/rules/llm-slop-patterns');
 
-const {
-    scanSourceFictionPatterns
-} = require('../src/rules/fiction-kpi-patterns');
 
-const {
-    scanProductionLeaks
-} = require('../src/rules/production-leak');
 
 // ─── Helper: create temp repo ───
 function createTempRepo(files) {

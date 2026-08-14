@@ -63,7 +63,7 @@ function alertRemediationSteps(issue) {
 
 function formatTextReport(report, gateResult = null) {
     const { detectTier } = require('../lib/tier-detector');
-    const tierInfo = detectTier();
+    const _tierInfo = detectTier();
 
     const lines = [];
     lines.push(paint('Simplebeacon', 'cyan'));

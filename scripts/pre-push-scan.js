@@ -30,6 +30,8 @@ const SKIP_GLOBS = [
   'scripts/test-scanner-concurrency.cjs',
   // VSCode extension — contains method names that look like JWTs (onDidDispose, appendLine)
   'simplebeacon-vscode-merged/src/modernSidebarProvider.ts',
+  // Stress test workflow — contains fake credential fixtures for dirty-repo gate testing
+  '.github/workflows/simplebeacon-action-stress-test.yml',
 ];
 
 const MAX_BYTES = 1024 * 1024; // 1MB per-file read cap for regex scanning

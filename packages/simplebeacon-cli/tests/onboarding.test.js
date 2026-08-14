@@ -5,13 +5,12 @@ const os = require('os');
 const path = require('path');
 const { installCursorMcpConfig } = require('../src/mcp/install-cursor-config');
 const {
-    installCursorRule,
     installCiWorkflow,
     installDeveloperStack
 } = require('../src/lib/developer-onboarding');
 
 test('buildCursorMcpJson defaults to npx local bin', () => {
-    const json = installCursorMcpConfig;
+    const _json = installCursorMcpConfig;
     const { buildCursorMcpJson } = require('../src/mcp/install-cursor-config');
     const parsed = buildCursorMcpJson();
     assert.equal(parsed.mcpServers.simplebeacon.command, 'npx');

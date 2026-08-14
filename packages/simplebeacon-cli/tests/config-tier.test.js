@@ -4,7 +4,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { sanitizeConfigForTier, PROFILE_RULES } = require('../src/config');
+const { sanitizeConfigForTier } = require('../src/config');
 
 describe('sanitizeConfigForTier', () => {
     it('strips scanners and allowlist for developer tier and disables non-free engines', () => {

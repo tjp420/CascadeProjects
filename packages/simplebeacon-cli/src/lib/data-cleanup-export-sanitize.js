@@ -735,7 +735,7 @@ function buildProductFileReductionExportNotes(report, options = {}) {
         notes.push(String(report.inventory.inventoryNote));
     }
     const gateContext = resolveDataCleanupGateContext(report, options);
-    const { repositoryFilesTotal: gateTotal, credentialScanned, gateProfile, gateReport,
+    const { repositoryFilesTotal: gateTotal, credentialScanned, gateProfile, _gateReport,
         fictionJsonFilesScanned, fictionSampleFilesScanned } = gateContext;
     if (gateTotal != null && credentialScanned != null && credentialScanned < gateTotal) {
         notes.push(

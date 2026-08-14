@@ -5,7 +5,9 @@ const path = require('path');
 const runs = [
   { cwd: process.cwd(), name: 'root' },
   { cwd: path.join(process.cwd(), 'ai-platform'), name: 'ai-platform' },
-  { cwd: path.join(process.cwd(), 'simplebeacon-vscode-merged', 'dashboard-web'), name: 'vscode-dashboard' }
+  // vscode-dashboard build skipped in CI — it requires @vitejs/plugin-react which
+  // has peer dependency conflicts with vite 8 and needs its own npm install.
+  // The dashboard-web build is validated separately in the VS Code extension workflow.
 ];
 
 function runBuild(target) {

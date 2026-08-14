@@ -4,12 +4,7 @@
 
 const { partitionBenchmarkIssues, isExternalBenchmarkCachePath } = require('./benchmark-cache-paths');
 const { evaluateGate } = require('../gate');
-const { countBySeverity, isBlockingIssue, groupIssues, computeQualityScoreFromIssues } = require('./issue-utils');
-
-const INFORMATIONAL_ISSUE_TYPES = new Set([
-    'Legacy Fiction Roadmap',
-    'Oversized Roadmap File'
-]);
+const { countBySeverity, groupIssues, computeQualityScoreFromIssues } = require('./issue-utils');
 
 function isStaleFullTreeScan(report) {
     const mock = report.mockSampleFiles ?? 0;

@@ -58,7 +58,7 @@ function extractAssistantText(responseBody) {
             return payload.content.map((block) => block.text || '').join('\n');
         }
         if (typeof payload.output_text === 'string') return payload.output_text;
-    } catch (err) {
+    } catch (_err) {
         console.warn('[inbound-enforcer] Response is not valid JSON, returning raw body');
     }
 
@@ -144,7 +144,7 @@ function buildSafeFallback(originalBody, violations) {
                 content: [{ type: 'text', text: safeContent }]
             });
         }
-    } catch (err) {
+    } catch (_err) {
         console.warn('[inbound-enforcer] Failed to parse originalBody for fallback');
     }
 

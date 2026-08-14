@@ -45,7 +45,7 @@ describe('compliance-rules/index.js', () => {
     });
 
     it('evaluateRule delegates to registered rule', () => {
-        const custom = (rule, context) => ({
+        const custom = (rule, _context) => ({
             id: rule.id,
             title: rule.title,
             category: rule.category,

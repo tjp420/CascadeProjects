@@ -174,6 +174,11 @@ function formatGithubStepSummary(report, gateResult = null) {
 }
 
 async function postGithubComment(reportPath, options = {}) {
+    // Offline guard: refuse to call GitHub API when --offline is active
+    if (options.offline || process.env.SIMPLEBEACON_OFFLINE === '1' || process.env.SIMPLEBEACON_OFFLINE === 'true') {
+        throw new Error('GitHub comment posting blocked in offline mode — --github-comment requires network access. Remove --offline to post PR comments.');
+    }
+
     const token = options.token || process.env.GITHUB_TOKEN;
     const repo = options.repo || process.env.GITHUB_REPOSITORY;
     const issueNumber = options.issueNumber || process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER

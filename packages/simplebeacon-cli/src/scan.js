@@ -1729,7 +1729,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             skipDirs: skipDirsList
         });
         if (onProgress) {
-            try { onProgress({ completed: completedRules, total: totalRules, currentRule: name }); } catch {}
+            try { onProgress({ completed: completedRules, total: totalRules, currentRule: name }); } catch { /* intentional */ }
         }
     }
 
@@ -1788,7 +1788,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         jestBaseline, tokenBleedScan, architectureDriftScan, securityPatternScan,
         fileReduction, hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
-        memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
+        memoryLeakScan, typeSafetyScan, hallucinatedImportScan, _astStructuralScan,
         dependencyGraphScan, comprehensiveScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan
     } = resolved;
@@ -1915,7 +1915,27 @@ async function runScan(baseDir, options = {}) {
         throw new TypeError('runScan expects baseDir to be a string');
     }
     const safeOptions = options || {};
-    return scanMockDataDirectories(baseDir, safeOptions.extraPaths || [], safeOptions);
+
+    // Activate offline guard when --offline is requested via API options or env.
+    // This ensures the programmatic API (not just the CLI bin) enforces the
+    // zero-custody boundary — no outbound network calls during scan execution.
+    let offlineGuard = null;
+    const wantsOffline = safeOptions.offline === true ||
+        process.env.SIMPLEBEACON_OFFLINE === '1' ||
+        process.env.SIMPLEBEACON_OFFLINE === 'true';
+    if (wantsOffline) {
+        const { createOfflineGuard } = require('./lib/offline-guard');
+        offlineGuard = createOfflineGuard({ offline: true });
+    }
+
+    try {
+        return await scanMockDataDirectories(baseDir, safeOptions.extraPaths || [], safeOptions);
+    } finally {
+        if (offlineGuard) {
+            offlineGuard.assertNoViolations();
+            offlineGuard.dispose();
+        }
+    }
 }
 
 module.exports = {

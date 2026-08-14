@@ -7,7 +7,6 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const { execSync } = require('child_process');
 
 const CACHE_DIR = path.join(require('os').homedir(), '.simplebeacon', 'cache');
 const REGISTRY_CACHE_FILE = path.join(CACHE_DIR, 'npm-registry.json');

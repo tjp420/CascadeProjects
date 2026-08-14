@@ -3,7 +3,6 @@
  * Collect changed file paths for PR / CI diff-only scans.
  */
 const { execSync } = require('child_process');
-const path = require('path');
 
 function normalizeRelPath(entry) {
     return String(entry || '').replace(/\\/g, '/').replace(/^\.\/+/, '');

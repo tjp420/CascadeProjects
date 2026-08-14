@@ -6,7 +6,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const { walkProjectFiles } = require('./utils/project-walker');
 
 const POPULAR_PACKAGES = new Set([

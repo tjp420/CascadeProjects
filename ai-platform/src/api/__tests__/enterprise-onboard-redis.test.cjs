@@ -1,5 +1,13 @@
+const { test, after } = require('node:test');
 const assert = require('assert');
 const redisLimiter = require('../../server/lib/redis-rate-limiter.cjs');
+
+after(async () => {
+  // Close Redis connection to prevent the process from hanging
+  if (redisLimiter && typeof redisLimiter.shutdown === 'function') {
+    try { await redisLimiter.shutdown(); } catch (e) { /* ignore */ }
+  }
+});
 
 test('redis-rate-limiter: blocks after configured quota', async () => {
   const key = 'test-org-' + Date.now() + '-' + Math.floor(Math.random() * 10000);

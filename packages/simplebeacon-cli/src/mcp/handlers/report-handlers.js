@@ -7,7 +7,7 @@ const path = require('path');
 const { readFile, writeFile, mkdir, stat } = fs.promises;
 const { readGateStatus } = require('../../lib/snippet-scanner');
 
-function createReportHandlers({ withGuard, resolveProjectRoot, formatToolResult, formatMarkdownResult, getCachedReport }) {
+function createReportHandlers({ withGuard, resolveProjectRoot, formatToolResult, _formatMarkdownResult, getCachedReport }) {
     return {
         gate_status: withGuard(({ projectRoot, reportPath, limit }) => {
             const result = readGateStatus(resolveProjectRoot(projectRoot), {

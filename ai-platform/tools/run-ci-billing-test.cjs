@@ -21,7 +21,9 @@ const serverEnv = Object.assign({}, process.env, {
   ADMIN_THROTTLE_DISABLE_REDIS: process.env.ADMIN_THROTTLE_DISABLE_REDIS || 'false',
   // Default test signing key for CI validation
   REPORT_SIGNING_KEY: process.env.REPORT_SIGNING_KEY || 'test-signing-key-placeholder',
-  REPORT_SIGNING_KEY_ID: process.env.REPORT_SIGNING_KEY_ID || 'test-key-1'
+  REPORT_SIGNING_KEY_ID: process.env.REPORT_SIGNING_KEY_ID || 'test-key-1',
+  // License secret for dev mode license token generation
+  SIMPLEBEACON_LICENSE_SECRET: process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-license-secret-placeholder'
 });
 
 function waitForHealth(url, timeoutMs = 30000) {
@@ -46,7 +48,8 @@ function waitForHealth(url, timeoutMs = 30000) {
 }
 
 async function run() {
-  console.log('=== Starting CI Billing Pipeline Verification ===');
+  const OVERALL_TIMEOUT_MS = parseInt(process.env.CI_BILLING_TIMEOUT || '120', 10) * 1000;
+  console.log(`=== Starting CI Billing Pipeline Verification (timeout: ${OVERALL_TIMEOUT_MS / 1000}s) ===`);
 
   console.log('Booting local test server instance...');
   const server = spawn(process.execPath, [SERVER_ENTRY], {
@@ -58,6 +61,13 @@ async function run() {
   server.stdout.on('data', (b) => process.stdout.write(`[server] ${b.toString()}`));
   server.stderr.on('data', (b) => process.stderr.write(`[server.err] ${b.toString()}`));
 
+  // Overall timeout — kill server and exit if test takes too long
+  const timeoutHandle = setTimeout(() => {
+    console.error(`\n❌ Billing test exceeded ${OVERALL_TIMEOUT_MS / 1000}s overall timeout — aborting.`);
+    try { server.kill('SIGKILL'); } catch (e) { /* ignore */ }
+    process.exit(3);
+  }, OVERALL_TIMEOUT_MS);
+
   const healthUrl = `http://127.0.0.1:${serverEnv.PORT}/api/health`;
   try {
     process.stdout.write('Waiting for server health...\n');
@@ -65,6 +75,7 @@ async function run() {
   } catch (err) {
     console.error('Server failed to become healthy:', err.message || err);
     server.kill();
+    clearTimeout(timeoutHandle);
     process.exitCode = 2;
     return;
   }
@@ -144,9 +155,16 @@ async function run() {
     console.error('\n❌ Pipeline Test Failure encountered:', err.message || err);
     process.exitCode = 1;
   } finally {
+    clearTimeout(timeoutHandle);
     console.log('Tearing down background test server process...');
-    try { server.kill(); } catch (e) { /* ignore */ }
+    try { server.kill('SIGKILL'); } catch (e) { /* ignore */ }
   }
 }
 
-run();
+run().then(() => {
+  // Force exit to prevent hanging if child processes or handles remain
+  process.exit(process.exitCode || 0);
+}).catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});

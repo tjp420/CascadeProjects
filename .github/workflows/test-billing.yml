@@ -13,6 +13,7 @@ jobs:
   verify-billing:
     name: Run End-to-End Billing Hooks
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     services:
       local-redis:
@@ -53,3 +54,5 @@ jobs:
           ADMIN_THROTTLE_DISABLE_REDIS: 'false'
           ALLOW_DEV_EPHEMERAL_SECRETS: 'true'
           NODE_ENV: 'development'
+          REDIS_URL: 'redis://localhost:6379'
+          CI_BILLING_TIMEOUT: '90'
