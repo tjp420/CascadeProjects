@@ -899,14 +899,19 @@ function StatusGauge({
 function TelemetrySection({
   benchmark: initialBenchmark,
   onRunBenchmark,
+  onApplyProfile,
 }: {
   benchmark: BenchmarkData;
   onRunBenchmark?: () => Promise<BenchmarkData | null>;
+  onApplyProfile?: (profile: string) => Promise<{ oldProfile: string; newProfile: string; containerRestarted: boolean }>;
 }) {
   const [liveBenchmark, setLiveBenchmark] = useState<BenchmarkData | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [runElapsed, setRunElapsed] = useState<number | null>(null);
+  const [isTuning, setIsTuning] = useState(false);
+  const [tuneResult, setTuneResult] = useState<{ oldProfile: string; newProfile: string; containerRestarted: boolean } | null>(null);
+  const [tuneError, setTuneError] = useState<string | null>(null);
 
   const benchmark = liveBenchmark || initialBenchmark;
   const avg = benchmark.avgTokPerSec ?? 0;
@@ -921,6 +926,9 @@ function TelemetrySection({
   const runs = benchmark.runs ?? 0;
   const profile = benchmark.profile ?? 'unknown';
   const model = benchmark.model ?? 'unknown';
+
+  // Determine the recommended downshift profile for auto-tune
+  const recommendedProfile = profile === 'maximum' ? 'balanced' : 'minimal';
 
   const handleRunBenchmark = useCallback(async () => {
     if (!onRunBenchmark || isRunning) return;
@@ -941,6 +949,37 @@ function TelemetrySection({
       setIsRunning(false);
     }
   }, [onRunBenchmark, isRunning]);
+
+  const handleAutoTune = useCallback(async () => {
+    if (!onApplyProfile || isTuning) return;
+    setIsTuning(true);
+    setTuneError(null);
+    setTuneResult(null);
+    try {
+      const result = await onApplyProfile(recommendedProfile);
+      setTuneResult(result);
+      // After profile change, automatically re-run benchmark if available
+      if (onRunBenchmark && result.containerRestarted) {
+        setIsRunning(true);
+        setRunError(null);
+        try {
+          const benchResult = await onRunBenchmark();
+          if (benchResult) {
+            setLiveBenchmark(benchResult);
+            setRunElapsed(Date.now());
+          }
+        } catch (err) {
+          setRunError(err instanceof Error ? err.message : String(err));
+        } finally {
+          setIsRunning(false);
+        }
+      }
+    } catch (err) {
+      setTuneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsTuning(false);
+    }
+  }, [onApplyProfile, isTuning, recommendedProfile, onRunBenchmark]);
 
   // Determine statuses
   const isThrottled = throttleThreshold ? avg < throttleThreshold : avg < profileMin * 0.8;
@@ -1135,12 +1174,33 @@ function TelemetrySection({
           {isThrottled && (
             <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
               <AlertTriangle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold text-danger">Throughput below throttle threshold</p>
                 <p className="text-xs text-foreground-muted mt-0.5">
                   Average {avg.toFixed(1)} tok/s is below 80% of {profile} minimum ({throttleThreshold ?? profileMin * 0.8} tok/s).
                   Check for thermal throttling, GPU offload failure, or resource contention.
                 </p>
+                {onApplyProfile && profile !== 'minimal' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 border-danger/40 text-danger hover:bg-danger/10"
+                    onClick={handleAutoTune}
+                    disabled={isTuning || isRunning}
+                  >
+                    {isTuning ? (
+                      <>
+                        <Activity className="h-4 w-4 animate-pulse" />
+                        Tuning to {recommendedProfile}...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4" />
+                        Auto-Tune to {recommendedProfile} profile
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -1171,12 +1231,59 @@ function TelemetrySection({
           {cpuTemp != null && cpuTemp > 85 && (
             <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
               <Thermometer className="h-4 w-4 text-danger mt-0.5 shrink-0" />
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold text-danger">CPU thermal throttling likely</p>
                 <p className="text-xs text-foreground-muted mt-0.5">
                   CPU temperature is {cpuTemp.toFixed(1)}°C (threshold: 85°C).
                   Reduce workload, improve cooling, or switch to a lower quantization profile.
                 </p>
+                {onApplyProfile && profile !== 'minimal' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 border-danger/40 text-danger hover:bg-danger/10"
+                    onClick={handleAutoTune}
+                    disabled={isTuning || isRunning}
+                  >
+                    {isTuning ? (
+                      <>
+                        <Activity className="h-4 w-4 animate-pulse" />
+                        Switching to {recommendedProfile}...
+                      </>
+                    ) : (
+                      <>
+                        <Thermometer className="h-4 w-4" />
+                        Downshift to {recommendedProfile} profile
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Auto-tune result banner */}
+          {tuneResult && (
+            <div className="flex items-start gap-2 rounded-md border border-success/30 bg-success/5 p-3 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-success">
+                  Profile changed: {tuneResult.oldProfile} → {tuneResult.newProfile}
+                </p>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  {tuneResult.containerRestarted
+                    ? 'Container restarted with new profile. Benchmark re-run automatically.'
+                    : 'Env file updated but container not restarted. Restart manually, then re-run benchmark.'}
+                </p>
+              </div>
+            </div>
+          )}
+          {tuneError && (
+            <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
+              <AlertCircle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-danger">Auto-tune failed</p>
+                <p className="text-xs text-foreground-muted mt-0.5 font-mono">{tuneError}</p>
               </div>
             </div>
           )}
@@ -1356,6 +1463,27 @@ export function AuditView() {
     }
     return data.benchmark as BenchmarkData;
   }, []);
+
+  // Apply a new memory profile to the air-gap deployment
+  const handleApplyProfile = useCallback(
+    async (targetProfile: string): Promise<{ oldProfile: string; newProfile: string; containerRestarted: boolean }> => {
+      const response = await fetch('/api/airgap/apply-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: targetProfile }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.detail || `HTTP ${response.status}`);
+      }
+      return {
+        oldProfile: data.oldProfile || 'unknown',
+        newProfile: data.newProfile || targetProfile,
+        containerRestarted: !!data.containerRestarted,
+      };
+    },
+    []
+  );
 
   // ── Empty state ──────────────────────────────────────────────────────────
 
@@ -1582,7 +1710,11 @@ export function AuditView() {
 
       {/* Air-gap telemetry / benchmark */}
       {benchmark && (
-        <TelemetrySection benchmark={benchmark} onRunBenchmark={handleRunBenchmark} />
+        <TelemetrySection
+          benchmark={benchmark}
+          onRunBenchmark={handleRunBenchmark}
+          onApplyProfile={handleApplyProfile}
+        />
       )}
 
       {/* Import section (always available at bottom for loading alternative reports) */}

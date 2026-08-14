@@ -2786,6 +2786,204 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // ── Air-gap profile auto-tune ────────────────────────────────────────────
+    // Applies a new memory profile to the air-gap deployment by updating
+    // .env.enterprise and restarting the Ollama container. Used by the
+    // AuditView telemetry "Auto-Tune" button when throttling is detected.
+    if (parsed.pathname === '/api/airgap/apply-profile' && req.method === 'POST') {
+      const workspacePath = serverState.workspacePath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+      if (!workspacePath) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No workspace folder open' }));
+        return;
+      }
+
+      // Read request body for target profile
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          const targetProfile = data.profile || data.targetProfile;
+
+          if (!targetProfile || !['minimal', 'balanced', 'maximum'].includes(targetProfile)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'Invalid or missing profile. Must be one of: minimal, balanced, maximum',
+              received: targetProfile,
+            }));
+            return;
+          }
+
+          // Load memory-profiles.json to get the target profile parameters
+          const profilesCandidates = [
+            path.join(workspacePath, 'coming-soon', 'public', 'models', 'memory-profiles.json'),
+            path.join(workspacePath, 'CascadeProjects', 'coming-soon', 'public', 'models', 'memory-profiles.json'),
+          ];
+          const profilesPath = profilesCandidates.find((p) => {
+            try { return fs.existsSync(p); } catch { return false; }
+          });
+
+          if (!profilesPath) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'memory-profiles.json not found',
+              searched: profilesCandidates,
+            }));
+            return;
+          }
+
+          const profilesData = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
+          const profileConfig = profilesData.profiles?.[targetProfile];
+          if (!profileConfig) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: `Profile '${targetProfile}' not found in memory-profiles.json` }));
+            return;
+          }
+
+          const params = profileConfig.parameters || {};
+          const newNumGpu = params.num_gpu ?? -1;
+          const newNumCtx = params.num_ctx ?? 4096;
+          const newQuantization = params.quantization || 'q4_K_M';
+
+          // Read current .env.enterprise to capture old profile
+          const envPath = path.join(workspacePath, '.env.enterprise');
+          let oldProfile = 'unknown';
+          let oldNumGpu = 'unknown';
+          let envContent = '';
+          try {
+            envContent = fs.readFileSync(envPath, 'utf-8');
+            const profileMatch = envContent.match(/^OLLAMA_MEMORY_PROFILE=(.+)$/m);
+            if (profileMatch) oldProfile = profileMatch[1].trim();
+            const gpuMatch = envContent.match(/^OLLAMA_NUM_GPU=(.+)$/m);
+            if (gpuMatch) oldNumGpu = gpuMatch[1].trim();
+          } catch {
+            // .env.enterprise doesn't exist — try from example
+            try {
+              const examplePath = path.join(workspacePath, '.env.enterprise.example');
+              envContent = fs.readFileSync(examplePath, 'utf-8');
+            } catch {
+              envContent = '';
+            }
+          }
+
+          // Update env content with new profile values
+          const updatedEnv = envContent
+            .replace(/^OLLAMA_MEMORY_PROFILE=.*$/m, `OLLAMA_MEMORY_PROFILE=${targetProfile}`)
+            .replace(/^OLLAMA_NUM_GPU=.*$/m, `OLLAMA_NUM_GPU=${newNumGpu}`)
+            .replace(/^OLLAMA_NUM_CTX=.*$/m, `OLLAMA_NUM_CTX=${newNumCtx}`);
+
+          // Write updated .env.enterprise
+          try {
+            fs.writeFileSync(envPath, updatedEnv, 'utf-8');
+          } catch (writeErr) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'Failed to write .env.enterprise',
+              detail: writeErr instanceof Error ? writeErr.message : String(writeErr),
+            }));
+            return;
+          }
+
+          // Restart the Ollama container with new env vars via docker compose
+          const composeFile = path.join(workspacePath, 'docker-compose.enterprise.yml');
+          const isWindows = process.platform === 'win32';
+
+          try {
+            const restartChild = spawn(
+              isWindows ? 'docker.exe' : 'docker',
+              [
+                'compose',
+                '-f', composeFile,
+                '--env-file', envPath,
+                'up', '-d',
+                'simplebeacon-ollama',
+              ],
+              {
+                cwd: workspacePath,
+                env: { ...process.env, FORCE_COLOR: '0' },
+                shell: false,
+                timeout: 60000,
+              }
+            );
+
+            let restartStdout = '';
+            let restartStderr = '';
+
+            restartChild.stdout?.on('data', (chunk: Buffer) => { restartStdout += chunk.toString(); });
+            restartChild.stderr?.on('data', (chunk: Buffer) => { restartStderr += chunk.toString(); });
+
+            restartChild.on('error', (restartErr: Error) => {
+              // Docker not available — still return success for env update
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                profileChanged: true,
+                containerRestarted: false,
+                oldProfile,
+                newProfile: targetProfile,
+                oldNumGpu,
+                newNumGpu: String(newNumGpu),
+                newNumCtx: String(newNumCtx),
+                newQuantization,
+                envUpdated: true,
+                warning: 'Docker not available — .env.enterprise updated but container not restarted. Restart manually with: docker compose -f docker-compose.enterprise.yml --env-file .env.enterprise up -d simplebeacon-ollama',
+                restartError: restartErr.message,
+              }));
+            });
+
+            restartChild.on('close', (restartCode: number | null) => {
+              const containerRestarted = restartCode === 0;
+              const response: Record<string, unknown> = {
+                success: true,
+                profileChanged: oldProfile !== targetProfile,
+                containerRestarted,
+                oldProfile,
+                newProfile: targetProfile,
+                oldNumGpu,
+                newNumGpu: String(newNumGpu),
+                newNumCtx: String(newNumCtx),
+                newQuantization,
+                envUpdated: true,
+              };
+
+              if (!containerRestarted) {
+                response.warning = `Container restart exited with code ${restartCode}`;
+                response.restartStderr = restartStderr.slice(-1000);
+              }
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(response));
+            });
+          } catch (restartSpawnErr) {
+            // Docker spawn failed — return success for env update with warning
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              profileChanged: true,
+              containerRestarted: false,
+              oldProfile,
+              newProfile: targetProfile,
+              oldNumGpu,
+              newNumGpu: String(newNumGpu),
+              newNumCtx: String(newNumCtx),
+              newQuantization,
+              envUpdated: true,
+              warning: 'Docker not available — .env.enterprise updated but container not restarted',
+              restartError: restartSpawnErr instanceof Error ? restartSpawnErr.message : String(restartSpawnErr),
+            }));
+          }
+        } catch (parseErr) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'Failed to parse request body',
+            detail: parseErr instanceof Error ? parseErr.message : String(parseErr),
+          }));
+        }
+      });
+      return;
+    }
+
     // Security / npm audit stub
     if (parsed.pathname === '/api/security/npm-audit') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
