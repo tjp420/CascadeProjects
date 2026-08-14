@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Install build deps and build app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build
 
@@ -22,7 +22,7 @@ RUN apk add --no-cache tini
 # Copy only production files from builder
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/package-lock.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production --legacy-peer-deps
 
 # Copy built public assets and server entrypoint
 COPY --from=builder /app/public ./public

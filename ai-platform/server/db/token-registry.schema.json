@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SimpleBeacon Token Registry",
+  "type": "object",
+  "required": [
+    "accounts",
+    "access_tokens",
+    "session_tokens",
+    "refresh_tokens",
+    "device_keys",
+    "recovery_factors",
+    "recovery_attempts",
+    "token_blocklist",
+    "license_tokens",
+    "audit_log"
+  ],
+  "properties": {
+    "accounts": { "type": "array", "items": { "type": "object" } },
+    "access_tokens": { "type": "array", "items": { "type": "object" } },
+    "session_tokens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "token_hash", "account_id"],
+        "properties": {
+          "id": { "type": "string" },
+          "token_hash": { "type": "string" },
+          "account_id": { "type": "string" },
+          "tenant_id": { "type": "string" },
+          "token_sequence": { "type": "integer" },
+          "epoch": { "type": "integer" },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "revoked_at": { "type": "string", "format": "date-time" },
+          "rotated_at": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "refresh_tokens": { "type": "array", "items": { "type": "object" } },
+    "device_keys": { "type": "array", "items": { "type": "object" } },
+    "recovery_factors": { "type": "array", "items": { "type": "object" } },
+    "recovery_attempts": { "type": "array", "items": { "type": "object" } },
+    "token_blocklist": { "type": "array", "items": { "type": "object" } },
+    "license_tokens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "tier": { "type": "string" },
+          "registered_at": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "audit_log": { "type": "array", "items": { "type": "object" } }
+  },
+  "additionalProperties": false
+}

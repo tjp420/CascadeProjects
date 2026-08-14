@@ -410,6 +410,7 @@ tools/bench-sample/
 ai-platform/.perf/
 ai-platform/server/lib/db/token-registry.json
 ai-platform/server/db/
+!ai-platform/server/db/token-registry.schema.json
 
 # Tracked secret keys (must never be committed — remove from index if tracked)
 .simplebeacon/.encryption-key
