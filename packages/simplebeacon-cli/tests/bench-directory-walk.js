@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { performance } = require('node:perf_hooks');
 
 const args = process.argv.slice(2);
 let targetFiles = 5000;

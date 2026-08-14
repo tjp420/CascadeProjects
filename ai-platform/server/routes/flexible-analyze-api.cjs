@@ -430,11 +430,15 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
     app.post('/api/analyze/flexible', async (req, res) => {
         let tempFetchDir = null;
+        let rawPath = '';
+        let isWebsite = false;
+        let aiProvider = 'active';
+        let analysisType = '';
         try {
             const body = req.body || {};
-            const rawPath = String(body.projectPath || body.path || '').trim();
+            rawPath = String(body.projectPath || body.path || '').trim();
             let projectPath;
-            let isWebsite = false;
+            isWebsite = false;
 
             try {
                 const resolved = await resolveAnalyzeProjectPath(rawPath);
@@ -469,8 +473,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 return res.status(400).json(errorPayload);
             }
 
-            const aiProvider = String(body.aiProvider || 'active').toLowerCase();
-            const analysisType = isWebsite ? 'mock-scan' : await resolveAnalysisType(body.analysisType, projectPath, pathLooksLikeMockScan);
+            aiProvider = String(body.aiProvider || 'active').toLowerCase();
+            analysisType = isWebsite ? 'mock-scan' : await resolveAnalysisType(body.analysisType, projectPath, pathLooksLikeMockScan);
             const registry = await ensureRegistry(baseDir);
 
             if (analysisType === 'roadmap') {

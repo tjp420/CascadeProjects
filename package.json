@@ -20,6 +20,8 @@
     "test:bitpacking": "node tools/test-bitpacking.js",
     "scan:full": "node --max-old-space-size=8192 packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json --offline --config .simplebeacon/config.json --path . --output .simplebeacon/report.json",
     "scan:gate": "node --max-old-space-size=8192 packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json --offline --config .simplebeacon/config.json --path . --output .simplebeacon/report.json",
+    "scan:git-history": "node scripts/git-history-secret-scan.cjs",
+    "scan:ci-env": "node scripts/ci-env-scan.cjs",
     "quality:monthly": "cd packages/simplebeacon-cli && node --max-old-space-size=8192 bin/simplebeacon.js scan --path ../.. --gate --full --format json --offline --config ../.simplebeacon/config.json --output .simplebeacon/monthly-quality-report.json && npm audit && cd ../../ai-platform && npm audit && cd ../coming-soon && npm audit",
     "ai:check": "node scripts/ai-check.js",
     "audit:context": "node scripts/audit-context.cjs",
