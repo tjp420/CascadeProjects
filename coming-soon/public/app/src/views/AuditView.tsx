@@ -20,6 +20,12 @@ import {
   Info,
   FileText,
   ChevronRight,
+  Gauge,
+  Thermometer,
+  Cpu,
+  Zap,
+  Activity,
+  TrendingUp,
 } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
@@ -153,6 +159,22 @@ interface FullReport extends ScanResultData {
   roadmapSchemaChecked?: number;
   letterGrade?: string;
   letter_grade?: string;
+  benchmark?: BenchmarkData;
+}
+
+interface BenchmarkData {
+  model?: string;
+  profile?: string;
+  runs?: number;
+  avgTokPerSec?: number;
+  minTokPerSec?: number;
+  maxTokPerSec?: number;
+  variancePct?: number;
+  profileMin?: number;
+  profileMax?: number;
+  throttleThreshold?: number;
+  numGpu?: number;
+  cpuTemp?: number;
 }
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -768,6 +790,326 @@ function FictionCatalogSection({
   );
 }
 
+// ── Telemetry / Benchmark section ───────────────────────────────────────────
+
+function ThroughputBar({
+  label,
+  value,
+  profileMin,
+  profileMax,
+  throttleThreshold,
+}: {
+  label: string;
+  value: number;
+  profileMin: number;
+  profileMax: number;
+  throttleThreshold?: number;
+}) {
+  // Scale bars relative to profileMax (cap at 120% for visual headroom)
+  const scaleMax = Math.max(profileMax, value) * 1.2;
+  const widthPct = Math.min(100, (value / scaleMax) * 100);
+  const minLinePct = (profileMin / scaleMax) * 100;
+  const maxLinePct = (profileMax / scaleMax) * 100;
+  const throttlePct = throttleThreshold ? (throttleThreshold / scaleMax) * 100 : 0;
+
+  const isThrottled = throttleThreshold ? value < throttleThreshold : value < profileMin * 0.8;
+  const barColor = isThrottled
+    ? 'bg-danger'
+    : value >= profileMax
+      ? 'bg-success'
+      : value >= profileMin
+        ? 'bg-info'
+        : 'bg-warning';
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-foreground-muted">{label}</span>
+        <span className="font-bold tabular-nums">{value.toFixed(1)} tok/s</span>
+      </div>
+      <div className="relative h-6 rounded-md bg-muted overflow-hidden">
+        {/* Throttle threshold zone */}
+        {throttlePct > 0 && (
+          <div
+            className="absolute inset-y-0 left-0 bg-danger/10"
+            style={{ width: `${throttlePct}%` }}
+          />
+        )}
+        {/* Profile minimum line */}
+        <div
+          className="absolute inset-y-0 w-0.5 bg-warning/60"
+          style={{ left: `${minLinePct}%` }}
+          title={`Profile min: ${profileMin} tok/s`}
+        />
+        {/* Profile maximum line */}
+        <div
+          className="absolute inset-y-0 w-0.5 bg-success/60"
+          style={{ left: `${maxLinePct}%` }}
+          title={`Profile max: ${profileMax} tok/s`}
+        />
+        {/* Actual throughput bar */}
+        <div
+          className={`h-full ${barColor} transition-all duration-500`}
+          style={{ width: `${widthPct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatusGauge({
+  label,
+  value,
+  unit,
+  icon: Icon,
+  status,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  icon: typeof Gauge;
+  status: 'success' | 'warning' | 'danger' | 'info';
+}) {
+  const colorMap: Record<string, string> = {
+    success: 'text-success',
+    warning: 'text-warning',
+    danger: 'text-danger',
+    info: 'text-info',
+  };
+  const bgMap: Record<string, string> = {
+    success: 'bg-success/10 border-success/30',
+    warning: 'bg-warning/10 border-warning/30',
+    danger: 'bg-danger/10 border-danger/30',
+    info: 'bg-info/10 border-info/30',
+  };
+  return (
+    <div className={`rounded-lg border p-3 ${bgMap[status]}`}>
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className={`h-4 w-4 ${colorMap[status]}`} />
+        <span className="text-xs text-foreground-muted">{label}</span>
+      </div>
+      <div className={`text-xl font-bold tabular-nums ${colorMap[status]}`}>
+        {value}
+        {unit && <span className="text-sm font-normal ml-1">{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+function TelemetrySection({ benchmark }: { benchmark: BenchmarkData }) {
+  const avg = benchmark.avgTokPerSec ?? 0;
+  const min = benchmark.minTokPerSec ?? avg;
+  const max = benchmark.maxTokPerSec ?? avg;
+  const profileMin = benchmark.profileMin ?? 0;
+  const profileMax = benchmark.profileMax ?? 0;
+  const throttleThreshold = benchmark.throttleThreshold;
+  const variance = benchmark.variancePct ?? 0;
+  const numGpu = benchmark.numGpu ?? 0;
+  const cpuTemp = benchmark.cpuTemp;
+  const runs = benchmark.runs ?? 0;
+  const profile = benchmark.profile ?? 'unknown';
+  const model = benchmark.model ?? 'unknown';
+
+  // Determine statuses
+  const isThrottled = throttleThreshold ? avg < throttleThreshold : avg < profileMin * 0.8;
+  const throughputStatus: 'success' | 'warning' | 'danger' = isThrottled
+    ? 'danger'
+    : avg >= profileMin
+      ? 'success'
+      : 'warning';
+
+  const gpuActive = numGpu !== 0;
+  const gpuThroughputOk = gpuActive && avg >= profileMin * 2;
+  const gpuStatus: 'success' | 'warning' | 'info' = !gpuActive
+    ? 'info'
+    : gpuThroughputOk
+      ? 'success'
+      : 'warning';
+
+  const varianceStatus: 'success' | 'warning' | 'danger' =
+    variance > 20 ? 'danger' : variance > 10 ? 'warning' : 'success';
+
+  const thermalStatus: 'success' | 'warning' | 'danger' | 'info' = cpuTemp == null
+    ? 'info'
+    : cpuTemp > 85
+      ? 'danger'
+      : cpuTemp > 75
+        ? 'warning'
+        : 'success';
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Gauge className="h-5 w-5 text-info" />
+        <h2 className="text-lg font-semibold">Air-gap Telemetry</h2>
+        <Badge variant="outline" className="text-xs">
+          {profile} profile
+        </Badge>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Throughput Benchmark</CardTitle>
+              <CardDescription>
+                {model} · {runs} run{runs !== 1 ? 's' : ''} · {profile} profile
+              </CardDescription>
+            </div>
+            <Badge
+              variant={throughputStatus === 'success' ? 'success' : throughputStatus === 'danger' ? 'danger' : 'warning'}
+              className="text-sm"
+            >
+              {throughputStatus === 'success'
+                ? 'Meets profile'
+                : throughputStatus === 'danger'
+                  ? 'Throttled'
+                  : 'Below min'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Throughput bars */}
+          <div className="space-y-3">
+            <ThroughputBar
+              label="Minimum"
+              value={min}
+              profileMin={profileMin}
+              profileMax={profileMax}
+              throttleThreshold={throttleThreshold}
+            />
+            <ThroughputBar
+              label="Average"
+              value={avg}
+              profileMin={profileMin}
+              profileMax={profileMax}
+              throttleThreshold={throttleThreshold}
+            />
+            <ThroughputBar
+              label="Maximum"
+              value={max}
+              profileMin={profileMin}
+              profileMax={profileMax}
+              throttleThreshold={throttleThreshold}
+            />
+          </div>
+
+          <Separator />
+
+          {/* Status gauges grid */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatusGauge
+              label="Avg Throughput"
+              value={avg.toFixed(1)}
+              unit="tok/s"
+              icon={Activity}
+              status={throughputStatus}
+            />
+            <StatusGauge
+              label="GPU Offload"
+              value={numGpu === 0 ? 'CPU only' : numGpu === -1 || numGpu > 900 ? 'All layers' : `${numGpu} layer${numGpu !== 1 ? 's' : ''}`}
+              icon={Cpu}
+              status={gpuStatus}
+            />
+            <StatusGauge
+              label="Variance (CoV)"
+              value={variance.toFixed(1)}
+              unit="%"
+              icon={TrendingUp}
+              status={varianceStatus}
+            />
+            <StatusGauge
+              label="CPU Temp"
+              value={cpuTemp != null ? cpuTemp.toFixed(1) : 'N/A'}
+              unit={cpuTemp != null ? '°C' : ''}
+              icon={Thermometer}
+              status={thermalStatus}
+            />
+          </div>
+
+          <Separator />
+
+          {/* Profile range reference */}
+          <div className="flex flex-wrap items-center gap-4 text-xs text-foreground-muted">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-0.5 bg-warning/60" />
+              Profile min: {profileMin} tok/s
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-0.5 bg-success/60" />
+              Profile max: {profileMax} tok/s
+            </span>
+            {throttleThreshold != null && (
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 bg-danger/10 border border-danger/30" />
+                Throttle zone: &lt;{throttleThreshold} tok/s
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <Zap className="h-3 w-3" />
+              {variance > 20
+                ? 'High variance — possible thread contention or thermal instability'
+                : variance > 10
+                  ? 'Moderate variance — monitor for degradation'
+                  : 'Stable throughput across runs'}
+            </span>
+          </div>
+
+          {/* Diagnostic flags */}
+          {isThrottled && (
+            <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-danger">Throughput below throttle threshold</p>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  Average {avg.toFixed(1)} tok/s is below 80% of {profile} minimum ({throttleThreshold ?? profileMin * 0.8} tok/s).
+                  Check for thermal throttling, GPU offload failure, or resource contention.
+                </p>
+              </div>
+            </div>
+          )}
+          {gpuActive && !gpuThroughputOk && avg > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-sm">
+              <Cpu className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-warning">GPU offload may not be effective</p>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  GPU is configured (NUM_GPU={numGpu}) but throughput ({avg.toFixed(1)} tok/s) is in CPU-only range.
+                  Verify GPU drivers and Ollama GPU detection.
+                </p>
+              </div>
+            </div>
+          )}
+          {variance > 20 && runs > 1 && (
+            <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-sm">
+              <TrendingUp className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-warning">High variance across runs</p>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  Coefficient of variation is {variance.toFixed(1)}% (threshold: 20%).
+                  Possible thread contention, thermal instability, or background processes.
+                </p>
+              </div>
+            </div>
+          )}
+          {cpuTemp != null && cpuTemp > 85 && (
+            <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
+              <Thermometer className="h-4 w-4 text-danger mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-danger">CPU thermal throttling likely</p>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  CPU temperature is {cpuTemp.toFixed(1)}°C (threshold: 85°C).
+                  Reduce workload, improve cooling, or switch to a lower quantization profile.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function AuditView() {
@@ -872,6 +1214,10 @@ export function AuditView() {
   }, [activeResult, activeReport]);
 
   const consistencyScore = activeReport?.consistencyScore ?? null;
+
+  const benchmark = useMemo<BenchmarkData | null>(() => {
+    return activeReport?.benchmark ?? null;
+  }, [activeReport]);
 
   const handleImport = useCallback((data: any) => {
     const report = data as FullReport;
@@ -1141,6 +1487,9 @@ export function AuditView() {
       {fictionCatalog.length > 0 && (
         <FictionCatalogSection catalog={fictionCatalog} activeFindings={fictionActiveFindings} />
       )}
+
+      {/* Air-gap telemetry / benchmark */}
+      {benchmark && <TelemetrySection benchmark={benchmark} />}
 
       {/* Import section (always available at bottom for loading alternative reports) */}
       {!importedReport && (
