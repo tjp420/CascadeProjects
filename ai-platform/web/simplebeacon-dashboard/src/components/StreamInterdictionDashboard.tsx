@@ -125,7 +125,6 @@ export function StreamInterdictionDashboard() {
       return;
     }
     intervalRef.current = setInterval(() => void fetchStatus(), 5000);
-    if (intervalRef.current.unref) intervalRef.current.unref();
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
