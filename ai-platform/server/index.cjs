@@ -113,6 +113,7 @@ const tokenThrottleRoutes = require('./routes/token-throttle-routes.cjs');
 const hsmVaultRoutes = require('./routes/hsm-vault-routes.cjs');
 const track112UploadRoutes = require('./routes/track112-upload-routes.cjs');
 const replicationRoutes = require('./routes/replication-routes.cjs');
+const healthDiagnosticsRouter = require('./routes/health-diagnostics.cjs');
 const { registerOutreachRoutes } = require('./lib/outreach-route.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
@@ -1524,6 +1525,13 @@ app.use('/api/track112', track112UploadRoutes);
 
 // Regional replication — cross-zone scan report & telemetry sync
 app.use('/api/replication', replicationRoutes);
+
+// Health diagnostics — automated infrastructure health checks
+app.use('/api/v1/health/diagnostics', healthDiagnosticsRouter);
+// Start the background health check cron (15-minute interval)
+if (typeof healthDiagnosticsRouter.startHealthCheckCron === 'function') {
+  healthDiagnosticsRouter.startHealthCheckCron();
+}
 
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));
