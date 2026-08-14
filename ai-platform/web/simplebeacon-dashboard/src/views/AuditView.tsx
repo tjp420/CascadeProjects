@@ -700,6 +700,7 @@ function ImportReportSection({
               ref={fileInputRef}
               type="file"
               accept=".json"
+              aria-label="Upload audit report JSON"
               hidden
               onChange={handleFile}
             />

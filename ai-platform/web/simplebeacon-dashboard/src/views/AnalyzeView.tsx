@@ -1767,7 +1767,7 @@ export function AnalyzeView() {
         </div>
       )}
       {/* Hidden file inputs used for folder fallback and upload */}
-      <input ref={uploadInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={async (e) => {
+      <input ref={uploadInputRef} type="file" accept="application/json" aria-label="Upload scan JSON" style={{ display: 'none' }} onChange={async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return; try {
           const txt = await f.text();
@@ -2194,6 +2194,7 @@ export function AnalyzeView() {
         ref={folderInputRef}
         type="file"
         className="hidden"
+        aria-label="Select folder to scan"
         // @ts-ignore
         webkitdirectory=""
         directory=""

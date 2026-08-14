@@ -162,6 +162,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isA
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="GitHub"
+            aria-label="GitHub repository"
           >
             <Github className="h-4 w-4" />
           </a>
@@ -171,6 +172,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isA
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="Docs"
+            aria-label="Documentation"
           >
             <BookOpen className="h-4 w-4" />
           </a>
@@ -192,6 +194,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isA
             }}
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="Export Report"
+            aria-label="Export report"
           >
             <Download className="h-4 w-4" />
           </button>
