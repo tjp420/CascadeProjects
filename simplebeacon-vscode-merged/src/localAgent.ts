@@ -44,7 +44,7 @@ export function getAgentPort(): number {
 
 /**
  * Resolve the download URL for the agent zip.
- * Falls back to the public Render deployment if no URL is configured.
+ * Falls back to the public GitHub release if no URL is configured.
  */
 export function getAgentDownloadUrl(): string {
   const config = getSbConfig();
@@ -57,7 +57,7 @@ export function getAgentDownloadUrl(): string {
     const base = apiUrl.replace(/\/$/, '');
     return `${base}/downloads/simplebeacon-local-agent-portable.zip`;
   }
-  return process.env.SB_DOWNLOAD_URL || 'https://cascadeprojects-yzzd.onrender.com/downloads/simplebeacon-local-agent-portable.zip';
+  return process.env.SB_DOWNLOAD_URL || 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon-local-agent-portable.zip';
 }
 
 /**
@@ -101,6 +101,12 @@ export function startLocalAgent(installDir?: string, port?: number): void {
   const dir = installDir ?? getLocalAgentInstallDir();
   const agentPort = port ?? getAgentPort();
   const env = { ...process.env, SIMPLEBEACON_AGENT_PORT: String(agentPort) };
+  const agentEntry = path.join(dir, 'agent.cjs');
+  if (!fs.existsSync(agentEntry)) {
+    throw new Error(
+      `agent.cjs not found in ${dir}. The portable zip may be incomplete — re-install the local agent.`
+    );
+  }
   if (process.platform === 'win32') {
     const bat = path.join(dir, 'start-agent.bat');
     if (fs.existsSync(bat)) {
@@ -120,8 +126,20 @@ export function startLocalAgent(installDir?: string, port?: number): void {
 
 /**
  * Check whether the agent is installed locally.
+ * Uses start-agent.bat/start-agent.sh as the primary marker since agent.cjs
+ * may be missing from a stale or partially-extracted download.
  */
 export function isLocalAgentInstalled(installDir?: string): boolean {
+  const dir = installDir ?? getLocalAgentInstallDir();
+  const launcher = process.platform === 'win32' ? 'start-agent.bat' : 'start-agent.sh';
+  return fs.existsSync(path.join(dir, launcher)) || fs.existsSync(path.join(dir, 'agent.cjs'));
+}
+
+/**
+ * Verify that the install directory has the agent entry point (agent.cjs).
+ * Returns false if the install is partial/broken and needs repair.
+ */
+export function isLocalAgentInstallComplete(installDir?: string): boolean {
   const dir = installDir ?? getLocalAgentInstallDir();
   return fs.existsSync(path.join(dir, 'agent.cjs'));
 }
