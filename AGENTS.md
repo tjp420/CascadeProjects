@@ -89,6 +89,21 @@ chmod +x .git/hooks/pre-commit
 2. ✅ **Standardize**: All hooks now run syntax checks and quality gates (root `.husky/pre-commit`, `.husky/pre-commit.cmd`, `ai-platform/.husky/pre-commit`, `coming-soon/pre-commit-hook.sh`)
 3. ✅ **CI Integration**: GitHub Actions run `npm audit` on every PR (builds fail on high/critical); SimpleBeacon gate scan runs in CI via `npx simplebeacon scan --gate --format json`
 
+### Pre-Push Hook (`.husky/pre-push`)
+- **3 stages**: secret scan (blocking) → `sb:hook:pre-commit` (blocking) → `npm test --workspaces --if-present` (non-blocking via `|| true`)
+- **Sets `SKIP_REDIS_INTEGRATION=1`** before running tests
+- **Test failures are non-blocking** — CI enforces strict pass-closed behavior
+- **Purpose**: Catches secret leaks and gate violations before push; tests are advisory locally
+
+### Sprint L: VSCode Workspace Jest Repair (2026-08-14)
+- **Issue**: `simplebeacon-vscode-merged` workspace declared `jest`, `ts-jest`, `@types/jest`, and `typescript` in `devDependencies` but they were never installed — `npm install` hadn't been run for the workspace
+- **Symptom**: `'jest' is not recognized as an internal or external command`
+- **Fix**: Ran `npm install --workspace=simplebeacon-vscode` (installed 395 packages)
+- **Result**: 23 test suites, 469 tests, all green
+- **Config**: `simplebeacon-vscode-merged/jest.config.js` already existed and is correct (ts-jest preset, `<rootDir>/src` roots, `**/__tests__/**/*.test.ts` match pattern)
+- **Lockfile**: Root `package-lock.json` already contained the entries — no lockfile changes needed
+- **ai-platform known failures**: 6 integration test suites fail locally (require Docker, Stripe, HSM, Redis) — these are pre-existing and unrelated to the VSCode workspace repair. CI enforces strict pass with service containers.
+
 ---
 
 ## Pricing & Billing Infrastructure
