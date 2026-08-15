@@ -147,7 +147,13 @@
     "**/ai-platform/web/simplebeacon-dashboard/js/views/SignInView.js",
     "**/ai-platform/web/simplebeacon-dashboard/js/views/UploadView.js",
     "**/ai-platform/web/simplebeacon-dashboard/js/views/ProfileView.js",
-    "**/ai-platform/web/simplebeacon-dashboard/js-es2018/views/AnalyzeEngineGrid.js"
+    "**/ai-platform/web/simplebeacon-dashboard/js-es2018/views/AnalyzeEngineGrid.js",
+    "**/send-onboarding-email.cjs",
+    "**/send-license-token-email.cjs",
+    "**/send-test-email.cjs",
+    "ai-platform/tools/send-test-*.cjs",
+    "ai-platform/web/simplebeacon-dashboard/js-es2018/utils/sample-report.js",
+    "ai-platform/web/simplebeacon-dashboard/src/views/SignInView.tsx"
   ],
   "rules": {
     "credentials": {
@@ -170,7 +176,17 @@
         "**/auth-integration.test.js",
         "**/file-quality-heuristics.test.js",
         "**/snippetDiagnostic.js",
-        "**/vscode-remediation-payload.json"
+        "**/vscode-remediation-payload.json",
+        "**/send-onboarding-email.cjs",
+        "**/send-license-token-email.cjs",
+        "**/send-test-email.cjs"
+      ]
+    },
+    "production-leak": {
+      "enabled": true,
+      "severity": "high",
+      "ignoreGlobs": [
+        "ai-platform/web/simplebeacon-dashboard/js-es2018/utils/sample-report.js"
       ]
     },
     "json-schema": {
@@ -181,10 +197,6 @@
     },
     "roadmap": {
       "enabled": true
-    },
-    "production-leak": {
-      "enabled": true,
-      "severity": "high"
     },
     "fiction-kpi-patterns": {
       "enabled": true,

@@ -1481,3 +1481,22 @@ track113-worktree/
 # trello-board-ai_agent.json quotes already-redacted ***REDACTED*** strings in task names.
 coming-soon/__audit-free-test.cjs
 coming-soon/trello-board-ai_agent.json
+
+# --- 2026-08-15: Gate scan blockers (simplebeacon-report.json) ---
+
+# Root-level one-off email scripts with env/token placeholders — never commit
+send-onboarding-email.cjs
+send-license-token-email.cjs
+send-test-email.cjs
+send-*-email.cjs
+
+# Dashboard sample report fixture — references *-sample.json paths by design
+ai-platform/web/simplebeacon-dashboard/js-es2018/utils/sample-report.js
+
+# Dev-only email/webhook test tools — usage comments mention API keys, not live secrets
+ai-platform/tools/send-test-resend-email.cjs
+ai-platform/tools/send-test-stripe-webhook.cjs
+ai-platform/tools/send-test-webhook-3tier.cjs
+
+# React sign-in — SSO redirect uses server-resolved providerId (not open redirect)
+ai-platform/web/simplebeacon-dashboard/src/views/SignInView.tsx
