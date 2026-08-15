@@ -43,6 +43,15 @@ jobs:
           cp -r assets lighthouse-dist/dashboard/assets
           printf '%s\n' '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/dashboard/"></head><body></body></html>' > lighthouse-dist/index.html
 
+      - name: Debug - verify built CSS contains fixes
+        run: |
+          echo "=== Checking for --text-muted value in built CSS ==="
+          grep -o '\-\-text-muted: #[0-9A-Fa-f]*' assets/main.css | head -5 || echo "Not found in main.css"
+          echo "=== Checking index.html for static link tag ==="
+          grep -o '<link[^>]*stylesheet[^>]*>' index.html | head -5 || echo "No static link tag found"
+          echo "=== Checking for aria-label in built JS ==="
+          grep -c 'aria-label' assets/main.js || echo "No aria-label found"
+
       - name: Execute Performance Audit and Budget Assertions
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
