@@ -82,7 +82,7 @@ function scanFiles(filePaths, opts = {}) {
     // Skip docs and markdown files to avoid false-positives on examples
     // Skip test files — long test pattern names and test secrets trigger high-entropy detection
     // Skip built frontend bundles/maps — minified charset alphabets (e.g. nanoid) trip entropy checks
-    if (/\.md$/i.test(p) || p.startsWith('ai-platform/docs') || p.startsWith('.github/') || /__tests__\/.*\.cjs$/.test(p) || /\.test\.cjs$/.test(p) || /(^|\/)tests\/.*\.(js|cjs)$/.test(p) || /(^|\/)package-lock\.json$/.test(p) || /(^|\/)npm-shrinkwrap\.json$/.test(p) || /\.js\.map$/i.test(p) || /(^|\/)(ai-platform\/web\/simplebeacon-dashboard\/assets|coming-soon\/public\/(?:app|dashboard)\/assets|simplebeacon-vscode-merged\/dashboard-web\/assets)\//i.test(p)) continue;
+    if (/\.md$/i.test(p) || p.startsWith('ai-platform/docs') || p.startsWith('.github/') || /__tests__\/.*\.cjs$/.test(p) || /\.test\.cjs$/.test(p) || /(^|\/)tests\/.*\.(js|cjs)$/.test(p) || /(^|\/)package-lock\.json$/.test(p) || /(^|\/)npm-shrinkwrap\.json$/.test(p) || /\.js\.map$/i.test(p) || /(^|\/)(ai-platform\/web\/simplebeacon-dashboard\/assets|coming-soon\/public\/(?:app|dashboard)\/assets|simplebeacon-vscode-merged\/dashboard-web\/assets)\//i.test(p) || /tests\/fixtures\/true-positives\//i.test(p) || /(^|\/)vendor\/.*\.js$/i.test(p) || /(^|\/)js-es2018\/dashboard\/main\.js$/i.test(p)) continue;
     let full = p;
     if (!path.isAbsolute(full)) full = path.resolve(process.cwd(), p);
     if (!fs.existsSync(full)) continue;

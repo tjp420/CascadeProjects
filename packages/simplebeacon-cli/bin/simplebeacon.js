@@ -251,7 +251,9 @@ function createDefaultOptions(command) {
         inviteeEmail: null,
         message: null,
         sendEmail: false,
-        secretsOnly: false
+        secretsOnly: false,
+        certify: false,
+        certifyUrl: null
     };
 }
 
@@ -292,6 +294,8 @@ const FLAG_MAP = [
     { aliases: ['--type'], key: 'hookType', type: 'string' },
     { aliases: ['--husky'], key: 'preferHusky', type: 'boolean' },
     { aliases: ['--secrets-only'], key: 'secretsOnly', type: 'boolean' },
+    { aliases: ['--certify'], key: 'certify', type: 'boolean' },
+    { aliases: ['--certify-url'], key: 'certifyUrl', type: 'string' },
     { aliases: ['--offline'], key: 'offline', type: 'boolean' },
     { aliases: ['--air-gapped'], key: 'airGapped', type: 'boolean' },
     { aliases: ['--strict-license'], key: 'strictLicense', type: 'boolean' },
@@ -575,6 +579,8 @@ Scan options:
   --slop-cop          Run AI Slop Cop (LLM residue / mock-data detection) during scan
   --api-token <tok>   Paid tier API token (required with --upload)
   --upload <url>      POST JSON report to Simplebeacon cloud (paid tier)
+  --certify           Request an edge-signed compliance certificate (.sbcert) after scan
+  --certify-url <url> Override the certificate signing endpoint URL
 
 Comment options:
   --report <file>     JSON report path (default: .simplebeacon/report.json)
@@ -664,6 +670,7 @@ Examples:
   npx simplebeacon scan --format markdown --output .simplebeacon/audit-report.md --gate
   npx simplebeacon scan --gate --complete
   npx simplebeacon scan --format json --api-token sb_xxx --upload https://simplebeacon.ai/api/simplebeacon/cloud-scan
+  npx simplebeacon scan --format json --output .simplebeacon/report.json --gate --certify
   npx simplebeacon cache prewarm
   npx simplebeacon cache export /tmp/sb-cache.json
   npx simplebeacon cache import /tmp/sb-cache.json
@@ -865,6 +872,27 @@ async function executeOneScan(options, networkGuard) {
             console.error(`Report written to ${options.output}`);
             if (options.format === 'json') {
                 appendScanHistory(platformRoot, jsonReport);
+            }
+
+            // --certify: request an edge-signed compliance certificate for the report
+            if (options.certify && options.format === 'json' && !options.offline && !airGapped) {
+                try {
+                    const { certifyReport } = require('../src/lib/certify-client');
+                    const reportPath = path.resolve(options.output);
+                    const certResult = await certifyReport(reportPath, {
+                        certifyUrl: options.certifyUrl || undefined
+                    });
+                    console.error(`${paint('✓', 'green')} Compliance certificate issued: ${certResult.certPath}`);
+                    console.error(`  Signature: ${certResult.signature.slice(0, 16)}...${certResult.signature.slice(-8)}`);
+                    console.error(`  Issued at: ${certResult.issuedAt}`);
+                } catch (certErr) {
+                    console.error(`${paint('⚠', 'yellow')} Certification failed: ${certErr.message}`);
+                    // Non-blocking — the scan itself succeeded
+                }
+            } else if (options.certify && (options.offline || airGapped)) {
+                console.error(`${paint('⚠', 'yellow')} --certify requires network access — skipped in offline/air-gapped mode`);
+            } else if (options.certify && options.format !== 'json') {
+                console.error(`${paint('⚠', 'yellow')} --certify requires --format json — skipped for ${options.format} output`);
             }
         } else {
             writeStdoutLine(payload);

@@ -442,10 +442,45 @@ simplebeacon-vscode-merged/dashboard-web/assets/
 # Field engineer scratch docs
 docs/FIELD_ENGINEER_RUNBOOK.md
 
-# Local scratch payloads (never commit — tokens, SMTP tests, checkout probes)
-.test-contact.json
-.test-contact2.json
+# Production air-gap release tarballs (multi-GB, never commit)
+production-airgap-release/
+production-airgap-release/*.tar.gz
+
+# Test artifacts and stray test data
+.test-contact*.json
 test-token.json
-test-checkout-payload.json
+.simplebeacon/issues.csv
+
+# Runtime webhook/event artifacts
 ai-platform/server/.simplebeacon/stripe-events.json
 ai-platform/server/.simplebeacon/webhook-event-log.json
+
+# Debug/utility scripts (not production source)
+analyze_workspace_sizes.ps1
+count_top_dirs_files.ps1
+run-all-simplebeacon.bat
+send-license-token-email.cjs
+send-onboarding-email.cjs
+send-test-email.cjs
+scripts/ci-env-scan.cjs
+scripts/extract-jtis.js
+scripts/git-history-secret-scan.cjs
+coming-soon/audit-check.cjs
+coming-soon/audit-compare.cjs
+ai-platform/scripts/debug-roadmap.cjs
+ai-platform/scripts/debug-roadmap.js
+
+# Scratch PR docs
+ai-platform/PULL_REQUEST_STABILITY_FIXES.md
+
+# More test artifacts
+test-checkout-payload.json
+tests/why-run-output.txt
+tests/preload-shutdown.cjs
+tests/teardown.cjs
+
+# Guardrails public mirror (tracked separately)
+simplebeacon-guardrails-public/
+
+# Lighthouse config (generated)
+simplebeacon-vscode-merged/dashboard-web/.lighthouserc.cjs

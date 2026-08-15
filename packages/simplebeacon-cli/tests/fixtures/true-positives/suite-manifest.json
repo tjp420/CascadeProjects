@@ -1,0 +1,108 @@
+{
+  "$schema": "https://simplebeacon.ai/schemas/true-positive-manifest-v1.json",
+  "version": 1,
+  "description": "True-positive labeled fixture suite for SimpleBeacon engine regression testing. Each fixture contains intentional defects that must be detected by the corresponding engine. The matrix validation runner scans each fixture and compares actual findings against expected findings to compute precision, recall, and F1-score.",
+  "fixtures": [
+    {
+      "id": "credentials-hardcoded-aws",
+      "engineId": "credentials",
+      "language": "javascript",
+      "filePath": "engines/credentials/hardcoded-aws.js",
+      "expectedFindings": [
+        {
+          "type": "Credential Pattern",
+          "minSeverity": "medium",
+          "minCount": 1
+        }
+      ]
+    },
+    {
+      "id": "llmSlop-hallucinated-api",
+      "engineId": "llmSlop",
+      "language": "python",
+      "filePath": "engines/llmSlop/hallucinated-api.py",
+      "expectedFindings": [
+        {
+          "type": "ai-placeholder-comment",
+          "minSeverity": "medium",
+          "minCount": 1
+        },
+        {
+          "type": "hallucinated-api-method",
+          "minSeverity": "medium",
+          "minCount": 1
+        }
+      ]
+    },
+    {
+      "id": "fictionKpi-vanity-metrics",
+      "engineId": "fictionKpi",
+      "language": "javascript",
+      "filePath": "engines/fictionKpi/vanity-metrics.js",
+      "expectedFindings": [
+        {
+          "type": "hardcoded-confidence",
+          "minSeverity": "medium",
+          "minCount": 1
+        },
+        {
+          "type": "fiction-kpi",
+          "minSeverity": "medium",
+          "minCount": 1
+        }
+      ]
+    },
+    {
+      "id": "tokenBleed-chat-client",
+      "engineId": "tokenBleed",
+      "language": "javascript",
+      "filePath": "engines/tokenBleed/chat-client.js",
+      "expectedFindings": [
+        {
+          "type": "Token Bleed",
+          "minSeverity": "medium",
+          "minCount": 1
+        }
+      ]
+    },
+    {
+      "id": "aiPlaceholderComment-stub-impl",
+      "engineId": "aiPlaceholderComment",
+      "language": "python",
+      "filePath": "engines/aiPlaceholderComment/stub-impl.py",
+      "expectedFindings": [
+        {
+          "type": "ai-placeholder-comment",
+          "minSeverity": "medium",
+          "minCount": 1
+        }
+      ]
+    },
+    {
+      "id": "dbConnectionString-db-conn",
+      "engineId": "dbConnectionString",
+      "language": "javascript",
+      "filePath": "engines/dbConnectionString/db-conn.js",
+      "expectedFindings": [
+        {
+          "type": "Credential Pattern",
+          "minSeverity": "medium",
+          "minCount": 1
+        }
+      ]
+    },
+    {
+      "id": "awsAccessKey-aws-keys",
+      "engineId": "awsAccessKey",
+      "language": "python",
+      "filePath": "engines/awsAccessKey/aws-keys.js",
+      "expectedFindings": [
+        {
+          "type": "Credential Pattern",
+          "minSeverity": "medium",
+          "minCount": 1
+        }
+      ]
+    }
+  ]
+}

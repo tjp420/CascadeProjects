@@ -1,0 +1,148 @@
+# CI/CD pipeline for the worker-deploy Cloudflare Worker.
+#
+# On PRs: runs tests + syntax checks (no deploy).
+# On push to main: runs tests + syntax checks + deploys to Cloudflare edge.
+#
+# Required GitHub Secrets (for deploy stage):
+#   CLOUDFLARE_API_TOKEN    — Cloudflare API token with Workers Deploy permission
+#   CLOUDFLARE_ACCOUNT_ID   — Cloudflare account ID
+#
+# Note: SIGNING_PRIVATE_KEY and SIGNING_PUBLIC_KEY are NOT managed here.
+# They are set directly via `wrangler secret put` and persist across deploys.
+# Use `node worker-deploy/scripts/rotate-edge-keys.cjs --execute` to rotate.
+
+name: Worker Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker-deploy/**'
+      - '.github/workflows/worker-deploy.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker-deploy/**'
+      - '.github/workflows/worker-deploy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Worker Tests + Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install dependencies
+        working-directory: worker-deploy
+        run: npm install --no-fund --no-audit
+
+      - name: Syntax check worker source
+        working-directory: worker-deploy
+        run: |
+          node --check src/worker.js
+          node --check src/certify.js
+          echo "Syntax OK"
+
+      - name: Run worker tests
+        working-directory: worker-deploy
+        run: node --test test/certify.test.js test/key-rotation.test.js
+
+      - name: Verify route placement (certify before /api proxy)
+        working-directory: worker-deploy
+        run: |
+          # Ensure certify routes appear before the generic /api/ proxy block
+          CERTIFY_LINE=$(grep -n '/api/v1/certify' src/worker.js | head -1 | cut -d: -f1)
+          PROXY_LINE=$(grep -n "startsWith('/api/')" src/worker.js | head -1 | cut -d: -f1)
+          if [ -z "$CERTIFY_LINE" ] || [ -z "$PROXY_LINE" ]; then
+            echo "ERROR: Could not find certify or proxy route lines"
+            exit 1
+          fi
+          if [ "$CERTIFY_LINE" -ge "$PROXY_LINE" ]; then
+            echo "ERROR: Certify routes (line $CERTIFY_LINE) must appear before /api/ proxy (line $PROXY_LINE)"
+            exit 1
+          fi
+          echo "OK: Certify routes at line $CERTIFY_LINE, proxy at line $PROXY_LINE"
+
+  deploy:
+    name: Deploy to Cloudflare Edge
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install dependencies
+        working-directory: worker-deploy
+        run: npm install --no-fund --no-audit
+
+      - name: Verify secrets are configured
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret is not set"
+            echo "Set it in: GitHub repo Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID secret is not set"
+            echo "Set it in: GitHub repo Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          echo "Cloudflare secrets configured."
+
+      - name: Deploy Worker
+        working-directory: worker-deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for edge propagation..."
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://simplebeacon.ai/api/v1/certify/public-key)
+          echo "Public key endpoint returned HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::Public key endpoint returned $STATUS (may need more propagation time)"
+          else
+            echo "✓ Edge endpoint is live and responding"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Worker Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Worker deployed successfully to https://simplebeacon.ai" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Verification" >> $GITHUB_STEP_SUMMARY
+            echo "- Public key endpoint: https://simplebeacon.ai/api/v1/certify/public-key" >> $GITHUB_STEP_SUMMARY
+            echo "- Signing endpoint: POST https://simplebeacon.ai/api/v1/certify" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Post-deploy checklist" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] \`curl https://simplebeacon.ai/api/v1/certify/public-key\` returns JWK" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] \`npx simplebeacon scan --certify\` produces a .sbcert file" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Drag .sbcert onto https://simplebeacon.ai/audit shows green badge" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Deployment failed — check logs above" >> $GITHUB_STEP_SUMMARY
+          fi
