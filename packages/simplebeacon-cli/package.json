@@ -93,6 +93,7 @@
   "files": [
     "bin/",
     "src/",
+    "python/",
     "!src/**/*.test.js",
     "!src/**/*.test.cjs",
     "!src/**/*.test.mjs",

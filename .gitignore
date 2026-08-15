@@ -200,6 +200,14 @@ __*.tmp
 __tmp_*.js
 _check_*.js
 _find_*.js
+_fix_*.js
+_fix_*.cjs
+_test_*.js
+_update_comingsoon_*.js
+/temp_*.js
+/write-test-file.cjs
+/simulate-payment.cjs
+/test-jwt-rotation.cjs
 tmp_find_*.js
 tmp_chatbot.html
 **/__create_token.js
