@@ -304,10 +304,12 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 <body>
   <noscript><div style="padding:40px;text-align:center;"><h1>JavaScript Required</h1><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
 
-  <!-- React mount point -->
-  <div id="root">
-    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,sans-serif;color:#64748b;" role="status" aria-live="polite">
-      <p>Loading SimpleBeacon Dashboard…</p>
+  <!-- React mount point — main landmark for pre-hydration a11y; replaced on hydration -->
+  <div id="root" role="main" aria-label="SimpleBeacon Dashboard">
+    <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;padding:0;margin:-1px;">SimpleBeacon Dashboard</h1>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;color:#64748b;background:#f8fafc;" role="status" aria-live="polite">
+      <p style="font-size:1rem;margin:0;">Loading SimpleBeacon Dashboard…</p>
+      <p style="font-size:0.875rem;margin:0.5rem 0 0;color:#64748b;">AI Safety Scanning Platform</p>
     </div>
   </div>
 
@@ -409,23 +411,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     })();
   </script>
 
-  <!-- React Dashboard Bundle -->
-  <script>
-    (function(){
-      var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
-      if (devHost) {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260813paywall';
-        document.head.appendChild(s);
-      } else {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260813paywall';
-        document.head.appendChild(s);
-      }
-    })();
-  </script>
+  <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
+  <script type="module" src="/dashboard/assets/main.js?v=20260813paywall"></script>
   <script>
     (function(){
       try{

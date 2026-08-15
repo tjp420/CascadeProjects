@@ -40,6 +40,7 @@ jobs:
           mkdir -p lighthouse-dist/dashboard
           cp index.html lighthouse-dist/dashboard/index.html
           cp -r assets lighthouse-dist/dashboard/assets
+          printf '%s\n' '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/dashboard/"></head><body></body></html>' > lighthouse-dist/index.html
 
       - name: Execute Performance Audit and Budget Assertions
         env:
