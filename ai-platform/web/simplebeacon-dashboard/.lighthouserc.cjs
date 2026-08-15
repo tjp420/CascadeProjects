@@ -9,8 +9,6 @@ module.exports = {
       settings: {
         chromeFlags: '--no-sandbox --headless --disable-gpu',
         maxWaitForLoad: 60000,
-        // Wait for the React app to render before auditing
-        waitForSelector: '#app-main, .app-main',
       },
     },
     assert: {
