@@ -1,0 +1,11 @@
+# Gitleaks configuration for SimpleBeacon
+# Extends default gitleaks rules with path allowlists for test fixtures and vendor libraries
+
+[allowlist]
+description = "Allowlisted paths for test fixtures and vendor libraries"
+paths = [
+    '''packages/simplebeacon-cli/tests/fixtures/true-positives/.*''',
+    '''coming-soon/public/vendor/.*''',
+    '''simplebeacon-vscode-merged/dashboard-web/js-es2018/.*''',
+    '''coming-soon/public/js-es2018/dashboard/main\.js''',
+]
