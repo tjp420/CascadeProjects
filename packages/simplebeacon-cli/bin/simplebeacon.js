@@ -325,6 +325,7 @@ const FLAG_MAP = [
     { aliases: ['--tier'], key: 'tier', type: 'string' },
     { aliases: ['--exclude'], key: 'exclude', type: 'comma-list' },
     { aliases: ['--deep-scan'], key: 'deepScan', type: 'boolean' },
+    { aliases: ['--log'], key: 'gzdoomLog', type: 'string' },
     { aliases: ['--include-deps'], key: 'includeDeps', type: 'boolean' },
     { aliases: ['--min-confidence'], key: 'minConfidence', type: 'number', fallback: 0.5 },
     { aliases: ['--tier-limits'], key: 'tierLimits', type: 'string' },
@@ -826,7 +827,8 @@ async function executeOneScan(options, networkGuard) {
             includeDeps: options.includeDeps,
             minConfidence: options.minConfidence,
             slopCop: options.slopCop,
-            diffFiles: options.diffFiles
+            diffFiles: options.diffFiles,
+            gzdoomLog: options.gzdoomLog
         });
         networkGuard.assertOfflineClean();
         printTrustCompletion({
@@ -1157,7 +1159,8 @@ async function runUploadCommand(options) {
                 deepScan: options.deepScan,
                 includeDeps: options.includeDeps,
                 minConfidence: options.minConfidence,
-                slopCop: options.slopCop
+                slopCop: options.slopCop,
+                gzdoomLog: options.gzdoomLog
             });
             networkGuard.assertOfflineClean();
             const gateResult = evaluateGate(rawReport, config.gate);

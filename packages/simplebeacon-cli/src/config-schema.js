@@ -41,12 +41,13 @@ const VALID_RULES = new Set([
     'security-patterns',
     'cve-dependency',
     'sbom-generator',
-    'git-history-secret'
+    'git-history-secret',
+    'gzdoom-integrity-patterns'
 ]);
 
 const VALID_SCANNER_ACTIONS = new Set(['BLOCK', 'WARN', 'SKIP']);
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low']);
-const VALID_PROFILES = new Set(['minimal', 'standard', 'cascade', 'eu-ai-act']);
+const VALID_PROFILES = new Set(['minimal', 'standard', 'cascade', 'eu-ai-act', 'gamedev']);
 
 function validateConfig(config) {
     const errors = [];

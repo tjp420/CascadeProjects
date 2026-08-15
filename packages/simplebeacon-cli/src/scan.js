@@ -46,6 +46,7 @@ const { scanComprehensive } = require('./rules/comprehensive-scanner');
 const { scanCveDependencies } = require('./rules/cve-dependency-scanner');
 const { generateSbom } = require('./rules/sbom-generator');
 const { scanGitHistorySecrets } = require('./rules/git-history-secret-scanner');
+const { scanGzdoomIntegrity } = require('./rules/gzdoom-integrity-patterns');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, sanitizeConfigForTier } = require('./config');
 const { detectTier } = require('./lib/tier-detector');
 const { checkLocalScanQuota, incrementLocalScan, incrementPipelineScan, isPipelineScan } = require('./lib/scan-usage-tracker');
@@ -363,6 +364,7 @@ const SCAN_RESULT_DEFAULTS = Object.freeze({
     'token-bleed-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
     'architecture-drift-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
     'security-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'gzdoom-integrity-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], graphSummary: null }),
     'file-reduction': Object.freeze({ allFindings: [], findings: {}, summary: {} }),
     'dependency-graph': Object.freeze({ scanned: 0, findings: 0, issues: [], results: [] })
 });
@@ -960,7 +962,8 @@ function buildScanReport(opts) {
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
         dependencyGraphScan,
-        cveDependencyScan, sbomScan, gitHistorySecretScan
+        cveDependencyScan, sbomScan, gitHistorySecretScan,
+        gzdoomIntegrityScan
     } = resolved;
 
     const scanScope = {
@@ -1686,6 +1689,14 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             maxCommits: opts.maxCommits || 1000,
             timeoutMs: opts.timeoutMs || 30000,
             paths: opts.paths || config.productionPaths || []
+        })),
+        scannerEntry('gzdoom-integrity-patterns', 'gzdoomIntegrityScan', scanGzdoomIntegrity, (opts) => ({
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            logPath: options.gzdoomLog || opts.logPath || null,
+            severity: opts.severity || 'high',
+            sourcePaths: opts.sourcePaths || ['.'],
+            respectIncludes: opts.respectIncludes !== false,
+            extraActors: opts.extraActors || []
         }))
     ];
 
@@ -1790,7 +1801,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, _astStructuralScan,
         dependencyGraphScan, comprehensiveScan,
-        cveDependencyScan, sbomScan, gitHistorySecretScan
+        cveDependencyScan, sbomScan, gitHistorySecretScan,
+        gzdoomIntegrityScan
     } = resolved;
 
     if (roadmapValidation.issues?.length) {
@@ -1825,6 +1837,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     normalizeScannerOutput(issues, cveDependencyScan, 'cve-vulnerability', 'SB-CVE-001', 'Known CVE vulnerability in dependency');
     normalizeScannerOutput(issues, sbomScan, 'sbom-generated', 'SB-SBOM-001', 'SBOM generation result', 'info');
     normalizeScannerOutput(issues, gitHistorySecretScan, 'git-history-secret', 'SB-GITSEC-001', 'Secret found in git history');
+    normalizeScannerOutput(issues, gzdoomIntegrityScan, 'gzdoom-integrity', 'GZ-XREF', 'GZDoom mod reference integrity issue');
     if (fileReduction.allFindings?.length) {
         for (const finding of fileReduction.allFindings) {
             issues.push({

@@ -1,0 +1,38 @@
+ACTOR Rocket
+{
+  +NOBLOCKMAP
+  States
+  {
+  Spawn:
+    MISL A -1
+    Stop
+  }
+}
+
+ACTOR DitchedPistol : Rocket
+{
+  States
+  {
+  Fire:
+    TNT1 A 0 A_TakeInventory("PistolMag", 1)
+    TNT1 A 0 A_FireProjectile("MissingBullet", 0, 1, 0, 0, 0, 0, true)
+    Goto Ready
+  Ready:
+    TNT1 A 1
+    Loop
+  }
+}
+
+ACTOR Rocket
+{
+  Radius 8
+  Height 8
+}
+
+ACTOR EnhancedShotgun replaces Shotgun
+{
+}
+
+ACTOR Riotgun replaces Shotgun
+{
+}

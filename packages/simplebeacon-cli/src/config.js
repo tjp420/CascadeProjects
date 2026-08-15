@@ -102,6 +102,27 @@ const PROFILE_RULES = {
         'sbom-generator': { enabled: true, includeDev: true },
         'git-history-secret': { enabled: true, maxCommits: 1000 }
     },
+    gamedev: {
+        credentials: { enabled: false },
+        'json-schema': { enabled: false },
+        'sample-consistency': { enabled: false },
+        roadmap: { enabled: false },
+        'production-leak': { enabled: false },
+        'fiction-kpi-patterns': { enabled: false },
+        'llm-slop-patterns': { enabled: false },
+        'agency-handoff-patterns': { enabled: false },
+        'eu-ai-act-patterns': { enabled: false },
+        'jest-baseline': { enabled: false, runTests: false },
+        'token-bleed-patterns': { enabled: false },
+        'architecture-drift-patterns': { enabled: false },
+        'security-patterns': { enabled: false },
+        'javascript-ast-patterns': { enabled: false },
+        'file-reduction': { enabled: false },
+        'cve-dependency': { enabled: false },
+        'sbom-generator': { enabled: false },
+        'git-history-secret': { enabled: false },
+        'gzdoom-integrity-patterns': { enabled: true, severity: 'high', respectIncludes: true }
+    },
     cascade: {
         credentials: { enabled: true, scanProduction: true },
         'json-schema': { enabled: true },
@@ -442,7 +463,8 @@ const FREE_RULE_ENGINES = new Set([
     'dead-code',
     'security-patterns',
     'json-schema',
-    'sample-consistency'
+    'sample-consistency',
+    'gzdoom-integrity-patterns'
 ]);
 
 function sanitizeConfigForTier(config, tier) {
