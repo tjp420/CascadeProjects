@@ -2,6 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <title>SimpleBeacon Dashboard — AI Safety Scanning Platform</title>
+  <meta name="description" content="SimpleBeacon is an AI safety scanning platform that detects AI slop, credential leaks, and compliance risks in your codebase.">
   <script>
     // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
     (function() {
@@ -303,7 +305,11 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
 
   <!-- React mount point -->
-  <div id="root"></div>
+  <div id="root" role="main" aria-busy="true" aria-label="SimpleBeacon Dashboard loading">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,sans-serif;color:#64748b;">
+      <p>Loading SimpleBeacon Dashboard…</p>
+    </div>
+  </div>
 
   <!-- Extension bridge fetch rewrite -->
   <script>

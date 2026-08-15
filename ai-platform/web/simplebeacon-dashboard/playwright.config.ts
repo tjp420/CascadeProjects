@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: process.env.CI ? 'http://localhost:3000' : 'http://localhost:61455/dashboard',
+    baseURL: process.env.CI ? 'http://localhost:3000/dashboard' : 'http://localhost:61455/dashboard',
     // Capture screenshots on failure, keep traces if failure, and record video on first retry
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',

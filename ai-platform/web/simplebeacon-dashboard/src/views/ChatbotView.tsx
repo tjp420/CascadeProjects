@@ -1318,6 +1318,7 @@ export function ChatbotView() {
               disabled={isLoading || connectionStatus !== 'online' || !input.trim()}
               size="icon"
               className="h-auto"
+              aria-label="Send message"
             >
               <Send className="h-4 w-4" />
             </Button>

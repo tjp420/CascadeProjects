@@ -58,10 +58,11 @@ jobs:
         working-directory: ai-platform/web/simplebeacon-dashboard
 
       - name: Run E2E Test Suite
-        run: npx start-server-and-test "npm run dev" http://localhost:5173 "npx playwright test e2e/smoke.spec.ts --reporter=html"
+        run: npx start-server-and-test "npm run dev" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
         working-directory: ai-platform/web/simplebeacon-dashboard
         env:
           NODE_ENV: test
+          CI: ""
           TOKEN_ACCOUNT_SIGNING_KEY: ${{ secrets.TOKEN_ACCOUNT_SIGNING_KEY || 'test-signing-key-placeholder-32-chars-long!' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-placeholder-value-32-chars!' }}
 

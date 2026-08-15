@@ -101,6 +101,7 @@ interface Assessment {
 
 interface ScanScope {
   profile?: string;
+  resultsViewScope?: string;
   rulesEnabled?: string[];
   productionPaths?: string[];
   limitations?: string[];
@@ -126,10 +127,10 @@ interface ScanResultData {
   gate: GateInfo;
   qualityScore: number | null;
   projectPath: string;
-  scanScope: { profile: string; resultsViewScope: string };
+  scanScope: ScanScope;
 }
 
-interface FullReport extends ScanResultData {
+interface FullReport extends Omit<ScanResultData, 'scanScope'> {
   rawIssues?: any[];
   detectedIssues?: any[];
   consistencyScore?: number;
@@ -514,7 +515,7 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
   const exec = assessment.executiveSummary;
   const checklist = assessment.complianceChecklist || {};
   const rules = checklist.rules || [];
-  const summary = checklist.summary || {};
+  const summary = checklist.summary ?? { passed: 0, failed: 0, skipped: 0 };
   const generatedAt = assessment.generatedAt
     ? new Date(assessment.generatedAt).toLocaleString()
     : null;
@@ -699,6 +700,7 @@ function ImportReportSection({
               ref={fileInputRef}
               type="file"
               accept=".json"
+              aria-label="Upload audit report JSON"
               hidden
               onChange={handleFile}
             />
@@ -1413,7 +1415,11 @@ export function AuditView() {
       gate: report.gate || { pass: false, blockingCount: 0, warningCount: 0 },
       qualityScore: report.qualityScore ?? null,
       projectPath: report.projectPath || report.projectPath || '',
-      scanScope: report.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+      scanScope: {
+        profile: report.scanScope?.profile || 'standard',
+        resultsViewScope: report.scanScope?.resultsViewScope || 'browser-local',
+        ...report.scanScope,
+      },
     });
     if (report.generatedAt) {
       setScanTime(new Date(report.generatedAt).toLocaleString());

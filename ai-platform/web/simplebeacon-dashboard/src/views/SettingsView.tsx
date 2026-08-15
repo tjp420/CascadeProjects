@@ -173,12 +173,12 @@ export function SettingsView() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Default Project Path</Label>
-                <Input placeholder="/path/to/project" value={defaultProjectPath} onChange={(e) => setDefaultProjectPath(e.target.value)} />
+                <Label htmlFor="default-project-path">Default Project Path</Label>
+                <Input id="default-project-path" placeholder="/path/to/project" value={defaultProjectPath} onChange={(e) => setDefaultProjectPath(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Production Paths</Label>
-                <Input placeholder="server/, src/, web/" value={productionPaths} onChange={(e) => setProductionPaths(e.target.value)} />
+                <Label htmlFor="production-paths">Production Paths</Label>
+                <Input id="production-paths" placeholder="server/, src/, web/" value={productionPaths} onChange={(e) => setProductionPaths(e.target.value)} />
               </div>
               <Button onClick={handleSavePaths} disabled={savingPaths}>{savingPaths ? 'Saving...' : 'Save Paths'}</Button>
             </CardContent>
@@ -322,7 +322,7 @@ function ApiKeysTab() {
           <>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>OpenAI API Key</Label>
+                <Label htmlFor="openai-api-key">OpenAI API Key</Label>
                 {openaiHint && (
                   <Badge variant="outline" className="gap-1 text-xs">
                     <Check className="h-3 w-3 text-success" /> {openaiHint}
@@ -330,6 +330,7 @@ function ApiKeysTab() {
                 )}
               </div>
               <Input
+                id="openai-api-key"
                 type="password"
                 placeholder={openaiHint ? 'sk-… (configured — enter new key to replace)' : 'sk-...'}
                 value={openaiKey}
@@ -338,7 +339,7 @@ function ApiKeysTab() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Anthropic API Key</Label>
+                <Label htmlFor="anthropic-api-key">Anthropic API Key</Label>
                 {anthropicHint && (
                   <Badge variant="outline" className="gap-1 text-xs">
                     <Check className="h-3 w-3 text-success" /> {anthropicHint}
@@ -346,6 +347,7 @@ function ApiKeysTab() {
                 )}
               </div>
               <Input
+                id="anthropic-api-key"
                 type="password"
                 placeholder={anthropicHint ? 'sk-ant-… (configured — enter new key to replace)' : 'sk-ant-...'}
                 value={anthropicKey}
@@ -588,8 +590,9 @@ function AiProvidersTab() {
           </div>
 
           <div className="space-y-2">
-            <Label>Custom / Exact Model ID</Label>
+            <Label htmlFor="custom-model-id">Custom / Exact Model ID</Label>
             <Input
+              id="custom-model-id"
               placeholder="llama3.2"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
@@ -598,8 +601,9 @@ function AiProvidersTab() {
           </div>
 
           <div className="space-y-2">
-            <Label>Ollama Base URL</Label>
+            <Label htmlFor="ollama-base-url">Ollama Base URL</Label>
             <Input
+              id="ollama-base-url"
               placeholder="http://localhost:11434"
               value={ollamaUrl}
               onChange={(e) => setOllamaUrl(e.target.value)}

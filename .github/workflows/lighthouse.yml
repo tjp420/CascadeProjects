@@ -35,9 +35,15 @@ jobs:
       - name: Compile Application Production Bundle
         run: npm run build
 
+      - name: Prepare Lighthouse serving directory
+        run: |
+          mkdir -p lighthouse-dist/dashboard
+          cp index.html lighthouse-dist/dashboard/index.html
+          cp -r assets lighthouse-dist/dashboard/assets
+
       - name: Execute Performance Audit and Budget Assertions
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
         run: |
-          # Run LHCI against the static `assets` directory produced by the build
+          # Run LHCI against the prepared serving directory
           lhci autorun --config=.lighthouserc.cjs

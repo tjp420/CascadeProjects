@@ -48,8 +48,12 @@ jobs:
         env:
           CI: true
         run: |
+          # Build a serving directory that matches the /dashboard/ base path
+          mkdir -p /tmp/serve-test/dashboard
+          cp index.html /tmp/serve-test/dashboard/index.html
+          cp -r assets /tmp/serve-test/dashboard/assets
           # serve the production build and run the Playwright smoke test
-          npx serve -s dist -l 61455 &
+          npx serve -s /tmp/serve-test -l 3000 &
           # give server a moment to start
           sleep 2
           set -o pipefail
