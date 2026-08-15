@@ -1188,16 +1188,16 @@ export function ChatbotView() {
               placeholder="Custom model"
               disabled={!selectedProvider}
             />
-            <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model">
+            <Button variant="ghost" size="sm" aria-label="Install Unbreakable Oracle model" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model">
               <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt">
+            <Button variant="ghost" size="sm" aria-label="Custom system prompt" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt">
               <FileText className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} title="Settings">
+            <Button variant="ghost" size="sm" aria-label="Settings" onClick={() => setShowSettings(!showSettings)} title="Settings">
               <Settings2 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleClear} title="Clear history">
+            <Button variant="ghost" size="sm" aria-label="Clear history" onClick={handleClear} title="Clear history">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>

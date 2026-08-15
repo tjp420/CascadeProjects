@@ -15,7 +15,7 @@ module.exports = {
       // Establish direct score baselines and performance budgets
       assertions: {
         'categories:performance': ['warn', { minScore: 0.90 }],
-        'categories:accessibility': ['error', { minScore: 0.85 }],
+        'categories:accessibility': ['error', { minScore: 0.95 }],
         'categories:best-practices': ['warn', { minScore: 0.90 }],
         // Enforce strict asset delivery size budgets
         'resource-summary:script:size': ['error', { maxNumericValue: 3000000 }], // 3MB overall JS cap (relaxed)
