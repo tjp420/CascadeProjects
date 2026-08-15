@@ -1,6 +1,7 @@
 /**
  * SimpleBeacon Serverless Stripe Webhook Handler & License Signer
  * Runtime: Cloudflare Worker (V8 Edge Isolate)
+ * Edge compliance certification: /api/v1/certify + /api/v1/certify/public-key
  */
 
 import { handleCertifyRequest, handlePublicKeyRequest } from './certify.js';
