@@ -1039,6 +1039,7 @@ export function AdminView() {
                                           onClick={(e) => { e.stopPropagation(); removeSeat(org.orgId, email); }}
                                           className="text-muted-foreground hover:text-destructive"
                                           title="Revoke seat"
+                                          aria-label="Revoke seat"
                                         >
                                           <X className="h-3 w-3" />
                                         </button>
@@ -1188,6 +1189,7 @@ export function AdminView() {
                                             onClick={(e) => { e.stopPropagation(); removeSeat(org.orgId, email); }}
                                             className="text-muted-foreground hover:text-destructive"
                                             title="Revoke seat"
+                                            aria-label="Revoke seat"
                                           >
                                             <X className="h-3 w-3" />
                                           </button>
@@ -1732,7 +1734,7 @@ export function AdminView() {
                               <Button size="sm" variant="outline" onClick={() => editSsoConfig(config)}>
                                 <Key className="h-3.5 w-3.5" /> Edit
                               </Button>
-                              <Button size="sm" variant="outline" onClick={() => deleteSsoConfig(config.providerId)}>
+                              <Button size="sm" variant="outline" aria-label="Delete SSO config" onClick={() => deleteSsoConfig(config.providerId)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>

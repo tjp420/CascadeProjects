@@ -455,7 +455,7 @@ export function QuarantineLogBrowser() {
                 <FileSearch className="h-5 w-5" />
                 <h3 className="text-lg font-semibold">Quarantine Entry Inspector</h3>
               </div>
-              <Button size="sm" variant="ghost" onClick={closeDrawer}>
+              <Button size="sm" variant="ghost" aria-label="Close drawer" onClick={closeDrawer}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
