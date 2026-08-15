@@ -32,6 +32,8 @@ const SKIP_GLOBS = [
   'simplebeacon-vscode-merged/src/modernSidebarProvider.ts',
   // Stress test workflow — contains fake credential fixtures for dirty-repo gate testing
   '.github/workflows/simplebeacon-action-stress-test.yml',
+  // True-positive scanner fixtures — intentionally contain fake AWS keys, Stripe keys, etc.
+  'packages/simplebeacon-cli/tests/fixtures/true-positives/**',
 ];
 
 const MAX_BYTES = 1024 * 1024; // 1MB per-file read cap for regex scanning
