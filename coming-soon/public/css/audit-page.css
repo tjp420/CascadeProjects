@@ -1,0 +1,327 @@
+/* SimpleBeacon Audit Page — v2 marketing layer */
+
+.audit-page {
+  --a-accent: #6366f1;
+  --a-accent-soft: rgba(99, 102, 241, 0.12);
+  --a-cyan: #06b6d4;
+  --a-green: #10b981;
+  --a-green-soft: rgba(16, 185, 129, 0.1);
+  --a-radius: 16px;
+  --a-radius-sm: 10px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.14), transparent),
+    radial-gradient(ellipse 50% 35% at 0% 30%, rgba(6, 182, 212, 0.07), transparent),
+    radial-gradient(ellipse 40% 30% at 100% 60%, rgba(16, 185, 129, 0.06), transparent);
+}
+
+.audit-page .container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
+/* ── Hero ── */
+.audit-page .audit-hero {
+  text-align: center;
+  padding: 40px 0 28px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.audit-page .audit-hero .step-badge,
+.audit-page .audit-hero .hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--a-accent-soft);
+  color: #a5b4fc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.audit-page .audit-hero h1 {
+  font-size: clamp(1.85rem, 4.5vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin: 0 0 16px;
+  color: var(--text-primary, #f3f4f6);
+  background: linear-gradient(135deg, #f3f4f6 0%, #818cf8 55%, #34d399 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.audit-page .audit-hero .hero-sub,
+.audit-page .audit-hero #pageSubtitle {
+  color: var(--text-secondary, #9ca3af);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0 auto 18px;
+  max-width: 640px;
+}
+
+.audit-page .audit-hero code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 0.82em;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.audit-page .audit-hero a {
+  color: #818cf8;
+  text-decoration: none;
+}
+.audit-page .audit-hero a:hover { text-decoration: underline; }
+
+.audit-page .hero-trust-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.84rem;
+  color: var(--text-secondary, #9ca3af);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border, #1e293b);
+  margin-bottom: 16px;
+}
+
+.audit-page .audit-promo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 10px 18px;
+  background: var(--a-green-soft);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #9ca3af);
+  line-height: 1.45;
+}
+.audit-page .audit-promo strong { color: #34d399; }
+.audit-page .audit-promo a { color: #6ee7b7; text-decoration: none; font-weight: 600; }
+.audit-page .audit-promo a:hover { text-decoration: underline; }
+
+/* ── Trust pills ── */
+.audit-page .trust-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 0 0 28px;
+}
+
+.audit-page .trust-pills .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border, #1e293b);
+  color: var(--text-secondary, #9ca3af);
+  font-size: 0.76rem;
+  font-weight: 500;
+  padding: 7px 13px;
+  border-radius: 999px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.audit-page .trust-pills .pill:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--text-primary, #f3f4f6);
+}
+.audit-page .trust-pills .pill svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  opacity: 0.75;
+}
+
+/* ── Path cards ── */
+.audit-page .audit-path-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 0 0 24px;
+}
+
+.audit-page .audit-path-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 8px;
+  padding: 18px 16px;
+  border-radius: var(--a-radius);
+  border: 1px solid var(--border, #1e293b);
+  background: rgba(15, 22, 38, 0.55);
+  backdrop-filter: blur(10px);
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+  font: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  overflow: hidden;
+}
+
+.audit-page .audit-path-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 0%, rgba(99, 102, 241, 0.08), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+.audit-page .audit-path-card:hover {
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.12);
+  transform: translateY(-2px);
+}
+.audit-page .audit-path-card:hover::before { opacity: 1; }
+
+.audit-page .audit-path-card:focus-visible {
+  outline: 2px solid var(--a-accent);
+  outline-offset: 2px;
+}
+
+.audit-page .audit-path-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+}
+
+.audit-page .audit-path-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary, #f3f4f6);
+  font-weight: 700;
+}
+
+.audit-page .audit-path-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.45;
+}
+
+.audit-page .audit-path-card--accent {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.06);
+}
+.audit-page .audit-path-card--accent .audit-path-num {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+}
+.audit-page .audit-path-card--accent:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.12);
+}
+
+/* ── Cert verify panel ── */
+.audit-page #cert-verify-section.card {
+  border-radius: var(--a-radius);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.audit-page #cert-dropzone {
+  border-radius: var(--a-radius-sm) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s !important;
+}
+.audit-page #cert-dropzone:hover,
+.audit-page #cert-dropzone.dragover {
+  border-color: var(--a-accent) !important;
+  background: rgba(99, 102, 241, 0.05) !important;
+  box-shadow: 0 0 24px rgba(99, 102, 241, 0.1);
+}
+
+/* ── Security strip ── */
+.audit-page .sb-local-first-strip {
+  border-radius: var(--a-radius-sm);
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  padding: 12px 18px;
+  margin-bottom: 14px;
+}
+
+/* ── Framework badges ── */
+.audit-page .audit-frameworks {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: var(--a-radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border, #1e293b);
+}
+.audit-page .audit-frameworks summary {
+  font-size: 0.78rem;
+  color: var(--text-muted, #9ca3af);
+  font-weight: 600;
+}
+
+/* ── Banners ── */
+.audit-page #serverDetectedBanner,
+.audit-page .simplebeacon-banner {
+  border-radius: var(--a-radius-sm) !important;
+}
+
+/* ── Stepper ── */
+.audit-page .stepper {
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border, #1e293b);
+  border-radius: var(--a-radius);
+  margin-bottom: 20px;
+}
+
+/* ── Cards & dropzones ── */
+.audit-page .card {
+  border-radius: var(--a-radius) !important;
+}
+
+.audit-page .drop-zone {
+  border-radius: var(--a-radius-sm) !important;
+}
+
+/* ── Mode tabs ── */
+.audit-page #modeToggleSegmented .mode-tab.active {
+  background: linear-gradient(135deg, #6366f1, #818cf8) !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3) !important;
+}
+
+@media (max-width: 768px) {
+  .audit-page .audit-path-grid { grid-template-columns: 1fr; }
+  .audit-page .audit-hero { padding: 28px 0 20px; }
+}
+
+@media (max-width: 480px) {
+  .audit-page .container { padding: 0 16px 40px; }
+  .audit-page .trust-pills .pill { font-size: 0.7rem; padding: 6px 10px; }
+}

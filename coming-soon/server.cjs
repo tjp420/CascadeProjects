@@ -1343,15 +1343,29 @@ app.post('/api/auth/token-status', express.json(), (req, res) => {
         if (!payload) {
             return res.json({ registered: false, valid: false });
         }
+        const {
+            resolveTokenAccountEmail,
+            isGuestTokenRegistered,
+            isGuestPlaceholderEmail
+        } = require('./lib/guest-token-service.cjs');
         const db = require('./lib/db.cjs');
-        const customer = db.getDb().prepare('SELECT * FROM customers WHERE email = ?').get(payload.email);
-        const hasSubscription = db.getDb().prepare(
-            'SELECT COUNT(*) as count FROM paid_subscriptions WHERE customer_email = ? AND status = ?'
-        ).get(payload.email, 'active');
+        const accountEmail = resolveTokenAccountEmail(token, payload);
+        const guestRegistered = isGuestTokenRegistered(token);
+        const user = accountEmail ? db.getUserByEmail(accountEmail) : null;
+        const customer = accountEmail && !isGuestPlaceholderEmail(accountEmail)
+            ? db.getDb().prepare('SELECT * FROM customers WHERE email = ?').get(accountEmail)
+            : null;
+        const hasSubscription = accountEmail && !isGuestPlaceholderEmail(accountEmail)
+            ? db.getDb().prepare(
+                'SELECT COUNT(*) as count FROM paid_subscriptions WHERE customer_email = ? AND status = ?'
+            ).get(accountEmail, 'active')
+            : null;
         res.json({
-            registered: !!customer,
+            registered: !!(guestRegistered || user || customer),
             valid: true,
-            email: payload.email || null,
+            guest: payload.tier === 'guest' || !!payload.guestId,
+            guestClaimed: guestRegistered,
+            email: accountEmail,
             tier: payload.tier || null,
             features: payload.features || [],
             expiry: payload.exp || null,

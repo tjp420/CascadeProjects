@@ -28,7 +28,7 @@
     },
     "audit.html": {
       "title": "SimpleBeacon — Audit",
-      "description": "Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.",
+      "description": "Scan locally in the browser, import a SimpleBeacon report.json, or verify a signed .sbcert. Source never leaves this device.",
       "h1": "Audit Your Scan Reports",
       "sitemap": { "priority": "0.9", "changefreq": "weekly" },
       "includeNav": true,

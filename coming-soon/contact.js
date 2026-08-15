@@ -16,6 +16,7 @@
     certificate: 'Executive Risk Certificate ($499)',
     'eu-ai-act': 'EU AI Act Readiness Sprint ($2,499)',
     enterprise: 'Enterprise contract ($50,000+ annual)',
+    research: 'Federal research / DARPA / BAA / transition',
     'invoice-w9': 'Request Invoice / W-9',
     quarterly: 'Quarterly / Annual Protection Pack',
     general: 'General compliance question'

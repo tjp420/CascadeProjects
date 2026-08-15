@@ -9,6 +9,9 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../lib/db.cjs');
 const { processReferralSignup } = require('../lib/referral-webhook.cjs');
+const {
+    claimGuestTokenForUser
+} = require('../lib/guest-token-service.cjs');
 
 const logger = {
     info: (...a) => { const c = globalThis.console; c.info(...a); },
@@ -73,10 +76,49 @@ if (seededAdmin && seededAdmin.tier !== 'admin') {
     db.updateUserTier('admin@simplebeacon.ai', 'admin');
 }
 
+// POST /api/auth/register-token — link an anonymous guest token to an email (no new account)
+router.post('/api/auth/register-token', express.json(), async (req, res) => {
+    try {
+        const { token, email } = req.body || {};
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({ error: 'Token required' });
+        }
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({ error: 'Valid email required' });
+        }
+        const normalizedEmail = email.trim().toLowerCase();
+        let user = db.getUserByEmail(normalizedEmail);
+        if (!user) {
+            return res.status(404).json({
+                error: 'No account for this email',
+                message: 'Create an account first, or register with guestToken during signup.'
+            });
+        }
+        const claim = claimGuestTokenForUser(token, normalizedEmail, user.id);
+        if (!claim.success) {
+            return res.status(409).json({ error: claim.error || 'Could not link token' });
+        }
+        res.json({
+            success: true,
+            registered: true,
+            token: claim.token,
+            email: claim.email,
+            tier: claim.tier || 'community',
+            alreadyClaimed: !!claim.alreadyClaimed,
+            message: claim.alreadyClaimed
+                ? 'Token already linked to this account.'
+                : 'Your guest token is now your personal account token.'
+        });
+    } catch (error) {
+        logger.error('[Auth] register-token failed:', error.message);
+        res.status(500).json({ error: 'Token registration failed', detail: error.message });
+    }
+});
+
 // POST /api/auth/register
 router.post('/api/auth/register', express.json(), async (req, res) => {
     try {
-        const { email, password, confirmPassword } = req.body;
+        const { email, password, confirmPassword, guestToken } = req.body;
         if (!email || !email.includes('@')) {
             return res.status(400).json({ error: 'Valid email required' });
         }
@@ -96,7 +138,19 @@ router.post('/api/auth/register', express.json(), async (req, res) => {
         const salt = generateSalt();
         const passwordHash = await hashPassword(password, salt);
         const user = db.createUser(email, passwordHash, salt, 'community');
-        const token = generateSessionToken(user);
+        const sessionToken = generateSessionToken(user);
+
+        let licenseToken = null;
+        let guestClaim = null;
+        if (guestToken && typeof guestToken === 'string') {
+            guestClaim = claimGuestTokenForUser(guestToken, user.email, user.id);
+            if (guestClaim.success) {
+                licenseToken = guestClaim.token;
+            } else {
+                logger.warn('[Auth] Guest token claim on register failed:', guestClaim.error);
+            }
+        }
+
         try {
             processReferralSignup(req, user.email);
         } catch (referralErr) {
@@ -106,12 +160,16 @@ router.post('/api/auth/register', express.json(), async (req, res) => {
 
         res.json({
             success: true,
-            token,
+            token: sessionToken,
+            licenseToken,
+            guestTokenClaimed: !!(guestClaim && guestClaim.success),
             user: { email: user.email, name: user.name, tier: user.tier },
             email: user.email,
             tier: user.tier,
             expiresInHours: SESSION_EXPIRY_HOURS,
-            message: 'Account created successfully'
+            message: licenseToken
+                ? 'Account created — your guest pass is now your personal license token.'
+                : 'Account created successfully'
         });
     } catch (error) {
         logger.error('[Auth] Registration failed:', error.message);
@@ -122,7 +180,7 @@ router.post('/api/auth/register', express.json(), async (req, res) => {
 // POST /api/auth/login
 router.post('/api/auth/login', express.json(), async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, guestToken } = req.body;
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password required' });
         }
@@ -140,10 +198,22 @@ router.post('/api/auth/login', express.json(), async (req, res) => {
             return res.status(403).json({ error: 'Account suspended. Contact support.' });
         }
 
-        const token = generateSessionToken(user);
+        const sessionToken = generateSessionToken(user);
+
+        let licenseToken = null;
+        let guestClaim = null;
+        if (guestToken && typeof guestToken === 'string') {
+            guestClaim = claimGuestTokenForUser(guestToken, user.email, user.id);
+            if (guestClaim.success) {
+                licenseToken = guestClaim.token;
+            }
+        }
+
         res.json({
             success: true,
-            token,
+            token: sessionToken,
+            licenseToken,
+            guestTokenClaimed: !!(guestClaim && guestClaim.success && !guestClaim.alreadyClaimed),
             user: {
                 email: user.email,
                 name: user.name,
@@ -154,7 +224,9 @@ router.post('/api/auth/login', express.json(), async (req, res) => {
             tier: user.tier,
             role: user.tier === 'admin' ? 'admin' : undefined,
             expiresInHours: SESSION_EXPIRY_HOURS,
-            message: 'Login successful'
+            message: licenseToken && guestClaim && !guestClaim.alreadyClaimed
+                ? 'Signed in — your guest pass is now linked to this account.'
+                : 'Login successful'
         });
     } catch (error) {
         logger.error('[Auth] Login failed:', error.message);

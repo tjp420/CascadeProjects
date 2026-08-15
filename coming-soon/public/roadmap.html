@@ -116,11 +116,11 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/roadmap.css?h=1784596919635">
+  <link rel="stylesheet" href="/css/roadmap.css?v=20260815">
   <script>(function(){var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();</script>
   <script type="module" src="/js-es2018/dashboard/phase-registry.js?h=1784596919635"></script>
 </head>
-<body>
+<body class="roadmap-page">
   <a href="#app" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:1001;">Skip to content</a>
   <script>
     document.querySelector('.skip-link').addEventListener('focus',function(){this.style.position='fixed';this.style.left='16px';this.style.top='16px';this.style.width='auto';this.style.height='auto';this.style.padding='8px 16px';this.style.background='var(--accent)';this.style.color='#fff';this.style.borderRadius='8px';this.style.fontWeight='600';this.style.textDecoration='none';});
@@ -148,30 +148,41 @@
 </nav>
 <style>.iframe-embed .sb-site-nav{display:none!important;}.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
     <div class="hero">
-      <div class="hero-badge">Data-Quality Driven</div>
-      <h1>From Detection to Automated Janitor</h1>
-      <p>Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan.</p>
+      <div class="hero-badge">Remediation Planner</div>
+      <h1>From detection to<br><em>automated janitor.</em></h1>
+      <p>Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan — prioritized by severity, effort, and compliance impact.</p>
+      <p class="hero-trust-line"><span>&#128274;</span> Runs locally in your browser · <a href="/audit">Run a free scan first</a></p>
     </div>
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
-      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">&#128203; Load Report from URL or Path</label>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button type="button" id="browseReportBtn" class="btn btn-secondary" style="white-space:nowrap;">&#128194; Browse</button>
-        <input type="text" id="reportUrlInput" placeholder="https://example.com/simplebeacon-report.json  or  C:/path/to/report.json" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-main);font-family:inherit;font-size:0.9rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;">
-        <button type="button" id="analyzeReportBtn" class="btn btn-primary" style="white-space:nowrap;">&#9889; Analyze</button>
+
+    <div class="trust-pills">
+      <span class="pill"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Phased Roadmap</span>
+      <span class="pill"><svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg> Data Quality Scores</span>
+      <span class="pill"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export to Jira / GitHub</span>
+      <span class="pill"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Shareable URL</span>
+    </div>
+
+    <div class="roadmap-load-panel">
+      <label for="reportUrlInput">Load report from URL or path</label>
+      <div class="roadmap-load-row">
+        <button type="button" id="browseReportBtn" class="btn btn-secondary" style="white-space:nowrap;">Browse</button>
+        <input type="text" id="reportUrlInput" placeholder="https://example.com/simplebeacon-report.json  or  C:/path/to/report.json">
+        <button type="button" id="analyzeReportBtn" class="btn btn-primary" style="white-space:nowrap;">Analyze</button>
       </div>
     </div>
     <div class="dropzone" id="dropzone">
       <div class="icon">&#128206;</div>
       <h3>Drop scan report.json or .zip here</h3>
-      <p>Or click to browse</p>
+      <p>Or click to browse — analysis runs locally in your browser</p>
       <input type="file" id="fileInput" accept=".json,.zip" aria-label="Upload scan report JSON or ZIP">
     </div>
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:32px;">
-      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">&#128203; Or paste JSON directly</label>
-      <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text);font-family:'SF Mono',Monaco,monospace;font-size:0.8rem;resize:vertical;"></textarea>
-      <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:10px;width:100%;">Load JSON Report</button>
-      <button id="loadTestReportBtn" class="btn btn-secondary" style="margin-top:8px;width:100%;font-size:0.8rem;">&#128200; Load Test Report</button>
-      <p style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">Press Ctrl+Enter to submit</p>
+    <div class="roadmap-paste-panel">
+      <label for="jsonPasteInput">Or paste JSON directly</label>
+      <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}'></textarea>
+      <div class="roadmap-paste-actions">
+        <button id="jsonPasteBtn" class="btn btn-primary" style="width:100%;">Load JSON Report</button>
+        <button id="loadTestReportBtn" class="btn btn-secondary" style="width:100%;font-size:0.82rem;">Load Test Report</button>
+      </div>
+      <p class="roadmap-paste-hint">Press Ctrl+Enter to submit</p>
     </div>
     <div id="app" style="display:none;" role="main">
       <div class="roadmap-section" role="region" aria-labelledby="dashboardTitle">

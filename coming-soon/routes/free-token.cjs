@@ -436,8 +436,52 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
     }
 });
 
+// ── Anonymous guest token (auto-issued per device, claimed on signup) ──
+const guestTokenService = require('../lib/guest-token-service.cjs');
+
+async function handleGuestToken(req, res) {
+    const guestId = (req.body?.guestId || req.query?.guestId || '').trim();
+    if (!guestId || guestId.length < 8) {
+        return res.status(400).json({ error: 'guestId required (min 8 characters)' });
+    }
+    try {
+        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        if (!secret) {
+            return res.status(500).json({ error: 'Server misconfigured — contact administrator' });
+        }
+        const result = guestTokenService.issueGuestToken(guestId, secret);
+        if (!result.success) {
+            return res.status(400).json({ error: result.error || 'Guest token issue failed' });
+        }
+        systemLogger.logTokenOp(result.cached ? 'guest_token_returned' : 'guest_token_issued', {
+            guestId: guestId.slice(0, 12) + '…',
+            claimed: result.claimed,
+            clientIp: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+        });
+        res.json({
+            success: true,
+            token: result.token,
+            tier: result.tier,
+            cached: !!result.cached,
+            claimed: !!result.claimed,
+            userEmail: result.userEmail || null,
+            expiresAt: result.expiresAt,
+            expiresInDays: 14,
+            message: result.claimed
+                ? 'Your personal token is ready — linked to your account.'
+                : (result.cached
+                    ? 'Guest pass restored for this device.'
+                    : 'Free guest pass issued — save it by creating an account anytime.')
+        });
+    } catch (err) {
+        logger.error('[GuestToken] Issue failed:', err.message);
+        return res.status(500).json({ error: 'Guest token issue failed', detail: err.message });
+    }
+}
+
 router.get('/api/free-token', handleFreeToken);
 router.post('/api/free-token', handleFreeToken);
+router.post('/api/tokens/guest', express.json(), handleGuestToken);
 router.post('/api/tokens/sandbox', handleSandboxToken);
 
 router.post('/api/tokens/verify-code', express.json(), async (req, res) => {

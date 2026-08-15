@@ -19,7 +19,7 @@ function verifyLicenseToken(token, secret) {
     }
 }
 
-const FREE_TIERS = ['community', 'sandbox', 'starter', 'instant', 'free', 'developer'];
+const FREE_TIERS = ['community', 'sandbox', 'guest', 'starter', 'instant', 'free', 'developer'];
 
 router.post('/api/tokens/validate', express.json(), (req, res) => {
     try {
@@ -82,6 +82,15 @@ router.post('/api/tokens/validate', express.json(), (req, res) => {
                 return res.json({ valid: false, error: 'Incorrect password' });
             }
         } else {
+            // Guest tokens: no email validation code — device-issued pass
+            if (tier === 'guest' || payload.guestId) {
+                const guestRow = db.getDb().prepare(
+                    'SELECT * FROM guest_tokens WHERE token_hash = ? AND revoked = 0'
+                ).get(tokenHash);
+                if (!guestRow) {
+                    return res.json({ valid: false, error: 'Guest token not found' });
+                }
+            } else {
             // Free tokens: verify email validation code
             const codeRecord = getValidationCodeByTokenHash(tokenHash);
             if (!codeRecord) {
@@ -97,6 +106,7 @@ router.post('/api/tokens/validate', express.json(), (req, res) => {
                 return res.json({ valid: false, error: 'Incorrect validation code' });
             }
             markValidationCodeUsed(codeRecord.id);
+            }
         }
 
         res.json({

@@ -152,6 +152,7 @@ const jsonPasteBtn = document.getElementById('jsonPasteBtn');
 let accumulatedPickerFiles = [];
 let isAccumulatingFolders = false;
 let _pickerTriggeredByButton = false;
+let isPickerActive = false;
 // Safe batch push: avoids "Maximum call stack size exceeded" when spreading large arrays
 function safeBatchPush(target, source, batchSize) {
     batchSize = batchSize || 5000;
@@ -1605,10 +1606,11 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
     });
 }
 // Wire up token input to both product detection AND button state
-if (typeof window.TokenEntryGuard !== 'undefined') {
+if (typeof window.TokenEntryGuard !== 'undefined' && licenseInput) {
     window.TokenEntryGuard.bindLicenseTokenInput(licenseInput, document.getElementById('tokenError'));
 }
-licenseInput.addEventListener('input', () => {
+if (licenseInput) {
+    licenseInput.addEventListener('input', () => {
     const tokenError = document.getElementById('tokenError');
     if (tokenError)
         tokenError.classList.add('hidden-display');
@@ -1624,7 +1626,8 @@ licenseInput.addEventListener('input', () => {
             hideTokenSection();
         }
     }
-});
+    });
+}
 function registerTokenInVault(token) {
     const payload = decodeJwtPayload(token);
     const tier = (payload === null || payload === void 0 ? void 0 : payload.tier) || (payload === null || payload === void 0 ? void 0 : payload.product) || 'free';
@@ -1689,8 +1692,18 @@ function hideTokenSection() {
 // Users must paste a new token from email or request one via Try for Free / Send a Token.
 // Token gate — browser scan requires a valid token
 function hasValidToken() {
-    const val = licenseInput.value.trim();
-    return val.length > 20 && val.includes('.');
+    if (licenseInput) {
+        const val = licenseInput.value.trim();
+        if (val.length > 20 && val.includes('.'))
+            return true;
+    }
+    try {
+        const stored = localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
+        return stored.length > 20 && stored.includes('.');
+    }
+    catch (e) {
+        return false;
+    }
 }
 function updateDropzoneGate() {
     if (!browserFolderDropzone)
@@ -1942,8 +1955,7 @@ document.addEventListener('keydown', (e) => {
         }
     }
     if (e.key === 'Escape') {
-        // Clear any status messages
-        status.style.display = 'none';
+        if (status) status.style.display = 'none';
     }
 });
 // Real-time token validation feedback
@@ -2022,20 +2034,31 @@ function updateSubmit() {
     saveToLocalStorage();
 }
 // === Tab Toggle ===
-if (tabCli && tabBrowser && viewCli && viewBrowser) {
-    tabCli.addEventListener('click', () => {
-        tabCli.classList.add('active');
-        tabBrowser.classList.remove('active');
-        viewCli.style.display = 'block';
-        viewBrowser.style.display = 'none';
+function wireRuntimeModeTabs() {
+    if (typeof window.initAuditRuntimeTabs === 'function') {
+        window.initAuditRuntimeTabs();
+        return;
+    }
+    const cliTab = document.getElementById('tab-cli');
+    const browserTab = document.getElementById('tab-browser');
+    const cliView = document.getElementById('view-cli');
+    const browserView = document.getElementById('view-browser');
+    if (!cliTab || !browserTab || !cliView || !browserView) return;
+    cliTab.addEventListener('click', () => {
+        cliTab.classList.add('active');
+        browserTab.classList.remove('active');
+        cliView.style.display = 'block';
+        browserView.style.display = 'none';
     });
-    tabBrowser.addEventListener('click', () => {
-        tabBrowser.classList.add('active');
-        tabCli.classList.remove('active');
-        viewBrowser.style.display = 'block';
-        viewCli.style.display = 'none';
+    browserTab.addEventListener('click', () => {
+        browserTab.classList.add('active');
+        cliTab.classList.remove('active');
+        browserView.style.display = 'block';
+        cliView.style.display = 'none';
+        try { browserView.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
     });
 }
+wireRuntimeModeTabs();
 // === CLI Sub-tab Toggle ===
 const tabCliImport = document.getElementById('tab-cli-import');
 const tabCliSetup = document.getElementById('tab-cli-setup');
@@ -2097,23 +2120,65 @@ if (tabImportUpload && tabImportPaste && viewImportUpload && viewImportPaste) {
 // showDirectoryPicker must be called SYNCHRONOUSLY inside a user-gesture handler.
 // Using .then() instead of await preserves the gesture chain through the click event.
 // Drag-and-drop is the fallback for browsers without File System Access API.
-function triggerDirectoryPicker() {
+async function ensureScanTokenForPicker() {
+    if (hasValidToken())
+        return { ok: true, webkitOnly: false };
+    var cached = '';
+    if (typeof licenseInput !== 'undefined' && licenseInput && licenseInput.value.trim()) {
+        cached = licenseInput.value.trim();
+    }
+    if (!cached || !cached.includes('.')) {
+        cached = localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
+    }
+    if (cached && cached.includes('.')) {
+        if (typeof licenseInput !== 'undefined' && licenseInput)
+            licenseInput.value = cached;
+        if (typeof updateDropzoneGate === 'function')
+            updateDropzoneGate();
+        return { ok: true, webkitOnly: false };
+    }
+    if (typeof window.ensureGuestToken === 'function') {
+        try {
+            await window.ensureGuestToken();
+        }
+        catch (err) {
+            showToast((err && err.message) || 'Could not issue free pass. Try Start Scanning first.', 'error');
+            return { ok: false, webkitOnly: false };
+        }
+        if (typeof updateDropzoneGate === 'function')
+            updateDropzoneGate();
+        return { ok: hasValidToken(), webkitOnly: true };
+    }
+    return { ok: false, webkitOnly: false };
+}
+function triggerDirectoryPicker(options) {
+    options = options || {};
     var tokenJustGenerated = false;
     if (!hasValidToken()) {
-        // Auto-generate an anonymous sandbox token so the browser scan button works
-        // without requiring the user to click "Start Scanning" first.
-        if (typeof window.generateSandboxToken === 'function') {
-            var token = window.generateSandboxToken(null);
-            // Set the value directly — do NOT dispatch events or update UI here.
-            // showDirectoryPicker() requires a live user gesture; heavy synchronous work
-            // (event dispatch, DOM updates, localStorage) would consume the gesture and
-            // cause the picker to silently fail. Defer all UI work to a microtask below.
+        // Prefer server-issued guest token (auto-issued on audit page load)
+        var cached = '';
+        if (typeof licenseInput !== 'undefined' && licenseInput && licenseInput.value.trim()) {
+            cached = licenseInput.value.trim();
+        }
+        if (!cached || !cached.includes('.')) {
+            cached = localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
+        }
+        if (cached && cached.includes('.')) {
             if (typeof licenseInput !== 'undefined' && licenseInput) {
-                licenseInput.value = token;
+                licenseInput.value = cached;
             }
             tokenJustGenerated = true;
-        } else {
-            showToast('Paste a license token to unlock scanning.', 'warning');
+        } else if (typeof window.generateSandboxToken === 'function') {
+            var token = window.generateSandboxToken(null);
+            if (token && token.includes('.')) {
+                if (typeof licenseInput !== 'undefined' && licenseInput) {
+                    licenseInput.value = token;
+                }
+                tokenJustGenerated = true;
+            }
+        }
+        if (!tokenJustGenerated) {
+            showToast('Getting your free pass — click Start Scanning, then try again.', 'warning');
             if (typeof licenseInput !== 'undefined' && licenseInput) {
                 licenseInput.focus();
                 licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2152,7 +2217,7 @@ function triggerDirectoryPicker() {
     const isSecureContext = typeof window.isSecureContext !== 'undefined'
         ? window.isSecureContext
         : location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (typeof showDirectoryPicker === 'function' && isSecureContext) {
+    if (!options.webkitOnly && typeof showDirectoryPicker === 'function' && isSecureContext) {
         console.log('[triggerDirectoryPicker] calling showDirectoryPicker synchronously');
         var pickerTimeout = setTimeout(function () {
             if (isPickerActive) {
@@ -2348,26 +2413,38 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
     }
     return files;
 }
+async function openDirectoryPickerFromGesture(triggerScan) {
+    if (triggerScan)
+        _pickerTriggeredByButton = true;
+    var tokenState = await ensureScanTokenForPicker();
+    if (!tokenState.ok) {
+        if (!hasValidToken())
+            triggerDirectoryPicker();
+        if (triggerScan)
+            _pickerTriggeredByButton = false;
+        return;
+    }
+    triggerDirectoryPicker({ webkitOnly: tokenState.webkitOnly });
+}
 if (browserFolderDropzone)
     browserFolderDropzone.addEventListener('click', (e) => {
         if (!e.isTrusted)
             return; // ignore programmatic clicks (e.g. folderInput.click())
         if (e.target.closest('#terminal-console'))
             return;
-        triggerDirectoryPicker();
+        void openDirectoryPickerFromGesture(false);
     });
 if (dropzonePrompt)
     dropzonePrompt.addEventListener('click', (e) => {
         e.stopPropagation();
-        triggerDirectoryPicker();
+        void openDirectoryPickerFromGesture(false);
     });
 const selectDriveTargetBtn = document.getElementById('select-drive-target-btn');
 if (selectDriveTargetBtn) {
     selectDriveTargetBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        _pickerTriggeredByButton = true;
-        triggerDirectoryPicker();
+        void openDirectoryPickerFromGesture(true);
     });
 }
 let _browserDragDepth = 0;
@@ -2375,7 +2452,7 @@ if (browserFolderDropzone)
     browserFolderDropzone.addEventListener('dragenter', (e) => {
         var _a, _b;
         e.preventDefault();
-        if (!hasValidToken())
+        if (!hasValidToken() && typeof window.ensureGuestToken !== 'function')
             return;
         _browserDragDepth++;
         if (_browserDragDepth === 1) {
@@ -2410,10 +2487,13 @@ if (browserFolderDropzone)
         e.preventDefault();
         _browserDragDepth = 0;
         browserFolderDropzone.classList.remove('dragover');
-        if (!hasValidToken()) {
-            showToast('Paste a license token to unlock scanning.', 'warning');
-            licenseInput.focus();
-            licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var dropTokenState = await ensureScanTokenForPicker();
+        if (!dropTokenState.ok || !hasValidToken()) {
+            showToast('Paste a license token or click Start Scanning to unlock scanning.', 'warning');
+            if (typeof licenseInput !== 'undefined' && licenseInput) {
+                licenseInput.focus();
+                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
         const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
@@ -3479,7 +3559,6 @@ function appendLocalScannerLine(html, type) {
             console.warn('[local-scanner-perf] slow render:', elapsed.toFixed(1) + 'ms', 'type:', type);
     }
 }
-let isPickerActive = false;
 async function startLocalScan() {
     console.log('[startLocalScan] entered. accumulated=' + accumulatedPickerFiles.length + ' bridge=' + bridgeAvailable);
     if (isPickerActive) {

@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>SimpleBeacon — Audit</title>
-    <meta name="description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
+    <meta name="description" content="Scan locally in the browser, import a SimpleBeacon report.json, or verify a signed .sbcert. Source never leaves this device.">
     <link rel="canonical" href="https://simplebeacon.ai/audit.html">
     <meta name="robots" content="index, follow">
     <meta property="og:title" content="SimpleBeacon — Audit">
-    <meta property="og:description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
+    <meta property="og:description" content="Scan locally in the browser, import a SimpleBeacon report.json, or verify a signed .sbcert. Source never leaves this device.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/audit.html">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SimpleBeacon — Audit">
-    <meta name="twitter:description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
+    <meta name="twitter:description" content="Scan locally in the browser, import a SimpleBeacon report.json, or verify a signed .sbcert. Source never leaves this device.">
 
     
     
@@ -121,13 +121,17 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     <script src="/js-es2018/dashboard/scanner-patterns.js?h=1781475000005" defer></script>
     <script src="/js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
     <script src="/js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="/js-es2018/audit-scan-service.js?v=20260808audit1" defer></script>
+    <script src="/js-es2018/audit-scan-service.js?v=20260815audit1" defer></script>
     <script src="/js-es2018/dashboard/scanner-engine.js?h=1781475000015" defer></script>
     <script src="/js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
     <script src="/vendor/jszip.min.js" defer></script>
     <script src="/js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
     <script src="/js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
     <link rel="stylesheet" href="/css/dashboard.css?h=1786200000000">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/audit-page.css?v=20260815">
     <script>(function(){var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();</script>
     <script>
     // Mobile detection: auto-switch to CLI/Import tab when browser scanning is unavailable.
@@ -162,7 +166,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     })();
     </script>
 </head>
-<body>
+<body class="audit-page">
     <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-main);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;pointer-events:none;">
         <div style="width:48px;height:48px;border-radius:50%;border:3px solid rgba(99,102,241,.2);border-top-color:var(--accent);animation:spin 1s linear infinite;margin-bottom:20px;"></div>
         <div style="color:var(--text-secondary);font-size:14px;letter-spacing:.05em;">SimpleBeacon</div>
@@ -189,7 +193,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       }
     })();
     </script>
-    <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
+    <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},800)</script>
     <script>
         if (window.self !== window.top) {
             document.documentElement.classList.add('iframe-embed');
@@ -304,12 +308,37 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 .sb-report-actions button.sb-btn-primary:hover{background:var(--primary-hover);color:#fff;}
 
 /* Enterprise header polish */
-.container > header{padding:24px 0 16px;}
-.container > header h1{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-primary);}
-.container > header p{font-size:0.85rem;color:var(--text-secondary);max-width:680px;line-height:1.5;}
+.container > header{padding:16px 0 8px;}
+.container > header h1{font-size:1.7rem;font-weight:800;letter-spacing:-0.03em;color:var(--text-primary);margin:8px 0 6px;}
+.container > header p{font-size:0.88rem;color:var(--text-secondary);max-width:720px;line-height:1.55;}
+
+/* Audit workspace layout — three paths, cert first */
+.audit-promo{margin-top:10px;padding:7px 12px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:10px;font-size:0.76rem;color:var(--text-secondary);line-height:1.4;}
+.audit-path-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0 14px;}
+@media(max-width:480px){.audit-path-grid{grid-template-columns:1fr;}}
+.audit-path-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:4px;padding:12px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:inherit;cursor:pointer;width:100%;font:inherit;transition:border-color .15s,box-shadow .15s,transform .15s;}
+.audit-path-card:hover{border-color:var(--accent);box-shadow:0 0 20px rgba(6,182,212,.12);transform:translateY(-1px);}
+.audit-path-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.audit-path-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.audit-path-card h3{margin:0;font-size:.95rem;color:var(--text-main);font-weight:700;}
+.audit-path-card p{margin:0;font-size:.75rem;color:var(--text-muted);line-height:1.4;}
+.audit-path-card--accent{border-color:var(--emerald-border);background:var(--emerald-subtle);}
+.audit-runtime-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 14px;}
+.audit-runtime-bar h2{margin:0;font-size:.95rem;color:var(--text-main);}
+.audit-runtime-bar p{margin:4px 0 0;font-size:.75rem;color:var(--text-muted);}
+.audit-frameworks{margin-bottom:12px;}
+.audit-frameworks summary{cursor:pointer;font-size:.75rem;color:var(--text-muted);font-weight:600;padding:4px 0;list-style:none;}
+.audit-frameworks summary::-webkit-details-marker{display:none;}
+.audit-frameworks[open] summary{margin-bottom:8px;}
+.sb-local-first-strip{padding:8px 12px;margin-bottom:10px;font-size:.72rem;}
+.sb-framework-badges{margin-bottom:0;}
+.sb-fw-badge{padding:4px 8px;font-size:.68rem;}
+.audit-footnote{padding:8px 14px !important;margin-bottom:12px !important;font-size:.75rem !important;}
+#cert-verify-section{margin-top:0;}
+#audit-token-gate > div:first-of-type{padding:14px 18px 12px !important;}
 
 /* Stepper enterprise polish */
-.stepper{margin-bottom:24px;}
+.stepper{margin-bottom:16px;}
 .stepper-bubble{background:var(--surface-elevated);border:2px solid var(--border);color:var(--text-muted);font-weight:700;transition:all 0.2s;}
 .stepper-step.active .stepper-bubble{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 0 12px var(--primary-subtle);}
 .stepper-label{font-size:0.78rem;font-weight:600;color:var(--text-secondary);}
@@ -317,16 +346,65 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 .stepper-line{background:var(--border);height:2px;flex:1;min-width:20px;align-self:center;margin:0 8px;}
 </style>
     <div class="container">
-        <header>
-            <div class="step-badge" id="productBadge">
-                <span id="productLabel">Certificate Generation</span>
+        <header class="audit-hero">
+            <div class="step-badge hero-badge" id="productBadge">
+                <span id="productLabel">Local-First Audit</span>
             </div>
-            <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use high-speed local regex heuristics across 52 rule engines. For deep AST analysis, use the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a> or <a href="http://127.0.0.1:58000/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">CLI</a>.</p>
-            <div style="margin-top:14px;padding:10px 18px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:10px;font-size:0.8rem;color:var(--text-secondary);text-align:center;">
-                <strong style="color:#22c55e;">Skip the $10,000 consultant.</strong> Drop your folder below and get a full audit in under 5 minutes &mdash; no upload, no NDA, no procurement. <a href="/pricing" style="color:var(--accent-hover);text-decoration:underline;">Get a $149 board-ready certificate &rarr;</a>
+            <h1 id="pageTitle">Scan locally. Certificate in minutes.</h1>
+            <p class="hero-sub" id="pageSubtitle">Import a CLI <code>report.json</code>, drop a folder in the browser sandbox, or verify a signed <code>.sbcert</code>. Source never leaves this device. Deep AST analysis uses the <a href="#" id="serverDashboardLinkTrigger">server dashboard</a> or <a href="/community" target="_blank">CLI</a>.</p>
+            <p class="hero-trust-line"><span>&#128274;</span> Zero upload — scans run in your IDE or browser</p>
+            <div class="audit-promo">
+                <strong>Skip the $10,000 consultant.</strong> Full audit in under 5 minutes — no upload, no NDA. <a href="/pricing">Get a $149 board-ready certificate &rarr;</a>
             </div>
         </header>
+
+        <div class="trust-pills">
+            <span class="pill"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Offline Scanning</span>
+            <span class="pill"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Zero Data Custody</span>
+            <span class="pill"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Signed .sbcert</span>
+            <span class="pill"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> EU AI Act Ready</span>
+        </div>
+
+        <section class="audit-path-grid" aria-label="Choose how to audit">
+            <button type="button" class="audit-path-card" id="audit-path-scan">
+                <span class="audit-path-num" aria-hidden="true">1</span>
+                <h3>Scan in browser</h3>
+                <p>Drop a folder. Source stays on this device.</p>
+            </button>
+            <button type="button" class="audit-path-card" id="audit-path-import">
+                <span class="audit-path-num" aria-hidden="true">2</span>
+                <h3>Import report.json</h3>
+                <p>Load a CLI scan you already ran.</p>
+            </button>
+            <button type="button" class="audit-path-card audit-path-card--accent" id="audit-path-verify">
+                <span class="audit-path-num" aria-hidden="true">3</span>
+                <h3>Verify .sbcert</h3>
+                <p>Check a signed certificate against the public key.</p>
+            </button>
+        </section>
+
+        <!-- Certificate Verification — always visible, not buried in CLI tab -->
+        <div id="cert-verify-section" class="card" style="padding:0;overflow:hidden;margin-bottom:18px;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#128274;</span>
+                    <h3 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Compliance Certificate Verification</h3>
+                </div>
+                <button id="cert-verify-close" type="button" aria-label="Clear verification result" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;">&times;</button>
+            </div>
+            <div style="padding:16px 20px;background:var(--bg-input);">
+                <div id="cert-dropzone" style="border:2px dashed var(--border);border-radius:12px;padding:24px 20px;text-align:center;transition:all 0.2s;cursor:pointer;">
+                    <div style="font-size:1.6rem;margin-bottom:8px;">&#128203;</div>
+                    <p style="font-size:0.85rem;font-weight:600;color:var(--text-main);margin:0 0 6px;">Drop a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.8rem;">.sbcert</code> file here</p>
+                    <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 12px;">or click to browse — verification runs locally against the edge public key</p>
+                    <input type="file" id="certFileInput" accept=".sbcert,application/json" style="display:none;">
+                    <button type="button" id="cert-browse-btn" class="btn btn-primary" style="padding:8px 18px;font-size:0.8rem;">Browse for .sbcert</button>
+                </div>
+                <div id="cert-verify-result" style="display:none;margin-top:16px;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
 
         <!-- Local-first security strip -->
         <div class="sb-local-first-strip">
@@ -349,16 +427,19 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
         </div>
 
         <!-- Compliance framework badges -->
-        <div class="sb-framework-badges">
-            <span class="sb-fw-badge sb-fw-badge--soc2"><span class="sb-fw-badge-dot"></span>SOC 2 Type II</span>
-            <span class="sb-fw-badge sb-fw-badge--eu-ai-act"><span class="sb-fw-badge-dot"></span>EU AI Act</span>
-            <span class="sb-fw-badge sb-fw-badge--gdpr"><span class="sb-fw-badge-dot"></span>GDPR</span>
-            <span class="sb-fw-badge sb-fw-badge--iso27001"><span class="sb-fw-badge-dot"></span>ISO 27001</span>
-            <span class="sb-fw-badge sb-fw-badge--nist"><span class="sb-fw-badge-dot"></span>NIST AI RMF</span>
-            <span class="sb-fw-badge sb-fw-badge--hipaa"><span class="sb-fw-badge-dot"></span>HIPAA</span>
-            <span class="sb-fw-badge sb-fw-badge--pci"><span class="sb-fw-badge-dot"></span>PCI-DSS</span>
-            <span class="sb-fw-badge sb-fw-badge--ccpa"><span class="sb-fw-badge-dot"></span>CCPA</span>
-        </div>
+        <details class="audit-frameworks">
+            <summary>Mapped frameworks (SOC 2, EU AI Act, GDPR, and more)</summary>
+            <div class="sb-framework-badges">
+                <span class="sb-fw-badge sb-fw-badge--soc2"><span class="sb-fw-badge-dot"></span>SOC 2 Type II</span>
+                <span class="sb-fw-badge sb-fw-badge--eu-ai-act"><span class="sb-fw-badge-dot"></span>EU AI Act</span>
+                <span class="sb-fw-badge sb-fw-badge--gdpr"><span class="sb-fw-badge-dot"></span>GDPR</span>
+                <span class="sb-fw-badge sb-fw-badge--iso27001"><span class="sb-fw-badge-dot"></span>ISO 27001</span>
+                <span class="sb-fw-badge sb-fw-badge--nist"><span class="sb-fw-badge-dot"></span>NIST AI RMF</span>
+                <span class="sb-fw-badge sb-fw-badge--hipaa"><span class="sb-fw-badge-dot"></span>HIPAA</span>
+                <span class="sb-fw-badge sb-fw-badge--pci"><span class="sb-fw-badge-dot"></span>PCI-DSS</span>
+                <span class="sb-fw-badge sb-fw-badge--ccpa"><span class="sb-fw-badge-dot"></span>CCPA</span>
+            </div>
+        </details>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
             <span style="display:flex;align-items:center;gap:6px;color:var(--success);font-weight:600;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Full scanner available</span>
@@ -366,52 +447,102 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             <a id="serverDashboardLink" href="#/analyze" target="_blank" style="color:var(--success);font-weight:600;text-decoration:none;white-space:nowrap;">Open Server Dashboard &rarr;</a>
         </div>
 
-        <div class="simplebeacon-banner" id="simplebeacon-banner" style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:6px;color:var(--warning);font-weight:600;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Simplebeacon</span>
-            <span>52 analyzer engines detect placeholder debris, markdown fences, hardcoded metrics, security risks, and performance issues. Real-time protection in VS Code. Browser sandbox runs high-speed local regex heuristics; deep AST analysis requires the CLI or server dashboard.</span>
-            <a href="/downloads/simplebeacon.vsix" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;">Get VS Code Extension &rarr;</a>
+        <div class="simplebeacon-banner audit-footnote" id="simplebeacon-banner" style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
+            <span style="display:flex;align-items:center;gap:6px;color:var(--warning);font-weight:600;"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> 52 local analyzers</span>
+            <span>Browser sandbox uses regex heuristics. Deep AST analysis needs the CLI or server dashboard.</span>
+            <a href="/downloads/simplebeacon.vsix" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;">VS Code extension &rarr;</a>
         </div>
 
         <!-- Visual Stepper -->
         <div class="stepper" id="mainStepper" role="navigation" aria-label="Certificate generation steps">
             <div class="stepper-step active" id="stepper1" aria-current="step">
                 <div class="stepper-bubble" aria-hidden="true">1</div>
-                <span class="stepper-label">Enter Token</span>
+                <span class="stepper-label">Choose path</span>
             </div>
             <div class="stepper-line" id="stepperLine1" aria-hidden="true"></div>
             <div class="stepper-step" id="stepper2">
                 <div class="stepper-bubble" aria-hidden="true">2</div>
-                <span class="stepper-label">Upload / Scan</span>
+                <span class="stepper-label">Scan / Import</span>
             </div>
             <div class="stepper-line" id="stepperLine2" aria-hidden="true"></div>
             <div class="stepper-step" id="stepper3">
                 <div class="stepper-bubble" aria-hidden="true">3</div>
-                <span class="stepper-label">Certificate</span>
+                <span class="stepper-label">Verify</span>
             </div>
         </div>
 
-        <!-- RUNTIME MODE SELECTOR — prominent segmented control -->
-        <div style="margin-bottom:20px;">
-            <div style="margin-bottom:12px;">
-                <h2 style="margin:0;font-size:1.1rem;color:var(--text-main);">Project Compliance Evaluation</h2>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 0;">Choose your preferred local static-analysis runtime.</p>
+        <!-- RUNTIME MODE SELECTOR — IDs required by dashboard/main.js -->
+        <div class="audit-runtime-bar">
+            <div>
+                <h2>Scan runtime</h2>
+                <p>Switch between browser sandbox and CLI import.</p>
             </div>
             <div id="modeToggleSegmented" style="display:inline-flex;gap:0;background:var(--bg-input);padding:4px;border-radius:12px;border:1px solid var(--border);width:fit-content;box-shadow:0 1px 3px rgba(0,0,0,0.15);">
-                <button id="tab-cli" class="mode-tab" style="flex:none;padding:10px 20px;font-size:0.9rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+1">&#128187; Use Terminal (CLI)</button>
-                <button id="tab-browser" class="mode-tab active" style="flex:none;padding:10px 20px;font-size:0.9rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+2">&#127760; Scan in Browser</button>
+                <button type="button" id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;font-size:0.85rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+1">&#128187; Use Terminal (CLI)</button>
+                <button type="button" id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;font-size:0.85rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+2">&#127760; Scan in Browser</button>
             </div>
         </div>
+        <script>
+        // Runtime tab switcher — event delegation so clicks work even if main.js loads late or throws.
+        (function() {
+            function syncRuntimeTabStyles(activeId) {
+                var cli = document.getElementById('tab-cli');
+                var browser = document.getElementById('tab-browser');
+                [cli, browser].forEach(function(btn) {
+                    if (!btn) return;
+                    var isActive = btn.id === activeId;
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                });
+            }
+            function showCliView() {
+                var viewCli = document.getElementById('view-cli');
+                var viewBrowser = document.getElementById('view-browser');
+                if (viewCli) viewCli.style.display = 'block';
+                if (viewBrowser) viewBrowser.style.display = 'none';
+                syncRuntimeTabStyles('tab-cli');
+            }
+            function showBrowserView() {
+                var viewCli = document.getElementById('view-cli');
+                var viewBrowser = document.getElementById('view-browser');
+                if (viewBrowser) viewBrowser.style.display = 'block';
+                if (viewCli) viewCli.style.display = 'none';
+                syncRuntimeTabStyles('tab-browser');
+                try { viewBrowser && viewBrowser.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+            }
+            function bindRuntimeTabs() {
+                var seg = document.getElementById('modeToggleSegmented');
+                if (!seg || seg.dataset.runtimeTabsBound === '1') return;
+                seg.dataset.runtimeTabsBound = '1';
+                seg.addEventListener('click', function(e) {
+                    var btn = e.target.closest('#tab-cli, #tab-browser');
+                    if (!btn) return;
+                    e.preventDefault();
+                    if (btn.id === 'tab-cli') showCliView();
+                    else showBrowserView();
+                });
+            }
+            window.initAuditRuntimeTabs = bindRuntimeTabs;
+            window.showAuditCliView = showCliView;
+            window.showAuditBrowserView = showBrowserView;
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bindRuntimeTabs);
+            } else {
+                bindRuntimeTabs();
+            }
+        })();
+        </script>
 
         <!-- TOKEN GATE — non-coercive -->
         <div class="card" id="audit-token-gate" style="padding:0;overflow:hidden;margin-bottom:16px;">
-            <div style="padding:24px 24px 20px;border-bottom:1px solid var(--border);text-align:center;">
-                <h3 style="margin:0;font-size:1rem;color:var(--text-main);font-weight:700;">Get started — no signup required</h3>
-                <p style="margin:6px 0 0;font-size:0.78rem;color:var(--text-muted);">Unlock the scanner with one click, or paste a license token if you have one.</p>
+            <div style="padding:14px 18px 12px;border-bottom:1px solid var(--border);text-align:left;">
+                <h3 style="margin:0;font-size:0.9rem;color:var(--text-main);font-weight:700;">Get started — no signup required</h3>
+                <p style="margin:4px 0 0;font-size:0.75rem;color:var(--text-muted);">Your free pass is ready — drop a folder to scan. Create an account anytime to keep the same token.</p>
             </div>
             <style>
-              .token-gate-body { padding: 28px 32px 32px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+              .token-gate-body { padding: 16px 20px 18px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
               .token-gate-primary { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 520px; }
-              .token-gate-primary .btn { flex: 1; min-width: 180px; justify-content: center; padding: 14px 24px; font-size: 0.92rem; font-weight: 600; border-radius: 12px; }
+              .token-gate-primary .btn { flex: 1; min-width: 180px; justify-content: center; padding: 10px 18px; font-size: 0.85rem; font-weight: 600; border-radius: 12px; }
               .token-gate-primary .btn-secondary { background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border); box-shadow: none; }
               .token-gate-primary .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.04); border-color: var(--accent); color: var(--text-main); transform: translateY(-1px); box-shadow: none; }
               .token-gate-secondary { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); }
@@ -476,11 +607,12 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             <div class="token-gate-body">
               <div class="token-gate-primary">
                 <button type="button" class="btn btn-primary" id="startSandboxBtn">Start Scanning</button>
-                <button type="button" class="btn btn-secondary" id="haveTokenBtn">I have a token</button>
+                <button type="button" class="btn btn-secondary" id="haveTokenBtn">I have a paid license</button>
               </div>
               <div class="token-gate-paste" id="tokenPasteSection">
                 <input type="text" id="licenseToken" autocomplete="off" spellcheck="false" placeholder="Paste your license token here…" />
                 <button type="button" class="btn btn-secondary" id="tokenSubmitBtn">Unlock</button>
+                <p style="font-size:0.75rem;color:var(--text-muted);margin:4px 0 0;">Paid user? <a href="pricing.html" style="color:var(--accent);font-weight:600;text-decoration:none;">Get a license &rarr;</a> or paste it above.</p>
               </div>
               <p id="tokenError" class="token-error-bar" role="alert"></p>
               <p class="token-gate-trust">Zero-trust: scans run locally in your browser. No source code is uploaded.</p>
@@ -515,8 +647,8 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             <div class="auth-modal-overlay" id="auth-modal-overlay" style="display:none;">
               <div class="auth-modal">
                 <div class="auth-modal-header">
-                  <h3>Sign in to your account</h3>
-                  <p>Optional — scanning works without signing in.</p>
+                  <h3 id="auth-modal-title">Sign in to your account</h3>
+                  <p id="auth-modal-subtitle">Optional — scanning works without signing in. Sign up to keep your guest pass as your personal token.</p>
                 </div>
                 <div class="auth-modal-tabs">
                   <button type="button" class="auth-modal-tab active" data-auth-tab="email">Email + Password</button>
@@ -536,7 +668,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                       <p id="auth-email-error" style="color:var(--error);font-size:0.8rem;margin:0 0 8px;" hidden></p>
                       <div class="auth-modal-actions">
                         <button type="button" class="btn btn-secondary" id="auth-modal-cancel">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Sign In</button>
+                        <button type="submit" class="btn btn-primary" id="auth-email-submit">Sign In</button>
                       </div>
                     </form>
                   </div>
@@ -559,7 +691,9 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                   </div>
                 </div>
                 <div class="auth-modal-footer">
-                  New here? <a href="/#/register">Create an account</a> · <a href="/#/dashboard">View read-only demo</a>
+                  <span id="auth-mode-signin">Already have an account?</span>
+                  <button type="button" id="auth-toggle-register" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:inherit;font-weight:600;padding:0;">Create an account</button>
+                  · <a href="/#/dashboard">View read-only demo</a>
                 </div>
               </div>
             </div>
@@ -715,29 +849,6 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 </div>
             </div>
 
-            <!-- Certificate Verification Section -->
-            <div id="cert-verify-section" class="card" style="padding:0;overflow:hidden;margin-top:20px;display:none;">
-                <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#128274;</span>
-                        <h3 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Compliance Certificate Verification</h3>
-                    </div>
-                    <button id="cert-verify-close" type="button" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;">&times;</button>
-                </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div id="cert-dropzone" style="border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;transition:all 0.2s;cursor:pointer;">
-                        <div style="font-size:2rem;margin-bottom:10px;">&#128203;</div>
-                        <p style="font-size:0.85rem;font-weight:600;color:var(--text-main);margin:0 0 6px;">Drop a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.8rem;">.sbcert</code> file here</p>
-                        <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 12px;">or click to browse — verification runs locally against the edge public key</p>
-                        <input type="file" id="certFileInput" accept=".sbcert,application/json" style="display:none;">
-                        <button type="button" id="cert-browse-btn" class="btn btn-primary" style="padding:8px 18px;font-size:0.8rem;">Browse for .sbcert</button>
-                    </div>
-                    <div id="cert-verify-result" style="display:none;margin-top:16px;">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-            </div>
-
             <!-- Responsive: stack columns on mobile -->
             <style>@media(max-width:768px){#cli-two-column{grid-template-columns:1fr !important;}}</style>
             <!-- Hidden elements retained for compatibility -->
@@ -837,6 +948,62 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             }
         })();
 
+        // Path cards + runtime tabs: look up nodes on click (view-browser is later in the DOM)
+        (function() {
+            var scanBtn = document.getElementById('audit-path-scan');
+            var importBtn = document.getElementById('audit-path-import');
+            var verifyBtn = document.getElementById('audit-path-verify');
+            var tabCli = document.getElementById('tab-cli');
+            var tabBrowser = document.getElementById('tab-browser');
+            function showCli() {
+                var viewCli = document.getElementById('view-cli');
+                var viewBrowser = document.getElementById('view-browser');
+                var cliTab = document.getElementById('tab-cli');
+                var browserTab = document.getElementById('tab-browser');
+                if (viewCli) viewCli.style.display = 'block';
+                if (viewBrowser) viewBrowser.style.display = 'none';
+                if (cliTab) cliTab.classList.add('active');
+                if (browserTab) browserTab.classList.remove('active');
+            }
+            function showBrowser() {
+                var viewCli = document.getElementById('view-cli');
+                var viewBrowser = document.getElementById('view-browser');
+                var cliTab = document.getElementById('tab-cli');
+                var browserTab = document.getElementById('tab-browser');
+                if (viewBrowser) viewBrowser.style.display = 'block';
+                if (viewCli) viewCli.style.display = 'none';
+                if (browserTab) browserTab.classList.add('active');
+                if (cliTab) cliTab.classList.remove('active');
+            }
+            function scrollToId(id, block) {
+                var el = document.getElementById(id);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: block || 'start' });
+            }
+            if (scanBtn) {
+                scanBtn.addEventListener('click', function() {
+                    if (typeof window.showAuditBrowserView === 'function') window.showAuditBrowserView();
+                    else showBrowser();
+                    scrollToId('view-browser');
+                });
+            }
+            if (importBtn) {
+                importBtn.addEventListener('click', function() {
+                    if (typeof window.showAuditCliView === 'function') window.showAuditCliView();
+                    else showCli();
+                    var importTab = document.getElementById('tab-cli-import');
+                    if (importTab) importTab.click();
+                    scrollToId('view-cli');
+                });
+            }
+            if (verifyBtn) {
+                verifyBtn.addEventListener('click', function() {
+                    var section = document.getElementById('cert-verify-section');
+                    if (section) section.style.display = 'block';
+                    scrollToId('cert-verify-section', 'center');
+                });
+            }
+        })();
+
         // Certificate Verification: drag-and-drop .sbcert files, verify against edge public key
         (function() {
             var certDropzone = document.getElementById('cert-dropzone');
@@ -849,10 +1016,13 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 
             if (!certDropzone || !certFileInput) return;
 
-            // Close button hides the section
+            // Close button clears the result panel (section stays visible)
             if (certCloseBtn) {
                 certCloseBtn.addEventListener('click', function() {
-                    if (certSection) certSection.style.display = 'none';
+                    if (certResult) {
+                        certResult.style.display = 'none';
+                        certResult.innerHTML = '';
+                    }
                 });
             }
 
@@ -1131,7 +1301,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                             <div id="dropzoneGateOverlay" class="locked-gate-overlay" style="display:none;">
                                 <span style="font-size:1.6rem;">&#128274;</span>
                                 <span style="font-size:0.8rem;font-weight:700;color:#f87171;">Token Required</span>
-                                <span style="font-size:0.7rem;color:var(--text-muted);">Paste a license token to unlock scanning</span>
+                                <span style="font-size:0.7rem;color:var(--text-muted);">Click Start Scanning if the drop zone is locked</span>
                             </div>
                         </div>
                         <div class="terminal-status-bar">
@@ -2022,23 +2192,82 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     if (typeof updateAuthNav === 'function') updateAuthNav();
                 };
 
-                // Generate anonymous sandbox token (no email required)
-                function generateSandboxToken(email) {
-                    var header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-                    var now = Math.floor(Date.now() / 1000);
-                    var sub = email || ('anonymous-' + Math.random().toString(36).slice(2, 10));
-                    var payload = btoa(JSON.stringify({
-                        sub: sub,
-                        plan: email ? 'community' : 'sandbox',
-                        tier: email ? 'community' : 'sandbox',
-                        iat: now,
-                        exp: now + 86400 * 14
+                // Apply a server-issued guest (or license) token to the page
+                function applyGuestTokenToPage(token, meta) {
+                    if (!token) return;
+                    if (tokenInput) {
+                        tokenInput.value = token;
+                        tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    localStorage.setItem('sb-token', token);
+                    localStorage.setItem('simplebeacon_token', token);
+                    localStorage.setItem('cascadeAuthToken', token);
+                    localStorage.setItem('sb-user', JSON.stringify({
+                        plan: (meta && meta.tier) || 'guest',
+                        tier: (meta && meta.tier) || 'guest',
+                        email: (meta && meta.userEmail) || null
                     }));
-                    var sig = btoa('demo-sig-' + Math.random().toString(36).slice(2, 10));
-                    return header + '.' + payload + '.' + sig;
+                    if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
+                    if (typeof updateDropzoneGate === 'function') updateDropzoneGate();
+                    if (typeof updateAuthNav === 'function') updateAuthNav();
+                    const gate = document.getElementById('audit-token-gate');
+                    if (gate) gate.style.display = 'none';
                 }
-                // Expose globally so main.js triggerDirectoryPicker can auto-generate a token
-                window.generateSandboxToken = generateSandboxToken;
+
+                function getGuestDeviceId() {
+                    if (typeof window.TokenFileSystem !== 'undefined' && typeof window.TokenFileSystem.getDeviceId === 'function') {
+                        return window.TokenFileSystem.getDeviceId();
+                    }
+                    var key = 'sb_device_id';
+                    var id = localStorage.getItem(key);
+                    if (!id) {
+                        id = 'sb-dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                        localStorage.setItem(key, id);
+                    }
+                    return id;
+                }
+
+                var guestTokenPromise = null;
+                async function ensureGuestToken(options) {
+                    var opts = options || {};
+                    var cached = localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
+                    if (cached && cached.includes('.') && tokenInput && tokenInput.value.trim() === cached) {
+                        return { token: cached, cached: true };
+                    }
+                    if (guestTokenPromise && !opts.force) return guestTokenPromise;
+                    guestTokenPromise = (async function() {
+                        var guestId = getGuestDeviceId();
+                        var res = await fetch('/api/tokens/guest', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ guestId: guestId })
+                        });
+                        var data = await res.json().catch(function() { return {}; });
+                        if (!res.ok || !data.success || !data.token) {
+                            throw new Error(data.error || data.message || ('Guest token request failed (' + res.status + ')'));
+                        }
+                        applyGuestTokenToPage(data.token, data);
+                        return { token: data.token, cached: !!data.cached, meta: data };
+                    })();
+                    try {
+                        return await guestTokenPromise;
+                    } catch (err) {
+                        guestTokenPromise = null;
+                        throw err;
+                    }
+                }
+                window.ensureGuestToken = ensureGuestToken;
+
+                // Sync helper for main.js directory picker — returns cached server token only
+                function getCachedScanToken() {
+                    var fromInput = tokenInput ? tokenInput.value.trim() : '';
+                    if (fromInput && fromInput.includes('.')) return fromInput;
+                    var stored = localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
+                    return stored && stored.includes('.') ? stored : '';
+                }
+                window.generateSandboxToken = function() {
+                    return getCachedScanToken();
+                };
 
                 // ── Token Status Pill Badge ───────────────────────────────────
                 function updateTokenStatusCard(token, data) {
@@ -2047,7 +2276,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     card.style.display = 'block';
                     const tier = data.tier || 'unknown';
                     const isAdmin = tier === 'admin';
-                    const freeTiers = ['community','starter','instant','free','developer','sandbox'];
+                    const freeTiers = ['community','starter','instant','free','developer','sandbox','guest'];
                     const isFreeTier = freeTiers.includes(tier.toLowerCase());
                     // Compact pill badge text
                     const tierName = (tier.charAt(0).toUpperCase() + tier.slice(1));
@@ -2082,28 +2311,30 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     }
                 }
 
-                // "Start Scanning" — instantly generate anonymous sandbox token
+                // "Start Scanning" — issue or reuse server guest token
                 const startSandboxBtn = document.getElementById('startSandboxBtn');
                 if (startSandboxBtn) {
-                    startSandboxBtn.addEventListener('click', () => {
+                    startSandboxBtn.addEventListener('click', async () => {
                         clearError();
-                        const token = generateSandboxToken(null);
-                        if (tokenInput) {
-                            tokenInput.value = token;
-                            tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        startSandboxBtn.disabled = true;
+                        var originalText = startSandboxBtn.textContent;
+                        startSandboxBtn.textContent = 'Preparing…';
+                        try {
+                            await ensureGuestToken({ force: false });
+                            if (typeof showToast === 'function') showToast('Free pass ready — drop a folder to scan', 'success');
+                        } catch (err) {
+                            showError(err.message || 'Could not issue guest token');
+                        } finally {
+                            startSandboxBtn.disabled = false;
+                            startSandboxBtn.textContent = originalText;
                         }
-                        localStorage.setItem('sb-token', token);
-                        localStorage.setItem('simplebeacon_token', token);
-                        localStorage.setItem('cascadeAuthToken', token);
-                        localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox' }));
-                        if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
-                        if (typeof updateDropzoneGate === 'function') updateDropzoneGate();
-                        if (typeof updateAuthNav === 'function') updateAuthNav();
-                        if (typeof showToast === 'function') showToast('Sandbox ready — you can scan now', 'success');
-                        const gate = document.getElementById('audit-token-gate');
-                        if (gate) gate.style.display = 'none';
                     });
                 }
+
+                // Auto-issue guest token on first visit so drop zone unlocks without a click
+                ensureGuestToken().catch(function(err) {
+                    console.warn('[GuestToken] Auto-issue skipped:', err.message);
+                });
 
                 // "I have a token" — toggle the paste section
                 const haveTokenBtn = document.getElementById('haveTokenBtn');
@@ -2317,7 +2548,47 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 if (c2) c2.addEventListener('click', closeModal);
                 if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
 
-                // Email form
+                // Auth modal: sign in vs create account (guest token claim on signup/login)
+                var authMode = 'login';
+                var authTitle = document.getElementById('auth-modal-title');
+                var authSubtitle = document.getElementById('auth-modal-subtitle');
+                var authSubmit = document.getElementById('auth-email-submit');
+                var authToggleRegister = document.getElementById('auth-toggle-register');
+                var authModeSignin = document.getElementById('auth-mode-signin');
+
+                function setAuthMode(mode) {
+                    authMode = mode === 'register' ? 'register' : 'login';
+                    if (authTitle) authTitle.textContent = authMode === 'register' ? 'Create your account' : 'Sign in to your account';
+                    if (authSubtitle) {
+                        authSubtitle.textContent = authMode === 'register'
+                            ? 'Keep your current guest pass — it becomes your personal license token.'
+                            : 'Optional — scanning works without signing in. Sign in to link your guest pass.';
+                    }
+                    if (authSubmit) authSubmit.textContent = authMode === 'register' ? 'Create Account' : 'Sign In';
+                    if (authToggleRegister) {
+                        authToggleRegister.textContent = authMode === 'register' ? 'Sign in instead' : 'Create an account';
+                    }
+                    if (authModeSignin) {
+                        authModeSignin.textContent = authMode === 'register' ? 'Already have an account?' : 'New here?';
+                    }
+                }
+                if (authToggleRegister) {
+                    authToggleRegister.addEventListener('click', function() {
+                        setAuthMode(authMode === 'register' ? 'login' : 'register');
+                    });
+                }
+
+                function persistAuthSuccess(data) {
+                    var sessionToken = data.token;
+                    var licenseToken = data.licenseToken || getCachedScanToken();
+                    if (sessionToken) localStorage.setItem('sb-session', sessionToken);
+                    if (licenseToken) {
+                        applyGuestTokenToPage(licenseToken, { tier: data.tier || 'community', userEmail: data.email });
+                    }
+                    if (data.user) localStorage.setItem('sb-user', JSON.stringify(data.user));
+                }
+
+                // Email form — login or register with optional guestToken claim
                 const emailForm = document.getElementById('auth-email-form');
                 if (emailForm) {
                     emailForm.addEventListener('submit', async function(e) {
@@ -2326,20 +2597,26 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                         const password = document.getElementById('auth-email-password').value;
                         const error = document.getElementById('auth-email-error');
                         error.hidden = true;
+                        var guestToken = getCachedScanToken();
+                        var endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+                        var body = authMode === 'register'
+                            ? { email: email, password: password, guestToken: guestToken || undefined }
+                            : { email: email, password: password, guestToken: guestToken || undefined };
                         try {
-                            const res = await fetch('/api/auth/login', {
+                            const res = await fetch(endpoint, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email, password })
+                                body: JSON.stringify(body)
                             });
                             const data = await res.json();
-                            if (!res.ok || !data.token) throw new Error(data.message || data.error || 'Login failed');
-                            localStorage.setItem('sb-token', data.token);
-                            if (data.user) localStorage.setItem('sb-user', JSON.stringify(data.user));
-                            if (typeof showToast === 'function') showToast('Signed in successfully', 'success');
+                            if (!res.ok || !data.token) throw new Error(data.message || data.error || (authMode === 'register' ? 'Registration failed' : 'Login failed'));
+                            persistAuthSuccess(data);
+                            var msg = data.message
+                                || (data.guestTokenClaimed ? 'Your guest pass is now your personal token.' : (authMode === 'register' ? 'Account created' : 'Signed in successfully'));
+                            if (typeof showToast === 'function') showToast(msg, 'success');
                             closeModal();
                         } catch (err) {
-                            error.textContent = err.message || 'Sign in failed';
+                            error.textContent = err.message || (authMode === 'register' ? 'Registration failed' : 'Sign in failed');
                             error.hidden = false;
                         }
                     });
@@ -2530,7 +2807,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
         }
     })();
     </script>
-    <script src="/js-es2018/dashboard/main.js?h=1786127552" defer></script>
+    <script src="/js-es2018/dashboard/main.js?h=1786150000" defer></script>
     <script>
     // Initialize theme toggle icon on load
     (function() {
