@@ -50,6 +50,18 @@ jobs:
           # Run LHCI against the prepared serving directory
           lhci autorun --config=.lighthouserc.cjs
 
+      - name: Print failing accessibility audits
+        if: always()
+        run: |
+          ls -la .lighthouseci/ 2>/dev/null || echo "No .lighthouseci directory"
+          for f in .lighthouseci/lhr-*.json; do
+            if [ -f "$f" ]; then
+              echo "=== $f ==="
+              node -e "const r=require('./$f'); console.log('A11y:', r.categories.accessibility.score); for(const ref of r.categories.accessibility.auditRefs){const a=r.audits[ref.id]; if(a&&a.score!==null&&a.score<1){console.log('FAIL:',ref.id,'(score='+a.score+')',a.title); if(a.details&&a.details.items){for(const i of a.details.items.slice(0,3)){console.log('  -',JSON.stringify(i).slice(0,300))}}}}"
+              break
+            fi
+          done
+
       - name: Upload Lighthouse CI Results
         if: always()
         uses: actions/upload-artifact@v4
