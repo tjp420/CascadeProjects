@@ -7,6 +7,7 @@ on:
     paths:
       - 'ai-platform/web/simplebeacon-dashboard/**'
       - '.github/workflows/lighthouse.yml'
+  workflow_dispatch:
 
 jobs:
   lighthouse-audit:
