@@ -47,3 +47,36 @@ jobs:
         run: |
           # Run LHCI against the prepared serving directory
           lhci autorun --config=.lighthouserc.cjs
+
+      - name: Print failing accessibility audits
+        if: always()
+        run: |
+          node -e "
+          const fs = require('fs');
+          const dir = '.lighthouseci';
+          if (!fs.existsSync(dir)) { console.log('No .lighthouseci directory'); process.exit(0); }
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('-lhr.json'));
+          if (!files.length) { console.log('No LHR files found'); process.exit(0); }
+          const lhr = JSON.parse(fs.readFileSync(files.sort().pop(), 'utf8'));
+          console.log('A11y score:', lhr.categories.accessibility.score);
+          for (const ref of lhr.categories.accessibility.auditRefs) {
+            const a = lhr.audits[ref.id];
+            if (a && a.score !== null && a.score < 1) {
+              console.log('FAIL:', ref.id, '(score=' + a.score + ')', a.title);
+              if (a.details && a.details.items) {
+                for (const item of a.details.items.slice(0, 3)) {
+                  console.log('  -', JSON.stringify(item).slice(0, 300));
+                }
+              }
+            }
+          }
+          "
+
+      - name: Upload Lighthouse CI Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-ci-results
+          path: ai-platform/web/simplebeacon-dashboard/.lighthouseci/
+          retention-days: 7
+          if-no-files-found: warn
