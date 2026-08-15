@@ -3,6 +3,8 @@
  * Runtime: Cloudflare Worker (V8 Edge Isolate)
  */
 
+import { handleCertifyRequest, handlePublicKeyRequest } from './certify.js';
+
 const DEFAULT_ALLOWED_ORIGINS = 'https://simplebeacon.ai,https://www.simplebeacon.ai';
 const PAGES_PREVIEW_ORIGIN_REGEX = /^https:\/\/(?:[a-z0-9-]+\.)?simplebeacon\.pages\.dev$/;
 const RENDER_ORIGIN_REGEX = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
@@ -644,6 +646,15 @@ export default {
       // For HEAD requests, return headers only (no body)
       const body = request.method === 'HEAD' ? null : object.body;
       return new Response(body, { status: 200, headers });
+    }
+
+    // Edge-native compliance certificate signing — handled at the edge, never proxied to Render.
+    // The private key lives in Cloudflare Secrets and is imported into WebCrypto per-request.
+    if (url.pathname === '/api/v1/certify' && request.method === 'POST') {
+      return await handleCertifyRequest(request, env, corsOrigin);
+    }
+    if (url.pathname === '/api/v1/certify/public-key' && request.method === 'GET') {
+      return await handlePublicKeyRequest(env, corsOrigin);
     }
 
     // Dynamic Route 3: /api/* catch-all proxy to Render backend
