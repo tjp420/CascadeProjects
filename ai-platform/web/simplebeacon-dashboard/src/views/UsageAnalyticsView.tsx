@@ -1530,7 +1530,7 @@ export function UsageAnalyticsView() {
                   <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between">
                       <h3 className="text-base font-medium">Webhook Configuration</h3>
-                      <Button variant="ghost" size="sm" onClick={() => setShowWebhookConfig(false)}><X className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" aria-label="Close webhook configuration" onClick={() => setShowWebhookConfig(false)}><X className="h-4 w-4" /></Button>
                     </div>
                     <p className="text-xs text-muted-foreground">Configure the API endpoint and credentials for direct ticket dispatch. Auth tokens are stored locally and masked in API responses.</p>
                     <div className="space-y-3">
@@ -1756,7 +1756,7 @@ export function UsageAnalyticsView() {
           <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-base font-medium">Report Schedule</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowScheduleModal(false)}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" aria-label="Close schedule modal" onClick={() => setShowScheduleModal(false)}><X className="h-4 w-4" /></Button>
             </div>
             <p className="text-xs text-muted-foreground">Configure a recurring compliance report that generates the 22-column ledger and emails it to the specified recipients. Without SMTP configuration, reports are saved as stub files on disk.</p>
             <div className="space-y-3">
@@ -2029,7 +2029,7 @@ export function UsageAnalyticsView() {
           <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-base font-medium">Deployment Gate Policy</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowGatePolicyModal(false)}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" aria-label="Close gate policy modal" onClick={() => setShowGatePolicyModal(false)}><X className="h-4 w-4" /></Button>
             </div>
             <p className="text-xs text-muted-foreground">Configure organizational thresholds for CI/CD deployment gate evaluations. These thresholds are applied to all gate evaluations unless overridden by query parameters.</p>
             <div className="space-y-3">

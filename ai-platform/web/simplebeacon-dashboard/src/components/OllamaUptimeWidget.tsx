@@ -141,6 +141,7 @@ export function OllamaUptimeWidget() {
           <Button
             variant="ghost"
             size="sm"
+            aria-label="Refresh Ollama uptime"
             onClick={() => {
               setLoading(true);
               fetchHealth();
