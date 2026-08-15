@@ -47,3 +47,12 @@ jobs:
         run: |
           # Run LHCI against the prepared serving directory
           lhci autorun --config=.lighthouserc.cjs
+
+      - name: Upload Lighthouse CI Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-ci-results
+          path: ai-platform/web/simplebeacon-dashboard/.lighthouseci/
+          retention-days: 7
+          if-no-files-found: warn

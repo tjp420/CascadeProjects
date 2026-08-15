@@ -10,7 +10,7 @@ module.exports = {
         chromeFlags: '--no-sandbox --headless --disable-gpu',
         maxWaitForLoad: 60000,
         // Wait for the React app to render before auditing
-        waitForSelector: '#app-main, .app-main',
+        waitForSelector: '#main-content',
       },
     },
     assert: {
