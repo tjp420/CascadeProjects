@@ -5,12 +5,12 @@
  * Defaults to Ollama (localhost:11434). Never sends code to cloud providers
  * unless the user explicitly passes --fix-provider openai|anthropic.
  *
- * Broom Strategy: reuses ai-tools proposeInlineFix for safe patching.
+ * Uses bundled inline-fix.js for safe patching (npm-safe; no monorepo ai-tools path).
  */
 
 const path = require('path');
 const fs = require('fs');
-const { proposeInlineFix } = require('../../../../ai-tools/index.js');
+const { proposeInlineFix } = require('./inline-fix.js');
 
 const OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const DEFAULT_LOCAL_MODEL = process.env.SIMPLEBEACON_FIX_MODEL || 'llama3.2:latest';

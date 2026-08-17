@@ -1,11 +1,15 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
+import { formatNumber, formatPercent, escapeHtml, showToast, downloadBlob } from '../utils.js';
+import { HarExporter } from '../utils-lib/har-exporter.js';
 import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260726sevfix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js?v=20260724trend1';
+import { mountTeamGatePassTrendChart } from '../components/TeamGatePassTrendChart.js?v=20260804team1';
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
+import { mountPolicyEditor } from '../components/PolicyEditor.js?v=20260807policy1';
+import { CliReportUploadZone } from '../components/CliReportUploadZone.js?v=20260807upload1';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
 const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
@@ -229,8 +233,14 @@ export class DashboardView {
             container.appendChild(this.renderScanProgress());
         }
 
+        // Policy editor slot — always visible when config is available
+        const policySlot = document.createElement('div');
+        policySlot.id = 'slot-policy-editor';
+        container.appendChild(policySlot);
+
         if (!report && !scanning) {
             container.appendChild(this.renderQuickStart());
+            container.appendChild(this.renderCliUploadZone());
             container.appendChild(this.renderFeatureDiscovery());
             return container;
         }
@@ -310,6 +320,7 @@ export class DashboardView {
             </div>
             <div class="header-actions d-flex gap-2">
                 <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
+                <button class="btn btn-ghost btn-sm" data-action="export-har" title="Export network requests as HAR file for debugging">Export HAR</button>
                 ${adminBtnHtml}
             </div>
         `);
@@ -366,22 +377,105 @@ export class DashboardView {
         return view;
     }
 
-    renderTeamCiMetrics(metrics) {
-        const card = document.createElement('div');
-        card.className = 'card ci-team-metrics-card mb-4';
+    renderCliUploadZone() {
+        const view = document.createElement('div');
+        view.className = 'dashboard-cli-upload card p-4';
+        view.id = 'dashboard-cli-upload-slot';
+
+        const header = document.createElement('div');
+        header.style.cssText = 'margin-bottom:12px;';
+        header.innerHTML = `
+            <h3 class="h5 mb-1">Import CLI Report</h3>
+            <p class="text-sm text-muted mb-0">
+                Drop a <code>simplebeacon scan --format json</code> output file to instantly visualize
+                gate status, severity counts, alert cards, and rule coverage.
+            </p>
+        `;
+        view.appendChild(header);
+
+        const zoneContainer = document.createElement('div');
+        view.appendChild(zoneContainer);
+
+        // Mount the upload zone after the element is in the DOM
+        requestAnimationFrame(() => {
+            this._cliUploadZone = new CliReportUploadZone(zoneContainer, {
+                onReportLoaded: (adapted, raw) => {
+                    // Store the report in app state and re-render
+                    this.app.state.report = raw;
+                    this.app.state.lastReportSource = 'cli-upload';
+                    if (this.app.scanService) {
+                        try { this.app.scanService.notifyReportListeners(raw); } catch { /* ignore */ }
+                    }
+                    this.render();
+                },
+                onError: (err) => {
+                    showToast(err.message, 'error');
+                }
+            });
+            this._cliUploadZone.mount();
+        });
+
+        return view;
+    }
+
+    renderTeamCiMetrics(metrics, teamExtras = {}) {
+        const { trend = null, distribution = null } = teamExtras;
+        const periodDays = metrics.periodDays || 7;
         const blocked = metrics.merges_blocked_this_week ?? metrics.gates_tripped ?? 0;
         const criticals = metrics.criticals_blocked ?? 0;
-        // content where applicable.
+        const hasTeamTelemetry = metrics.gate_pass_rate != null
+            || (trend && Array.isArray(trend.trend))
+            || (distribution && distribution.p50 != null);
+
+        const gatePassRateHtml = metrics.gate_pass_rate != null
+            ? `
+                <div class="ci-metric ci-metric-highlight">
+                    <div class="ci-metric-value text-success">${formatPercent(metrics.gate_pass_rate * 100, 0)}</div>
+                    <div class="ci-metric-label">Gate pass rate</div>
+                    <div class="ci-metric-sub">Org-wide ${periodDays}-day average</div>
+                </div>`
+            : '';
+
+        const trendHtml = (trend && Array.isArray(trend.trend))
+            ? `
+            <div class="team-telemetry-section">
+                <div class="team-telemetry-section-title">Gate pass rate trend</div>
+                <div class="trend-chart team-gate-trend-chart">
+                    <canvas id="team-gate-trend-canvas"></canvas>
+                </div>
+            </div>`
+            : '';
+
+        const dist = distribution || metrics.quality_distribution || null;
+        const distributionHtml = (dist && dist.sampleSize > 0)
+            ? this.renderQualityDistributionStrip(dist)
+            : '';
+
+        const sources = metrics.scan_sources || null;
+        const sourcesHtml = sources
+            ? this.renderScanSourcesBreakdown(sources)
+            : '';
+
+        const kAnonymityHtml = metrics.k_anonymity_met === false
+            ? `
+            <div class="team-k-anonymity-notice" role="note">
+                <span class="team-k-anonymity-icon">🔒</span>
+                <span>Small-team mode — per-workspace breakdown hidden until ${metrics.distinct_workspaces != null ? 'at least 3' : 'k-anonymity'} distinct workspaces contribute scans.</span>
+            </div>`
+            : '';
+
+        const card = document.createElement('div');
+        card.className = 'card ci-team-metrics-card mb-4';
         card.innerHTML = `
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="card-title">Team CI — Last ${metrics.periodDays || 7} days</span>
-                <span class="badge bg-primary">AI Circuit Breaker</span>
+                <span class="card-title">Team Telemetry — Last ${periodDays} days</span>
+                <span class="badge bg-primary">${hasTeamTelemetry ? 'Org Aggregate' : 'AI Circuit Breaker'}</span>
             </div>
             <div class="ci-team-metrics-grid">
                 <div class="ci-metric">
                     <div class="ci-metric-value">${formatNumber(metrics.total_scans || 0)}</div>
                     <div class="ci-metric-label">Total scans</div>
-                    <div class="ci-metric-sub">${formatNumber(metrics.repositories || 0)} repos</div>
+                    <div class="ci-metric-sub">${formatNumber(metrics.repositories || metrics.distinct_workspaces || 0)} workspaces</div>
                 </div>
                 <div class="ci-metric ci-metric-highlight">
                     <div class="ci-metric-value">${formatNumber(blocked)}</div>
@@ -398,20 +492,110 @@ export class DashboardView {
                     <div class="ci-metric-label">Diff files analyzed</div>
                     <div class="ci-metric-sub">PR-scoped coverage</div>
                 </div>
+                ${gatePassRateHtml}
             </div>
+            ${trendHtml}
+            ${distributionHtml}
+            ${sourcesHtml}
+            ${kAnonymityHtml}
         `;
         return card;
     }
 
+    renderQualityDistributionStrip(dist) {
+        const scaleMin = 0;
+        const scaleMax = 100;
+        const toPct = (value) => {
+            if (value == null || !Number.isFinite(Number(value))) {
+                return null;
+            }
+            const n = Number(value);
+            return Math.min(100, Math.max(0, ((n - scaleMin) / (scaleMax - scaleMin)) * 100));
+        };
+        const p10 = toPct(dist.p10);
+        const p25 = toPct(dist.p25);
+        const p50 = toPct(dist.p50);
+        const p75 = toPct(dist.p75);
+        const p90 = toPct(dist.p90);
+        const fmt = (v) => (v == null ? '—' : formatPercent(v, 0));
+
+        return `
+            <div class="team-telemetry-section">
+                <div class="team-telemetry-section-title">Quality score distribution</div>
+                <div class="team-percentile-strip" aria-label="Quality score percentiles p10 through p90">
+                    <div class="team-percentile-track">
+                        ${p10 != null && p90 != null ? `<div class="team-percentile-whisker" style="left:${p10}%;width:${Math.max(0, p90 - p10)}%"></div>` : ''}
+                        ${p25 != null && p75 != null ? `<div class="team-percentile-box" style="left:${p25}%;width:${Math.max(0, p75 - p25)}%"></div>` : ''}
+                        ${p50 != null ? `<div class="team-percentile-median" style="left:${p50}%"></div>` : ''}
+                    </div>
+                    <div class="team-percentile-labels">
+                        <span>p10 ${fmt(dist.p10)}</span>
+                        <span>p25 ${fmt(dist.p25)}</span>
+                        <span class="team-percentile-label-median">p50 ${fmt(dist.p50)}</span>
+                        <span>p75 ${fmt(dist.p75)}</span>
+                        <span>p90 ${fmt(dist.p90)}</span>
+                    </div>
+                    <div class="team-percentile-meta text-muted text-xs">n=${formatNumber(dist.sampleSize || 0)} scans with quality scores</div>
+                </div>
+            </div>`;
+    }
+
+    renderScanSourcesBreakdown(sources) {
+        const entries = [
+            { key: 'ci', label: 'CI' },
+            { key: 'ide', label: 'IDE' },
+            { key: 'dashboard', label: 'Dashboard' }
+        ];
+        const total = entries.reduce((sum, e) => sum + (Number(sources[e.key]) || 0), 0);
+        if (total <= 0) {
+            return '';
+        }
+        const rows = entries.map((e) => {
+            const count = Number(sources[e.key]) || 0;
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+            return `
+                <div class="team-source-row">
+                    <span class="team-source-label">${e.label}</span>
+                    <div class="team-source-bar"><div class="team-source-bar-fill" style="width:${pct}%"></div></div>
+                    <span class="team-source-count">${formatNumber(count)}</span>
+                </div>`;
+        }).join('');
+        return `
+            <div class="team-telemetry-section">
+                <div class="team-telemetry-section-title">Scan sources</div>
+                <div class="team-scan-sources">${rows}</div>
+            </div>`;
+    }
+
     async loadCiTeamMetrics(view) {
         const slot = view.querySelector('#ci-team-metrics-slot');
-        if (!slot)
+        if (!slot) {
             return;
-        const metrics = await this.app.scanService.fetchCiTeamMetrics({ days: 7 });
-        if (!metrics || !metrics.total_scans)
+        }
+        const days = 7;
+        const [metrics, trend, distribution] = await Promise.all([
+            this.app.scanService.fetchCiTeamMetrics({ days }),
+            this.app.scanService.fetchTeamTelemetryTrend({ days }),
+            this.app.scanService.fetchTeamQualityDistribution({ days })
+        ]);
+        if (!metrics || !metrics.total_scans) {
             return;
+        }
+        if (this._teamTrendCleanup) {
+            this._teamTrendCleanup();
+            this._teamTrendCleanup = null;
+        }
         window.setSafeHTML(slot, '');
-        slot.appendChild(this.renderTeamCiMetrics(metrics));
+        const card = this.renderTeamCiMetrics(metrics, { trend, distribution });
+        slot.appendChild(card);
+        if (trend && Array.isArray(trend.trend)) {
+            requestAnimationFrame(() => {
+                const trendContainer = slot.querySelector('.team-gate-trend-chart');
+                if (trendContainer) {
+                    this._teamTrendCleanup = mountTeamGatePassTrendChart(trendContainer, trend.trend) || null;
+                }
+            });
+        }
     }
 
     renderResultsState(report, categories) {
@@ -533,6 +717,9 @@ export class DashboardView {
                         break;
                     case 'export':
                         this.handleExport();
+                        break;
+                    case 'export-har':
+                        this.handleHarExport();
                         break;
                     case 'send-ai':
                         this.handleSendAi();
@@ -687,6 +874,28 @@ export class DashboardView {
         }
     }
 
+    handleHarExport() {
+        try {
+            if (!this._harExporter) {
+                showToast('HAR recorder not started — reload the page and try again', 'error');
+                return;
+            }
+            const har = this._harExporter.exportHar();
+            const entryCount = this._harExporter.getEntryCount();
+            if (entryCount === 0) {
+                showToast('No network requests captured yet — interact with the dashboard first', 'info');
+                return;
+            }
+            const harJson = JSON.stringify(har, null, 2);
+            const blob = new Blob([harJson], { type: 'application/json' });
+            const filename = `simplebeacon-har-${new Date().toISOString().slice(0, 10)}.har`;
+            downloadBlob(blob, filename);
+            showToast(`HAR exported (${entryCount} entries)`, 'success');
+        } catch (err) {
+            showToast('HAR export failed: ' + (err && err.message || String(err)), 'error');
+        }
+    }
+
     async handleSendAi() {
         const report = this.app.state.report;
         if (!report) {
@@ -796,8 +1005,14 @@ export class DashboardView {
     mount(container) {
         if (this._trendCleanup)
             this._trendCleanup();
+        if (this._teamTrendCleanup)
+            this._teamTrendCleanup();
         this.stopScanProgressPolling();
-        window.setSafeHTML(container, '');; 
+        if (!this._harExporter) {
+            this._harExporter = new HarExporter();
+            this._harExporter.start();
+        }
+        window.setSafeHTML(container, '');;
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);
@@ -814,6 +1029,12 @@ export class DashboardView {
             const trendSlot = view.querySelector('#slot-trend');
             this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
         });
+        requestAnimationFrame(() => {
+            const policySlot = view.querySelector('#slot-policy-editor');
+            if (policySlot) {
+                this._policyEditorCleanup = mountPolicyEditor(policySlot, this.app) || null;
+            }
+        });
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
     }
@@ -821,6 +1042,10 @@ export class DashboardView {
     destroy() {
         if (this._trendCleanup)
             this._trendCleanup();
+        if (this._teamTrendCleanup)
+            this._teamTrendCleanup();
+        if (this._policyEditorCleanup)
+            this._policyEditorCleanup();
         this.stopScanProgressPolling();
     }
 }

@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { formatNumber, formatPercent, escapeHtml, showToast, downloadBlob, HarExporter } from '../utils.js';
+import { formatNumber, formatPercent, escapeHtml, showToast, downloadBlob } from '../utils.js';
+import { HarExporter } from '../utils-lib/har-exporter.js';
 import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260726sevfix1';
 import { renderIssueList } from '../components/IssueCard.js';

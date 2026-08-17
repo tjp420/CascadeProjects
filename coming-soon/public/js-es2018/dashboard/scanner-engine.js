@@ -421,7 +421,7 @@ function isTestFile(filePath) {
         || /__tests__/.test(normalized)
         || /\/tests?\//.test(normalized)
         || /\/(fixtures?|mocks?)\//.test(normalized)
-        || /test-all-patterns|test-technical|positive-test|negative-test|simplebeacon-rule-tests/.test(normalized)
+        || /test-all-patterns|test-technical|positive-test|negative-test|simplebeacon-rule-tests|expand-cpe-tests|-tests\.cjs$/.test(normalized)
         || /\/archive\//.test(normalized)
         || /\/(demo|sample|example|tools\/(generate|send|scan|test))\//.test(normalized);
 }
@@ -1372,15 +1372,234 @@ function analyzeRemovableFiles(files) {
             : 'No clearly removable files detected.'
     };
 }
+/** Build normalized report JSON from AuditScanService worker results (audit page fast path). */
+function buildWorkerAuditReport(ctx) {
+    var workerResult = ctx.workerResult;
+    var files = ctx.files;
+    var sourceFiles = ctx.sourceFiles;
+    var skipped = ctx.skipped;
+    var skipReasons = ctx.skipReasons || {};
+    var profile = ctx.profile || {};
+    var detectedRoot = ctx.detectedRoot;
+    var inventory = ctx.inventory || {};
+    var scanDurationMs = ctx.scanDurationMs || 0;
+    var filesDiscovered = ctx.filesDiscovered || files.length;
+    var filesAfterVendor = ctx.filesAfterVendor || filesDiscovered;
+    var rawIssues = workerResult.issues || workerResult.findings || [];
+    var byRule = new Map();
+    for (var ri = 0; ri < rawIssues.length; ri++) {
+        var issue = rawIssues[ri];
+        var rule = issue.rule || issue.type || 'UNKNOWN';
+        if (!byRule.has(rule)) {
+            byRule.set(rule, { rule: rule, severity: issue.severity || 'medium', count: 0, filePaths: new Set(), samples: [] });
+        }
+        var g = byRule.get(rule);
+        g.count += (issue.count || 1);
+        if (issue.filePath)
+            g.filePaths.add(issue.filePath);
+        if (g.samples.length < 5)
+            g.samples.push(issue);
+        if (issue.severity === 'critical' || (issue.severity === 'high' && g.severity !== 'critical'))
+            g.severity = issue.severity;
+    }
+    var detectedIssues = [];
+    var severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+    byRule.forEach(function (g) {
+        var sev = g.severity || 'medium';
+        if (!severityCounts[sev])
+            severityCounts[sev] = 0;
+        severityCounts[sev] += g.count;
+        detectedIssues.push({
+            severity: sev,
+            severityBand: sev,
+            type: String(g.rule).replace(/_/g, ' '),
+            count: g.count,
+            filePath: Array.from(g.filePaths).slice(0, 10),
+            rule: g.rule,
+            impact: (g.samples[0] && g.samples[0].impact) || 'Review finding before release.',
+            fix: (g.samples[0] && g.samples[0].fix) || 'Review and remediate.',
+            findings: g.samples
+        });
+    });
+    var issueCount = rawIssues.reduce(function (s, i) { return s + (i.count || 1); }, 0);
+    var gateBlocking = rawIssues.filter(function (i) {
+        return i.severity === 'high' || i.severity === 'critical';
+    }).length;
+    var qualityScore = Math.max(0, Math.min(100, Math.round(
+        100 - (severityCounts.critical || 0) * 8
+            - (severityCounts.high || 0) * 3
+            - (severityCounts.medium || 0) * 1
+            - (severityCounts.low || 0) * 0.15
+    )));
+    var HIDDEN_ROOT_EXCLUSIONS = /^(\..*|node_modules|\.git|\.github|\.github-sync|github-cache|\.cursor|\.windsurf|\.cursor-tutor|\.vscode|\.idea|\.husky|__tests__|fixtures?|mocks?|\.simplebeacon)$/i;
+    var projectName = detectedRoot || 'browser-local';
+    for (var fi = 0; fi < files.length; fi++) {
+        var rp = files[fi].webkitRelativePath || '';
+        if (rp && rp.indexOf('/') >= 0) {
+            var firstDir = rp.split('/')[0];
+            if (firstDir && !HIDDEN_ROOT_EXCLUSIONS.test(firstDir)) {
+                projectName = firstDir;
+                break;
+            }
+        }
+    }
+    var excludedSummary = Object.entries(skipReasons).sort(function (a, b) { return b[1] - a[1]; })
+        .slice(0, 5).map(function (e) { return e[1] + ' ' + e[0]; }).join(', ') || 'none';
+    var now = new Date().toISOString();
+    return {
+        type: profile.reportType || 'simplebeacon-report',
+        reportVersion: 2,
+        version: '1.3.0',
+        generatedAt: now,
+        generatedBy: 'SimpleBeacon Browser Sandbox (Worker)',
+        scanProfileLabel: profile.label || 'Browser Scan',
+        checkEuAi: profile.checkEuAi || false,
+        projectRoot: projectName,
+        projectPath: projectName,
+        scanTargetRoot: projectName,
+        platformRoot: 'browser-sandbox',
+        gate: { pass: gateBlocking === 0 && sourceFiles.length > 0, blockingCount: gateBlocking, failOn: ['high', 'critical'] },
+        issueCount: issueCount,
+        totalFiles: sourceFiles.length,
+        filesAnalyzed: workerResult.processed || sourceFiles.length,
+        repositoryFilesTotal: filesDiscovered,
+        ruleScopedFilesAnalyzed: workerResult.processed || sourceFiles.length,
+        filesScannable: sourceFiles.length,
+        filesAfterVendorFilter: filesAfterVendor,
+        qualityScore: qualityScore,
+        schemaCompliance: 100,
+        consistencyScore: 100,
+        severityCounts: severityCounts,
+        simplebeaconIssues: issueCount,
+        detectedIssues: detectedIssues,
+        issues: detectedIssues.map(function (d) { return { severity: d.severity, type: d.type, count: d.count }; }),
+        excludedCount: skipped,
+        excludedSummary: excludedSummary,
+        totalScanDurationMs: scanDurationMs,
+        summary: {
+            totalFindings: issueCount,
+            simplebeaconIssues: issueCount,
+            qualityScore: qualityScore,
+            severityCounts: severityCounts,
+            repositoryFiles: sourceFiles.length,
+            filesScanned: workerResult.processed || sourceFiles.length,
+            scanEngine: 'audit-scan-worker'
+        },
+        scanMeta: {
+            workerScan: true,
+            scanId: workerResult.scanId,
+            filesDiscovered: filesDiscovered,
+            filesAfterVendorFilter: filesAfterVendor,
+            filesScannable: sourceFiles.length,
+            filesAnalyzed: workerResult.processed || sourceFiles.length,
+            scanCoveragePct: sourceFiles.length ? Math.round(((workerResult.processed || sourceFiles.length) / sourceFiles.length) * 100) : 0,
+            filesSkippedByHashCache: workerResult.filesSkippedByHashCache || 0,
+            binarySkipped: workerResult.binarySkipped || 0,
+            textErrors: workerResult.textErrors || 0,
+            findingsCapped: !!workerResult.findingsCapped
+        },
+        fileInventory: inventory,
+        fileList: sourceFiles.slice(0, 500).map(function (f) { return f.webkitRelativePath || f.name; }),
+        aiContext: {
+            schemaVersion: '2.1',
+            readerGuide: {
+                purpose: 'Browser worker scan summary for AI coding assistants.',
+                howToUse: 'Use detectedIssues and suggestedFixes. Match existing repo patterns; run gate before merge.'
+            },
+            projectContext: {
+                dominantLanguage: 'mixed',
+                totalFiles: sourceFiles.length,
+                scanEnvironment: 'browser-sandbox-worker',
+                domainProfile: 'generic'
+            },
+            suggestedFixes: detectedIssues.slice(0, 20).map(function (d) {
+                return {
+                    file: Array.isArray(d.filePath) ? d.filePath[0] : d.filePath,
+                    line: (d.findings && d.findings[0] && d.findings[0].line) || null,
+                    replacement: d.fix || '',
+                    autoFixable: false,
+                    verificationCommand: 'npx simplebeacon scan --gate --offline'
+                };
+            }).filter(function (f) { return f.file; })
+        }
+    };
+}
+/** @deprecated — audit no longer caps analysis; kept for emergency rollback only. */
+var AUDIT_BROWSER_SCAN_CAP = Number.MAX_SAFE_INTEGER;
+function getAuditBrowserSourceCap() {
+    return AUDIT_BROWSER_SCAN_CAP;
+}
+function getAuditBrowserWorkerCap() {
+    return AUDIT_BROWSER_SCAN_CAP;
+}
+function sbAuditCapFiles(fileArr, cap, label) {
+    if (!cap || fileArr.length <= cap)
+        return fileArr;
+    appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; ' + label + ':</span> capped at '
+        + cap.toLocaleString() + ' priority files (from ' + fileArr.length.toLocaleString()
+        + '). Scan a subfolder or use CLI for full tree.', 'warn');
+    if (typeof showToast === 'function') {
+        showToast(label + ' — scanning top ' + cap.toLocaleString() + ' priority files.', 'warning', 10000);
+    }
+    fileArr.sort(function (a, b) { return sbAuditFilePriority(a) - sbAuditFilePriority(b); });
+    return fileArr.slice(0, cap);
+}
+function sbAuditFilePriority(f) {
+    var p = (f.webkitRelativePath || f.name || '').toLowerCase();
+    if (/\.(ts|tsx|js|cjs|mjs|jsx|py|go|rs|java|php|rb|cs|swift|kt|vue|svelte)$/.test(p))
+        return 0;
+    if (/\.(json|yml|yaml|toml|xml|md|html|css|scss)$/.test(p))
+        return 1;
+    return 2;
+}
 async function processLocalCLIScan(files) {
     var _a, _b, _c, _d, _e;
-    appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654;</span> processLocalCLIScan: received ${files.length.toLocaleString()} files`, 'info');
+    var filesDiscovered = files.length;
+    appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654;</span> processLocalCLIScan: received ${filesDiscovered.toLocaleString()} files`, 'info');
     reportData = null;
     window._scanPreviewData = null;
     window._scanPreviewModules = null;
-    if (typeof selectedModules !== 'undefined' && selectedModules.clear)
+    // Audit page: preserve module selection so ZIP export && report filtering stay populated
+    if (!(typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW)
+        && typeof selectedModules !== 'undefined' && selectedModules.clear) {
         selectedModules.clear(); // simplebeacon-ignore: typeof !== undefined is strict comparison
+    }
     const localScanFileName = document.getElementById('localScanFileName');
+    // Strip vendor/cache paths first — webkitdirectory includes every node_modules file (monorepo freeze)
+    var shouldStripVendor = files.length > 200
+        || (typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW);
+    if (shouldStripVendor) {
+        var stripFn = (typeof ScanUtils !== 'undefined' && ScanUtils.stripVendorFiles)
+            ? ScanUtils.stripVendorFiles
+            : (typeof stripVendorFiles !== 'undefined' ? stripVendorFiles : null);
+        if (stripFn) {
+            if (localScanFileName)
+                localScanFileName.textContent = 'Stripping vendor paths from ' + files.length.toLocaleString() + ' files...';
+            appendTerminalLine('Filtering vendor/cache paths (node_modules, .git, build output)...', 'info');
+            var stripped = await stripFn(files, {
+                chunkSize: 1500,
+                onProgress: function (done, total, kept, dropped) {
+                    if (localScanFileName && (done % 15000 === 0 || done === total)) {
+                        localScanFileName.textContent = 'Stripping vendor paths ' + done.toLocaleString() + '/' + total.toLocaleString() + ' (' + kept.toLocaleString() + ' kept)...';
+                    }
+                }
+            });
+            if (stripped.dropped > 0) {
+                appendTerminalLine('Removed ' + stripped.dropped.toLocaleString() + ' vendor/cache files — ' + stripped.kept.toLocaleString() + ' remaining.', 'info');
+            }
+            files = stripped.files;
+        }
+    }
+    var filesAfterVendor = files.length;
+    if (filesAfterVendor < filesDiscovered) {
+        appendTerminalLine('After vendor filter: ' + filesAfterVendor.toLocaleString() + ' of '
+            + filesDiscovered.toLocaleString() + ' files remain.', 'info');
+    }
+    if (files.length === 0) {
+        appendTerminalLine('No scannable files after vendor filter. Select a source folder (not node_modules) or use CLI.', 'error');
+        showToast('No scannable files — try a subfolder like coming-soon or simplebeacon-vscode-merged.', 'error');
+        return;
+    }
     // Normalize Windows backslashes to forward slashes in all file paths
     for (const f of files) {
         const raw = f.webkitRelativePath || f.name;
@@ -1396,13 +1615,16 @@ async function processLocalCLIScan(files) {
     // cause the same file to appear multiple times during recursive directory traversal.
     const _seenPaths = new Set();
     const _deduped = [];
-    for (const f of files) {
+    for (let dedupeIdx = 0; dedupeIdx < files.length; dedupeIdx++) {
+        const f = files[dedupeIdx];
         const raw = f.webkitRelativePath || f.name;
         const normalized = raw.replace(/\\/g, '/').toLowerCase();
         if (_seenPaths.has(normalized))
             continue;
         _seenPaths.add(normalized);
         _deduped.push(f);
+        if (dedupeIdx > 0 && dedupeIdx % 5000 === 0)
+            await new Promise(r => setTimeout(r, 0));
     }
     if (_deduped.length < files.length) {
         const removed = files.length - _deduped.length;
@@ -1411,26 +1633,41 @@ async function processLocalCLIScan(files) {
     }
     // Auto-detect project root: find the directory with the most files
     // that contains package.json, .simplebeacon/, || server.cjs.
-    const paths = files.map(f => f.webkitRelativePath || f.name).map(p => p.replace(/\\/g, '/'));
-    let rootPrefix = '';
+    // Skip on audit for large drops — path indexing freezes the tab on monorepos.
+    var skipRootNarrow = typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW && files.length > 12000;
     let detectedRoot = '';
+    if (!skipRootNarrow) {
+    const paths = [];
+    for (let pathIdx = 0; pathIdx < files.length; pathIdx++) {
+        paths.push((files[pathIdx].webkitRelativePath || files[pathIdx].name).replace(/\\/g, '/'));
+        if (pathIdx > 0 && pathIdx % 5000 === 0)
+            await new Promise(r => setTimeout(r, 0));
+    }
+    const pathSet = new Set(paths);
+    var simplebeaconRootSet = new Set();
+    for (var sbi = 0; sbi < paths.length; sbi++) {
+        var sbIdx = paths[sbi].indexOf('/.simplebeacon/');
+        if (sbIdx > 0)
+            simplebeaconRootSet.add(paths[sbi].substring(0, sbIdx));
+    }
+    let rootPrefix = '';
     // Helper: check if a prefix is a valid project root
     function isProjectRoot(prefix) {
         const last = prefix.split('/').pop();
         if (last === '.git' || last === 'node_modules' || last === '.github' || last === '.vscode' || last === '.idea' || last === '.husky' || last === '.cursor' || last === '.simplebeacon' || last === '.windsurf' || last === '.cursor-tutor')
             return false;
         // Check legacy JS markers first
-        const hasJsRoot = paths.some(p => p === prefix + '/package.json') ||
-            paths.some(p => p.startsWith(prefix + '/.simplebeacon/')) ||
-            paths.some(p => p === prefix + '/server.cjs') ||
-            paths.some(p => p === prefix + '/action.yml') ||
-            paths.some(p => p === prefix + '/action.yaml');
+        const hasJsRoot = pathSet.has(prefix + '/package.json') ||
+            simplebeaconRootSet.has(prefix) ||
+            pathSet.has(prefix + '/server.cjs') ||
+            pathSet.has(prefix + '/action.yml') ||
+            pathSet.has(prefix + '/action.yaml');
         if (hasJsRoot)
             return true;
         // Check all registered language ecosystem markers
         for (const cfg of Object.values(LANGUAGE_REGISTRY)) {
             for (const rootFile of cfg.rootFiles) {
-                if (paths.some(p => p === prefix + '/' + rootFile))
+                if (pathSet.has(prefix + '/' + rootFile))
                     return true;
                 // Handle wildcard patterns like *.csproj
                 if (rootFile.startsWith('*.')) {
@@ -1442,33 +1679,42 @@ async function processLocalCLIScan(files) {
         }
         return false;
     }
-    // Try top-level directories first, then one level deeper
+    // Try top-level directories first, then one level deeper.
+    // Monorepos with multiple package roots must NOT be narrowed to a single sibling package.
     const topSegments = [...new Set(paths.map(p => p.split('/')[0]))];
+    const topProjectRoots = topSegments.filter(function (top) { return isProjectRoot(top); });
     let candidate = '';
-    for (const top of topSegments) {
-        if (isProjectRoot(top)) {
-            candidate = top;
-            break;
-        }
+    if (topProjectRoots.length === 1) {
+        candidate = topProjectRoots[0];
     }
-    // If no top-level root found, check immediate subdirectories
-    if (!candidate) {
-        const subDirs = new Set();
+    else if (topProjectRoots.length > 1) {
+        appendTerminalLine('<span style="color:#60A5FA;">&#9432;</span> Monorepo detected ('
+            + topProjectRoots.length + ' packages: '
+            + topProjectRoots.slice(0, 4).join(', ')
+            + (topProjectRoots.length > 4 ? ', …' : '')
+            + ') — scanning entire dropped folder.', 'info');
+    }
+    // If no top-level root found, check immediate subdirectories (single-package drops only)
+    if (!candidate && topProjectRoots.length === 0) {
+        const subDirCounts = new Map();
         for (const p of paths) {
             const parts = p.split('/');
-            if (parts.length >= 2)
-                subDirs.add(parts[0] + '/' + parts[1]);
-        }
-        // Pick the subdirectory with the most files that is a project root
-        let bestCount = 0;
-        for (const sub of subDirs) {
-            if (isProjectRoot(sub)) {
-                const count = paths.filter(p => p.startsWith(sub + '/')).length;
-                if (count > bestCount) {
-                    bestCount = count;
-                    candidate = sub;
-                }
+            if (parts.length >= 2) {
+                const sub = parts[0] + '/' + parts[1];
+                subDirCounts.set(sub, (subDirCounts.get(sub) || 0) + 1);
             }
+        }
+        const subProjectRoots = [];
+        for (const [sub, count] of subDirCounts) {
+            if (isProjectRoot(sub))
+                subProjectRoots.push({ sub: sub, count: count });
+        }
+        if (subProjectRoots.length === 1) {
+            candidate = subProjectRoots[0].sub;
+        }
+        else if (subProjectRoots.length > 1) {
+            appendTerminalLine('<span style="color:#60A5FA;">&#9432;</span> Multiple packages under drop root ('
+                + subProjectRoots.length + ') — scanning entire dropped folder.', 'info');
         }
     }
     if (candidate) {
@@ -1491,19 +1737,28 @@ async function processLocalCLIScan(files) {
                 configurable: true
             });
         }
-        if (localScanFileName) {
-            const dropped = beforeCount - files.length;
-            const dropMsg = dropped > 0 ? ` (${dropped.toLocaleString()} sibling files excluded)` : '';
-            appendTerminalLine(`<span style="color:#60A5FA;">&#9432;</span> Auto-detected project root: <strong>${detectedRoot}</strong> — scanning ${files.length.toLocaleString()} files.${dropMsg}`);
-        }
+        const dropped = beforeCount - files.length;
+        const dropMsg = dropped > 0 ? ` (${dropped.toLocaleString()} sibling files excluded)` : '';
+        appendTerminalLine(`<span style="color:#60A5FA;">&#9432;</span> Auto-detected project root: <strong>${detectedRoot}</strong> — scanning ${files.length.toLocaleString()} files.${dropMsg}`);
+    }
+    }
+    else {
+        appendTerminalLine('<span style="color:#60A5FA;">&#9432;</span> Large drop (' + files.length.toLocaleString()
+            + ' files) — skipping project-root narrowing to keep the page responsive.', 'info');
     }
     if (localScanFileName)
         localScanFileName.textContent = `Filtering ${files.length.toLocaleString()} files...`;
-    // Defense-in-depth: token must be present
-    if (!hasValidToken()) {
+    // Defense-in-depth: token required unless audit free-preview or guest token unlocked scan
+    var scanAllowed = (typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW === true)
+        || (typeof browserScanUnlocked === 'function' && browserScanUnlocked())
+        || (typeof hasValidToken === 'function' && hasValidToken());
+    if (!scanAllowed) {
         showToast('Paste a license token to unlock scanning.', 'warning');
-        licenseInput.focus();
-        licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (typeof licenseInput !== 'undefined' && licenseInput) {
+            licenseInput.focus();
+            licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        appendTerminalLine('<span style="color:#EF4444;">Scan blocked — paste a token or click Start Scanning for a free pass.</span>', 'error');
         return;
     }
     // Abort any previous scan
@@ -1637,16 +1892,45 @@ async function processLocalCLIScan(files) {
         const excludeEnv = false; // scan all files including .env — credential detection handles false positives
         const skipDeps = !includeDeps; // exclude node_modules/.git only when explicitly unchecked
         const skipDocs = false; // scan docs by default — they contain governance markers
-        // Pre-scan estimator: show file composition
-        const nodeModuleCount = files.filter(f => /node_modules\//.test((f.webkitRelativePath || f.name).toLowerCase())).length;
-        const gitCount = files.filter(f => /\.git\//.test((f.webkitRelativePath || f.name).toLowerCase())).length;
-        const buildArtifactCount = files.filter(f => /\/(dist|build|\.next|out|coverage|frontend-build)\//i.test((f.webkitRelativePath || f.name).toLowerCase())).length;
-        const cacheDirCount = files.filter(f => /\/(\.simplebeacon|\.github-sync|github-cache|\.cursor|\.windsurf)\//i.test((f.webkitRelativePath || f.name).toLowerCase())).length;
-        const lockfileCount = files.filter(f => (f.webkitRelativePath || f.name).toLowerCase().endsWith('package-lock.json')).length;
-        const archiveCount = files.filter(f => /\.(zip|tgz)$/.test((f.webkitRelativePath || f.name).toLowerCase())).length;
-        const binaryCount = files.filter(f => /\.(png|jpe?g|gif|webp|ico|bmp|mp3|mp4|wav|zip|exe|dll|pdf|doc|docx)$/.test((f.webkitRelativePath || f.name).toLowerCase())).length;
-        const usefulCount = files.length - nodeModuleCount - gitCount;
-        const estTimeSec = Math.round(files.length * 0.003); // ~3ms per file heuristic
+        // Pre-scan estimator: single pass over file list (avoid 7× O(n) filter scans on large monorepos)
+        var estNodeModules = 0;
+        var estGit = 0;
+        var estBuild = 0;
+        var estCache = 0;
+        var estLockfiles = 0;
+        var estArchives = 0;
+        var estBinary = 0;
+        for (var estIdx = 0; estIdx < files.length; estIdx++) {
+            var estPath = (files[estIdx].webkitRelativePath || files[estIdx].name).toLowerCase();
+            if (/node_modules\//.test(estPath))
+                estNodeModules++;
+            else if (/\.git\//.test(estPath))
+                estGit++;
+            else if (/\/(dist|build|\.next|out|coverage|frontend-build)\//.test(estPath))
+                estBuild++;
+            else if (/\/(\.simplebeacon|\.github-sync|github-cache|\.cursor|\.windsurf)\//.test(estPath))
+                estCache++;
+            else if (estPath.endsWith('package-lock.json'))
+                estLockfiles++;
+            else if (/\.(zip|tgz)$/.test(estPath))
+                estArchives++;
+            else if (/\.(png|jpe?g|gif|webp|ico|bmp|mp3|mp4|wav|exe|dll|pdf|doc|docx)$/.test(estPath))
+                estBinary++;
+            if (estIdx > 0 && estIdx % 5000 === 0) {
+                await new Promise(function (r) { return setTimeout(r, 0); });
+                if (signal.aborted)
+                    throw new Error('Scan aborted');
+            }
+        }
+        var nodeModuleCount = estNodeModules;
+        var gitCount = estGit;
+        var buildArtifactCount = estBuild;
+        var cacheDirCount = estCache;
+        var lockfileCount = estLockfiles;
+        var archiveCount = estArchives;
+        var binaryCount = estBinary;
+        var usefulCount = files.length - nodeModuleCount - gitCount;
+        var estTimeSec = Math.round(Math.min(files.length, 25000) * 0.003);
         appendTerminalLine(`Estimator: ~${estTimeSec}s scan time · ${nodeModuleCount} node_modules files · ${gitCount} .git files detected.`);
         if (nodeModuleCount > 100 && !includeDeps) {
             appendTerminalLine(`Note: ${nodeModuleCount} node_modules files will be excluded by default. If you intended to scan source only, this is expected.`, 'success');
@@ -1658,15 +1942,30 @@ async function processLocalCLIScan(files) {
             appendTerminalLine('Note: node_modules/.git inclusion enabled — scan will be slower && noisier.', 'warn');
         if (deepScan)
             appendTerminalLine('DEEP SCAN MODE: All cache, docs, && scanner-page filters bypassed. Only secrets && 500MB+ files are excluded.', 'warn');
-        // Collapsible raw file list (capped to avoid huge DOM insertion / freeze)
-        const MAX_LISTED_FILES = 1000;
-        const fileListHtml = files.slice(0, MAX_LISTED_FILES)
-            .map(f => (f.webkitRelativePath || f.name)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
-            .join('\n');
-        const omittedFiles = files.length - MAX_LISTED_FILES;
-        const omittedText = omittedFiles > 0 ? ` (${omittedFiles.toLocaleString()} more not shown)` : '';
-        appendTerminalLine(`<details style="margin:4px 0;"><summary style="cursor:pointer;color:#60A5FA;font-size:0.75rem;">&#128451; Show discovered files${omittedText}</summary>\n<pre style="max-height:400px;overflow:auto;background:#0B0F19;padding:8px;border-radius:6px;font-size:0.68rem;color:#94A3B8;margin-top:6px;line-height:1.4;">${fileListHtml}</pre></details>`);
+        // Collapsible raw file list (skip on large repos — building 1000-path HTML blocks the UI)
+        if (files.length <= 5000) {
+            const MAX_LISTED_FILES = 1000;
+            const fileListHtml = files.slice(0, MAX_LISTED_FILES)
+                .map(f => (f.webkitRelativePath || f.name)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+                .join('\n');
+            const omittedFiles = files.length - MAX_LISTED_FILES;
+            const omittedText = omittedFiles > 0 ? ` (${omittedFiles.toLocaleString()} more not shown)` : '';
+            appendTerminalLine(`<details style="margin:4px 0;"><summary style="cursor:pointer;color:#60A5FA;font-size:0.75rem;">&#128451; Show discovered files${omittedText}</summary>\n<pre style="max-height:400px;overflow:auto;background:#0B0F19;padding:8px;border-radius:6px;font-size:0.68rem;color:#94A3B8;margin-top:6px;line-height:1.4;">${fileListHtml}</pre></details>`);
+        }
+        else {
+            appendTerminalLine(`<span style="color:#64748B;">Discovered ${files.length.toLocaleString()} files — file list hidden for performance.</span>`);
+        }
+        var rootPaths = files.slice(0, 200).map(function (f) {
+            return (f.webkitRelativePath || f.name || '').replace(/\\/g, '/').split('/')[0];
+        });
+        var homeDirHints = ['.dotnet', '.obs64', 'AppData', 'Downloads', 'Documents', '.cursor', '.vscode'];
+        var homeHits = homeDirHints.filter(function (h) { return rootPaths.indexOf(h) >= 0; });
+        if (homeHits.length >= 2) {
+            appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Wrong folder?</span> Paths look like a user profile ('
+                + homeHits.slice(0, 3).join(', ')
+                + ') — drop your <strong>project repo</strong> (e.g. CascadeProjects), not <code>.</code> or home.', 'warn', true);
+        }
         let scanned = 0;
         let totalLines = 0;
         let aiHits = [];
@@ -1841,10 +2140,21 @@ async function processLocalCLIScan(files) {
                 return true;
             });
         }
+        // Audit deep scan on monorepo: root .simplebeaconignore excludes ~90% of source (scanner self-scan paths).
+        // Use built-in vendor/secret filters only so the dropped folder is actually analyzed.
+        var auditRelaxIgnore = typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW
+            && deepScan && isSimplebeaconMonorepo && ignorePatterns.length > 0;
+        if (auditRelaxIgnore) {
+            var ignorePatternCount = ignorePatterns.length;
+            ignorePatterns = [];
+            appendTerminalLine('<span style="color:#60A5FA;">&#9432;</span> Audit deep scan: skipping root .simplebeaconignore ('
+                + ignorePatternCount.toLocaleString() + ' patterns) — built-in vendor/secret filters only.', 'info');
+        }
         appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 2/3:</span> Filtering ${files.length.toLocaleString()} files (excluding dependencies, secrets, generated artifacts)...`);
+        var filterYieldEvery = files.length > 50000 ? 3000 : files.length > 15000 ? 1200 : files.length > 5000 ? 400 : 150;
         // 2. Filter loop — keep all files except absolute hard limits
         let skipped = 0;
-        const sourceFiles = [];
+        let sourceFiles = [];
         const skipReasons = {};
         let filterIdx = 0;
         const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB hard safety limit
@@ -2019,13 +2329,18 @@ async function processLocalCLIScan(files) {
             else {
                 sourceFiles.push(f);
             }
-            if (filterIdx % 1000 === 0 || filterIdx === files.length) {
+            if (filterIdx % filterYieldEvery === 0 || filterIdx === files.length) {
                 const pct = Math.round((filterIdx / files.length) * 100);
                 if (localScanFileName)
                     localScanFileName.textContent = `Preparing ${filterIdx.toLocaleString()} of ${files.length.toLocaleString()} files (${pct}%)...`;
                 await new Promise(r => setTimeout(r, 0));
+                if (signal.aborted) {
+                    appendTerminalLine('Scan aborted during file filtering.', 'warn');
+                    throw new Error('Scan aborted');
+                }
             }
         }
+        const sourceFilesBeforeCap = sourceFiles.length;
         // Diagnostic: log inclusion breakdown
         const skipLabel = deepScan ? 'skipped (>2GB / .simplebeaconignore only)' : 'skipped (vendor/docs/build artifact)';
         appendTerminalLine(`<span style="color:#10B981;font-weight:700;">&#128310; Filter Summary:</span> ${sourceFiles.length.toLocaleString()} files ready · ${skipped.toLocaleString()} ${skipLabel}`);
@@ -2048,37 +2363,63 @@ async function processLocalCLIScan(files) {
             return;
         }
         appendTerminalLine(`Found ${sourceFiles.length.toLocaleString()} files. All files will be analyzed.`, 'success');
+        var useAuditWorkerScan = typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW
+            && typeof AuditScanService !== 'undefined' && sourceFiles.length >= 1;
+        if (filesDiscovered > sourceFiles.length) {
+            appendTerminalLine('<span style="color:#64748B;">Coverage:</span> analyzing '
+                + sourceFiles.length.toLocaleString() + ' scannable files from '
+                + filesDiscovered.toLocaleString() + ' discovered (vendor/binary/filter exclusions).', 'info');
+        }
         // File inventory breakdown — show real composition of discovered files
-        const inventory = {
-            sourceCode: 0, markup: 0, config: 0, docs: 0,
-            buildArtifacts: 0, testFixtures: 0, tempDev: 0, other: 0
-        };
-        for (const f of sourceFiles) {
-            const p = (f.webkitRelativePath || f.name).toLowerCase();
-            if (/\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|swift|kt|scala|dart|vue|svelte)$/i.test(p)) {
-                inventory.sourceCode++;
+        var inventorySummary = (typeof ScanUtils !== 'undefined' && ScanUtils.buildFileInventorySummary)
+            ? ScanUtils.buildFileInventorySummary(sourceFiles, { sampleLimit: 50000 })
+            : null;
+        var inventory = inventorySummary ? inventorySummary.categories : null;
+        if (!inventory) {
+            inventory = {
+                sourceCode: 0, markup: 0, config: 0, docs: 0,
+                buildArtifacts: 0, testFixtures: 0, tempDev: 0, other: 0
+            };
+            for (let invIdx = 0; invIdx < sourceFiles.length; invIdx++) {
+                const f = sourceFiles[invIdx];
+                const p = (f.webkitRelativePath || f.name).toLowerCase();
+                if (/\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|swift|kt|scala|dart|vue|svelte)$/i.test(p)) {
+                    inventory.sourceCode++;
+                }
+                else if (/\.(html|css|scss|sass|less)$/i.test(p)) {
+                    inventory.markup++;
+                }
+                else if (/\.(json|yml|yaml|toml|xml|ini|properties|tfvars)$/i.test(p)) {
+                    inventory.config++;
+                }
+                else if (/\.(md|txt|rst)$/i.test(p)) {
+                    inventory.docs++;
+                }
+                else if (/\/(frontend-build|dist|build|\.next|out|coverage)[\/]|\.(map|chunk\.js)$/i.test(p)) {
+                    inventory.buildArtifacts++;
+                }
+                else if (/\/(test-cert|java-ai-vulnerable|simplebeacon-rule-tests|__tests__|mocks|fixtures)[\/]|\.(test|spec)\./i.test(p)) {
+                    inventory.testFixtures++;
+                }
+                else if (/(^|[\/])(tmp-|temp_|fix_|patch_|repair_|deploy-)[^\/]*\.js$/i.test(p)) {
+                    inventory.tempDev++;
+                }
+                else {
+                    inventory.other++;
+                }
+                if (invIdx > 0 && invIdx % 500 === 0) {
+                    await new Promise(r => setTimeout(r, 0));
+                    if (signal.aborted)
+                        throw new Error('Scan aborted');
+                }
             }
-            else if (/\.(html|css|scss|sass|less)$/i.test(p)) {
-                inventory.markup++;
-            }
-            else if (/\.(json|yml|yaml|toml|xml|ini|properties|tfvars)$/i.test(p)) {
-                inventory.config++;
-            }
-            else if (/\.(md|txt|rst)$/i.test(p)) {
-                inventory.docs++;
-            }
-            else if (/\/(frontend-build|dist|build|\.next|out|coverage)[\/]|\.(map|chunk\.js)$/i.test(p)) {
-                inventory.buildArtifacts++;
-            }
-            else if (/\/(test-cert|java-ai-vulnerable|simplebeacon-rule-tests|__tests__|mocks|fixtures)[\/]|\.(test|spec)\./i.test(p)) {
-                inventory.testFixtures++;
-            }
-            else if (/(^|[\/])(tmp-|temp_|fix_|patch_|repair_|deploy-)[^\/]*\.js$/i.test(p)) {
-                inventory.tempDev++;
-            }
-            else {
-                inventory.other++;
-            }
+        }
+        if (typeof showAuditFileAnalysis === 'function' && sourceFilesBeforeCap <= sourceFiles.length) {
+            showAuditFileAnalysis(sourceFiles, {
+                label: 'Scan queue',
+                discoveredCount: filesDiscovered,
+                cappedFrom: sourceFilesBeforeCap > sourceFiles.length ? sourceFilesBeforeCap : null
+            });
         }
         appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#128200; File Inventory:</span> ${sourceFiles.length.toLocaleString()} total files`);
         appendTerminalLine(`  <span style="color:#64748B;">&#10148;</span> Source code: <strong>${inventory.sourceCode.toLocaleString()}</strong>`);
@@ -2097,7 +2438,58 @@ async function processLocalCLIScan(files) {
             localScanFileName.textContent = `Scanning ${sourceFiles.length.toLocaleString()} files...`;
         const activeEngineCount = new Set(allowedSections).size;
         appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across ${activeEngineCount} analysis engine${activeEngineCount === 1 ? '' : 's'}...`);
-        // 3. Heuristic scan loop
+        // Audit page: multi-worker scan offloads regex from main thread (prevents UI freeze on large dirs)
+        var workerScanUsed = false;
+        if (typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW && typeof AuditScanService !== 'undefined' && sourceFiles.length >= 50) {
+            try {
+                appendTerminalLine('Starting multi-worker background scan (keeps page responsive)...', 'info');
+                var auditService = new AuditScanService();
+                var workerScanStartMs = Date.now();
+                var workerResult = await auditService.scan({
+                    files: sourceFiles,
+                    deepScan: deepScan,
+                    signal: signal,
+                    onProgress: function (processed, total) {
+                        var pct = total ? Math.round((processed / total) * 100) : 0;
+                        panelProgressBar.style.width = pct + '%';
+                        if (localScanFileName) {
+                            localScanFileName.textContent = 'Worker scan ' + processed.toLocaleString() + ' / ' + total.toLocaleString() + ' (' + pct + '%)...';
+                        }
+                    },
+                    onLog: function (msg, level) {
+                        appendTerminalLine(msg, level || 'info');
+                    }
+                });
+                if (workerResult && !workerResult.aborted && workerResult.processed > 0) {
+                    workerScanUsed = true;
+                    scanned = workerResult.processed;
+                    reportData = buildWorkerAuditReport({
+                        workerResult: workerResult,
+                        files: files,
+                        sourceFiles: sourceFiles,
+                        skipped: skipped,
+                        skipReasons: skipReasons,
+                        profile: profile,
+                        detectedRoot: detectedRoot,
+                        inventory: inventory,
+                        scanDurationMs: Date.now() - workerScanStartMs,
+                        filesDiscovered: filesDiscovered,
+                        filesAfterVendor: filesAfterVendor
+                    });
+                    appendTerminalLine('Worker scan complete: ' + workerResult.issueCount + ' findings across '
+                        + workerResult.processed.toLocaleString() + ' files.', 'success');
+                }
+                else if (workerResult && workerResult.processed === 0) {
+                    appendTerminalLine('Worker scan returned 0 processed files — falling back to main-thread scan.', 'warn');
+                }
+            }
+            catch (workerErr) {
+                appendTerminalLine('Worker scan unavailable — falling back to main-thread scan: ' + workerErr.message, 'warn');
+                workerScanUsed = false;
+            }
+        }
+        if (!workerScanUsed) {
+        // 3. Heuristic scan loop (main thread — fallback when workers unavailable)
         // Web Worker for large repositories — offloads regex scanning from main thread
         let scanWorker = null;
         let workerScanActive = false;
@@ -2223,7 +2615,12 @@ async function processLocalCLIScan(files) {
         const shouldSample = sourceFiles.length > MAX_DEEP_SCAN_FILES;
         // Sampling is disabled — all files are scanned regardless of repo size
         // Pre-build a Set of all normalized paths for fast sibling lockfile lookups
-        const allFilePaths = new Set(sourceFiles.map(f => (f.webkitRelativePath || f.name).replace(/\\/g, '/')));
+        const allFilePaths = new Set();
+        for (let apIdx = 0; apIdx < sourceFiles.length; apIdx++) {
+            allFilePaths.add((sourceFiles[apIdx].webkitRelativePath || sourceFiles[apIdx].name).replace(/\\/g, '/'));
+            if (apIdx > 0 && apIdx % 5000 === 0)
+                await new Promise(r => setTimeout(r, 0));
+        }
         for (let i = 0; i < sourceFiles.length; i++) {
             if (i > 0 && i % SCAN_BATCH_SIZE === 0) {
                 await new Promise(r => setTimeout(r, 0));
@@ -2294,7 +2691,7 @@ async function processLocalCLIScan(files) {
                 if (hasLlmCall && !hasTokenLimit) {
                     archDriftFindings.push({ file: path, type: 'Token Bleed', reason: 'LLM API call without max_tokens limit' });
                 }
-                const hasHybridModel = /\bmamba(?:-2)?\b|\bstate-spaces\/|\bstate-space-model\b|\bssm\b|\bjamba\b|\bhybrid-transformer\b|\bmixture-of-experts\b|\btitans\b|\brwkv\b|\bhyena\b|\bretnet\b/i.test(text);
+                const hasHybridModel = /\bmamba(?:-2)?\b|\bstate-spaces\/|\bstate-space-model\b|\bssm\b|\bjamba\b|\bhybrid[-\s](?:transformer|model|architecture|ssm)\b|\bmixture-of-experts\b|\btitans\b|\brwkv\b|\bhyena\b|\bretnet\b/i.test(text);
                 const hasValidator = /\bzod\b|\bajv\b|\byup\b|\bio-ts\b|\bclass-validator\b|\bpydantic\.BaseModel\b|\bresponse_format\b|\bjson_schema\b|\bstructuredOutputs\b|\bsafeParse\s*\(|\b\.parse\s*\(|\bvalidate\s*\(/i.test(text);
                 if (hasHybridModel && !hasValidator) {
                     archDriftFindings.push({ file: path, type: 'Architecture Drift', reason: 'Hybrid/SSM model without schema validator' });
@@ -2455,7 +2852,7 @@ async function processLocalCLIScan(files) {
                                 const t = l.trim();
                                 return t && !/^\/\/|^\/\*|^\*/.test(t);
                             });
-                            if (firstCodeLine && /^["']use strict["'];?$/.test(firstCodeLine.trim())) {
+                            if (firstCodeLine && (/^["']use strict["'];?$/.test(firstCodeLine.trim()) || /^#!/.test(firstCodeLine.trim()))) {
                                 continue;
                             }
                         }
@@ -2865,8 +3262,8 @@ async function processLocalCLIScan(files) {
                     junkFiles.push(path);
                 }
             }
-            // Log every 50th file (|| last) to reduce DOM thrashing
-            if ((i + 1) % 50 === 0 || i === sourceFiles.length - 1) {
+            // Log progress periodically to reduce DOM thrashing during large scans
+            if ((i + 1) % 400 === 0 || i === sourceFiles.length - 1) {
                 appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
             }
             scanned++;
@@ -2891,8 +3288,8 @@ async function processLocalCLIScan(files) {
                     findingParts.push(`AI Residue: ${aiResidueHits}`);
                 panelMetrics.textContent = findingParts.join(' · ');
             }
-            // Yield to browser every 25 files, && check for abort
-            if ((i + 1) % 25 === 0) {
+            // Yield to browser frequently so the UI stays responsive
+            if ((i + 1) % 4 === 0) {
                 await new Promise(r => setTimeout(r, 0));
                 if (signal.aborted) {
                     appendTerminalLine('Scan aborted by user.', 'warn');
@@ -2940,8 +3337,8 @@ async function processLocalCLIScan(files) {
         if (largeFileSkips > 0)
             appendTerminalLine(`  Large files skipped (>10 MB): <strong>${largeFileSkips.toLocaleString()}</strong>`, 'warn');
         if (scanWorker) {
-            appendTerminalLine(`  Worker files posted: <strong>${Math.min(sourceFiles.length, 100000).toLocaleString()}</strong> (cap: 100000)`);
-            appendTerminalLine(`  <span style="color:#F59E0B;">&#9888; Worker receives path objects only — file.text() will silently fail. Main thread does actual scanning.</span>`, 'warn');
+            appendTerminalLine(`  Worker files posted: <strong>${sourceFiles.length.toLocaleString()}</strong> (multi-worker path)`);
+            appendTerminalLine(`  <span style="color:#64748B;">Legacy inline worker — main thread does actual scanning when AuditScanService unavailable.</span>`, 'info');
         }
         const unaccounted = sourceFiles.length - scanned - readErrors - largeFileSkips - sampledOut;
         if (unaccounted > 0) {
@@ -3143,7 +3540,9 @@ async function processLocalCLIScan(files) {
         if (projectName === 'browser-local') {
             projectName = detectedRoot || 'browser-local';
         }
-        const testFixturePattern = /test-all-patterns|\.test\.|\.spec\.|mock|fixture|sample|demo|test.*\.js$|test-technical|e2e\/|positive-test|negative-test|simplebeacon-rule-tests/i;
+        const testFixturePattern = /test-all-patterns|\.test\.|\.spec\.|mock|fixture|sample|demo|test.*\.js$|test-technical|e2e\/|positive-test|negative-test|simplebeacon-rule-tests|expand-cpe-tests|-tests\.cjs$/i;
+        const securityFindingsForGate = securityFindings.filter(f => !testFixturePattern.test(f.file));
+        const qualityFindingsForGate = qualityFindings.filter(f => !testFixturePattern.test(f.file));
         const credentialGateFindings = (profile.checkCredentials && credentialFindings.length ? credentialFindings.filter(f => !testFixturePattern.test(f.file) && f.matches.some(m => m.confidence >= 0.75)).slice(0, 5).map(f => ({ severity: 'medium', type: 'Credential Pattern', count: f.matches.filter(m => m.confidence >= 0.75).length, filePath: f.file, rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface.', fix: 'Move secrets to environment variables || a secret manager; never commit keys to version control.', findings: f.matches.filter(m => m.confidence >= 0.75) })) : []);
         const sensitiveDataGateFindings = (profile.checkAiResidue && sensitiveDataFindings.length ? sensitiveDataFindings.filter(f => !testFixturePattern.test(f.file) && f.matches.some(m => m.confidence >= 0.75)).slice(0, 3).map(f => ({ severity: 'high', type: 'Sensitive Data Exposure', count: f.matches.filter(m => m.confidence >= 0.75).length, filePath: f.file, rule: 'SENSITIVE_DATA_PATTERN', impact: 'PRIVACY RISK: PII in logs or source code violates GDPR and increases breach liability.', fix: 'Sanitize logs, remove PII from source, and use tokenization for identifiers.', findings: f.matches.filter(m => m.confidence >= 0.75) })) : []);
         const dbPatternGateFindings = (profile.checkAiResidue && dbPatternFindings.length ? dbPatternFindings.filter(f => !testFixturePattern.test(f.file) && f.matches.some(m => m.confidence >= 0.75)).slice(0, 3).map(f => ({ severity: 'high', type: 'Database Anti-Pattern', count: f.matches.filter(m => m.confidence >= 0.75).length, filePath: f.file, rule: 'DB_PATTERN', impact: 'SECURITY RISK: Raw SQL concatenation enables injection. Unbounded queries cause DoS.', fix: 'Use parameterized queries, ORM methods, and always apply LIMIT/OFFSET.', findings: f.matches.filter(m => m.confidence >= 0.75) })) : []);
@@ -3165,10 +3564,14 @@ async function processLocalCLIScan(files) {
             scanTargetRoot: projectName,
             platformRoot: 'browser-sandbox',
             gate: { pass: gatePassFinal, blockingCount: gateBlockingCount, failOn: ['high', 'critical'] },
+            engineVersion: 'simplebeacon-gate-v1.3.0',
+            gatePass: gatePassFinal,
+            blockingCount: gateBlockingCount,
             issueCount: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0) + (profile.checkAiResidue ? aiResidueHits + perfHits + typeSafetyHits + testHits + a11yHits + i18nHits + sensitiveDataHits + configDriftHits + securityHeaderHits + dbPatternHits + frameworkHits + workspaceHits + unusedDepHits + apiContractHits + complexityHits + llmSlopHits + tokenBleedHits + productionLeakHits + fictionKpiHits + securityHits + qualityHits + maintainabilityHits : 0) + envInconsistencyFindings.length + missingEnvKeyFindings.length + versionDriftFindings.length + syncIoFindings.length + archDriftFindings.length,
             totalFiles: sourceFiles.length,
             filesAnalyzed: scanned,
-            repositoryFilesTotal: sourceFiles.length,
+            repositoryFilesTotal: filesDiscovered,
+            scanEnvironment: 'browser-sandbox',
             qualityScore: qualityScore,
             schemaCompliance: schemaCompliance,
             consistencyScore: consistencyScore,
@@ -3207,8 +3610,8 @@ async function processLocalCLIScan(files) {
                 ...(profile.checkAiResidue && productionLeakFindings.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Production Leak', count: productionLeakFindings.reduce((a, f) => a + f.matches.length, 0), filePath: productionLeakFindings.slice(0, 10).map(f => f.file), rule: 'PRODUCTION_LEAK_PATTERN', impact: 'SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.', fix: 'Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.', findings: productionLeakFindings.slice(0, 5), reasoning: 'References to mock, fixture, sample, or test-data directories in production source indicate potential test data leakage.', confidence: 0.82, humanReadable: `${productionLeakFindings.length} file(s) reference mock/fixture paths in production code.` }] : []),
                 ...(profile.checkAiResidue && fictionKpiFindings.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Fiction KPI', count: fictionKpiFindings.reduce((a, f) => a + f.matches.length, 0), filePath: fictionKpiFindings.slice(0, 10).map(f => f.file), rule: 'FICTION_KPI_PATTERN', impact: 'TRUST RISK: Hardcoded metrics and confidence scores may be fabricated AI output.', fix: 'Replace hardcoded KPIs with real data sources and dynamic calculations.', findings: fictionKpiFindings.slice(0, 5), reasoning: 'Hardcoded completion rates, accuracy percentages, and AI confidence scores are commonly generated by LLMs as placeholder data.', confidence: 0.88, humanReadable: `${fictionKpiFindings.length} file(s) contain hardcoded fiction KPIs.` }] : []),
                 ...(profile.checkAiResidue && archDriftFindings.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Architecture Drift', count: archDriftFindings.length, filePath: archDriftFindings.slice(0, 10).map(f => f.file), rule: 'ARCH_DRIFT_PATTERN', impact: 'RELIABILITY RISK: Hybrid/SSM models without schema validation can produce unpredictable outputs.', fix: 'Add schema validators (Zod, AJV, pydantic) and enforce max_tokens on all LLM calls.', findings: archDriftFindings.slice(0, 5), reasoning: 'Hybrid and state-space model identifiers without output schema validators indicate unguarded LLM integration.', confidence: 0.75, humanReadable: `${archDriftFindings.length} file(s) show architecture drift / unguarded LLM calls.` }] : []),
-                ...(profile.checkAiResidue && securityFindings.length ? [{ severity: 'high', severityBand: 'high', type: 'Security Vulnerability', count: securityFindings.reduce((a, f) => a + f.matches.length, 0), filePath: securityFindings.slice(0, 10).map(f => f.file), rule: 'SECURITY_PATTERN', impact: 'SECURITY RISK: eval(), XSS, prototype pollution, insecure random, or missing rate limits detected.', fix: 'Replace eval with structured parsing, sanitize innerHTML, use crypto.randomBytes, add rate limiting.', findings: securityFindings.slice(0, 5), reasoning: 'These patterns represent common attack vectors: code injection, XSS, prototype pollution, and predictable crypto.', confidence: 0.85, humanReadable: `${securityFindings.length} file(s) contain security vulnerabilities.` }] : []), // simplebeacon-ignore: scanner rule description text
-                ...(profile.checkAiResidue && qualityFindings.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Code Quality Issue', count: qualityFindings.reduce((a, f) => a + f.matches.length, 0), filePath: qualityFindings.slice(0, 10).map(f => f.file), rule: 'QUALITY_PATTERN', impact: 'QUALITY RISK: Unhandled promises, missing strict mode, and uninitialized reads cause runtime errors.', fix: 'Add .catch() to promises, use "use strict", initialize variables at declaration.', findings: qualityFindings.slice(0, 5), reasoning: 'Unhandled rejections crash Node.js. Implicit globals from missing strict mode cause silent bugs.', confidence: 0.82, humanReadable: `${qualityFindings.length} file(s) have code quality issues.` }] : []),
+                ...(profile.checkAiResidue && securityFindingsForGate.length ? [{ severity: 'high', severityBand: 'high', type: 'Security Vulnerability', count: securityFindingsForGate.reduce((a, f) => a + f.matches.length, 0), filePath: securityFindingsForGate.slice(0, 10).map(f => f.file), rule: 'SECURITY_PATTERN', impact: 'SECURITY RISK: eval(), XSS, prototype pollution, insecure random, or missing rate limits detected.', fix: 'Replace eval with structured parsing, sanitize innerHTML, use crypto.randomBytes, add rate limiting.', findings: securityFindingsForGate.slice(0, 5), reasoning: 'These patterns represent common attack vectors: code injection, XSS, prototype pollution, and predictable crypto.', confidence: 0.85, humanReadable: `${securityFindingsForGate.length} file(s) contain security vulnerabilities.` }] : []), // simplebeacon-ignore: scanner rule description text
+                ...(profile.checkAiResidue && qualityFindingsForGate.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Code Quality Issue', count: qualityFindingsForGate.reduce((a, f) => a + f.matches.length, 0), filePath: qualityFindingsForGate.slice(0, 10).map(f => f.file), rule: 'QUALITY_PATTERN', impact: 'QUALITY RISK: Unhandled promises, missing strict mode, and uninitialized reads cause runtime errors.', fix: 'Add .catch() to promises, use "use strict", initialize variables at declaration.', findings: qualityFindingsForGate.slice(0, 5), reasoning: 'Unhandled rejections crash Node.js. Implicit globals from missing strict mode cause silent bugs.', confidence: 0.82, humanReadable: `${qualityFindingsForGate.length} file(s) have code quality issues.` }] : []),
                 ...(profile.checkAiResidue && maintainabilityFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'Maintainability Issue', count: maintainabilityFindings.reduce((a, f) => a + f.matches.length, 0), filePath: maintainabilityFindings.slice(0, 10).map(f => f.file), rule: 'MAINTAINABILITY_PATTERN', impact: 'MAINTAINABILITY RISK: Magic numbers and hardcoded literals make code harder to understand and modify.', fix: 'Extract numeric literals to named constants (e.g., const MAX_RETRIES = 3).', findings: maintainabilityFindings.slice(0, 5), reasoning: 'Magic numbers obscure intent and make bulk updates error-prone.', confidence: 0.78, humanReadable: `${maintainabilityFindings.length} file(s) have maintainability issues.` }] : [])
             ],
             issues: [
@@ -3779,6 +4182,7 @@ async function processLocalCLIScan(files) {
                 ].filter(Boolean);
             })()
         };
+        } // end main-thread scan path (!workerScanUsed)
         // Derive severityCounts && issueCount from detectedIssues so they always match
         const derivedCounts = (reportData.detectedIssues || []).reduce((acc, issue) => {
             const sev = issue.severity || 'low';
@@ -3791,6 +4195,13 @@ async function processLocalCLIScan(files) {
         reportData.simplebeaconIssues = derivedIssueCount;
         reportData.summary.simplebeaconIssues = derivedIssueCount;
         reportData.summary.totalFindings = derivedIssueCount;
+        // Ensure audit page has modules selected before report filtering (cleared tier = empty ZIP)
+        if (typeof ensureAuditModuleSelection === 'function') {
+            ensureAuditModuleSelection();
+        }
+        else if (selectedModules && selectedModules.size === 0 && typeof syncModuleSelectionFromTier === 'function') {
+            syncModuleSelectionFromTier();
+        }
         // Strip reportData to only sections the user's tier has activated
         if (typeof filterReportByModules === 'function' && selectedModules) {
             reportData = filterReportByModules(reportData, Array.from(selectedModules));
@@ -3800,15 +4211,13 @@ async function processLocalCLIScan(files) {
         // 6-Dimension Data Quality validation before preview render
         const dq = renderQualityScorecard(reportData);
         if (dq.overall === 'FAIL') {
-            appendTerminalLine('Certificate generation blocked: Data quality validation failed. Review the scorecard above.', 'error');
+            appendTerminalLine('Data quality validation failed — results shown below; certificate generation may be limited.', 'error');
             panelStatus.textContent = 'QUALITY_FAIL';
             panelStatus.style.color = '#EF4444';
-            if (browserFolderDropzone)
-                browserFolderDropzone.classList.remove('scanning');
-            return; // halt certificate pipeline
+        } else {
+            panelStatus.textContent = 'SUCCESS_COMPLETED';
+            panelStatus.style.color = '#10B981';
         }
-        panelStatus.textContent = 'SUCCESS_COMPLETED';
-        panelStatus.style.color = '#10B981';
         // Compute hash of generated report
         const reportJsonStr = JSON.stringify(reportData);
         computeSha256(reportJsonStr).then(hash => {
@@ -3816,14 +4225,57 @@ async function processLocalCLIScan(files) {
         });
         if (browserFolderDropzone)
             browserFolderDropzone.classList.remove('scanning');
-        renderPreview(reportData);
+        const browserEmpty = document.getElementById('browserEmptyState');
+        if (browserEmpty)
+            browserEmpty.style.display = 'none';
         scanPreview.style.display = 'block';
         updateSubmit();
+        if (typeof window.sbUpdateBoardReport === 'function') {
+            window.sbUpdateBoardReport(reportData);
+        }
+        if (typeof window.sbRenderAiContextPack === 'function') {
+            window.sbRenderAiContextPack(reportData);
+        }
+        if (filesDiscovered >= 7500 && filesDiscovered <= 8500 && typeof window !== 'undefined' && window._auditUsedWebkitDirectory) {
+            reportData._browserPartialDiscovery = true;
+        }
+        if (typeof window.__simplebeaconSetReportForAI === 'function') {
+            window.__simplebeaconSetReportForAI(reportData);
+        }
+        window.lastScanReport = reportData;
+        try {
+            window.dispatchEvent(new CustomEvent('sb:scanComplete', { detail: reportData }));
+        }
+        catch (_scanEvtErr) { /* ignore */ }
+        // Defer heavy certificate DOM build so the board report can paint first
+        var finishPreviewRender = function () {
+            renderPreview(reportData);
+        };
+        if (typeof window.SB_AUDIT_FREE_PREVIEW === 'boolean' && window.SB_AUDIT_FREE_PREVIEW) {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(finishPreviewRender);
+            });
+        }
+        else {
+            finishPreviewRender();
+        }
         // Auto-scroll to certificate section after scan
         setTimeout(() => {
-            document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const scrollTarget = document.getElementById('tokenActionRow') || document.getElementById('boardReportPreview') || document.getElementById('scanPreview');
+            if (scrollTarget)
+                scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 300);
-        const statusParts = [`Complete scan: ${files.length.toLocaleString()} files discovered · ${sourceFiles.length.toLocaleString()} analyzed`, `${selectedModules.size} modules selected for ZIP`];
+        if (dq.overall === 'FAIL') {
+            return;
+        }
+        const statusParts = [`Complete scan: ${filesDiscovered.toLocaleString()} discovered · ${sourceFiles.length.toLocaleString()} analyzed`];
+        if (filesDiscovered > files.length) {
+            statusParts.push(`${(filesDiscovered - files.length).toLocaleString()} vendor/cache stripped`);
+        }
+        if (skipReasons['.simplebeaconignore match']) {
+            statusParts.push(`${skipReasons['.simplebeaconignore match'].toLocaleString()} ignored by .simplebeaconignore`);
+        }
+        statusParts.push(`${selectedModules.size} modules selected for ZIP`);
         if (credentialHits)
             statusParts.push(`${credentialHits} credentials`);
         if (aiHits.length)
@@ -3840,7 +4292,10 @@ async function processLocalCLIScan(files) {
             statusParts.push(`${fictionKpiHits} fiction KPIs`);
         if (archDriftFindings.length)
             statusParts.push(`${archDriftFindings.length} arch drift`);
-        showStatus(statusParts.join(' · ') + '. Token required for certificate.', 'success');
+        var hasCertToken = (typeof hasValidToken === 'function' && hasValidToken())
+            || (typeof browserScanUnlocked === 'function' && browserScanUnlocked() && typeof licenseInput !== 'undefined' && licenseInput && licenseInput.value.trim().length > 20);
+        var certNote = hasCertToken ? 'Certificate available below.' : 'Paste token or click Start Scanning for signed certificate.';
+        showStatus(statusParts.join(' · ') + '. ' + certNote, 'success');
         // Build Secure Report preview + download
         const existingReport = document.getElementById('secureReportBlock');
         if (existingReport)

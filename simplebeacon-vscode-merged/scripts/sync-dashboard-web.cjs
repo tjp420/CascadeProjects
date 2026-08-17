@@ -14,8 +14,8 @@ if (!fs.existsSync(source)) {
 
 fs.mkdirSync(dest, { recursive: true });
 
-// Copy newer/changed files from ai-platform source without deleting extras in dashboard-web.
-const cmd = `xcopy "${source}" "${dest}" /D /E /Y /I`;
+// Copy all files from source (no /D — dest must not win when mtime is newer but content is stale).
+const cmd = `xcopy "${source}" "${dest}" /E /Y /I`;
 console.log(`[sync-dashboard-web] ${cmd}`);
 execSync(cmd, { stdio: 'inherit', shell: true });
 
@@ -45,8 +45,51 @@ if (fs.existsSync(authServicePath)) {
 const srcIndex = path.join(source, 'index.html');
 const destIndex = path.join(dest, 'index.html');
 if (fs.existsSync(srcIndex)) {
-  fs.copyFileSync(srcIndex, destIndex);
-  console.log('[sync-dashboard-web] Force-copied index.html from source');
+  try {
+    fs.copyFileSync(srcIndex, destIndex);
+    console.log('[sync-dashboard-web] Force-copied index.html from source');
+  } catch (err) {
+    console.warn(`[sync-dashboard-web] Skipped index.html force-copy (${err.code || err.message}) — using xcopy result`);
+  }
+}
+
+function safeCopyFile(src, dst) {
+  fs.mkdirSync(path.dirname(dst), { recursive: true });
+  try {
+    fs.copyFileSync(src, dst);
+  } catch (err) {
+    if (err && (err.code === 'UNKNOWN' || err.code === 'EBUSY' || err.code === 'EPERM')) {
+      fs.writeFileSync(dst, fs.readFileSync(src));
+    } else {
+      throw err;
+    }
+  }
+}
+
+// Force-copy files that must stay in sync (xcopy /D may skip when dest mtime is newer)
+for (const rel of [
+  'js-es2018/utils/dashboard-export.browser.js',
+  'js/utils/dashboard-export.browser.js',
+  'js-es2018/utils.js',
+  'js/utils.js',
+  'js-es2018/services/analyzeService.js',
+  'js-es2018/services/scanService.js',
+  'js-es2018/lib/analyzePathSuggestions.js',
+  'js-es2018/lib/analyzePathSources.js',
+  'js-es2018/views/AnalyzeView.js',
+  'js-es2018/views/AnalyzePathSection.js',
+  'js-es2018/views/DashboardView.js',
+  'js-es2018/utils-lib/har-exporter.js',
+  'js/lib/analyzePathSuggestions.js',
+  'js/services/analyzeService.js',
+  'js/services/scanService.js'
+]) {
+  const src = path.join(source, rel);
+  const dst = path.join(dest, rel);
+  if (fs.existsSync(src)) {
+    safeCopyFile(src, dst);
+    console.log(`[sync-dashboard-web] Force-copied ${rel}`);
+  }
 }
 
 // Patch index.html: rewrite Vite dev script src to production build path for extension serving

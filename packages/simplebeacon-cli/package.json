@@ -1,6 +1,6 @@
 {
   "name": "simplebeacon",
-  "version": "1.1.2",
+  "version": "1.1.5",
   "description": "Local release-hygiene gate for AI-assisted code — MCP snippet scans, full-repo --gate for CI, credential patterns, sample JSON in prod routes, fiction KPIs. Offline by default.",
   "author": "SimpleBeacon",
   "license": "MIT",
@@ -32,10 +32,10 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "simplebeacon": "./bin/simplebeacon.js",
-    "simplebeacon-proxy": "./bin/simplebeacon-proxy.js",
-    "simplebeacon-mcp": "./bin/simplebeacon-mcp.js",
-    "samplebeacon": "./bin/simplebeacon.js"
+    "simplebeacon": "bin/simplebeacon.js",
+    "simplebeacon-proxy": "bin/simplebeacon-proxy.js",
+    "simplebeacon-mcp": "bin/simplebeacon-mcp.js",
+    "samplebeacon": "bin/simplebeacon.js"
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 --test-timeout=120000 \"tests/**/*.test.js\"",
