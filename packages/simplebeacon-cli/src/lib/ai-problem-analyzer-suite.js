@@ -5,6 +5,27 @@ const constants = require('./constants');
  * Ported from browser dashboard; runs locally against scan reports and codebase context.
  */
 
+/**
+ * @typedef {Record<string, any>} AnalyzerInput
+ * @property {boolean} [scanReportContext]
+ * @property {string} [inputKind]
+ * @property {string} [responseText]
+ * @property {string} [codeText]
+ * @property {any[]} [errorCases]
+ * @property {any[]} [claims]
+ * @property {any[]} [subgroupOutcomes]
+ * @property {any} [scalabilityMetrics]
+ * @property {string} [logs]
+ * @property {any[]} [traces]
+ * @property {any[]} [datasetSamples]
+ * @property {any} [metrics]
+ * @property {any} [benchmarks]
+ * @property {string} [prompt]
+ * @property {any} [scanReport]
+ * @property {any} [regulatoryControlCatalog]
+ * @property {string} [text]
+ */
+
 // ---------------------------------------------------------------------------
 // Catalog (48 analyzers)
 // ---------------------------------------------------------------------------
@@ -129,6 +150,7 @@ function riskBandFromRisk(riskScore) {
   return 'Low';
 }
 
+/** @param {Record<string, any>} options */
 function finalizeRiskAssessment(score, scoringDirection, options = {}) {
   const { evidenceCount = Number.POSITIVE_INFINITY, minEvidence = 0, criticalRequiresMinEvidence = false } = options;
   const normalizedEvidenceCount = Number.isFinite(evidenceCount) ? Math.max(0, Math.floor(evidenceCount)) : Number.POSITIVE_INFINITY;
@@ -176,10 +198,12 @@ function buildStubResult(definition, issueId) {
 // ---------------------------------------------------------------------------
 // Scan-report-aware input enrichment
 // ---------------------------------------------------------------------------
+/** @param {AnalyzerInput} input */
 function isScanReportContext(input = {}) {
   return input.scanReportContext === true || input.inputKind === 'scan-report';
 }
 
+/** @param {AnalyzerInput} context */
 function enrichScanContextForAnalyzers(context = {}) {
   const next = { ...context };
   const report = context.scanReport;
@@ -230,6 +254,7 @@ function enrichScanContextForAnalyzers(context = {}) {
   return next;
 }
 
+/** @param {AnalyzerInput} context */
 function collectAnalyzerInputs(context = {}) {
   const enriched = enrichScanContextForAnalyzers(context);
   const shared = {
@@ -259,6 +284,7 @@ function collectAnalyzerInputs(context = {}) {
   return perAnalyzer;
 }
 
+/** @param {Record<string, any>} analyzerInputs */
 function resolveAnalyzerContext(analyzerInputs = {}) {
   const { context: nestedContext, default: defaultInput, ...rest } = analyzerInputs;
   const reserved = new Set(['default', 'context', ...Object.keys(IMPLEMENTED_RUNNERS)]);
@@ -270,6 +296,7 @@ function resolveAnalyzerContext(analyzerInputs = {}) {
 // Analyzer implementations
 // ---------------------------------------------------------------------------
 
+/** @param {AnalyzerInput} input */
 function extractAnalyzerText(input = {}) {
   if (typeof input.responseText === 'string' && input.responseText.trim()) return input.responseText.trim();
   if (typeof input.text === 'string' && input.text.trim()) return input.text.trim();
@@ -279,6 +306,7 @@ function extractAnalyzerText(input = {}) {
   return '';
 }
 
+/** @param {AnalyzerInput} input */
 function parseClaims(input = {}) {
   if (isScanReportContext(input) && !(Array.isArray(input.claims) && input.claims.length)) return [];
   if (Array.isArray(input.claims) && input.claims.length) {
@@ -299,6 +327,7 @@ function parseClaims(input = {}) {
   }));
 }
 
+/** @param {Record<string, any>} extra */
 function buildAnalyzerResult(definition, issueId, score, risk, metrics, findings, recommendations, evidence, extra = {}) {
   return {
     id: issueId, analyzerId: definition.id, name: definition.name, category: definition.category, purpose: definition.purpose,
@@ -318,6 +347,7 @@ function buildInsufficientResult(definition, issueId, pointer, detail) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runHallucinationAnalyzer(definition, issueId, input = {}) {
   const claims = parseClaims(input);
   if (isScanReportContext(input) && !claims.length) return buildInsufficientResult(definition, issueId, 'claims', 'Scan report context does not include explicit factual claims to verify.');
@@ -336,6 +366,7 @@ function runHallucinationAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runBiasDetectionAnalyzer(definition, issueId, input = {}) {
   const outcomes = Array.isArray(input.subgroupOutcomes) ? input.subgroupOutcomes : [];
   if (!outcomes.length) return buildInsufficientResult(definition, issueId, 'subgroupOutcomes', 'No subgroup outcome data supplied for bias analysis.');
@@ -355,6 +386,7 @@ function runBiasDetectionAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runPrivacyViolationAnalyzer(definition, issueId, input = {}) {
   const surfaces = [];
   if (typeof input.responseText === 'string' && input.responseText.trim()) surfaces.push({ pointer: 'responseText', text: input.responseText });
@@ -403,6 +435,7 @@ function runPrivacyViolationAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runSecurityRiskAnalyzer(definition, issueId, input = {}) {
   const prompt = String(input.prompt || '').toLowerCase();
   const response = String(input.responseText || '').toLowerCase();
@@ -427,6 +460,7 @@ function runSecurityRiskAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runAiOutputReliabilityAnalyzer(definition, issueId, input = {}) {
   const text = extractAnalyzerText(input);
   const overconfidencePatterns = [
@@ -457,6 +491,7 @@ function runAiOutputReliabilityAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runMisinformationGenerationAnalyzer(definition, issueId, input = {}) {
   const claims = parseClaims(input);
   if (!claims.length) return buildInsufficientResult(definition, issueId, 'claims|responseText', 'No factual claims or narrative text supplied for misinformation analysis.');
@@ -516,6 +551,7 @@ function parseCodeErrorPatterns(codeText) {
   return cases;
 }
 
+/** @param {AnalyzerInput} input */
 function runErrorHandlingAnalyzer(definition, issueId, input = {}) {
   const structured = Array.isArray(input.errorCases) ? input.errorCases.map((r) => ({ ...r, source: r.source || 'structured' })) : [];
   const logCases = parseLogErrorLines(input.logs || input.context?.logs || '');
@@ -538,6 +574,7 @@ function runErrorHandlingAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runInterpretabilityAnalyzer(definition, issueId, input = {}) {
   const traces = Array.isArray(input.traces) ? input.traces : [];
   const text = extractAnalyzerText(input);
@@ -555,6 +592,7 @@ function runInterpretabilityAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runDataQualityAnalyzer(definition, issueId, input = {}) {
   const samples = Array.isArray(input.datasetSamples) ? input.datasetSamples : [];
   const text = extractAnalyzerText(input);
@@ -572,6 +610,7 @@ function runDataQualityAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runScalabilityAnalyzer(definition, issueId, input = {}) {
   const metrics = input.metrics || input.scalabilityMetrics || {};
   const text = extractAnalyzerText(input);
@@ -591,6 +630,7 @@ function runScalabilityAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runGeneralizationAnalyzer(definition, issueId, input = {}) {
   const benchmarks = input.benchmarks || {};
   const text = extractAnalyzerText(input);
@@ -609,6 +649,7 @@ function runGeneralizationAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runAdversarialVulnerabilityAnalyzer(definition, issueId, input = {}) {
   const prompt = String(input.prompt || '').toLowerCase();
   const response = String(input.responseText || '').toLowerCase();
@@ -637,6 +678,7 @@ function runAdversarialVulnerabilityAnalyzer(definition, issueId, input = {}) {
   );
 }
 
+/** @param {AnalyzerInput} input */
 function runRegulatoryComplianceAnalyzer(definition, issueId, input = {}) {
   const catalog = input.regulatoryControlCatalog || {};
   const text = extractAnalyzerText(input);
@@ -713,6 +755,7 @@ const IMPLEMENTED_RUNNERS = {
   'catastrophic-forgetting-analyzer': runStubAnalyzer
 };
 
+/** @param {AnalyzerInput} input */
 function executeAnalyzer(issueId, input = {}) {
   const definition = ANALYZER_BY_ISSUE_ID.get(issueId);
   if (!definition) return null;
@@ -787,6 +830,7 @@ function buildCategoryDistribution(selectedIssues) {
   });
 }
 
+/** @param {string[]} selectedIssueIds @param {Record<string, any>} analyzerInputs */
 function buildAiSystemsIssueAnalysis(selectedIssueIds = [], analyzerInputs = {}) {
   const normalized = normalizeSelectedIds(selectedIssueIds);
   const selectedIssues = normalized.map((id) => ISSUE_BY_ID.get(id));

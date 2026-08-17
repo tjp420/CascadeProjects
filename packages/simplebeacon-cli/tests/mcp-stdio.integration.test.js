@@ -7,18 +7,20 @@ const path = require('path');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { TOOL_DEFINITIONS } = require('../src/mcp/tools');
+const { paidTierEnv } = require('./helpers/paid-tier-env');
 
 const MCP_BIN = path.join(__dirname, '../bin/simplebeacon-mcp.js');
 const PROJECT_ROOT = path.join(__dirname, '../../..');
 
-function sendMcpSession(messages) {
+function sendMcpSession(messages, envExtra = {}) {
     return new Promise((resolve, reject) => {
         const child = spawn(process.execPath, [MCP_BIN, '--offline'], {
             cwd: PROJECT_ROOT,
             env: {
                 ...process.env,
                 SIMPLEBEACON_PROJECT_ROOT: PROJECT_ROOT,
-                SIMPLEBEACON_OFFLINE: '1'
+                SIMPLEBEACON_OFFLINE: '1',
+                ...envExtra
             },
             stdio: ['pipe', 'pipe', 'pipe']
         });
@@ -127,7 +129,7 @@ test('MCP stdio: scan_file on real project file', async () => {
                 }
             }
         }
-    ]);
+    ], paidTierEnv());
 
     const fileResult = lines.find((m) => m.id === 2);
     const payload = JSON.parse(fileResult.result.content[0].text);
@@ -148,7 +150,7 @@ test('MCP stdio: explain_finding tool', async () => {
                 arguments: { patternId: 'SB-FICTION-001' }
             }
         }
-    ]);
+    ], paidTierEnv());
 
     const payload = JSON.parse(lines.find((m) => m.id === 2).result.content[0].text);
     assert.equal(payload.found, true);

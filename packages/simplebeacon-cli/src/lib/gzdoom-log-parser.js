@@ -30,6 +30,31 @@ const LOG_PATTERNS = Object.freeze([
         regex: /(?:Can't|Cannot) replace actor '([^']+)'/i,
         severity: 'high',
         map: (m) => ({ replacedClass: m[1] })
+    },
+    {
+        id: 'GZ-LOG-005',
+        kind: 'script-error',
+        regex: /Script error,\s*"([^"]+)"\s+line\s+(\d+):\s*(.*)/i,
+        severity: 'high',
+        map: (m) => ({ filePath: m[1], line: Number(m[2]), message: (m[3] || '').trim() })
+    },
+    {
+        id: 'GZ-LOG-006',
+        kind: 'missing-string',
+        regex: /Missing string \(unexpected end of file\)/i,
+        severity: 'high',
+        map: () => ({ message: 'Missing string (unexpected end of file)' })
+    },
+    {
+        id: 'GZ-LOG-007',
+        kind: 'parse-error',
+        regex: /Parse error(?: in)?(?: file)?(?: "([^"]+)")?(?:,)? line (\d+):\s*(.+)/i,
+        severity: 'high',
+        map: (m) => ({
+            filePath: m[1] || null,
+            line: Number(m[2]),
+            message: (m[3] || '').trim()
+        })
     }
 ]);
 

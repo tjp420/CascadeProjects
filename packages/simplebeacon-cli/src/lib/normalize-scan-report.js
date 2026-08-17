@@ -5,6 +5,7 @@
 const { partitionBenchmarkIssues, isExternalBenchmarkCachePath } = require('./benchmark-cache-paths');
 const { evaluateGate } = require('../gate');
 const { countBySeverity, groupIssues, computeQualityScoreFromIssues } = require('./issue-utils');
+const { attachCodeSuggestions } = require('./code-suggestions');
 
 function isStaleFullTreeScan(report) {
     const mock = report.mockSampleFiles ?? 0;
@@ -80,7 +81,7 @@ function reconcileScanReport(report) {
         }
     }
 
-    return report;
+    return attachCodeSuggestions(report);
 }
 
 function normalizeReportFinding(finding) {

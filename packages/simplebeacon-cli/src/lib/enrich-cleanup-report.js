@@ -7,6 +7,7 @@ const { buildExecutiveSummary } = require('./executive-summary');
 const { buildScannerStatistics } = require('./scanner-statistics');
 const { buildFileReductionPlan } = require('./file-reduction-plan');
 const { normalizeFileReductionReport } = require('./normalize-file-reduction-report');
+const { attachCodeSuggestions } = require('./code-suggestions');
 
 function filterWorkspaceFindings(findings = []) {
     return findings.filter((finding) => isWorkspacePath(finding.path));
@@ -119,10 +120,11 @@ function enrichCleanupReport(report, options = {}) {
     Object.assign(enriched, normalized);
 
     enriched.fileReductionPlan = buildFileReductionPlan(enriched);
+    enriched.trimSuggestions = enriched.fileReductionPlan?.trimSuggestions || null;
     enriched.scannerStatistics = buildScannerStatistics(enriched);
     enriched.executiveSummary = buildExecutiveSummary(enriched);
 
-    return enriched;
+    return attachCodeSuggestions(enriched);
 }
 
 function slimFindingForClient(finding) {
@@ -162,6 +164,7 @@ function compactDataCleanupReportForClient(report, options = {}) {
             buildArtifacts: sliceFindings(report.findings?.buildArtifacts, bucketLimit),
             assetConsolidation: sliceFindings(report.findings?.assetConsolidation, 8),
             unusedFiles: sliceFindings(report.findings?.unusedFiles, bucketLimit),
+            deadCode: sliceFindings(report.findings?.deadCode, bucketLimit),
             configManagement: sliceFindings(report.findings?.configManagement, bucketLimit),
             dependencyHealth: sliceFindings(report.findings?.dependencyHealth, bucketLimit),
             environmentVariables: sliceFindings(report.findings?.environmentVariables, bucketLimit),
@@ -173,6 +176,29 @@ function compactDataCleanupReportForClient(report, options = {}) {
         },
         allFindings: (report.allFindings || []).slice(0, topFindingsLimit).map(slimFindingForClient)
     };
+    if (report.trimSuggestions) {
+        compact.trimSuggestions = {
+            schemaVersion: report.trimSuggestions.schemaVersion,
+            analysisNote: report.trimSuggestions.analysisNote,
+            phases: report.trimSuggestions.phases,
+            topActions: (report.trimSuggestions.topActions || []).slice(0, 16),
+            agentPrompt: report.trimSuggestions.agentPrompt
+        };
+    }
+    if (report.codeSuggestions) {
+        compact.codeSuggestions = {
+            totalCandidates: report.codeSuggestions.totalCandidates,
+            quickWinCount: report.codeSuggestions.quickWinCount,
+            autoFixCount: report.codeSuggestions.autoFixCount,
+            suggestions: (report.codeSuggestions.suggestions || []).slice(0, 12),
+            quickWins: (report.codeSuggestions.quickWins || []).slice(0, 6),
+            agentPrompt: report.codeSuggestions.agentPrompt
+        };
+    }
+    if (compact.fileReductionPlan?.trimSuggestions) {
+        const { trimSuggestions, ...planWithoutTrim } = compact.fileReductionPlan;
+        compact.fileReductionPlan = planWithoutTrim;
+    }
     if (options.note !== false) {
         compact.compactNote = 'Top findings only — counts and fileReductionPlan retain full scan totals.';
     }

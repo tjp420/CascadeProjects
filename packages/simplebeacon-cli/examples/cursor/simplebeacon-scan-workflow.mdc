@@ -1,38 +1,34 @@
 ---
-description: Simplebeacon MCP scan workflow — snippet, file, and gate checks (local-only)
+description: Simplebeacon MCP scan workflow — paid 11/10 agent loop (local-only)
 alwaysApply: true
 ---
 
-# Simplebeacon scan workflow
+# Simplebeacon scan workflow (paid)
 
-When the **simplebeacon** MCP server is available, follow this three-phase loop. All scans are local; do not upload source.
+When the **simplebeacon** MCP server is available, follow this closed loop. All scans are local; do not upload source.
 
-## 1. While coding (before accepting generated edits)
+## 1. Before accepting generated edits
 
-Call **`scan_snippet`** with:
-- `content` — the proposed code block
-- `filePath` — target path (e.g. `src/api/handler.ts`)
+Call **`scan_snippet`** with `content` + `filePath`.
 
-If `blockingCount > 0` or high-severity findings appear, fix fiction KPIs, mock/sample paths, credentials, or LLM placeholders before applying the edit. Use **`explain_finding`** with the returned `pattern` id when the fix is unclear.
+If `blockingCount > 0`:
+1. Call **`propose_fix`** with `patternId`, `filePath`, `line`
+2. Apply the patch (or manual fix from `manualSteps`)
+3. Call **`verify_fix`** with updated content and `blockingCountBefore`
+4. Call **`agent_status`** for `nextAction`
 
-## 2. After editing a file (on save / end of edit)
+Use **`explain_finding`** when the pattern id is unclear.
 
-Call **`scan_file`** with:
-- `filePath` — path relative to project root
+## 2. After editing a file
 
-Surface any new findings to the user. Tune allowlists in `.simplebeacon/config.json` only for confirmed false positives.
+Call **`scan_file`** on the changed path. Update session via **`agent_status`**.
 
 ## 3. Before PR / merge
 
-Run the authoritative full-repo gate (terminal or CI):
+1. **`scan_staged`** — gate scan on git staged files only
+2. **`gate_status`** + **`suggest_fixes`**
+3. CLI backstop: `npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`
 
-```bash
-npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json
-npx simplebeacon gate status
-```
-
-Then call MCP **`gate_status`** to summarize blocking issues for the user.
-
-**MCP snippet/file tools = fast feedback.** **CLI `--gate` = source of truth** for cross-file consistency and CI.
+Read `.simplebeacon/agent-brief.md` when present.
 
 Never brag about raw finding counts; focus on gate-blocking issues.

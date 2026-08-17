@@ -50,9 +50,22 @@ npx simplebeacon-mcp --smoke-test
 npx simplebeacon scan --gate --offline
 ```
 
-**Full guide:** [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) · **MCP:** [docs/MCP-USER-SETUP.md](docs/MCP-USER-SETUP.md) · **Calibration:** [docs/GATE-CALIBRATION.md](docs/GATE-CALIBRATION.md)
+**Full guide:** [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) · **All AI agents:** [docs/AGENT-SETUP.md](docs/AGENT-SETUP.md) · **MCP:** [docs/MCP-USER-SETUP.md](docs/MCP-USER-SETUP.md) · **Calibration:** [docs/GATE-CALIBRATION.md](docs/GATE-CALIBRATION.md)
+
+Works with **Cursor, Windsurf, Continue, Claude, and any MCP host** via `init --starter`.
 
 For credentials + production-leak only: `npx simplebeacon init --profile minimal`
+
+## Gamedev / GZDoom scans
+
+For GZDoom / ZScript mod trees, use profile **`gamedev`** and config on the mod (not the monorepo root). From the SimpleBeacon repo:
+
+```bash
+npm run gzdoom:export-summary -- --path "/path/to/R3DLighting"
+npm run gzdoom:norun-gate -- --path "/path/to/R3DLighting" --timeout 600000
+```
+
+Mod-author setup, config templates, and output paths: [docs/gzdoom-mod-author-setup.md](../../docs/gzdoom-mod-author-setup.md).
 
 ## GitHub Actions
 

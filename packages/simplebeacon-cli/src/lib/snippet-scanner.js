@@ -11,6 +11,7 @@ const { buildPatternsFromBaseline, scanFileContent: scanFictionFileContent } = r
 const { scanTextPatterns, scanSuspiciousDependencies } = require('../rules/llm-slop-patterns');
 const { loadSimplebeaconConfig } = require('../config');
 const { evaluateGate } = require('../gate');
+const { attachGateMetadata, ENGINE_VERSION } = require('./gate-parity');
 const { isPathWithinRoot, resolveCliProjectRoot } = require('./path-utils');
 const { sanitizeFilePath } = require('./input-sanitizer');
 
@@ -83,12 +84,12 @@ function scanSnippetContent(content, options = {}) {
         (f) => f.severity === 'high' || f.severity === 'critical'
     ).length;
 
-    return {
+    return attachGateMetadata({
         filePath,
         findingCount: findings.length,
         blockingCount,
         findings
-    };
+    }, { blockingCount, gatePass: blockingCount === 0 });
 }
 
 function scanFileOnDisk(projectRoot, relativeOrAbsolutePath, options = {}) {

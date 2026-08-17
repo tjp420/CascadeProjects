@@ -52,13 +52,29 @@ test('MCP tool handlers return JSON content blocks', () => {
     assert.ok(Array.isArray(parsed.findings));
 });
 
-test('MCP stdio server exposes thirteen tools', () => {
+test('MCP stdio server exposes twenty-six tools', () => {
     const server = createMcpStdioServer({ offline: true });
     const list = server.toolListResult();
-    assert.equal(list.tools.length, 13);
+    assert.equal(list.tools.length, 26);
     assert.ok(list.tools.some((t) => t.name === 'gate_status'));
     assert.ok(list.tools.some((t) => t.name === 'scan_project'));
     assert.ok(list.tools.some((t) => t.name === 'get_action_plan'));
+    assert.ok(list.tools.some((t) => t.name === 'propose_fix'));
+    assert.ok(list.tools.some((t) => t.name === 'handoff_check'));
+    assert.ok(list.tools.some((t) => t.name === 'solve_problem'));
+    assert.ok(list.tools.some((t) => t.name === 'diagnose_error'));
+});
+
+test('handoff_check returns not ready without report', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-handoff-'));
+    const handlers = createMcpToolHandlers({ offline: true });
+    const out = handlers.handoff_check({ projectRoot: tmp });
+    const parsed = JSON.parse(out.content[0].text);
+    assert.equal(parsed.ready, false);
+    assert.match(parsed.message, /Do not claim task complete/);
 });
 
 test('readGateStatus handles missing report gracefully', () => {

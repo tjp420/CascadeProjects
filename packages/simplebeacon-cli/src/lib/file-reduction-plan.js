@@ -2,6 +2,8 @@
  * Build actionable file reduction plans from scan reports.
  */
 
+const { buildTrimSuggestions } = require('./trim-suggestions');
+
 function isDirectoryArtifact(finding) {
     return finding.action === 'safe-to-delete'
         && (finding.kind === 'directory' || / directory$/i.test(String(finding.reason || '')));
@@ -58,6 +60,8 @@ function buildFileReductionPlan(report) {
     const directoryBloat = report.findings?.directoryBloat || [];
     const duplicateAssets = report.findings?.assetConsolidation || [];
     const unusedFiles = report.findings?.unusedFiles || [];
+    const deadCode = report.findings?.deadCode || [];
+    const deadSummary = report.scanners?.['dead-code'] || {};
     const buildSummary = report.scanners?.['build-artifacts'] || {};
     const assetSummary = report.scanners?.['asset-consolidation'] || {};
     const unusedSummary = report.scanners?.['unused-files'] || {};
@@ -86,7 +90,7 @@ function buildFileReductionPlan(report) {
     const duplicateBytes = assetSummary.reclaimableBytes
         ?? duplicateAssets.reduce((sum, group) => sum + (group.reclaimableBytes || 0), 0);
 
-    return {
+    const plan = {
         scopeNote: 'Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.',
         totals: {
             reclaimableBytes: report.summary?.reclaimableBytes || buildSummary.reclaimableBytes || 0,
@@ -142,6 +146,23 @@ function buildFileReductionPlan(report) {
             entryPoints: unusedSummary.entryPoints || report.metadata?.entryPoints?.length || 0,
             note: 'Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting.'
         },
+        deadCode: {
+            filesAnalyzed: deadSummary.filesAnalyzed || 0,
+            deadExports: deadSummary.deadExports ?? deadCode.filter((f) => f.type === 'dead-export').length,
+            orphanedExports: deadSummary.orphanedExports ?? deadCode.filter((f) => f.type === 'orphaned-export').length,
+            topFindings: deadCode
+                .filter((f) => f.confidence !== 'low')
+                .slice(0, 12)
+                .map((finding) => ({
+                    path: finding.path,
+                    symbol: finding.metadata?.symbol || null,
+                    type: finding.type,
+                    confidence: finding.confidence,
+                    action: finding.action,
+                    reason: finding.reason
+                })),
+            note: 'Export-level static analysis — verify re-exports, dynamic imports, and test-only usage before removing symbols.'
+        },
         summaryTable: [
             {
                 category: 'Build artifacts (safe)',
@@ -166,6 +187,12 @@ function buildFileReductionPlan(report) {
                 files: unusedFiles.length,
                 bytes: null,
                 action: 'Investigate'
+            },
+            {
+                category: 'Dead / orphaned exports',
+                files: deadCode.length,
+                bytes: null,
+                action: 'Trim symbols'
             }
         ],
         recommendations: [
@@ -173,9 +200,13 @@ function buildFileReductionPlan(report) {
             'Regenerate dependencies with `npm install` after removing `node_modules`.',
             'Review log files before deletion — they may contain audit history.',
             'Consolidate duplicate assets by keeping the canonical copy and updating references.',
-            'Treat unused file candidates as an investigation list, not a bulk delete list.'
+            'Treat unused file candidates as an investigation list, not a bulk delete list.',
+            'Remove dead exports only after confirming no dynamic import or test-only usage.'
         ]
     };
+
+    plan.trimSuggestions = buildTrimSuggestions(report, plan);
+    return plan;
 }
 
 module.exports = {

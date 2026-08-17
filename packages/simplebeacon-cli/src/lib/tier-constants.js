@@ -19,6 +19,21 @@ const _TIER_DEFINITIONS = {
         customConfig: false,
         allowlist: false
     },
+    agent: {
+        paid: true,
+        label: 'Agent',
+        quota: Infinity,
+        maxScansPerPeriod: 9999,
+        engines: 'basic',
+        websiteScans: false,
+        websiteScanQuota: 0,
+        maxFilesPerScan: 50,
+        maxFindingsShown: Infinity,
+        showQualityScore: false,
+        pipelineScans: false,
+        customConfig: false,
+        allowlist: false
+    },
     pro: {
         paid: true,
         label: 'Pro',

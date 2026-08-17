@@ -1,0 +1,47 @@
+[
+  {
+    "id": "SB-GOV-001",
+    "category": "classification-spillage",
+    "type": "Classification Spillage",
+    "regexSource": "\\bCUI(?:\\/\\/|\\/)\\S+|CONTROLLED\\s+UNCLASSIFIED\\s+INFORMATION",
+    "regexFlags": "gi",
+    "severity": "critical",
+    "description": "Controlled Unclassified Information (CUI) marking in production-eligible source"
+  },
+  {
+    "id": "SB-GOV-002",
+    "category": "classification-spillage",
+    "type": "Classification Spillage",
+    "regexSource": "\\bFOUO\\b|FOR\\s+OFFICIAL\\s+USE\\s+ONLY",
+    "regexFlags": "gi",
+    "severity": "critical",
+    "description": "FOUO or legacy official-use-only marking in production-eligible source"
+  },
+  {
+    "id": "SB-GOV-003",
+    "category": "classification-spillage",
+    "type": "Classification Spillage",
+    "regexSource": "\\bNOFORN\\b|REL\\s+TO\\s+USA|REL\\s+TO\\s+NATO",
+    "regexFlags": "gi",
+    "severity": "critical",
+    "description": "Foreign disclosure restriction marking (NOFORN / REL TO) in source"
+  },
+  {
+    "id": "SB-GOV-004",
+    "category": "classification-spillage",
+    "type": "Classification Spillage",
+    "regexSource": "(?:TOP\\s+SECRET|SECRET|CONFIDENTIAL)\\s*//",
+    "regexFlags": "gi",
+    "severity": "high",
+    "description": "Classified banner string in production-eligible source"
+  },
+  {
+    "id": "SB-GOV-005",
+    "category": "export-control",
+    "type": "Export Control Context",
+    "regexSource": "ITAR[-\\s]+controlled|\\bEAR99\\b|EXPORT\\s+CONTROLLED",
+    "regexFlags": "gi",
+    "severity": "medium",
+    "description": "Export-control context marker in production-eligible source"
+  }
+]

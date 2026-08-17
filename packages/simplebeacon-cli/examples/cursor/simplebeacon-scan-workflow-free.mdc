@@ -1,0 +1,28 @@
+---
+description: Simplebeacon MCP scan workflow — free 2/10 preview (local-only)
+alwaysApply: true
+---
+
+# Simplebeacon scan workflow (free)
+
+When the **simplebeacon** MCP server is available, you get a **limited preview** (2/10 agent experience):
+
+## Allowed on free tier
+
+- **`scan_snippet`** — max 3 redacted findings per call (no pattern ids)
+- **`scan_project`** — capped files/findings
+- **`gate_status`** — pass/fail from last report
+- **`suggest_fixes`** — one teaser fix only
+
+## Blocked on free tier (upgrade required)
+
+`scan_file`, `explain_finding`, `propose_fix`, `verify_fix`, `scan_staged`, `agent_status`, `get_action_plan`
+
+If a tool returns `blocked: true`, tell the user to upgrade at https://simplebeacon.ai/pricing for the **11/10 paid agent loop**.
+
+## Workflow
+
+1. Before edits: `scan_snippet` — if `blockingCount > 0`, warn the user (details redacted)
+2. Before merge: run CLI `npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`
+
+Do not upload source. Never brag about raw finding counts.

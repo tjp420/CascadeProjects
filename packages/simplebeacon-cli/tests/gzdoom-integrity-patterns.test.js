@@ -28,6 +28,17 @@ describe('gzdoom log parser', () => {
         assert.ok(entries.some((e) => e.kind === 'unknown-class' && e.details.className === 'DitchedPistol'));
         assert.ok(entries.some((e) => e.kind === 'duplicate-class' && e.details.className === 'Rocket'));
     });
+
+    it('parses Script error and missing string lines', () => {
+        const log = [
+            'Script error, "E:/Ai/Games/Doom/TEst/results/R3DOptions/:sndinfo" line 120:',
+            'Missing string (unexpected end of file).'
+        ].join('\n');
+        const entries = parseGzdoomLog(log);
+        assert.ok(entries.some((e) => e.kind === 'script-error' && e.details.line === 120));
+        assert.ok(entries.some((e) => e.details.filePath && /sndinfo/i.test(e.details.filePath)));
+        assert.ok(entries.some((e) => e.kind === 'missing-string'));
+    });
 });
 
 describe('gzdoom symbol graph', () => {
@@ -57,7 +68,8 @@ describe('gzdoom symbol graph', () => {
 describe('scanGzdoomIntegrity', () => {
     it('merges static analysis and log correlation', async () => {
         const result = await scanGzdoomIntegrity(FIXTURE_ROOT, {
-            logPath: path.join(FIXTURE_ROOT, 'fog_pbr.log')
+            logPath: path.join(FIXTURE_ROOT, 'fog_pbr.log'),
+            extendedLint: false
         });
         assert.ok(result.findings >= 8);
         assert.ok(result.scanned >= 3);

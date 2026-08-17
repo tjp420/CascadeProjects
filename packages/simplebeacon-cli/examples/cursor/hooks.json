@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "node .cursor/hooks/simplebeacon-pre-edit-scan.cjs",
+        "matcher": "Write|StrReplace|EditNotebook"
+      }
+    ]
+  }
+}

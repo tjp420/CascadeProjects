@@ -21,7 +21,7 @@ From the user's project root — one command:
 npx --yes simplebeacon init --starter
 ```
 
-`--starter` = config + `.cursor/mcp.json` + agent rule + GitHub Action workflow.
+`--starter` = universal agent bootstrap: all host MCP configs + instructions + hooks + CI.
 
 Or step-by-step:
 
@@ -39,7 +39,10 @@ npx simplebeacon init --with-mcp
 This creates:
 
 - `.simplebeacon/config.json` — scan rules + allowlists  
-- `.cursor/mcp.json` — Cursor MCP wiring (`npx simplebeacon-mcp --offline`)
+- MCP configs for Cursor, Windsurf, Continue, and reference JSON  
+- Agent instructions (`AGENTS.md`, `.cursor/rules/…`, etc.)
+
+See [AGENT-SETUP.md](./AGENT-SETUP.md) for per-host reload steps.
 
 Then:
 
@@ -112,16 +115,25 @@ Merge `buildClaudeDesktopMcpJson()` output into Claude's MCP config (same shape 
 
 ---
 
-## What users get (four tools)
+## What users get (20 MCP tools)
+
+Core loop:
 
 | Tool | Use |
 |------|-----|
+| `get_context_pack` | Session bootstrap — repo map, verify commands |
 | `scan_snippet` | Check AI-generated code before applying |
-| `scan_file` | Check a saved file |
+| `scan_file` | Check a saved file (paid) |
 | `gate_status` | Read last full scan gate from `.simplebeacon/report.json` |
-| `explain_finding` | Rule metadata for a pattern id |
+| `handoff_check` | May the agent claim task complete? (free) |
+| `explain_finding` | Rule metadata for a pattern id (paid) |
+| `propose_fix` / `verify_fix` | Deterministic fix loop (paid) |
+| `scan_staged` | Gate on git staged files (paid) |
+| `init_project` | MCP-side project bootstrap |
 
-Full repo gate before PR: `npx simplebeacon scan --gate --offline` (not MCP-only).
+Full list: run `npx simplebeacon-mcp --smoke-test` or see [AGENT-SETUP.md](./AGENT-SETUP.md).
+
+Full repo gate before PR: `npx simplebeacon scan --gate --offline` (authoritative backstop).
 
 ---
 

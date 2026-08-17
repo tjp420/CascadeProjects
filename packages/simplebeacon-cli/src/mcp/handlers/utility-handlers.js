@@ -8,31 +8,37 @@ const { readFile } = fs.promises;
 const { explainFinding, RULE_CATALOG, LEAK_PATTERNS } = require('../rule-catalog');
 const { ERROR_TYPE_CODES, SEVERITY_BANDS } = require('../../lib/anonymized-export');
 
-function createUtilityHandlers({ withGuard, resolveProjectRoot, formatToolResult, formatMarkdownResult }) {
+function createUtilityHandlers({ withGuard, withTierGuard, resolveProjectRoot, formatToolResult, formatMarkdownResult }) {
     return {
-        explain_finding: withGuard((args) => {
+        explain_finding: withTierGuard('explain_finding', withGuard((args) => {
             if (!args || typeof args !== 'object') throw new Error('arguments must be an object');
             if (args.patternId === undefined || args.patternId === null || args.patternId === '') {
                 throw new Error('Missing required argument: patternId');
             }
             return formatToolResult(explainFinding(args.patternId, { type: args.type }));
-        }),
+        })),
 
         init_project: withGuard((args) => {
             const root = resolveProjectRoot(args.projectRoot);
             const { initSimplebeacon } = require('../../lib/init-simplebeacon.cjs');
-            const { installDeveloperStack } = require('../../lib/developer-onboarding');
+            const { installAgentStack } = require('../../lib/developer-onboarding');
             try {
                 const result = initSimplebeacon(root, {
                     profile: args.profile || undefined,
                     force: args.force === true
                 });
+                const agentBootstrap = args.withMcp === true || args.withCi === true
+                    || args.starter === true || args.agent === true;
                 let stack = null;
-                if (args.withMcp === true || args.withCi === true || args.starter === true) {
-                    stack = installDeveloperStack(root, {
-                        withMcp: args.withMcp === true || args.starter === true,
-                        withCursorRule: args.withMcp === true || args.starter === true,
-                        withCi: args.withCi === true || args.starter === true,
+                if (agentBootstrap) {
+                    stack = installAgentStack(root, {
+                        agent: args.agent === true || args.starter === true,
+                        starter: args.starter === true || args.agent === true,
+                        withMcp: args.withMcp === true || args.starter === true || args.agent === true,
+                        withCi: args.withCi === true || args.starter === true || args.agent === true,
+                        withHooks: args.withHooks === true || args.starter === true || args.agent === true,
+                        hosts: args.hosts || ((args.starter || args.agent) ? 'all' : 'cursor'),
+                        paidTier: args.paidTier === true,
                         force: args.force === true
                     });
                 }
@@ -42,15 +48,36 @@ function createUtilityHandlers({ withGuard, resolveProjectRoot, formatToolResult
                     configPath: result.configPath,
                     baselinePath: result.baselinePath,
                     profile: result.detected?.profile || args.profile || 'standard',
-                    developerStack: stack ? {
-                        mcp: stack.mcp ? { created: !!stack.mcp.created, path: stack.mcp.path } : null,
-                        cursorRule: stack.cursorRule ? { created: !!stack.cursorRule.created, path: stack.cursorRule.path } : null,
-                        ciWorkflow: stack.ciWorkflow ? { created: !!stack.ciWorkflow.created, path: stack.ciWorkflow.path } : null
+                    agentStack: stack ? {
+                        hosts: (stack.hosts || []).map((h) => ({
+                            id: h.host,
+                            label: h.label,
+                            mcp: h.mcp ? {
+                                created: !!h.mcp.created,
+                                merged: !!h.mcp.merged,
+                                path: h.mcp.configPath || null
+                            } : null,
+                            instructions: h.instructions ? {
+                                created: !!h.instructions.created,
+                                merged: !!h.instructions.merged,
+                                path: h.instructions.path || null
+                            } : null
+                        })),
+                        cursorHooks: stack.cursorHooks ? {
+                            created: !!stack.cursorHooks.created,
+                            path: stack.cursorHooks.hooksJsonPath || null
+                        } : null,
+                        gitHook: stack.gitHook ? { path: stack.gitHook.hookPath || null } : null,
+                        ciWorkflow: stack.ciWorkflow ? {
+                            created: !!stack.ciWorkflow.created,
+                            path: stack.ciWorkflow.path || null
+                        } : null,
+                        claudeDesktopHint: stack.claudeDesktopHint || null
                     } : null,
                     nextSteps: [
                         'Run `scan_project` to perform your first scan',
-                        'Run `gate_status` to check pass/fail after scanning',
-                        ...(args.withMcp === true ? ['Reload Cursor → Settings → MCP → enable simplebeacon'] : [])
+                        'Run `gate_status` then `handoff_check` before claiming done',
+                        'Reload your AI editor MCP settings → enable simplebeacon'
                     ]
                 });
             } catch (err) {

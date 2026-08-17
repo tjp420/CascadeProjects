@@ -1760,7 +1760,16 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
                     severity: opts.severity || 'high',
                     sourcePaths: opts.sourcePaths || ['.'],
                     respectIncludes: opts.respectIncludes !== false,
-                    extraActors: opts.extraActors || []
+                    extraActors: opts.extraActors || [],
+                    norunGate: options.gzdoomNorun !== false && opts.norunGate !== false,
+                    gzdoomExe: options.gzdoomExe || opts.gzdoomExe || null,
+                    iwad: options.iwad || opts.iwad || null,
+                    norunTimeoutMs: opts.norunTimeoutMs || null,
+                    norunDryRun: options.gzdoomNorunDryRun || opts.norunDryRun || false,
+                    companionMod: opts.companionMod || null,
+                    companionModPaths: opts.companionModPaths || null,
+                    cvarPrefix: opts.cvarPrefix || 'r3d_',
+                    cvarAllowlist: opts.cvarAllowlist || []
                 });
             }
         }
