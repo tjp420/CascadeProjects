@@ -15,9 +15,13 @@ let STRUCTURAL_RULES = null;
 try {
     ({ orchestratePolicyPipeline } = require('../src/policy/PolicyOrchestrator'));
     ({ TrustStore } = require('../src/policy/signature-verifier'));
+} catch {
+    // Optional policy pipeline modules — not required for fix/scan
+}
+try {
     ({ RemediationEngine, STRUCTURAL_RULES } = require('../src/policy/RemediationEngine'));
 } catch {
-    // Policy module not available — functions will throw if called
+    // RemediationEngine unavailable — fix command will report clearly
 }
 const {
     loadSimplebeaconConfig,
@@ -36,7 +40,7 @@ const { formatGithubComment, postGithubComment } = require('../src/reporters/git
 const { resolveCiLicense } = require('../src/lib/ci-license');
 const { collectGitDiffFiles } = require('../src/lib/git-diff-scope');
 const { buildAssessmentReport } = require('../src/assessment');
-const { sanitizeReportForCloudUpload } = require('../src/lib/report-sanitizer');
+const { sanitizeReportForCloudUpload, sanitizeHandoffExport } = require('../src/lib/report-sanitizer');
 const { buildAnonymizedExport, signAnonymizedExport } = require('../src/lib/anonymized-export');
 const { runLocalRemediation } = require('../src/lib/local-remediation');
 const { runDeterministicRemediation, getSupportedPatterns } = require('../src/lib/ast-remediator');
@@ -65,8 +69,8 @@ const { enhanceExecutiveSummary } = require('../src/reporters/report-enhance');
 const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator');
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
-const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics', 'update-cve-db']);
+const { installAgentStack, runSmokeScan, refreshArtifacts } = require('../src/lib/developer-onboarding');
+const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics', 'update-cve-db', 'supercharge']);
 
 let _cliDebugMode = false;
 
@@ -219,6 +223,10 @@ function createDefaultOptions(command) {
         mcpMode: 'npx-local',
         withCi: false,
         starter: false,
+        agent: false,
+        hosts: null,
+        smoke: false,
+        withHooks: false,
         anonymize: false,
         fix: false,
         fixProvider: null,
@@ -253,7 +261,9 @@ function createDefaultOptions(command) {
         sendEmail: false,
         secretsOnly: false,
         certify: false,
-        certifyUrl: null
+        certifyUrl: null,
+        handoffExport: null,
+        includeRedactedSnippets: false
     };
 }
 
@@ -296,6 +306,8 @@ const FLAG_MAP = [
     { aliases: ['--secrets-only'], key: 'secretsOnly', type: 'boolean' },
     { aliases: ['--certify'], key: 'certify', type: 'boolean' },
     { aliases: ['--certify-url'], key: 'certifyUrl', type: 'string' },
+    { aliases: ['--handoff-export'], key: 'handoffExport', type: 'string' },
+    { aliases: ['--include-redacted-snippets'], key: 'includeRedactedSnippets', type: 'boolean' },
     { aliases: ['--offline'], key: 'offline', type: 'boolean' },
     { aliases: ['--air-gapped'], key: 'airGapped', type: 'boolean' },
     { aliases: ['--strict-license'], key: 'strictLicense', type: 'boolean' },
@@ -312,7 +324,22 @@ const FLAG_MAP = [
     { aliases: ['--with-mcp'], key: 'withMcp', type: 'boolean' },
     { aliases: ['--with-ci'], key: 'withCi', type: 'boolean' },
     { aliases: ['--ci-platform'], key: 'ciPlatform', type: 'string' },
-    { aliases: ['--starter'], key: 'starter', type: 'boolean', extra: (o) => { o.withMcp = true; o.withCi = true; } },
+    { aliases: ['--starter'], key: 'starter', type: 'boolean', extra: (o) => {
+        o.agent = true;
+        o.withMcp = true;
+        o.withCi = true;
+        o.withHooks = true;
+        o.hosts = o.hosts || 'all';
+    } },
+    { aliases: ['--agent'], key: 'agent', type: 'boolean', extra: (o) => {
+        o.withMcp = true;
+        o.withCi = true;
+        o.withHooks = true;
+        o.hosts = o.hosts || 'all';
+    } },
+    { aliases: ['--hosts'], key: 'hosts', type: 'string' },
+    { aliases: ['--with-hooks'], key: 'withHooks', type: 'boolean' },
+    { aliases: ['--smoke'], key: 'smoke', type: 'boolean' },
     { aliases: ['--anonymize'], key: 'anonymize', type: 'boolean' },
     { aliases: ['--fix'], key: 'fix', type: 'boolean' },
     { aliases: ['--fix-provider'], key: 'fixProvider', type: 'string' },
@@ -326,6 +353,11 @@ const FLAG_MAP = [
     { aliases: ['--exclude'], key: 'exclude', type: 'comma-list' },
     { aliases: ['--deep-scan'], key: 'deepScan', type: 'boolean' },
     { aliases: ['--log'], key: 'gzdoomLog', type: 'string' },
+    { aliases: ['--gzdoom-norun'], key: 'gzdoomNorun', type: 'boolean' },
+    { aliases: ['--gzdoom-exe'], key: 'gzdoomExe', type: 'string' },
+    { aliases: ['--iwad'], key: 'iwad', type: 'string' },
+    { aliases: ['--gzdoom-norun-dry-run'], key: 'gzdoomNorunDryRun', type: 'boolean' },
+    { aliases: ['--no-gzdoom-norun'], key: 'noGzdoomNorun', type: 'boolean', extra: (o) => { o.gzdoomNorun = false; } },
     { aliases: ['--include-deps'], key: 'includeDeps', type: 'boolean' },
     { aliases: ['--min-confidence'], key: 'minConfidence', type: 'number', fallback: 0.5 },
     { aliases: ['--tier-limits'], key: 'tierLimits', type: 'string' },
@@ -346,7 +378,10 @@ const FLAG_MAP = [
     { aliases: ['--base-ref'], key: 'baseRef', type: 'string' },
     { aliases: ['--head-ref'], key: 'headRef', type: 'string' },
     { aliases: ['--json'], key: 'jsonOutput', type: 'boolean', extra: (o) => { o.format = 'json'; } },
-    { aliases: ['--invitee-email', '--to'], key: 'inviteeEmail', type: 'string' }
+    { aliases: ['--invitee-email', '--to'], key: 'inviteeEmail', type: 'string' },
+    { aliases: ['--task'], key: 'task', type: 'string' },
+    { aliases: ['--write-disk'], key: 'writeDisk', type: 'boolean' },
+    { aliases: ['--watch-artifacts'], key: 'watchArtifacts', type: 'boolean' }
 ];
 
 // Auto-derive knownFlags from FLAG_MAP so it never drifts
@@ -397,6 +432,11 @@ function parseArgs(argv) {
     }
 
     if (command === 'fix' && args[flagStart] && !args[flagStart].startsWith('-')) {
+        options.path = args[flagStart];
+        flagStart += 1;
+    }
+
+    if (command === 'supercharge' && args[flagStart] && !args[flagStart].startsWith('-')) {
         options.path = args[flagStart];
         flagStart += 1;
     }
@@ -539,13 +579,17 @@ PDF options:
 
 Init options:
   --path <dir>        Project root (default: cwd)
-  --profile <name>    Force profile: minimal, standard, cascade (auto-detected by default)
+  --profile <name>    Force profile: minimal, standard, cascade, gamedev, eu-ai-act (auto-detected by default)
   --dry-run           Preview init changes without writing files
   --force             Overwrite existing config/baseline (backup created first)
-  --with-mcp          Write .cursor/mcp.json + agent rule for Cursor MCP
+  --with-mcp          Write MCP config + agent instructions (Cursor by default)
   --with-ci           Write CI pipeline workflow (auto-detects platform)
   --ci-platform <p>   Force CI platform: github-actions | gitlab-ci | bitbucket-pipelines
-  --starter           Shorthand for --with-mcp --with-ci
+  --starter           Universal agent bootstrap (all hosts + hooks + CI)
+  --agent             Same as --starter
+  --hosts <list>      Host adapters: all | auto | cursor,windsurf,continue,claude,universal
+  --with-hooks        Install Cursor preToolUse hook (default with --starter)
+  --smoke             Run gate scan after init and refresh agent brief
   --mcp-mode MODE     npx-local (default) | npx-github | monorepo
 
 Scan options:
@@ -566,6 +610,7 @@ Scan options:
   --fix-dry-run       Show diffs without applying patches
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
   --complete          Run all 52 deterministic engines (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
+  --full              Walk entire repo tree instead of scanPaths only (alias: --fullDirectoryScan)
   --watch             Watch project files and re-run scan on changes (ctrl+c to stop)
   --deep-scan         Deep Scan mode: bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)
   --include-deps      Include node_modules and .git in scan (slower, more noise)
@@ -580,8 +625,18 @@ Scan options:
   --slop-cop          Run AI Slop Cop (LLM residue / mock-data detection) during scan
   --api-token <tok>   Paid tier API token (required with --upload)
   --upload <url>      POST JSON report to Simplebeacon cloud (paid tier)
-  --certify           Request an edge-signed compliance certificate (.sbcert) after scan
+  --certify           Request an edge-signed compliance certificate (.sbcert) after scan (requires --output)
   --certify-url <url> Override the certificate signing endpoint URL
+  --handoff-export <f> Write cross-domain handoff bundle (paths/snippets redacted)
+  --include-redacted-snippets  Keep snippet text in handoff export with inline redaction
+
+GZDoom options:
+  --log <file>        GZDoom runtime log to correlate with scan findings
+  --gzdoom-norun      Enable gzdoom.exe -norun authoritative syntax gate (default: on for gzdoom engine)
+  --no-gzdoom-norun   Disable the -norun gate
+  --gzdoom-exe <path> Path to gzdoom.exe (overrides env GZDOOM_EXE and auto-detect)
+  --iwad <path>       Path to IWAD file (overrides auto-detect)
+  --gzdoom-norun-dry-run  Run gate in dry-run mode (report command without executing)
 
 Comment options:
   --report <file>     JSON report path (default: .simplebeacon/report.json)
@@ -664,6 +719,7 @@ Team metrics options (organizational compliance aggregation):
 Examples:
   npx simplebeacon init
   npx simplebeacon init --profile minimal
+  npx simplebeacon init --starter --profile gamedev
   npx simplebeacon scan --gate
   npx simplebeacon scan --offline --gate
   npx simplebeacon scan --air-gapped --gate
@@ -692,6 +748,47 @@ Examples:
   npx simplebeacon reduce --format json --output .simplebeacon/file-reduction.json
   npx simplebeacon ai-plan --output .simplebeacon/ai-remediation-plan.md
   npx simplebeacon ai-plan --complete --output .simplebeacon/comprehensive-ai-plan.md
+`);
+}
+
+function printScanHelp() {
+    writeStdoutLine(`Simplebeacon scan — local release-hygiene gate (52 rule engines, zero upload)
+
+Audit page workflow (https://simplebeacon.ai/audit):
+  1. Scan + write report.json
+  2. Add --certify for a signed .sbcert (requires network; needs --output)
+  3. Import report.json or drop .sbcert on the audit page
+
+Recommended:
+  npx simplebeacon scan . --gate --format json --output .simplebeacon/report.json --certify
+
+Common variants:
+  npx simplebeacon scan . --gate --format json --output .simplebeacon/report.json
+  npx simplebeacon scan . --gate --offline --format json --output .simplebeacon/report.json
+  npx simplebeacon scan . --full --gate --format json --output .simplebeacon/report.json
+  npx simplebeacon gate status --report .simplebeacon/report.json
+
+Scan options:
+  --path, -p <dir>       Project root (default: cwd)
+  --config, -c <file>    Config path (default: .simplebeacon/config.json)
+  --format, -f <fmt>     text | json | markdown (default: text)
+  --output, -o <file>    Write report to file (required for --certify)
+  --gate                 Exit 1 when blocking severities are found
+  --fail-on a,b,c        Gate severities (default: high)
+  --full                 Walk entire repo tree (not just scanPaths)
+  --complete             Enable all 52 engines + full directory scan
+  --offline              Fail on outbound network (skips --certify)
+  --air-gapped           Offline + skip remote license checks
+  --deep-scan            Bypass docs/vendor/cache filters
+  --include-deps         Include node_modules and .git
+  --exclude <paths>      Comma-separated path exclusions
+  --certify              Request edge-signed .sbcert next to --output file
+  --certify-url <url>    Override signing endpoint
+  --handoff-export <f>   Redacted cross-domain bundle
+  --verbose, -v          Config warnings and scan paths
+  --quiet, -q            Suppress non-error output
+
+Run simplebeacon --help for all commands.
 `);
 }
 
@@ -828,7 +925,11 @@ async function executeOneScan(options, networkGuard) {
             minConfidence: options.minConfidence,
             slopCop: options.slopCop,
             diffFiles: options.diffFiles,
-            gzdoomLog: options.gzdoomLog
+            gzdoomLog: options.gzdoomLog,
+            gzdoomNorun: options.gzdoomNorun !== undefined ? options.gzdoomNorun : undefined,
+            gzdoomExe: options.gzdoomExe,
+            iwad: options.iwad,
+            gzdoomNorunDryRun: options.gzdoomNorunDryRun
         });
         networkGuard.assertOfflineClean();
         printTrustCompletion({
@@ -876,6 +977,18 @@ async function executeOneScan(options, networkGuard) {
                 appendScanHistory(platformRoot, jsonReport);
             }
 
+            if (options.handoffExport) {
+                const handoffPath = path.resolve(options.handoffExport);
+                const handoffPayload = sanitizeHandoffExport(jsonReport, {
+                    includeRedactedSnippets: options.includeRedactedSnippets === true
+                });
+                writeManagedFileSync(handoffPath, `${JSON.stringify(handoffPayload, null, 2)}\n`, {
+                    force: true,
+                    validators: [validateJSON, validateNotEmpty]
+                });
+                console.error(`Handoff export written to ${options.handoffExport}`);
+            }
+
             // --certify: request an edge-signed compliance certificate for the report
             if (options.certify && options.format === 'json' && !options.offline && !airGapped) {
                 try {
@@ -887,6 +1000,7 @@ async function executeOneScan(options, networkGuard) {
                     console.error(`${paint('✓', 'green')} Compliance certificate issued: ${certResult.certPath}`);
                     console.error(`  Signature: ${certResult.signature.slice(0, 16)}...${certResult.signature.slice(-8)}`);
                     console.error(`  Issued at: ${certResult.issuedAt}`);
+                    console.error(`  Next: verify at https://simplebeacon.ai/audit — drop ${certResult.certPath}`);
                 } catch (certErr) {
                     console.error(`${paint('⚠', 'yellow')} Certification failed: ${certErr.message}`);
                     // Non-blocking — the scan itself succeeded
@@ -898,6 +1012,21 @@ async function executeOneScan(options, networkGuard) {
             }
         } else {
             writeStdoutLine(payload);
+            if (options.certify) {
+                console.error(`${paint('⚠', 'yellow')} --certify requires --output <file> — certificate is written next to the report path`);
+            }
+        }
+
+        if (options.handoffExport && !options.output) {
+            const handoffPath = path.resolve(options.handoffExport);
+            const handoffPayload = sanitizeHandoffExport(jsonReport, {
+                includeRedactedSnippets: options.includeRedactedSnippets === true
+            });
+            writeManagedFileSync(handoffPath, `${JSON.stringify(handoffPayload, null, 2)}\n`, {
+                force: true,
+                validators: [validateJSON, validateNotEmpty]
+            });
+            console.error(`Handoff export written to ${options.handoffExport}`);
         }
 
         if (options.paidLicense && !airGapped && !options.offline) {
@@ -1160,7 +1289,11 @@ async function runUploadCommand(options) {
                 includeDeps: options.includeDeps,
                 minConfidence: options.minConfidence,
                 slopCop: options.slopCop,
-                gzdoomLog: options.gzdoomLog
+                gzdoomLog: options.gzdoomLog,
+                gzdoomNorun: options.gzdoomNorun !== undefined ? options.gzdoomNorun : undefined,
+                gzdoomExe: options.gzdoomExe,
+                iwad: options.iwad,
+                gzdoomNorunDryRun: options.gzdoomNorunDryRun
             });
             networkGuard.assertOfflineClean();
             const gateResult = evaluateGate(rawReport, config.gate);
@@ -1463,9 +1596,9 @@ async function runComplianceCommand(options) {
 /**
  * Create .simplebeacon/config.json and baseline.json.
  * @param {Object} options
- * @returns {void}
+ * @returns {Promise<number|void>}
  */
-function runInitCommand(options) {
+async function runInitCommand(options) {
     if (!options || typeof options !== 'object') throw new TypeError('runInitCommand requires an options object');
     const root = sanitizePath(options.path);
     const created = initSimplebeacon(root, {
@@ -1475,17 +1608,21 @@ function runInitCommand(options) {
     });
     const detected = created.detected || detectProjectProfile(root);
 
-    const onboarding = options.withMcp || options.withCi || options.starter;
+    const onboarding = options.withMcp || options.withCi || options.starter || options.agent;
     let stack = null;
     if (onboarding) {
-        stack = installDeveloperStack(root, {
+        stack = installAgentStack(root, {
             mode: options.mcpMode,
             force: options.force,
             dryRun: options.dryRun,
-            withMcp: options.withMcp || options.starter,
-            withCursorRule: options.withMcp || options.starter,
-            withCi: options.withCi || options.starter,
-            platform: options.ciPlatform
+            agent: options.agent || options.starter,
+            starter: options.starter || options.agent,
+            withMcp: options.withMcp || options.starter || options.agent,
+            withCi: options.withCi || options.starter || options.agent,
+            withHooks: options.withHooks || options.starter || options.agent,
+            hosts: options.hosts,
+            platform: options.ciPlatform,
+            paidTier: Boolean(process.env.SIMPLEBEACON_LICENSE_TOKEN)
         });
     }
 
@@ -1496,15 +1633,15 @@ function runInitCommand(options) {
             writeStdoutLine(`Would ${action.action}: ${action.path}`);
         }
         if (stack) {
-            if (stack.mcp?.dryRun) {
-                writeStdoutLine(`Would create: ${stack.mcp.configPath}`);
-            } else if (stack.mcp?.skipped) {
-                writeStdoutLine(`Would skip: ${stack.mcp.configPath}`);
-            }
-            if (stack.cursorRule?.dryRun) {
-                writeStdoutLine(`Would create: ${stack.cursorRule.path}`);
-            } else if (stack.cursorRule?.skipped) {
-                writeStdoutLine(`Would skip: ${stack.cursorRule.path}`);
+            for (const host of stack.hosts || []) {
+                if (host.mcp?.dryRun) {
+                    writeStdoutLine(`Would write MCP [${host.host}]: ${host.mcp.configPath}`);
+                } else if (host.mcp?.created || host.mcp?.merged) {
+                    writeStdoutLine(`Would write MCP [${host.host}]: ${host.mcp.configPath}`);
+                }
+                if (host.instructions?.dryRun) {
+                    writeStdoutLine(`Would write instructions [${host.host}]: ${host.instructions.path}`);
+                }
             }
             if (stack.ciWorkflow?.dryRun) {
                 writeStdoutLine(`Would create: ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
@@ -1535,30 +1672,59 @@ function runInitCommand(options) {
     writeStdoutLine(`Production paths: ${detected.productionPaths.join(', ')}`);
     writeStdoutLine('');
     writeStdoutLine('Next steps:');
-    writeStdoutLine('  npx simplebeacon scan');
     writeStdoutLine('  npx simplebeacon scan --gate');
-    writeStdoutLine('  npx simplebeacon hook install');
-    writeStdoutLine('  npx simplebeacon baseline sync   # after a green test run');
+    writeStdoutLine('  npx simplebeacon-mcp --smoke-test');
+    writeStdoutLine('  Reload your AI editor MCP settings → enable simplebeacon');
 
     if (stack) {
         writeStdoutLine('');
-        if (stack.mcp?.created) {
-            writeStdoutLine(`Created ${stack.mcp.configPath} (MCP mode: ${stack.mcp.mode})`);
-        } else if (stack.mcp?.skipped) {
-            writeStdoutLine(stack.mcp.message);
+        writeStdoutLine('Agent bootstrap:');
+        for (const host of stack.hosts || []) {
+            const mcp = host.mcp;
+            const instr = host.instructions;
+            if (mcp?.created || mcp?.merged) {
+                writeStdoutLine(`  MCP [${host.label}]: ${mcp.configPath} (${mcp.mode || 'configured'})`);
+            } else if (mcp?.skipped && !mcp?.unchanged) {
+                writeStdoutLine(`  MCP [${host.label}]: skipped — ${mcp.reason || mcp.message || 'exists'}`);
+            } else if (mcp?.unchanged) {
+                writeStdoutLine(`  MCP [${host.label}]: unchanged`);
+            }
+            if (instr?.created || instr?.merged) {
+                writeStdoutLine(`  Instructions [${host.label}]: ${instr.path}`);
+            } else if (instr?.skipped && instr?.unchanged) {
+                writeStdoutLine(`  Instructions [${host.label}]: unchanged (${instr.path})`);
+            }
         }
-        if (stack.cursorRule?.created) {
-            writeStdoutLine(`Created ${stack.cursorRule.path}`);
-        } else if (stack.cursorRule?.skipped) {
-            writeStdoutLine(`Skipped existing ${stack.cursorRule.path}`);
+        if (stack.cursorHooks?.created) {
+            writeStdoutLine(`  Cursor pre-apply hook: ${stack.cursorHooks.hooksJsonPath}`);
+        }
+        if (stack.gitHook?.hookPath) {
+            writeStdoutLine(`  Git pre-commit hook: ${stack.gitHook.hookPath}`);
         }
         if (stack.ciWorkflow?.created) {
-            writeStdoutLine(`Created ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
+            writeStdoutLine(`  CI workflow: ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
         } else if (stack.ciWorkflow?.skipped) {
-            writeStdoutLine(`Skipped existing ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
+            writeStdoutLine(`  CI workflow: skipped existing ${stack.ciWorkflow.path}`);
         }
-        if (options.withMcp || options.starter) {
-            writeStdoutLine('Reload Cursor → Settings → MCP → enable simplebeacon');
+        if (stack.claudeDesktopHint) {
+            writeStdoutLine('');
+            writeStdoutLine(stack.claudeDesktopHint.message);
+            writeStdoutLine(JSON.stringify(stack.claudeDesktopHint.configSnippet, null, 2));
+        }
+        if (stack.artifacts?.brief?.path) {
+            writeStdoutLine(`  Agent brief: ${stack.artifacts.brief.path}`);
+        }
+    }
+
+    if (options.smoke && !options.dryRun) {
+        writeStdoutLine('');
+        writeStdoutLine('Running smoke scan...');
+        const smoke = await runSmokeScan(root, options);
+        if (smoke.ok) {
+            refreshArtifacts(root, smoke.report, { task: 'hygiene' });
+            writeStdoutLine(`Smoke scan complete — gate ${smoke.gatePass ? 'PASS' : 'FAIL'}`);
+        } else {
+            writeStdoutLine(`Smoke scan skipped: ${smoke.error || 'unknown error'}`);
         }
     }
 }
@@ -1602,27 +1768,36 @@ function runHookInstallCommand(options) {
 async function runReduceCommand(options) {
     if (!options || typeof options !== 'object') throw new TypeError('runReduceCommand requires an options object');
     const root = sanitizePath(options.path);
+    const FILE_REDUCTION_SCANNER_IDS = [
+        'build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat', 'dead-code'
+    ];
     const scannerFilter = options.scanner;
     const scannerOptions = scannerFilter
         ? {
             [scannerFilter]: { enabled: true },
             ...(Object.fromEntries(
-                ['build-artifacts', 'asset-consolidation', 'unused-files', 'config-management', 'dependency-health', 'environment-variables', 'data-freshness', 'data-access-patterns', 'data-privacy', 'data-lineage', 'data-consistency']
+                [...FILE_REDUCTION_SCANNER_IDS, 'config-management', 'dependency-health', 'environment-variables', 'data-freshness', 'data-access-patterns', 'data-privacy', 'data-lineage', 'data-consistency']
                     .filter((id) => id !== scannerFilter)
                     .map((id) => [id, { enabled: false }])
             ))
         }
-        : {};
+        : Object.fromEntries(FILE_REDUCTION_SCANNER_IDS.map((id) => [id, { enabled: true }]));
 
     const report = await runFileReductionScan(root, {
         dryRun: true,
         scanners: scannerOptions
     });
+    report.scanProfile = 'file-reduction';
+    const { enrichCleanupReport } = require('../src/lib/enrich-cleanup-report');
+    const { writeFileReductionArtifacts } = require('../src/lib/file-reduction-ai-notes');
+    const enriched = enrichCleanupReport(report, { profile: 'file-reduction' });
+    const aiArtifacts = writeFileReductionArtifacts(root, enriched, { profile: 'file-reduction' });
+
     const outputPath = options.output
         || (options.format === 'json'
             ? path.join(root, '.simplebeacon', 'file-reduction.json')
             : path.join(root, '.simplebeacon', 'file-reduction.md'));
-    const rendered = generateFileReductionReport(report, { format: options.format });
+    const rendered = generateFileReductionReport(enriched, { format: options.format });
 
     writeManagedFileSync(outputPath, options.format === 'json' ? `${rendered}\n` : rendered, {
         force: true,
@@ -1630,7 +1805,11 @@ async function runReduceCommand(options) {
     });
 
     writeStdoutLine(`File reduction report written to ${outputPath}`);
-    writeStdoutLine(`Findings: ${report.summary.totalFindings} | Reclaimable: ${report.summary.reclaimableBytes} bytes`);
+    if (aiArtifacts?.markdownPath) {
+        writeStdoutLine(`AI cleanup notes: ${aiArtifacts.markdownPath}`);
+        writeStdoutLine(`Structured JSON: ${aiArtifacts.notesPath}`);
+    }
+    writeStdoutLine(`Findings: ${enriched.summary.totalFindings} | Reclaimable: ${enriched.summary.reclaimableBytes} bytes`);
     if (options.verbose) {
         for (const [scannerId, summary] of Object.entries(report.scanners || {})) {
             writeStdoutLine(`  ${scannerId}: ${JSON.stringify(summary)}`);
@@ -1719,6 +1898,56 @@ function runSecretsGateCommand(options) {
         return 0;
     }
     return 1;
+}
+
+function runSuperchargeCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runSuperchargeCommand requires an options object');
+    const root = resolveCliProjectRoot(options.path || '.');
+    const {
+        buildAgentSupercharge,
+        writeAgentSupercharge,
+        formatSuperchargeMarkdown
+    } = require('../src/lib/agent-supercharge');
+    const { readReport } = require('../src/lib/agent-context-pack');
+    const { resolveAgentTier } = require('../src/lib/agent-tier-capabilities');
+
+    if (options.watchArtifacts) {
+        const { watchAgentArtifacts } = require('../src/lib/agent-artifact-watcher');
+        writeStdoutLine(`Watching ${path.join(root, '.simplebeacon', 'report.json')} for artifact refresh…`);
+        watchAgentArtifacts(root, {
+            task: options.task || 'hygiene',
+            paid: resolveAgentTier().paid,
+            onRefresh(result) {
+                writeStdoutLine(result.ok ? `Refreshed ${result.path}` : `Refresh failed: ${result.error}`);
+            }
+        });
+        return 0;
+    }
+
+    const report = readReport(root);
+    const tierCtx = resolveAgentTier();
+    if (options.writeDisk !== false) {
+        writeAgentSupercharge(root, {
+            task: options.task,
+            report,
+            paid: tierCtx.paid,
+            tierCtx
+        });
+    }
+    const bundle = buildAgentSupercharge(root, {
+        task: options.task,
+        report,
+        paid: tierCtx.paid,
+        tierCtx,
+        workspaceRoot: process.env.SIMPLEBEACON_PROJECT_ROOT || undefined
+    });
+
+    if (options.format === 'markdown') {
+        writeStdoutLine(formatSuperchargeMarkdown(bundle));
+    } else {
+        writeStdoutLine(JSON.stringify(bundle, null, 2));
+    }
+    return bundle.mission?.handoffReady ? 0 : 1;
 }
 
 function runGateStatusCommand(options) {
@@ -2083,6 +2312,10 @@ async function runTeamMetricsCommand(options) {
 }
 
 function runFixCommand(options) {
+    if (!RemediationEngine || !STRUCTURAL_RULES) {
+        console.error('[simplebeacon] Fix engine unavailable — policy module failed to load.');
+        return 1;
+    }
     const targetPath = path.resolve(sanitizePath(options.path || '.'));
     const dryRun = !!options.fixDryRun;
     const engine = new RemediationEngine(STRUCTURAL_RULES);
@@ -2210,6 +2443,7 @@ const COMMAND_REGISTRY = {
     'secrets-gate': runSecretsGateCommand,
     reduce: runReduceCommand,
     'gate-status': runGateStatusCommand,
+    supercharge: runSuperchargeCommand,
     mcp: (opts) => {
         const { createMcpStdioServer } = require('../src/mcp/stdio-server');
         const server = createMcpStdioServer({ offline: opts.offline });
@@ -2251,7 +2485,11 @@ async function main() {
     }
 
     if (options.help) {
-        printHelp();
+        if (options.command === 'scan') {
+            printScanHelp();
+        } else {
+            printHelp();
+        }
         return 0;
     }
 

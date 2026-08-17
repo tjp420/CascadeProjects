@@ -7,6 +7,11 @@ const { createNetworkGuard } = require('../lib/trust-guard');
 const { createScanHandlers } = require('./handlers/scan-handlers');
 const { createReportHandlers } = require('./handlers/report-handlers');
 const { createUtilityHandlers } = require('./handlers/utility-handlers');
+const { createAgentLoopHandlers } = require('./handlers/agent-loop-handlers');
+const { createAgentContextHandlers } = require('./handlers/agent-context-handlers');
+const { createProblemSolverHandlers } = require('./handlers/problem-solver-handlers');
+const { createSuperchargeHandlers } = require('./handlers/supercharge-handlers');
+const { assertCapability, resolveAgentTier } = require('../lib/agent-tier-capabilities');
 const constants = require('../lib/constants');
 
 function resolveProjectRoot(override) {
@@ -78,14 +83,42 @@ function createMcpToolHandlers(options = {}) {
         };
     }
 
-    const scanHandlers = createScanHandlers({ withGuard, resolveProjectRoot, formatToolResult, cacheReport });
-    const reportHandlers = createReportHandlers({ withGuard, resolveProjectRoot, formatToolResult, formatMarkdownResult, getCachedReport });
-    const utilityHandlers = createUtilityHandlers({ withGuard, resolveProjectRoot, formatToolResult, formatMarkdownResult });
+    function withTierGuard(toolName, fn) {
+        return (...args) => {
+            const check = assertCapability(toolName, resolveAgentTier());
+            if (!check.allowed) {
+                return formatToolResult(check.upsell);
+            }
+            return fn(...args);
+        };
+    }
+
+    const handlerDeps = {
+        withGuard,
+        withTierGuard,
+        resolveProjectRoot,
+        formatToolResult,
+        formatMarkdownResult,
+        cacheReport,
+        getCachedReport
+    };
+
+    const scanHandlers = createScanHandlers(handlerDeps);
+    const reportHandlers = createReportHandlers(handlerDeps);
+    const utilityHandlers = createUtilityHandlers(handlerDeps);
+    const agentLoopHandlers = createAgentLoopHandlers(handlerDeps);
+    const agentContextHandlers = createAgentContextHandlers(handlerDeps);
+    const problemSolverHandlers = createProblemSolverHandlers(handlerDeps);
+    const superchargeHandlers = createSuperchargeHandlers(handlerDeps);
 
     return {
         ...scanHandlers,
         ...reportHandlers,
         ...utilityHandlers,
+        ...agentLoopHandlers,
+        ...agentContextHandlers,
+        ...problemSolverHandlers,
+        ...superchargeHandlers,
         dispose() {
             if (networkGuard) networkGuard.dispose();
         }
@@ -159,6 +192,29 @@ const TOOL_DEFINITIONS = [
         }
     },
     {
+        name: 'code_suggestions',
+        description: 'Return simple before/after code hints from the latest gate or cleanup scan — quick wins, auto-fixable patterns, and dead-export trims. Deterministic, no LLM.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                reportPath: { type: 'string', description: 'Override report path relative to project root' },
+                maxSuggestions: { type: 'number', description: 'Max suggestions (default 20)' }
+            }
+        }
+    },
+    {
+        name: 'master_engineering_brief',
+        description: 'Synthesize gate, cleanup, code suggestions, and recovery playbooks into a ten-cylinder master plan with "yes you can" steps and curated online resources. Deterministic — no LLM.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                refresh: { type: 'boolean', description: 'Write .simplebeacon/master-engineering-brief.md to disk (default false)' }
+            }
+        }
+    },
+    {
         name: 'get_action_plan',
         description: 'Return a focused, human-readable action plan from the latest scan report — prioritized playbooks with time estimates, step-by-step steps, and verify commands. Uses the same deterministic remediation guides as the CLI --format action-plan.',
         inputSchema: {
@@ -182,17 +238,31 @@ const TOOL_DEFINITIONS = [
         }
     },
     {
+        name: 'handoff_check',
+        description: 'Check whether an AI agent may claim the task complete — gate pass with zero blocking issues. Free tier allowed.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' }
+            }
+        }
+    },
+    {
         name: 'init_project',
-        description: 'Initialize a new project with .simplebeacon/config.json and baseline.json. Optionally install MCP config, Cursor rules, and CI workflow.',
+        description: 'Initialize a new project with .simplebeacon/config.json and baseline.json. Optionally install universal agent bootstrap (MCP configs, instructions, hooks, CI).',
         inputSchema: {
             type: 'object',
             properties: {
                 projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
                 profile: { type: 'string', description: 'Force profile: minimal, standard, cascade, executive, euai, universal' },
                 force: { type: 'boolean', description: 'Overwrite existing config/baseline' },
-                withMcp: { type: 'boolean', description: 'Write .cursor/mcp.json + agent rule for Cursor MCP' },
-                withCi: { type: 'boolean', description: 'Write .github/workflows/simplebeacon.yml' },
-                starter: { type: 'boolean', description: 'Shorthand for withMcp + withCi' }
+                withMcp: { type: 'boolean', description: 'Write MCP configs for selected hosts' },
+                withHooks: { type: 'boolean', description: 'Install Cursor preToolUse hook (blocks slop on apply when paid)' },
+                paidTier: { type: 'boolean', description: 'Install paid 11/10 agent instruction template' },
+                withCi: { type: 'boolean', description: 'Write CI pipeline workflow' },
+                starter: { type: 'boolean', description: 'Universal agent bootstrap: all hosts + hooks + CI' },
+                agent: { type: 'boolean', description: 'Alias for starter' },
+                hosts: { type: 'string', description: 'Hosts: all | auto | cursor,windsurf,continue,claude,universal' }
             }
         }
     },
@@ -251,6 +321,139 @@ const TOOL_DEFINITIONS = [
             type: 'object',
             properties: {},
             required: []
+        }
+    },
+    {
+        name: 'get_agent_brief',
+        description: 'Return tier-aware agent brief markdown from the latest scan — gate status, pipeline metrics, top findings, next action. Optionally write .simplebeacon/agent-brief.md.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                task: { type: 'string', description: 'Task hint: hygiene, handoff, security, refactor, gamedev, extension' },
+                writeDisk: { type: 'boolean', description: 'Write .simplebeacon/agent-brief.md (default false)' }
+            }
+        }
+    },
+    {
+        name: 'get_context_pack',
+        description: 'Structured AI context pack — repo map, entry points, pipeline metrics, verify commands, MCP workflow. Free tier preview; paid tier full findings. Optionally write .simplebeacon/ai-context.md.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string' },
+                task: { type: 'string', description: 'Task profile: hygiene, handoff, security, refactor, gamedev, extension' },
+                format: { type: 'string', description: 'json (default) or markdown' },
+                writeDisk: { type: 'boolean', description: 'Write .simplebeacon/ai-context.md' }
+            }
+        }
+    },
+    {
+        name: 'propose_fix',
+        description: 'Paid: return deterministic search/replace patch for a finding (AST remediator). Free tier blocked.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string' },
+                patternId: { type: 'string', description: 'Pattern id from scan_snippet/scan_file' },
+                pattern: { type: 'string', description: 'Alias for patternId' },
+                filePath: { type: 'string' },
+                line: { type: 'number' },
+                type: { type: 'string' },
+                findingId: { type: 'string' },
+                dryRun: { type: 'boolean', description: 'Default true — do not write disk' }
+            }
+        }
+    },
+    {
+        name: 'verify_fix',
+        description: 'Paid: re-scan patched snippet or file; returns blockingCountBefore/After. Free tier blocked.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string' },
+                content: { type: 'string' },
+                filePath: { type: 'string' },
+                blockingCountBefore: { type: 'number' },
+                findingId: { type: 'string' }
+            }
+        }
+    },
+    {
+        name: 'scan_staged',
+        description: 'Paid: run gate rules on git staged files only. Free tier blocked.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string' }
+            }
+        }
+    },
+    {
+        name: 'agent_status',
+        description: 'Paid: read/update .simplebeacon/agent-session.json — open findings, next action. Free tier blocked.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string' },
+                patch: { type: 'object', description: 'Optional session fields to merge' }
+            }
+        }
+    },
+    {
+        name: 'solve_problem',
+        description: 'Master engineer problem solver — takes a natural-language problem statement and returns a "yes you can" resolution plan with step-by-step instructions, curated online resources, and recommended MCP tools. Covers CI failures, test issues, dependency vulnerabilities, secrets, Lighthouse/a11y, TypeScript errors, circular deps, Docker, database migrations, git recovery, ESM/CJS, performance, monorepo CI, Redis, Cloudflare Workers, memory leaks, SPA rendering, test coverage, env config, API design, and auth. Deterministic — no LLM inference. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                problem: { type: 'string', description: 'Natural language problem statement (e.g. "CI is failing with 37 test errors" or "Lighthouse a11y score is 0.87")' },
+                projectRoot: { type: 'string', description: 'Project root for gate context (default: cwd)' }
+            },
+            required: ['problem']
+        }
+    },
+    {
+        name: 'diagnose_error',
+        description: 'Diagnose an error message or stack trace — returns root cause, confidence level, fix, and curated resources. Covers Node.js errors (ERR_REQUIRE_ESM, ECONNREFUSED, ENOENT, heap OOM), TypeScript errors (TS2304, TS2339, TS2322), Jest errors (timeout, snapshot, open handles), Docker errors, Lighthouse errors (button-name, color-contrast), Git errors (merge conflict, not a repo), and npm errors (ERESOLVE, EACCES). Deterministic — no LLM inference. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                errorText: { type: 'string', description: 'Error message or stack trace to diagnose' },
+                error: { type: 'string', description: 'Alias for errorText' },
+                message: { type: 'string', description: 'Alias for errorText' }
+            },
+            required: ['errorText']
+        }
+    },
+    {
+        name: 'supercharge_agent',
+        description: 'One-call mission briefing for any AI coding agent — bundles gate status, context pack, code suggestions, master engineering summary, git snapshot, host plugin status, session playbook, and tool router. Start here every session. Free tier. PDA modes: task handoff (ship readiness), security (credentials/leaks), gamedev (game project integrity).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                task: { type: 'string', description: 'Task profile / PDA mode: handoff | security | gamedev (first-class PDA modes), or hygiene | refactor | extension' },
+                format: { type: 'string', description: 'json (default) or markdown' },
+                writeDisk: { type: 'boolean', description: 'Write .simplebeacon/agent-supercharge.md (default false)' },
+                includeGit: { type: 'boolean', description: 'Include git branch/dirty snapshot (default true)' }
+            }
+        }
+    },
+    {
+        name: 'install_agent_plugin',
+        description: 'Wire SimpleBeacon MCP + instructions into coding agent plugins: Cursor, Windsurf, Continue, Claude, Cline, GitHub Copilot, Aider, Universal (AGENTS.md). Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                hosts: { type: 'string', description: 'Hosts: all | cursor,windsurf,continue,cline,copilot,aider,universal,claude' },
+                force: { type: 'boolean', description: 'Overwrite existing configs' },
+                supercharge: { type: 'boolean', description: 'Install supercharge workflow instructions (default true)' },
+                paidTier: { type: 'boolean', description: 'Install paid-tier instruction variant when supercharge is false' },
+                withMcp: { type: 'boolean', description: 'Write MCP server configs (default true)' },
+                withInstructions: { type: 'boolean', description: 'Write agent instruction files (default true)' },
+                dryRun: { type: 'boolean', description: 'Preview changes without writing' }
+            }
         }
     }
 ];

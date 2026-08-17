@@ -57,6 +57,26 @@ npx simplebeacon gate-status
 
 ---
 
+## Gamedev / GZDoom scans
+
+For **GZDoom / ZScript mod trees** (e.g. R3DLighting + R3DOptions), use the **`gamedev`** profile and mod-side config — not the default web-hygiene gate on the monorepo root.
+
+**Setup (on the mod):** copy [`.simplebeacon/templates/gamedev/`](.simplebeacon/templates/gamedev/) → `{mod}/.simplebeacon/config.json` (see `config.r3d-lighting.json` / `config.r3d-options.json`) and `simplebeaconignore` → `{mod}/.simplebeaconignore`.
+
+**Run (from this monorepo):**
+
+```bash
+npm run gzdoom:export-summary -- --path "E:/Ai/Games/Doom/TEst/results/R3DLighting"
+npm run gzdoom:export-summary -- --path "E:/Ai/Games/Doom/TEst/results/R3DOptions"
+npm run gzdoom:norun-gate -- --path "E:/Ai/Games/Doom/TEst/results/R3DLighting" --timeout 600000
+```
+
+**Read results:** `{mod}/Docs/gzdoom-gate-summary.json` and `{mod}/Docs/gzdoom-norun-gate.json` (mod `.gitignore` often excludes `.simplebeacon/`).
+
+Full mod-author setup: [docs/gzdoom-mod-author-setup.md](docs/gzdoom-mod-author-setup.md) · Agent/monorepo details: [AGENTS.md](AGENTS.md#monorepo-vs-vsix-do-not-treat-this-as-consumer-only)
+
+---
+
 ## CLI Commands
 
 All commands are available via `npx simplebeacon <command>` or `node packages/simplebeacon-cli/bin/simplebeacon.js <command>`.

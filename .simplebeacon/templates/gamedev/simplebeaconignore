@@ -1,0 +1,10 @@
+*.log
+**/__pycache__/**
+build_temp/**
+Backup/**
+**/*_DUPLICATE.zs
+**/*_OLD.zs
+**/*.corrupt
+**/*.clean
+**/*_backup.zs
+.simplebeacon/**
