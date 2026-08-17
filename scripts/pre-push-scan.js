@@ -20,6 +20,11 @@ const SKIP_GLOBS = [
   'ai-platform/server/db/token-registry.json',
   // Scanner source files — contain credential pattern definitions and allowlist entries (not real secrets)
   'packages/simplebeacon-cli/src/lib/credential-pattern-scanner.js',
+  'packages/simplebeacon-cli/src/lib/report-sanitizer.js',
+  // Gate parity and agent MCP tests — fake AWS keys for scanner contract checks
+  'packages/simplebeacon-cli/tests/gate-parity.test.js',
+  'packages/simplebeacon-cli/tests/ai-agent-controller.test.js',
+  'packages/simplebeacon-cli/tests/mcp.test.js',
   // Test fixtures — contain known false-positive secrets for testing scanner rules
   'packages/simplebeacon-cli/tests/git-history-secret-scanner.test.js',
   'packages/simplebeacon-cli/tests/cve-dependency-scanner.test.js',
