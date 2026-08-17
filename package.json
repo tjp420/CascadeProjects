@@ -47,7 +47,10 @@
     "test:dashboard-health": "node scripts/verify-dashboard-health.js",
     "dashboard:mock": "node scripts/generate-mock-report.js",
     "build:ci": "node scripts/build-ci.js",
-    "verify:deployment": "node ai-platform/tools/verify-deployment.cjs"
+    "verify:deployment": "node ai-platform/tools/verify-deployment.cjs",
+    "gzdoom:scan": "node scripts/gzdoom-mod-scan.cjs",
+    "gzdoom:export-summary": "node scripts/gzdoom-export-summary.cjs",
+    "gzdoom:norun-gate": "node scripts/gzdoom-norun-gate.cjs"
   },
   "prepare": "husky install",
   "dependencies": {
