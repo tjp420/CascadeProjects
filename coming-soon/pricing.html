@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
     <title>SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance</title>
-    <meta name="description" content="Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
+    <meta name="description" content="Agent ($25/mo), Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
     <link rel="canonical" href="https://simplebeacon.ai/pricing.html">
     <meta name="robots" content="index, follow">
     <meta property="og:title" content="SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance">
-    <meta property="og:description" content="Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
+    <meta property="og:description" content="Agent ($25/mo), Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/pricing.html">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance">
-    <meta name="twitter:description" content="Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
+    <meta name="twitter:description" content="Agent ($25/mo), Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
 
     
     
@@ -65,7 +65,6 @@
       if(window.MutationObserver){ var mo=new MutationObserver(function(records){ records.forEach(function(r){ Array.prototype.forEach.call(r.addedNodes||[], function(n){ if(n.nodeType===1){ if(n.tagName==='SCRIPT') neutralize(n); if(n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('script'), neutralize); } }); }); }); mo.observe(document.documentElement,{childList:true,subtree:true}); }
     })();
   </script>
-  <script>(function(){var FREE_TIERS=['free','community','sandbox',''];try{var u=localStorage.getItem('sb-user')||localStorage.getItem('sb_user');if(u){var p=JSON.parse(u);var t=(p.tier||p.plan||'').toLowerCase();if(t&&FREE_TIERS.indexOf(t)===-1){window.location.href='/dashboard/';}}}catch(_){}})();</script>
 </head>
 <body class="pricing-page">
 <nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
@@ -178,6 +177,13 @@
         <p class="custody-hint">DevTools (F12) &rarr; Network tab &rarr; disconnect Wi-Fi &rarr; drop a folder &rarr; observe 0 requests.</p>
       </div>
 
+      <div class="custody-strip" data-animate="fade-up" style="margin-top:1rem;border-color:#312e81;">
+        <span class="custody-badge" style="background:#312e81;">Game Dev</span>
+        <h3>Works with Unity, Unreal, Godot, mods, and custom engines</h3>
+        <p>Local integrity gate for scripts, assets, shaders, and runtime logs — no EU AI Act paperwork, no upload.</p>
+        <p class="custody-hint"><code>npx simplebeacon init --starter --profile gamedev</code> &middot; paste <code>Player.log</code> or Godot stderr for log correlation</p>
+      </div>
+
       <div class="pricing-mode-tabs-wrap" data-animate="fade-up">
         <div class="pricing-mode-tabs">
           <button type="button" id="tabSubscriptions" class="pricing-tab-btn pricing-tab-btn--active" onclick="switchPricingTab('subscriptions')">Subscriptions<small>For Engineering Teams</small></button>
@@ -195,13 +201,56 @@
       <div class="pricing-grid">
         <article class="price-card" data-animate="fade-up" data-delay="0">
           <div class="price-card-header">
+            <span class="price-tag">Indie / Mod Dev</span>
+            <h3>Game Dev Pro</h3>
+            <div class="price-amount" id="gameDevPrice">$15<span class="price-unit">/mo</span></div>
+            <p id="gameDevAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$180/yr</span> <span style="color:var(--success);font-weight:600;">$150/yr</span> <span class="save-badge">Save 17%</span></p>
+          </div>
+          <p class="price-desc"><strong>Ship builds without broken refs.</strong> Unity, Unreal, Godot, GZDoom, and Lua mods — asset path checks, shader includes, engine packs, and runtime log correlation. Offline MCP for Cursor and VS Code.</p>
+          <ul class="price-features">
+            <li>Engine packs: Unity, Godot, Unreal, GZDoom</li>
+            <li>Broken asset / config path detection</li>
+            <li>Log correlation (<code>Player.log</code>, Godot stderr)</li>
+            <li>Shader <code>#include</code> integrity</li>
+            <li>Lua require graph heuristics</li>
+            <li>AI slop scan tuned for game scripts</li>
+            <li>Agent Supercharge <code>task: gamedev</code></li>
+          </ul>
+          <p class="price-guarantee">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
+          <button class="price-btn checkout-btn" data-tier="game_dev" data-price-id="price_game_dev_monthly" data-annual-price-id="price_game_dev_annual">Subscribe</button>
+        </article>
+
+        <article class="price-card" data-animate="fade-up" data-delay="0">
+          <div class="price-card-header">
+            <span class="price-tag">Individual</span>
+            <h3>Agent</h3>
+            <div class="price-amount" id="agentPrice">$25<span class="price-unit">/mo</span></div>
+            <p id="agentAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$300/yr</span> <span style="color:var(--success);font-weight:600;">$250/yr</span> <span class="save-badge">Save 17%</span></p>
+          </div>
+          <p class="price-desc"><strong>The closed fix loop for AI coding agents.</strong> Unlock <code>scan_file</code>, <code>propose_fix</code>, <code>verify_fix</code>, <code>agent_status</code>, and <code>explain_finding</code> — the tools that let Cursor, Windsurf, Claude, and Copilot autonomously fix what they find.</p>
+          <ul class="price-features">
+            <li><code>scan_file</code> — rescan changed files on disk</li>
+            <li><code>propose_fix</code> &rarr; <code>verify_fix</code> — deterministic patch loop</li>
+            <li><code>agent_status</code> — track open findings + next action</li>
+            <li><code>explain_finding</code> — pattern metadata lookup</li>
+            <li>Unlimited <code>scan_snippet</code> scans (no daily cap)</li>
+            <li>26 MCP tools for any coding agent plugin</li>
+            <li>Agent Supercharge mission briefing</li>
+          </ul>
+          <p class="price-guarantee">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
+          <button class="price-btn checkout-btn" data-tier="agent" data-price-id="price_agent_monthly" data-annual-price-id="price_agent_annual">Subscribe</button>
+        </article>
+
+        <article class="price-card" data-animate="fade-up" data-delay="50">
+          <div class="price-card-header">
             <span class="price-tag">Individual</span>
             <h3>Developer</h3>
             <div class="price-amount" id="developerPrice">$49<span class="price-unit">/mo</span></div>
             <p id="developerAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$588/yr</span> <span style="color:var(--success);font-weight:600;">$490/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
-          <p class="price-desc"><strong>Keep your local branches clean before peer review.</strong> Unlimited scans, CI gate, and JSON exports for the individual developer who wants to catch AI slop before it hits the PR.</p>
+          <p class="price-desc"><strong>Keep your local branches clean before peer review.</strong> Everything in Agent, plus unlimited scans, CI gate, and JSON exports for the individual developer who wants to catch AI slop before it hits the PR.</p>
           <ul class="price-features">
+            <li>Everything in Agent, plus:</li>
             <li>Unlimited pipeline scans with unlimited files per scan.</li>
             <li>GitHub Action CI gate for every pull request.</li>
             <li>Custom scanner toggles via Configuration-as-Code.</li>
@@ -223,12 +272,13 @@
             <div class="price-amount" id="teamProPrice">$149<span class="price-unit">/mo</span></div>
             <p id="teamProAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$1,788/yr</span> <span style="color:var(--success);font-weight:600;">$1,490/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
-          <p class="price-desc"><strong>Shared team rule-sets, CI/CD pipeline integration, and automated PR gates.</strong> Board-ready compliance documentation, EU AI Act evidence packs, and team collaboration for engineering teams that ship fast without breaking compliance.</p>
+          <p class="price-desc"><strong>Every agent on your team gets the same mission briefing, gate, and fix loop.</strong> Shared team rule-sets, CI/CD pipeline integration, automated PR gates, and board-ready compliance documentation for engineering teams that ship fast without breaking compliance.</p>
           <ul class="price-features">
             <li>EU AI Act &amp; SOC 2 legal compliance mapping</li>
             <li>Board-ready PDF certificate ZIP</li>
             <li>CycloneDX 1.5 SBOM generator (EO 14028 ready)</li>
             <li>5 team seats + team dashboard</li>
+            <li>Agent Supercharge for every team member's IDE</li>
             <li>GitHub Action CI gate for every pull request</li>
             <li>Priority email + Slack support</li>
             <li>Quarterly compliance reviews</li>
@@ -299,7 +349,7 @@
           <div class="price-card-header">
             <span class="price-tag">One-Time</span>
             <h3>Executive Risk Certificate</h3>
-            <div class="price-amount">$499</div>
+            <div class="price-amount">$999</div>
           </div>
           <p class="price-desc">Instantly generate a compliance paper trail for your risk committee, investors, or procurement team before your next major release.</p>
           <ul class="price-features">
@@ -363,14 +413,14 @@
           <div class="adoption-arrow">&#8594;</div>
           <div class="adoption-step">
             <div class="adoption-icon adoption-icon--mgr">&#128188;</div>
-            <div class="adoption-step-title">2. Manager buys $149 pass</div>
-            <p>Deadline hits. Manager expenses a one-time certificate on a corporate card — no procurement.</p>
+            <div class="adoption-step-title">2. Agent upgrades to $25/mo</div>
+            <p>Unlock the fix loop — scan_file, propose_fix, verify_fix. The coding agent fixes what it finds, autonomously.</p>
           </div>
           <div class="adoption-arrow">&#8594;</div>
           <div class="adoption-step">
             <div class="adoption-icon adoption-icon--team">&#128640;</div>
             <div class="adoption-step-title">3. Team upgrades to $149/mo</div>
-            <p>After the second pass, they automate with Team Pro CI gates and continuous compliance.</p>
+            <p>After the second pass, they automate with Team Pro CI gates, compliance docs, and continuous compliance.</p>
           </div>
         </div>
         <p class="adoption-footnote">No top-down sales cycle. No MSA. No legal review. Just a developer, a deadline, and a corporate card.</p>
@@ -397,7 +447,7 @@
         <div class="trust-card">
           <div class="trust-card-icon">&#128274;</div>
           <div class="trust-card-title">Zero Upload Architecture</div>
-          <p>Source code never leaves your machine. Scans run locally. Browser sandbox wipes memory on tab close. CLI works offline.</p>
+          <p>Source code never leaves your machine. Scans run locally. Browser sandbox wipes memory on tab close. CLI works offline. <a href="/prove-it">See the 5-step proof ladder →</a></p>
         </div>
         <div class="trust-card">
           <div class="trust-card-icon">&#9989;</div>
@@ -643,6 +693,15 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       }
     }
 
+    (function initPricingTabFromUrl() {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('tab') === 'onetime' || window.location.hash === '#onetime') {
+          switchPricingTab('onetime');
+        }
+      } catch (_) {}
+    })();
+
     // Checkout modal handlers
     function openCheckoutModal(tier) {
       var modal = document.getElementById('checkoutModal');
@@ -671,12 +730,20 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       var developerPrice = document.getElementById('developerPrice');
       var teamProPrice = document.getElementById('teamProPrice');
       var entPrice = document.getElementById('entPrice');
+      var agentPrice = document.getElementById('agentPrice');
+      var gameDevPrice = document.getElementById('gameDevPrice');
       var developerNote = document.getElementById('developerAnnualNote');
       var teamProNote = document.getElementById('teamProAnnualNote');
       var entNote = document.getElementById('entAnnualNote');
+      var agentNote = document.getElementById('agentAnnualNote');
+      var gameDevNote = document.getElementById('gameDevAnnualNote');
+      if (gameDevPrice) gameDevPrice.innerHTML = isAnnual ? '$150<span class="price-unit">/yr</span>' : '$15<span class="price-unit">/mo</span>';
+      if (agentPrice) agentPrice.innerHTML = isAnnual ? '$250<span class="price-unit">/yr</span>' : '$25<span class="price-unit">/mo</span>';
       if (developerPrice) developerPrice.innerHTML = isAnnual ? '$490<span class="price-unit">/yr</span>' : '$49<span class="price-unit">/mo</span>';
       if (teamProPrice) teamProPrice.innerHTML = isAnnual ? '$1,490<span class="price-unit">/yr</span>' : '$149<span class="price-unit">/mo</span>';
       if (entPrice) entPrice.innerHTML = 'Custom';
+      if (agentNote) agentNote.style.display = isAnnual ? 'block' : 'none';
+      if (gameDevNote) gameDevNote.style.display = isAnnual ? 'block' : 'none';
       if (developerNote) developerNote.style.display = isAnnual ? 'block' : 'none';
       if (teamProNote) teamProNote.style.display = isAnnual ? 'block' : 'none';
       if (entNote) entNote.style.display = 'none';
@@ -751,7 +818,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
         return false;
       }
 
-      var productMap = { developer: 'developer_tier', team_pro: 'team_pro_tier', enterprise: 'enterprise_tier', custom: 'custom_plan', one_time_certificate: 'one_time_certificate', executive_clearance: 'executive_clearance', eu_ai_act_sprint: 'eu_ai_act_sprint' };
+      var productMap = { game_dev: 'game_dev_tier', developer: 'developer_tier', team_pro: 'team_pro_tier', enterprise: 'enterprise_tier', custom: 'custom_plan', one_time_certificate: 'one_time_certificate', executive_clearance: 'executive_clearance', eu_ai_act_sprint: 'eu_ai_act_sprint' };
       var product = productMap[tier] || (tier.indexOf('custom_') === 0 ? 'custom_plan' : null);
       if (!product) {
         errorEl.textContent = 'Unknown product tier.';
@@ -798,9 +865,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       }
 
       // Subscription tiers: developer/team_pro
-      var subscriptionTiers = ['developer_tier', 'team_pro_tier'];
+      var subscriptionTiers = ['game_dev_tier', 'developer_tier', 'team_pro_tier'];
       if (subscriptionTiers.indexOf(product) >= 0) {
-        var subTierMap = { developer_tier: 'developer', team_pro_tier: 'team_pro' };
+        var subTierMap = { game_dev_tier: 'game_dev', developer_tier: 'developer', team_pro_tier: 'team_pro' };
         var subTier = subTierMap[product] || 'developer';
         var productKey = subTier + '_' + (isAnnual ? 'annual' : 'monthly');
         var payload = { email: email, product: productKey, projectName: projectName, certClientName: clientName || email };
@@ -913,7 +980,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
         '  • 1 cryptographic, board-ready certificate\n' +
         '  • PDF + JSON + remediation roadmap\n' +
         '  • Valid for 12 months\n\n' +
-        'Executive Risk Certificate — $499 one-time\n' +
+        'Executive Risk Certificate — $999 one-time\n' +
         '  • Signed risk-certificate for committees, investors, or procurement\n' +
         '  • A–F hygiene grade + liability estimate\n' +
         '  • 90-day validity\n\n' +

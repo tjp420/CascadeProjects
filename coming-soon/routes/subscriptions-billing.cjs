@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const db = require('../lib/db.cjs');
 const { buildReferralCheckoutMetadata, processStripeReferralAttribution } = require('../lib/referral-webhook.cjs');
 
@@ -28,10 +29,14 @@ const PRICE_TEAM_MONTHLY = 9900;
 const PRICE_TEAM_ANNUAL = 99000;
 const PRICE_ENTERPRISE_MONTHLY = 49900;
 const PRICE_ENTERPRISE_ANNUAL = 499000;
+const PRICE_AGENT_MONTHLY = 2500;
+const PRICE_AGENT_ANNUAL = 25000;
 const PRICE_DEVELOPER_MONTHLY = 4900;
 const PRICE_DEVELOPER_ANNUAL = 49000;
 const PRICE_TEAM_PRO_MONTHLY = 14900;
 const PRICE_TEAM_PRO_ANNUAL = 149000;
+const PRICE_GAME_DEV_MONTHLY = 1500;
+const PRICE_GAME_DEV_ANNUAL = 15000;
 const PRICE_EXTRA_SEAT_MONTHLY = 1500;
 const PRICE_EXTRA_SEAT_ANNUAL = 15000;
 
@@ -72,7 +77,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
             subCheckoutRateLog.set(clientIp, { count: 1, resetAt: now + SUB_CHECKOUT_RATE_LIMIT_MS });
         }
 
-        const { email, projectName, clientName, tier, mode, extraSeats } = req.body;
+        const { email, projectName, clientName, tier, mode, extraSeats, upgradeToken } = req.body;
         if (!email || !projectName) {
             return res.status(400).json({ error: 'Email and project name are required.' });
         }
@@ -99,6 +104,18 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const seatCount = (tier === 'team_pro' && extraSeats) ? Math.max(0, Math.min(50, parseInt(extraSeats, 10) || 0)) : 0;
 
         const tierConfig = {
+            agent: {
+                name: 'SimpleBeacon Agent',
+                desc: 'SimpleBeacon Agent — fix loop for AI coding agents: scan_file, propose_fix, verify_fix, agent_status',
+                monthly: PRICE_AGENT_MONTHLY,
+                annual: PRICE_AGENT_ANNUAL
+            },
+            game_dev: {
+                name: 'SimpleBeacon Game Dev Pro',
+                desc: 'SimpleBeacon Game Dev Pro — Unity, Unreal, Godot, mods: asset integrity, log correlation, engine packs, offline MCP',
+                monthly: PRICE_GAME_DEV_MONTHLY,
+                annual: PRICE_GAME_DEV_ANNUAL
+            },
             developer: {
                 name: 'SimpleBeacon Developer',
                 desc: 'SimpleBeacon Developer — unlimited scans, CI gate, 38 analyzer modules',
@@ -142,8 +159,8 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const unitAmount = isAnnual ? selectedTier.annual : selectedTier.monthly;
         const interval = isAnnual ? 'year' : 'month';
         const displayPrice = isAnnual
-            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'team_pro' ? '$1,490/yr' : tier === 'team' ? '$990/yr' : tier === 'pro' ? '$90/yr' : tier === 'developer' ? '$490/yr' : '$490/yr')
-            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'team_pro' ? '$149/mo' : tier === 'team' ? '$99/mo' : tier === 'pro' ? '$9/mo' : tier === 'developer' ? '$49/mo' : '$49/mo');
+            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'team_pro' ? '$1,490/yr' : tier === 'team' ? '$990/yr' : tier === 'pro' ? '$90/yr' : tier === 'agent' ? '$250/yr' : tier === 'game_dev' ? '$150/yr' : tier === 'developer' ? '$490/yr' : '$490/yr')
+            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'team_pro' ? '$149/mo' : tier === 'team' ? '$99/mo' : tier === 'pro' ? '$9/mo' : tier === 'agent' ? '$25/mo' : tier === 'game_dev' ? '$15/mo' : tier === 'developer' ? '$49/mo' : '$49/mo');
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -167,6 +184,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const successUrl = `${PUBLIC_URL}/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`;
         const cancelUrl = `${PUBLIC_URL}/pricing.html?canceled=true`;
         const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
+        const cleanUpgradeToken = upgradeToken ? sanitize(String(upgradeToken), 500) : '';
 
         // Build line items: base subscription + optional extra seat add-on
         const lineItems = [{
@@ -199,7 +217,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
             });
         }
 
-        const session = await stripe.checkout.sessions.create({
+        const sessionPayload = {
             mode: 'subscription',
             customer: stripeCustomerId,
             line_items: lineItems,
@@ -212,10 +230,20 @@ router.post('/api/create-subscription-session', async (req, res) => {
                 projectName: cleanProjectName,
                 clientName: cleanClientName,
                 apiKey: customer.api_key,
+                ...(cleanUpgradeToken ? { upgradeToken: cleanUpgradeToken } : {}),
                 ...(seatCount > 0 ? { extraSeats: String(seatCount) } : {}),
                 ...referralMetadata
             }
-        });
+        };
+        if (cleanUpgradeToken) {
+            sessionPayload.subscription_data = {
+                metadata: {
+                    email: cleanEmail,
+                    upgradeToken: cleanUpgradeToken
+                }
+            };
+        }
+        const session = await stripe.checkout.sessions.create(sessionPayload);
 
         res.json({ success: true, url: session.url, sessionId: session.id });
     } catch (error) {
@@ -397,6 +425,10 @@ function setupSubscriptionWebhook(app) {
             const unitAmount = sub.items?.data?.[0]?.price?.unit_amount || 0;
             const interval = sub.items?.data?.[0]?.price?.recurring?.interval || 'month';
             const PRICE_TIER_MAP = {
+                [PRICE_AGENT_MONTHLY]: 'agent',
+                [PRICE_AGENT_ANNUAL]: 'agent',
+                [PRICE_GAME_DEV_MONTHLY]: 'game_dev',
+                [PRICE_GAME_DEV_ANNUAL]: 'game_dev',
                 [PRICE_DEVELOPER_MONTHLY]: 'developer',
                 [PRICE_DEVELOPER_ANNUAL]: 'developer',
                 [PRICE_TEAM_PRO_MONTHLY]: 'team_pro',
@@ -412,12 +444,16 @@ function setupSubscriptionWebhook(app) {
             };
             let detectedTier = PRICE_TIER_MAP[unitAmount] || 'developer';
             const finalTier = customer.tier && customer.tier !== 'community' ? customer.tier : detectedTier;
-            const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite Enterprise' : finalTier === 'compliance' ? 'Compliance Suite' : finalTier === 'team_pro' ? 'SimpleBeacon Team Pro' : finalTier === 'team' ? 'Continuous Shield Team' : finalTier === 'developer' ? 'SimpleBeacon Developer' : 'AI Slop Cop Pro';
+            const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite Enterprise' : finalTier === 'compliance' ? 'Compliance Suite' : finalTier === 'team_pro' ? 'SimpleBeacon Team Pro' : finalTier === 'team' ? 'Continuous Shield Team' : finalTier === 'agent' ? 'SimpleBeacon Agent' : finalTier === 'game_dev' ? 'SimpleBeacon Game Dev Pro' : finalTier === 'developer' ? 'SimpleBeacon Developer' : 'AI Slop Cop Pro';
             const features = finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro'
                 ? ['continuous_shield', 'team_dashboard', 'ci_integration', 'compliance_certificate', 'eu_ai_act', 'analyst_support']
                 : finalTier === 'team'
                     ? ['continuous_shield', 'team_dashboard', 'ci_integration']
-                    : ['continuous_shield', 'ci_integration', 'export_reports'];
+                    : finalTier === 'game_dev'
+                        ? ['game_dev_pro', 'engine_packs', 'log_correlation', 'asset_integrity', 'agent_fix_loop']
+                    : finalTier === 'agent'
+                        ? ['agent_fix_loop', 'scan_file', 'propose_fix', 'verify_fix', 'agent_status', 'explain_finding']
+                        : ['continuous_shield', 'ci_integration', 'export_reports'];
 
             db.updateCustomerSubscription(customer.email, status, finalTier);
             db.addPaidSubscription(customer.email, sub.id, priceId, status, periodStart, periodEnd);
@@ -431,6 +467,7 @@ function setupSubscriptionWebhook(app) {
                     const { renderProrationNotice } = require('../services/billing-email-templates.cjs');
                     const { sendEmail } = require('../services/email.cjs');
                     const TIER_PRICES = {
+                        agent: { monthly: 2500, annual: 25000 },
                         developer: { monthly: 4900, annual: 49000 },
                         team_pro: { monthly: 14900, annual: 149000 },
                         team: { monthly: 1500, annual: 15000 },
@@ -476,10 +513,58 @@ function setupSubscriptionWebhook(app) {
                     const ttlMinutes = interval === 'year' ? 60 * 24 * 365 : 60 * 24 * 30;
                     const ttlLabel = interval === 'year' ? '1 year' : '30 days';
 
-                    // Look up existing free token for this customer
+                    // Look up existing free/guest token for upgrade lineage
                     const dbInstance = db.getDb();
-                    const freeTokenRecord = dbInstance.prepare('SELECT * FROM free_tokens WHERE email = ?').get(customer.email.trim().toLowerCase());
-                    const previousToken = freeTokenRecord ? freeTokenRecord.token : null;
+                    const normalizedEmail = customer.email.trim().toLowerCase();
+                    const freeTokenRecord = dbInstance.prepare('SELECT * FROM free_tokens WHERE email = ?').get(normalizedEmail);
+                    let previousToken = freeTokenRecord ? freeTokenRecord.token : null;
+
+                    const subMeta = sub.metadata || {};
+                    const upgradeTokenFromMeta = subMeta.upgradeToken || '';
+                    if (upgradeTokenFromMeta) {
+                        previousToken = upgradeTokenFromMeta;
+                    }
+
+                    const guestTokenService = require('../lib/guest-token-service.cjs');
+                    if (previousToken && (guestTokenService.getGuestTokenByHash(require('../lib/token-chain-store.cjs').hashToken(previousToken)) || (function () {
+                        try {
+                            const decoded = jwt.verify(previousToken, licenseSecret, { clockTolerance: 60 });
+                            return decoded && (decoded.tier === 'guest' || decoded.guestId);
+                        } catch { return false; }
+                    })())) {
+                        try {
+                            const upgraded = guestTokenService.upgradeGuestToken(previousToken, normalizedEmail, finalTier, licenseSecret, ttlMinutes);
+                            if (upgraded.success) {
+                                previousToken = upgraded.previousToken;
+                                const token = upgraded.token;
+                                try {
+                                    const { sendEmail } = require('../services/email.cjs');
+                                    const { renderLicenseConfirmation } = require('../services/email-templates/license-confirmation-email.cjs');
+                                    const emailContent = renderLicenseConfirmation({
+                                        tierLabel,
+                                        token,
+                                        apiKey: customer.api_key,
+                                        ttlLabel,
+                                        customerEmail: customer.email,
+                                        features,
+                                        dashboardUrl: DASHBOARD_URL,
+                                        signInUrl: DASHBOARD_URL + 'signin'
+                                    });
+                                    await sendEmail({
+                                        to: customer.email,
+                                        subject: emailContent.subject,
+                                        text: emailContent.text,
+                                        html: emailContent.html
+                                    });
+                                } catch (emailErr) {
+                                    logger.error('[SubscriptionWebhook] Guest upgrade email failed:', emailErr.message);
+                                }
+                                return res.json({ received: true, status: 'guest_upgraded' });
+                            }
+                        } catch (guestUpErr) {
+                            logger.error('[SubscriptionWebhook] Guest token upgrade failed:', guestUpErr.message);
+                        }
+                    }
 
                     const tokenPayload = {
                         email: customer.email,

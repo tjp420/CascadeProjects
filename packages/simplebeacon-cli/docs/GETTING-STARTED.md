@@ -2,7 +2,7 @@
 
 Local deterministic gate for AI-assisted code. **No repo upload. No SaaS required.**
 
-## 1. Install + wire MCP + CI (one command)
+## 1. Install + wire all AI agents (one command)
 
 ```bash
 npx --yes simplebeacon init --starter
@@ -15,17 +15,31 @@ npm install -D simplebeacon
 npx simplebeacon init --starter
 ```
 
-Creates:
+`--starter` is the universal agent bootstrap (same as `--agent`). Creates:
 
 | Path | Purpose |
 |------|---------|
 | `.simplebeacon/config.json` | Rules + allowlists |
 | `.simplebeacon/baseline.json` | Fiction KPI baseline |
-| `.cursor/mcp.json` | Cursor MCP (`simplebeacon-mcp --offline`) |
-| `.cursor/rules/simplebeacon-scan-workflow.mdc` | Agent scan workflow |
+| `.cursor/mcp.json` | Cursor MCP |
+| `.windsurf/mcp.json` | Windsurf MCP |
+| `.continue/config.json` | Continue MCP (merged) |
+| `.cursor/rules/simplebeacon-ai-workflow.mdc` | Cursor agent workflow |
+| `AGENTS.md` | Universal agent section (Copilot, Devin, etc.) |
 | `.github/workflows/simplebeacon.yml` | PR/push gate (authoritative) |
 
-Reload Cursor → **Settings → MCP** → enable **simplebeacon**.
+Reload your AI editor → enable **simplebeacon** MCP.
+
+**Game projects (Unity, Unreal, Godot, mods):**
+
+```bash
+npx simplebeacon init --starter --profile gamedev
+npx simplebeacon scan --config .simplebeacon/config-game-dev.json --gate --offline
+```
+
+Copy `packages/simplebeacon-cli/examples/gamedev-config.json` or use `.simplebeacon/config-game-dev.json` as a template. Set `engine` to `auto`, `unity`, `godot`, `unreal`, `gzdoom`, or `generic`.
+
+**Full host guide:** [docs/AGENT-SETUP.md](AGENT-SETUP.md)
 
 ## 2. Daily workflow
 

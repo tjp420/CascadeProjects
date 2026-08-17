@@ -109,7 +109,7 @@ const PROFILE_RULES = {
         roadmap: { enabled: false },
         'production-leak': { enabled: false },
         'fiction-kpi-patterns': { enabled: false },
-        'llm-slop-patterns': { enabled: false },
+        'llm-slop-patterns': { enabled: true, severity: 'medium', gameDevMode: true },
         'agency-handoff-patterns': { enabled: false },
         'eu-ai-act-patterns': { enabled: false },
         'jest-baseline': { enabled: false, runTests: false },
@@ -121,6 +121,11 @@ const PROFILE_RULES = {
         'cve-dependency': { enabled: false },
         'sbom-generator': { enabled: false },
         'git-history-secret': { enabled: false },
+        'game-asset-integrity-patterns': { enabled: true, severity: 'high' },
+        'game-log-correlator-patterns': { enabled: true, severity: 'high' },
+        'game-shader-integrity-patterns': { enabled: true, severity: 'medium' },
+        'lua-script-graph-patterns': { enabled: true, severity: 'high' },
+        'game-engine-packs': { enabled: true, severity: 'high' },
         'gzdoom-integrity-patterns': { enabled: true, severity: 'high', respectIncludes: true }
     },
     cascade: {
@@ -154,6 +159,28 @@ const PROFILE_RULES = {
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
         'file-reduction': { enabled: true, dryRun: true }
+    },
+    'gov-local': {
+        credentials: { enabled: true, scanProduction: true },
+        'json-schema': { enabled: false },
+        'sample-consistency': { enabled: false },
+        roadmap: { enabled: false },
+        'production-leak': { enabled: true, severity: 'high' },
+        'fiction-kpi-patterns': { enabled: true, severity: 'medium' },
+        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
+        'classification-spillage-patterns': { enabled: true, severity: 'critical', scanDocs: false },
+        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
+        'owasp-llm-patterns': { enabled: true, severity: 'high' },
+        'token-bleed-patterns': { enabled: true, severity: 'medium' },
+        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'security-patterns': { enabled: true, severity: 'high' },
+        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
+        'pii-logging': { enabled: true },
+        'jest-baseline': { enabled: false, runTests: false },
+        'file-reduction': { enabled: false },
+        'cve-dependency': { enabled: true, includeDev: true },
+        'sbom-generator': { enabled: true, includeDev: true },
+        'git-history-secret': { enabled: true, maxCommits: 1000 }
     }
 };
 
@@ -343,6 +370,15 @@ function buildInitConfig(baseDir, options = {}) {
         config.rules['jest-baseline'] = { ...PROFILE_RULES.cascade['jest-baseline'] };
     }
 
+    if (profile === 'gamedev') {
+        config.scanPaths = ['.'];
+        config.productionPaths = ['.'];
+        config.engine = options.engine || 'auto';
+        config.gameDev = {
+            engine: config.engine
+        };
+    }
+
     return { config, detected, profile };
 }
 
@@ -464,7 +500,12 @@ const FREE_RULE_ENGINES = new Set([
     'security-patterns',
     'json-schema',
     'sample-consistency',
-    'gzdoom-integrity-patterns'
+    'gzdoom-integrity-patterns',
+    'game-asset-integrity-patterns',
+    'game-log-correlator-patterns',
+    'game-shader-integrity-patterns',
+    'lua-script-graph-patterns',
+    'game-engine-packs'
 ]);
 
 function sanitizeConfigForTier(config, tier) {

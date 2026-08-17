@@ -22,6 +22,7 @@ const { scanProductionLeaks, globMatch } = require('./rules/production-leak');
 const { scanSourceFictionPatterns } = require('./rules/fiction-kpi-patterns');
 const { scanLlmSlopPatterns } = require('./rules/llm-slop-patterns');
 const { scanAgencyHandoffPatterns } = require('./rules/agency-handoff-patterns');
+const { scanClassificationSpillagePatterns } = require('./rules/classification-spillage-patterns');
 const { scanEuAiActPatterns } = require('./rules/eu-ai-act-patterns');
 const { scanOwaspLlmPatterns } = require('./rules/owasp-llm-patterns');
 const { scanTokenBleedPatterns } = require('./rules/token-bleed-patterns');
@@ -47,6 +48,12 @@ const { scanCveDependencies } = require('./rules/cve-dependency-scanner');
 const { generateSbom } = require('./rules/sbom-generator');
 const { scanGitHistorySecrets } = require('./rules/git-history-secret-scanner');
 const { scanGzdoomIntegrity } = require('./rules/gzdoom-integrity-patterns');
+const { scanGameAssetIntegrity } = require('./rules/game-asset-integrity-patterns');
+const { scanGameLogCorrelator } = require('./rules/game-log-correlator-patterns');
+const { scanGameShaderIntegrity } = require('./rules/game-shader-integrity-patterns');
+const { scanLuaScriptGraph } = require('./rules/lua-script-graph-patterns');
+const { scanGameEnginePacks } = require('./rules/game-engine-packs');
+const { resolveGameEngine, detectGameEngine } = require('./lib/game-engine-registry');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, sanitizeConfigForTier } = require('./config');
 const { detectTier } = require('./lib/tier-detector');
 const { checkLocalScanQuota, incrementLocalScan, incrementPipelineScan, isPipelineScan } = require('./lib/scan-usage-tracker');
@@ -359,12 +366,18 @@ const SCAN_RESULT_DEFAULTS = Object.freeze({
     'fiction-kpi-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], patterns: [] }),
     'llm-slop-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], patterns: [] }),
     'agency-handoff-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], patterns: [] }),
+    'classification-spillage-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], patterns: [] }),
     'eu-ai-act-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], summary: null, patterns: [] }),
     'jest-baseline': Object.freeze({ checked: false, passed: true, issues: [], summary: null }),
     'token-bleed-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
     'architecture-drift-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
     'security-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
     'gzdoom-integrity-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], graphSummary: null }),
+    'game-asset-integrity-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'game-log-correlator-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'game-shader-integrity-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'lua-script-graph-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'game-engine-packs': Object.freeze({ scanned: 0, findings: 0, issues: [], packsRun: [] }),
     'file-reduction': Object.freeze({ allFindings: [], findings: {}, summary: {} }),
     'dependency-graph': Object.freeze({ scanned: 0, findings: 0, issues: [], results: [] })
 });
@@ -963,6 +976,8 @@ function buildScanReport(opts) {
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
         dependencyGraphScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan,
+        gameAssetIntegrityScan, gameLogCorrelatorScan, gameShaderIntegrityScan,
+        luaScriptGraphScan, gameEnginePacksScan,
         gzdoomIntegrityScan
     } = resolved;
 
@@ -1582,6 +1597,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
                     sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
                     productionPaths: opts.productionPaths || config.productionPaths,
                     ignoreGlobs: opts.ignoreGlobs || config.ignore,
+                    gameDevMode: opts.gameDevMode === true,
                     registryCheck: opts.registryCheck === true || process.env.SIMPLEBEACON_REGISTRY_CHECK === 'true',
                     registryCheckLimit: opts.registryCheckLimit || 12,
                     minConfidence: options.minConfidence ?? config.minConfidence ?? 0.5
@@ -1593,6 +1609,12 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             productionPaths: opts.productionPaths || config.productionPaths,
             ignoreGlobs: opts.ignoreGlobs || config.ignore,
             severity: opts.severity || 'medium'
+        })),
+        scannerEntry('classification-spillage-patterns', 'classificationSpillageScan', scanClassificationSpillagePatterns, (opts) => ({
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'critical',
+            scanDocs: opts.scanDocs === true
         })),
         scannerEntry('eu-ai-act-patterns', 'euAiActScan', scanEuAiActPatterns, (opts) => ({
             sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
@@ -1690,14 +1712,58 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             timeoutMs: opts.timeoutMs || 30000,
             paths: opts.paths || config.productionPaths || []
         })),
-        scannerEntry('gzdoom-integrity-patterns', 'gzdoomIntegrityScan', scanGzdoomIntegrity, (opts) => ({
+        scannerEntry('game-asset-integrity-patterns', 'gameAssetIntegrityScan', scanGameAssetIntegrity, (opts) => ({
             ignoreGlobs: opts.ignoreGlobs || config.ignore,
-            logPath: options.gzdoomLog || opts.logPath || null,
+            severity: opts.severity || 'high',
+            sourcePaths: opts.sourcePaths || ['.']
+        })),
+        scannerEntry('game-log-correlator-patterns', 'gameLogCorrelatorScan', scanGameLogCorrelator, (opts) => ({
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            logPath: options.gzdoomLog || options.gameLog || opts.logPath || null,
+            engine: config.gameDev?.engine || config.engine || opts.engine || 'auto',
+            severity: opts.severity || 'high'
+        })),
+        scannerEntry('game-shader-integrity-patterns', 'gameShaderIntegrityScan', scanGameShaderIntegrity, (opts) => ({
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'medium',
+            sourcePaths: opts.sourcePaths || ['.']
+        })),
+        scannerEntry('lua-script-graph-patterns', 'luaScriptGraphScan', scanLuaScriptGraph, (opts) => ({
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'high',
+            sourcePaths: opts.sourcePaths || ['.']
+        })),
+        scannerEntry('game-engine-packs', 'gameEnginePacksScan', scanGameEnginePacks, (opts) => ({
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
             severity: opts.severity || 'high',
             sourcePaths: opts.sourcePaths || ['.'],
-            respectIncludes: opts.respectIncludes !== false,
-            extraActors: opts.extraActors || []
-        }))
+            engine: config.gameDev?.engine || config.engine || opts.engine || 'auto',
+            config
+        })),
+        {
+            key: 'gzdoom-integrity-patterns',
+            varName: 'gzdoomIntegrityScan',
+            enabled: (cfg) => {
+                if (!isRuleEnabled(cfg, 'gzdoom-integrity-patterns')) return false;
+                const engine = resolveGameEngine(root, cfg);
+                if (engine === 'gzdoom') return true;
+                if (engine === 'generic' || engine === 'auto') {
+                    return detectGameEngine(root) === 'gzdoom';
+                }
+                return false;
+            },
+            run: () => {
+                const opts = getRuleOptions(config, 'gzdoom-integrity-patterns');
+                return scanGzdoomIntegrity(root, {
+                    ignoreGlobs: opts.ignoreGlobs || config.ignore,
+                    logPath: options.gzdoomLog || options.gameLog || opts.logPath || null,
+                    severity: opts.severity || 'high',
+                    sourcePaths: opts.sourcePaths || ['.'],
+                    respectIncludes: opts.respectIncludes !== false,
+                    extraActors: opts.extraActors || []
+                });
+            }
+        }
     ];
 
     // --- Selective rule execution ---
@@ -1795,13 +1861,15 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
     let {
         roadmapValidation, consistency, credentialScan, productionLeakScan,
-        sourceFictionScan, llmSlopScan, agencyHandoffScan, euAiActScan,
+        sourceFictionScan, llmSlopScan, agencyHandoffScan, classificationSpillageScan, euAiActScan,
         jestBaseline, tokenBleedScan, architectureDriftScan, securityPatternScan,
         fileReduction, hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, _astStructuralScan,
         dependencyGraphScan, comprehensiveScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan,
+        gameAssetIntegrityScan, gameLogCorrelatorScan, gameShaderIntegrityScan,
+        luaScriptGraphScan, gameEnginePacksScan,
         gzdoomIntegrityScan
     } = resolved;
 
@@ -1816,6 +1884,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     normalizeScannerOutput(issues, sourceFictionScan, null, null, null, null, (getRuleOptions(config, 'fiction-kpi-patterns') || {}).severity || 'medium');
     normalizeScannerOutput(issues, llmSlopScan, null, null, null, null, (getRuleOptions(config, 'llm-slop-patterns') || {}).severity || 'medium');
     normalizeScannerOutput(issues, agencyHandoffScan);
+    normalizeScannerOutput(issues, classificationSpillageScan, 'classification-spillage', 'SB-GOV-001', 'Classification or CUI marking in production path', 'critical');
     normalizeScannerOutput(issues, euAiActScan);
     normalizeScannerOutput(issues, jestBaseline);
     normalizeScannerOutput(issues, tokenBleedScan);
@@ -1837,6 +1906,11 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     normalizeScannerOutput(issues, cveDependencyScan, 'cve-vulnerability', 'SB-CVE-001', 'Known CVE vulnerability in dependency');
     normalizeScannerOutput(issues, sbomScan, 'sbom-generated', 'SB-SBOM-001', 'SBOM generation result', 'info');
     normalizeScannerOutput(issues, gitHistorySecretScan, 'git-history-secret', 'SB-GITSEC-001', 'Secret found in git history');
+    normalizeScannerOutput(issues, gameAssetIntegrityScan, 'game-integrity', 'GAME-ASSET-001', 'Broken game asset reference');
+    normalizeScannerOutput(issues, gameLogCorrelatorScan, 'game-log', 'GAME-LOG-001', 'Runtime log error correlated to project');
+    normalizeScannerOutput(issues, gameShaderIntegrityScan, 'shader-integrity', 'GAME-SHADER-001', 'Missing shader include');
+    normalizeScannerOutput(issues, luaScriptGraphScan, 'lua-graph', 'LUA-GRAPH-001', 'Unresolved Lua require');
+    normalizeScannerOutput(issues, gameEnginePacksScan, 'engine-pack', 'GAME-ENGINE-001', 'Engine-specific integrity issue');
     normalizeScannerOutput(issues, gzdoomIntegrityScan, 'gzdoom-integrity', 'GZ-XREF', 'GZDoom mod reference integrity issue');
     if (fileReduction.allFindings?.length) {
         for (const finding of fileReduction.allFindings) {

@@ -1,0 +1,28 @@
+{
+  "profile": "gamedev",
+  "engine": "auto",
+  "scanPaths": ["."],
+  "productionPaths": ["."],
+  "gameDev": {
+    "engine": "auto"
+  },
+  "ignore": [
+    "Library/**",
+    "Temp/**",
+    "Binaries/**",
+    "Intermediate/**",
+    "Saved/**",
+    ".godot/**",
+    ".import/**"
+  ],
+  "rules": {
+    "llm-slop-patterns": { "enabled": true, "severity": "medium", "gameDevMode": true },
+    "game-asset-integrity-patterns": { "enabled": true, "severity": "high" },
+    "game-log-correlator-patterns": { "enabled": true, "severity": "high" },
+    "game-shader-integrity-patterns": { "enabled": true, "severity": "medium" },
+    "lua-script-graph-patterns": { "enabled": true, "severity": "high" },
+    "game-engine-packs": { "enabled": true, "severity": "high" },
+    "gzdoom-integrity-patterns": { "enabled": true, "severity": "high", "respectIncludes": true }
+  },
+  "gate": { "enabled": true, "failOn": ["high"] }
+}

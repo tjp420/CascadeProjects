@@ -42,12 +42,20 @@ const VALID_RULES = new Set([
     'cve-dependency',
     'sbom-generator',
     'git-history-secret',
-    'gzdoom-integrity-patterns'
+    'gzdoom-integrity-patterns',
+    'game-asset-integrity-patterns',
+    'game-log-correlator-patterns',
+    'game-shader-integrity-patterns',
+    'lua-script-graph-patterns',
+    'game-engine-packs',
+    'classification-spillage-patterns'
 ]);
+
+const VALID_GAME_ENGINES = new Set(['auto', 'gzdoom', 'unity', 'godot', 'unreal', 'generic']);
 
 const VALID_SCANNER_ACTIONS = new Set(['BLOCK', 'WARN', 'SKIP']);
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low']);
-const VALID_PROFILES = new Set(['minimal', 'standard', 'cascade', 'eu-ai-act', 'gamedev']);
+const VALID_PROFILES = new Set(['minimal', 'standard', 'cascade', 'eu-ai-act', 'gamedev', 'gov-local']);
 
 function validateConfig(config) {
     const errors = [];
@@ -125,6 +133,13 @@ function validateConfig(config) {
         }
     }
 
+    if (config.engine && !VALID_GAME_ENGINES.has(String(config.engine).toLowerCase())) {
+        warnings.push(`Unknown engine "${config.engine}" — use auto, gzdoom, unity, godot, unreal, or generic`);
+    }
+    if (config.gameDev?.engine && !VALID_GAME_ENGINES.has(String(config.gameDev.engine).toLowerCase())) {
+        warnings.push(`Unknown gameDev.engine "${config.gameDev.engine}" — use auto, gzdoom, unity, godot, unreal, or generic`);
+    }
+
     if (config.allowlist != null) {
         if (!Array.isArray(config.allowlist)) {
             errors.push('allowlist must be an array of strings');
@@ -142,6 +157,7 @@ function validateConfig(config) {
 
 module.exports = {
     VALID_RULES,
+    VALID_GAME_ENGINES,
     VALID_PROFILES,
     VALID_SCANNER_ACTIONS,
     VALID_SEVERITIES,

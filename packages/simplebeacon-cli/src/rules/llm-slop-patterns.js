@@ -14,6 +14,9 @@ const MANIFEST_NAMES = new Set(['package.json', 'package-lock.json']);
 const SCANNABLE_EXTENSIONS = new Set([
     '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.html', '.vue', '.svelte', '.json', '.env', '.yaml', '.yml', '.md'
 ]);
+const GAME_DEV_EXTENSIONS = new Set([
+    '.cs', '.gd', '.lua', '.zs', '.glsl', '.vert', '.frag', '.hlsl', '.fx', '.shader', '.cpp', '.h', '.ini', '.tscn', '.tres'
+]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
     '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs', 'deliverables',
@@ -121,6 +124,12 @@ function isJSDocLine(line) {
 
 async function walkFiles(dir, results = [], options = {}, depth = 0) {
     if (depth > 12) return results;
+    const allowedExtensions = options.gameDevMode
+        ? new Set([...SCANNABLE_EXTENSIONS, ...GAME_DEV_EXTENSIONS])
+        : SCANNABLE_EXTENSIONS;
+    const skipDirs = options.gameDevMode
+        ? new Set([...SKIP_DIRS, 'Library', 'Temp', 'Binaries', 'Intermediate', 'Saved', '.godot', '.import'])
+        : SKIP_DIRS;
     let entries;
     try {
         entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -131,7 +140,7 @@ async function walkFiles(dir, results = [], options = {}, depth = 0) {
     for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-            if (SKIP_DIRS.has(entry.name)) continue;
+            if (skipDirs.has(entry.name)) continue;
             await walkFiles(fullPath, results, options, depth + 1);
             continue;
         }
@@ -139,7 +148,7 @@ async function walkFiles(dir, results = [], options = {}, depth = 0) {
 
         const ext = path.extname(entry.name).toLowerCase();
         const baseName = entry.name.toLowerCase();
-        if (!SCANNABLE_EXTENSIONS.has(ext) && !MANIFEST_NAMES.has(baseName)) continue;
+        if (!allowedExtensions.has(ext) && !MANIFEST_NAMES.has(baseName)) continue;
 
         const relativePath = normalizeRel(options.baseDir, fullPath);
         if (isExcludedPath(relativePath)) continue;
@@ -331,12 +340,13 @@ async function scanLlmSlopPatterns(baseDir, options = {}) {
     const productionPaths = options.productionPaths || sourcePaths;
     const pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];
     const ignoreGlobs = options.ignoreGlobs || [];
+    const walkOpts = { baseDir, ignoreGlobs, gameDevMode: options.gameDevMode === true };
 
     const files = [];
     for (const rel of pathsToWalk) {
         const abs = path.isAbsolute(rel) ? rel : path.join(baseDir, ...rel.split('/'));
         if (fs.existsSync(abs)) {
-            await walkFiles(abs, files, { baseDir, ignoreGlobs });
+            await walkFiles(abs, files, walkOpts);
         }
     }
 

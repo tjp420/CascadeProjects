@@ -83,6 +83,10 @@ const server = app.listen(0, () => {
     console.log('[sim] Test server on port ' + port);
 
     const testCases = [
+        { tier: 'agent',     mode: 'monthly',  expectedCents: 2500,   label: 'Agent monthly ($25/mo)' },
+        { tier: 'agent',     mode: 'annual',   expectedCents: 25000,  label: 'Agent annual ($250/yr)' },
+        { tier: 'game_dev',  mode: 'monthly',  expectedCents: 1500,   label: 'Game Dev Pro monthly ($15/mo)' },
+        { tier: 'game_dev',  mode: 'annual',   expectedCents: 15000,  label: 'Game Dev Pro annual ($150/yr)' },
         { tier: 'developer', mode: 'monthly',  expectedCents: 4900,   label: 'Developer monthly ($49/mo)' },
         { tier: 'developer', mode: 'annual',   expectedCents: 49000,  label: 'Developer annual ($490/yr)' },
         { tier: 'team_pro',  mode: 'monthly',  expectedCents: 14900,  label: 'Team Pro monthly ($149/mo)' },
@@ -109,7 +113,7 @@ const server = app.listen(0, () => {
     // One-time pass test cases (use /api/create-checkout-session endpoint)
     const oneTimeCases = [
         { product: 'one_time_certificate',  scans: ['one_time_certificate'],  expectedCents: 14900,  label: 'One-Time Audit Certificate ($149)' },
-        { product: 'executive_clearance',    scans: ['executive_clearance'],    expectedCents: 49900,  label: 'Executive Risk Certificate ($499)' },
+        { product: 'executive_clearance',    scans: ['executive_clearance'],    expectedCents: 99900,  label: 'Executive Risk Certificate ($999)' },
         { product: 'eu_ai_act_sprint',       scans: ['eu_ai_act_sprint'],       expectedCents: 249900, label: 'EU AI Act Sprint ($2,499)' },
     ];
 

@@ -344,7 +344,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 },
                 scanProfiles: [
                     { id: 'default', label: 'Web + ZScript', description: 'Default CLI profile — web stack plus .zs files' },
-                    { id: 'game-dev', label: 'Game dev', description: 'Web + game modding extensions (ZScript, ACS, DECORATE, GLSL, Lua)' },
+                    { id: 'game-dev', label: 'Game dev', description: 'Unity, Unreal, Godot, mods — scripts, assets, shaders, log correlation' },
                     { id: 'universal', label: 'Universal', description: 'All registered language families — used by dashboard scans' }
                 ],
                 defaultScanProfile: resolveScanProfile({}, 'dashboard')
