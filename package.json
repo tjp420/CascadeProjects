@@ -6,6 +6,7 @@
     "packages/*",
     "ai-platform",
     "ai-platform/packages/*",
+    "api-server",
     "coming-soon",
     "simplebeacon-vscode-merged"
   ],
