@@ -7,6 +7,8 @@
   "description": "Deterministic local agentic loop optimized for 2B parameter models.",
   "license": "MIT",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "capabilities-server": "node ../tools/agent-capabilities-server.cjs",
+    "capabilities": "node ../tools/agent-capabilities.cjs --pretty"
   }
 }

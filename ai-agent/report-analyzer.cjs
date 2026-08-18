@@ -23,8 +23,20 @@ function buildPrompt(report) { // simplebeacon-ignore debug-artifact — legitim
         .map(i => `- [${i.severity?.toUpperCase() || 'MEDIUM'}] ${i.type || i.rule || 'Finding'}: ${i.description || i.message || ''} (${i.file || i.filePath || ''}${i.line ? ':' + i.line : ''})`)
         .join('\n');
 
-    const prompt = `You are a code hygiene expert. Analyze this SimpleBeacon scan report and propose specific, safe remediation steps.
+    let superchargeBlock = '';
+    try {
+        const reportDir = path.dirname(require.main === module ? process.argv[2] || '' : '');
+        const superPath = path.join(reportDir || '.simplebeacon', 'agent-supercharge.md');
+        const resolved = path.isAbsolute(superPath) ? superPath : path.join(process.cwd(), '.simplebeacon', 'agent-supercharge.md');
+        if (fs.existsSync(resolved)) {
+            superchargeBlock = `\nAGENT SUPERCHARGE BRIEFING\n${fs.readFileSync(resolved, 'utf8').slice(0, 4000)}\n`;
+        }
+    } catch {
+        /* optional */
+    }
 
+    const prompt = `You are a code hygiene expert supercharged by SimpleBeacon. Analyze this scan report and propose specific, safe remediation steps.
+${superchargeBlock}
 SCAN SUMMARY
 - Gate: ${gate.pass ? 'PASS' : 'FAIL'}
 - Critical: ${sev.critical || 0}, High: ${sev.high || 0}, Medium: ${sev.medium || 0}, Low: ${sev.low || 0}
