@@ -219,7 +219,7 @@ SimpleBeacon supports multiple auth flows:
 
 ### Feature Checklist
 
-See [`FEATURE_CHECKLIST.md`](./FEATURE_CHECKLIST.md) for a comprehensive map of all features with test results.
+See [`FEATURE_CHECKLIST.md`](./docs/archive/FEATURE_CHECKLIST.md) for a comprehensive map of all features with test results.
 
 **Test Coverage Summary:**
 - **112 features tested** across CLI, dashboard, coming-soon, API, and VS Code: extension

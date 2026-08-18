@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const ROADMAP = path.join(ROOT, '..', 'roadmap-2026-07-16.json');
-const REPORT = path.join(ROOT, 'WORKSPACE-STATUS-REPORT-2026-07-16.md');
+const REPORT = path.join(ROOT, 'docs', 'archive', 'WORKSPACE-STATUS-REPORT-2026-07-16.md');
 
 function runGitStatus() {
   try {
