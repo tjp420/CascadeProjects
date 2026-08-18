@@ -536,12 +536,15 @@ export function isFilePickerBlockedError(err) {
   return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(msg);
 }
 
-/** True when a webkitdirectory FileList length matches a known browser cap (~3k on Chrome). */
+/** True when a webkitdirectory FileList length matches a known browser cap (~3k or ~8k on Chrome). */
 export function isLikelyWebkitDirectoryFileCap(fileCount) {
   const n = Number(fileCount) || 0;
   if (n < 2000) return false;
   const knownCaps = [2048, 2500, 3000, 3250, 4096, 8192, 10000];
-  return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
+  if (knownCaps.includes(n)) return true;
+  if (n >= 2900 && n <= 3300) return true;
+  if (n >= 7500 && n <= 8500) return true;
+  return false;
 }
 
 /**
@@ -651,9 +654,12 @@ export function incompleteFolderDropMessage(folderName) {
     + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
 }
 
-/** Copy when browser local scan hits the inventory cap. */
+/** Copy when browser local scan hits an inventory cap (legacy — cap removed; RAM is the practical limit). */
 export function browserLocalScanCapMessage(maxFiles) {
   const n = Number(maxFiles) || 0;
+  if (n >= Number.MAX_SAFE_INTEGER - 1) {
+    return 'Browser scan has no file cap — very large folders may require significant RAM. CLI: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+  }
   return `Browser local scan inventory is capped at ${n.toLocaleString()} files. `
     + 'Results may be truncated. For full coverage run: '
     + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';

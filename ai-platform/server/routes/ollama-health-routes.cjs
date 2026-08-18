@@ -8,6 +8,7 @@
 
 const express = require('express');
 const { ollamaHealth, ollamaListModels, DEFAULT_OLLAMA_URL } = require('../services/ollama-client.cjs');
+const { authenticate } = require('../middleware/auth.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 
 const router = express.Router();
@@ -16,7 +17,7 @@ let _lastProbe = null;
 let _lastProbeAt = 0;
 const PROBE_CACHE_MS = 5000;
 
-router.get('/health', authorize('admin:all'), async (req, res) => {
+router.get('/health', authenticate, authorize('admin:all'), async (req, res) => {
   const now = Date.now();
   const baseUrl = req.query.baseUrl
     ? String(req.query.baseUrl).replace(/\/$/, '')

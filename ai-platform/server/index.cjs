@@ -15,6 +15,10 @@
  * @example <caption>Health check</caption>
  * curl http://localhost:3000/health
  *
+ * Webhook routes mount signature-verified handlers (not in this bootstrap file):
+ * @see src/api/simplebeacon-billing-api.cjs — stripe.webhooks.constructEvent
+ * @see server/routes/stripe-webhook-routes.cjs — crypto.createHmac verification
+ *
  * @file server/index.cjs
  */
 
@@ -212,13 +216,21 @@ app.use(cors(resolveCorsOptions({
   devFallbackOrigin: process.env.CORS_ORIGIN || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN
 })));
 
-// Ensure local analyze backend (dev ports) are permitted by CSP connect-src.
-// This middleware augments any existing Content-Security-Policy header by
-// appending the local endpoints we rely on during development and hosted-preview.
+// Dev-only: augment CSP connect-src for local analyze backends.
+// Set SIMPLEBEACON_DEV_CSP_CONNECT (space-separated URLs) or SIMPLEBEACON_DEV_ANALYZE_PORT.
 app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    return next();
+  }
   try {
     const existing = res.getHeader('Content-Security-Policy');
-    const connectExtras = 'http://127.0.0.1:8081 http://localhost:8081';
+    const devPort = String(
+      process.env.SIMPLEBEACON_DEV_ANALYZE_PORT || process.env.VITE_DEV_PORT || '8081'
+    ).trim();
+    const loopHost = '127.0.0.1';
+    const envConnectExtras = String(process.env.SIMPLEBEACON_DEV_CSP_CONNECT || '').trim();
+    const connectExtras = envConnectExtras
+      || `http://${loopHost}:${devPort} http://localhost:${devPort}`;
     let csp = '';
 
     if (typeof existing === 'string') csp = existing;
@@ -229,16 +241,17 @@ app.use((req, res, next) => {
       const m = csp.match(/(connect-src[^;]*)/i);
       if (m) {
         const connectSrc = m[1];
-        if (!/127\.0\.0\.1:8081/.test(connectSrc)) {
+        const portNeedle = `${loopHost}:${devPort}`;
+        if (!connectSrc.includes(portNeedle)) {
           const replaced = csp.replace(/(connect-src[^;]*)/i, `${connectSrc} ${connectExtras}`);
           res.setHeader('Content-Security-Policy', replaced);
         }
       }
     } else {
-      // No existing CSP or no connect-src: add a connect-src allowing local dev
-      // with wildcard ports so the dashboard's port-scanning probes work.
+      // No existing CSP or no connect-src: add connect-src with wildcard local ports
+      // so the dashboard port-scanning probes work during development.
       const base = csp && csp.length ? csp + '; ' : '';
-      const newCsp = `${base}connect-src 'self' ws: wss: https://cloudflareinsights.com https://*.onrender.com http://127.0.0.1:* http://localhost:* https://localhost:*;`;
+      const newCsp = `${base}connect-src 'self' ws: wss: https://cloudflareinsights.com https://*.onrender.com http://${loopHost}:* http://localhost:* https://localhost:*;`;
       res.setHeader('Content-Security-Policy', newCsp);
     }
   } catch (e) {
@@ -434,6 +447,7 @@ const VAULT_AUTH_EXACT_PATHS = new Set([
   '/api/reports/upload',
   '/api/analyze',
   '/api/free-token',
+  '/api/tokens/guest',
   '/api/tokens/sandbox',
   '/api/create-checkout-session',
   '/api/checkout/webhook'

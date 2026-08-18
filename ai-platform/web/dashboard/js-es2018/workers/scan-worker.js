@@ -7,8 +7,8 @@
  */
 import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260728dropfix2';
 import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260728dropfix2';
-const MAX_DISCOVERED_FILES = 500000;
-const MAX_ISSUES = 100000;
+const MAX_DISCOVERED_FILES = Number.MAX_SAFE_INTEGER;
+const MAX_ISSUES = Number.MAX_SAFE_INTEGER;
 const SCAN_BATCH_SIZE = 400;
 const YIELD_INTERVAL = 500; // yield back to main thread every N files
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB

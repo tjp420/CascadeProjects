@@ -34,6 +34,8 @@ import { useExtensionBridge } from '@/hooks/useExtensionBridge';
 import { discoverAndApplyExtensionBridge } from '@services/localAgentService.js';
 import { navigate } from '@/router/HashRouter';
 import { requestNotificationPermission, showOSNotification, isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
+import { isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, canUseUnlimitedDirectoryPicker } from '@/lib/browserFolderCap';
+import { ScanPipelinePanel, type ScanPipelineMetrics } from '@/components/ScanPipelinePanel';
 
 type ScanMode = 'local' | 'server' | 'github' | 'website';
 type ScanState = 'idle' | 'scanning' | 'complete' | 'error' | 'auth_required';
@@ -187,6 +189,20 @@ async function runBridgeExtensionScan(
   return report;
 }
 
+function extractPipelineMetrics(report: any, scanResult?: ScanResult | null): ScanPipelineMetrics {
+  const scope = report?.scanScope || {};
+  const pipeline = scope.pipeline || {};
+  return {
+    scanMode: scope.scanMode || scope.resultsViewScope || 'browser-heuristic',
+    discovered: pipeline.discovered ?? scope.filesDiscovered ?? report?.repositoryFilesTotal ?? scanResult?.totalFiles,
+    filtered: pipeline.filtered ?? scope.filesAfterIgnore ?? report?.repositoryFilesTotal ?? scanResult?.totalFiles,
+    analyzed: pipeline.analyzed ?? scope.codeFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? scanResult?.scanScope?.codeFilesAnalyzed,
+    gateBlocking: pipeline.gateBlocking ?? report?.gate?.blockingCount ?? scanResult?.gate?.blockingCount,
+    gatePass: report?.gate?.pass ?? scanResult?.gate?.pass,
+    limitations: Array.isArray(scope.limitations) ? scope.limitations : undefined,
+  };
+}
+
 interface ScanResult {
   totalFiles: number;
   issueCount: number;
@@ -266,6 +282,7 @@ export function AnalyzeView() {
   const [progressLabel, setProgressLabel] = useState('');
   const [requiresManualTrigger, setRequiresManualTrigger] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [pipelineMetrics, setPipelineMetrics] = useState<ScanPipelineMetrics | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -633,6 +650,7 @@ export function AnalyzeView() {
     setRequiresManualTrigger(false);
     setResult(null);
     setFullReport(null);
+    setPipelineMetrics(null);
     setPath(options.projectPath);
     appendLog(`[SimpleBeacon] ${options.logLabel || 'Browser local scan'}...`);
     try {
@@ -677,6 +695,7 @@ export function AnalyzeView() {
       };
       setResult(scanResult);
       setFullReport(report);
+      setPipelineMetrics(extractPipelineMetrics(r, scanResult));
       setScanState('complete');
       setProgress(100);
       appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
@@ -1434,6 +1453,15 @@ export function AnalyzeView() {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
           }
+          if (isLikelyWebkitDirectoryFileCap(files.length) && canUseUnlimitedDirectoryPicker()) {
+            toast.warning(browserFolderCapMessage(files.length), { duration: 14000 });
+            setRequiresManualTrigger(true);
+            setScanState('idle');
+            setProgress(0);
+            setProgressLabel('Browser capped this drop at ~8k files — click Select Folder for full discovery.');
+            appendLog(`[SimpleBeacon] Drop hit webkitdirectory cap (${files.length} files) — use Select Folder (unlimited picker).`);
+            return;
+          }
           // Guard: 1-2 files from a folder drop likely means entries went stale
           // (DOMException when worker reads the File). Show Select Folder prompt
           // instead of producing a false-positive gate PASS on a stale single file.
@@ -1518,6 +1546,15 @@ export function AnalyzeView() {
       if (refuseIncompleteBrowserDrop(dtFiles.length, dtFiles[0]?.name || 'dropped-folder')) {
         return;
       }
+      if (isLikelyWebkitDirectoryFileCap(dtFiles.length) && canUseUnlimitedDirectoryPicker()) {
+        toast.warning(browserFolderCapMessage(dtFiles.length), { duration: 14000 });
+        setRequiresManualTrigger(true);
+        setScanState('idle');
+        setProgress(0);
+        setProgressLabel('Browser capped this drop at ~8k files — click Select Folder for full discovery.');
+        appendLog(`[SimpleBeacon] Drop hit webkitdirectory cap (${dtFiles.length} files) — use Select Folder (unlimited picker).`);
+        return;
+      }
       if (!hasRelativePath && dtFiles.length <= 2) {
         refuseIncompleteBrowserDrop(dtFiles.length, 'dropped-folder');
         return;
@@ -1581,6 +1618,30 @@ export function AnalyzeView() {
       return;
     }
     console.warn('[SimpleBeacon] handleFileSelect: files.length =', files.length, '| first.webkitRelativePath =', (files[0] as any).webkitRelativePath);
+    if (isLikelyWebkitDirectoryFileCap(files.length) && canUseUnlimitedDirectoryPicker()) {
+      e.target.value = '';
+      toast.warning(browserFolderCapMessage(files.length), { duration: 14000 });
+      try {
+        const handle = await (window as any).showDirectoryPicker();
+        if (handle?.kind === 'directory') {
+          setPath(handle.name);
+          setScanState('scanning');
+          setProgress(2);
+          appendLog(`[SimpleBeacon] Re-opened unlimited folder picker after webkit cap (${files.length} files)...`);
+          await runBrowserLocalScan({
+            dirHandle: handle,
+            projectPath: handle.name,
+            logLabel: `Browser local scan via File System Access API (${handle.name})`,
+          });
+          return;
+        }
+      } catch (capErr: any) {
+        if (capErr?.name !== 'AbortError') {
+          appendLog(`[SimpleBeacon] Unlimited folder picker failed: ${capErr?.message || capErr}`);
+        }
+        return;
+      }
+    }
     const first = files[0];
     const rel = (first as any).webkitRelativePath;
     let dirName = first.name;
@@ -1651,7 +1712,7 @@ export function AnalyzeView() {
     }
     // Reset input so the same folder can be selected again
     e.target.value = '';
-  }, [appendLog, hosted, persistScanResult]);
+  }, [appendLog, hosted, persistScanResult, runBrowserLocalScan]);
 
   const handleBrowseFolder = useCallback(async () => {
     // 1. Try extension bridge folder picker first (works in cross-origin iframes)
@@ -1701,9 +1762,14 @@ export function AnalyzeView() {
           logLabel: `Browser local scan via File System Access API (${handle.name})`,
         });
       }
-    } catch {
-      // User cancelled or permission denied — fall back to webkitdirectory input
-      folderInputRef.current?.click();
+    } catch (pickErr: any) {
+      if (pickErr?.name === 'AbortError') return;
+      appendLog(`[SimpleBeacon] showDirectoryPicker failed: ${pickErr?.message || pickErr}`);
+      if (typeof (window as any).showDirectoryPicker !== 'function') {
+        folderInputRef.current?.click();
+      } else {
+        toast.error(pickErr?.message || 'Folder picker failed — try Select Folder again.');
+      }
     }
   }, [bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
 
@@ -2012,15 +2078,23 @@ export function AnalyzeView() {
                 onDrop={handleDrop}
               >
                 <Folder className="mx-auto h-10 w-10 text-foreground-muted" />
-                <p className="mt-2 text-sm text-foreground-muted">Drag a folder here to scan immediately, or browse</p>
-                {typeof (window as any).showDirectoryPicker !== 'function' && (
-                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                    For large folders (3,000+ files), drag-and-drop is recommended — the file picker has a browser-imposed limit.
-                  </p>
+                <p className="mt-2 text-sm font-medium">Select a folder to scan locally</p>
+                <p className="mt-1 text-xs text-foreground-muted">
+                  Files stay in your browser — nothing is uploaded to SimpleBeacon servers.
+                </p>
+                {canUseUnlimitedDirectoryPicker() ? (
+                  <Button variant="default" size="sm" className="mt-4" onClick={handleBrowseFolder}>
+                    Select Folder (recommended)
+                  </Button>
+                ) : (
+                  <Button variant="default" size="sm" className="mt-4" onClick={handleBrowseFolder}>
+                    Browse Folder
+                  </Button>
                 )}
-                <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
-                  Browse Folder
-                </Button>
+                <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+                  Drag-and-drop is capped near ~7,800 files in Chrome (webkitdirectory limit). Use Select Folder for unlimited repos, or run{' '}
+                  <code className="text-[11px]">npx simplebeacon scan --full --gate</code>.
+                </p>
               </div>
               <Input
                 placeholder={serverDefaultPath || 'e.g. my-project or /path/to/project'}
@@ -2141,7 +2215,9 @@ export function AnalyzeView() {
       ) : null}
 
       {scanState === 'scanning' && (
-        <Card>
+        <>
+          {pipelineMetrics ? <ScanPipelinePanel metrics={pipelineMetrics} compact /> : null}
+          <Card>
           <CardContent className="space-y-3 p-4">
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -2160,6 +2236,7 @@ export function AnalyzeView() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {scanState === 'auth_required' && (
@@ -2187,7 +2264,7 @@ export function AnalyzeView() {
       )}
 
       {scanState === 'complete' && result && (
-        <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} fullReport={fullReport} />
+        <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} fullReport={fullReport} pipelineMetrics={pipelineMetrics} />
       )}
 
       <input
@@ -2209,10 +2286,12 @@ export function AnalyzeView() {
   );
 }
 
-function ScanResults({ result, terminalOutput, isRemoteBackend, fullReport }: { result: ScanResult; terminalOutput: string[]; isRemoteBackend: boolean; fullReport?: any }) {
+function ScanResults({ result, terminalOutput, isRemoteBackend, fullReport, pipelineMetrics }: { result: ScanResult; terminalOutput: string[]; isRemoteBackend: boolean; fullReport?: any; pipelineMetrics?: ScanPipelineMetrics | null }) {
   const isZeroResult = result.totalFiles === 0 && result.issueCount === 0;
+  const pipeline = pipelineMetrics || extractPipelineMetrics(fullReport, result);
   return (
     <div className="space-y-4">
+      <ScanPipelinePanel metrics={pipeline} />
       {isZeroResult && (
         <Card className="border-yellow-400/30 bg-yellow-50/30">
           <CardContent className="flex items-start gap-3 p-4">

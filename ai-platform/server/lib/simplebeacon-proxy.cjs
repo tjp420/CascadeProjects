@@ -106,25 +106,7 @@ function syncMeasuredBaseline(baseDir, options) {
   return syncJestBaseline(baseDir, safeOptions);
 }
 
-/**
- * Lightweight passthrough stub for data-cleanup report enrichment.
- * Kept intentionally thin until a richer implementation lands in the CLI.
- * @param {Object} report
- * @returns {Object}
- */
-function enrichCleanupReport(report) {
-  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
-}
-
-/**
- * Lightweight passthrough stub for compacting data-cleanup report for client.
- * Kept intentionally thin until a richer implementation lands in the CLI.
- * @param {Object} report
- * @returns {Object}
- */
-function compactDataCleanupReportForClient(report) {
-  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
-}
+const { enrichCleanupReport, compactDataCleanupReportForClient } = require('../../../packages/simplebeacon-cli/src/lib/enrich-cleanup-report.js');
 
 const proxyExports = {
   // lib/

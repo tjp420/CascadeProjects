@@ -14,7 +14,7 @@ const RECENT_PATHS_KEY = 'simplebeaconRecentPaths';
  * @param {string} projectPath
  * @returns {any}
  */
-function basenamePath(projectPath) {
+export function basenamePath(projectPath) {
     if (!projectPath)
         return '';
     const parts = String(projectPath).replace(/\\/g, '/').split('/').filter(Boolean);

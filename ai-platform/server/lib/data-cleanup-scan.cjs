@@ -76,7 +76,7 @@ async function isCachedResultFresh(payload, projectPath) {
     return true;
 }
 
-const FILE_REDUCTION_SCANNER_IDS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat'];
+const FILE_REDUCTION_SCANNER_IDS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat', 'dead-code'];
 const DATA_QUALITY_SCANNER_IDS = [
     'config-management',
     'dependency-health',
@@ -235,6 +235,16 @@ async function runDataCleanupScan(projectPath, options = {}) {
     const enriched = enrichCleanupReport(report, { profile });
     const payload = compact ? compactDataCleanupReportForClient(enriched) : enriched;
     payload.durationMs = Date.now() - startedAt;
+
+    if (profile === 'file-reduction' || profile === 'all' || profile === 'cleanup-assistant') {
+        try {
+            const { writeFileReductionArtifacts } = require('../../../packages/simplebeacon-cli/src/lib/file-reduction-ai-notes.js');
+            writeFileReductionArtifacts(projectPath, enriched, { profile });
+        } catch (artifactErr) {
+            logger.warn('[analyze] file-reduction AI artifact write skipped', { error: artifactErr.message });
+        }
+    }
+
     logger.info(`[analyze] data-cleanup done path=${projectPath} profile=${profile} ms=${payload.durationMs} findings=${payload.summary?.totalFindings ?? '—'} compact=${compact}`);
 
     scanResultCache.set(cacheKey, {

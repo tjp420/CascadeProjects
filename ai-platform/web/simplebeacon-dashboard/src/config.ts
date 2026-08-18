@@ -60,6 +60,18 @@ export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/** True when the dashboard is served from production marketing host (not localhost). */
+export function isHostedProductionDashboard(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname || '';
+  return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev');
+}
+
+/** Whether the browser has a JWT available for API calls. */
+export function hasAuthToken(): boolean {
+  return Boolean(authHeaders().Authorization) && !isTokenExpired();
+}
+
 export function isTokenExpired(): boolean {
   if (typeof window === 'undefined') return false;
   const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');

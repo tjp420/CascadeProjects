@@ -36,6 +36,10 @@ if (String(process.env.NODE_ENV || '').toLowerCase() === 'production') {
   if (!process.env.ALLOW_LEGACY_LOGIN) process.env.ALLOW_LEGACY_LOGIN = 'false';
 }
 
+if (!process.env.SIMPLEBEACON_LICENSE_SECRET && String(process.env.NODE_ENV || '').toLowerCase() !== 'production') {
+  process.env.SIMPLEBEACON_LICENSE_SECRET = 'insecure-dev-secret-change-me'; // simplebeacon-ignore credential-pattern — dev-only
+}
+
 // Validate critical Stripe/billing env vars before loading app modules
 const { validateEnvironment } = require('./server/config/validate-env.cjs');
 validateEnvironment();
@@ -1155,6 +1159,7 @@ app.use((req, res, next) => {
     || req.path === '/api/audit-booking'
     || req.path === '/api/audit-bookings'
     || req.path === '/api/free-token'
+    || req.path === '/api/tokens/guest'
     || req.path === '/api/tokens/sandbox'
   ) return next();
   if (isVaultAuthenticated(req)) return next();

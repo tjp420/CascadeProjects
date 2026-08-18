@@ -157,7 +157,15 @@ export function SignInView() {
       const data = await resp.json();
       if (data.token) {
         localStorage.setItem('sb_token', data.token);
-        if (data.user) localStorage.setItem('sb_user', JSON.stringify(data.user));
+        if (data.user) {
+          const mergedUser = {
+            ...data.user,
+            role: data.user.role || data.role,
+            tier: data.user.tier || data.tier,
+            plan: data.user.plan || data.user.tier || data.tier,
+          };
+          localStorage.setItem('sb_user', JSON.stringify(mergedUser));
+        }
         try { window.dispatchEvent(new Event('sb:login')); } catch { /* ignore */ }
         toast.success(mode === 'signin' ? 'Signed in' : 'Account created');
         navigate('dashboard');

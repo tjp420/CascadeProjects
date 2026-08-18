@@ -39,7 +39,7 @@ function resolveScanWorkerUrl() {
     } catch (_metaErr) { /* fall through */ }
     return `/app/assets/scan-worker.js?v=${v}`;
 }
-const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
+const MAX_FILES = Number.MAX_SAFE_INTEGER;
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
@@ -316,6 +316,11 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         repositoryFoldersTotal: totalFolders,
         scanScope: {
             profile: 'standard',
+            scanMode: meta.scanMode || 'browser-heuristic',
+            resultsViewScope: 'browser-local',
+            filesDiscovered: meta.filesDiscovered ?? totalFiles,
+            filesAfterIgnore: meta.filesAfterIgnore ?? totalFiles,
+            codeFilesAnalyzed: analyzedFiles,
             rulesEnabled: ['credential-patterns', 'production-leak-patterns', 'sensitive-data', 'config-drift', 'security-vulnerabilities', 'ai-residue', 'llm-slop', 'fiction-kpi', 'code-quality', 'maintainability'],
             gatePolicy: { failOn: ['critical', 'high'], warnOn: ['medium', 'low'] },
             mockSampleFilesInScanPaths: mockSampleFiles,
@@ -333,6 +338,12 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             pageSpecsFromScanPaths: 0,
             pageSpecsFromAliasPaths: 0,
             fullDirectoryScan: !capped,
+            pipeline: {
+                discovered: meta.filesDiscovered ?? totalFiles,
+                filtered: meta.filesAfterIgnore ?? totalFiles,
+                analyzed: analyzedFiles,
+                gateBlocking: blockingCount,
+            },
             limitations
         },
         ignoreMeta: meta.ignoreMeta || null,
@@ -461,6 +472,9 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                     capped: false,
                     folderCount,
                     filePaths,
+                    scanMode: options.scanMode || 'browser-heuristic',
+                    filesDiscovered: options.filesDiscovered ?? resolvedTotal,
+                    filesAfterIgnore: options.filesAfterIgnore ?? resolvedTotal,
                     ignoreMeta: options.ignoreCtx
                         ? {
                             source: options.ignoreCtx.source || 'builtin',
@@ -762,11 +776,17 @@ export async function runLocalScan(options = {}) {
     if (options.signal) {
         options.signal.addEventListener('abort', () => worker.terminate(), { once: true });
     }
+    const scanMode = options.scanMode
+        || (options.dirHandle ? 'browser-fsa' : (options.files ? 'browser-heuristic' : 'browser-fsa'));
+    const filesDiscovered = options.files ? Array.from(options.files).length : files.length;
     const report = await runBatchedWorkerScan(worker, workerFiles, {
         onProgress: options.onProgress,
         projectName,
         ignoreCtx,
-        deepScan: options.deepScan !== false // Default to true (scan all files)
+        deepScan: options.deepScan !== false,
+        scanMode,
+        filesDiscovered,
+        filesAfterIgnore: files.length,
     });
     return normalizeSimplebeaconReport(report);
 }

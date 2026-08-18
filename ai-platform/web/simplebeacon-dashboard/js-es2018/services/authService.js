@@ -570,11 +570,22 @@ export class AuthService {
         if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
             return false;
         }
-        const tier = this.getTokenTier();
+        if (this.isAdmin())
+            return false;
+        const user = this.getUser() || {};
+        const role = String(user.role || '').toLowerCase();
+        if (role === 'admin' || role === 'superuser' || role === 'superadmin')
+            return false;
+        const tier = String(user.tier || user.plan || this.getTokenTier() || '').toLowerCase();
+        if (tier === 'admin' || tier === 'superuser')
+            return false;
+        const paidTiers = ['silver', 'gold', 'pro', 'startup', 'enterprise', 'compliance', 'team', 'team_pro', 'developer', 'developer_tier', 'admin', 'superuser'];
+        if (paidTiers.includes(tier))
+            return false;
         if (!tier)
             return false;
-        const freeTiers = ['community', 'developer', 'sandbox', 'instant', 'free', ''];
-        return freeTiers.includes(String(tier).toLowerCase());
+        const freeTiers = ['community', 'sandbox', 'instant', 'free', 'guest', ''];
+        return freeTiers.includes(tier);
     }
     /**
      * Whether the current session is allowed to use write-heavy dashboard features

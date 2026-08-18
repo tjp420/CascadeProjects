@@ -1,6 +1,6 @@
 import { escapeHtml, formatPathLabel, formatNumber } from '../utils.js';
 import { severityLabel, redactMatch } from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
-import { loadRecentPaths, basenamePath } from '../lib/analyzePathSuggestions.js?v=20260731audit3';
+import { loadRecentPaths, basenamePath } from '../lib/analyzePathSuggestions.js?v=20260817basename1';
 import { sourceChipTitle } from '../lib/analyzePathSources.js';
 
 export function renderSourceChips(sources, currentPath, containerId, options = {}) {

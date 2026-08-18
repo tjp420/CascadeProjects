@@ -19,6 +19,7 @@ const SCANNER_LABELS = {
   'asset-consolidation': 'Duplicate assets',
   'unused-files': 'Unused files',
   'directory-bloat': 'Directory bloat',
+  'dead-code': 'Dead code',
   'config-management': 'Config sprawl',
   'dependency-health': 'Dependencies',
   'environment-variables': 'Environment keys',
@@ -212,6 +213,145 @@ function renderUnusedFilesSection(findings) {
 }
 
 /**
+ * Render dead code section.
+ * @param {Array} findings
+ * @returns {any}
+ */
+function renderDeadCodeSection(findings) {
+  const items = findings?.deadCode || [];
+  if (!items.length) return '';
+
+  const rows = items.map(f => `
+    <tr>
+      <td><code>${escapeHtml(f.path)}</code></td>
+      <td><code>${escapeHtml(f.metadata?.symbol || '—')}</code></td>
+      <td>${escapeHtml(f.type || '')}</td>
+      <td>${confidenceBadge(f.confidence)}</td>
+      <td>${escapeHtml(f.reason || '')}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <details class="card mb-4">
+      <summary><strong>Dead / orphaned exports</strong> <span class="text-muted">(${items.length})</span></summary>
+      <div class="mt-4">
+        <p class="text-muted mb-3" style="font-size: var(--font-size-xs);">
+          Static export analysis — verify dynamic imports, re-exports, and test-only usage before removing symbols.
+        </p>
+        <div class="table-wrapper mb-3">
+          <table class="results-table" style="font-size: var(--font-size-sm);">
+            <thead><tr><th>File</th><th>Symbol</th><th>Type</th><th>Confidence</th><th>Reason</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+  `;
+}
+
+/**
+ * Render code suggestions panel.
+ * @param {any} scan
+ * @returns {any}
+ */
+function renderCodeSuggestions(scan) {
+  const payload = scan.codeSuggestions;
+  if (!payload || !(payload.suggestions || []).length) return '';
+
+  const rows = (payload.suggestions || []).slice(0, 12).map((item) => {
+    const hint = item.codeHint?.before && item.codeHint?.after
+      ? `<pre class="card mt-1 mb-0" style="font-size: var(--font-size-xs); white-space: pre-wrap;">- ${escapeHtml(item.codeHint.before)}\n+ ${escapeHtml(item.codeHint.after)}</pre>`
+      : '';
+    const fix = item.autoFixable
+      ? `<span class="severity-pill safe">auto-fix</span>`
+      : `<span class="severity-pill low">${escapeHtml(item.effort || 'review')}</span>`;
+    return `
+      <tr>
+        <td>${fix}</td>
+        <td><strong>${escapeHtml(item.title || '')}</strong><br><span class="text-muted">${escapeHtml(item.suggestion || '')}</span>${hint}</td>
+        <td><code>${escapeHtml(item.filePath || '—')}</code>${item.line ? `<br><span class="text-muted">:${item.line}</span>` : ''}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <details class="card mb-4" open>
+      <summary><strong>Code suggestions</strong> <span class="text-muted">(${payload.suggestions.length})</span></summary>
+      <div class="mt-4">
+        <div class="metrics-row mb-3">
+          <div class="metric-chip"><strong>${formatNumber(payload.quickWinCount || 0)}</strong> quick wins</div>
+          <div class="metric-chip"><strong>${formatNumber(payload.autoFixCount || 0)}</strong> auto-fixable</div>
+        </div>
+        <div class="table-wrapper mb-3">
+          <table class="results-table" style="font-size: var(--font-size-sm);">
+            <thead><tr><th>Effort</th><th>Suggestion</th><th>Location</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        ${payload.agentPrompt ? `<pre class="card" style="white-space: pre-wrap; font-size: var(--font-size-xs);">${escapeHtml(payload.agentPrompt)}</pre>` : ''}
+      </div>
+    </details>
+  `;
+}
+
+/**
+ * Render trim suggestions panel.
+ * @param {any} scan
+ * @param {string} profile
+ * @returns {any}
+ */
+function renderTrimSuggestions(scan, profile) {
+  const trim = scan.trimSuggestions || scan.fileReductionPlan?.trimSuggestions;
+  const effectiveProfile = profile || scan.scanProfile || 'all';
+  if (!trim || (effectiveProfile !== 'file-reduction' && effectiveProfile !== 'all')) return '';
+
+  const phases = trim.phases || {};
+  const phaseChips = [
+    phases.deleteLogs?.count ? `<div class="metric-chip"><strong>${formatNumber(phases.deleteLogs.count)}</strong> log trims</div>` : '',
+    phases.removeDeadExports?.count ? `<div class="metric-chip"><strong>${formatNumber(phases.removeDeadExports.count)}</strong> dead exports</div>` : '',
+    phases.consolidateDuplicates?.count ? `<div class="metric-chip"><strong>${formatNumber(phases.consolidateDuplicates.count)}</strong> duplicate groups</div>` : '',
+    phases.investigateUnusedFiles?.count ? `<div class="metric-chip"><strong>${formatNumber(phases.investigateUnusedFiles.count)}</strong> unused files</div>` : ''
+  ].filter(Boolean).join('');
+
+  const actionRows = (trim.topActions || []).map((action) => {
+    const symbol = action.symbol ? ` → <code>${escapeHtml(action.symbol)}</code>` : '';
+    const size = action.bytes ? ` · ${formatBytes(action.bytes)}` : '';
+    return `
+      <tr>
+        <td>${escapeHtml(action.phase || '')}</td>
+        <td><code>${escapeHtml(action.path || '')}</code>${symbol}</td>
+        <td>${confidenceBadge(action.confidence)}</td>
+        <td>${escapeHtml(action.reason || '')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  if (!phaseChips && !actionRows) return '';
+
+  return `
+    <details class="card mb-4" open>
+      <summary><strong>Trim suggestions</strong> <span class="text-muted">(prioritized)</span></summary>
+      <div class="mt-4">
+        <p class="text-muted mb-3" style="font-size: var(--font-size-xs);">${escapeHtml(trim.analysisNote || '')}</p>
+        ${phaseChips ? `<div class="metrics-row mb-4">${phaseChips}</div>` : ''}
+        ${actionRows ? `
+          <div class="table-wrapper mb-3">
+            <table class="results-table" style="font-size: var(--font-size-sm);">
+              <thead><tr><th>Phase</th><th>Target</th><th>Confidence</th><th>Reason</th></tr></thead>
+              <tbody>${actionRows}</tbody>
+            </table>
+          </div>
+        ` : ''}
+        ${trim.agentPrompt ? `
+          <h3 class="mb-2" style="font-size: var(--font-size-sm);">Agent prompt</h3>
+          <pre class="card" style="white-space: pre-wrap; font-size: var(--font-size-xs); padding: 0.75rem;">${escapeHtml(trim.agentPrompt)}</pre>
+        ` : ''}
+      </div>
+    </details>
+  `;
+}
+
+/**
  * Render directory bloat section.
  * @param {Array} findings
  * @returns {any}
@@ -321,6 +461,7 @@ function renderFileReductionPlan(scan, profile) {
   const review = plan.reviewBeforeDelete || {};
   const duplicates = plan.duplicateAssets || {};
   const unused = plan.unusedFiles || {};
+  const deadCode = plan.deadCode || {};
 
 /**
  * Top dirs.
@@ -367,6 +508,7 @@ function renderFileReductionPlan(scan, profile) {
           <div class="metric-chip"><strong>${formatBytes(totals.reviewBeforeDeleteBytes)}</strong> review first</div>
           <div class="metric-chip"><strong>${formatNumber(duplicates.groups)}</strong> duplicate groups</div>
           <div class="metric-chip"><strong>${formatNumber(unused.candidates)}</strong> unused candidates</div>
+          <div class="metric-chip"><strong>${formatNumber(deadCode.deadExports || 0)}</strong> dead exports</div>
         </div>
         <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">${escapeHtml(plan.scopeNote || '')}</p>
         <table class="table mb-4" style="width:100%; font-size: var(--font-size-sm);">
@@ -585,6 +727,7 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
     `<div class="metric-chip"><strong>${formatNumber(s.buildArtifactFindings)}</strong> build artifacts</div>`,
     `<div class="metric-chip"><strong>${formatNumber(s.duplicateAssetGroups)}</strong> duplicate groups</div>`,
     `<div class="metric-chip"><strong>${formatNumber(s.unusedFileCandidates)}</strong> unused files</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.deadCodeFindings || 0)}</strong> dead exports</div>`,
     `<div class="metric-chip"><strong>${formatNumber(s.directoryBloatFindings || 0)}</strong> directory bloat</div>`
   ];
 
@@ -608,6 +751,8 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
   return `
     ${renderExecutiveSummary(scan, effectiveProfile)}
     ${renderFileReductionPlan(scan, effectiveProfile)}
+    ${renderTrimSuggestions(scan, effectiveProfile)}
+    ${renderCodeSuggestions(scan)}
     ${renderScannerStatistics(scan, effectiveProfile)}
     <div class="metrics-row mb-4">
       <div class="metric-chip" title="Files walked for this scan"><strong>${formatNumber(inv.totalFiles)}</strong> files scanned</div>
@@ -631,6 +776,7 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
     ${renderBuildArtifactsSection(scan.findings)}
     ${renderDuplicateAssetsSection(scan.findings)}
     ${renderUnusedFilesSection(scan.findings)}
+    ${renderDeadCodeSection(scan.findings)}
     ${renderDirectoryBloatSection(scan.findings)}
     ${renderGenericFindings(allFindings)}
   `;

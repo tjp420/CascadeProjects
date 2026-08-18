@@ -293,7 +293,7 @@ app.get('/health', (req, res) => {
   res.json({
     success: true,
     agent: 'simplebeacon-local-agent',
-    version: '1.0.4',
+    version: '1.1.0',
     scannerAvailable: Boolean(scannerApi && typeof scannerApi.runScan === 'function'),
     scannerLoadError,
     timestamp: new Date().toISOString()
@@ -301,20 +301,150 @@ app.get('/health', (req, res) => {
 });
 
 // Scan a local directory.
+// Accepts both `projectPath` (canonical) and `directoryPath` (dashboard bridge alias).
+// When `stream: true` is passed, returns immediately with a scanId and streams
+// progress via SSE on /events. Otherwise runs synchronously and returns the report.
+const activeScans = new Map(); // scanId -> { report, error, done, targetPath }
+function genScanId() {
+  return 'scan_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
 app.post('/scan', async (req, res) => {
-  const rawPath = req.body?.projectPath;
+  const rawPath = req.body?.projectPath || req.body?.directoryPath;
+  const streamMode = req.body?.stream === true || req.body?.stream === 'true';
   try {
-    process.stderr.write(['[agent] /scan received projectPath:', rawPath].join(" ") + "\n");
+    process.stderr.write(['[agent] /scan received path:', rawPath, 'stream=', streamMode].join(" ") + "\n");
     const targetPath = validateTargetPath(rawPath);
     const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
+    if (streamMode) {
+      const scanId = genScanId();
+      const scanState = { report: null, error: null, done: false, targetPath, startedAt: Date.now() };
+      activeScans.set(scanId, scanState);
+      // Respond immediately so the dashboard can start SSE.
+      res.json({ success: true, scanId, projectPath: targetPath });
+      // Run the scan in the background, broadcasting to SSE clients.
+      runLocalScan(targetPath, { fullDirectoryScan })
+        .then((report) => {
+          scanState.report = report;
+          scanState.done = true;
+          process.stderr.write(['[agent] scan', scanId, 'complete —', report?.totalFiles || '?', 'files'].join(" ") + "\n");
+        })
+        .catch((err) => {
+          scanState.error = err.message;
+          scanState.done = true;
+          process.stderr.write(['[agent] scan', scanId, 'failed:', err.message].join(" ") + "\n");
+        });
+      return;
+    }
+    // Synchronous mode (original behavior)
     const report = await runLocalScan(targetPath, { fullDirectoryScan });
     res.json({ success: true, projectPath: targetPath, report });
   } catch (err) {
     process.stderr.write(
-      ['[agent] /scan rejected projectPath:', rawPath, '-', err.message].join(" ") + "\n"
+      ['[agent] /scan rejected path:', rawPath, '-', err.message].join(" ") + "\n"
     );
     res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
   }
+});
+
+// SSE events stream for real-time scan progress.
+// The dashboard listens for event IDs: phase, progress, discoveryComplete, complete, error, cancelled.
+app.get('/events', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': req.headers.origin || '*',
+    'X-Accel-Buffering': 'no'
+  });
+  res.write(': connected\n\n');
+  // Poll active scans and the CLI progress file, broadcasting events.
+  let lastScanId = null;
+  let lastProgress = null;
+  const interval = setInterval(() => {
+    // Find the most recent active scan
+    let scanId = null;
+    let scanState = null;
+    for (const [id, state] of activeScans.entries()) {
+      if (!state.done) { scanId = id; scanState = state; break; }
+    }
+    // If no active scan, check for the most recent completed one we haven't reported
+    if (!scanId) {
+      for (const [id, state] of activeScans.entries()) {
+        if (state.done && id !== lastScanId) { scanId = id; scanState = state; break; }
+      }
+    }
+    if (!scanState) {
+      res.write(': ping\n\n');
+      return;
+    }
+    // Emit phase event when a new scan starts
+    if (scanId !== lastScanId) {
+      lastScanId = scanId;
+      lastProgress = null;
+      res.write('event: phase\nid: phase\ndata: ' + JSON.stringify({ phase: 'starting', message: 'Starting scan...', scanId }) + '\n\n');
+    }
+    // Poll CLI progress file if available
+    if (scanState.targetPath && !scanState.done) {
+      try {
+        const progressPath = resolveScanProgressPath(scanState.targetPath);
+        const progress = readScanProgress(progressPath);
+        if (progress && progress.active) {
+          const evt = {
+            percent: Math.round((progress.processed / Math.max(progress.total, 1)) * 100),
+            processed: progress.processed || 0,
+            total: progress.total || 0,
+            findingsSoFar: progress.findingsSoFar || 0
+          };
+          if (!lastProgress || evt.processed !== lastProgress.processed) {
+            lastProgress = evt;
+            res.write('event: progress\nid: progress\ndata: ' + JSON.stringify(evt) + '\n\n');
+          }
+        }
+      } catch (_) { /* progress file may not exist yet */ }
+    }
+    // Emit complete or error when scan finishes
+    if (scanState.done) {
+      if (scanState.error) {
+        res.write('event: error\nid: error\ndata: ' + JSON.stringify({ message: scanState.error, scanId }) + '\n\n');
+      } else {
+        const report = scanState.report || {};
+        const evt = {
+          scanId,
+          filesAnalyzed: report.totalFiles || report.repositoryInventory?.totalFiles || 0,
+          durationMs: Date.now() - scanState.startedAt,
+          qualityScore: report.qualityScore ?? null,
+          gatePass: report.gate?.pass === true
+        };
+        res.write('event: complete\nid: complete\ndata: ' + JSON.stringify(evt) + '\n\n');
+      }
+      activeScans.delete(scanId);
+      lastScanId = null;
+    }
+  }, 500);
+  // Clean up on disconnect
+  req.on('close', () => {
+    clearInterval(interval);
+  });
+});
+
+// Fetch the final report for a completed scan.
+// If ?scanId= is provided, returns that scan's report. Otherwise returns the
+// most recent completed scan's report.
+app.get('/result', (req, res) => {
+  const requestedScanId = req.query?.scanId;
+  let scanState = null;
+  if (requestedScanId) {
+    scanState = activeScans.get(requestedScanId);
+  } else {
+    // Return the most recent completed scan
+    for (const [id, state] of activeScans.entries()) {
+      if (state.done && state.report) { scanState = state; break; }
+    }
+  }
+  if (!scanState || !scanState.report) {
+    return res.status(404).json({ success: false, error: 'No completed scan report available' });
+  }
+  res.json(scanState.report);
 });
 
 // Live scan progress for dashboard polling during local scans.
@@ -336,7 +466,7 @@ app.get('/progress', (req, res) => {
 
 // Fetch inventory for a local directory without running a full gate scan.
 app.post('/inventory', async (req, res) => {
-  const rawPath = req.body?.projectPath;
+  const rawPath = req.body?.projectPath || req.body?.directoryPath;
   try {
     process.stderr.write(['[agent] /inventory received projectPath:', rawPath].join(" ") + "\n");
     const targetPath = validateTargetPath(rawPath);
@@ -354,7 +484,7 @@ app.post('/inventory', async (req, res) => {
 // Return a privacy-safe summary report with no source code, AST, or file contents.
 app.post('/summary', async (req, res) => {
   try {
-    const rawPath = req.body?.projectPath;
+    const rawPath = req.body?.projectPath || req.body?.directoryPath;
     const targetPath = validateTargetPath(rawPath);
     const report = await runLocalScan(targetPath);
     const summary = toPrivacySummaryReport(report);

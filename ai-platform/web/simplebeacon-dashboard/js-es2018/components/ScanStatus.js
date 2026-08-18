@@ -3,7 +3,7 @@ import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedErr
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260726sevfix1';
 import { runLocalScan } from '../services/localScanService.js?v=20260724fix1';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix2';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260725dropfix2';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260817unlimited1';
 /**
  * Resolve initial scan root.
  * @param {number} report

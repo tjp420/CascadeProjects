@@ -158,7 +158,7 @@ export const CLIENT_DELIVERABLE_PLANS = [
     {
         sku: 'clearance499',
         label: 'Executive clearance PDF',
-        price: '$499',
+        price: '$999',
         category: 'Client deliverable',
         tagline: 'Gate, fiction digest, compliance checklist, executive PDF — 48-hour operator review',
         engines: ['simplebeacon', 'mock-scan', 'compliance'],

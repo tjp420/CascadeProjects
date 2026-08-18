@@ -38,8 +38,9 @@ function detectSimplebeaconMonorepo(scanRootName, fileQueue) {
 }
 
 const DEFAULT_MAX_FILE_SIZE = 1500000;
-const DEFAULT_MAX_FILES = 100000;
-const MAX_FINDINGS = 100000;
+const BROWSER_SCAN_UNLIMITED = Number.MAX_SAFE_INTEGER;
+const DEFAULT_MAX_FILES = BROWSER_SCAN_UNLIMITED;
+const MAX_FINDINGS = BROWSER_SCAN_UNLIMITED;
 
 // Hidden/artifact directories that bloat scans with false positives (reports, caches, binaries).
 const SKIP_DIRS = new Set([

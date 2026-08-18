@@ -5,7 +5,7 @@ import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, build
 import { LocalScanService } from '../services/localScanService.js?v=20260728dropfix2';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260726dropfix2';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260726browserdrop2';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260728dropfix2';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260817unlimited1';
 import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260726browserdrop2';
 
 const DROP_SKIP_DIRS = new Set([
@@ -8138,7 +8138,6 @@ export class AnalyzeView {
         }
         try {
             const report = await runSandboxedDirectoryScan({
-                maxFiles: 100000,
                 onLog: (entry) => {
                     if (terminal) {
                         terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;

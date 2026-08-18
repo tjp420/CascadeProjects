@@ -9,6 +9,7 @@ describe('public-api-routes', () => {
 
   it('allows free token routes without auth', () => {
     assert.strictEqual(mod.isPublicApiRoute('free-token', 'POST'), true);
+    assert.strictEqual(mod.isPublicApiRoute('tokens/guest', 'POST'), true);
     assert.strictEqual(mod.isPublicApiRoute('tokens/sandbox', 'POST'), true);
     assert.strictEqual(mod.isPublicApiRoute('simplebeacon/billing/resend-token', 'POST'), true);
   });

@@ -28,6 +28,7 @@ const PUBLIC_API_PATHS = new Set([
     'audit-booking',
     'audit-bookings',
     'free-token',
+    'tokens/guest',
     'tokens/sandbox',
     'simplebeacon/billing/resend-token',
     'simplebeacon/billing/status',
