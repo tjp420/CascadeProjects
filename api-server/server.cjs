@@ -1020,9 +1020,22 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
     logger.info(`[API] SimpleBeacon API server running on port ${PORT}`);
     logger.info(`[API] Environment: ${process.env.NODE_ENV || 'development'}`);
+
+    // Auto-run migrations on startup if enabled (matches ai-platform behavior)
+    if (process.env.ENABLE_DB_AUTO_MIGRATE === 'true' && process.env.DATABASE_URL) {
+        try {
+            const { runMigrations } = require('./migrations/run-migrations.cjs');
+            if (typeof runMigrations === 'function') {
+                await runMigrations();
+                logger.info('[API] Database migrations completed.');
+            }
+        } catch (migErr) {
+            logger.error('[API] Migration failed (non-fatal):', migErr.message);
+        }
+    }
 });
 
 function gracefulShutdown(signal) {

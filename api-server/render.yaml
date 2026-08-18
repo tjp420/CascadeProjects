@@ -1,3 +1,9 @@
+databases:
+  - name: simplebeacon-api-db
+    plan: free
+    databaseName: simplebeacon_api
+    user: simplebeacon_api_user
+
 services:
   - type: web
     name: simplebeacon-api
@@ -26,6 +32,10 @@ services:
       - key: RESEND_FROM
         value: certificates@simplebeacon.ai
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: simplebeacon-api-db
+          property: connectionString
+      - key: ENABLE_DB_AUTO_MIGRATE
+        value: "true"
       - key: REDIS_URL
         sync: false
