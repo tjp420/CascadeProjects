@@ -5,6 +5,7 @@
  */
 
 import { handleCertifyRequest, handlePublicKeyRequest } from './certify.js';
+import { handleSiteAuthLogin, handleSiteAuthRegister } from './site-auth.js';
 
 const DEFAULT_ALLOWED_ORIGINS = 'https://simplebeacon.ai,https://www.simplebeacon.ai';
 const PAGES_PREVIEW_ORIGIN_REGEX = /^https:\/\/(?:[a-z0-9-]+\.)?simplebeacon\.pages\.dev$/;
@@ -154,6 +155,85 @@ function textResponse(body, status, corsOrigin) {
     headers['Vary'] = 'Origin';
   }
   return new Response(body, { status, headers });
+}
+
+// ── Anonymous guest token (edge-issued) ──────────────────────────
+// Issues a lightweight HMAC-signed JWT-like token so the browser sandbox
+// dropzone unlocks without a Render backend round-trip. The token is
+// accepted by the frontend's hasValidToken() check (length > 20, has '.').
+// It is NOT a full license token — deep analysis and certificates still
+// require a real license token from Stripe checkout or the free-token flow.
+async function handleGuestTokenRequest(request, env, corsOrigin) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': corsOrigin || '', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
+  }
+  let body = {};
+  try { body = await request.json(); } catch (_) {}
+  const guestId = String(body.guestId || '').trim();
+  if (!guestId || guestId.length < 8) {
+    return json({ error: 'guestId required (min 8 characters)' }, 400, corsOrigin);
+  }
+  const kvKey = `guest-token:${guestId}`;
+  if (env.LICENSE_STORE) {
+    try {
+      const cachedRaw = await env.LICENSE_STORE.get(kvKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached && cached.token) {
+          cached.cached = true;
+          return json(cached, 200, corsOrigin);
+        }
+      }
+    } catch (_) { /* fall through to mint */ }
+  }
+  const secret = String(env.SIMPLEBEACON_LICENSE_SECRET || env.STRIPE_WEBHOOK_SECRET || env.SIMPLEBEACON_SIGNING_PRIVATE_KEY || '');
+  if (!secret) {
+    return json({ error: 'Server misconfigured — no signing secret' }, 500, corsOrigin);
+  }
+  const enc = new TextEncoder();
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const jti = crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+  const payload = {
+    email: `guest+${guestId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48)}@guest.simplebeacon.ai`,
+    guestId,
+    tier: 'guest',
+    features: ['gate'],
+    upgradeable: true,
+    clientName: 'Guest',
+    projectName: 'Browser-Sandbox',
+    jti,
+    iat: now,
+    exp: now + 14 * 24 * 60 * 60
+  };
+  function b64url(obj) {
+    return btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  const headerB64 = b64url(header);
+  const payloadB64 = b64url(payload);
+  const signingInput = `${headerB64}.${payloadB64}`;
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(signingInput));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const token = `${signingInput}.${sigB64}`;
+  const response = {
+    success: true,
+    token,
+    tier: 'guest',
+    upgradeable: true,
+    cached: false,
+    claimed: false,
+    userEmail: null,
+    expiresAt: new Date((now + 14 * 24 * 60 * 60) * 1000).toISOString(),
+    expiresInDays: 14,
+    message: 'Free gate-scan pass issued — upgrade anytime to unlock full modules.'
+  };
+  if (env.LICENSE_STORE) {
+    try {
+      await env.LICENSE_STORE.put(kvKey, JSON.stringify(response), { expirationTtl: 14 * 24 * 60 * 60 });
+    } catch (_) { /* non-fatal */ }
+  }
+  return json(response, 200, corsOrigin);
 }
 
 function getAllowedOrigins(env) {
@@ -324,6 +404,21 @@ export default {
       return assetResp;
     }
 
+    // Dashboard root static files (not Vite lazy chunks) — serve from ASSETS as-is.
+    const DASHBOARD_ROOT_STATIC = ['/dashboard/site-config.js'];
+    if (DASHBOARD_ROOT_STATIC.includes(url.pathname)) {
+      const assetResp = await env.ASSETS.fetch(new Request(new URL(url.pathname, url.origin).toString(), request));
+      if (assetResp.ok) {
+        const headers = new Headers(assetResp.headers);
+        headers.set('Content-Type', 'text/javascript; charset=utf-8');
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('X-Content-Type-Options', 'nosniff');
+        headers.set('X-SB-Worker', 'dashboard-root-static');
+        return new Response(assetResp.body, { status: assetResp.status, headers });
+      }
+    }
+
     // Vite lazy-loaded chunks (e.g. TeamMetricsView-CueXexY4.js) are requested
     // at /dashboard/<chunk>.js but the actual files live in /dashboard/assets/.
     // Redirect to the correct path so the browser loads them as proper modules.
@@ -332,7 +427,8 @@ export default {
         !url.pathname.startsWith('/dashboard/js-es2018/') &&
         !url.pathname.startsWith('/dashboard/utils-lib/') &&
         !url.pathname.startsWith('/dashboard/scripts/') &&
-        !url.pathname.startsWith('/dashboard/src/')) {
+        !url.pathname.startsWith('/dashboard/src/') &&
+        !url.pathname.endsWith('/site-config.js')) {
       const chunkName = url.pathname.replace('/dashboard/', '');
       const redirectUrl = new URL('/dashboard/assets/' + chunkName, url.origin);
       return new Response(null, {
@@ -658,6 +754,14 @@ export default {
       return await handlePublicKeyRequest(env, corsOrigin);
     }
 
+    // Anonymous guest token — issued at the edge so browser sandbox scanning
+    // works without a Render backend round-trip. The token is an HMAC-signed
+    // JWT-like string that the frontend's hasValidToken() check accepts
+    // (length > 20 && includes('.')). It unlocks the dropzone for free scanning.
+    if (url.pathname === '/api/tokens/guest' && request.method === 'POST') {
+      return await handleGuestTokenRequest(request, env, corsOrigin);
+    }
+
     // Dynamic Route 3: /api/* catch-all proxy to Render backend
     // Forwards any unmatched /api/* request to the Express backend on Render.
     // This keeps API calls same-origin from the browser's perspective (no CORS issues).
@@ -683,6 +787,25 @@ export default {
       let requestBodyText = null;
       if (!isGetOrHead) {
         try { requestBodyText = await request.text(); } catch (_) { requestBodyText = null; }
+      }
+
+      // Marketing-site auth (audit page) — KV-backed; login falls through to Render for dashboard accounts.
+      if (url.pathname === '/api/auth/register' && request.method === 'POST') {
+        const registerReq = new Request(request.url, {
+          method: 'POST',
+          headers: request.headers,
+          body: requestBodyText
+        });
+        return await handleSiteAuthRegister(registerReq, env, corsOrigin);
+      }
+      if (url.pathname === '/api/auth/login' && request.method === 'POST') {
+        const loginReq = new Request(request.url, {
+          method: 'POST',
+          headers: request.headers,
+          body: requestBodyText
+        });
+        const edgeLogin = await handleSiteAuthLogin(loginReq, env, corsOrigin);
+        if (edgeLogin) return edgeLogin;
       }
 
       // --- Step 2: Build a clean header allowlist (no body-tracking headers) ---

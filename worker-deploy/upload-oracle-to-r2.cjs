@@ -38,12 +38,11 @@ async function main() {
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 
   if (!accessKeyId || !secretAccessKey) {
-    console.error('ERROR: R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY environment variables required.');
+    console.error('ERROR: R2 upload credentials are not configured.');
     console.error('');
-    console.error('Set them in PowerShell:');
-    console.error('  $env:R2_ACCESS_KEY_ID = "your-access-key-id"');
-    console.error('  $env:R2_SECRET_ACCESS_KEY = "your-secret-access-key"');
-    console.error('  $env:R2_ACCOUNT_ID = "8815946f6d5847844ea60cf05e43f871"');
+    console.error('Create an R2 API token (Object Read & Write on bucket simplebeacon-models),');
+    console.error('then export credentials before running this script.');
+    console.error('See the header comment in upload-oracle-to-r2.cjs for setup steps.');
     process.exit(1);
   }
 
@@ -54,7 +53,7 @@ async function main() {
     process.exit(1);
   }
 
-  const stat = fs.statSync(FILE_PATH);
+  const stat = await fs.promises.stat(FILE_PATH);
   const totalSize = stat.size;
   const totalParts = Math.ceil(totalSize / PART_SIZE);
 
