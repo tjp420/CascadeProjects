@@ -65,7 +65,7 @@
       var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
       var l = document.createElement('link');
       l.rel = 'stylesheet';
-      if (devHost) l.href = '/dashboard/assets/main.css?v=20260809seatfix2'; else l.href = '/dashboard/assets/main.css?v=20260809seatfix2';
+      if (devHost) l.href = '/dashboard/assets/main.css?v=20260816dash2'; else l.href = '/dashboard/assets/main.css?v=20260816dash2';
       document.head.appendChild(l);
     })();
   </script>
@@ -669,12 +669,12 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       if (devHost) {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260809seatfix2';
+        s.src = '/dashboard/assets/main.js?v=20260816dash2';
         document.head.appendChild(s);
       } else {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260809seatfix2';
+        s.src = '/dashboard/assets/main.js?v=20260816dash2';
         document.head.appendChild(s);
       }
     })();

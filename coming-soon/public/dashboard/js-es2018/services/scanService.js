@@ -3,7 +3,7 @@ import { billingService } from './billingService.js';
 import { authService } from './authService.js?v=20260722bridgefix1';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
-import { buildDashboardExportBundle, buildVulnerabilityTrendCsv, buildBulkIssuesCsv, buildAuditPrintableHtml } from '../utils/dashboard-export.browser.js?v=20260730export1';
+import { buildDashboardExportBundle, buildVulnerabilityTrendCsv, buildBulkIssuesCsv, buildAuditPrintableHtml } from '../utils/dashboard-export.browser.js?v=20260816cyclefix1';
 import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260722scanfix2';
 import { apiBaseUrl } from '../utils-lib/url.js';
 /**

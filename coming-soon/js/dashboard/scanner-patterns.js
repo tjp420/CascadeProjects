@@ -632,10 +632,15 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         selfReferenceFilter: /scanner-patterns|scanner-engine|pattern-documentation|test-all-patterns|fixRegistry|findingConverter/i,
         contextFilter: (snippet, filePath) => {
-            // Exclude when sensitive word is only inside a string literal
+            // Exclude when sensitive word is only inside a string literal (env var names, docs)
             const hasVariable = /\b(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)\s*[,+)]/.test(snippet);
             const onlyInString = /['"][^'"]*(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)[^'"]*['"]/.test(snippet);
             if (!hasVariable && onlyInString)
+                return false;
+            // Env-var setup / missing-config messages — names only, not secret values
+            if (/environment variable is required|process\.env\.|=xxx\b|Set it via|Set them in|your-access-key|your-secret-/i.test(snippet))
+                return false;
+            if (/(?:ACCESS_KEY|SECRET_ACCESS|API_KEY|_KEY)\b/i.test(snippet) && !/['"][^'"]{24,}['"]/.test(snippet))
                 return false;
             // Exclude commented-out console.log lines
             if (/\/\/\s*console\.(log|error|warn)/i.test(snippet))
@@ -710,6 +715,14 @@ const PATTERN_REGISTRY = {
         contextFilter: (snippet, filePath) => {
             // Skip when inside a comment describing the weakness
             if (/\/\/.*weak|deprecated|do not use|avoid/i.test(snippet))
+                return false;
+            // Negative security tests — assert weak algorithms are rejected
+            if (/\.toThrow\b/.test(snippet) || /blocks disallowed|blocks weak|rejects?/i.test(snippet))
+                return false;
+            if (filePath && /(?:^|[\\/])expand-cpe-tests\.|crypto-policy|hsm.*test|weak-crypto/i.test(filePath))
+                return false;
+            // Algorithm identifier in config string, not an actual crypto API call
+            if (/['"`](?:des-ede|des|md5|sha1|rc4|3des|tripledes)['"`]/i.test(snippet) && !/(?:createHash|createCipher|createDecipher|crypto\.)/i.test(snippet))
                 return false;
             return true;
         },
@@ -898,6 +911,8 @@ const PATTERN_REGISTRY = {
             // CLI tools, scripts, and server bootstrap code legitimately use sync I/O
             if (/(?:^|\/)tools\//.test(p))
                 return false;
+            if (/(?:^|\/)marketing\/outreach\//.test(p))
+                return false;
             if (/(?:^|\/)docs\//.test(p))
                 return false;
             if (/(?:^|\/)web\/data\//.test(p))
@@ -958,6 +973,9 @@ const PATTERN_REGISTRY = {
         pattern: /^\s*(?!\/\*\*)(?!\/\/)(?!\s*$)(?!\s*['"]use strict['"]).*/m,
         maxMatches: 1,
         contextFilter: (snippet, filePath) => {
+            // Skip shebang — not a missing strict-mode violation
+            if (/^\s*#!/.test(snippet))
+                return false;
             // Skip JSDoc comment continuation lines (lines starting with * inside a /** block)
             if (/^\s*\*/.test(snippet))
                 return false;
@@ -1019,7 +1037,7 @@ const PATTERN_REGISTRY = {
         name: 'Architecture Drift',
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
         severity: 'medium',
-        pattern: /\b(hybrid|state-space|long-context)\b(?!.*\b(schema|validator|zod|ajv|json_schema|response_format)\b)/i,
+        pattern: /\b(hybrid[-\s](?:transformer|model|architecture|ssm)|state-space|long-context)\b(?!.*\b(schema|validator|zod|ajv|json_schema|response_format)\b)/i,
         maxMatches: 3,
         selfReferenceFilter: /scanner-patterns|scanner-engine|simplebeacon-intelligence|architecture-drift|@simplebeacon\/intelligence/,
         contextFilter: (snippet, filePath) => {
@@ -1153,6 +1171,9 @@ const PATTERN_REGISTRY = {
         pattern: /\b(HACK|XXX|WORKAROUND)\b(?!\s*[:;-]\s*\S{4,})/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
+            // Skip env-var placeholder examples like APOLLO_API_KEY=xxx
+            if (/=[xX]{3}\b/.test(snippet))
+                return false;
             // Skip if the match is inside a regex literal
             if (/(\/[^\/]*(?:HACK|XXX|WORKAROUND)[^\/]*\/|new RegExp\()/i.test(snippet))
                 return false;

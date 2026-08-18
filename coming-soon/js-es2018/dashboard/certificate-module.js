@@ -140,7 +140,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
             var entData = await entRes.json();
             serverEntitled = entData.success === true && entData.canGenerateCertificate === true;
         }
-    } catch (e) { /* network error — fall through to client-side check */ }
+    }
+    catch (e) { /* network error — fall through to client-side check */ }
     // Fallback to client-side check if server is unreachable
     if (!serverEntitled) {
         if (typeof canExportFullReport !== 'function' || !canExportFullReport()) {

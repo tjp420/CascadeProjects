@@ -595,8 +595,11 @@ export class ChatbotView {
         catch (_a) { /* ignore */ }
 
         this.bindEvents();
-        this._onAiKeysUpdated = () => { void this.refreshProviders().catch(() => { /* ignore */ }); };
-        window.addEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
+        if (!this._aiKeysListenerBound) {
+            this._onAiKeysUpdated = () => { void this.refreshProviders().catch(() => { /* ignore */ }); };
+            window.addEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
+            this._aiKeysListenerBound = true;
+        }
         void this.refreshProviders()
             .then(() => this.maybeAutoConnectBridgeOllama())
             .catch((err) => { console['warn']('Chatbot bridge auto-connect failed:', err); });
@@ -1216,8 +1219,10 @@ export class ChatbotView {
                 this.showPromptToast('Custom prompt reset to default');
             });
         }
-        // Load existing custom prompt
-        this.loadCustomPrompt();
+        // Load existing custom prompt (only once per view instance)
+        if (!this._customPromptLoaded) {
+            this.loadCustomPrompt();
+        }
         // Settings panel
         const settingsToggle = document.getElementById('chatbot-settings-toggle');
         const settingsPanel = document.getElementById('chatbot-settings-panel');
@@ -1314,6 +1319,7 @@ export class ChatbotView {
                 const data = await res.json();
                 if (data.prompt)
                     promptTextarea.value = data.prompt;
+                this._customPromptLoaded = true;
                 return;
             }
         }
@@ -1844,6 +1850,10 @@ export class ChatbotView {
         }
     }
     destroy() {
-        // Cleanup event listeners if needed
+        if (this._onAiKeysUpdated) {
+            window.removeEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
+            this._onAiKeysUpdated = null;
+        }
+        this._aiKeysListenerBound = false;
     }
 }

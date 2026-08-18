@@ -2,361 +2,520 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>SimpleBeacon — Cloud Scan</title>
+    <meta name="description" content="Server-side SimpleBeacon scan for large repos — full AST analysis, npm audit, and board-ready certificate ZIP. Source is scanned in memory and deleted immediately.">
+    <link rel="canonical" href="https://simplebeacon.ai/cloud-scan">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="SimpleBeacon — Cloud Scan">
+    <meta property="og:description" content="Upload a project folder for full server-side analysis — AST engines, npm audit, and certificate ZIP download.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://simplebeacon.ai/cloud-scan">
+    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="SimpleBeacon — Cloud Scan">
+    <meta name="twitter:description" content="Server-side scan for large repos with full analyzer suite and certificate download.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title>SimpleBeacon — Cloud Scan (Server-Side)</title>
-    <style>
-        :root {
-            --bg-main: #0B0F19;
-            --bg-card: #151D30;
-            --bg-input: #0F1626;
-            --accent: #2563EB;
-            --accent-hover: #1D4ED8;
-            --accent-glow: rgba(37, 99, 235, 0.3);
-            --success: #10B981;
-            --error: #EF4444;
-            --warning: #F59E0B;
-            --text-main: #F3F4F6;
-            --text-muted: #9CA3AF;
-            --border: #1E293B;
-            --border-focus: #3B82F6;
-            --font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 24px;
-            line-height: 1.6;
-        }
-        .container { max-width: 720px; margin: 0 auto; }
-        header { text-align: center; padding: 40px 0 32px; }
-        header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #60A5FA, #2563EB); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-        header p { color: var(--text-muted); font-size: 0.95rem; max-width: 480px; margin: 0 auto; }
-        .card {
-            background: linear-gradient(145deg, var(--bg-card), #0F1626);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 28px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-        .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
-        input[type="text"] {
-            width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
-            padding: 12px 14px; color: var(--text-main); font-size: 0.9rem; font-family: var(--font-mono);
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        input:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-glow); }
-        .help-text { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
-        .drop-zone {
-            border: 2px dashed var(--border); border-radius: 12px; padding: 40px 24px;
-            text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
-            background: var(--bg-input);
-        }
-        .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(37, 99, 235, 0.05); }
-        .drop-zone .icon { font-size: 2rem; margin-bottom: 12px; }
-        .drop-zone p { color: var(--text-muted); font-size: 0.9rem; }
-        .drop-zone .file-name { color: var(--text-main); font-weight: 500; margin-top: 8px; font-family: var(--font-mono); font-size: 0.85rem; }
-        .drop-zone input[type="file"] { display: none; }
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 12px 24px; border-radius: 10px; font-size: 0.95rem; font-weight: 600;
-            cursor: pointer; border: none; transition: transform 0.15s, box-shadow 0.2s; width: 100%;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #2563EB, #1D4ED8); color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .status {
-            margin-top: 16px; padding: 14px 18px; border-radius: 10px; font-size: 0.9rem; display: none;
-        }
-        .status.success { display: block; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); }
-        .status.error { display: block; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--error); }
-        .status.loading { display: block; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); color: #60A5FA; }
-        .progress-bar { width: 100%; height: 6px; background: var(--bg-input); border-radius: 3px; margin-top: 12px; overflow: hidden; }
-        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #2563EB, #60A5FA); border-radius: 3px; transition: width 0.3s ease; width: 0%; }
-        .dir-tree {
-            background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
-            padding: 14px; margin-top: 14px; font-family: var(--font-mono); font-size: 0.78rem;
-            max-height: 220px; overflow-y: auto; color: var(--text-muted); line-height: 1.7;
-        }
-        .dir-tree .dir-line { color: #60A5FA; font-weight: 600; }
-        .dir-tree .file-count { color: var(--text-muted); font-size: 0.7rem; }
-        footer { text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 0.8rem; }
-        .warning-banner {
-            background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);
-            border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 0.85rem; color: var(--text-muted);
-        }
-    </style>
+    <meta name="theme-color" content="#0B0F19">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/site-nav.css?v=20260815site">
+    <link rel="stylesheet" href="/css/site-pages.css?v=20260815site">
+    <link rel="stylesheet" href="/css/cloud-scan.css?v=20260815cloud1">
+    <script>
+        (function(){try{var t=localStorage.getItem('simplebeacon-theme')||'dark';if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}})();
+    </script>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>&#9729; Cloud Scan</h1>
-            <p>Server-side directory analysis. Your source code is uploaded to our servers, scanned in memory, and deleted immediately after.</p>
-        </header>
+<body class="cloud-scan-page site-page">
+<nav class="sb-site-nav">
+  <a href="/" class="sb-brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+    SimpleBeacon
+  </a>
+  <div class="sb-nav-links">
+    <a href="/audit" class="sb-nav-link">Audit</a>
+    <a href="/cloud-scan" class="sb-nav-link sb-nav-link--active">Cloud Scan</a>
+    <a href="/dashboard/" class="sb-nav-link sb-nav-link--muted">Dashboard</a>
+    <div class="sb-nav-more-wrap">
+      <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
+      <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
+      <div class="sb-nav-more-menu">
+        <a href="/prove-it" class="sb-nav-more-link">Prove It</a>
+        <a href="/pricing" class="sb-nav-more-link">Pricing</a>
+        <a href="/roadmap" class="sb-nav-more-link">Roadmap</a>
+        <a href="/faq" class="sb-nav-more-link">FAQ</a>
+        <a href="/contact" class="sb-nav-more-link">Contact</a>
+      </div>
+    </div>
+    <button type="button" id="sb-theme-toggle" class="sb-theme-toggle" title="Toggle theme" aria-label="Toggle theme">☀</button>
+    <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:6px 14px;background:#6366f1;color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>
+    <button type="button" id="nav-signout-btn" style="display:none;margin-left:8px;padding:6px 14px;background:transparent;color:#9CA3AF;font-size:0.85rem;font-weight:500;cursor:pointer;border:1px solid #374151;border-radius:8px;">Sign out</button>
+  </div>
+</nav>
+<script src="/js/site-theme.js?v=20260815site" defer></script>
+<script src="/js-es2018/referral-capture.js" defer></script>
 
-        <div class="warning-banner">
-            <strong style="color:#F87171;">&#9888; Privacy Notice:</strong> This page uploads your source code to our servers for scanning. If you require 100% privacy, use the <a href="audit.html" style="color:#60A5FA;">Local Report</a> option instead.
+<main class="site-wrap site-wrap--wide">
+    <header class="site-hero">
+        <span class="site-badge">Server-side analysis</span>
+        <h1>Cloud Scan</h1>
+        <p class="site-lead">Full analyzer suite for large repositories — AST engines, npm audit, EU AI Act mapping, and a board-ready certificate ZIP. Best when browser sandbox limits or local CLI setup aren't an option.</p>
+    </header>
+
+    <div class="cs-compare">
+        <div class="cs-compare-card cs-compare-card--local">
+            <h3>&#128274; Local scan (recommended)</h3>
+            <p>Code never leaves your device. Browser preview or CLI → <code>report.json</code> + <code>.sbcert</code> on disk.</p>
+            <a href="/audit">Use local audit →</a>
         </div>
-
-        <div class="card">
-            <h2><span>1</span> License Token</h2>
-            <div class="form-group">
-                <label for="licenseToken">License Token</label>
-                <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off">
-                <p class="help-text">Required for server-side scanning.</p>
-            </div>
+        <div class="cs-compare-card cs-compare-card--cloud">
+            <h3>&#9729; Cloud scan (this page)</h3>
+            <p>Uploads source to our servers, scans in an isolated temp directory, deletes files after analysis. Requires a license token.</p>
+            <a href="/pricing">View pricing →</a>
         </div>
-
-        <div class="card">
-            <h2><span>2</span> Project Directory</h2>
-            <div class="form-group">
-                <label>Upload Folder</label>
-                <div class="drop-zone" id="dirDropZone">
-                    <div class="icon">&#128451;</div>
-                    <p>Drag a folder here to analyze it<br><span style="font-size: 0.8rem; opacity: 0.7;">(or click to browse)</span></p>
-                    <p class="file-name" id="dirName"></p>
-                    <input type="file" id="dirInput" webkitdirectory directory multiple>
-                </div>
-                <p class="help-text">Your source code is uploaded to our servers, scanned in memory, and deleted immediately after.</p>
-            </div>
-
-            <div id="dirTreeContainer" style="display: none;">
-                <label>Files discovered</label>
-                <div class="dir-tree" id="dirTree"></div>
-                <div class="progress-bar"><div class="fill" id="uploadProgress"></div></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2><span>3</span> Generate Certificate</h2>
-            <button class="btn btn-primary" id="analyzeBtn" disabled>
-                <span>&#9889;</span> Run Analysis &amp; Generate Certificate
-            </button>
-            <div class="status" id="status"></div>
-        </div>
-
-        <footer>
-            <p>SimpleBeacon Engine v1.3.0 &mdash; <a href="audit.html" style="color: #60A5FA; text-decoration: none;">&larr; Back to Local Scan</a> &middot; <a href="pricing.html" style="color: #60A5FA; text-decoration: none;">Pricing</a></p>
-        </footer>
     </div>
 
-    <script>
-        const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://cascadeprojects-yzzd.onrender.com';
-        const licenseInput = document.getElementById('licenseToken');
-        const dirDropZone = document.getElementById('dirDropZone');
-        const dirInput = document.getElementById('dirInput');
-        const dirName = document.getElementById('dirName');
-        const dirTreeContainer = document.getElementById('dirTreeContainer');
-        const dirTree = document.getElementById('dirTree');
-        const uploadProgress = document.getElementById('uploadProgress');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const status = document.getElementById('status');
-        let collectedFiles = [];
+    <div class="cs-privacy-banner" role="note">
+        <span style="font-size:1.2rem;" aria-hidden="true">&#9888;</span>
+        <div>
+            <strong>Privacy notice:</strong> This workflow uploads your source code for server-side scanning. Files are held in memory/temp storage only for the duration of the scan, then deleted. For zero-upload compliance, use the <a href="/audit" style="color:#67e8f9;">local audit page</a> instead.
+        </div>
+    </div>
 
-        function showStatus(message, type) {
-            status.className = 'status ' + type;
-            status.textContent = message;
-            status.style.display = 'block';
+    <div class="cs-stepper" aria-label="Cloud scan steps">
+        <div class="cs-step active" id="stepLabel1"><span class="cs-step__num">1</span> Token</div>
+        <div class="cs-step-line" aria-hidden="true"></div>
+        <div class="cs-step" id="stepLabel2"><span class="cs-step__num">2</span> Upload</div>
+        <div class="cs-step-line" aria-hidden="true"></div>
+        <div class="cs-step" id="stepLabel3"><span class="cs-step__num">3</span> Certificate</div>
+    </div>
+
+    <div class="cs-workspace">
+        <section class="site-card" aria-labelledby="cs-token-heading">
+            <div class="cs-card-head">
+                <h2 id="cs-token-heading"><span class="cs-step__num" style="width:22px;height:22px;font-size:0.65rem;">1</span> License token</h2>
+                <p>Paste a paid license token, or click <strong>Get free pass</strong> to try with a guest token (limited tier).</p>
+            </div>
+            <div class="cs-card-body">
+                <div class="cs-token-row">
+                    <input type="text" id="licenseToken" placeholder="Paste your license token here…" autocomplete="off" spellcheck="false" aria-label="License token">
+                    <button type="button" class="site-btn site-btn--secondary" id="guestTokenBtn">Get free pass</button>
+                </div>
+                <p style="margin:10px 0 0;font-size:0.78rem;color:var(--text-secondary,#94A3B8);">
+                    Paid user? Token arrives by email after checkout — or paste from your <a href="/dashboard/" style="color:#67e8f9;">dashboard</a>.
+                </p>
+            </div>
+        </section>
+
+        <section class="site-card" aria-labelledby="cs-upload-heading">
+            <div class="cs-card-head">
+                <h2 id="cs-upload-heading"><span class="cs-step__num" style="width:22px;height:22px;font-size:0.65rem;">2</span> Project folder</h2>
+                <p>Drag a project directory or click to browse. Chrome/Edge desktop recommended for folder drops.</p>
+            </div>
+            <div class="cs-card-body">
+                <div class="cs-dropzone" id="dirDropZone" tabindex="0" role="button" aria-label="Upload project folder">
+                    <span class="cs-dropzone__icon" aria-hidden="true">&#128451;</span>
+                    <p class="cs-dropzone__title">Drop your project folder here</p>
+                    <p class="cs-dropzone__hint">or click to browse — exclude <code>node_modules</code> when possible for faster uploads</p>
+                    <p class="file-name" id="dirName"></p>
+                    <input type="file" id="dirInput" webkitdirectory directory multiple tabindex="-1" aria-hidden="true">
+                </div>
+                <div id="dirTreeContainer" style="display:none;">
+                    <div class="cs-dir-tree" id="dirTree"></div>
+                    <div class="cs-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="uploadProgress"></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="site-card" aria-labelledby="cs-run-heading">
+            <div class="cs-card-head">
+                <h2 id="cs-run-heading"><span class="cs-step__num" style="width:22px;height:22px;font-size:0.65rem;">3</span> Generate certificate</h2>
+                <p>Runs full server analysis and downloads a ZIP with executive report HTML + JSON modules.</p>
+            </div>
+            <div class="cs-card-body">
+                <button type="button" class="cs-run-btn" id="analyzeBtn" disabled>
+                    &#9889; Run analysis &amp; download certificate ZIP
+                </button>
+                <div class="cs-status" id="status" role="status" aria-live="polite"></div>
+            </div>
+        </section>
+    </div>
+
+    <div class="cs-deliverables">
+        <div class="cs-deliverable">
+            <h4>Executive report</h4>
+            <p>Board-ready HTML with risk grade, liability estimate, and framework mapping.</p>
+        </div>
+        <div class="cs-deliverable">
+            <h4>Full JSON modules</h4>
+            <p>Per-analyzer output for security review and CI integration.</p>
+        </div>
+        <div class="cs-deliverable">
+            <h4>Verify locally</h4>
+            <p>Import JSON on <a href="/audit" style="color:#67e8f9;">/audit</a> or drop a <code>.sbcert</code> to verify signatures.</p>
+        </div>
+    </div>
+
+    <footer style="text-align:center;padding:48px 0 24px;color:var(--text-secondary,#94A3B8);font-size:0.82rem;">
+        <p>SimpleBeacon v1.1.2 &mdash;
+            <a href="/audit" style="color:#67e8f9;text-decoration:none;">Local scan</a> &middot;
+            <a href="/pricing" style="color:#67e8f9;text-decoration:none;">Pricing</a> &middot;
+            <a href="/prove-it" style="color:#67e8f9;text-decoration:none;">Prove it</a>
+        </p>
+    </footer>
+</main>
+
+<script>
+(function() {
+    function resolveApiBase() {
+        if (typeof location === 'undefined') return '';
+        var host = location.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') return '';
+        if (host === 'simplebeacon.ai' || host === 'www.simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) return '';
+        return 'https://simplebeacon.ai';
+    }
+    var API_BASE = resolveApiBase();
+
+    var licenseInput = document.getElementById('licenseToken');
+    var dirDropZone = document.getElementById('dirDropZone');
+    var dirInput = document.getElementById('dirInput');
+    var dirName = document.getElementById('dirName');
+    var dirTreeContainer = document.getElementById('dirTreeContainer');
+    var dirTree = document.getElementById('dirTree');
+    var uploadProgress = document.getElementById('uploadProgress');
+    var analyzeBtn = document.getElementById('analyzeBtn');
+    var status = document.getElementById('status');
+    var guestTokenBtn = document.getElementById('guestTokenBtn');
+    var collectedFiles = [];
+
+    function showStatus(message, type) {
+        status.className = 'cs-status ' + type;
+        status.textContent = message;
+    }
+
+    function clearStatus() {
+        status.className = 'cs-status';
+        status.textContent = '';
+    }
+
+    function updateStepper() {
+        var hasToken = licenseInput.value.trim().length > 10;
+        var hasDir = collectedFiles.length > 0;
+        document.getElementById('stepLabel1').classList.toggle('active', true);
+        document.getElementById('stepLabel2').classList.toggle('active', hasToken);
+        document.getElementById('stepLabel3').classList.toggle('active', hasToken && hasDir);
+    }
+
+    function updateSubmit() {
+        var hasToken = licenseInput.value.trim().length > 10;
+        var hasDir = collectedFiles.length > 0;
+        analyzeBtn.disabled = !(hasToken && hasDir);
+        updateStepper();
+    }
+
+    function loadStoredToken() {
+        var keys = ['sb-token', 'simplebeacon_token', 'cascadeAuthToken', 'access_token'];
+        for (var i = 0; i < keys.length; i++) {
+            var t = localStorage.getItem(keys[i]);
+            if (t && t.indexOf('.') !== -1) {
+                licenseInput.value = t;
+                return t;
+            }
         }
+        return '';
+    }
 
-        function updateSubmit() {
-            const hasToken = licenseInput.value.trim().length > 10;
-            const hasDir = collectedFiles.length > 0;
-            analyzeBtn.disabled = !(hasToken && hasDir);
+    function persistToken(token) {
+        if (!token) return;
+        localStorage.setItem('sb-token', token);
+        localStorage.setItem('simplebeacon_token', token);
+    }
+
+    function getGuestDeviceId() {
+        var key = 'sb_device_id';
+        var id = localStorage.getItem(key);
+        if (!id) {
+            id = 'sb-dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem(key, id);
         }
+        return id;
+    }
 
-        licenseInput.addEventListener('input', updateSubmit);
+    async function ensureGuestToken() {
+        guestTokenBtn.disabled = true;
+        var orig = guestTokenBtn.textContent;
+        guestTokenBtn.textContent = 'Issuing…';
+        try {
+            var res = await fetch(API_BASE + '/api/tokens/guest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guestId: getGuestDeviceId() })
+            });
+            var data = await res.json().catch(function() { return {}; });
+            if (!res.ok || !data.success || !data.token) {
+                throw new Error(data.error || data.message || 'Could not issue guest token');
+            }
+            licenseInput.value = data.token;
+            persistToken(data.token);
+            showStatus('Free pass ready — drop a folder to continue.', 'success');
+            updateSubmit();
+        } catch (err) {
+            showStatus(err.message || 'Guest token failed — paste a license token or visit Pricing.', 'error');
+        } finally {
+            guestTokenBtn.disabled = false;
+            guestTokenBtn.textContent = orig;
+        }
+    }
 
-        dirDropZone.addEventListener('click', () => dirInput.click());
-        dirDropZone.addEventListener('dragover', (e) => { e.preventDefault(); dirDropZone.classList.add('dragover'); });
-        dirDropZone.addEventListener('dragleave', () => dirDropZone.classList.remove('dragover'));
-        dirDropZone.addEventListener('drop', async (e) => {
+    licenseInput.addEventListener('input', function() {
+        clearStatus();
+        updateSubmit();
+    });
+
+    if (guestTokenBtn) {
+        guestTokenBtn.addEventListener('click', ensureGuestToken);
+    }
+
+    function allowDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    }
+
+    document.addEventListener('dragover', function(e) {
+        if (e.target.closest && e.target.closest('#dirDropZone')) allowDrop(e);
+    }, true);
+
+    dirDropZone.addEventListener('click', function(e) {
+        if (e.target === dirInput) return;
+        dirInput.click();
+    });
+    dirDropZone.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            dirDropZone.classList.remove('dragover');
-            const items = e.dataTransfer.items;
-            if (items && items.length > 0) {
-                const firstItem = items[0];
-                const entry = firstItem.webkitGetAsEntry ? firstItem.webkitGetAsEntry() : null;
-                if (entry && entry.isDirectory) {
-                    collectedFiles = [];
-                    await traverseDirectory(entry, '', collectedFiles);
-                    displayCollectedFiles();
-                    return;
-                }
-            }
-            if (e.dataTransfer.files.length > 0) {
-                handleFileList(e.dataTransfer.files);
-            }
-        });
-        dirInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) handleFileList(e.target.files);
-        });
-
-        async function traverseDirectory(entry, path, files) {
-            if (entry.isFile) {
-                return new Promise((resolve) => {
-                    entry.file((file) => { files.push({ file, path: path + file.name }); resolve(); }, () => resolve());
-                });
-            }
-            if (entry.isDirectory) {
-                const dirReader = entry.createReader();
-                return new Promise((resolve) => {
-                    const readEntries = () => {
-                        dirReader.readEntries(async (entries) => {
-                            if (entries.length === 0) { resolve(); return; }
-                            for (const childEntry of entries) {
-                                await traverseDirectory(childEntry, path + entry.name + '/', files);
-                            }
-                            readEntries();
-                        }, () => resolve());
-                    };
-                    readEntries();
-                });
+            dirInput.click();
+        }
+    });
+    dirDropZone.addEventListener('dragenter', function(e) {
+        allowDrop(e);
+        dirDropZone.classList.add('dragover');
+    });
+    dirDropZone.addEventListener('dragover', allowDrop);
+    dirDropZone.addEventListener('dragleave', function(e) {
+        if (dirDropZone.contains(e.relatedTarget)) return;
+        dirDropZone.classList.remove('dragover');
+    });
+    dirDropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dirDropZone.classList.remove('dragover');
+        var dt = e.dataTransfer;
+        var capturedEntries = [];
+        if (dt && dt.items) {
+            for (var i = 0; i < dt.items.length; i++) {
+                var entry = dt.items[i].webkitGetAsEntry && dt.items[i].webkitGetAsEntry();
+                if (entry) capturedEntries.push(entry);
             }
         }
+        var capturedFiles = dt && dt.files ? Array.from(dt.files) : [];
+        handleDropPayload(capturedEntries, capturedFiles);
+    });
 
-        function handleFileList(fileList) {
+    dirInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files.length > 0) {
+            handleFileList(e.target.files);
+        }
+    });
+
+    async function handleDropPayload(entries, flatFiles) {
+        if (entries.length > 0) {
             collectedFiles = [];
-            for (let i = 0; i < fileList.length; i++) {
-                const file = fileList[i];
-                collectedFiles.push({ file, path: file.webkitRelativePath || file.name });
+            for (var j = 0; j < entries.length; j++) {
+                await traverseDirectory(entries[j], '', collectedFiles);
             }
             displayCollectedFiles();
+            return;
         }
+        if (flatFiles.length > 0) {
+            handleFileList(flatFiles);
+        }
+    }
 
-        function displayCollectedFiles() {
-            const dirNames = new Set();
-            collectedFiles.forEach(({ path }) => {
-                const parts = path.split('/');
-                if (parts.length > 1) dirNames.add(parts[0]);
+    async function traverseDirectory(entry, path, files) {
+        if (entry.isFile) {
+            return new Promise(function(resolve) {
+                entry.file(function(file) {
+                    files.push({ file: file, path: path + file.name });
+                    resolve();
+                }, function() { resolve(); });
             });
-            const rootName = dirNames.size === 1 ? Array.from(dirNames)[0] : 'Selected files';
-            dirName.textContent = rootName + ' (' + collectedFiles.length + ' files)';
-            dirTreeContainer.style.display = 'block';
+        }
+        if (entry.isDirectory) {
+            var dirReader = entry.createReader();
+            return new Promise(function(resolve) {
+                var readEntries = function() {
+                    dirReader.readEntries(async function(entries) {
+                        if (entries.length === 0) { resolve(); return; }
+                        for (var k = 0; k < entries.length; k++) {
+                            await traverseDirectory(entries[k], path + entry.name + '/', files);
+                        }
+                        readEntries();
+                    }, function() { resolve(); });
+                };
+                readEntries();
+            });
+        }
+    }
 
-            const lines = collectedFiles.slice(0, 30).map(({ path }) => {
-                const depth = path.split('/').length - 1;
-                const indent = '  '.repeat(Math.max(0, depth));
-                return indent + path.split('/').pop();
+    function handleFileList(fileList) {
+        collectedFiles = [];
+        for (var i = 0; i < fileList.length; i++) {
+            var file = fileList[i];
+            collectedFiles.push({ file: file, path: file.webkitRelativePath || file.name });
+        }
+        displayCollectedFiles();
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function displayCollectedFiles() {
+        var dirNames = new Set();
+        collectedFiles.forEach(function(item) {
+            var parts = item.path.split('/');
+            if (parts.length > 1) dirNames.add(parts[0]);
+        });
+        var rootName = dirNames.size === 1 ? Array.from(dirNames)[0] : 'Selected files';
+        dirName.textContent = rootName + ' (' + collectedFiles.length.toLocaleString() + ' files)';
+        dirTreeContainer.style.display = 'block';
+
+        var lines = collectedFiles.slice(0, 30).map(function(item) {
+            var depth = item.path.split('/').length - 1;
+            var indent = '  '.repeat(Math.max(0, depth));
+            return indent + item.path.split('/').pop();
+        });
+        if (collectedFiles.length > 30) {
+            lines.push('… and ' + (collectedFiles.length - 30).toLocaleString() + ' more files');
+        }
+        dirTree.innerHTML = '<div class="dir-line">' + escapeHtml(rootName) + '</div>' +
+            '<div>' + collectedFiles.length.toLocaleString() + ' files ready</div><br>' +
+            lines.map(function(l) { return escapeHtml(l); }).join('<br>');
+        clearStatus();
+        updateSubmit();
+    }
+
+    analyzeBtn.addEventListener('click', async function() {
+        var token = licenseInput.value.trim();
+        if (!token || collectedFiles.length === 0) return;
+
+        analyzeBtn.disabled = true;
+        uploadProgress.style.width = '0%';
+        showStatus('Uploading ' + collectedFiles.length.toLocaleString() + ' files for analysis…', 'loading');
+
+        try {
+            var formData = new FormData();
+            formData.append('licenseToken', token);
+            formData.append('analysisType', 'complete');
+            collectedFiles.forEach(function(item) {
+                formData.append('files', item.file, item.path);
             });
-            if (collectedFiles.length > 30) {
-                lines.push('... and ' + (collectedFiles.length - 30) + ' more files');
+
+            uploadProgress.style.width = '35%';
+
+            var response = await fetch(API_BASE + '/api/analyze/upload-directory', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            });
+
+            uploadProgress.style.width = '55%';
+            var result = await response.json();
+            if (!result.success || !result.scanId) {
+                throw new Error(result.error || result.message || 'Upload failed — no scan ID returned');
             }
-            function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-            const safeRoot = escapeHtml(rootName);
-            const safeLines = lines.map(l => escapeHtml(l)).join('\n').replace(/\n/g, '<br>');
-            dirTree.innerHTML = '<div class="dir-line">' + safeRoot + '</div><div class="file-count">' + collectedFiles.length + ' files ready for scan</div><br>' + safeLines;
-            updateSubmit();
-        }
 
-        analyzeBtn.addEventListener('click', async () => {
-            const token = licenseInput.value.trim();
-            if (!token || collectedFiles.length === 0) return;
+            var scanId = result.scanId;
+            showStatus('Files uploaded. Running server analysis (this may take several minutes)…', 'loading');
 
-            analyzeBtn.disabled = true;
-            uploadProgress.style.width = '0%';
-            showStatus('Uploading ' + collectedFiles.length + ' files for analysis...', 'loading');
-
-            try {
-                const formData = new FormData();
-                formData.append('licenseToken', token);
-                formData.append('analysisType', 'complete');
-                collectedFiles.forEach(({ file, path }) => {
-                    formData.append('files', file, path);
-                });
-
-                uploadProgress.style.width = '40%';
-
-                const response = await fetch(API_BASE + '/api/analyze/upload-directory', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-
-                uploadProgress.style.width = '60%';
-                const result = await response.json();
-                if (!result.success || !result.scanId) {
-                    throw new Error(result.error || 'Upload failed — no scan ID returned');
-                }
-
-                const scanId = result.scanId;
-                showStatus('Files uploaded. Scanning...', 'loading');
-
-                const pollResult = await new Promise((resolve, reject) => {
-                    const startTime = Date.now();
-                    const maxWait = 20 * 60 * 1000;
-                    const interval = setInterval(async () => {
-                        if (Date.now() - startTime > maxWait) {
+            var pollResult = await new Promise(function(resolve, reject) {
+                var startTime = Date.now();
+                var maxWait = 20 * 60 * 1000;
+                var interval = setInterval(async function() {
+                    if (Date.now() - startTime > maxWait) {
+                        clearInterval(interval);
+                        reject(new Error('Scan timed out after 20 minutes'));
+                        return;
+                    }
+                    try {
+                        var progRes = await fetch(API_BASE + '/api/analyze/progress?scanId=' + encodeURIComponent(scanId), {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        var prog = await progRes.json();
+                        if (!prog.success) {
                             clearInterval(interval);
-                            reject(new Error('Scan timed out after 20 minutes'));
+                            reject(new Error(prog.error || 'Scan progress query failed'));
                             return;
                         }
-                        try {
-                            const progRes = await fetch(API_BASE + '/api/analyze/progress?scanId=' + encodeURIComponent(scanId), {
-                                headers: { 'Authorization': `Bearer ${token}` }
-                            });
-                            const prog = await progRes.json();
-                            if (!prog.success) {
-                                clearInterval(interval);
-                                reject(new Error(prog.error || 'Scan progress query failed'));
-                                return;
-                            }
-                            const pct = prog.percent || 0;
-                            uploadProgress.style.width = (60 + Math.floor(pct * 0.3)) + '%';
-                            if (prog.status === 'complete' && prog.reportJson) {
-                                clearInterval(interval);
-                                resolve({ status: 'complete', reportJson: prog.reportJson, filesReceived: prog.total || 0 });
-                            } else if (prog.status === 'error') {
-                                clearInterval(interval);
-                                reject(new Error(prog.error || 'Scan failed'));
-                            }
-                        } catch (pollErr) {
+                        var pct = prog.percent || 0;
+                        uploadProgress.style.width = (55 + Math.floor(pct * 0.35)) + '%';
+                        if (prog.status === 'complete' && prog.reportJson) {
                             clearInterval(interval);
-                            reject(pollErr);
+                            resolve({ reportJson: prog.reportJson });
+                        } else if (prog.status === 'error') {
+                            clearInterval(interval);
+                            reject(new Error(prog.error || 'Scan failed'));
                         }
-                    }, 2000);
-                });
+                    } catch (pollErr) {
+                        clearInterval(interval);
+                        reject(pollErr);
+                    }
+                }, 2000);
+            });
 
-                uploadProgress.style.width = '100%';
-                showStatus('Scan complete! Generating certificate ZIP...', 'loading');
+            uploadProgress.style.width = '95%';
+            showStatus('Scan complete. Generating certificate ZIP…', 'loading');
 
-                const certResponse = await fetch(API_BASE + '/api/certificate/download', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ reportJson: pollResult.reportJson, licenseToken: token })
-                });
-                if (!certResponse.ok) {
-                    const errData = await certResponse.json().catch(() => ({}));
-                    throw new Error(errData.error || `Certificate generation failed (${certResponse.status})`);
-                }
-                const blob = await certResponse.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `simplebeacon-certificate-${new Date().toISOString().slice(0,10)}.zip`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
-            } catch (err) {
-                showStatus('Network error — ' + err.message, 'error');
-            } finally {
-                analyzeBtn.disabled = false;
+            var certResponse = await fetch(API_BASE + '/api/certificate/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ reportJson: pollResult.reportJson, licenseToken: token })
+            });
+            if (!certResponse.ok) {
+                var errData = await certResponse.json().catch(function() { return {}; });
+                throw new Error(errData.error || ('Certificate generation failed (' + certResponse.status + ')'));
             }
-        });
-    </script>
+            var blob = await certResponse.blob();
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'simplebeacon-certificate-' + new Date().toISOString().slice(0, 10) + '.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            uploadProgress.style.width = '100%';
+            showStatus('Certificate ZIP downloaded. Open reports/*.html → Print → Save as PDF for board delivery.', 'success');
+        } catch (err) {
+            showStatus(err.message || 'Network error — try again or use local CLI scan.', 'error');
+        } finally {
+            updateSubmit();
+        }
+    });
+
+    // Auth nav + theme handled by site-theme.js
+
+    loadStoredToken();
+    updateSubmit();
+    if (!licenseInput.value.trim()) {
+        ensureGuestToken().catch(function() {});
+    }
+})();
+</script>
 </body>
 </html>

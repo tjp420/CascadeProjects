@@ -1,0 +1,12 @@
+{
+  "keyId": "sb-edge-2f2d7994b5c6a835",
+  "algorithm": "ECDSA-P256-SHA256",
+  "publicKey": {
+    "key_ops": ["verify"],
+    "ext": true,
+    "kty": "EC",
+    "x": "kYEfuGBtqjFTDL_ON40UuvBD8lsoaO8F51m3ldHlziY",
+    "y": "ZjCl0E5TaKArgygu6edbRIYUkbtzvPm9yiLsO19Tyh8",
+    "crv": "P-256"
+  }
+}

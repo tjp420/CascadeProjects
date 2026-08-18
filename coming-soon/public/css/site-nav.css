@@ -1,0 +1,145 @@
+/* Shared site navigation — used across all marketing pages */
+.sb-site-nav {
+  background: var(--background, #0B0F19);
+  border-bottom: 1px solid var(--border, #1E293B);
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-sizing: border-box;
+}
+.sb-site-nav .sb-brand {
+  color: var(--text-primary, #F3F4F6);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sb-site-nav .sb-brand svg { stroke: #6366f1; flex-shrink: 0; }
+.sb-site-nav .sb-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.sb-site-nav .sb-nav-link {
+  color: var(--text-primary, #F3F4F6);
+  text-decoration: none;
+  margin-left: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.sb-site-nav .sb-nav-link:hover { background: rgba(255,255,255,0.06); }
+.sb-site-nav .sb-nav-link--muted { color: var(--text-secondary, #9CA3AF); font-weight: 500; }
+.sb-site-nav .sb-nav-link--active {
+  background: rgba(99,102,241,0.12);
+  box-shadow: inset 0 -2px 0 #6366f1;
+}
+.sb-nav-more-wrap { position: relative; }
+.sb-nav-more-toggle { display: none; }
+.sb-nav-more-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text-secondary, #9CA3AF);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  transition: background 0.2s, color 0.2s;
+  user-select: none;
+}
+.sb-nav-more-label:hover { background: rgba(255,255,255,0.06); color: var(--text-primary, #F3F4F6); }
+.sb-nav-more-arrow { transition: transform 0.2s; display: inline-block; }
+.sb-nav-more-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: #111827;
+  border: 1px solid var(--border, #1E293B);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+  padding: 6px;
+  z-index: 200;
+  overflow: hidden;
+}
+.sb-nav-more-toggle:checked ~ .sb-nav-more-menu { display: block; }
+.sb-nav-more-toggle:checked ~ .sb-nav-more-label .sb-nav-more-arrow { transform: rotate(180deg); }
+.sb-nav-more-toggle:checked ~ .sb-nav-more-label { background: rgba(255,255,255,0.06); color: var(--text-primary, #F3F4F6); }
+.sb-nav-more-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: var(--text-secondary, #9CA3AF);
+  text-decoration: none;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  border-radius: 8px;
+}
+.sb-nav-more-link:hover { background: rgba(255,255,255,0.06); color: var(--text-primary, #F3F4F6); }
+.sb-nav-more-link--active {
+  background: rgba(99,102,241,0.12);
+  color: var(--text-primary, #F3F4F6);
+}
+.sb-nav-more-link svg { opacity: 0.7; flex-shrink: 0; }
+.sb-theme-toggle {
+  margin-left: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--text-secondary, #9CA3AF);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.sb-theme-toggle:hover { background: rgba(255,255,255,0.06); color: var(--text-primary, #F3F4F6); }
+#nav-signin-btn {
+  margin-left: 10px;
+  padding: 6px 14px;
+  background: #6366f1;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+}
+#nav-signout-btn {
+  margin-left: 10px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-secondary, #9CA3AF);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #374151;
+  border-radius: 8px;
+}
+[data-theme="light"] .sb-nav-more-menu { background: #fff; border-color: #E2E8F0; box-shadow: 0 12px 28px rgba(15,23,42,0.08); }
+[data-theme="light"] .sb-nav-more-label { border-color: #E2E8F0; }
+@media (max-width: 640px) {
+  .sb-site-nav { padding: 12px 16px; }
+  .sb-site-nav .sb-nav-link { margin-left: 2px; padding: 6px 8px; font-size: 0.82rem; }
+  .sb-site-nav .sb-nav-links { gap: 2px; }
+  .sb-theme-toggle { margin-left: 4px; padding: 6px 8px; }
+  #nav-signin-btn, #nav-signout-btn { margin-left: 6px; padding: 6px 10px; font-size: 0.8rem; }
+}

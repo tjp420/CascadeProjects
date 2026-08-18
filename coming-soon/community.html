@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SimpleBeacon — Local CLI &amp; MCP for AI-assisted code</title>
-  <meta name="description" content="Install SimpleBeacon locally. MCP snippet scans in Cursor, full-repo --gate for PR/CI. No repo upload. Free and offline by default.">
+  <meta name="description" content="Install SimpleBeacon locally. Agent Supercharge for Cursor, Copilot, Cline, and any MCP coding agent. Full-repo --gate for PR/CI. No repo upload.">
   <meta name="theme-color" content="#0d1117">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://simplebeacon.ai/community">
@@ -50,21 +50,41 @@
         <div class="cli-hint"><code>npm install -D simplebeacon</code></div>
         <p class="cli-note">Prefer zero install? Use <code>npx --yes simplebeacon init --starter</code> above — no <code>package.json</code> edit required.</p>
         <p class="pricing-note" style="margin-top:0.75rem;">
-          Creates <code>.simplebeacon/config.json</code>, Cursor MCP (<code>simplebeacon-mcp --offline</code>),
-          an agent scan rule, and <code>.github/workflows/simplebeacon.yml</code>.
-          Reload Cursor → <strong>Settings → MCP</strong> → enable <strong>simplebeacon</strong>.
+          Creates <code>.simplebeacon/config.json</code>, MCP for <strong>8 agent plugins</strong> (<code>simplebeacon-mcp --offline</code>),
+          Agent Supercharge rule, and <code>.github/workflows/simplebeacon.yml</code>.
+          Reload your IDE → enable <strong>simplebeacon</strong> MCP → call <code>supercharge_agent</code>.
         </p>
+      </div>
+
+      <div class="pricing-card" style="margin-top:1.25rem;max-width:none;border-color:rgba(37,99,235,0.35);">
+        <p class="pricing-label">New · Agent Supercharge</p>
+        <h3>One MCP call to supercharge any coding agent</h3>
+        <p class="pricing-note">
+          <code>supercharge_agent</code> bundles mission briefing, gate status, code suggestions, master engineering plan,
+          git snapshot, and plugin wiring status — start every AI session here.
+        </p>
+        <ul class="pricing-features">
+          <li><code>supercharge_agent</code> — mission + playbook + tool router (free)</li>
+          <li><code>install_agent_plugin</code> — wire Cursor, Windsurf, Continue, Cline, Copilot, Aider, AGENTS.md</li>
+          <li><code>code_suggestions</code> — deterministic before/after fix hints</li>
+          <li><code>master_engineering_brief</code> — ten-cylinder recovery plan</li>
+          <li><code>solve_problem</code> / <code>diagnose_error</code> — CI, tests, stack traces</li>
+        </ul>
+        <div class="cli-hint"><code>npx simplebeacon init --starter --hosts all</code></div>
+        <p class="cli-note">Writes <code>.simplebeacon/agent-supercharge.md</code> on full scans. VS Code extension v3.0.507 ships the same workflow.</p>
       </div>
 
       <div class="pricing-card" style="margin-top:1.25rem;max-width:none;">
         <p class="pricing-label">While coding</p>
-        <h3>MCP in Cursor (shift-left)</h3>
+        <h3>MCP in your coding agent (shift-left)</h3>
         <p class="pricing-note">Your agent scans snippets and files before they land in a PR — same rules as CI, local only.</p>
         <ul class="pricing-features">
+          <li><code>supercharge_agent</code> — start every session (mission + gate + suggestions)</li>
           <li><code>scan_snippet</code> — paste or draft code before save</li>
-          <li><code>scan_file</code> — path under your repo root</li>
+          <li><code>scan_file</code> — path under your repo root (paid)</li>
           <li><code>gate_status</code> — last full scan pass/fail + blocking count</li>
-          <li><code>explain_finding</code> — why a rule fired and how to fix it</li>
+          <li><code>handoff_check</code> — may the agent claim done?</li>
+          <li><code>explain_finding</code> — why a rule fired (paid)</li>
         </ul>
         <div class="cli-hint"><code>npx simplebeacon-mcp --smoke-test</code></div>
         <p class="cli-note">Smoke test prints sample findings and exits — the MCP server otherwise waits on stdio (normal).</p>
@@ -121,7 +141,7 @@
           Run the gate locally, then book a formatted clearance PDF from your JSON report — no zip handoff required for the free tier.
           Agency milestone certificates from <a href="pricing.html#client-deliverables">$999+</a>.
         </p>
-        <a href="pricing.html#auditBookingForm" class="cta-billing-btn cta-billing-btn--secondary">Book clearance PDF — $499</a>
+        <a href="pricing.html#auditBookingForm" class="cta-billing-btn cta-billing-btn--secondary">Book clearance PDF — $999</a>
       </div>
 
       <p class="cli-note" style="margin-top:1.5rem;">

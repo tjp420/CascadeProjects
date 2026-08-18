@@ -169,6 +169,37 @@ function renderPreview(data) {
     const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || 'Unknown Project';
     const grade = quality >= 90 ? 'A' : quality >= 80 ? 'B' : quality >= 70 ? 'C' : quality >= 60 ? 'D' : 'F';
     const gradeColor = quality >= 80 ? '#10B981' : quality >= 60 ? '#F59E0B' : '#EF4444';
+    // Audit page: lightweight preview — executive report panel holds board metrics; skip 40-module DOM build
+    if (window.SB_AUDIT_FREE_PREVIEW) {
+        const sev = data.severityCounts || {};
+        const auditPreviewHtml = `
+        <div class="cert-preview ${hasToken ? '' : 'watermarked'}" style="padding:20px;">
+            <div class="cert-header">
+                <h3>Scan Complete</h3>
+                <div class="cert-subtitle">${escapeHtml(project)} &mdash; ${new Date().toLocaleDateString()}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:16px;">
+                <div class="meta-item"><div class="value" style="color:${gradeColor};font-size:1.5rem;font-weight:800;">${grade}</div><div class="label">Grade</div></div>
+                <div class="meta-item"><div class="value">${quality}%</div><div class="label">Quality</div></div>
+                <div class="meta-item"><div class="value">${files.toLocaleString()}</div><div class="label">Files</div></div>
+                <div class="meta-item"><div class="value">${(sev.critical || 0)}/${(sev.high || 0)}/${(sev.medium || 0)}</div><div class="label">Crit/High/Med</div></div>
+            </div>
+            <p style="margin-top:16px;font-size:0.85rem;color:var(--text-secondary);">See the Executive Compliance Report above for PDF export. Import CLI JSON for full module breakdown.</p>
+        </div>`;
+        function sbFinishAuditPreviewRender() {
+            if (scanPreview)
+                scanPreview.innerHTML = auditPreviewHtml;
+            try {
+                if (scanPreview)
+                    scanPreview.dataset.sbReportData = JSON.stringify(data);
+            }
+            catch (_e) { /* ignore */ }
+        }
+        requestAnimationFrame(function () {
+            requestAnimationFrame(sbFinishAuditPreviewRender);
+        });
+        return;
+    }
     // Build issue list HTML with explainability
     const issueItems = detectedIssues.slice(0, 5).map(issue => {
         const sev = (issue.severity || 'low').toLowerCase();
@@ -691,7 +722,9 @@ function renderPreview(data) {
             const paid = isModulePaidFor(mod.num);
             const lockLabel = paid ? '' : ' 🔒';
             return `<option value="${escapeHtml(mod.id)}" class="${paid ? '' : 'inactive'}">${escapeHtml(mod.optionLabel)}${lockLabel}</option>`;
-        }).join('') + `<option value="__full_report__">📥 Full Report — Export Complete Data</option>`;
+        }).join('') + (typeof canExportFullReport === 'function' && canExportFullReport()
+            ? `<option value="__full_report__">📥 Full Report — Export Complete Data</option>`
+            : `<option value="__full_report__" disabled>📥 Full Report — Paid license required</option>`);
         const panels = modules.map(mod => {
             const vals = mod.values.map(v => `<button class="detail-data-btn" onclick="copyReportData('${String(v.value).replace(/'/g, "\\'")}', this)"><strong style="color:${v.color || '#60A5FA'}">${v.value}</strong> <span style="color:var(--text-muted);font-weight:400;">${v.label}</span><span class="copy-icon">&#128203;</span></button>`).join('');
             const leftBorder = mod.statusColor ? `border-left:3px solid ${mod.statusColor};` : '';
@@ -707,7 +740,7 @@ function renderPreview(data) {
         }).join('');
         return `<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:10px;"><select class="module-dropdown" style="flex:1;" aria-label="Select module" onchange="const p=this.parentElement.parentElement.querySelectorAll('.module-detail-panel');p.forEach(x=>x.classList.remove('active'));const s=this.parentElement.parentElement.querySelector('#'+this.value);if(s)s.classList.add('active');"><option value="" disabled selected>Select a module…</option>${selectOptions}</select><button class="detail-data-btn" style="padding:8px 14px;font-size:0.8rem;" onclick="downloadSelectedModule(this)" title="Download full module data as JSON">&#128229; Export</button></div>${panels}`;
     })();
-    scanPreview.innerHTML = `
+    const previewHtml = `
         <div class="cert-preview ${hasToken ? '' : 'watermarked'}">
             <div class="cert-header">
                 <h3>Executive Risk Certificate</h3>
@@ -809,6 +842,33 @@ function renderPreview(data) {
             ${footer}
         </div>
     `;
+    function sbFinishPreviewRender() {
+        if (scanPreview)
+            scanPreview.innerHTML = previewHtml;
+        try {
+            if (scanPreview)
+                scanPreview.dataset.sbReportData = JSON.stringify(data);
+        }
+        catch (_reportStoreErr) { /* ignore quota errors */ }
+        if (typeof window.sbUpdateBoardReport === 'function') {
+            window.sbUpdateBoardReport(data);
+        }
+        if (typeof window.sbRenderAiContextPack === 'function') {
+            window.sbRenderAiContextPack(data);
+        }
+        try {
+            window.dispatchEvent(new CustomEvent('sb:scanComplete', { detail: data }));
+        }
+        catch (_scanEvtErr) { /* ignore */ }
+    }
+    if (window.SB_AUDIT_FREE_PREVIEW) {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(sbFinishPreviewRender);
+        });
+    }
+    else {
+        sbFinishPreviewRender();
+    }
 }
 if (typeof window !== 'undefined') {
     window.buildEuAiActControls = buildEuAiActControls;

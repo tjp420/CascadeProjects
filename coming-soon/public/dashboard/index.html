@@ -68,11 +68,23 @@
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <script>
     (function(){
-      var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
       var l = document.createElement('link');
       l.rel = 'stylesheet';
-      if (devHost) l.href = '/dashboard/assets/main.css?v=20260812register'; else l.href = '/dashboard/assets/main.css?v=20260812register';
+      l.href = '/dashboard/assets/main.css?v=20260816dash2';
       document.head.appendChild(l);
+    })();
+  </script>
+
+  <!-- Local dashboard: API is same-origin (fixes IDE sign-in on port 3001) -->
+  <script>
+    (function() {
+      try {
+        var h = location.hostname;
+        if (/^(localhost|127\.0\.0\.1)$/i.test(h) && (location.pathname || '').indexOf('/dashboard') === 0) {
+          window.__SB_API_HOST__ = location.origin;
+          window.__SIMPLEBEACON_DETECTED_API_BASE = location.origin;
+        }
+      } catch (_) {}
     })();
   </script>
 
@@ -302,6 +314,93 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
   <script src="./site-config.js"></script>
   <script src="./js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
 </head>
 <body>
   <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
@@ -408,22 +507,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   </script>
 
   <!-- React Dashboard Bundle -->
-  <script>
-    (function(){
-      var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
-      if (devHost) {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260813paywall';
-        document.head.appendChild(s);
-      } else {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260813paywall';
-        document.head.appendChild(s);
-      }
-    })();
-  </script>
+  <script type="module" src="/dashboard/assets/main.js?v=sb-1787028829582"></script>
   <script>
     (function(){
       try{

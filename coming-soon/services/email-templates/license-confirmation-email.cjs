@@ -61,9 +61,11 @@ function renderLicenseConfirmation(opts) {
         + loginUrl + '\n\n'
         + 'License Token: ' + token + '\n'
         + 'Valid for: ' + ttlLabel + '\n\n'
-        + 'STEP 2: Install the CLI (1 minute)\n'
-        + '  npx --yes simplebeacon init --starter\n\n'
-        + 'STEP 3: Run your first scan (30 seconds)\n'
+        + 'STEP 2: Install Agent Supercharge (1 minute)\n'
+        + '  npx --yes simplebeacon init --starter --hosts all\n\n'
+        + 'STEP 3: Start every AI session with supercharge_agent (MCP) or:\n'
+        + '  npx simplebeacon supercharge --write-disk\n\n'
+        + 'STEP 4: Run your first gate scan (30 seconds)\n'
         + '  npx simplebeacon scan --gate --offline\n\n'
         + 'API Key (for CI/CD): ' + apiKey + '\n'
         + 'Dashboard: ' + dashboardWithToken + '\n\n'
@@ -153,7 +155,7 @@ function renderLicenseConfirmation(opts) {
 <div style="flex:1;">
 <h3 style="font-size:0.92rem;font-weight:600;color:#ffffff;margin:0 0 8px;">Install the CLI</h3>
 <div style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px 16px;margin-bottom:8px;">
-<code style="color:#fde68a;font-family:'SF Mono',Monaco,monospace;font-size:0.8rem;">npx --yes simplebeacon init --starter</code>
+<code style="color:#fde68a;font-family:'SF Mono',Monaco,monospace;font-size:0.8rem;">npx --yes simplebeacon init --starter --hosts all</code>
 </div>
 <p style="font-size:0.78rem;color:#6b7280;margin:0;">Or: <code style="color:#9ca3af;font-size:0.78rem;">npm install -D simplebeacon</code></p>
 </div>

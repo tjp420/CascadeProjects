@@ -934,6 +934,23 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
     }
 });
 
+// Edge signing public key — same-origin for browser .sbcert verification (local dev proxies to edge)
+app.get('/api/v1/certify/public-key', async (_req, res) => {
+    const upstreamUrl = process.env.CERTIFY_PUBLIC_KEY_URL || 'https://simplebeacon.ai/api/v1/certify/public-key';
+    try {
+        const upstream = await fetch(upstreamUrl, { headers: { Accept: 'application/json' } });
+        const body = await upstream.text();
+        res.status(upstream.status);
+        res.set('Content-Type', upstream.headers.get('content-type') || 'application/json');
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Cache-Control', 'public, max-age=3600');
+        res.send(body);
+    } catch (err) {
+        logger.warn('[CertifyPublicKey] Proxy failed:', err.message);
+        res.status(502).json({ error: 'Could not reach certificate signing service' });
+    }
+});
+
 // Pricing config endpoint
 app.get('/api/config/pricing', (_req, res) => {
     res.json({
@@ -1006,7 +1023,7 @@ app.post('/api/contact', express.json({ limit: '1mb' }), async (req, res) => {
 
         const topicLabels = {
             'free-audit': 'Free AI Slop Audit request',
-            'certificate': 'Executive Risk Certificate ($499)',
+            'certificate': 'Executive Risk Certificate ($999)',
             'eu-ai-act': 'EU AI Act Readiness Sprint ($2,499)',
             'enterprise': 'Enterprise contract ($50,000+ annual)',
             'invoice-w9': 'Request Invoice / W-9',

@@ -49,17 +49,41 @@ describe('scan-utils', () => {
         assert.strictEqual(normalizePath('src/foo/bar.js'), 'src/foo/bar.js');
     });
 
-    it('should have correct max files constant', () => {
-        assert.strictEqual(MAX_DISCOVERED_FILES, 999999999);
+    it('should have 1M max files constant', () => {
+        assert.strictEqual(MAX_DISCOVERED_FILES, 1000000);
     });
 
-    it('should hard-stop browser scans at 100000 files with CLI hint', () => {
+    it('should warn (not block) at 1M files with CLI hint', () => {
         const { analyzeFolderSize } = require('../js/scan-utils.js');
-        const files = Array.from({ length: 100000 }, () => ({ size: 1, name: 'a.js', webkitRelativePath: 'p/a.js' }));
+        const files = Array.from({ length: 1000000 }, () => ({ size: 1, name: 'a.js', webkitRelativePath: 'p/a.js' }));
         const result = analyzeFolderSize(files);
-        assert.strictEqual(result.blocked, true);
-        assert.strictEqual(result.severity, 'error');
-        assert.match(result.message, /100,000/);
+        assert.strictEqual(result.blocked, false);
+        assert.strictEqual(result.severity, 'warn');
+        assert.match(result.message, /1,000,000/);
         assert.match(result.cliHint, /npx simplebeacon scan/);
+    });
+
+    it('should categorize paths and build inventory summary', () => {
+        const { categorizeScanPath, buildFileInventorySummary, formatByteSize } = require('../js/scan-utils.js');
+        assert.strictEqual(categorizeScanPath('src/index.js'), 'sourceCode');
+        assert.strictEqual(categorizeScanPath('node_modules/foo/index.js'), 'vendor');
+        assert.strictEqual(categorizeScanPath('assets/logo.png'), 'binary');
+        assert.strictEqual(categorizeScanPath('README.md'), 'docs');
+
+        const files = [
+            { size: 100, webkitRelativePath: 'src/app.js' },
+            { size: 200, webkitRelativePath: 'src/utils.ts' },
+            { size: 50, webkitRelativePath: 'package.json' },
+            { size: 5000, webkitRelativePath: 'node_modules/lodash/index.js' },
+            { size: 800, webkitRelativePath: 'public/logo.png' },
+            { size: 300, webkitRelativePath: 'README.md' }
+        ];
+        const summary = buildFileInventorySummary(files);
+        assert.strictEqual(summary.totalFiles, 6);
+        assert.strictEqual(summary.sampled, false);
+        assert.ok(summary.categories.sourceCode >= 2);
+        assert.ok(summary.scannableEstimate > 0);
+        assert.ok(summary.topExtensions.length > 0);
+        assert.ok(formatByteSize(2048).includes('KB'));
     });
 });

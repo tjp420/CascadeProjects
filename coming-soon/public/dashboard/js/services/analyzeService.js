@@ -1,7 +1,8 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { authService } from './authService.js?v=20260716cachefix1';
 import { fetchUserAiKeys } from './aiKeysService.js';
-import { scanService } from './scanService.js';
+// scanService is loaded lazily in scanPath() to avoid a circular import:
+// scanService → dashboard-export.browser → analyzeService → scanService
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { notifyDownloadComplete } from '../utils-lib/notify.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
@@ -344,6 +345,7 @@ export async function fetchUnderstandSnippet(code, options = {}) {
  * @returns {any}
  */
 export async function scanPath(projectPath, options = {}) {
+  const { scanService } = await import('./scanService.js');
   return scanService.runScan(projectPath, options);
 }
 

@@ -27,6 +27,14 @@ export function getApiBase(): string {
     const detected = win.__SB_API_HOST__ || win.__SIMPLEBEACON_DETECTED_API_BASE;
     if (detected && typeof detected === 'string' && detected.length > 0) return String(detected).replace(/\/+$/, '');
     const host = window.location.hostname || '';
+    const origin = window.location.origin || '';
+    // Dashboard served from coming-soon server (e.g. http://127.0.0.1:3001/dashboard/) — API is same-origin.
+    if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
+      const path = window.location.pathname || '';
+      if (path.startsWith('/dashboard')) {
+        return origin;
+      }
+    }
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
       // If the probe completed and found no local server, fall back to production API
       // to avoid CORS errors from trying to reach a non-existent local server.
@@ -58,6 +66,18 @@ export function authHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** True when the dashboard is served from production marketing host (not localhost). */
+export function isHostedProductionDashboard(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname || '';
+  return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev');
+}
+
+/** Whether the browser has a JWT available for API calls. */
+export function hasAuthToken(): boolean {
+  return Boolean(authHeaders().Authorization) && !isTokenExpired();
 }
 
 export function isTokenExpired(): boolean {
@@ -100,7 +120,12 @@ let _apiBaseDetectPromise: Promise<string | null> | null = null;
 let _probeDone = false;
 
 export function waitForApiBase(timeoutMs = 3000): Promise<string | null> {
-  if (_apiBaseDetectPromise) return _apiBaseDetectPromise;
+  if (_apiBaseDetectPromise) {
+    return Promise.race([
+      _apiBaseDetectPromise,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+  }
   return Promise.resolve(null);
 }
 
@@ -136,7 +161,11 @@ if (typeof window !== 'undefined') {
           // wrong CORS policy and cause subsequent API calls to fail.
           try {
             const data = await res.clone().json();
-            if (data.platform !== 'Simplebeacon' && data.status !== 'healthy') {
+            const isSimplebeacon =
+              data.platform === 'Simplebeacon' ||
+              data.status === 'healthy' ||
+              (data.status === 'ok' && /simplebeacon/i.test(String(data.service || '')));
+            if (!isSimplebeacon) {
               return false;
             }
           } catch {

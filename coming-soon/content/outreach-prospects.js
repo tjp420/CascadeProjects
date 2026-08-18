@@ -2,7 +2,7 @@
  * SimpleBeacon Outreach Prospects — CCO / VP Risk Management
  *
  * Target: 50 prospects / week
- * Goal: 10 audit requests / month → 3 paid conversions ($499–$1,499)
+ * Goal: 10 audit requests / month → 3 paid conversions ($999–$2,499)
  *
  * Usage:
  *   const prospects = require('./outreach-prospects.js');

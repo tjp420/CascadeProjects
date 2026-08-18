@@ -98,7 +98,7 @@ before(async () => {
 
       const topicLabels = {
         'free-audit': 'Free AI Slop Audit request',
-        'certificate': 'Executive Risk Certificate ($499)',
+        'certificate': 'Executive Risk Certificate ($999)',
         'eu-ai-act': 'EU AI Act Readiness Sprint ($2,499)',
         'enterprise': 'Enterprise contract ($50,000+ annual)',
         'invoice-w9': 'Request Invoice / W-9',

@@ -39,7 +39,7 @@ function resolveScanWorkerUrl() {
     } catch (_metaErr) { /* fall through */ }
     return `/app/assets/scan-worker.js?v=${v}`;
 }
-const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
+const MAX_FILES = Number.MAX_SAFE_INTEGER;
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;

@@ -1,6 +1,11 @@
 /* SimpleBeacon Pricing Page — v2 redesign */
 
-.pricing-page {
+html:has(body.pricing-page) {
+  background-color: var(--background, #0B0F19);
+  scroll-behavior: smooth;
+}
+
+.pricing-page.site-page {
   --p-accent: #6366f1;
   --p-accent-soft: rgba(99, 102, 241, 0.12);
   --p-green: #10b981;
@@ -8,7 +13,10 @@
   --p-amber: #f59e0b;
   --p-radius: 16px;
   --p-radius-sm: 10px;
-  background:
+  min-height: 100vh;
+  background-color: var(--background, #0B0F19);
+  color: var(--text-primary, #f3f4f6);
+  background-image:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.18), transparent),
     radial-gradient(ellipse 60% 40% at 100% 0%, rgba(16, 185, 129, 0.08), transparent);
 }
@@ -144,7 +152,7 @@
   align-items: center;
   justify-content: center;
   width: 44px;
-  background: var(--bg-main, #0a0a0a);
+  background: var(--background, #0B0F19);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   font-size: 0.7rem;
@@ -1030,7 +1038,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(10, 10, 10, 0.95);
+  background: color-mix(in srgb, var(--background, #0B0F19) 95%, transparent);
   border-top: 1px solid var(--border);
   padding: 14px 24px;
   display: flex;
@@ -1089,9 +1097,136 @@
 [data-delay="300"] { animation-delay: 0.3s; }
 
 /* Light theme */
-html[data-theme="light"] .price-card { background: rgba(255, 255, 255, 0.9); }
-html[data-theme="light"] .compare-wrap { background: rgba(255, 255, 255, 0.8); }
-html[data-theme="light"] .faq-item { background: rgba(255, 255, 255, 0.7); }
+html[data-theme="light"]:has(body.pricing-page) {
+  background-color: var(--background, #F8FAFC);
+}
+
+[data-theme="light"] .pricing-page.site-page {
+  background-color: var(--background, #F8FAFC);
+  color: var(--text-primary, #0F172A);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(16, 185, 129, 0.05), transparent);
+}
+
+[data-theme="light"] .pricing-hero h1,
+[data-theme="light"] .section-title,
+[data-theme="light"] .vs-price,
+[data-theme="light"] .price-card h3,
+[data-theme="light"] .price-amount,
+[data-theme="light"] .promo-banner h3,
+[data-theme="light"] .custody-strip h3,
+[data-theme="light"] .info-card h3,
+[data-theme="light"] .adoption-funnel h3,
+[data-theme="light"] .trust-card-title,
+[data-theme="light"] .step-title {
+  color: var(--text-primary, #0F172A);
+}
+
+[data-theme="light"] .hero-sub,
+[data-theme="light"] .hero-trust-line,
+[data-theme="light"] .vs-meta,
+[data-theme="light"] .vs-footnote,
+[data-theme="light"] .step-desc,
+[data-theme="light"] .price-desc,
+[data-theme="light"] .price-features li,
+[data-theme="light"] .section-subtitle,
+[data-theme="light"] .pricing-note,
+[data-theme="light"] .promo-banner p,
+[data-theme="light"] .custody-strip p,
+[data-theme="light"] .info-card p,
+[data-theme="light"] .trust-card p,
+[data-theme="light"] .guarantee-text,
+[data-theme="light"] .pill {
+  color: var(--text-secondary, #475569);
+}
+
+[data-theme="light"] .hero-badge {
+  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.22);
+}
+
+[data-theme="light"] .pricing-hero h1 em {
+  -webkit-text-fill-color: initial;
+  color: #059669;
+}
+
+[data-theme="light"] .hero-trust-line,
+[data-theme="light"] .pill {
+  background: #fff;
+  border-color: var(--border, #E2E8F0);
+}
+
+[data-theme="light"] .vs-divider {
+  background: var(--background, #F8FAFC);
+}
+
+[data-theme="light"] .price-card,
+[data-theme="light"] .compare-wrap,
+[data-theme="light"] .faq-item,
+[data-theme="light"] .info-card,
+[data-theme="light"] .trust-card,
+[data-theme="light"] .email-pricing,
+[data-theme="light"] .promo-banner,
+[data-theme="light"] .seat-picker {
+  background: var(--surface, #fff);
+  border-color: var(--border, #E2E8F0);
+}
+
+[data-theme="light"] .price-card {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .price-card:hover {
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .price-features li {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .compare-row {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .compare-head {
+  background: rgba(15, 23, 42, 0.03);
+}
+
+[data-theme="light"] .pricing-mode-tabs {
+  background: #F1F5F9;
+  border-color: var(--border, #E2E8F0);
+}
+
+[data-theme="light"] .adoption-funnel,
+[data-theme="light"] .guarantee,
+[data-theme="light"] .custody-strip {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(16, 185, 129, 0.04));
+  border-color: rgba(99, 102, 241, 0.18);
+}
+
+[data-theme="light"] .sticky-cta {
+  background: color-mix(in srgb, var(--background, #F8FAFC) 95%, transparent);
+}
+
+[data-theme="light"] .modal-box {
+  background: var(--surface, #fff);
+}
+
+[data-theme="light"] .btn-ghost {
+  background: #fff;
+}
+
+[data-theme="light"] .hero-trust-line a,
+[data-theme="light"] .trust-card a,
+[data-theme="light"] .pricing-foot a:hover {
+  color: #4f46e5;
+}
+
+[data-theme="light"] .site-footer a:hover {
+  color: var(--text-primary, #0F172A);
+}
 
 /* Responsive */
 @media (max-width: 900px) {

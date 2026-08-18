@@ -65,7 +65,7 @@
       var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
       var l = document.createElement('link');
       l.rel = 'stylesheet';
-      if (devHost) l.href = '/app/assets/main.css?v=20260809seatfix2'; else l.href = '/app/assets/main.css?v=20260809seatfix2';
+      if (devHost) l.href = '/dashboard/assets/main.css?v=20260816dash2'; else l.href = '/dashboard/assets/main.css?v=20260816dash2';
       document.head.appendChild(l);
     })();
   </script>
@@ -657,7 +657,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
       var s = document.createElement('script');
       s.defer = true;
-      if (devHost) s.src = '/app/js/vendor/jszip.min.js?v=20260726react1'; else s.src = '/app/js/vendor/jszip.min.js?v=20260726react1';
+      if (devHost) s.src = '/dashboard/js/vendor/jszip.min.js?v=20260726react1'; else s.src = '/dashboard/js/vendor/jszip.min.js?v=20260726react1';
       document.head.appendChild(s);
     })();
   </script>
@@ -669,12 +669,12 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       if (devHost) {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/app/assets/main.js?v=20260809seatfix2';
+        s.src = '/dashboard/assets/main.js?v=20260816dash2';
         document.head.appendChild(s);
       } else {
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = '/app/assets/main.js?v=20260809seatfix2';
+        s.src = '/dashboard/assets/main.js?v=20260816dash2';
         document.head.appendChild(s);
       }
     })();

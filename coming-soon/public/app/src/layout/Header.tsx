@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTheme } from '@/hooks/useTheme';
 import { navigate } from '@/router/HashRouter';
+import { OfflineStatusBadge } from '@/components/OfflineStatusBadge';
 
 interface HeaderProps {
   isAuthenticated: boolean;
@@ -72,6 +73,10 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
             Free Tier
           </span>
         )}
+
+        <div className="hidden sm:block">
+          <OfflineStatusBadge />
+        </div>
 
         <Button variant="ghost" size="icon" onClick={toggleTheme} title="Toggle theme">
           {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}

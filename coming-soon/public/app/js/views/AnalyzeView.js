@@ -278,7 +278,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     {
         sku: 'clearance499',
         label: 'Executive clearance PDF',
-        price: '$499',
+        price: '$999',
         category: 'Client deliverable',
         tagline: 'Gate, fiction digest, compliance checklist, executive PDF — 48-hour operator review',
         engines: ['simplebeacon', 'mock-scan', 'compliance'],
@@ -3243,7 +3243,7 @@ export class AnalyzeView {
           <div class="analyze-engines-col">
             <h3 class="analyze-engines-col-title">EU AI Act profile extras</h3>
             <ul class="analyze-mode-steps">${euList}</ul>
-            <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="/dashboard/deliverables">$499 PDF</a> and agency packs.</p>
+            <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="/dashboard/deliverables">$999 PDF</a> and agency packs.</p>
           </div>
         </div>
         <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
@@ -8350,7 +8350,6 @@ export class AnalyzeView {
         }
         try {
             const report = await runSandboxedDirectoryScan({
-                maxFiles: 100000,
                 onLog: (entry) => {
                     if (terminal) {
                         terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
@@ -9643,7 +9642,7 @@ export class AnalyzeView {
     renderAuditExportCallout() {
         var _a, _b;
         if (((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.kind) === 'eu-ai-act') {
-            return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Reference EU layout.</strong> PDF is built from <code>.simplebeacon/eu-ai-act-*.json</code> sprint artifacts — not the $499 pre-launch security handoff. Active offers: <a href="/dashboard/deliverables">$499 PDF</a> and agency packs.</p>`;
+            return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Reference EU layout.</strong> PDF is built from <code>.simplebeacon/eu-ai-act-*.json</code> sprint artifacts — not the $999 pre-launch security handoff. Active offers: <a href="/dashboard/deliverables">$999 PDF</a> and agency packs.</p>`;
         }
         if (((_b = this.lastResult) === null || _b === void 0 ? void 0 : _b.kind) === 'complete' && this.hasEuAiActSprintResult()) {
             return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>EU AI Act sprint included.</strong> Use <strong>Download EU PDF</strong> for the regulatory readiness report (step 11). <strong>Download audit PDF</strong> is the corporate executive / gate handoff — not the EU layout.</p>`;
@@ -9706,7 +9705,7 @@ export class AnalyzeView {
         var _a, _b, _c, _d;
         const locked = this.isResultsLocked();
         const checkoutUrl = ((_b = (_a = this.app.billingService) === null || _a === void 0 ? void 0 : _a.getAuditCheckoutUrl) === null || _b === void 0 ? void 0 : _b.call(_a)) || null;
-        const priceLabel = ((_d = (_c = this.app.billingService) === null || _c === void 0 ? void 0 : _c.plan) === null || _d === void 0 ? void 0 : _d.auditPriceLabel) || '$499';
+        const priceLabel = ((_d = (_c = this.app.billingService) === null || _c === void 0 ? void 0 : _c.plan) === null || _d === void 0 ? void 0 : _d.auditPriceLabel) || '$999';
         const downloadLabel = isComplete ? 'Download all results' : 'Download result';
         const showEuPdf = this.hasEuAiActSprintResult();
         const zipMeta = isComplete ? this.resolveZipExportButtonMeta() : null;
@@ -10843,7 +10842,7 @@ export class AnalyzeView {
         };
         const locked = this.isResultsLocked();
         const checkoutUrl = ((_m = (_l = this.app.billingService) === null || _l === void 0 ? void 0 : _l.getAuditCheckoutUrl) === null || _m === void 0 ? void 0 : _m.call(_l)) || null;
-        const priceLabel = ((_p = (_o = this.app.billingService) === null || _o === void 0 ? void 0 : _o.plan) === null || _p === void 0 ? void 0 : _p.auditPriceLabel) || '$499';
+        const priceLabel = ((_p = (_o = this.app.billingService) === null || _o === void 0 ? void 0 : _o.plan) === null || _p === void 0 ? void 0 : _p.auditPriceLabel) || '$999';
         return `
       <div class="section-block">
         <div class="section-heading">

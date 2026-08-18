@@ -127,6 +127,10 @@ function transformHtml(html, relPath) {
   if (meta.includeNav && !/referral-capture\.js/i.test(html)) {
     html = html.replace(/<\/body>/i, '  <script src="/js-es2018/referral-capture.js" defer></script>\n</body>');
   }
+  // Auto-issue upgradeable guest gate-scan token on every marketing page visit
+  if (meta.includeNav && !/guest-token-bootstrap\.js/i.test(html)) {
+    html = html.replace(/<\/body>/i, '  <script src="/js-es2018/site-auth.js?v=20260815auth2"></script>\n  <script src="/js-es2018/guest-token-bootstrap.js?v=20260815guest4" defer></script>\n</body>');
+  }
   return html;
 }
 function generateSitemap() {
@@ -269,13 +273,80 @@ if (fs.existsSync(auditDashSrc)) {
   copyRecursive(auditDashSrc, auditDashDst, 'js-es2018/dashboard/');
 }
 
+// Canonical js/ modules used by audit.html → public/js-es2018/
+const auditJsMirror = ['scan-utils.js', 'scan-worker.js', 'token-entry-guard.js', 'referral-capture.js', 'audit-scan-service.js', 'audit-scan-worker.js', 'ai-context-pack.js'];
+for (const jsFile of auditJsMirror) {
+  const from = path.join(src, 'js', jsFile);
+  const to = path.join(dst, 'js-es2018', jsFile);
+  if (fs.existsSync(from)) {
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.copyFileSync(from, to);
+  }
+}
+
 // Copy the full ai-platform dashboard app into public/dashboard
 const dashboardSrc = path.resolve(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard');
 const dashboardDst = path.join(dst, 'dashboard');
-if (fs.existsSync(dashboardSrc)) {
+const localReactDashboard = path.join(__dirname, 'public', 'dashboard');
+const syncScript = path.resolve(__dirname, '..', 'scripts', 'sync-dashboard-artifacts.cjs');
+const repoRoot = path.resolve(__dirname, '..');
+
+function dashboardSourceIsNewerThanManifest() {
+  const manifestPath = path.join(localReactDashboard, 'deploy-manifest.json');
+  if (!fs.existsSync(manifestPath)) return true;
+  let builtAt = 0;
+  try {
+    builtAt = Date.parse(JSON.parse(fs.readFileSync(manifestPath, 'utf8')).builtAt || '') || 0;
+  } catch (_) { return true; }
+  const watchRoots = [
+    path.join(dashboardSrc, 'src'),
+    path.join(dashboardSrc, 'js-es2018'),
+    path.join(dashboardSrc, 'assets'),
+  ];
+  for (const root of watchRoots) {
+    if (!fs.existsSync(root)) continue;
+    const stack = [root];
+    while (stack.length) {
+      const dir = stack.pop();
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          stack.push(full);
+          continue;
+        }
+        try {
+          if (fs.statSync(full).mtimeMs > builtAt) return true;
+        } catch (_) { /* ignore */ }
+      }
+    }
+  }
+  return false;
+}
+
+const shouldSyncDashboard =
+  process.env.FORCE_DASHBOARD_SYNC === '1'
+  || process.env.SKIP_DASHBOARD_SYNC !== '1'
+  && (dashboardSourceIsNewerThanManifest() || !fs.existsSync(path.join(localReactDashboard, 'deploy-manifest.json')));
+
+if (shouldSyncDashboard && fs.existsSync(syncScript)) {
+  console.log('Promoting dashboard via scripts/sync-dashboard-artifacts.cjs…');
+  require('child_process').execSync(`node "${syncScript}"`, {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      DASHBOARD_CACHE_VERSION: process.env.DASHBOARD_CACHE_VERSION || undefined,
+    },
+  });
+} else if (fs.existsSync(localReactDashboard)) {
+  console.log('Using existing public/dashboard artifacts (SKIP_DASHBOARD_SYNC=1 or manifest is current)');
+} else if (fs.existsSync(dashboardSrc)) {
   removeDirSafe(dashboardDst);
   fs.mkdirSync(dashboardDst, { recursive: true });
   copyRecursive(dashboardSrc, dashboardDst, 'dashboard/');
+}
+
+if (fs.existsSync(dashboardDst)) {
   // Duplicate index.html under a no-extension name so the Pages Function can serve the SPA
   // without Cloudflare stripping the extension or redirecting to a directory-style URL.
   const dashboardIndex = path.join(dashboardDst, 'index.html');
@@ -292,10 +363,18 @@ if (fs.existsSync(dashboardSrc)) {
       dashHtml = dashHtml.replace(/<head[^>]*>/i, '$&\n  <title>SimpleBeacon Dashboard</title>');
     }
     // Rewrite production asset paths to /dashboard/dist/assets for CF Pages
-    const cacheBust = Date.now();
+    let cacheBust = Date.now();
+    const manifestPath = path.join(dashboardDst, 'deploy-manifest.json');
+    if (fs.existsSync(manifestPath)) {
+      try {
+        cacheBust = JSON.parse(fs.readFileSync(manifestPath, 'utf8')).cacheVersion || cacheBust;
+      } catch (_) { /* keep Date.now fallback */ }
+    }
     dashHtml = dashHtml.replace(/href="\/assets\/main\.css(?:\?[^"]*)?"/g, `href="/dashboard/dist/assets/main.css?v=${cacheBust}"`);
     dashHtml = dashHtml.replace(/src="\/assets\/main\.js(?:\?[^"]*)?"/g, `src="/dashboard/dist/assets/main.js?v=${cacheBust}"`);
     dashHtml = dashHtml.replace(/src="\/dashboard\/assets\/main\.js(?:\?[^"]*)?"/g, `src="/dashboard/assets/main.js?v=${cacheBust}"`);
+    dashHtml = dashHtml.replace(/src="\/dashboard\/assets\/js\/main\.js(?:\?[^"]*)?"/g, `src="/dashboard/assets/main.js?v=${cacheBust}"`);
+    dashHtml = dashHtml.replace(/src="\/dashboard\/assets\/js\/main-[a-zA-Z0-9_-]+\.js(?:\?[^"]*)?"/g, `src="/dashboard/assets/main.js?v=${cacheBust}"`);
     // Also handle any leftover Vite dev script references
     dashHtml = dashHtml.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, `<script type="module" src="/dashboard/dist/assets/main.js?v=${cacheBust}"></script>`);
     // Rewrite relative js/vendor paths to absolute /dashboard/js/vendor for CF Pages

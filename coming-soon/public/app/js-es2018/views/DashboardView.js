@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
+import { formatNumber, formatPercent, escapeHtml, showToast, downloadBlob } from '../utils.js';
+import { HarExporter } from '../utils-lib/har-exporter.js';
 import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260726sevfix1';
 import { renderIssueList } from '../components/IssueCard.js';
@@ -7,6 +8,7 @@ import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js
 import { mountTeamGatePassTrendChart } from '../components/TeamGatePassTrendChart.js?v=20260804team1';
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
+import { mountPolicyEditor } from '../components/PolicyEditor.js?v=20260807policy1';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
 const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
@@ -230,6 +232,11 @@ export class DashboardView {
             container.appendChild(this.renderScanProgress());
         }
 
+        // Policy editor slot — always visible when config is available
+        const policySlot = document.createElement('div');
+        policySlot.id = 'slot-policy-editor';
+        container.appendChild(policySlot);
+
         if (!report && !scanning) {
             container.appendChild(this.renderQuickStart());
             container.appendChild(this.renderFeatureDiscovery());
@@ -311,6 +318,7 @@ export class DashboardView {
             </div>
             <div class="header-actions d-flex gap-2">
                 <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
+                <button class="btn btn-ghost btn-sm" data-action="export-har" title="Export network requests as HAR file for debugging">Export HAR</button>
                 ${adminBtnHtml}
             </div>
         `);
@@ -667,6 +675,9 @@ export class DashboardView {
                     case 'export':
                         this.handleExport();
                         break;
+                    case 'export-har':
+                        this.handleHarExport();
+                        break;
                     case 'send-ai':
                         this.handleSendAi();
                         break;
@@ -820,6 +831,28 @@ export class DashboardView {
         }
     }
 
+    handleHarExport() {
+        try {
+            if (!this._harExporter) {
+                showToast('HAR recorder not started — reload the page and try again', 'error');
+                return;
+            }
+            const har = this._harExporter.exportHar();
+            const entryCount = this._harExporter.getEntryCount();
+            if (entryCount === 0) {
+                showToast('No network requests captured yet — interact with the dashboard first', 'info');
+                return;
+            }
+            const harJson = JSON.stringify(har, null, 2);
+            const blob = new Blob([harJson], { type: 'application/json' });
+            const filename = `simplebeacon-har-${new Date().toISOString().slice(0, 10)}.har`;
+            downloadBlob(blob, filename);
+            showToast(`HAR exported (${entryCount} entries)`, 'success');
+        } catch (err) {
+            showToast('HAR export failed: ' + (err && err.message || String(err)), 'error');
+        }
+    }
+
     async handleSendAi() {
         const report = this.app.state.report;
         if (!report) {
@@ -932,7 +965,11 @@ export class DashboardView {
         if (this._teamTrendCleanup)
             this._teamTrendCleanup();
         this.stopScanProgressPolling();
-        window.setSafeHTML(container, '');; 
+        if (!this._harExporter) {
+            this._harExporter = new HarExporter();
+            this._harExporter.start();
+        }
+        window.setSafeHTML(container, '');;
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);
@@ -949,6 +986,12 @@ export class DashboardView {
             const trendSlot = view.querySelector('#slot-trend');
             this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
         });
+        requestAnimationFrame(() => {
+            const policySlot = view.querySelector('#slot-policy-editor');
+            if (policySlot) {
+                this._policyEditorCleanup = mountPolicyEditor(policySlot, this.app) || null;
+            }
+        });
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
     }
@@ -958,6 +1001,8 @@ export class DashboardView {
             this._trendCleanup();
         if (this._teamTrendCleanup)
             this._teamTrendCleanup();
+        if (this._policyEditorCleanup)
+            this._policyEditorCleanup();
         this.stopScanProgressPolling();
     }
 }

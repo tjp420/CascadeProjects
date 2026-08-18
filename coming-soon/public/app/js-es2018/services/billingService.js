@@ -88,7 +88,7 @@ export class BillingService {
             this.plan = {
                 ...COMMUNITY_PLAN,
                 auditCheckoutUrl: entitlementPayload.auditCheckoutUrl,
-                auditPriceLabel: entitlementPayload.auditPriceLabel || '$499'
+                auditPriceLabel: entitlementPayload.auditPriceLabel || '$999'
             };
             this.status = {
                 ...COMMUNITY_STATUS,

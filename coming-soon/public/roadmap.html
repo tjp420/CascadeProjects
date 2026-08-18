@@ -116,8 +116,8 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/roadmap.css?v=20260815">
-  <script>(function(){var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();</script>
+  <link rel="stylesheet" href="/css/roadmap.css?v=20260816road1">
+  <script src="/js-es2018/auth.js" defer></script>
   <script type="module" src="/js-es2018/dashboard/phase-registry.js?h=1784596919635"></script>
 </head>
 <body class="roadmap-page">
@@ -129,7 +129,7 @@
   <div class="container">
 <nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
   <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
-  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/dashboard/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
+  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/app/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
     <div class="sb-nav-more-wrap">
       <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
       <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
@@ -149,9 +149,9 @@
 <style>.iframe-embed .sb-site-nav{display:none!important;}.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
     <div class="hero">
       <div class="hero-badge">Remediation Planner</div>
-      <h1>From detection to<br><em>automated janitor.</em></h1>
+      <h1>From Detection to Automated Janitor</h1>
       <p>Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan — prioritized by severity, effort, and compliance impact.</p>
-      <p class="hero-trust-line"><span>&#128274;</span> Runs locally in your browser · <a href="/audit">Run a free scan first</a></p>
+      <p class="hero-trust-line"><span>&#128274;</span> Runs locally in your browser · <a href="/prove-it">Prove it before you pay</a> · <a href="/audit">Run a free scan first</a></p>
     </div>
 
     <div class="trust-pills">
@@ -297,8 +297,8 @@
     <button class="fab fab-secondary" id="fabExport" title="Export">&#128229;</button>
     <button class="fab" id="fabNewScan" title="New Report">&#128259;</button>
   </div>
-  <script src="/vendor/jszip.min.js"></script>
-  <script src="/vendor/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script src="/js-es2018/roadmap-app.js?h=1784596919635"></script>
 
   <!-- Sign-in Modal -->
@@ -536,6 +536,8 @@
     <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a>
   </p>
 </footer>
-  <script>(function(){try{var params=new URLSearchParams(window.location.search);var ref=params.get('ref');if(!ref)return;try{localStorage.setItem('sb_ref_slug',ref);}catch(_){}fetch('/api/referral/capture',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:ref,channel:'web'})}).catch(function(){});}catch(_){}})();</script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+  <script src="/js-es2018/site-auth.js?v=20260815auth2"></script>
+  <script src="/js-es2018/guest-token-bootstrap.js?v=20260815guest4" defer></script>
 </body>
 </html>

@@ -20,7 +20,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
-import { apiUrl, authHeaders } from '@/config';
+import { apiUrl, authHeaders, hasAuthToken, isHostedProductionDashboard } from '@/config';
 
 interface ModelDetail {
   name: string;
@@ -107,12 +107,24 @@ export function OllamaUptimeWidget() {
   const [showModels, setShowModels] = useState(false);
   const [showRunning, setShowRunning] = useState(true);
   const pullPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const skipServerProbe = isHostedProductionDashboard() || !hasAuthToken();
 
   const fetchHealth = useCallback(async () => {
+    if (skipServerProbe) {
+      setLoading(false);
+      setData(null);
+      setError(null);
+      return;
+    }
     try {
       const resp = await fetch(apiUrl('/ollama/health'), {
         headers: authHeaders(),
       });
+      if (resp.status === 401 || resp.status === 403) {
+        setData(null);
+        setError(null);
+        return;
+      }
       const json = await resp.json();
       if (json.success) {
         setData(json);
@@ -125,7 +137,7 @@ export function OllamaUptimeWidget() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [skipServerProbe]);
 
   const fetchPullStatus = useCallback(async () => {
     try {
@@ -161,12 +173,16 @@ export function OllamaUptimeWidget() {
   }, [pullModel, fetchPullStatus]);
 
   useEffect(() => {
+    if (skipServerProbe) {
+      setLoading(false);
+      return undefined;
+    }
     fetchHealth();
     const interval = setInterval(fetchHealth, 30000);
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [fetchHealth]);
+  }, [fetchHealth, skipServerProbe]);
 
   // Poll pull status when there are active downloads
   useEffect(() => {
@@ -187,6 +203,29 @@ export function OllamaUptimeWidget() {
       }
     };
   }, [pulls, fetchPullStatus]);
+
+  if (skipServerProbe) {
+    return (
+      <Card className="border border-border">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              <Cpu className="h-4 w-4" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold">Ollama (local)</CardTitle>
+              <CardDescription className="text-xs">Runs on your machine — not probed from simplebeacon.ai</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">
+            Configure Ollama in <strong>Settings → AI providers</strong>, use the VS Code extension bridge, or run the dashboard locally with <code className="font-mono">ollama serve</code>.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const status = deriveStatus(data);
   const statusConfig = {

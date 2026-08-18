@@ -63,9 +63,24 @@ const TIER_PRODUCT_ALIASES = {
     operator: 'universal',
     sandbox: 'community'
 };
+const DEFAULT_TIER_CONFIG = {
+    guest: { label: 'Guest Pass', title: 'Free Scan', subtitle: 'Community tier — gate scan unlocked', price: 'Free', tokenHelp: 'Your free pass is active.', showUpload: true },
+    community: { label: 'Community', title: 'Community Scan', subtitle: 'Free gate scan', price: 'Free', tokenHelp: 'Community tier active.', showUpload: true },
+    admin: { label: 'Admin', title: 'Admin Scan', subtitle: 'Superuser access — all analyzers unlocked', price: 'Included', tokenHelp: 'Admin access active.', showUpload: true },
+    enterprise: { label: 'Enterprise', title: 'Enterprise Scan', subtitle: 'Full platform access', price: 'Included', tokenHelp: 'Enterprise license active.', showUpload: true },
+    pro: { label: 'Pro', title: 'Pro Scan', subtitle: 'Paid license active', price: 'Included', tokenHelp: 'Pro license active.', showUpload: true },
+    developer: { label: 'Developer', title: 'Developer Scan', subtitle: 'Developer tier active', price: 'Included', tokenHelp: 'Developer license active.', showUpload: true },
+    team: { label: 'Team Pro', title: 'Team Scan', subtitle: 'Team license active', price: 'Included', tokenHelp: 'Team license active.', showUpload: true }
+};
 function resolveProductConfig(tier) {
     const key = tier || 'universal';
-    return PRODUCT_CONFIG[key] || PRODUCT_CONFIG[TIER_PRODUCT_ALIASES[key]] || PRODUCT_CONFIG.universal || {};
+    return PRODUCT_CONFIG[key]
+        || PRODUCT_CONFIG[TIER_PRODUCT_ALIASES[key]]
+        || DEFAULT_TIER_CONFIG[key]
+        || DEFAULT_TIER_CONFIG[TIER_PRODUCT_ALIASES[key]]
+        || PRODUCT_CONFIG.universal
+        || DEFAULT_TIER_CONFIG.community
+        || {};
 }
 const PAID_TIERS = ['developer', 'pro', 'team', 'enterprise', 'startup', 'growth', 'executive', 'euai', 'euSprint', 'admin', 'superuser', 'operator', 'starter'];
 function resolveAllowedModules(tier, json) {
@@ -83,7 +98,8 @@ function resolveAllowedModules(tier, json) {
     return TIER_MODULE_MAP[tier] || TIER_MODULE_MAP[TIER_PRODUCT_ALIASES[tier]] || TIER_MODULE_MAP.locked || [];
 }
 function getProductCardTitle(tier) {
-    const freeTiers = ['community', 'sandbox', 'developer', 'free', 'instant'];
+    const freeTiers = ['community', 'sandbox', 'developer', 'free', 'instant', 'guest'];
+    if (tier === 'admin') return 'Admin Access';
     return freeTiers.includes(tier) ? 'Active Plan' : 'Your Purchase';
 }
 function renderProductInfoCard(tier, config) {
@@ -366,6 +382,19 @@ function renderTokenInspector(payload) {
     cmdEl.textContent = scanCmd;
     panel.style.display = 'block';
 }
+function resolveEffectiveTier(token, payload) {
+    if (typeof window.SbAuth !== 'undefined') {
+        if (typeof window.SbAuth.isAdminUser === 'function' && window.SbAuth.isAdminUser()) {
+            return 'admin';
+        }
+        if (typeof window.SbAuth.isPaidTier === 'function' && window.SbAuth.isPaidTier()) {
+            var authTier = typeof window.SbAuth.getUserTier === 'function' ? window.SbAuth.getUserTier() : '';
+            if (authTier) return authTier;
+        }
+    }
+    var p = payload || decodeJwtPayload(token);
+    return p ? (p.tier || p.product || 'community') : 'community';
+}
 function applyProductFromToken(token) {
     const banner = document.getElementById('sprintBanner');
     if (token && window.TokenEntryGuard) {
@@ -409,7 +438,7 @@ function applyProductFromToken(token) {
         return;
     }
     window._tokenPayload = payload;
-    const tier = payload.tier || payload.product || 'executive';
+    const tier = resolveEffectiveTier(token, payload);
     const customFeatures = Array.isArray(payload.features) ? payload.features : (Array.isArray(payload.modules) ? payload.modules : null);
     if (customFeatures && tier === 'custom') {
         filterScanProfiles('custom');
@@ -537,6 +566,7 @@ if (typeof window !== 'undefined') {
     window.updateSelectAllUI = updateSelectAllUI;
     window.syncModuleSelectionFromTier = syncModuleSelectionFromTier;
     window.renderTokenInspector = renderTokenInspector;
+    window.resolveEffectiveTier = resolveEffectiveTier;
     window.applyProductFromToken = applyProductFromToken;
     window.applyAnalyzerPreset = applyAnalyzerPreset;
     window.renderProductInfoCard = renderProductInfoCard;

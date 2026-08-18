@@ -33,6 +33,7 @@ import { useExtensionBridge } from '@/hooks/useExtensionBridge';
 import { discoverAndApplyExtensionBridge } from '@services/localAgentService.js';
 import { navigate } from '@/router/HashRouter';
 import { requestNotificationPermission, showOSNotification, isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
+import { isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, canUseUnlimitedDirectoryPicker } from '@/lib/browserFolderCap';
 
 type ScanMode = 'local' | 'server' | 'github' | 'website';
 type ScanState = 'idle' | 'scanning' | 'complete' | 'error' | 'auth_required';
@@ -1360,6 +1361,15 @@ export function AnalyzeView() {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
           }
+          if (isLikelyWebkitDirectoryFileCap(files.length) && canUseUnlimitedDirectoryPicker()) {
+            toast.warning(browserFolderCapMessage(files.length), { duration: 14000 });
+            setRequiresManualTrigger(true);
+            setScanState('idle');
+            setProgress(0);
+            setProgressLabel('Browser capped this drop at ~8k files — click Select Folder for full discovery.');
+            appendLog(`[SimpleBeacon] Drop hit webkitdirectory cap (${files.length} files) — use Select Folder (unlimited picker).`);
+            return;
+          }
           // Guard: 1-2 files from a folder drop likely means entries went stale
           // (DOMException when worker reads the File). Show Select Folder prompt
           // instead of producing a false-positive gate PASS on a stale single file.
@@ -1434,6 +1444,15 @@ export function AnalyzeView() {
       if (refuseIncompleteBrowserDrop(dtFiles.length, dtFiles[0]?.name || 'dropped-folder')) {
         return;
       }
+      if (isLikelyWebkitDirectoryFileCap(dtFiles.length) && canUseUnlimitedDirectoryPicker()) {
+        toast.warning(browserFolderCapMessage(dtFiles.length), { duration: 14000 });
+        setRequiresManualTrigger(true);
+        setScanState('idle');
+        setProgress(0);
+        setProgressLabel('Browser capped this drop at ~8k files — click Select Folder for full discovery.');
+        appendLog(`[SimpleBeacon] Drop hit webkitdirectory cap (${dtFiles.length} files) — use Select Folder (unlimited picker).`);
+        return;
+      }
       if (!hasRelativePath && dtFiles.length <= 2) {
         refuseIncompleteBrowserDrop(dtFiles.length, 'dropped-folder');
         return;
@@ -1497,6 +1516,30 @@ export function AnalyzeView() {
       return;
     }
     console.warn('[SimpleBeacon] handleFileSelect: files.length =', files.length, '| first.webkitRelativePath =', (files[0] as any).webkitRelativePath);
+    if (isLikelyWebkitDirectoryFileCap(files.length) && canUseUnlimitedDirectoryPicker()) {
+      e.target.value = '';
+      toast.warning(browserFolderCapMessage(files.length), { duration: 14000 });
+      try {
+        const handle = await (window as any).showDirectoryPicker();
+        if (handle?.kind === 'directory') {
+          setPath(handle.name);
+          setScanState('scanning');
+          setProgress(2);
+          appendLog(`[SimpleBeacon] Re-opened unlimited folder picker after webkit cap (${files.length} files)...`);
+          await runBrowserLocalScan({
+            dirHandle: handle,
+            projectPath: handle.name,
+            logLabel: `Browser local scan via File System Access API (${handle.name})`,
+          });
+          return;
+        }
+      } catch (capErr: any) {
+        if (capErr?.name !== 'AbortError') {
+          appendLog(`[SimpleBeacon] Unlimited folder picker failed: ${capErr?.message || capErr}`);
+        }
+        return;
+      }
+    }
     const first = files[0];
     const rel = (first as any).webkitRelativePath;
     let dirName = first.name;
@@ -1567,7 +1610,7 @@ export function AnalyzeView() {
     }
     // Reset input so the same folder can be selected again
     e.target.value = '';
-  }, [appendLog, hosted, persistScanResult]);
+  }, [appendLog, hosted, persistScanResult, runBrowserLocalScan]);
 
   const handleBrowseFolder = useCallback(async () => {
     // 1. Try extension bridge folder picker first (works in cross-origin iframes)
@@ -1605,12 +1648,22 @@ export function AnalyzeView() {
         setPath(handle.name);
         toast.info(`Folder selected: ${handle.name}`);
         (window as any).__sbDroppedDirHandle = handle;
+        await runBrowserLocalScan({
+          dirHandle: handle,
+          projectPath: handle.name,
+          logLabel: `Browser local scan via File System Access API (${handle.name})`,
+        });
       }
-    } catch {
-      // User cancelled or permission denied — fall back to input
-      folderInputRef.current?.click();
+    } catch (pickErr: any) {
+      if (pickErr?.name === 'AbortError') return;
+      appendLog(`[SimpleBeacon] showDirectoryPicker failed: ${pickErr?.message || pickErr}`);
+      if (typeof (window as any).showDirectoryPicker !== 'function') {
+        folderInputRef.current?.click();
+      } else {
+        toast.error(pickErr?.message || 'Folder picker failed — try Select Folder again.');
+      }
     }
-  }, [bridgeBase, bridgeToken, hosted]);
+  }, [bridgeBase, bridgeToken, hosted, runBrowserLocalScan, appendLog]);
 
   const modeTabs: { key: ScanMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = websiteMode
     ? [

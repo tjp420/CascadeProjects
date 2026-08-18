@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>Prove It — Verify SimpleBeacon Before You Pay</title>
+
+  <meta name="description" content="Don't trust our marketing. Run a free offline scan, verify zero upload in DevTools, inspect a sample certificate, and validate .sbcert signatures — then buy with a corporate card.">
+
+  <link rel="canonical" href="https://simplebeacon.ai/prove-it">
+
+  <meta name="robots" content="index, follow">
+
+  <meta property="og:title" content="Prove It — Verify SimpleBeacon Before You Pay">
+
+  <meta property="og:description" content="Run a free offline scan, verify zero upload, inspect sample certificates, and validate signatures locally before purchasing.">
+
+  <meta property="og:type" content="website">
+
+  <meta property="og:url" content="https://simplebeacon.ai/prove-it">
+
+  <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+
+  <meta name="twitter:card" content="summary">
+
+  <meta name="twitter:title" content="Prove It — Verify SimpleBeacon Before You Pay">
+
+  <meta name="twitter:description" content="Run a free offline scan, verify zero upload, inspect sample certificates, and validate signatures locally before purchasing.">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="theme-color" content="#0a0a0a">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/dashboard.css">
+
+  <link rel="stylesheet" href="/css/prove-it.css?v=20260815">
+
+</head>
+
+<body class="prove-it-page">
+
+<nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
+
+  <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
+
+  <div style="display:flex;align-items:center;gap:4px;">
+
+    <a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;">Audit</a>
+
+    <a href="/prove-it" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:700;white-space:nowrap;padding:6px 12px;border-radius:8px;background:rgba(99,102,241,0.12);box-shadow:inset 0 -2px 0 #6366f1;">Prove It</a>
+
+    <a href="/dashboard/" style="color:#9CA3AF;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:500;white-space:nowrap;padding:6px 12px;border-radius:8px;">Dashboard</a>
+
+    <div class="sb-nav-more-wrap">
+
+      <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
+
+      <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
+
+      <div class="sb-nav-more-menu">
+
+        <a href="/pricing" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;">Pricing</a>
+
+        <a href="/roadmap" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;">Roadmap</a>
+
+        <a href="/security" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;">Security</a>
+
+        <a href="/faq" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;">FAQ</a>
+
+        <a href="/contact" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;">Contact</a>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</nav>
+
+<style>.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;user-select:none;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:180px;background:#111827;border:1px solid #1E293B;border-radius:12px;padding:6px;z-index:200;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}</style>
+
+
+
+<main class="prove-wrap">
+
+  <header class="prove-hero">
+
+    <span class="hero-badge">Trust, but verify</span>
+
+    <h1>Don't trust us.<br><em>Verify us.</em></h1>
+
+    <p class="hero-sub">Enterprise buyers shouldn't pay for compliance tools based on a demo. SimpleBeacon is designed so you can prove zero-upload, inspect real deliverables, and validate signatures — <strong>before</strong> procurement gets involved.</p>
+
+    <p class="hero-trust-line"><span>&#128274;</span> No signup · No NDA · No source code upload</p>
+
+  </header>
+
+
+
+  <h2 class="prove-section-title">5-step proof ladder</h2>
+
+  <div class="proof-ladder">
+
+    <article class="proof-step proof-step--highlight">
+
+      <span class="proof-step__num">1</span>
+
+      <div class="proof-step__body">
+
+        <h3>Run a free scan on your repo</h3>
+
+        <p>Drop a folder in the browser sandbox. No account, no credit card. See real findings on your code in under 5 minutes.</p>
+
+      </div>
+
+      <a class="proof-step__cta proof-step__cta--primary" href="/audit">Start free scan →</a>
+
+    </article>
+
+    <article class="proof-step">
+
+      <span class="proof-step__num">2</span>
+
+      <div class="proof-step__body">
+
+        <h3>Prove zero upload (offline challenge)</h3>
+
+        <p>Open DevTools, disconnect Wi‑Fi, scan again. If source code leaves your machine, don't pay us.</p>
+
+      </div>
+
+      <a class="proof-step__cta proof-step__cta--secondary" href="#offline-challenge">See how →</a>
+
+    </article>
+
+    <article class="proof-step">
+
+      <span class="proof-step__num">3</span>
+
+      <div class="proof-step__body">
+
+        <h3>Inspect the deliverable you'll buy</h3>
+
+        <p>See exactly what a board-ready certificate looks like — PDF layout, risk grade, liability estimate, framework mapping.</p>
+
+      </div>
+
+      <a class="proof-step__cta proof-step__cta--secondary" href="/sample-certificate">View sample cert →</a>
+
+    </article>
+
+    <article class="proof-step">
+
+      <span class="proof-step__num">4</span>
+
+      <div class="proof-step__body">
+
+        <h3>Verify a signed <code>.sbcert</code></h3>
+
+        <p>Cryptographic verification runs locally against our public key. Auditors can validate without logging in.</p>
+
+      </div>
+
+      <a class="proof-step__cta proof-step__cta--secondary" href="/audit?sample=1#cert-verify-section">Verify sample .sbcert →</a>
+
+    </article>
+
+    <article class="proof-step">
+
+      <span class="proof-step__num">5</span>
+
+      <div class="proof-step__body">
+
+        <h3>Buy on a corporate card — no MSA</h3>
+
+        <p>$149 one-time Audit Certificate or $49/mo Developer tier. 7-day money-back if the deliverable doesn't match the sample.</p>
+
+      </div>
+
+      <a class="proof-step__cta proof-step__cta--primary" href="/pricing?tab=onetime">View pricing →</a>
+
+    </article>
+
+  </div>
+
+
+
+  <section class="offline-challenge" id="offline-challenge">
+
+    <h2>The offline challenge</h2>
+
+    <p>We dare you to unplug your network and scan. This is the fastest way to convince your security team we're not another cloud scanner.</p>
+
+    <div class="offline-steps">
+
+      <div class="offline-step-card">
+
+        <div class="step-label">Step 1</div>
+
+        <p>Open <a href="/audit">simplebeacon.ai/audit</a> in Chrome or Edge on desktop.</p>
+
+      </div>
+
+      <div class="offline-step-card">
+
+        <div class="step-label">Step 2</div>
+
+        <p>Press <code>F12</code> → <strong>Network</strong> tab → check "Preserve log".</p>
+
+      </div>
+
+      <div class="offline-step-card">
+
+        <div class="step-label">Step 3</div>
+
+        <p>Disconnect Wi‑Fi or enable airplane mode.</p>
+
+      </div>
+
+      <div class="offline-step-card">
+
+        <div class="step-label">Step 4</div>
+
+        <p>Drop a project folder and run the scan.</p>
+
+      </div>
+
+      <div class="offline-step-card">
+
+        <div class="step-label">Step 5</div>
+
+        <p>Confirm <strong>zero</strong> outbound requests contain source code or file contents.</p>
+
+      </div>
+
+    </div>
+
+    <div class="offline-challenge__cta">
+
+      <a class="btn-prove btn-prove-green" href="/audit">Accept the challenge →</a>
+
+      <a class="btn-prove btn-prove-secondary" href="/security">Security architecture →</a>
+
+    </div>
+
+  </section>
+
+
+
+  <h2 class="prove-section-title">Consultant vs. self-serve proof</h2>
+
+  <div class="prove-vs">
+
+    <div class="prove-vs-card prove-vs-card--bad">
+
+      <div class="prove-vs-label">Traditional audit</div>
+
+      <div class="prove-vs-price">$10,000+</div>
+
+      <div class="prove-vs-meta">3 weeks · MSA required</div>
+
+      <ul class="prove-vs-list">
+
+        <li>NDA for source code access</li>
+
+        <li>Code uploaded to third party</li>
+
+        <li>Consultant scheduling delays</li>
+
+        <li>Legal review before you start</li>
+
+      </ul>
+
+    </div>
+
+    <div class="prove-vs-divider">vs</div>
+
+    <div class="prove-vs-card prove-vs-card--good">
+
+      <div class="prove-vs-label">SimpleBeacon</div>
+
+      <div class="prove-vs-price">$149</div>
+
+      <div class="prove-vs-meta">5 minutes · corporate card</div>
+
+      <ul class="prove-vs-list">
+
+        <li>100% local browser sandbox</li>
+
+        <li>No NDA — code never leaves device</li>
+
+        <li>Board-ready PDF + signed .sbcert</li>
+
+        <li>Verify offline before you pay</li>
+
+      </ul>
+
+    </div>
+
+  </div>
+
+
+
+  <h2 class="prove-section-title">Artifacts you can inspect today</h2>
+
+  <div class="artifacts-grid">
+
+    <div class="artifact-card">
+
+      <span class="artifact-card__icon">&#128202;</span>
+
+      <h3>Sample scan report</h3>
+
+      <p>Full JSON report with gate pass/fail, quality score, and finding breakdown.</p>
+
+      <a href="/sample-report">Open sample report →</a>
+
+    </div>
+
+    <div class="artifact-card">
+
+      <span class="artifact-card__icon">&#128196;</span>
+
+      <h3>Sample certificate</h3>
+
+      <p>Executive Risk Certificate with A–F grade, liability estimate, and remediation checklist.</p>
+
+      <a href="/sample-certificate">Open sample certificate →</a>
+
+    </div>
+
+    <div class="artifact-card">
+
+      <span class="artifact-card__icon">&#128274;</span>
+
+      <h3>Signature verification</h3>
+
+      <p>Drop any <code>.sbcert</code> file — verification runs locally against the public key. <a href="/sample.sbcert" download="simplebeacon-sample.sbcert">Download sample</a> or verify in one click on the audit page.</p>
+
+      <a href="/audit?sample=1#cert-verify-section">Verify sample now →</a>
+      <a href="/sample.sbcert" download="simplebeacon-sample.sbcert" style="display:block;margin-top:8px;font-size:0.82rem;">Download sample .sbcert →</a>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="prove-docs-row">
+
+    <div class="prove-doc-card">
+
+      <h3>Case study: $1.25M exposure found</h3>
+
+      <p>A fintech codebase scan surfaced AI slop, exposed keys, and unapproved model integrations — quantified as $1.25M in potential liability.</p>
+
+      <a href="/blog/case-study-ai-slop-1-25m">Read the case study →</a>
+
+    </div>
+
+    <div class="prove-doc-card">
+
+      <h3>Security &amp; data handling</h3>
+
+      <p>Zero-upload architecture, data residency (Frankfurt / Virginia), self-hosting, and cryptographic integrity for auditors.</p>
+
+      <a href="/security">Read security docs →</a>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="prove-cta-band">
+
+    <h2>Ready when you are</h2>
+
+    <p>Start with a free scan. If the output matches what your board needs, expense a one-time certificate on a corporate card — no procurement cycle.</p>
+
+    <div class="btn-row">
+
+      <a class="btn-prove btn-prove-primary" href="/audit">Run free scan</a>
+
+      <a class="btn-prove btn-prove-secondary" href="/pricing?tab=onetime">Buy Audit Certificate — $149</a>
+
+    </div>
+
+    <p class="prove-guarantee">7-day money-back guarantee · Cancel anytime on subscriptions · <a href="/refund" style="color:#818cf8;">Refund policy</a></p>
+
+  </div>
+
+</main>
+
+
+
+<footer style="background:#0B0F19;border-top:1px solid #1E293B;padding:32px 24px;text-align:center;color:#9CA3AF;font-size:0.85rem;">
+
+  <p style="margin:0 0 12px;color:#F3F4F6;">&copy; 2026 SimpleBeacon. All rights reserved.</p>
+
+  <p style="margin:0;">
+
+    <a href="/prove-it" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Prove It</a> &middot;
+
+    <a href="/sample-report" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Sample report</a> &middot;
+
+    <a href="/pricing" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Pricing</a> &middot;
+
+    <a href="/security" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Security</a> &middot;
+
+    <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a> &middot;
+
+    <a href="/terms" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a>
+
+  </p>
+
+</footer>
+
+</body>
+
+</html>
+

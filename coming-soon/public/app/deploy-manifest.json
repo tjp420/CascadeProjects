@@ -1,0 +1,13 @@
+{
+  "builtAt": "2026-08-18T04:53:49.585Z",
+  "gitSha": "a73b999e2a790fcced4371921369cbc46b16ba00",
+  "cacheVersion": "sb-1787028829582",
+  "dashboardPackage": "ai-platform/web/simplebeacon-dashboard",
+  "artifacts": {
+    "main.js": "b11bcecca6b1a4ad9f32ee9da5f2deb30581d9c389f2a981b8df99a2bfe1761a",
+    "main.css": "8513dd61bddec6ddea1f00187975b61112eb4c597c301fbfcc5f50e11b5de4f6",
+    "scan-worker.js": "5a350bb51e034d3314867173d3478da2f6529fb6d3626d01d54bf5ce813a5f93",
+    "scan-wasm-bridge.js": "8cc2cefd80d299a57a171c762952534726443a12fa542174acbade28c8738573",
+    "simplebeaconignore.browser.js": "441c217d3af86c0550a386b6f751ab456eef3099548fe426e49fab7c63529c71"
+  }
+}

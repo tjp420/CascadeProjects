@@ -3,28 +3,31 @@
  * Web Worker for browser-based file scanning.
  * Offloads analyzer execution from the main UI thread.
  */
-const MAX_DISCOVERED_FILES = 500000;
+
+const MAX_DISCOVERED_FILES = Number.MAX_SAFE_INTEGER;
+
 const LANGUAGE_REGISTRY = {
-    javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
-    python: { extensions: ['py', 'pyw', 'pyi'] },
-    java: { extensions: ['java', 'kt', 'scala', 'groovy'] },
+    javascript: { extensions: ['js','cjs','mjs','ts','tsx','jsx'] },
+    python: { extensions: ['py','pyw','pyi'] },
+    java: { extensions: ['java','kt','scala','groovy'] },
     go: { extensions: ['go'] },
     rust: { extensions: ['rs'] },
     php: { extensions: ['php'] },
     ruby: { extensions: ['rb'] },
-    dotnet: { extensions: ['cs', 'vb'] }
+    dotnet: { extensions: ['cs','vb'] }
 };
+
 const PATTERN_REGISTRY = {
     debugArtifacts: {
         appliesTo: ['javascript'],
         pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/gi
     },
     todoMarkers: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
         pattern: /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|BUG)\b/gi
     },
     credentials: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
         pattern: /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
     },
     euAiAct: {
@@ -88,40 +91,40 @@ const PATTERN_REGISTRY = {
         pattern: /\.permit!\s*\)|\bskip_before_action\b|\beval\s*\(|\bsend\s*\(\s*params\[/i
     }
 };
+
 const SEVERITY_MAP = {
     credentials: 'critical',
     euAiAct: 'high'
 };
+
 function detectFileLanguage(path) {
     const ext = (path.match(/\.([^.]+)$/) || [null, ''])[1].toLowerCase();
     for (const [langKey, config] of Object.entries(LANGUAGE_REGISTRY)) {
-        if (config.extensions.includes(ext))
-            return langKey;
+        if (config.extensions.includes(ext)) return langKey;
     }
     return null;
 }
+
 function detectDominantLanguage(paths) {
     const counts = {};
     for (const path of paths) {
         const ext = (path.match(/\.([^.]+)$/) || [null, ''])[1].toLowerCase();
         for (const [langKey, config] of Object.entries(LANGUAGE_REGISTRY)) {
-            if (config.extensions.includes(ext)) {
-                counts[langKey] = (counts[langKey] || 0) + 1;
-                break;
-            }
+            if (config.extensions.includes(ext)) { counts[langKey] = (counts[langKey] || 0) + 1; break; }
         }
     }
     const entries = Object.entries(counts);
-    if (entries.length === 0)
-        return 'javascript';
+    if (entries.length === 0) return 'javascript';
     entries.sort((a, b) => b[1] - a[1]);
     return entries[0][0];
 }
+
 function getAnalyzersForLanguage(langKey) {
     return Object.entries(PATTERN_REGISTRY)
-        .filter(([, entry]) => entry.appliesTo.includes(langKey))
+        .filter(([,entry]) => entry.appliesTo.includes(langKey))
         .map(([id]) => id);
 }
+
 /**
  * Extract up to `max` regex matches from text with line numbers and snippets.
  */
@@ -137,6 +140,7 @@ function extractMatches(text, pattern, max = 3) {
     }
     return matches;
 }
+
 /**
  * Compute a simple hash for duplicate detection.
  */
@@ -155,19 +159,18 @@ async function simpleHash(str) {
     }
     return (h >>> 0).toString(16).padStart(8, '0');
 }
+
 /**
  * Check if a file path should be skipped (node_modules, cache, test files).
  */
 function shouldSkipFile(path, deepScan) {
     const normalized = path.replace(/\\/g, '/');
-    if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(normalized))
-        return true;
-    if (!deepScan && /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized))
-        return true;
-    if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized))
-        return true;
+    if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(normalized)) return true;
+    if (!deepScan && /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized)) return true;
+    if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized)) return true;
     return false;
 }
+
 /**
  * Run a single analyzer on a file's text content.
  */
@@ -187,6 +190,7 @@ function runAnalyzer(name, text, filePath) {
     }
     return results;
 }
+
 /**
  * Process a batch of files through all analyzers.
  */
@@ -194,10 +198,11 @@ async function scanFiles(files, deepScan) {
     const allResults = [];
     const issues = [];
     let processed = 0;
+
     let textErrors = 0;
     for (const file of files) {
-        if (shouldSkipFile(file.path, deepScan))
-            continue;
+        if (shouldSkipFile(file.path, deepScan)) continue;
+
         try {
             const fileObj = file.fileObj || file;
             if (typeof fileObj.text !== 'function') {
@@ -206,6 +211,7 @@ async function scanFiles(files, deepScan) {
             }
             const text = await fileObj.text();
             const hash = await simpleHash(text);
+
             const fileLang = detectFileLanguage(file.path);
             if (!fileLang) {
                 processed++;
@@ -225,12 +231,12 @@ async function scanFiles(files, deepScan) {
                     })));
                 }
             }
+
             processed++;
             if (processed % 50 === 0) {
                 self.postMessage({ type: 'progress', processed, total: files.length });
             }
-        }
-        catch (err) {
+        } catch (err) {
             textErrors++;
         }
     }
@@ -239,6 +245,7 @@ async function scanFiles(files, deepScan) {
     if (textErrors > 0) {
         self.postMessage({ type: 'warn', message: `${textErrors} files could not be read in worker. Main thread handles actual scanning.` });
     }
+
     return {
         processed,
         totalFiles: files.length,
@@ -247,16 +254,18 @@ async function scanFiles(files, deepScan) {
         issueCount: issues.length
     };
 }
+
 // Message handler
 self.onmessage = async (e) => {
     const { type, files, scanId } = e.data;
+
     if (type === 'scan') {
         self.postMessage({ type: 'started', scanId, totalFiles: files.length });
+
         try {
             const results = await scanFiles(files, e.data.deepScan);
             self.postMessage({ type: 'complete', scanId, ...results });
-        }
-        catch (err) {
+        } catch (err) {
             self.postMessage({ type: 'error', scanId, error: err.message });
         }
     }

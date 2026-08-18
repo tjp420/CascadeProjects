@@ -15,7 +15,6 @@ const MAX_DISCOVERED_FILES = 999999999; // No cap — scan all files
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const YIELD_INTERVAL = 500; // yield back to main thread every N files
-const HASH_BATCH_SIZE = 50; // batch file-hash messages to reduce postMessage frequency
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const FILE_READ_TIMEOUT_MS = 30000;
 const CHUNK_ANALYZE_TIMEOUT_MS = 120000;
@@ -319,145 +318,6 @@ const PATTERN_REGISTRY = {
         appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'generic'],
         pattern: /SELECT\s+.*['"]\s*\+\s*['"]|query\s*\(\s*['"].*\+\s*['"]|raw\s*\(\s*['"].*\$\{|\.findAll\s*\(\s*\)(?!.*limit)/i,
         maxMatches: 3
-    },
-    // === Cloud IAM & Secret Detection ===
-    awsSecretKey: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|aws_secret_access_key\s*[:=]\s*['"`][A-Za-z0-9/+=]{40}['"`]|aws_access_key_id\s*[:=]\s*['"`]AKIA[0-9A-Z]{16}['"`]/i,
-        maxMatches: 3,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder|template|documentation/i.test(filePath)) return false;
-            if (/AKIAEXAMPLE|AKIATEST|AKIA0000|XXXXXXXX|your-access-key|replace_me/i.test(snippet)) return false;
-            return true;
-        }
-    },
-    gcpServiceAccount: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /"type"\s*:\s*"service_account"|"private_key"\s*:\s*"-----BEGIN PRIVATE KEY-----|projects\/\d+\/secrets\/|GOOGLE_APPLICATION_CREDENTIALS\s*[:=]\s*['"`][^'"`]+['"`]/i,
-        maxMatches: 2,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    azureKey: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /AccountKey\s*=\s*[A-Za-z0-9+/=]{88}|DefaultEndpointsProtocol.*AccountKey\s*=\s*[A-Za-z0-9+/=]{50,}|AZURE_CLIENT_SECRET\s*[:=]\s*['"`][A-Za-z0-9_\-]{34,}['"`]/i,
-        maxMatches: 3,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
-            if (/your-account-key|XXXXXXXX|replace_me|dummy/i.test(snippet)) return false;
-            return true;
-        }
-    },
-    privateKeyBlock: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/i,
-        maxMatches: 2,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder|template|\.pem\.example/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    // === Unencrypted API Token Detection ===
-    bearerToken: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /Bearer\s+[A-Za-z0-9_\-\.]{20,}/i,
-        maxMatches: 3,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
-            if (/Bearer\s+your_token|Bearer\s+\$\{|Bearer\s+\+|Bearer\s+tokenVar|Bearer\s+accessToken|Bearer\s+authToken|Bearer\s+jwt/i.test(snippet)) return false;
-            return true;
-        }
-    },
-    jwtHardcoded: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}/i,
-        maxMatches: 2,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    oauthTokenInSource: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /(?:access_token|refresh_token|oauth_token)\s*[:=]\s*['"`](?:ya29\.|gh[opsu]_|xox[bpoa]-|sk_live_|rk_live_)[A-Za-z0-9_\-]{10,}/i,
-        maxMatches: 3,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder|template/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    // === Docker / Container Misconfiguration ===
-    dockerPrivileged: {
-        appliesTo: ['generic'],
-        pattern: /privileged\s*:\s*true|--privileged/i,
-        maxMatches: 2,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    dockerRootUser: {
-        appliesTo: ['generic'],
-        pattern: /USER\s+root\b(?!.*(?:\s+#|\s*&&))/i,
-        maxMatches: 2,
-        contextFilter: (snippet, filePath) => {
-            if (!/Dockerfile|dockerfile|\.docker/i.test(filePath) && !/docker-compose|compose\.ya?ml/i.test(filePath)) return false;
-            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    dockerExposedSecrets: {
-        appliesTo: ['generic'],
-        pattern: /(?:ENV|environment)\s+(?:[A-Z_]*SECRET|[A-Z_]*PASSWORD|[A-Z_]*KEY|[A-Z_]*TOKEN)\s*=\s*['"]?[A-Za-z0-9_\-]{8,}['"]?(?!\s*\$\{)/i,
-        maxMatches: 3,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example|sample|placeholder/i.test(filePath)) return false;
-            if (/changeme|example|placeholder|your-secret|replace_me|XXXX/i.test(snippet)) return false;
-            return true;
-        }
-    },
-    dockerNoHealthCheck: {
-        appliesTo: ['generic'],
-        pattern: /FROM\s+/i,
-        maxMatches: 1,
-        contextFilter: (snippet, filePath) => {
-            if (!/Dockerfile|dockerfile/i.test(filePath)) return false;
-            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    // === Supply Chain Checks ===
-    suspiciousPackage: {
-        appliesTo: ['javascript', 'generic'],
-        pattern: /(?:from\s+['"]|require\s*\(\s*['"]|import\s+['"])(?:[^'"]*npm[^'"]*|[^'"]*typosquat)[^'"]*['"]|(?:npm|yarn|pnpm)\s+install\s+[@a-z0-9_\-]+(?:[a-z0-9_\-]*\.js|nodejs|nodjs|nodel|node-js)/i,
-        maxMatches: 3,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
-            if (/package\.json|package-lock\.json|yarn\.lock/i.test(filePath)) return false;
-            return true;
-        }
-    },
-    postInstallScript: {
-        appliesTo: ['javascript', 'generic'],
-        pattern: /"postinstall"\s*:\s*['"`](?:curl|wget|node\s+-e|python\s+-c|bash\s+-c|powershell|sh\s+-c)/i,
-        maxMatches: 2,
-        contextFilter: (snippet, filePath) => {
-            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
-            if (/build|compile|tsc|webpack|babel|eslint|prettier/i.test(snippet)) return false;
-            return true;
-        }
-    },
-    pinnedVersionMissing: {
-        appliesTo: ['javascript', 'generic'],
-        pattern: /"(?:dependencies|devDependencies)"\s*:\s*\{[^}]*"[a-z@][^"]*"\s*:\s*['"`](?:\^|~|latest|\*|>=)/i,
-        maxMatches: 3,
-        contextFilter: (snippet, filePath) => {
-            if (!/package\.json/i.test(filePath)) return false;
-            if (/test|spec|fixture|mock|example/i.test(filePath)) return false;
-            return true;
-        }
     }
 };
 const SEVERITY_MAP = {
@@ -485,25 +345,7 @@ const SEVERITY_MAP = {
     aiPlaceholderComment: 'low',
     markdownFenceLeak: 'low',
     missingRateLimit: 'medium',
-    dbAntiPattern: 'high',
-    // Cloud IAM & secrets
-    awsSecretKey: 'critical',
-    gcpServiceAccount: 'critical',
-    azureKey: 'critical',
-    privateKeyBlock: 'critical',
-    // Unencrypted API tokens
-    bearerToken: 'high',
-    jwtHardcoded: 'high',
-    oauthTokenInSource: 'high',
-    // Docker misconfiguration
-    dockerPrivileged: 'high',
-    dockerRootUser: 'medium',
-    dockerExposedSecrets: 'critical',
-    dockerNoHealthCheck: 'low',
-    // Supply chain
-    suspiciousPackage: 'high',
-    postInstallScript: 'high',
-    pinnedVersionMissing: 'medium'
+    dbAntiPattern: 'high'
 };
 const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
 const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data|euAiAct|eu-ai-act)/i;
@@ -600,13 +442,6 @@ function shouldSkipAnalyzerFile(name, filePath) {
     if (isTestOrFixturePath(normalized)) return true;
     if (name === 'credentials' && /(?:^|\/)simplebeacon-rule-tests\//i.test(normalized)) return true;
     if (name === 'euAiAct' && isComplianceToolingPath(normalized)) return true;
-    // Skip cloud/security rules in scanner's own source and test fixtures
-    const securityRules = ['awsSecretKey', 'gcpServiceAccount', 'azureKey', 'privateKeyBlock', 'bearerToken', 'jwtHardcoded', 'oauthTokenInSource', 'dockerExposedSecrets', 'suspiciousPackage', 'postInstallScript'];
-    if (securityRules.includes(name)) {
-        if (isComplianceToolingPath(normalized)) return true;
-        if (/(?:^|\/)audit-scan-worker\.js$/i.test(normalized)) return true;
-        if (/(?:^|\/)scanner-patterns|credential-pattern|test-all-patterns|pattern-documentation/i.test(normalized)) return true;
-    }
     return false;
 }
 function detectFileLanguage(path) {
@@ -736,36 +571,15 @@ async function analyzeWithTextPatterns(file, filePath) {
     return issues;
 }
 
-// Fast hash for cache key — uses native SubtleCrypto (SHA-256) for large files,
-// falls back to a simple djb2 hash for small files where SubtleCrypto overhead isn't worth it.
-const HASH_SUBTLECRYPTO_THRESHOLD = 64 * 1024; // 64 KB — use SubtleCrypto above this
+// Simple hash for cache key — fast, non-crypto
 async function simpleHash(text) {
     const encoder = new TextEncoder();
     const data = encoder.encode(text);
-    // For small files, djb2 is faster than SubtleCrypto async overhead
-    if (data.length < HASH_SUBTLECRYPTO_THRESHOLD) {
-        let hash = 5381;
-        for (let i = 0; i < data.length; i++) {
-            hash = ((hash << 5) + hash + data[i]) | 0;
-        }
-        return 'h' + (hash >>> 0).toString(36);
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+        hash = ((hash << 5) - hash + data[i]) | 0;
     }
-    // For large files, use native SubtleCrypto — much faster than JS loop
-    try {
-        const digest = await crypto.subtle.digest('SHA-256', data);
-        const arr = new Uint8Array(digest);
-        // Use first 8 bytes (64 bits) as hex — sufficient for cache key
-        let hex = '';
-        for (let i = 0; i < 8; i++) hex += arr[i].toString(16).padStart(2, '0');
-        return 's' + hex;
-    } catch (_) {
-        // Fallback to djb2 if SubtleCrypto is unavailable
-        let hash = 5381;
-        for (let i = 0; i < data.length; i++) {
-            hash = ((hash << 5) + hash + data[i]) | 0;
-        }
-        return 'h' + (hash >>> 0).toString(36);
-    }
+    return 'h' + (hash >>> 0).toString(36);
 }
 
 // === Batched scan state ===
@@ -783,16 +597,9 @@ async function scanFiles(files, deepScan, state) {
     const ignoreCtx = state ? state.ignoreCtx : null;
     const total = state ? state.totalFiles : files.length;
     const fileHashes = state ? state.fileHashes : []; // collected for IndexedDB cache
-    let pendingHashBatch = []; // batch file-hash messages to reduce postMessage frequency
     const postProgress = (currentFile) => {
         if (processed % 25 === 0) {
             self.postMessage({ type: 'progress', processed, total, currentFile, ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
-        }
-    };
-    const flushHashBatch = () => {
-        if (pendingHashBatch.length > 0) {
-            self.postMessage({ type: 'file-hash-batch', scanId: self.scanState ? self.scanState.scanId : null, hashes: pendingHashBatch });
-            pendingHashBatch = [];
         }
     };
     for (const file of files) {
@@ -834,27 +641,8 @@ async function scanFiles(files, deepScan, state) {
             const hash = await simpleHash(text);
             fileHashes.push({ path: file.path, hash, size });
 
-            // Batch file-hash messages to reduce postMessage frequency
-            pendingHashBatch.push({ path: file.path, hash, size });
-            if (pendingHashBatch.length >= HASH_BATCH_SIZE) {
-                flushHashBatch();
-            }
-
-            // Check hash cache — skip analysis if file is unchanged since last scan
-            const hashCacheMap = state ? state.hashCache : null;
-            const cached = hashCacheMap ? hashCacheMap[file.path] : null;
-            if (cached && cached.hash === hash && cached.size === size) {
-                // Cache hit — file unchanged, skip pattern analysis
-                if (self.scanState) self.scanState.cacheHits++;
-                self.postMessage({ type: 'cache-hit', scanId: self.scanState ? self.scanState.scanId : null, path: file.path });
-                processed++;
-                postProgress(file.path);
-                if (processed % YIELD_INTERVAL === 0) {
-                    flushHashBatch();
-                    await new Promise(r => setTimeout(r, 0));
-                }
-                continue;
-            }
+            // Post hash back to main thread for IndexedDB cache check
+            self.postMessage({ type: 'file-hash', scanId: self.scanState ? self.scanState.scanId : null, path: file.path, hash, size });
 
             const fileLang = detectFileLanguage(file.path);
             if (fileLang) {
@@ -867,14 +655,9 @@ async function scanFiles(files, deepScan, state) {
                     issues.push(issue);
                 }
             }
-            // Clear references to allow GC to reclaim file text memory
-            // (text and fileObj are local vars that go out of scope, but explicit null helps V8)
             processed++;
             postProgress(file.path);
-            if (processed % YIELD_INTERVAL === 0) {
-                flushHashBatch(); // flush before yielding
-                await new Promise(r => setTimeout(r, 0));
-            }
+            if (processed % YIELD_INTERVAL === 0) await new Promise(r => setTimeout(r, 0));
         } catch (err) {
             textErrors++;
             processed++;
@@ -890,8 +673,6 @@ async function scanFiles(files, deepScan, state) {
             } catch (_) {}
         }
     }
-    // Flush any remaining batched hashes before returning
-    flushHashBatch();
     self.postMessage({ type: 'progress', processed, total, currentFile: files.length ? files[files.length - 1].path : '', ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
     return {
         processed, totalFiles: total, findings: allResults, issues,
@@ -926,9 +707,7 @@ self.onmessage = async (e) => {
             issuesTruncated: false,
             deepScan: Boolean(deepScan),
             ignoreCtx: e.data.ignoreCtx || null,
-            fileHashes: [],
-            hashCache: e.data.hashCache || null,
-            cacheHits: 0
+            fileHashes: []
         };
         self.postMessage({ type: 'started', scanId, totalFiles: self.scanState.totalFiles });
         return;

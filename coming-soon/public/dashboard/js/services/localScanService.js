@@ -28,7 +28,7 @@ function resolveScanWorkerUrl() {
   return `/app/assets/scan-worker.js?v=${v}`;
 }
 
-const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
+const MAX_FILES = Number.MAX_SAFE_INTEGER;
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;
 

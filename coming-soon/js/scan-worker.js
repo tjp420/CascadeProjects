@@ -4,7 +4,7 @@
  * Offloads analyzer execution from the main UI thread.
  */
 
-const MAX_DISCOVERED_FILES = 500000;
+const MAX_DISCOVERED_FILES = Number.MAX_SAFE_INTEGER;
 
 const LANGUAGE_REGISTRY = {
     javascript: { extensions: ['js','cjs','mjs','ts','tsx','jsx'] },

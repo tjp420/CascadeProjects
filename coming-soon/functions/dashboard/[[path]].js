@@ -11,7 +11,19 @@ export async function onRequest(context) {
   const pathname = url.pathname;
 
   if (pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
-    return env.ASSETS.fetch(request);
+    let assetResponse = await env.ASSETS.fetch(request);
+    // Legacy entry loaded main.js from /assets/js/ while Vite chunks live in /assets/.
+    if (!assetResponse.ok && /\/assets\/js\/.+\.js$/i.test(pathname)) {
+      const altUrl = new URL(pathname.replace('/assets/js/', '/assets/'), url.origin);
+      assetResponse = await env.ASSETS.fetch(new Request(altUrl.toString(), request));
+    }
+    if (!assetResponse.ok && /\.js$/i.test(pathname)) {
+      return new Response(`/* SimpleBeacon: missing asset ${pathname} — hard-refresh the dashboard */`, {
+        status: 404,
+        headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' },
+      });
+    }
+    return assetResponse;
   }
 
   // Serve SPA entry for /dashboard (no trailing slash) without a redirect so
