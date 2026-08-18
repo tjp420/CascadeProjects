@@ -100,7 +100,7 @@ function parseGodotLog(content) {
 
 function detectLogEngine(content) {
     if (typeof content !== 'string') return 'generic';
-    if (/Unknown sprite|Unknown class name|Script error,/i.test(content)) return 'gzdoom';
+    if (/Unknown sprite|Unknown class name|Script error,|\[R3D\]|GZDoom version|WEAPON_SWITCHER|VMS_MANAGER/i.test(content)) return 'gzdoom';
     if (/UnityEngine|Player\.log|error CS\d+:/i.test(content)) return 'unity';
     if (/SCRIPT ERROR:|Godot Engine|ERROR: Cannot open file/i.test(content)) return 'godot';
     return 'generic';

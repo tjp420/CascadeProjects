@@ -46,6 +46,20 @@ describe('game log parsers', () => {
         const entries = parseGameLog('error CS0246: foo in Assets/Bar.cs:1');
         assert.ok(entries.length >= 1);
     });
+
+    it('parses GZDoom R3D runtime CVAR and lighting log lines', () => {
+        const sample = [
+            "[WEAPON_SWITCHER] WARNING: Engine CVARs don't match! Run:",
+            '[R3D][CVARSystem] 3D model variants require r_drawvoxels 0 (currently 1)',
+            'R3D: Dynamic light spawn skipped for Stimpack - invalid target or capacity reached (active=5 max=5 total=5)',
+            '[VMS_MANAGER] Map items render requested: Sprites (r_models=0, r_drawvoxels=0)'
+        ].join('\n');
+        const entries = parseGameLog(sample, { engine: 'gzdoom' });
+        assert.ok(entries.some((e) => e.kind === 'cvar-mismatch'));
+        assert.ok(entries.some((e) => e.kind === 'cvar-render-conflict'));
+        assert.ok(entries.some((e) => e.kind === 'light-capacity'));
+        assert.ok(entries.some((e) => e.kind === 'render-mode-split'));
+    });
 });
 
 describe('game asset integrity', () => {

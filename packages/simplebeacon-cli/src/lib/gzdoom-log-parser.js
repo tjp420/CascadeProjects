@@ -55,6 +55,64 @@ const LOG_PATTERNS = Object.freeze([
             line: Number(m[2]),
             message: (m[3] || '').trim()
         })
+    },
+    {
+        id: 'GZ-LOG-008',
+        kind: 'cvar-mismatch',
+        regex: /Engine CVARs don't match!/i,
+        severity: 'high',
+        map: () => ({ message: 'Engine CVARs do not match expected render profile' })
+    },
+    {
+        id: 'GZ-LOG-009',
+        kind: 'cvar-render-conflict',
+        regex: /3D model variants require r_drawvoxels 0 \(currently (\d+)\)/i,
+        severity: 'high',
+        map: (m) => ({ cvar: 'r_drawvoxels', current: Number(m[1]), expected: 0 })
+    },
+    {
+        id: 'GZ-LOG-010',
+        kind: 'cvar-render-conflict',
+        regex: /3D model mode needs r_models=1, r_drawvoxels=0/i,
+        severity: 'high',
+        map: () => ({ cvar: 'r_models/r_drawvoxels', expected: 'r_models=1, r_drawvoxels=0' })
+    },
+    {
+        id: 'GZ-LOG-011',
+        kind: 'light-capacity',
+        regex: /Dynamic light spawn skipped for (\S+) - invalid target or capacity reached \(active=(\d+) max=(\d+) total=(\d+)\)/i,
+        severity: 'high',
+        map: (m) => ({
+            target: m[1],
+            active: Number(m[2]),
+            max: Number(m[3]),
+            total: Number(m[4])
+        })
+    },
+    {
+        id: 'GZ-LOG-012',
+        kind: 'manager-missing',
+        regex: />>\s*([^:]+):\s*Not Found/i,
+        severity: 'medium',
+        map: (m) => ({ manager: m[1].trim() })
+    },
+    {
+        id: 'GZ-LOG-013',
+        kind: 'render-mode-split',
+        regex: /Map items render requested:\s*(\S+).*r_models=(\d+).*r_drawvoxels=(\d+)/i,
+        severity: 'medium',
+        map: (m) => ({
+            mode: m[1],
+            r_models: Number(m[2]),
+            r_drawvoxels: Number(m[3])
+        })
+    },
+    {
+        id: 'GZ-LOG-014',
+        kind: 'cvar-protected',
+        regex: /engine CVARs are protected; open the R3D Render menu/i,
+        severity: 'medium',
+        map: () => ({ message: 'Engine CVAR changes blocked — menu-only apply path' })
     }
 ]);
 

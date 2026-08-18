@@ -655,6 +655,36 @@ function correlateLogEntries(logEntries, graph) {
                 recommendedAction: `Resolve replacement conflict for "${replaced}"`,
                 affectedFiles: chain.map((c) => c.filePath)
             }));
+            continue;
+        }
+        if (entry.kind === 'script-error' || entry.kind === 'parse-error' || entry.kind === 'missing-string') {
+            issues.push(makeIssue({
+                id: entry.id,
+                type: `gzdoom-runtime-${entry.kind}`,
+                severity: entry.severity,
+                filePath: entry.details.filePath || null,
+                line: entry.details.line || entry.line,
+                description: `Runtime: ${entry.text}`,
+                recommendedAction: entry.details.message || 'Fix the script error reported in the runtime log'
+            }));
+            continue;
+        }
+        // R3D / mod runtime diagnostics (CVAR mismatch, light cap, missing managers)
+        if (['cvar-mismatch', 'cvar-render-conflict', 'light-capacity', 'manager-missing', 'render-mode-split', 'cvar-protected'].includes(entry.kind)) {
+            issues.push(makeIssue({
+                id: entry.id,
+                type: `gzdoom-runtime-${entry.kind}`,
+                severity: entry.severity,
+                filePath: null,
+                line: entry.line,
+                description: `Runtime: ${entry.text}`,
+                recommendedAction: entry.kind === 'light-capacity'
+                    ? 'Raise r3d_unified_max_lights / r3d_max_lights_per_frame or disable auto performance mode'
+                    : entry.kind.startsWith('cvar')
+                        ? 'Align r_models=1, r_drawvoxels=0 via R3D Render menu or autoexec'
+                        : 'Review runtime subsystem registration in MAPINFO / manifest',
+                metadata: entry.details
+            }));
         }
     }
     return issues;

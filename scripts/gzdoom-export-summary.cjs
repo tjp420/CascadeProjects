@@ -130,6 +130,7 @@ async function main() {
   );
   const blocking = allIssues.filter((i) => i.severity === 'high' || i.severity === 'critical');
   const cvarIssues = allIssues.filter((i) => String(i.type || '').startsWith('gzdoom-cvar-'));
+  const logIssues = allIssues.filter((i) => String(i.type || '').startsWith('gzdoom-runtime-'));
   const staleFiles = collectStaleZscriptFiles(modPath);
 
   let norunGate = null;
@@ -186,6 +187,14 @@ async function main() {
       deadCount: cvarIssues.filter((i) => i.type === 'gzdoom-cvar-dead').length
     },
     findingsByType: summarizeIssues(allIssues),
+    runtimeLogFindings: logIssues.slice(0, 50).map((i) => ({
+      type: i.type,
+      severity: i.severity,
+      line: i.line || null,
+      description: i.description,
+      recommendedAction: i.recommendedAction || null,
+      metadata: i.metadata || null
+    })),
     highSeverity: blocking.slice(0, 40).map((i) => ({
       type: i.type,
       severity: i.severity,
@@ -235,6 +244,12 @@ async function main() {
   ];
   for (const f of summary.highSeverity.slice(0, 20)) {
     md.push(`- \`${f.file}:${f.line || '?'}\` — ${f.description}`);
+  }
+  if (summary.runtimeLogFindings?.length) {
+    md.push('', '## Runtime log findings', '');
+    for (const f of summary.runtimeLogFindings.slice(0, 15)) {
+      md.push(`- **${f.type}** (log line ${f.line || '?'}) — ${f.description}`);
+    }
   }
   if (staleFiles.length) {
     md.push('', '## Stale ZScript files (suffix patterns)', '');
