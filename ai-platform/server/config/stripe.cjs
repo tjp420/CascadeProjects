@@ -2,10 +2,11 @@
 /**
  * Stripe Price ID → Tier mapping.
  *
- * New 3-tier model (2026-01):
- *   developer  – $49/mo ($490/yr)
- *   team_pro   – $149/mo ($1,490/yr)
- *   enterprise – Custom, contact sales
+ * New 3-tier model (2026-08):
+ *   agent     – $25/mo ($250/yr)
+ *   developer – $49/mo ($490/yr)
+ *   team_pro   – $149/mo ($1,490/yr) [legacy, not marketed]
+ *   enterprise – Custom, contact sales [legacy, not marketed]
  *
  * Legacy entries preserved for backward compatibility.
  * Update mappings in this file when Stripe product pricing changes.
@@ -15,6 +16,21 @@
 
 const STRIPE_TIER_MAP = {
   // --- Current 3-tier products (live Stripe Price IDs, 2026-08-09) ---
+  // Agent tier — $25/mo ($250/yr)
+  'price_agent_monthly': {
+    tier: 'agent',
+    expiryDays: 30,
+    product: 'agent',
+    basePrice: 2500, // cents ($25/mo)
+    metered: false
+  },
+  'price_agent_annual': {
+    tier: 'agent',
+    expiryDays: 365,
+    product: 'agent_annual',
+    basePrice: 25000, // cents ($250/yr)
+    metered: false
+  },
   'price_1U2flyAQ0e20kzI8Y8CYxUWt': {
     tier: 'developer',
     expiryDays: 30,
@@ -125,6 +141,7 @@ const STRIPE_TIER_MAP = {
  * Used by the license seat management dashboard to enforce seat limits.
  */
 const TIER_SEAT_MAP = {
+  agent: 1,
   developer: 1,
   team_pro: 5,
   enterprise: Infinity, // custom — set during org onboarding

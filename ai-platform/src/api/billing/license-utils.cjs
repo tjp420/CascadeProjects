@@ -18,6 +18,12 @@ function getStripeClient() {
 
 function resolvePriceId(product) {
   const map = {
+    agent_monthly:
+      process.env.STRIPE_PRICE_ID_AGENT_MONTHLY ||
+      'price_agent_monthly',
+    agent_annual:
+      process.env.STRIPE_PRICE_ID_AGENT_ANNUAL ||
+      'price_agent_annual',
     developer_monthly:
       process.env.STRIPE_PRICE_ID_DEVELOPER_MONTHLY ||
       process.env.STRIPE_PRICE_ID_STARTUP_MONTHLY ||
@@ -111,7 +117,7 @@ function isValidLicenseTier(tier) {
 
 function checkoutModeForProduct(product) {
   const oneTimeProducts = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint'];
-  const subscriptionProducts = ['developer_tier', 'team_pro_tier', 'developer', 'developer_monthly', 'developer_annual', 'team_pro', 'team_pro_monthly', 'team_pro_annual', 'pro_monthly', 'pro_annual', 'team_monthly', 'team_annual', 'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual', 'teams_monthly', 'teams_annual', 'continuous_shield', 'runtime_shield'];
+  const subscriptionProducts = ['agent_tier', 'agent', 'agent_monthly', 'agent_annual', 'developer_tier', 'team_pro_tier', 'developer', 'developer_monthly', 'developer_annual', 'team_pro', 'team_pro_monthly', 'team_pro_annual', 'pro_monthly', 'pro_annual', 'team_monthly', 'team_annual', 'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual', 'teams_monthly', 'teams_annual', 'continuous_shield', 'runtime_shield'];
   if (oneTimeProducts.includes(product)) return 'payment';
   if (subscriptionProducts.includes(product)) return 'subscription';
   return 'subscription';

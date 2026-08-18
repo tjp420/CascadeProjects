@@ -252,22 +252,25 @@ function setupSimplebeaconBillingWebhook(app) {
             } else if (session.mode === 'subscription') {
               const isContinuousShield = product === 'continuous_shield';
               const isRuntimeShield = product === 'runtime_shield';
+              const isAgent = product === 'agent_tier' || product === 'agent_monthly' || product === 'agent_annual';
               const isDeveloper = product === 'developer_tier' || product === 'developer_monthly' || product === 'developer_annual';
               const isPro = product === 'pro_monthly' || product === 'pro_annual' || product === 'startup_monthly' || product === 'startup_annual';
               const isTeamPro = product === 'team_pro_tier' || product === 'team_pro_monthly' || product === 'team_pro_annual';
               const isTeam = product === 'team_monthly' || product === 'team_annual' || product === 'growth_monthly' || product === 'growth_annual';
-              const subTier = isContinuousShield ? 'operator' : isRuntimeShield ? 'operator' : isTeamPro ? 'team_pro' : isTeam ? 'team' : isDeveloper ? 'developer' : isPro ? 'pro' : 'community';
+              const subTier = isContinuousShield ? 'operator' : isRuntimeShield ? 'operator' : isTeamPro ? 'team_pro' : isTeam ? 'team' : isAgent ? 'agent' : isDeveloper ? 'developer' : isPro ? 'pro' : 'community';
               const subFeatures = isRuntimeShield
                 ? ['runtime-shield', 'eu-ai-act', 'pdf-generation', 'certificate', 'continuous-shield']
                 : isTeamPro
                   ? ['eu-ai-act', 'soc2', 'pdf-generation', 'certificate', 'priority-support', 'team-management']
                   : isTeam
                     ? ['team-management', 'shared-configs', 'pdf-generation', 'certificate', 'priority-support']
-                    : isDeveloper
-                      ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation', 'ci-gate']
-                      : isPro
-                        ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation']
-                        : ['continuous-shield', 'pdf-generation', 'certificate'];
+                    : isAgent
+                      ? ['agent-fix-loop', 'scan_file', 'propose_fix', 'verify_fix', 'agent_status', 'explain_finding']
+                      : isDeveloper
+                        ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation', 'ci-gate']
+                        : isPro
+                          ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation']
+                          : ['continuous-shield', 'pdf-generation', 'certificate'];
               const subExpiryMinutes = 365 * 24 * 60; // 1 year — renewed by subscription
 
               const licenseToken = generateLicenseToken(
@@ -476,6 +479,7 @@ function setupSimplebeaconBillingRoutes(app) {
     try {
       const projectName = String(req.body?.projectName || req.body?.certProjectName || '').trim();
     const certClientName = String(req.body?.certClientName || '').trim();
+    const upgradeToken = String(req.body?.upgradeToken || '').trim().slice(0, 500);
 
     const sessionParams = {
         mode,
@@ -483,12 +487,12 @@ function setupSimplebeaconBillingRoutes(app) {
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${baseUrl}${successPath}`,
         cancel_url: `${baseUrl}/pricing?canceled=true`,
-        metadata: { email, product, projectName, certClientName, ...buildReferralCheckoutMetadata(req, req.body) }
+        metadata: { email, product, projectName, certClientName, ...(upgradeToken ? { upgradeToken } : {}), ...buildReferralCheckoutMetadata(req, req.body) }
       };
 
       if (mode === 'subscription') {
         sessionParams.subscription_data = {
-          metadata: { email, product }
+          metadata: { email, product, ...(upgradeToken ? { upgradeToken } : {}) }
         };
       }
 
