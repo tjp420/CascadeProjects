@@ -3,25 +3,25 @@
   "ogImage": "/favicon.svg",
   "pages": {
     "index.html": {
-      "title": "SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It",
-      "description": "SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.",
-      "h1": "Turn AI Code Debt Into Audit Evidence Before Regulators Find It.",
+      "title": "SimpleBeacon — Verification Layer for AI Coding Agents",
+      "description": "SimpleBeacon catches what AI coding agents get wrong — phantom APIs, swallowed exceptions, hallucinated imports, and LLM slop — before merge. Local-first, agent-agnostic. Works with Cursor, Claude Code, Cline, Windsurf, Copilot, Aider. Zero source upload.",
+      "h1": "Catch What Your AI Coding Agent Gets Wrong — Before It Ships.",
       "sitemap": { "priority": "1.0", "changefreq": "weekly" },
       "includeNav": true,
       "includeFooter": true
     },
     "landing.html": {
-      "title": "SimpleBeacon — Certify Your Codebase Before Regulators Do",
-      "description": "Local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Get a board-ready Executive Risk Certificate.",
-      "h1": "Certify Your Codebase Before Regulators Do",
+      "title": "SimpleBeacon — Verification Layer for AI Coding Agents",
+      "description": "SimpleBeacon catches what AI coding agents get wrong — phantom APIs, swallowed exceptions, hallucinated imports, LLM slop. Local-first, agent-agnostic. Works with Cursor, Claude Code, Cline, Windsurf, Copilot, Aider. Zero source upload.",
+      "h1": "Catch What Your AI Coding Agent Gets Wrong",
       "sitemap": { "priority": "0.8", "changefreq": "weekly" },
       "includeNav": true,
       "includeFooter": true
     },
     "pricing.html": {
-      "title": "SimpleBeacon Pricing — B2B AI Code Debt Remediation & Compliance",
-      "description": "Free Preview, Pro ($9/mo), and Compliance Suite ($399/mo) with unlimited local scans, CI gate integration, EU AI Act mapping, and board-ready compliance documentation.",
-      "h1": "B2B AI Code Debt Remediation & Compliance",
+      "title": "SimpleBeacon Pricing — AI Coding Agent Verification",
+      "description": "Free, Agent ($25/mo), and Developer ($49/mo). verify_before_write, verify_completion, watch_project free. Fix loop, CI gate, unlimited scans on paid tiers. Local-first, agent-agnostic.",
+      "h1": "3 tools free. Fix loop $25/mo. CI gate $49/mo.",
       "sitemap": { "priority": "0.9", "changefreq": "weekly" },
       "includeNav": true,
       "includeFooter": true

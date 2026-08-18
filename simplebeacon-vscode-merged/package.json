@@ -1,13 +1,13 @@
 {
   "name": "simplebeacon-vscode",
-  "displayName": "SimpleBeacon AI Slop Cop",
-  "description": "Offline AI code audit ?Çö 38 analyzer engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
+  "displayName": "SimpleBeacon — AI Coding Agent Verifier",
+  "description": "Verification layer for AI coding agents. Catches phantom APIs, swallowed exceptions, hallucinated imports, and LLM slop locally before merge. Works with Cursor, Claude Code, Cline, Windsurf, Copilot, and Aider via MCP. 3 core tools (verify_before_write, verify_completion, watch_project) free. Zero source upload.",
   "homepage": "https://simplebeacon.ai",
   "repository": {
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.497",
+  "version": "3.0.507",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -17,17 +17,31 @@
   "categories": [
     "Testing",
     "Machine Learning",
+    "Linters",
     "Other"
   ],
   "keywords": [
+    "AI coding agent",
+    "verification",
+    "phantom API",
+    "swallowed exception",
+    "hallucinated import",
+    "LLM slop",
+    "Cursor",
+    "Claude Code",
+    "Cline",
+    "Windsurf",
+    "Copilot",
+    "Aider",
+    "MCP",
+    "verify_before_write",
+    "verify_completion",
+    "watch_project",
     "security",
     "compliance",
     "AI",
     "scanner",
     "audit",
-    "enhanced analysis",
-    "pattern detection",
-    "real-time analysis",
     "code quality",
     "GUI sidebar",
     "visual interface"
@@ -356,6 +370,12 @@
         "icon": "$(browser)"
       },
       {
+        "command": "simplebeacon.openSuperchargeBrief",
+        "title": "Open Agent Supercharge Brief",
+        "category": "SimpleBeacon",
+        "icon": "$(rocket)"
+      },
+      {
         "command": "simplebeacon.openAiContext",
         "title": "Open AI Context File",
         "category": "SimpleBeacon",
@@ -366,6 +386,12 @@
         "title": "Send Scan to AI Agent",
         "category": "SimpleBeacon",
         "icon": "$(robot)"
+      },
+      {
+        "command": "simplebeacon.installAgentBridge",
+        "title": "Install Cursor Agent Bridge (MCP + rule)",
+        "category": "SimpleBeacon",
+        "icon": "$(plug)"
       },
       {
         "command": "simplebeacon.openAIChatbot",
@@ -904,18 +930,18 @@
         },
         "simplebeacon.scanMode": {
           "type": "string",
-          "default": "full",
+          "default": "gate",
           "enum": [
             "full",
             "gate",
             "quick"
           ],
           "enumDescriptions": [
-            "Full scan ?Çö all rule engines, full directory walk",
-            "Gate scan ?Çö production paths only, fast quality gate check",
-            "Quick scan ?Çö skip heavy AST engines, fastest feedback"
+            "Full scan — all rule engines, full directory walk (monorepos auto-downgrade to gate)",
+            "Gate scan — production paths only, fast quality gate check (PDA default)",
+            "Quick scan — skip heavy AST engines, fastest feedback"
           ],
-          "description": "Scan mode controlling depth and rule coverage"
+          "description": "Scan mode controlling depth and rule coverage (PDA default: gate)"
         },
         "simplebeacon.localAgent.enabled": {
           "type": "boolean",
@@ -994,6 +1020,11 @@
           ],
           "description": "Minimum severity level for inline editor diagnostics (squiggles). 'all' shows every finding from critical down to low-severity AI slop patterns."
         },
+        "simplebeacon.agentBridge": {
+          "type": "boolean",
+          "default": true,
+          "description": "On activate, register SimpleBeacon MCP and a Cursor agent rule so coding agents can scan, check the gate, and suggest fixes locally."
+        },
         "simplebeacon.teamTelemetry.enabled": {
           "type": "boolean",
           "default": false,
@@ -1005,7 +1036,7 @@
   "scripts": {
     "build": "npm run compile",
     "vscode:prepublish": "npm run compile",
-    "compile": "node -e \"const fs=require('fs'); fs.mkdirSync('src/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('../packages/simplebeacon-cli/src/rules/'+f+'.json','src/rules/'+f+'.json');}catch(e){}});\" && tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('src/rules/'+f+'.json','out/rules/'+f+'.json');}catch(e){}});\"",
+    "compile": "node -e \"const fs=require('fs');const path=require('path'); fs.mkdirSync('src/rules',{recursive:true}); fs.mkdirSync('src/templates',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('../packages/simplebeacon-cli/src/rules/'+f+'.json','src/rules/'+f+'.json');}catch(e){}}); try{fs.copyFileSync('../packages/simplebeacon-cli/examples/agent/simplebeacon-ai-workflow-supercharge.md','src/templates/simplebeacon-ai-workflow-supercharge.md');}catch(e){}\" && tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); fs.mkdirSync('out/templates',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('src/rules/'+f+'.json','out/rules/'+f+'.json');}catch(e){}}); try{fs.copyFileSync('src/templates/simplebeacon-ai-workflow-supercharge.md','out/templates/simplebeacon-ai-workflow-supercharge.md');}catch(e){}\"",
     "watch": "tsc -watch -p ./",
     "test": "jest",
     "test:coverage": "jest --coverage",

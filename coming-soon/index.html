@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SimpleBeacon — Release hygiene for AI-assisted code</title>
-    <meta name="description" content="SimpleBeacon: reduce EU AI Act compliance liability with browser-local scans for AI-generated code debt, credential leaks, and regulatory gaps. Generate board-ready evidence packs without uploading source code.">
+    <title>SimpleBeacon — Verification Layer for AI Coding Agents</title>
+    <meta name="description" content="SimpleBeacon catches what AI coding agents get wrong — phantom APIs, swallowed exceptions, hallucinated imports, LLM slop — before merge. Local-first, agent-agnostic verification for Cursor, Claude Code, Cline, Windsurf, Copilot, and Aider. Zero source upload.">
     <meta name="theme-color" content="#0d1117">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://simplebeacon.ai/">
@@ -1129,12 +1129,13 @@
     <!-- HERO — short, punchy, no technical fine print -->
     <section class="hero">
         <div class="hero-card">
-            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">Zero-Upload · Edge-Speed · Board-Ready</span>
-            <h1>Turn AI Code Debt Into Audit Evidence Before Regulators Find It.</h1>
-            <p style="font-size:18px;max-width:560px;margin-left:auto;margin-right:auto;">EU AI Act fines reach &euro;35M or 7% of global turnover. SimpleBeacon catches hallucinated APIs, leaked credentials, and compliance gaps locally &mdash; before they become liability. Now scans <strong style="color:var(--text-primary);">text and code</strong>. No upload. No vendor data custody.</p>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">Agent-Agnostic · Local-First · Zero-Upload</span>
+            <h1>Catch What Your AI Coding Agent Gets Wrong &mdash; Before It Ships.</h1>
+            <p style="font-size:18px;max-width:560px;margin-left:auto;margin-right:auto;">96% of developers don't fully trust AI-generated code, yet half ship it unverified. SimpleBeacon is the verification layer for Cursor, Claude Code, Cline, Windsurf, Copilot, and Aider. Catches <strong style="color:var(--text-primary);">phantom APIs</strong>, <strong style="color:var(--text-primary);">swallowed exceptions</strong>, <strong style="color:var(--text-primary);">hallucinated imports</strong>, and <strong style="color:var(--text-primary);">LLM slop</strong> locally &mdash; before merge. No upload. No vendor data custody.</p>
 
             <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:24px;">
                 <a href="/audit" id="link-audit" class="btn btn-primary">Run Free Local Scan &rarr;</a>
+                <a href="/prove-it" class="btn btn-ghost">Prove it before you pay &rarr;</a>
                 <a href="/terminal-walkthrough" class="btn btn-ghost">Explore CLI Deployment Spec &rarr;</a>
             </div>
             <script>
@@ -1150,10 +1151,68 @@
             })();
             </script>
             <div class="pricing-tags">
-                <span class="pricing-tag">Free — 5 browser scans/mo</span>
-                <span class="pricing-tag">Team / Agency — $49–$99/mo</span>
-                <span class="pricing-tag">Enterprise Governance — $499+/mo</span>
-                <span class="pricing-tag">Enterprise Air-Gapped — Custom</span>
+                <span class="pricing-tag">Free — verify_before_write + 20 scans/day</span>
+                <span class="pricing-tag">Agent — $25/mo — fix loop for AI coding agents</span>
+                <span class="pricing-tag">Developer — $49/mo — CI gate + unlimited scans</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI AGENT FAILURE PATTERNS — what SimpleBeacon catches -->
+    <section class="section" style="padding: 60px 24px;">
+        <div class="container">
+            <h2>The 4 Failure Patterns That Kill AI-Shipped Code</h2>
+            <p class="section-subtitle">Backed by Columbia DAPLab 2025 and CodeHalu (AAAI 2025). SimpleBeacon catches them locally &mdash; before merge, before prod, before the postmortem.</p>
+            <div class="comparison-grid" style="grid-template-columns:repeat(4,1fr);gap:16px;">
+                <div class="compare-card good">
+                    <span class="compare-tag good">#1 &mdash; 37% of agent bugs</span>
+                    <h3>Phantom APIs</h3>
+                    <p>Agents hallucinate method calls on real libraries &mdash; <code>fs.readFilePromise</code>, <code>JSON.tryParse</code>, <code>Promise.retry</code>. 100+ patterns detected with the real API suggestion.</p>
+                </div>
+                <div class="compare-card good">
+                    <span class="compare-tag good">#2 &mdash; silent prod failures</span>
+                    <h3>Swallowed Exceptions</h3>
+                    <p>Empty catch blocks, <code>except: pass</code>, <code>return nil</code> without wrapping. The agent "fixed" the error but the failure surfaces in production at 3am.</p>
+                </div>
+                <div class="compare-card good">
+                    <span class="compare-tag good">#3 &mdash; broken builds</span>
+                    <h3>Hallucinated Imports</h3>
+                    <p>Imports that don't exist, wrong export names, packages the agent invented. Caught before the build, not after.</p>
+                </div>
+                <div class="compare-card good">
+                    <span class="compare-tag good">#4 &mdash; reviewable slop</span>
+                    <h3>LLM Slop</h3>
+                    <p>Markdown fences in code, <code>TODO: implement</code>, sample/mock production paths, fiction KPIs. Stripped before review, not during.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3 CORE TOOLS — the SimpleBeacon workflow -->
+    <section class="section" style="padding: 60px 24px;background:linear-gradient(180deg,#0a0e18,#0d1220);">
+        <div class="container">
+            <h2>3 Tools. 1 Verification Layer. Any AI Agent.</h2>
+            <p class="section-subtitle">Works with Cursor, Claude Code, Cline, Windsurf, GitHub Copilot, Aider, and Continue. MCP-native. Zero source upload.</p>
+            <div class="comparison-grid" style="grid-template-columns:repeat(3,1fr);gap:20px;">
+                <div class="compare-card good">
+                    <span class="compare-tag good">Free</span>
+                    <h3>verify_before_write</h3>
+                    <p>Agent passes proposed file content before writing. Returns <code>ok-to-write</code>, <code>fix-and-retry</code>, or <code>consult-user</code>. Sub-100ms. Zero LLM in the hot path.</p>
+                </div>
+                <div class="compare-card good">
+                    <span class="compare-tag good">Free</span>
+                    <h3>verify_completion</h3>
+                    <p>Agent calls this before claiming "done". Checks gate pass, test suite, build status, git cleanliness. Returns <code>canClaimComplete</code> with evidence per check. Ends the "confident and wrong" failure mode.</p>
+                </div>
+                <div class="compare-card good">
+                    <span class="compare-tag good">Free</span>
+                    <h3>watch_project</h3>
+                    <p>Real-time file monitoring. Pushes findings to the MCP client as the agent types. 500ms debounce. Gives Cursor, Cline, and Aider the same live feedback as the VS Code extension.</p>
+                </div>
+            </div>
+            <div style="text-align:center;margin-top:32px;">
+                <a href="/audit" class="btn btn-primary">Run a Free Scan &rarr;</a>
+                <a href="/pricing" class="btn btn-ghost">See paid tiers &rarr;</a>
             </div>
         </div>
     </section>
@@ -1161,30 +1220,30 @@
     <!-- TRADITIONAL vs SIMPLEBEACON — clean two-column comparison -->
     <section class="section" style="padding: 60px 24px;">
         <div class="container">
-            <h2>$10,000 Consultant vs. $149 SimpleBeacon</h2>
-            <p class="section-subtitle">Same compliance evidence. Fraction of the cost. No procurement delay.</p>
+            <h2>Without SimpleBeacon vs. With SimpleBeacon</h2>
+            <p class="section-subtitle">The same agent, the same model &mdash; one ships broken code, the other ships verified code.</p>
             <div class="comparison-grid">
                 <div class="compare-card bad">
-                    <span class="compare-tag bad">Traditional Consultant</span>
-                    <h3>Write Fast &rarr; Fail in CI &rarr; Fix Later</h3>
-                    <div class="compare-price bad">$10,000<small> + weeks of delay</small></div>
-                    <p>Developers push AI code instantly. The CI pipeline breaks on an un-isolated credential or a missing dependency. A senior dev pulls the branch, manually cleans formatting slop, and restarts the staging queue. Every cycle costs hours of senior engineering time.</p>
+                    <span class="compare-tag bad">Agent alone</span>
+                    <h3>Generate &rarr; Trust &rarr; Ship &rarr; Pager</h3>
+                    <div class="compare-price bad">96%<small> of devs don't fully trust the output</small></div>
+                    <p>The agent writes code, claims it's done, opens a PR. A senior engineer skims a 400-line diff at 5pm. Phantom API slips through. Production breaks at 3am. The postmortem takes longer than the original task.</p>
                 </div>
                 <div class="compare-card good">
-                    <span class="compare-tag good">SimpleBeacon</span>
-                    <h3>Auto-Fix Pre-Commit &rarr; Clean Pass &rarr; Ship</h3>
-                    <div class="compare-price good">$149<small> / board-ready certificate</small></div>
-                    <p>Local heuristic engine intercepts code pre-commit. <code>simplebeacon fix</code> strips markdown fences, quarantines secrets, and wraps crashing slop before code reaches pull requests. No upload, no round-trip, no vendor data custody. Pipeline delay: seconds, not hours.</p>
+                    <span class="compare-tag good">Agent + SimpleBeacon</span>
+                    <h3>Generate &rarr; Verify &rarr; Fix &rarr; Ship</h3>
+                    <div class="compare-price good">0 blocking<small> before the PR opens</div>
+                    <p><code>verify_before_write</code> catches the phantom API before the file is written. <code>verify_completion</code> blocks the "done" claim until tests pass and the gate is green. The PR opens clean. Review takes minutes, not hours.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- FINANCIAL RISK CALCULATOR — EU AI Act fine exposure -->
+    <!-- VERIFICATION ROI CALCULATOR — agent review time saved -->
     <section class="section" id="risk-calculator" style="padding:60px 24px;background:linear-gradient(180deg,#0a0e18,#0d1220);">
         <div class="container">
-            <h2>What's Your EU AI Act Exposure?</h2>
-            <p class="section-subtitle">The EU AI Act caps fines at &euro;35 million or 7% of global annual turnover. Calculate your risk in seconds.</p>
+            <h2>How Much Review Time Is AI Costing You?</h2>
+            <p class="section-subtitle">38% of developers say reviewing AI code takes longer than reviewing human code. SimpleBeacon moves that review into the agent's edit loop &mdash; before the PR opens.</p>
             <div style="max-width:680px;margin:32px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
                     <div>
@@ -1192,77 +1251,78 @@
                         <input type="number" id="risk-devs" value="50" min="1" max="10000" style="width:100%;padding:12px 16px;background:var(--bg-main);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:16px;outline:none;" oninput="calcRisk()">
                     </div>
                     <div>
-                        <label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:8px;font-weight:600;">Annual revenue (USD)</label>
+                        <label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:8px;font-weight:600;">AI-assisted PRs / dev / week</label>
                         <select id="risk-revenue" style="width:100%;padding:12px 16px;background:var(--bg-main);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:16px;outline:none;" onchange="calcRisk()">
-                            <option value="5000000">$5M</option>
-                            <option value="25000000">$25M</option>
-                            <option value="100000000" selected>$100M</option>
-                            <option value="500000000">$500M</option>
-                            <option value="1000000000">$1B</option>
-                            <option value="10000000000">$10B</option>
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="40">40</option>
+                            <option value="80">80</option>
+                            <option value="200">200</option>
                         </select>
                     </div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;">
                     <div style="text-align:center;padding:20px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:12px;">
-                        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Max Fine (7% turnover)</div>
-                        <div id="risk-max-fine" style="font-size:28px;font-weight:800;color:#ef4444;line-height:1.2;">$7.0M</div>
+                        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">AI PRs / week</div>
+                        <div id="risk-max-fine" style="font-size:28px;font-weight:800;color:#ef4444;line-height:1.2;">500</div>
                     </div>
                     <div style="text-align:center;padding:20px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;">
-                        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Estimated AI-Slop Incidents/Yr</div>
-                        <div id="risk-incidents" style="font-size:28px;font-weight:800;color:#f59e0b;line-height:1.2;">~150</div>
+                        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Review hrs saved / week</div>
+                        <div id="risk-incidents" style="font-size:28px;font-weight:800;color:#f59e0b;line-height:1.2;">~125</div>
                     </div>
                     <div style="text-align:center;padding:20px 12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px;">
-                        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">SimpleBeacon Cost/Yr</div>
-                        <div id="risk-cost" style="font-size:28px;font-weight:800;color:#10b981;line-height:1.2;">$1,788</div>
+                        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">SimpleBeacon Cost / yr</div>
+                        <div id="risk-cost" style="font-size:28px;font-weight:800;color:#10b981;line-height:1.2;">$14,700</div>
                     </div>
                 </div>
                 <div id="risk-summary" style="text-align:center;padding:20px;background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);border-radius:12px;font-size:15px;color:var(--text-secondary);line-height:1.6;">
-                    A 50-developer team generating ~150 AI-slop incidents/year faces up to <strong style="color:#ef4444;">$7.0M</strong> in EU AI Act fines. SimpleBeacon catches them pre-commit for <strong style="color:#10b981;">$1,788/yr</strong> &mdash; a <strong style="color:var(--accent);">3,913x</strong> risk-to-cost ratio.
+                    A 50-developer team merging 500 AI-assisted PRs/week saves <strong style="color:#f59e0b;">~125 review hours/week</strong> with SimpleBeacon &mdash; for <strong style="color:#10b981;">$14,700/yr</strong>. That's <strong style="color:var(--accent);">$2.26</strong> per review hour saved.
                 </div>
                 <div style="text-align:center;margin-top:20px;">
                     <a href="/audit" class="btn btn-primary">Run Your Free Audit Now &rarr;</a>
                 </div>
-                <p style="text-align:center;color:var(--text-muted);font-size:11px;margin-top:16px;">Estimates based on EU Regulation 2024/1689 Article 99. AI-slop rate: ~3 incidents/dev/month. SimpleBeacon Team Pro: $149/mo &times; 12. Not legal advice.</p>
+                <p style="text-align:center;color:var(--text-muted);font-size:11px;margin-top:16px;">Estimates: 15 min average AI PR review time, 50% reduction with pre-write verification. SimpleBeacon Developer: $49/mo &times; 50 &times; 12. Not a benchmark &mdash; your mileage will vary.</p>
             </div>
         </div>
     </section>
     <script>
     function calcRisk(){
         var devs=parseInt(document.getElementById('risk-devs').value)||1;
-        var rev=parseInt(document.getElementById('risk-revenue').value)||5000000;
-        var maxFine=Math.round(rev*0.07);
-        var incidents=Math.round(devs*3*12);
-        var sbCost=149*12;
-        var ratio=Math.round(maxFine/sbCost);
+        var prs=parseInt(document.getElementById('risk-revenue').value)||10;
+        var totalPrs=devs*prs;
+        var reviewHours=Math.round(totalPrs*0.25*0.5);
+        var sbCost=devs*49*12;
+        var costPerHour=sbCost>0&&reviewHours>0?(sbCost/(reviewHours*52)).toFixed(2):'0.00';
         function fmt(n){if(n>=1e9)return '$'+(n/1e9).toFixed(1)+'B';if(n>=1e6)return '$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return '$'+(n/1e3).toFixed(0)+'K';return '$'+n;}
-        document.getElementById('risk-max-fine').textContent=fmt(maxFine);
-        document.getElementById('risk-incidents').textContent='~'+incidents;
+        document.getElementById('risk-max-fine').textContent=totalPrs.toLocaleString();
+        document.getElementById('risk-incidents').textContent='~'+reviewHours;
         document.getElementById('risk-cost').textContent=fmt(sbCost);
-        document.getElementById('risk-summary').innerHTML='A '+devs+'-developer team generating ~'+incidents+' AI-slop incidents/year faces up to <strong style="color:#ef4444;">'+fmt(maxFine)+'</strong> in EU AI Act fines. SimpleBeacon catches them pre-commit for <strong style="color:#10b981;">'+fmt(sbCost)+'/yr</strong> &mdash; a <strong style="color:var(--accent);">'+ratio.toLocaleString()+'x</strong> risk-to-cost ratio.';
+        document.getElementById('risk-summary').innerHTML='A '+devs+'-developer team merging '+totalPrs.toLocaleString()+' AI-assisted PRs/week saves <strong style="color:#f59e0b;">~'+reviewHours+' review hours/week</strong> with SimpleBeacon &mdash; for <strong style="color:#10b981;">'+fmt(sbCost)+'/yr</strong>. That\'s <strong style="color:var(--accent);">$'+costPerHour+'</strong> per review hour saved.';
     }
+    calcRisk();
     </script>
 
     <!-- AUDIENCE BREAKDOWN — three columns for self-identification -->
     <section class="section" style="padding:60px 24px;">
         <div class="container">
             <h2>Who Uses SimpleBeacon?</h2>
-            <p class="section-subtitle">From code compliance to content integrity &mdash; one platform, three audiences.</p>
+            <p class="section-subtitle">Three audiences, one verification layer. Local-first. Agent-agnostic.</p>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;max-width:960px;margin:32px auto 0;">
                 <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center;">
-                    <div style="font-size:36px;margin-bottom:12px;">&#9999;</div>
-                    <h3 style="margin:0 0 8px;font-size:18px;">Content &amp; Marketing</h3>
-                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Catch embarrassing &ldquo;As an AI language model&rdquo; phrases, hallucinated statistics, markdown fence leakage, and broken formatting before publishing.</p>
+                    <div style="font-size:36px;margin-bottom:12px;">&lt;/&gt;</div>
+                    <h3 style="margin:0 0 8px;font-size:18px;">AI Coding Agent Users</h3>
+                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Cursor, Claude Code, Cline, Windsurf, Copilot, Aider. <code>verify_before_write</code> catches phantom APIs and swallowed exceptions before the file is written. <code>verify_completion</code> ends the &ldquo;confident and wrong&rdquo; failure mode.</p>
+                </div>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center;">
+                    <div style="font-size:36px;margin-bottom:12px;">&#9881;</div>
+                    <h3 style="margin:0 0 8px;font-size:18px;">Engineering Teams</h3>
+                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">CI gate, staged-file scanning, action plans. Senior engineers stop drowning in 400-line AI diffs. The agent fixes issues pre-PR; reviewers see clean code.</p>
                 </div>
                 <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center;">
                     <div style="font-size:36px;margin-bottom:12px;">&#9878;</div>
-                    <h3 style="margin:0 0 8px;font-size:18px;">HR &amp; Legal Operations</h3>
-                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Screen incoming proposals, contracts, and job applications for unedited AI-generated text and compliance red flags before they reach decision-makers.</p>
-                </div>
-                <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center;">
-                    <div style="font-size:36px;margin-bottom:12px;">&lt;/&gt;</div>
-                    <h3 style="margin:0 0 8px;font-size:18px;">Software &amp; Tech Teams</h3>
-                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Eradicate AI code debt, placeholder debris, credential leaks, and structural slop locally &mdash; with board-ready compliance certificates.</p>
+                    <h3 style="margin:0 0 8px;font-size:18px;">Compliance &amp; Risk</h3>
+                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">EU AI Act, SOC 2, board-ready certificates. Signed <code>.sbcert</code> artifacts. Local scan &mdash; no source upload, no vendor data custody.</p>
                 </div>
             </div>
         </div>
