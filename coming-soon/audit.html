@@ -53,8 +53,8 @@
           if (btn) { btn.textContent = next === 'light' ? '\u263D' : '\u2600'; }
         } catch (e) {}
       }
+      window.SB_AUDIT_FREE_PREVIEW = true;
     </script>
-    
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
     <script>
@@ -113,25 +113,21 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 })();
     </script>
     <script src="/js-es2018/token-entry-guard.js" defer></script>
-    <script src="/js-es2018/scan-utils.js?h=1781475000001" defer></script>
+    <script src="/js-es2018/scan-utils.js?v=20260817unlimited1" defer></script>
     <script src="/js-es2018/dashboard/utils.js?h=1781475000000" defer></script>
     <script src="/js-es2018/dashboard/token-manager.js?h=1781475000300" defer></script>
     <script src="/js-es2018/dashboard/token-file-system.js?h=1781475000003" defer></script>
     <script src="/js-es2018/dashboard/usb-token-manager.js?h=1781475000003" defer></script>
-    <script src="/js-es2018/dashboard/scanner-patterns.js?h=1781475000005" defer></script>
+    <!-- Heavy scanner bundle lazy-loaded on first drop/scan via ensureAuditScannerLoaded() in main.js -->
     <script src="/js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
     <script src="/js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="/js-es2018/audit-scan-service.js?v=20260815audit1" defer></script>
-    <script src="/js-es2018/dashboard/scanner-engine.js?h=1781475000015" defer></script>
-    <script src="/js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
     <script src="/vendor/jszip.min.js" defer></script>
     <script src="/js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
-    <script src="/js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
     <link rel="stylesheet" href="/css/dashboard.css?h=1786200000000">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/audit-page.css?v=20260815">
+    <link rel="stylesheet" href="/css/audit-page.css?v=20260816aihandoff1">
     <script>(function(){var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();</script>
     <script>
     // Mobile detection: auto-switch to CLI/Import tab when browser scanning is unavailable.
@@ -335,8 +331,6 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 .sb-fw-badge{padding:4px 8px;font-size:.68rem;}
 .audit-footnote{padding:8px 14px !important;margin-bottom:12px !important;font-size:.75rem !important;}
 #cert-verify-section{margin-top:0;}
-#audit-token-gate > div:first-of-type{padding:14px 18px 12px !important;}
-
 /* Stepper enterprise polish */
 .stepper{margin-bottom:16px;}
 .stepper-bubble{background:var(--surface-elevated);border:2px solid var(--border);color:var(--text-muted);font-weight:700;transition:all 0.2s;}
@@ -352,7 +346,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             </div>
             <h1 id="pageTitle">Scan locally. Certificate in minutes.</h1>
             <p class="hero-sub" id="pageSubtitle">Import a CLI <code>report.json</code>, drop a folder in the browser sandbox, or verify a signed <code>.sbcert</code>. Source never leaves this device. Deep AST analysis uses the <a href="#" id="serverDashboardLinkTrigger">server dashboard</a> or <a href="/community" target="_blank">CLI</a>.</p>
-            <p class="hero-trust-line"><span>&#128274;</span> Zero upload — scans run in your IDE or browser</p>
+            <p class="hero-trust-line"><span>&#128274;</span> Zero upload — scans run in your IDE or browser · <a href="/prove-it">Prove it before you pay →</a></p>
             <div class="audit-promo">
                 <strong>Skip the $10,000 consultant.</strong> Full audit in under 5 minutes — no upload, no NDA. <a href="/pricing">Get a $149 board-ready certificate &rarr;</a>
             </div>
@@ -397,7 +391,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     <div style="font-size:1.6rem;margin-bottom:8px;">&#128203;</div>
                     <p style="font-size:0.85rem;font-weight:600;color:var(--text-main);margin:0 0 6px;">Drop a <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;font-size:0.8rem;">.sbcert</code> file here</p>
                     <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 12px;">or click to browse — verification runs locally against the edge public key</p>
-                    <input type="file" id="certFileInput" accept=".sbcert,application/json" style="display:none;">
+                    <input type="file" id="certFileInput" accept=".sbcert,.json,application/json" style="display:none;">
                     <button type="button" id="cert-browse-btn" class="btn btn-primary" style="padding:8px 18px;font-size:0.8rem;">Browse for .sbcert</button>
                 </div>
                 <div id="cert-verify-result" style="display:none;margin-top:16px;">
@@ -472,14 +466,14 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
         </div>
 
         <!-- RUNTIME MODE SELECTOR — IDs required by dashboard/main.js -->
-        <div class="audit-runtime-bar">
-            <div>
+        <div class="audit-runtime-bar scan-runtime-bar">
+            <div class="scan-runtime-copy">
                 <h2>Scan runtime</h2>
                 <p>Switch between browser sandbox and CLI import.</p>
             </div>
-            <div id="modeToggleSegmented" style="display:inline-flex;gap:0;background:var(--bg-input);padding:4px;border-radius:12px;border:1px solid var(--border);width:fit-content;box-shadow:0 1px 3px rgba(0,0,0,0.15);">
-                <button type="button" id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;font-size:0.85rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+1">&#128187; Use Terminal (CLI)</button>
-                <button type="button" id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;font-size:0.85rem;font-weight:600;border-radius:8px;transition:all 0.2s;" title="Ctrl+2">&#127760; Scan in Browser</button>
+            <div id="modeToggleSegmented" class="runtime-segment" role="tablist" aria-label="Scan runtime mode">
+                <button type="button" id="tab-cli" class="mode-tab" role="tab" title="Ctrl+1">Use Terminal (CLI)</button>
+                <button type="button" id="tab-browser" class="mode-tab active" role="tab" aria-selected="true" title="Ctrl+2">Scan in Browser</button>
             </div>
         </div>
         <script>
@@ -534,10 +528,10 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
         </script>
 
         <!-- TOKEN GATE — non-coercive -->
-        <div class="card" id="audit-token-gate" style="padding:0;overflow:hidden;margin-bottom:16px;">
-            <div style="padding:14px 18px 12px;border-bottom:1px solid var(--border);text-align:left;">
-                <h3 style="margin:0;font-size:0.9rem;color:var(--text-main);font-weight:700;">Get started — no signup required</h3>
-                <p style="margin:4px 0 0;font-size:0.75rem;color:var(--text-muted);">Your free pass is ready — drop a folder to scan. Create an account anytime to keep the same token.</p>
+        <div class="card scan-token-gate" id="audit-token-gate">
+            <div class="scan-token-gate__header">
+                <h3>Get started — no signup required</h3>
+                <p>Your free pass is ready — drop a folder to scan. Create an account anytime to keep the same token.</p>
             </div>
             <style>
               .token-gate-body { padding: 16px 20px 18px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
@@ -1006,15 +1000,97 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 
         // Certificate Verification: drag-and-drop .sbcert files, verify against edge public key
         (function() {
+            function initCertVerification() {
+            if (window.__sbCertVerifyInit) return;
             var certDropzone = document.getElementById('cert-dropzone');
             var certFileInput = document.getElementById('certFileInput');
             var certBrowseBtn = document.getElementById('cert-browse-btn');
             var certResult = document.getElementById('cert-verify-result');
             var certCloseBtn = document.getElementById('cert-verify-close');
             var certSection = document.getElementById('cert-verify-section');
-            var PUBLIC_KEY_URL = 'https://simplebeacon.ai/api/v1/certify/public-key';
+            var PUBLIC_KEY_PATH = '/api/v1/certify/public-key';
+            var EMBEDDED_PUBLIC_KEY = {
+                keyId: 'sb-edge-2f2d7994b5c6a835',
+                algorithm: 'ECDSA-P256-SHA256',
+                publicKey: {
+                    key_ops: ['verify'],
+                    ext: true,
+                    kty: 'EC',
+                    x: 'kYEfuGBtqjFTDL_ON40UuvBD8lsoaO8F51m3ldHlziY',
+                    y: 'ZjCl0E5TaKArgygu6edbRIYUkbtzvPm9yiLsO19Tyh8',
+                    crv: 'P-256'
+                }
+            };
 
-            if (!certDropzone || !certFileInput) return;
+            async function fetchPublicKey(certFile) {
+                var candidates = [PUBLIC_KEY_PATH, '/edge-signing-public-key.json'];
+                if (certFile && certFile.verification && certFile.verification.url) {
+                    try {
+                        var certUrl = new URL(certFile.verification.url, window.location.origin);
+                        if (candidates.indexOf(certUrl.pathname) === -1) candidates.push(certUrl.pathname);
+                        if (certUrl.origin !== window.location.origin && candidates.indexOf(certUrl.href) === -1) {
+                            candidates.push(certUrl.href);
+                        }
+                    } catch (_) {}
+                }
+                for (var i = 0; i < candidates.length; i++) {
+                    try {
+                        var resp = await fetch(candidates[i]);
+                        if (resp.ok) return resp;
+                    } catch (_) {}
+                }
+                return { ok: true, json: function() { return Promise.resolve(EMBEDDED_PUBLIC_KEY); } };
+            }
+
+            if (!certDropzone || !certFileInput || !certResult) return;
+            window.__sbCertVerifyInit = true;
+
+            function revealCertSection() {
+                if (certSection) {
+                    certSection.style.display = 'block';
+                    try { certSection.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+                }
+            }
+
+            function bindCertDropTarget(el, highlightEl) {
+                if (!el || el.dataset.certDropBound === '1') return;
+                el.dataset.certDropBound = '1';
+                var highlight = highlightEl || el;
+                function onDragOver(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+                    if (highlight.style) {
+                        highlight.style.borderColor = 'var(--accent)';
+                        highlight.style.background = 'rgba(6,182,212,0.05)';
+                    }
+                }
+                function onDragLeave(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (highlight.style) {
+                        highlight.style.borderColor = highlight === certDropzone ? 'var(--border)' : '';
+                        highlight.style.background = highlight === certDropzone ? 'transparent' : '';
+                    }
+                }
+                function onDrop(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (highlight.style) {
+                        highlight.style.borderColor = highlight === certDropzone ? 'var(--border)' : '';
+                        highlight.style.background = highlight === certDropzone ? 'transparent' : '';
+                    }
+                    var files = e.dataTransfer && e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                        revealCertSection();
+                        handleCertFile(files[0]);
+                    }
+                }
+                el.addEventListener('dragenter', onDragOver, true);
+                el.addEventListener('dragover', onDragOver, true);
+                el.addEventListener('dragleave', onDragLeave, true);
+                el.addEventListener('drop', onDrop, true);
+            }
 
             // Close button clears the result panel (section stays visible)
             if (certCloseBtn) {
@@ -1027,7 +1103,8 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             }
 
             // Click dropzone to browse
-            certDropzone.addEventListener('click', function() {
+            certDropzone.addEventListener('click', function(e) {
+                if (e.target && e.target.closest && e.target.closest('button, a, input, label')) return;
                 certFileInput.click();
             });
             if (certBrowseBtn) {
@@ -1037,29 +1114,9 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 });
             }
 
-            // Drag-and-drop handlers
-            certDropzone.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                certDropzone.style.borderColor = 'var(--accent)';
-                certDropzone.style.background = 'rgba(6,182,212,0.05)';
-            });
-            certDropzone.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                certDropzone.style.borderColor = 'var(--border)';
-                certDropzone.style.background = 'transparent';
-            });
-            certDropzone.addEventListener('drop', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                certDropzone.style.borderColor = 'var(--border)';
-                certDropzone.style.background = 'transparent';
-                var files = e.dataTransfer.files;
-                if (files && files.length > 0) {
-                    handleCertFile(files[0]);
-                }
-            });
+            // Drag-and-drop handlers (dropzone + hero path card)
+            bindCertDropTarget(certDropzone);
+            bindCertDropTarget(document.getElementById('audit-path-verify'), certDropzone);
 
             // File input change
             certFileInput.addEventListener('change', function() {
@@ -1088,6 +1145,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
 
             async function handleCertFile(file) {
                 if (!file) return;
+                revealCertSection();
                 // Accept .sbcert or .json files
                 var name = file.name.toLowerCase();
                 if (!name.endsWith('.sbcert') && !name.endsWith('.json')) {
@@ -1109,7 +1167,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     showCertLoading('Fetching public key from edge...');
 
                     // Fetch the public key from the Worker
-                    var pubKeyResponse = await fetch(PUBLIC_KEY_URL);
+                    var pubKeyResponse = await fetchPublicKey(certFile);
                     if (!pubKeyResponse.ok) {
                         showCertResult('<div style="font-size:0.85rem;color:var(--error);font-weight:600;">&#9888; Public key unavailable</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Could not fetch the verification key (HTTP ' + pubKeyResponse.status + '). Check your connection and try again.</div>', true);
                         return;
@@ -1214,6 +1272,13 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 div.textContent = str;
                 return div.innerHTML;
             }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initCertVerification);
+            } else {
+                initCertVerification();
+            }
         })();
         </script>
         <div class="toast-container" id="toastContainer"></div>
@@ -1237,15 +1302,16 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
         </div>
 
         <!-- VIEW B: BROWSER SANDBOX -->
-        <div id="view-browser">
-            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">Drop &amp; Scan</h3>
+        <div id="view-browser" class="scan-workspace">
+            <div class="card scan-workspace-card">
+                <div class="scan-workspace-card__header">
+                    <div class="scan-workspace-card__title">
+                        <span class="scan-step-badge">2</span>
+                        <h3>Drop &amp; Scan</h3>
                     </div>
+                    <p class="scan-workspace-card__subtitle">Browser sandbox — 52 local regex engines, zero upload</p>
                 </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
+                <div class="scan-workspace-card__body">
                     <!-- Clean drop zone at top — prioritized for drag-and-drop action -->
                     <div id="browser-folder-dropzone" class="terminal-shell" style="margin-bottom:16px;">
                         <div class="terminal-header">
@@ -1271,6 +1337,13 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                                     <button type="button" id="fetchSidebarBtn" class="btn btn-primary" style="padding:8px 14px;font-size:0.8rem;background:linear-gradient(135deg,#6366f1,#4f46e5);white-space:nowrap;">Fetch from Sidebar</button>
                                 </div>
                             </div>
+                            <!-- Agent install prompt (shown when Local Agent is not detected, localhost only) -->
+                            <div id="agent-install-prompt" style="display:none;margin-bottom:12px;padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:linear-gradient(135deg,rgba(52,211,153,0.06),rgba(96,165,250,0.06));align-items:center;gap:12px;flex-wrap:wrap;">
+                                <span style="font-size:1.1rem;" aria-hidden="true">&#128161;</span>
+                                <span style="flex:1;min-width:200px;font-size:0.82rem;color:var(--text-main);">Want full CLI scanning with no file limits? Install the <strong>SimpleBeacon Local Agent</strong> — runs all 38+ scanners on your machine.</span>
+                                <a href="https://simplebeacon.ai/downloads/simplebeacon-local-agent-portable.zip" class="btn btn-primary" style="padding:6px 14px;font-size:0.78rem;white-space:nowrap;background:linear-gradient(135deg,var(--success),#047857);text-decoration:none;">Download</a>
+                                <button type="button" data-agent-prompt-dismiss class="btn btn-secondary" style="padding:6px 10px;font-size:0.78rem;border:none;background:transparent;color:var(--text-muted);cursor:pointer;">Dismiss</button>
+                            </div>
                             <!-- Local bridge path input (hidden until bridge detected) -->
                             <div id="local-scanner-panel" style="display:none;margin-bottom:8px;">
                                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
@@ -1283,14 +1356,15 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                                 </div>
                                 <div id="localScannerTerminal" class="terminal-log" style="max-height:120px;margin-top:8px;display:none;"></div>
                             </div>
-                            <div id="terminal-dropzone-prompt" class="terminal-dropzone">
-                                <div style="text-align:center;">
-                                    <span style="font-size:2rem;display:block;margin-bottom:8px;transition:transform 0.2s;">&#128451;</span>
-                                    <p style="font-size:0.9rem;font-weight:700;color:var(--text-main);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Scan a local folder</p>
-                                    <p style="font-size:0.75rem;color:var(--text-muted);max-width:320px;margin:0 auto 14px;line-height:1.5;">Select a drive or folder, or drop one here — scanning runs privately inside your browser. No source code or metrics ever leave your machine.</p>
-                                    <button type="button" id="select-drive-target-btn" class="btn btn-primary" style="margin-bottom:10px;">&#128193; Select Drive Target</button>
-                                    <p style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">Or drag &amp; drop a project directory anywhere in this box</p>
+                            <div id="terminal-dropzone-prompt" class="terminal-dropzone scan-dropzone">
+                                <div class="scan-dropzone__inner">
+                                    <span class="scan-dropzone__icon" aria-hidden="true">&#128451;</span>
+                                    <p class="scan-dropzone__title">Scan a local folder</p>
+                                    <p class="scan-dropzone__desc">Select a drive or folder, or drop one here — scanning runs privately inside your browser. No source code or metrics ever leave your machine.</p>
+                                    <button type="button" id="select-drive-target-btn" class="btn btn-primary scan-dropzone__cta">Select Drive Target</button>
+                                    <p class="scan-dropzone__hint">Or drag &amp; drop a project directory anywhere in this box</p>
                                     <p class="file-name" id="localScanFileName"></p>
+                                    <div id="file-analysis-panel" class="file-analysis-panel" style="display:none;" aria-live="polite"></div>
                                     <div id="mobile-scan-notice" style="display:none;margin-top:12px;padding:10px 14px;border:1px solid var(--warning);border-radius:8px;background:rgba(245,158,11,0.08);font-size:0.72rem;color:var(--text-secondary);line-height:1.5;">
                                         <strong style="color:var(--warning);">Browser scanning requires Chrome or Edge on desktop.</strong><br>
                                         On mobile, use the <strong>Use Terminal (CLI)</strong> tab to run SimpleBeacon locally, then import the <code>report.json</code> file here.
@@ -1327,19 +1401,19 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     </div>
 
                     <!-- Visual empty state — replaces raw JSON schema display -->
-                    <div id="browserEmptyState" style="text-align:center;padding:32px 20px;border:1px dashed var(--border);border-radius:12px;background:var(--bg-main);margin-bottom:16px;">
-                        <div style="font-size:2.4rem;margin-bottom:10px;opacity:0.5;">&#128202;</div>
-                        <p style="font-size:0.9rem;color:var(--text-main);font-weight:600;margin:0 0 4px;">Your local analysis data will appear here</p>
-                        <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">Drop a project folder above to start scanning. Results display automatically.</p>
+                    <div id="browserEmptyState" class="scan-empty-state">
+                        <div class="scan-empty-state__icon" aria-hidden="true">&#128202;</div>
+                        <p class="scan-empty-state__title">Your local analysis data will appear here</p>
+                        <p class="scan-empty-state__desc">Drop a project folder above to start scanning. Results display automatically.</p>
                     </div>
 
                     <!-- Collapsible Advanced Scan Settings drawer — hidden by default -->
-                    <details id="advancedScanSettings" style="margin-bottom:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-main);overflow:hidden;">
-                        <summary style="padding:12px 18px;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--text-main);display:flex;align-items:center;gap:8px;list-style:none;user-select:none;">
-                            <span>&#9881;&#65039;</span> Advanced Scan Settings
-                            <span style="margin-left:auto;font-size:0.7rem;color:var(--text-muted);font-weight:400;">Scan profiles, modules, filters</span>
+                    <details id="advancedScanSettings" class="scan-settings-drawer">
+                        <summary class="scan-settings-drawer__summary">
+                            <span class="scan-settings-drawer__label">Advanced Scan Settings</span>
+                            <span class="scan-settings-drawer__meta">Scan profiles, modules, filters</span>
                         </summary>
-                        <div style="padding:16px 18px;border-top:1px solid var(--border);">
+                        <div class="scan-settings-drawer__body">
                             <div class="form-group" style="margin-bottom:14px;">
                                 <label for="browserScanProfile" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
                                 <select id="browserScanProfile" style="display:none;">
@@ -1384,7 +1458,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                             </label>
                         </div>
                     </details>
-                    <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 16px;text-align:center;">No source code, AST, or file contents are transmitted. Only summary metadata leaves your perimeter.</p>
+                    <p class="scan-workspace-footnote">No source code, AST, or file contents are transmitted. Only summary metadata leaves your perimeter.</p>
                 </div>
             </div>
         </div>
@@ -1476,6 +1550,12 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
             <div style="padding:20px 24px;background:var(--bg-input);">
                 <!-- Scan Preview -->
                 <div id="scanPreview" style="display:none;margin-bottom:16px;">
+                    <!-- Free-tier upgrade banner (shown when report is redacted) -->
+                    <div id="report-upgrade-banner" style="display:none;margin-bottom:12px;padding:12px 16px;border:1px solid rgba(52,211,153,0.3);border-radius:10px;background:linear-gradient(135deg,rgba(52,211,153,0.08),rgba(96,165,250,0.08));align-items:center;gap:12px;flex-wrap:wrap;">
+                        <span style="font-size:1.2rem;" aria-hidden="true">&#128202;</span>
+                        <span style="flex:1;min-width:200px;font-size:0.82rem;color:var(--text-main);">Your free scan is ready. <strong data-upgrade-count>0</strong> issues detected across your project. Upgrade to unlock the full report — every file path, line number, code snippet, and step-by-step fix.</span>
+                        <a href="https://simplebeacon.ai/pricing" class="btn btn-primary" style="padding:6px 16px;font-size:0.78rem;white-space:nowrap;background:linear-gradient(135deg,var(--success),#047857);text-decoration:none;">Unlock Full Report</a>
+                    </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                         <label>Scan Preview</label>
                         <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(217,119,6,0.1);border:1px solid rgba(217,119,6,0.25);border-radius:6px;font-size:0.65rem;color:var(--warning);" title="This scan uses AI-powered pattern matching for detection">
@@ -1506,27 +1586,110 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     </div>
                 </div>
 
+                <!-- AI Context Pack — export scan data for Cursor / Copilot / Claude (local only) -->
+                <div id="aiContextPackPanel" class="sb-ai-context-pack" style="display:none;margin-bottom:16px;">
+                    <div class="sb-ai-context-pack__header">
+                        <h4 class="sb-ai-context-pack__title">&#129302; AI Coding Assistant</h4>
+                        <p class="sb-ai-context-pack__subtitle">Scan data converted into instructions any AI can use — Cursor, Copilot, Claude, Windsurf, Codex. Stays on your device.</p>
+                        <div id="aiCollectedSummary" class="sb-ai-collected-summary"></div>
+                    </div>
+                    <div class="sb-ai-context-pack__row">
+                        <label class="sb-ai-context-pack__label" for="aiDomainProfile">Domain profile</label>
+                        <select id="aiDomainProfile" class="sb-ai-context-pack__select">
+                            <option value="generic">General software</option>
+                            <option value="game">Game / interactive</option>
+                            <option value="government">Government / regulated</option>
+                            <option value="enterprise">Enterprise SaaS</option>
+                            <option value="healthcare">Healthcare</option>
+                        </select>
+                    </div>
+                    <div class="sb-ai-context-pack__actions">
+                        <button type="button" class="btn btn-primary sb-ai-context-btn" id="aiDownloadPackBtn">Download Context Pack (.zip)</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiCopyUniversalPromptBtn">Universal prompt</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiCopyCopilotBtn">Copilot instructions</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiCopyAgentsBtn">AGENTS.md section</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiCopyBriefBtn">agent-brief.md</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiCopySuperchargeBtn">agent-supercharge.md</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiCopyContextBtn">ai-context.md</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiCopyAiJsonBtn">ai-context.json</button>
+                        <button type="button" class="btn btn-secondary sb-ai-context-btn" id="aiOpenSendPanelBtn">Send to AI Assistant…</button>
+                    </div>
+                    <div class="sb-ai-context-pack__fixes">
+                        <h5 class="sb-ai-context-pack__fixes-title">Top suggested fixes <span class="sb-ai-context-pack__fixes-hint">from collected scan data</span></h5>
+                        <ul id="aiSuggestedFixes" class="sb-ai-fix-list"></ul>
+                    </div>
+                    <p class="sb-ai-context-pack__footnote">ZIP includes <code>report.json</code>, <code>agent-supercharge.md</code>, <code>ai-context.json</code>, markdown briefs, Copilot instructions, and AGENTS.md snippet. Start MCP sessions with <code>supercharge_agent</code>. <a href="/community.html">Agent Supercharge setup</a>.</p>
+                </div>
+
                 <div id="tokenActionRow" style="display:none;">
                     <button class="btn btn-primary" id="certSubmitBtn" disabled style="white-space:nowrap;width:100%;margin-bottom:12px;">
                         <span>&#128229;</span> Generate Certificate
                     </button>
                     <a href="/roadmap?h=1784596919635" class="btn btn-secondary" id="roadmapLink" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:12px;padding:10px 14px;background:rgba(99,102,241,0.1);border:1px solid var(--accent);color:var(--accent-hover);font-weight:600;border-radius:8px;transition:all 0.2s;">&#128739; View Remediation Roadmap</a>
-                    <button type="button" class="btn btn-primary" id="upload-send-ai-btn" title="Send scan data to AI Slop Cop" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;display:none;">&#129302; Send to AI Slop Cop</button>
+                    <button type="button" class="btn btn-primary" id="upload-send-ai-btn" title="Send scan context to your AI coding assistant" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;">&#129302; Send to AI Assistant</button>
                     <button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI Slop Cop" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;display:none;">&#129302; Send to AI Slop Cop</button>
                 </div>
 
-                <!-- AI Send Panel -->
+                <!-- Legacy inline panel (fallback if modal JS not loaded) -->
                 <div id="upload-ai-panel" style="display:none;margin-bottom:16px;padding:16px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);border-radius:12px;">
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 8px;">Add notes for the AI agent (optional):</p>
-                    <textarea id="upload-ai-notes" rows="2" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;" placeholder="e.g., 'Focus on critical credential leaks first, ignore test files...'"></textarea>
+                    <textarea id="upload-ai-notes" rows="2" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;" placeholder="e.g., Focus on credential leaks first; skip test fixtures…"></textarea>
                     <div style="display:flex;gap:8px;margin-top:10px;">
-                        <button class="btn btn-primary" id="upload-ai-confirm" type="button" style="flex:1;padding:8px 14px;">Confirm Send</button>
+                        <button class="btn btn-primary" id="upload-ai-confirm" type="button" style="flex:1;padding:8px 14px;">Copy handoff prompt</button>
                         <button class="btn btn-ghost" id="upload-ai-cancel" type="button" style="flex:1;padding:8px 14px;background:transparent;border:1px solid var(--border);color:var(--text-muted);">Cancel</button>
                     </div>
                     <p id="upload-ai-status" style="margin-top:8px;text-align:center;font-size:0.8rem;min-height:1.2em;"></p>
                 </div>
 
                 <div class="status" id="status"></div>
+            </div>
+        </div>
+
+        <!-- AI Handoff Modal — clipboard-first, works on simplebeacon.ai without server -->
+        <div id="sbAiHandoffModal" class="sb-ai-handoff-modal" hidden>
+            <div class="sb-ai-handoff-modal__backdrop" aria-hidden="true"></div>
+            <div class="sb-ai-handoff-modal__dialog" role="dialog" aria-labelledby="sbAiHandoffTitle" aria-modal="true">
+                <header class="sb-ai-handoff-modal__header">
+                    <h3 id="sbAiHandoffTitle">&#129302; Send to AI Assistant</h3>
+                    <button type="button" class="sb-ai-handoff-modal__close" id="sbAiHandoffCloseBtn" aria-label="Close">&times;</button>
+                </header>
+                <p class="sb-ai-handoff-modal__lead">Builds a remediation prompt from your scan — copied to clipboard. Nothing uploads; paste into Cursor, Claude, Copilot, or any chat agent.</p>
+                <div class="sb-ai-handoff-modal__grid">
+                    <label class="sb-ai-handoff-field">
+                        <span>Target assistant</span>
+                        <select id="sbAiHandoffAssistant">
+                            <option value="cursor">Cursor Agent</option>
+                            <option value="claude">Claude</option>
+                            <option value="copilot">GitHub Copilot</option>
+                            <option value="windsurf">Windsurf</option>
+                            <option value="vscode">VS Code extension</option>
+                            <option value="generic" selected>Any AI chat</option>
+                        </select>
+                    </label>
+                    <label class="sb-ai-handoff-field">
+                        <span>Focus</span>
+                        <select id="sbAiHandoffFocus">
+                            <option value="all">All findings</option>
+                            <option value="blocking">Blocking / high only</option>
+                            <option value="security">Security &amp; credentials</option>
+                            <option value="aiResidue">AI residue &amp; quality</option>
+                        </select>
+                    </label>
+                </div>
+                <label class="sb-ai-handoff-field sb-ai-handoff-field--full">
+                    <span>Notes for the agent (optional)</span>
+                    <textarea id="sbAiHandoffNotes" rows="3" placeholder="e.g., Monorepo root — ignore vendor paths; fix gate-blocking issues in ai-platform first…"></textarea>
+                </label>
+                <div class="sb-ai-handoff-preview-wrap">
+                    <span class="sb-ai-handoff-preview-label">Preview</span>
+                    <pre id="sbAiHandoffPreview" class="sb-ai-handoff-preview"></pre>
+                </div>
+                <footer class="sb-ai-handoff-modal__footer">
+                    <button type="button" class="btn btn-primary" id="sbAiHandoffCopyBtn">Copy handoff prompt</button>
+                    <button type="button" class="btn btn-secondary" id="sbAiHandoffDownloadBtn">Download Context Pack</button>
+                    <button type="button" class="btn btn-ghost" id="sbAiHandoffCancelBtn">Cancel</button>
+                </footer>
+                <p id="sbAiHandoffStatus" class="sb-ai-handoff-status"></p>
             </div>
         </div>
 
@@ -1651,7 +1814,8 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 card.style.borderColor = 'rgba(217,119,6,0.25)';
                 if (analyzeAiBtn) analyzeAiBtn.style.display = 'none';
                 var uploadAiBtn = document.getElementById('upload-send-ai-btn');
-                if (uploadAiBtn) uploadAiBtn.style.display = 'none';
+                var isAuditPage = /\/audit(?:\.html)?\/?$/i.test(String(location.pathname || ''));
+                if (uploadAiBtn && !isAuditPage) uploadAiBtn.style.display = 'none';
                 if (badgeWrap) badgeWrap.innerHTML = '<a href="/downloads/simplebeacon.vsix" target="_blank" rel="noopener" style="padding:6px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:0.8rem;text-decoration:none;font-weight:600;">Install</a>';
                 if (subtitle) subtitle.textContent = 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide \u2014 directly in your editor.';
             }
@@ -1887,8 +2051,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     }
                 };
             } catch(e) {}
-            // Periodic check for auth state changes (storage events don't fire in same tab)
-            setInterval(updateAuthNav, 2000);
+            // Auth sync: storage events + BroadcastChannel above; site-auth.js also listens on storage.
                   var emailMode = 'login';
       var signinOverlay = document.getElementById('signinOverlay');
       var signinCloseBtn = document.getElementById('signinCloseBtn');
@@ -1956,7 +2119,7 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
       function authDashboardUrl(route) {
         return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
       }
-      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = authDashboardUrl('signin'); });
+      // Nav sign-in is handled by site-auth.js (opens #auth-modal-overlay) — do not redirect to dashboard here.
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
       if (signinEmailBtn) signinEmailBtn.addEventListener('click', function() {
@@ -2195,6 +2358,26 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 // Apply a server-issued guest (or license) token to the page
                 function applyGuestTokenToPage(token, meta) {
                     if (!token) return;
+                    if (typeof window.SbAuth !== 'undefined') {
+                        if (typeof window.SbAuth.restoreFromSession === 'function') window.SbAuth.restoreFromSession();
+                        var payload = typeof decodeJwtPayload === 'function' ? decodeJwtPayload(token) : null;
+                        var tokenTier = payload ? String(payload.tier || payload.product || '').toLowerCase() : '';
+                        var isGuestToken = tokenTier === 'guest' || !!(payload && payload.guestId);
+                        if (isGuestToken && typeof window.SbAuth.isPaidTier === 'function' && window.SbAuth.isPaidTier()) {
+                            var paidSession = localStorage.getItem('sb-session') || '';
+                            if (paidSession && paidSession.includes('.')) token = paidSession;
+                            meta = Object.assign({}, meta || {}, { tier: window.SbAuth.getUserTier ? window.SbAuth.getUserTier() : 'pro' });
+                        } else if (isGuestToken && typeof window.SbAuth.isAccountSignedIn === 'function' && window.SbAuth.isAccountSignedIn()) {
+                            var sessionTok = localStorage.getItem('sb-session') || '';
+                            if (sessionTok && sessionTok.includes('.')) {
+                                token = sessionTok;
+                                meta = Object.assign({}, meta || {}, { tier: window.SbAuth.getUserTier ? window.SbAuth.getUserTier() : 'community' });
+                            } else if (typeof window.SbAuth.syncAuditAudienceUi === 'function') {
+                                window.SbAuth.syncAuditAudienceUi();
+                                return;
+                            }
+                        }
+                    }
                     if (tokenInput) {
                         tokenInput.value = token;
                         tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -2202,16 +2385,28 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                     localStorage.setItem('sb-token', token);
                     localStorage.setItem('simplebeacon_token', token);
                     localStorage.setItem('cascadeAuthToken', token);
-                    localStorage.setItem('sb-user', JSON.stringify({
-                        plan: (meta && meta.tier) || 'guest',
-                        tier: (meta && meta.tier) || 'guest',
-                        email: (meta && meta.userEmail) || null
-                    }));
+                    var existingUser = null;
+                    try { existingUser = JSON.parse(localStorage.getItem('sb-user') || 'null'); } catch (_) {}
+                    var userPayload = {
+                        plan: (meta && meta.tier) || (existingUser && existingUser.plan) || 'guest',
+                        tier: (meta && meta.tier) || (existingUser && existingUser.tier) || 'guest',
+                        email: (meta && meta.userEmail) || (existingUser && existingUser.email) || null
+                    };
+                    if (existingUser && existingUser.email) {
+                        userPayload.email = existingUser.email;
+                        if (existingUser.plan) userPayload.plan = existingUser.plan;
+                        if (existingUser.tier) userPayload.tier = existingUser.tier;
+                        if (existingUser.role) userPayload.role = existingUser.role;
+                    }
+                    localStorage.setItem('sb-user', JSON.stringify(userPayload));
                     if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
                     if (typeof updateDropzoneGate === 'function') updateDropzoneGate();
                     if (typeof updateAuthNav === 'function') updateAuthNav();
                     const gate = document.getElementById('audit-token-gate');
                     if (gate) gate.style.display = 'none';
+                    if (typeof window.SbAuth !== 'undefined' && typeof window.SbAuth.syncAuditAudienceUi === 'function') {
+                        window.SbAuth.syncAuditAudienceUi();
+                    }
                 }
 
                 function getGuestDeviceId() {
@@ -2230,6 +2425,18 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 var guestTokenPromise = null;
                 async function ensureGuestToken(options) {
                     var opts = options || {};
+                    if (typeof window.SbAuth !== 'undefined' && typeof window.SbAuth.restoreFromSession === 'function') {
+                        window.SbAuth.restoreFromSession();
+                    }
+                    if (!opts.force && typeof window.SbAuth !== 'undefined' && typeof window.SbAuth.isAccountSignedIn === 'function' && window.SbAuth.isAccountSignedIn()) {
+                        var accountToken = localStorage.getItem('sb-session') || localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
+                        if (accountToken && accountToken.includes('.')) {
+                            applyGuestTokenToPage(accountToken, { tier: window.SbAuth.getUserTier ? window.SbAuth.getUserTier() : 'community', userEmail: (function() {
+                                try { var u = JSON.parse(localStorage.getItem('sb-user') || 'null'); return u && u.email; } catch (_) { return null; }
+                            })() });
+                            return { token: accountToken, cached: true, account: true };
+                        }
+                    }
                     var cached = localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
                     if (cached && cached.includes('.') && tokenInput && tokenInput.value.trim() === cached) {
                         return { token: cached, cached: true };
@@ -2245,6 +2452,9 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                         var data = await res.json().catch(function() { return {}; });
                         if (!res.ok || !data.success || !data.token) {
                             throw new Error(data.error || data.message || ('Guest token request failed (' + res.status + ')'));
+                        }
+                        if (!opts.force && typeof window.SbAuth !== 'undefined' && typeof window.SbAuth.isAccountSignedIn === 'function' && window.SbAuth.isAccountSignedIn()) {
+                            return { token: data.token, cached: !!data.cached, meta: data, skipped: 'account-signed-in' };
                         }
                         applyGuestTokenToPage(data.token, data);
                         return { token: data.token, cached: !!data.cached, meta: data };
@@ -2270,23 +2480,42 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 };
 
                 // ── Token Status Pill Badge ───────────────────────────────────
+                function resolveAuditDisplayTier(data) {
+                    if (typeof window.SbAuth !== 'undefined') {
+                        if (typeof window.SbAuth.isAdminUser === 'function' && window.SbAuth.isAdminUser()) {
+                            var adminUser = window.SbAuth.getUserRecord ? window.SbAuth.getUserRecord() : null;
+                            return { tier: 'admin', isAdmin: true, email: adminUser && adminUser.email, paid: true };
+                        }
+                        if (typeof window.SbAuth.isPaidTier === 'function' && window.SbAuth.isPaidTier()) {
+                            var paidUser = window.SbAuth.getUserRecord ? window.SbAuth.getUserRecord() : null;
+                            var paidTier = window.SbAuth.getUserTier ? window.SbAuth.getUserTier() : 'pro';
+                            return { tier: paidTier, isAdmin: false, email: paidUser && paidUser.email, paid: true };
+                        }
+                    }
+                    var tier = (data && data.tier) ? String(data.tier).toLowerCase() : 'guest';
+                    return { tier: tier, isAdmin: tier === 'admin', email: data && data.email, paid: false };
+                }
+
                 function updateTokenStatusCard(token, data) {
                     const card = document.getElementById('tokenStatusCard');
                     if (!card) return;
+                    var resolved = resolveAuditDisplayTier(data || {});
+                    if (!resolved.paid && !token) {
+                        card.style.display = 'none';
+                        return;
+                    }
                     card.style.display = 'block';
-                    const tier = data.tier || 'unknown';
-                    const isAdmin = tier === 'admin';
+                    const tier = resolved.tier || 'unknown';
+                    const isAdmin = resolved.isAdmin || tier === 'admin';
                     const freeTiers = ['community','starter','instant','free','developer','sandbox','guest'];
-                    const isFreeTier = freeTiers.includes(tier.toLowerCase());
-                    // Compact pill badge text
-                    const tierName = (tier.charAt(0).toUpperCase() + tier.slice(1));
-                    document.getElementById('tokenStatusTitle').textContent = isAdmin ? '🔒 Admin' : tierName + ' Tier';
+                    const isFreeTier = !resolved.paid && freeTiers.includes(String(tier).toLowerCase());
+                    const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
+                    document.getElementById('tokenStatusTitle').textContent = isAdmin ? 'Admin' : tierName + ' Tier';
                     document.getElementById('tokenStatusSubtitle').textContent = isAdmin ? 'Superuser access' : tierName + ' tier';
                     const badge = document.getElementById('tokenTierBadge');
-                    badge.textContent = tier.toUpperCase();
+                    badge.textContent = isAdmin ? 'ADMIN' : tier.toUpperCase();
                     badge.style.background = isAdmin ? 'rgba(217,119,6,0.15)' : 'var(--primary-subtle)';
                     badge.style.color = isAdmin ? 'var(--warning)' : 'var(--accent)';
-                    // Show upgrade link for free tiers, details for paid tiers
                     const detailsGrid = document.getElementById('tokenStatusDetails');
                     const freeMsg = document.getElementById('tokenStatusFree');
                     const upgradeLink = document.getElementById('tokenStatusUpgradeLink');
@@ -2298,18 +2527,35 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                         if (detailsGrid) detailsGrid.style.display = 'grid';
                         if (freeMsg) freeMsg.style.display = 'none';
                         if (upgradeLink) upgradeLink.style.display = 'none';
-                        document.getElementById('tokenStatusEmail').textContent = data.email || 'N/A';
-                        if (data.expiry) {
+                        document.getElementById('tokenStatusEmail').textContent = resolved.email || (data && data.email) || 'N/A';
+                        if (data && data.expiry) {
                             const expiryDate = new Date(data.expiry * 1000);
                             const daysLeft = Math.max(0, Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24)));
                             document.getElementById('tokenStatusExpiry').textContent = daysLeft + ' days left';
                         } else {
-                            document.getElementById('tokenStatusExpiry').textContent = 'N/A';
+                            document.getElementById('tokenStatusExpiry').textContent = isAdmin ? 'No expiry' : 'N/A';
                         }
-                        document.getElementById('tokenStatusFeatures').textContent = (data.features && data.features.length) ? data.features.join(', ') : 'basic';
-                        document.getElementById('tokenStatusRegistered').textContent = data.registered ? 'Yes' : 'No';
+                        document.getElementById('tokenStatusFeatures').textContent = (data && data.features && data.features.length) ? data.features.join(', ') : (isAdmin ? 'all modules' : 'basic');
+                        document.getElementById('tokenStatusRegistered').textContent = (data && data.registered) ? 'Yes' : (resolved.email ? 'Yes' : 'No');
+                    }
+                    if (typeof window.SbAuth !== 'undefined' && typeof window.SbAuth.syncAuditAudienceUi === 'function') {
+                        window.SbAuth.syncAuditAudienceUi();
                     }
                 }
+
+                window.refreshAuditTokenStatus = function() {
+                    var token = getCachedScanToken();
+                    if (!token) {
+                        var card = document.getElementById('tokenStatusCard');
+                        if (card && typeof window.SbAuth !== 'undefined' && window.SbAuth.isPaidTier && window.SbAuth.isPaidTier()) {
+                            updateTokenStatusCard(localStorage.getItem('sb-session') || token, {});
+                        } else if (card) {
+                            card.style.display = 'none';
+                        }
+                        return;
+                    }
+                    updateTokenStatusCard(token, {});
+                };
 
                 // "Start Scanning" — issue or reuse server guest token
                 const startSandboxBtn = document.getElementById('startSandboxBtn');
@@ -2332,7 +2578,13 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 }
 
                 // Auto-issue guest token on first visit so drop zone unlocks without a click
-                ensureGuestToken().catch(function(err) {
+                if (typeof window.SbAuth !== 'undefined' && typeof window.SbAuth.isAccountSignedIn === 'function' && window.SbAuth.isAccountSignedIn()) {
+                    var signedInGate = document.getElementById('audit-token-gate');
+                    if (signedInGate) signedInGate.style.display = 'none';
+                }
+                ensureGuestToken().then(function() {
+                    if (typeof window.refreshAuditTokenStatus === 'function') window.refreshAuditTokenStatus();
+                }).catch(function(err) {
                     console.warn('[GuestToken] Auto-issue skipped:', err.message);
                 });
 
@@ -2579,13 +2831,36 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 }
 
                 function persistAuthSuccess(data) {
+                    guestTokenPromise = null;
                     var sessionToken = data.token;
-                    var licenseToken = data.licenseToken || getCachedScanToken();
+                    var licenseToken = data.licenseToken || null;
                     if (sessionToken) localStorage.setItem('sb-session', sessionToken);
-                    if (licenseToken) {
-                        applyGuestTokenToPage(licenseToken, { tier: data.tier || 'community', userEmail: data.email });
+                    var userRecord = Object.assign({}, data.user || {});
+                    if (data.email && !userRecord.email) userRecord.email = data.email;
+                    if (data.role && !userRecord.role) userRecord.role = data.role;
+                    if (data.tier && !userRecord.tier) userRecord.tier = data.tier;
+                    if (!userRecord.plan) userRecord.plan = userRecord.tier || data.tier || 'community';
+                    if (String(userRecord.tier || '').toLowerCase() === 'admin' || String(userRecord.role || '').toLowerCase() === 'admin') {
+                        userRecord.role = 'admin';
+                        userRecord.tier = 'admin';
+                        userRecord.plan = 'admin';
                     }
-                    if (data.user) localStorage.setItem('sb-user', JSON.stringify(data.user));
+                    localStorage.setItem('sb-user', JSON.stringify(userRecord));
+                    var userEmail = userRecord.email || data.email || null;
+                    var userTier = userRecord.tier || userRecord.plan || data.tier || 'community';
+                    var scanToken = licenseToken || sessionToken;
+                    if (scanToken) {
+                        applyGuestTokenToPage(scanToken, { tier: userTier, userEmail: userEmail });
+                    } else {
+                        var gate = document.getElementById('audit-token-gate');
+                        if (gate) gate.style.display = 'none';
+                    }
+                    if (typeof updateAuthNav === 'function') updateAuthNav();
+                    try {
+                        var bc = new BroadcastChannel('simplebeacon-auth');
+                        bc.postMessage({ type: 'signed-in' });
+                        bc.close();
+                    } catch (_) {}
                 }
 
                 // Email form — login or register with optional guestToken claim
@@ -2608,8 +2883,17 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(body)
                             });
-                            const data = await res.json();
-                            if (!res.ok || !data.token) throw new Error(data.message || data.error || (authMode === 'register' ? 'Registration failed' : 'Login failed'));
+                            const raw = await res.text();
+                            var data = {};
+                            try { data = raw ? JSON.parse(raw) : {}; } catch (_) {
+                                throw new Error('Sign-in service returned an invalid response. Try again in a moment.');
+                            }
+                            if (data.pending && !data.token) {
+                                throw new Error(data.message || 'Account pending approval. Contact support@simplebeacon.ai.');
+                            }
+                            if (!res.ok || !data.token) {
+                                throw new Error(data.message || data.error || (authMode === 'register' ? 'Registration failed' : 'Login failed'));
+                            }
                             persistAuthSuccess(data);
                             var msg = data.message
                                 || (data.guestTokenClaimed ? 'Your guest pass is now your personal token.' : (authMode === 'register' ? 'Account created' : 'Signed in successfully'));
@@ -2644,170 +2928,18 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
                 }
             })();
         })();
+      window.SB_AUDIT_FREE_PREVIEW = true;
     </script>
     <script>
-    // Send to AI Agent — upload.html wiring
+    // Send to AI — wired in ai-context-pack.js (wireSendToAiButtons) after lazy load
     (function() {
-        var inVsCode = typeof window !== 'undefined' && (
-            typeof window.acquireVsCodeApi === 'function' ||
-            /vscode|electron/i.test(navigator.userAgent) ||
-            /vscode-webview/i.test(navigator.userAgent)
-        );
-        var sendBtn = document.getElementById('upload-send-ai-btn');
-        var aiPanel = document.getElementById('upload-ai-panel');
-        var aiNotes = document.getElementById('upload-ai-notes');
-        var aiStatus = document.getElementById('upload-ai-status');
-        var aiConfirm = document.getElementById('upload-ai-confirm');
-        var aiCancel = document.getElementById('upload-ai-cancel');
-        var tokenRow = document.getElementById('tokenActionRow');
         window.currentReport = null;
-
-        // Observe tokenActionRow visibility to show/hide AI button
-        if (tokenRow && sendBtn) {
-            var observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(m) {
-                    if (m.type === 'attributes' && m.attributeName === 'style') {
-                        var visible = tokenRow.style.display !== 'none';
-                        var vscodeActive = typeof window.__sbVscodeActive !== 'undefined' ? window.__sbVscodeActive : false;
-                        sendBtn.style.display = (visible && vscodeActive) ? 'block' : 'none';
-                    }
-                });
-            });
-            observer.observe(tokenRow, { attributes: true, attributeFilter: ['style'] });
-        }
-
-        // Also expose a global so main.js or scan utils can trigger it
         window.__simplebeaconSetReportForAI = function(report) {
             window.currentReport = report;
         };
-
-        var analyzeSendBtn = document.getElementById('analyze-send-ai-btn');
-        if (sendBtn && aiPanel) {
-            sendBtn.addEventListener('click', function() {
-                aiPanel.style.display = 'block';
-                if (aiNotes) aiNotes.focus();
-            });
-        }
-        if (analyzeSendBtn) {
-            analyzeSendBtn.addEventListener('click', function() {
-                var report = window.currentReport || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
-                if (!report) { alert('No scan report to send'); return; }
-                var hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
-                if (hasVsCodeApi) {
-                    try {
-                        var vscode;
-                        if (window.__vscodeApiCached) {
-                            vscode = window.__vscodeApiCached;
-                        } else {
-                            window.__vscodeApiCached = window.acquireVsCodeApi();
-                            vscode = window.__vscodeApiCached;
-                        }
-                        var allIssues = [];
-                        if (Array.isArray(report.detectedIssues)) allIssues = report.detectedIssues;
-                        else if (Array.isArray(report.allIssues)) allIssues = report.allIssues;
-                        else if (Array.isArray(report.findings)) allIssues = report.findings;
-                        else if (Array.isArray(report.issues)) allIssues = report.issues;
-                        else if (report.summary && Array.isArray(report.summary.issues)) allIssues = report.summary.issues;
-                        var payload = {
-                            reportPath: report.projectPath || report.path || '',
-                            notes: '',
-                            reportType: report.type || 'simplebeacon',
-                            filesScanned: report.repositoryFilesTotal || report.totalFiles || 'N/A',
-                            issues: allIssues
-                        };
-                        vscode.postMessage({
-                            command: 'sendToAI',
-                            data: payload
-                        });
-                        analyzeSendBtn.textContent = 'Sent \u2713';
-                        analyzeSendBtn.style.background = 'var(--success)';
-                        setTimeout(function() {
-                            analyzeSendBtn.textContent = '\uD83E\uDD16 Send to AI Slop Cop';
-                            analyzeSendBtn.style.background = 'linear-gradient(135deg,#6366f1,#8b5cf6)';
-                        }, 2000);
-                    } catch (err) {
-                        console.warn('[AI-Send] Failed:', err);
-                    }
-                    return;
-                }
-                // Fallback: open inline panel when not in VS Code
-                if (aiPanel) {
-                    aiPanel.style.display = 'block';
-                    if (aiNotes) aiNotes.focus();
-                }
-            });
-        }
-        if (aiCancel && aiPanel) {
-            aiCancel.addEventListener('click', function() {
-                aiPanel.style.display = 'none';
-                if (aiNotes) aiNotes.value = '';
-                if (aiStatus) { aiStatus.textContent = ''; aiStatus.style.color = ''; }
-            });
-        }
-        if (aiConfirm) {
-            aiConfirm.addEventListener('click', async function() {
-                var report = window.currentReport || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
-                if (!report) {
-                    if (aiStatus) { aiStatus.textContent = 'No report loaded'; aiStatus.style.color = 'var(--error)'; }
-                    return;
-                }
-                var btn = aiConfirm;
-                btn.disabled = true; btn.textContent = 'Sending…';
-                if (aiStatus) { aiStatus.textContent = 'Sending to AI agent…'; aiStatus.style.color = 'var(--text-muted)'; }
-                var allIssues = [];
-                if (Array.isArray(report.detectedIssues)) allIssues = report.detectedIssues;
-                else if (Array.isArray(report.allIssues)) allIssues = report.allIssues;
-                else if (Array.isArray(report.findings)) allIssues = report.findings;
-                else if (Array.isArray(report.issues)) allIssues = report.issues;
-                else if (report.summary && Array.isArray(report.summary.issues)) allIssues = report.summary.issues;
-                var payload = {
-                    reportPath: report.projectPath || report.path || '',
-                    notes: (aiNotes && aiNotes.value) ? aiNotes.value : '',
-                    reportType: report.type || 'simplebeacon',
-                    filesScanned: report.repositoryFilesTotal || report.totalFiles || 'N/A',
-                    issues: allIssues
-                };
-
-                // If running inside a VS Code-family webview, message the extension directly
-                var hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
-                if (hasVsCodeApi) {
-                    try {
-                        var vscode = window.acquireVsCodeApi();
-                        vscode.postMessage({
-                            command: 'sendToAI',
-                            data: payload
-                        });
-                        btn.textContent = 'Sent ✓'; btn.style.background = 'var(--success)';
-                        if (aiStatus) { aiStatus.textContent = 'Scan data sent to AI coding agent'; aiStatus.style.color = 'var(--success)'; }
-                        return;
-                    } catch (err) {
-                        console.warn('[AI-Send] vscode.postMessage failed:', err);
-                    }
-                }
-
-                try {
-                    var res = await fetch('/api/ai-context', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    var json = await res.json().catch(function() { return {}; });
-                    if (res.ok && json.success) {
-                        btn.textContent = 'Sent ✓'; btn.style.background = 'var(--success)';
-                        if (aiStatus) { aiStatus.textContent = 'Saved to ' + json.path + ' — paste into your AI coding agent with Ctrl+V'; aiStatus.style.color = 'var(--success)'; }
-                    } else {
-                        btn.disabled = false; btn.textContent = 'Retry Send';
-                        if (aiStatus) { aiStatus.textContent = 'Failed: ' + (json.error || 'Unknown'); aiStatus.style.color = 'var(--error)'; }
-                    }
-                } catch (err) {
-                    btn.disabled = false; btn.textContent = 'Retry Send';
-                    if (aiStatus) { aiStatus.textContent = 'Network error: ' + err.message; aiStatus.style.color = 'var(--error)'; }
-                }
-            });
-        }
     })();
     </script>
-    <script src="/js-es2018/dashboard/main.js?h=1786150000" defer></script>
+    <script src="/js-es2018/dashboard/main.js?v=20260817unlimited1" defer></script>
     <script>
     // Initialize theme toggle icon on load
     (function() {
@@ -2828,6 +2960,9 @@ details#advancedScanSettings[open] summary::after{transform:rotate(180deg);}
     function sbUpdateBoardReport(data) {
         try {
             if (!data) return;
+            if (typeof window.sbRenderAiContextPack === 'function') {
+                window.sbRenderAiContextPack(data);
+            }
             var summary = data.scan_summary || data.summary || {};
             var grade = (data.qualityScorecard && data.qualityScorecard.grade) || summary.grade || 'B+';
             var score = (data.qualityScorecard && data.qualityScorecard.score) || summary.qualityScore || 87;

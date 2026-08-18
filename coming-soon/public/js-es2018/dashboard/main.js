@@ -1,5 +1,41 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-// Copy-to-clipboard helper
+// Audit page: free local preview — multi-worker scan, vendor strip, unlimited discovery/analysis
+if (typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW !== true) {
+    if (/\/audit(?:\.html)?\/?$/i.test(String(location.pathname || ''))) {
+        window.SB_AUDIT_FREE_PREVIEW = true;
+    }
+}
+// Audit page: lazy-load heavy scanner bundle so initial page load stays responsive (~600KB+ saved).
+if (typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW) {
+    window.ensureAuditScannerLoaded = function ensureAuditScannerLoaded() {
+        if (typeof window.processLocalCLIScan === 'function' && typeof window.renderPreview === 'function') {
+            return Promise.resolve();
+        }
+        if (window.__auditScannerLoadPromise)
+            return window.__auditScannerLoadPromise;
+        var scripts = [
+            '/js-es2018/dashboard/scanner-patterns.js?h=20260816gate1',
+            '/js-es2018/audit-scan-service.js?v=20260817unlimited1',
+            '/js-es2018/dashboard/scanner-engine.js?h=20260817unlimited1',
+            '/js-es2018/dashboard/ui-renderer.js?v=20260817align1',
+            '/js-es2018/ai-context-pack.js?v=20260816aihandoff1',
+            '/js-es2018/dashboard/certificate-module.js?h=20260715notify1'
+        ];
+        window.__auditScannerLoadPromise = (async function () {
+            for (var i = 0; i < scripts.length; i++) {
+                await new Promise(function (resolve, reject) {
+                    var s = document.createElement('script');
+                    s.src = scripts[i];
+                    s.async = false;
+                    s.onload = function () { resolve(); };
+                    s.onerror = function () { reject(new Error('Failed to load ' + scripts[i])); };
+                    document.head.appendChild(s);
+                });
+            }
+        })();
+        return window.__auditScannerLoadPromise;
+    };
+}
 window.copyToClipboard = function (elementId) {
     const el = document.getElementById(elementId);
     if (!el)
@@ -86,6 +122,84 @@ const TOAST_DURATION_LONG = 12000;
 // File count thresholds
 const FILE_COUNT_HIGH = 65000;
 const FILE_COUNT_VERY_HIGH = 100000;
+const FILE_COUNT_BROWSER_CAP = typeof MAX_DISCOVERED_FILES !== 'undefined' ? MAX_DISCOVERED_FILES : Number.MAX_SAFE_INTEGER;
+let _largeFolderDiscoveryWarnShown = false;
+function showLargeRepoAlternatives(fileCount, context) {
+    var adviceFn = (typeof ScanUtils !== 'undefined' && ScanUtils.getLargeRepoScanAdvice)
+        ? ScanUtils.getLargeRepoScanAdvice
+        : (typeof getLargeRepoScanAdvice !== 'undefined' ? getLargeRepoScanAdvice : null);
+    var advice = adviceFn ? adviceFn(fileCount) : null;
+    if (!advice)
+        return;
+    appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo (' + fileCount.toLocaleString() + ' files)</span>: '
+        + escapeHtml(advice.message), 'warn', true);
+    appendTerminalLine('<span style="color:#64748B;">CLI:</span> <code style="color:#60A5FA;">' + escapeHtml(advice.cliCommand) + ' "YOUR_PATH"</code>', undefined, true);
+    if (advice.usePathField) {
+        appendTerminalLine('Or paste the folder path in <strong>Local Scanner Path</strong> and click Start Local Scan (server-side, no browser limit).', 'info', true);
+        var pathInput = document.getElementById('localScannerPath');
+        if (pathInput) {
+            pathInput.focus();
+            pathInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    if (typeof showToast === 'function') {
+        showToast(context || advice.message, advice.useCli ? 'error' : 'warning', TOAST_DURATION_LONG);
+    }
+}
+function showPartialDiscoveryNotice(fileCount) {
+    var cap = (typeof MAX_DISCOVERED_FILES !== 'undefined') ? MAX_DISCOVERED_FILES : Number.MAX_SAFE_INTEGER;
+    if (fileCount < cap)
+        return;
+    appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Partial discovery:</span> Indexed '
+        + fileCount.toLocaleString() + ' files (browser cap ~' + cap.toLocaleString() + '). Starting scan on indexed files — CLI needed for full tree.', 'warn', true);
+    var panelStatus = document.getElementById('panel-status');
+    if (panelStatus) {
+        panelStatus.textContent = 'PARTIAL_SCAN';
+        panelStatus.style.color = '#F59E0B';
+    }
+    if (typeof showToast === 'function') {
+        showToast('Partial scan: ' + fileCount.toLocaleString() + ' files indexed. Scan starting — use CLI for full coverage.', 'warning', 8000);
+    }
+}
+function showBrowserScanBlockedUI(fileCount, reason) {
+    var count = Number(fileCount) || 0;
+    var cap = (typeof MAX_DISCOVERED_FILES !== 'undefined') ? MAX_DISCOVERED_FILES : Number.MAX_SAFE_INTEGER;
+    var msg = reason || ('This folder has ' + count.toLocaleString() + ' files — beyond the browser safe limit (~' + cap.toLocaleString() + ').');
+    showLargeRepoAlternatives(count, msg);
+    var panelStatus = document.getElementById('panel-status');
+    if (panelStatus) {
+        panelStatus.textContent = 'USE_CLI';
+        panelStatus.style.color = '#EF4444';
+    }
+    var nameEl = document.getElementById('localScanFileName');
+    if (nameEl) {
+        nameEl.innerHTML = '<span style="color:#EF4444;font-weight:700;">' + count.toLocaleString() + ' files — browser cannot scan this folder</span>'
+            + '<br><span style="font-size:0.72rem;color:#94A3B8;">Switch to <strong>Use Terminal (CLI)</strong> below to scan locally with no file limit.</span>';
+    }
+    var callout = document.getElementById('large-folder-callout');
+    var calloutBody = document.getElementById('large-folder-callout-body');
+    if (callout) {
+        callout.style.display = 'block';
+        if (calloutBody) {
+            calloutBody.textContent = msg + ' Run: npx simplebeacon scan "YOUR_PATH" --full --gate --format json --output .simplebeacon/report.json';
+        }
+    }
+    if (terminalConsole)
+        terminalConsole.style.display = 'block';
+    appendTerminalLine('<span style="color:#EF4444;font-weight:700;">&#10008; Scan not started</span> — ' + escapeHtml(msg), 'error', true);
+    appendTerminalLine('Click <strong>Use Terminal (CLI)</strong> at the top of this page for the scan command.', 'info', true);
+    if (typeof showToast === 'function') {
+        showToast('Folder too large for browser scan (' + count.toLocaleString() + ' files). Use the CLI tab.', 'error', 12000);
+    }
+}
+function maybeWarnDuringDiscovery(fileCount) {
+    if (_largeFolderDiscoveryWarnShown)
+        return;
+    if (fileCount < 1000000)
+        return;
+    _largeFolderDiscoveryWarnShown = true;
+    showLargeRepoAlternatives(fileCount, 'Discovery passed 1M files — scan continues; ensure sufficient RAM or use CLI for fastest results.');
+}
 // Local server ports to probe
 const LOCAL_SERVER_PORTS = [58000, 38000, 50559, 3002, 3001, 3000, 5000];
 // API base URL — same-origin on marketing hosts (Cloudflare /api proxy); Render when embedded elsewhere
@@ -181,20 +295,165 @@ function applyFolderSizeAnalysis(files, context) {
     // Toast for errors so the user sees it even if terminal is hidden
     if (analysis.severity === 'error') {
         showToast(analysis.message, 'error', 8000);
+        showBrowserScanBlockedUI(analysis.fileCount, analysis.message);
     }
     else if (analysis.severity === 'warn') {
         showToast(analysis.message, 'warning', TOAST_DURATION_SHORT);
     }
     return { proceed: !analysis.blocked, analysis: analysis };
 }
+
+var FILE_ANALYSIS_CATEGORY_LABELS = {
+    sourceCode: 'Source code',
+    markup: 'Markup / style',
+    config: 'Config / data',
+    docs: 'Documentation',
+    buildArtifacts: 'Build output',
+    testFixtures: 'Tests / fixtures',
+    tempDev: 'Temp / dev scripts',
+    vendor: 'Vendor / cache',
+    binary: 'Binary / media',
+    other: 'Other'
+};
+
+function renderAuditFileAnalysisPanel(summary, meta) {
+    meta = meta || {};
+    var panel = document.getElementById('file-analysis-panel');
+    if (!panel || !summary || !summary.totalFiles) {
+        if (panel) panel.style.display = 'none';
+        return;
+    }
+    var cats = summary.categories || {};
+    var rows = [];
+    var totalForBars = summary.totalFiles;
+    Object.keys(FILE_ANALYSIS_CATEGORY_LABELS).forEach(function (key) {
+        var count = cats[key] || 0;
+        if (count <= 0) return;
+        var pct = totalForBars ? Math.round((count / totalForBars) * 100) : 0;
+        rows.push(
+            '<div class="file-analysis-row">'
+            + '<span class="file-analysis-row__label">' + escapeHtml(FILE_ANALYSIS_CATEGORY_LABELS[key]) + '</span>'
+            + '<span class="file-analysis-row__bar" aria-hidden="true"><span class="file-analysis-row__fill" style="width:' + pct + '%"></span></span>'
+            + '<span class="file-analysis-row__count">' + count.toLocaleString() + '</span>'
+            + '</div>'
+        );
+    });
+    var extHtml = (summary.topExtensions || []).map(function (e) {
+        return '<span class="file-analysis-chip">' + escapeHtml(e.ext) + ' <strong>' + e.count.toLocaleString() + '</strong></span>';
+    }).join('');
+    var rootHtml = (summary.topLevelDirs || []).map(function (d) {
+        return '<span class="file-analysis-chip">' + escapeHtml(d.name) + '/ <strong>' + d.count.toLocaleString() + '</strong></span>';
+    }).join('');
+    var sizeFn = (typeof ScanUtils !== 'undefined' && ScanUtils.formatByteSize) ? ScanUtils.formatByteSize : function (b) { return String(b); };
+    var capNote = '';
+    if (meta.discoveredCount && meta.discoveredCount > summary.totalFiles) {
+        capNote = '<p class="file-analysis-note">Analyzed ' + summary.totalFiles.toLocaleString()
+            + ' of ' + meta.discoveredCount.toLocaleString() + ' discovered paths after vendor filtering.</p>';
+    }
+    if (meta.cappedFrom && meta.cappedFrom > summary.totalFiles) {
+        capNote += '<p class="file-analysis-note">Browser scan queue capped at ' + summary.totalFiles.toLocaleString()
+            + ' priority files (from ' + meta.cappedFrom.toLocaleString()
+            + ' scannable). Use <code>npx simplebeacon scan --full --gate</code> for the full tree.</p>';
+    }
+    if (summary.sampled) {
+        capNote += '<p class="file-analysis-note">Counts estimated from a sample of ' + summary.totalFiles.toLocaleString()
+            + ' files (large folder).</p>';
+    }
+    panel.innerHTML =
+        '<div class="file-analysis-panel__header">'
+        + '<span class="file-analysis-panel__title">File analysis</span>'
+        + '<span class="file-analysis-panel__meta">' + summary.totalFiles.toLocaleString() + ' paths · ~'
+        + (summary.scannableEstimate || 0).toLocaleString() + ' scannable · ' + sizeFn(summary.totalSizeBytes)
+        + ' · depth ' + (summary.maxDepth || 0) + '</span>'
+        + '</div>'
+        + capNote
+        + '<div class="file-analysis-grid">' + rows.join('') + '</div>'
+        + (extHtml ? '<div class="file-analysis-section"><span class="file-analysis-section__label">Top extensions</span><div class="file-analysis-chips">' + extHtml + '</div></div>' : '')
+        + (rootHtml ? '<div class="file-analysis-section"><span class="file-analysis-section__label">Top-level folders</span><div class="file-analysis-chips">' + rootHtml + '</div></div>' : '');
+    panel.style.display = 'block';
+    var empty = document.getElementById('browserEmptyState');
+    if (empty) empty.style.display = 'none';
+}
+
+function appendFileInventoryToTerminal(summary, meta) {
+    if (!summary || !summary.totalFiles) return;
+    var cats = summary.categories || {};
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#128200; File analysis:</span> '
+        + summary.totalFiles.toLocaleString() + ' paths, ~' + (summary.scannableEstimate || 0).toLocaleString() + ' scannable', 'info', true);
+    ['sourceCode', 'markup', 'config', 'docs'].forEach(function (key) {
+        if (cats[key] > 0) {
+            appendTerminalLine('  <span style="color:#64748B;">&#10148;</span> '
+                + FILE_ANALYSIS_CATEGORY_LABELS[key] + ': <strong>' + cats[key].toLocaleString() + '</strong>');
+        }
+    });
+    if (cats.vendor > 0) {
+        appendTerminalLine('  <span style="color:#64748B;">&#10148;</span> Vendor/cache: <strong>' + cats.vendor.toLocaleString() + '</strong>');
+    }
+    if (cats.binary > 0) {
+        appendTerminalLine('  <span style="color:#64748B;">&#10148;</span> Binary/media (skipped): <strong>' + cats.binary.toLocaleString() + '</strong>');
+    }
+    if (meta && meta.discoveredCount && meta.discoveredCount > summary.totalFiles) {
+        appendTerminalLine('  <span style="color:#64748B;">&#10148;</span> '
+            + summary.totalFiles.toLocaleString() + ' analyzed after removing '
+            + (meta.discoveredCount - summary.totalFiles).toLocaleString() + ' vendor paths.', 'info');
+    }
+}
+
+function showAuditFileAnalysis(files, meta) {
+    meta = meta || {};
+    if (!files || !files.length) {
+        var panel = document.getElementById('file-analysis-panel');
+        if (panel) panel.style.display = 'none';
+        return null;
+    }
+    var builder = (typeof ScanUtils !== 'undefined' && ScanUtils.buildFileInventorySummary)
+        ? ScanUtils.buildFileInventorySummary
+        : null;
+    if (!builder) return null;
+    var summary = builder(files, { label: meta.label || 'Project' });
+    renderAuditFileAnalysisPanel(summary, meta);
+    appendFileInventoryToTerminal(summary, meta);
+    return summary;
+}
 // Module-scope constants for file discovery (shared by drop && change handlers)
 // MAX_DISCOVERED_FILES is defined in scan-utils.js (loaded first)
 const SKIP_DIRS = /[\/]dist[\/]|[\/]build[\/]|[\/]\.next[\/]|[\/]out[\/]|[\/]coverage[\/]|[\/]\.husky[\/]|[\/]frontend-build[\/]|[\/]\.github-sync[\/]|[\/]github-cache[\/]|[\/]\.simplebeacon[\/]|[\/]\.cursor[\/]|[\/]\.windsurf[\/]|[\/]deployments[\/]|[\/]backups[\/]|[\/]coming-soon-dev[\/]|[\/]node_modules[\/]|[\/]\.git[\/]/i;
+/** Directory names to skip during discovery — avoids indexing millions of vendor files in monorepos */
+const DISCOVERY_SKIP_DIR_NAMES = /^(node_modules|\.git|github-cache|\.github-sync|\.simplebeacon|\.cursor|\.windsurf|\.husky|dist|build|\.next|out|coverage|frontend-build|\.vscode|\.idea|backups|deployments)$/i;
 const UPDATE_INTERVAL = 200;
 function readEntriesChunk(reader) {
     return new Promise((resolve, reject) => {
         reader.readEntries(resolve, reject);
     });
+}
+/** Build array from FileList in chunks; optionally drop vendor paths while copying (avoids 500k+ arrays). */
+async function fileListToArrayAsync(fileList, onProgress, options) {
+    options = options || {};
+    var filterVendor = !!options.filterVendor;
+    var stripFn = filterVendor
+        ? ((typeof ScanUtils !== 'undefined' && ScanUtils.isVendorScanPath) ? ScanUtils.isVendorScanPath : null)
+        : null;
+    var arr = [];
+    var total = fileList ? fileList.length : 0;
+    var dropped = 0;
+    for (var i = 0; i < total; i++) {
+        var f = fileList[i];
+        if (stripFn) {
+            var p = (f.webkitRelativePath || f.name || '');
+            if (stripFn(p)) {
+                dropped++;
+                continue;
+            }
+        }
+        arr.push(f);
+        if (onProgress && (i === 0 || i % 10000 === 0 || i === total - 1))
+            onProgress(i + 1, total, arr.length, dropped);
+        if (i > 0 && i % 2000 === 0)
+            await new Promise(function (r) { return setTimeout(r, 0); });
+    }
+    arr._vendorDroppedDuringCopy = dropped;
+    arr._rawFileListTotal = total;
+    return arr;
 }
 async function traverseFileSystemEntry(entry, parentPath, files, state) {
     if (state.traverseAbort)
@@ -203,7 +462,12 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
         return;
     const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
     const normalizedPath = currentPath.replace(/\\/g, '/');
-    // Note: SKIP_DIRS removed from discovery — all files are counted for hygiene metrics
+    if (entry.isDirectory && DISCOVERY_SKIP_DIR_NAMES.test(entry.name)) {
+        if (!state.skippedDirs)
+            state.skippedDirs = 0;
+        state.skippedDirs++;
+        return;
+    }
     if (entry.isFile) {
         if (files.length >= MAX_DISCOVERED_FILES)
             return;
@@ -215,6 +479,7 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
                 configurable: true
             });
             files.push(file);
+            maybeWarnDuringDiscovery(files.length);
         }
         catch (err) {
             state.traverseErrors++;
@@ -225,7 +490,7 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
     }
     else if (entry.isDirectory) {
         const dirReader = entry.createReader();
-        const BATCH_SIZE = 100;
+        const BATCH_SIZE = 25;
         let batch = [];
         while (!state.traverseAbort && files.length < MAX_DISCOVERED_FILES) {
             let results;
@@ -501,34 +766,31 @@ function filterReportByModules(report, modules) {
     }
     return out;
 }
-// Download selected module's full data as JSON
-// Redact all leaf data values while preserving structure
-function redactReport(obj) {
-    if (obj === null || obj === undefined)
-        return obj;
-    if (typeof obj === 'number' || typeof obj === 'boolean')
-        return obj;
-    if (typeof obj === 'string')
-        return '***REDACTED***';
-    if (Array.isArray(obj))
-        return obj.length ? ['***REDACTED***'] : [];
-    const out = {};
-    for (const key in obj) {
-        if (!Object.prototype.hasOwnProperty.call(obj, key))
-            continue;
-        const val = obj[key];
-        if (typeof val === 'string')
-            out[key] = '***REDACTED***';
-        else if (typeof val === 'number' || typeof val === 'boolean')
-            out[key] = val;
-        else if (Array.isArray(val))
-            out[key] = val.length ? ['***REDACTED***'] : [];
-        else if (val && typeof val === 'object')
-            out[key] = redactReport(val);
-        else
-            out[key] = val;
+function getActiveTokenPayload() {
+    let payload = window._tokenPayload;
+    if (!payload) {
+        const token = (typeof licenseInput !== 'undefined' && licenseInput) ? licenseInput.value.trim() : '';
+        if (token)
+            payload = decodeJwtPayload(token);
     }
-    return out;
+    return payload || null;
+}
+function canExportFullReport() {
+    const payload = getActiveTokenPayload();
+    if (!payload)
+        return false;
+    const tier = String(payload.tier || payload.product || '').toLowerCase();
+    const role = String(payload.role || '').toLowerCase();
+    const paidTiers = ['executive', 'euai', 'eusprint', 'operator', 'continuous_shield', 'runtime_shield', 'universal', 'pro', 'team', 'team_pro', 'enterprise', 'startup', 'growth', 'admin', 'superuser', 'compliance', 'game_dev', 'agent', 'developer'];
+    if (paidTiers.includes(tier))
+        return true;
+    if (role === 'admin' || role === 'superuser')
+        return true;
+    if (Array.isArray(payload.features) && payload.features.includes('all_modules'))
+        return true;
+    if (tier === 'custom' && Array.isArray(payload.features) && payload.features.length > 0)
+        return true;
+    return false;
 }
 // Download selected module's full data as JSON
 function downloadSelectedModule(btn) {
@@ -546,8 +808,12 @@ function downloadSelectedModule(btn) {
         }
         const data = window._scanPreviewData || {};
         if (select.value === '__full_report__') {
-            const tier = ((_a = window._tokenPayload) === null || _a === void 0 ? void 0 : _a.tier) || ((_b = window._tokenPayload) === null || _b === void 0 ? void 0 : _b.product) || 'locked';
-            const isFree = tier === 'instant';
+            if (!canExportFullReport()) {
+                showToast('Full report export requires a paid license. Visit /pricing to upgrade.', 'error', 5000);
+                return;
+            }
+            const payload = getActiveTokenPayload();
+            const tier = String((payload === null || payload === void 0 ? void 0 : payload.tier) || (payload === null || payload === void 0 ? void 0 : payload.product) || 'paid').toLowerCase();
             const projectName = data.projectRoot || data.projectPath || data.projectName || 'local-scan';
             // Only include data for modules the user has activated
             const activatedModules = Array.from(selectedModules);
@@ -559,13 +825,12 @@ function downloadSelectedModule(btn) {
                     scanVersion: '1.3.0',
                     totalModules: (window._scanPreviewModules || []).length,
                     activatedModules,
-                    exportType: isFree ? 'redacted-report' : 'filtered-report',
+                    exportType: 'filtered-report',
                     tier
                 },
                 ...filteredData
             };
-            const fullReport = isFree ? redactReport(rawReport) : rawReport;
-            const blob = new Blob([JSON.stringify(fullReport, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(rawReport, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -574,7 +839,7 @@ function downloadSelectedModule(btn) {
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
-            showToast(isFree ? 'Downloaded redacted report (upgrade for full data)' : `Downloaded report with ${activatedModules.length} activated module(s)`, 'success');
+            showToast(`Downloaded report with ${activatedModules.length} activated module(s)`, 'success');
             return;
         }
         const mod = (window._scanPreviewModules || []).find(m => m.id === select.value);
@@ -957,7 +1222,7 @@ function isModulePaidFor(moduleNum) {
     }
     const tier = String(payload.tier || payload.product || '').toLowerCase();
     const role = String(payload.role || '').toLowerCase();
-    const allAccess = ['executive', 'euai', 'eusprint', 'operator', 'continuous_shield', 'runtime_shield', 'universal', 'developer', 'pro', 'team', 'enterprise', 'startup', 'growth', 'admin', 'superuser'];
+    const allAccess = ['executive', 'euai', 'eusprint', 'operator', 'continuous_shield', 'runtime_shield', 'universal', 'developer', 'pro', 'team', 'team_pro', 'enterprise', 'startup', 'growth', 'admin', 'superuser', 'game_dev', 'agent'];
     if (allAccess.includes(tier))
         return true;
     if (role === 'admin' || role === 'superuser')
@@ -970,11 +1235,14 @@ function isModulePaidFor(moduleNum) {
     if (tier === 'community') {
         return ['1'].includes(numStr);
     }
+    if (['guest', 'locked', 'free', 'sandbox', 'starter'].includes(tier)) {
+        return ['1', '3'].includes(numStr);
+    }
     if (tier === 'custom' && Array.isArray(payload.features)) {
         return payload.features.includes(map[numStr]) || payload.features.includes(numStr);
     }
-    // Fallback: if the corresponding analyzer card is NOT locked, treat as paid
-    if (typeof analyzerCardGrid !== 'undefined' && analyzerCardGrid) {
+    // Fallback: if the corresponding analyzer card is NOT locked, treat as paid (paid tiers only)
+    if (payload && canExportFullReport() && typeof analyzerCardGrid !== 'undefined' && analyzerCardGrid) {
         const card = analyzerCardGrid.querySelector(`[data-value="${map[numStr]}"]`) || analyzerCardGrid.querySelector(`[data-value="${numStr}"]`);
         if (card && !card.classList.contains('locked'))
             return true;
@@ -1256,6 +1524,46 @@ function base64Decode(input) {
     }
     return output;
 }
+/** Audit page: ensure modules are selected so ZIP export && report filtering are not empty. */
+function ensureAuditModuleSelection() {
+    if (typeof window === 'undefined' || !window.SB_AUDIT_FREE_PREVIEW)
+        return;
+    if (typeof selectedModules !== 'undefined' && selectedModules.size > 0)
+        return;
+    if (typeof hasValidToken === 'function' && hasValidToken() && typeof syncModuleSelectionFromTier === 'function') {
+        syncModuleSelectionFromTier();
+        if (selectedModules.size > 0)
+            return;
+    }
+    var deepScanOn = false;
+    try {
+        var deepEl = document.getElementById('deepScanToggle');
+        deepScanOn = !!(deepEl && deepEl.checked);
+    }
+    catch (_e) { /* ignore */ }
+    var auditModules = deepScanOn
+        ? ['gate', 'cleanup', 'llm-slop', 'fiction-kpi', 'sensitive-data', 'ai-indicators', 'compliance', 'mock-data']
+        : ((typeof TIER_MODULE_MAP !== 'undefined' && TIER_MODULE_MAP.community) ? TIER_MODULE_MAP.community.slice() : ['gate']);
+    selectedModules.clear();
+    if (analyzerCardGrid) {
+        Array.from(analyzerCardGrid.children).forEach(function (card) {
+            var id = card.dataset.value;
+            if (auditModules.includes(id)) {
+                selectedModules.add(id);
+                card.classList.add('selected');
+                card.classList.remove('locked');
+            }
+        });
+    }
+    else {
+        auditModules.forEach(function (m) { selectedModules.add(m); });
+    }
+    if (typeof updateSelectAllUI === 'function')
+        updateSelectAllUI();
+}
+if (typeof window !== 'undefined')
+    window.ensureAuditModuleSelection = ensureAuditModuleSelection;
+
 function syncModuleSelectionFromTier() {
     var _a;
     if (!analyzerCardGrid)
@@ -1307,9 +1615,11 @@ function syncModuleSelectionFromTier() {
 renderAnalyzerCards();
 if (typeof bindPresetButtons === 'function')
     bindPresetButtons();
+if (typeof ensureAuditModuleSelection === 'function')
+    ensureAuditModuleSelection();
 function filterScanProfiles(tier, features) {
     const isCustom = tier === 'custom' && Array.isArray(features) && features.length > 0;
-    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal);
+    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal || []);
     let firstEnabled = null;
     // Update hidden select
     if (browserScanProfile) {
@@ -1382,7 +1692,9 @@ function applyProductFromToken(token) {
         if (!payload)
             return;
         window._tokenPayload = payload;
-        const tier = payload.tier || payload.product || 'executive';
+        const tier = (typeof resolveEffectiveTier === 'function')
+            ? resolveEffectiveTier(cleanToken, payload)
+            : (payload.tier || payload.product || 'executive');
         filterScanProfiles(tier, payload.features);
         syncModuleSelectionFromTier();
         const config = (typeof resolveProductConfig === 'function')
@@ -1690,7 +2002,13 @@ function hideTokenSection() {
 }
 // Auto-restore disabled on audit/certificate pages — only fresh (unused) tokens may be entered.
 // Users must paste a new token from email or request one via Try for Free / Send a Token.
-// Token gate — browser scan requires a valid token
+// Token gate — browser scan requires a valid token (audit page allows free local preview)
+function isAuditFreePreview() {
+    return window.SB_AUDIT_FREE_PREVIEW === true;
+}
+function browserScanUnlocked() {
+    return isAuditFreePreview() || hasValidToken();
+}
 function hasValidToken() {
     if (licenseInput) {
         const val = licenseInput.value.trim();
@@ -1708,11 +2026,96 @@ function hasValidToken() {
 function updateDropzoneGate() {
     if (!browserFolderDropzone)
         return;
-    const locked = !hasValidToken();
+    const locked = !browserScanUnlocked();
     browserFolderDropzone.classList.toggle('locked', locked);
     const overlay = document.getElementById('dropzoneGateOverlay');
     if (overlay)
         overlay.style.display = locked ? 'flex' : 'none';
+}
+const FREE_FINDING_CAP = 3;
+const PAID_TIER_NAMES = ['game_dev', 'agent', 'developer', 'team_pro', 'team', 'enterprise', 'executive', 'euai', 'eusprint', 'operator', 'continuous_shield', 'runtime_shield', 'universal', 'pro', 'startup', 'growth', 'admin', 'superuser', 'compliance'];
+function isPaidUser() {
+    if (!hasValidToken()) return false;
+    const payload = getActiveTokenPayload();
+    if (!payload) return false;
+    const tier = String(payload.tier || payload.product || '').toLowerCase();
+    if (PAID_TIER_NAMES.includes(tier)) return true;
+    const role = String(payload.role || '').toLowerCase();
+    if (role === 'admin' || role === 'superuser') return true;
+    if (Array.isArray(payload.features) && payload.features.includes('all_modules')) return true;
+    return false;
+}
+function basename(p) {
+    if (!p) return '—';
+    const parts = String(p).replace(/\\/g, '/').split('/').filter(Boolean);
+    return parts[parts.length - 1] || p;
+}
+function redactFindingForFree(issue) {
+    const sev = issue.severity || 'medium';
+    const type = issue.type || 'Finding';
+    const rawPath = Array.isArray(issue.filePath) ? issue.filePath[0] : issue.filePath;
+    return {
+        severity: sev,
+        severityBand: sev,
+        type: type,
+        count: typeof issue.count === 'number' ? issue.count : 1,
+        filePath: basename(rawPath),
+        rule: 'UPGRADE_TO_VIEW',
+        impact: 'Upgrade to see full impact analysis, affected file paths, and line numbers.',
+        fix: 'Upgrade to https://simplebeacon.ai/pricing to see remediation steps.',
+        findings: [],
+        _redacted: true
+    };
+}
+function redactReportForFreeTier(report) {
+    if (!report || typeof report !== 'object') return report;
+    if (isPaidUser()) return report;
+    const issues = Array.isArray(report.detectedIssues) ? report.detectedIssues : [];
+    const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    const sorted = issues.slice().sort((a, b) => {
+        const sa = severityOrder[a.severity] ?? 4;
+        const sb = severityOrder[b.severity] ?? 4;
+        if (sa !== sb) return sa - sb;
+        return (b.count || 1) - (a.count || 1);
+    });
+    const top3 = sorted.slice(0, FREE_FINDING_CAP).map(redactFindingForFree);
+    const totalIssueCount = report.issueCount ?? issues.length;
+    const issueTypeCounts = issues.map(i => ({ type: i.type, severity: i.severity, count: i.count || 1 }));
+    return {
+        ...report,
+        detectedIssues: top3,
+        issueCount: totalIssueCount,
+        _freeTier: true,
+        _redacted: true,
+        _totalIssuesHidden: Math.max(0, totalIssueCount - FREE_FINDING_CAP),
+        _issueTypeCounts: issueTypeCounts,
+        gate: report.gate ? {
+            ...report.gate,
+            blockingFindings: (report.gate.blockingFindings || []).slice(0, 1).map(f => ({
+                severity: f.severity,
+                type: f.type,
+                count: f.count || 1,
+                filePath: basename(Array.isArray(f.filePath) ? f.filePath[0] : f.filePath),
+                rule: 'UPGRADE_TO_VIEW',
+                impact: 'Upgrade to see full impact and affected files.',
+                fix: 'Upgrade to https://simplebeacon.ai/pricing to see remediation steps.'
+            }))
+        } : report.gate
+    };
+}
+function showUpgradeBannerIfFree(report) {
+    if (!report || !report._redacted) return;
+    const banner = document.getElementById('report-upgrade-banner');
+    if (!banner) return;
+    const total = report.issueCount || 0;
+    const countEl = banner.querySelector('[data-upgrade-count]');
+    if (countEl) countEl.textContent = String(total);
+    banner.style.display = 'flex';
+}
+function applyReportGating(report) {
+    const gated = redactReportForFreeTier(report);
+    showUpgradeBannerIfFree(gated);
+    return gated;
 }
 // Stepper state management
 function updateStepper() {
@@ -1839,6 +2242,8 @@ function loadFromLocalStorage() {
             reportData = parsed;
             if (typeof window.renderPreview === 'function')
                 window.renderPreview(reportData);
+            if (typeof window.sbRenderAiContextPack === 'function')
+                window.sbRenderAiContextPack(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
             showToast('Restored previous scan from browser storage', 'info');
@@ -2002,6 +2407,12 @@ function updateSubmit() {
     if (tokenActionRow)
         tokenActionRow.style.display = 'block';
     if (hasFile) {
+        const browserEmpty = document.getElementById('browserEmptyState');
+        if (browserEmpty)
+            browserEmpty.style.display = 'none';
+        document.body.classList.add('audit-page--has-results');
+        if (typeof window.sbUpdateBoardReport === 'function')
+            window.sbUpdateBoardReport(reportData);
         // Certificate generation no longer requires a token (token gates browser scan only)
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -2121,6 +2532,8 @@ if (tabImportUpload && tabImportPaste && viewImportUpload && viewImportPaste) {
 // Using .then() instead of await preserves the gesture chain through the click event.
 // Drag-and-drop is the fallback for browsers without File System Access API.
 async function ensureScanTokenForPicker() {
+    if (browserScanUnlocked())
+        return { ok: true, webkitOnly: false };
     if (hasValidToken())
         return { ok: true, webkitOnly: false };
     var cached = '';
@@ -2147,14 +2560,19 @@ async function ensureScanTokenForPicker() {
         }
         if (typeof updateDropzoneGate === 'function')
             updateDropzoneGate();
-        return { ok: hasValidToken(), webkitOnly: true };
+        return { ok: browserScanUnlocked(), webkitOnly: true };
     }
     return { ok: false, webkitOnly: false };
+}
+function shouldPreferWebkitFolderPicker(options) {
+    options = options || {};
+    // webkitdirectory caps ~8k files in Chrome — audit uses showDirectoryPicker + recursive traversal (same as dashboard)
+    return options.webkitOnly === true;
 }
 function triggerDirectoryPicker(options) {
     options = options || {};
     var tokenJustGenerated = false;
-    if (!hasValidToken()) {
+    if (!browserScanUnlocked()) {
         // Prefer server-issued guest token (auto-issued on audit page load)
         var cached = '';
         if (typeof licenseInput !== 'undefined' && licenseInput && licenseInput.value.trim()) {
@@ -2178,10 +2596,22 @@ function triggerDirectoryPicker(options) {
             }
         }
         if (!tokenJustGenerated) {
-            showToast('Getting your free pass — click Start Scanning, then try again.', 'warning');
-            if (typeof licenseInput !== 'undefined' && licenseInput) {
-                licenseInput.focus();
-                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (!options.allowWithoutToken) {
+                showToast('Getting your free pass — click Start Scanning, then try again.', 'warning');
+                if (typeof licenseInput !== 'undefined' && licenseInput) {
+                    licenseInput.focus();
+                    licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+            showToast('Select a folder — your free pass activates automatically.', 'info', 5000);
+            tryWebkitDirectoryFallback();
+            if (typeof window.ensureGuestToken === 'function') {
+                void window.ensureGuestToken().then(function () {
+                    syncApplyCachedToken();
+                    if (typeof updateDropzoneGate === 'function')
+                        updateDropzoneGate();
+                }).catch(function () { });
             }
             return;
         }
@@ -2212,7 +2642,12 @@ function triggerDirectoryPicker(options) {
         });
     }
     // _pickerTriggeredByButton is set by the caller (startLocalScan) when appropriate
-    // Prefer File System Access API directory picker (Chrome/Edge)
+    // Prefer recursive showDirectoryPicker (full tree); webkitdirectory is fallback only (Chrome ~8k cap).
+    if (shouldPreferWebkitFolderPicker(options)) {
+        tryWebkitDirectoryFallback();
+        return;
+    }
+    // File System Access API directory picker (Chrome/Edge) — recursive collectFilesFromDirectoryHandle
     // Secure context required: HTTPS, localhost, or 127.0.0.1
     const isSecureContext = typeof window.isSecureContext !== 'undefined'
         ? window.isSecureContext
@@ -2235,16 +2670,17 @@ function triggerDirectoryPicker(options) {
             const pickerCheck = applyFolderSizeAnalysis(files, 'Picker');
             if (!pickerCheck.proceed) {
                 isPickerActive = false;
+                showBrowserScanBlockedUI(files.length, pickerCheck.analysis && pickerCheck.analysis.message);
                 return;
             }
             safeBatchPush(accumulatedPickerFiles, files);
             isAccumulatingFolders = true;
             showAccumulationPrompt();
-            // Auto-start scan if user triggered via Start Local Scan button
-            if (_pickerTriggeredByButton) {
+            // Auto-start scan after directory pick
+            if (_pickerTriggeredByButton || files.length > 0) {
                 _pickerTriggeredByButton = false;
-                console.log('[triggerDirectoryPicker] auto-starting scan from button trigger');
-                setTimeout(function () { window._startAccumulatedScan(); }, 100);
+                console.log('[triggerDirectoryPicker] auto-starting scan after folder pick');
+                setTimeout(function () { window._startAccumulatedScan(); }, 150);
             }
         }).catch((err) => {
             clearTimeout(pickerTimeout);
@@ -2267,6 +2703,7 @@ function triggerDirectoryPicker(options) {
     tryWebkitDirectoryFallback();
 }
 function tryWebkitDirectoryFallback() {
+    window._auditUsedWebkitDirectory = true;
     const folderInput = document.getElementById('cli-folder-input');
     if (folderInput) {
         console.log('[triggerDirectoryPicker] using webkitdirectory input');
@@ -2300,6 +2737,7 @@ function tryWebkitDirectoryFallback() {
 }
 async function collectFilesFromDirectoryHandle(dirHandle) {
     console.log('[collectFilesFromDirectoryHandle] starting, dirHandle=' + (dirHandle ? (dirHandle.name + ' kind=' + dirHandle.kind) : 'null'));
+    _largeFolderDiscoveryWarnShown = false;
     if (!dirHandle || dirHandle.kind !== 'directory') {
         console.error('[collectFilesFromDirectoryHandle] invalid dirHandle');
         appendTerminalLine('Invalid directory handle — picker may have returned a file instead of a folder.', 'error');
@@ -2328,6 +2766,7 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
                     configurable: true
                 });
                 files.push(file);
+                maybeWarnDuringDiscovery(files.length);
             }
             catch (err) {
                 traverseErrors++;
@@ -2337,6 +2776,9 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
             }
         }
         else if (handle.kind === 'directory') {
+            if (DISCOVERY_SKIP_DIR_NAMES.test(handle.name)) {
+                return;
+            }
             try {
                 const iterable = typeof handle.values === 'function' ? handle.values() : (typeof handle.entries === 'function' ? handle.entries() : null);
                 if (!iterable) {
@@ -2344,7 +2786,7 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
                     return;
                 }
                 // Stream entries from iterator in bounded batches to avoid OOM on huge dirs
-                const BATCH_SIZE = 100;
+                const BATCH_SIZE = 250;
                 let batch = [];
                 for await (const item of iterable) {
                     if (files.length >= MAX_DISCOVERED_FILES)
@@ -2394,7 +2836,8 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
         console.error(err);
     }
     if (files.length >= MAX_DISCOVERED_FILES) {
-        appendTerminalLine('<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ' + MAX_DISCOVERED_FILES.toLocaleString() + ' files discovered. Use CLI for full coverage.', 'warn', true);
+        appendTerminalLine('<span style="color:#EF4444;font-weight:700;">&#9888; Browser file cap reached:</span> Stopped discovery at ' + MAX_DISCOVERED_FILES.toLocaleString() + ' files. Scanning indexed files only.', 'warn', true);
+        showPartialDiscoveryNotice(files.length);
     }
     appendTerminalLine('&#128451; Discovery complete: ' + files.length.toLocaleString() + ' files, ' + traverseErrors + ' read errors.');
     if (traverseErrors > 0) {
@@ -2411,167 +2854,304 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
     if (files.length > 0 && files.length < 3000) {
         appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Low file count detected:</span> The browser directory picker may have capped results at ~1,000–1,500 files. For large directories, try <strong>dragging and dropping</strong> the folder onto the dropzone instead — it uses a different API with higher limits.', 'warn', true);
     }
+    if (typeof ScanUtils !== 'undefined' && ScanUtils.stripVendorFiles && files.length > 500) {
+        if (localScanFileName)
+            localScanFileName.textContent = 'Stripping vendor paths from ' + files.length.toLocaleString() + ' files...';
+        try {
+            var postPickStripped = await ScanUtils.stripVendorFiles(files, { chunkSize: 2000 });
+            if (postPickStripped.dropped > 0) {
+                appendTerminalLine('Removed ' + postPickStripped.dropped.toLocaleString() + ' vendor/cache paths after discovery ('
+                    + postPickStripped.kept.toLocaleString() + ' remaining).', 'info', true);
+            }
+            files = postPickStripped.files;
+            if (localScanFileName) {
+                localScanFileName.innerHTML = '<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">' + files.length.toLocaleString() + '</span> <span style="font-size:0.75rem;color:#94A3B8;">files to scan</span>';
+            }
+        }
+        catch (stripErr) {
+            console.warn('[collectFilesFromDirectoryHandle strip]', stripErr);
+        }
+    }
     return files;
 }
-async function openDirectoryPickerFromGesture(triggerScan) {
+function syncApplyCachedToken() {
+    if (hasValidToken())
+        return true;
+    var cached = '';
+    if (typeof licenseInput !== 'undefined' && licenseInput && licenseInput.value.trim()) {
+        cached = licenseInput.value.trim();
+    }
+    if (!cached || !cached.includes('.')) {
+        cached = localStorage.getItem('sb-token') || localStorage.getItem('simplebeacon_token') || '';
+    }
+    if (cached && cached.includes('.')) {
+        if (typeof licenseInput !== 'undefined' && licenseInput)
+            licenseInput.value = cached;
+        if (typeof updateDropzoneGate === 'function')
+            updateDropzoneGate();
+        return true;
+    }
+    return false;
+}
+function openDirectoryPickerFromGesture(triggerScan) {
     if (triggerScan)
         _pickerTriggeredByButton = true;
-    var tokenState = await ensureScanTokenForPicker();
-    if (!tokenState.ok) {
-        if (!hasValidToken())
-            triggerDirectoryPicker();
-        if (triggerScan)
-            _pickerTriggeredByButton = false;
-        return;
+    syncApplyCachedToken();
+    // Never await before opening the picker — user gesture expires after microtasks
+    triggerDirectoryPicker({ allowWithoutToken: true });
+    if (!hasValidToken() && typeof window.ensureGuestToken === 'function') {
+        void window.ensureGuestToken().then(function () {
+            syncApplyCachedToken();
+            if (typeof updateDropzoneGate === 'function')
+                updateDropzoneGate();
+        }).catch(function () { });
     }
-    triggerDirectoryPicker({ webkitOnly: tokenState.webkitOnly });
 }
 if (browserFolderDropzone)
     browserFolderDropzone.addEventListener('click', (e) => {
         if (!e.isTrusted)
-            return; // ignore programmatic clicks (e.g. folderInput.click())
+            return;
         if (e.target.closest('#terminal-console'))
             return;
-        void openDirectoryPickerFromGesture(false);
+        if (e.target.closest('#select-drive-target-btn, label[for="cli-folder-input"], #cli-folder-input, .scan-dropzone__cta'))
+            return;
+        openDirectoryPickerFromGesture(false);
     });
 if (dropzonePrompt)
     dropzonePrompt.addEventListener('click', (e) => {
+        if (e.target.closest('#select-drive-target-btn, label[for="cli-folder-input"], #cli-folder-input, .scan-dropzone__cta'))
+            return;
         e.stopPropagation();
-        void openDirectoryPickerFromGesture(false);
+        openDirectoryPickerFromGesture(false);
     });
 const selectDriveTargetBtn = document.getElementById('select-drive-target-btn');
 if (selectDriveTargetBtn) {
     selectDriveTargetBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        e.preventDefault();
-        void openDirectoryPickerFromGesture(true);
+        _pickerTriggeredByButton = true;
+        isPickerActive = true;
+        syncApplyCachedToken();
+        if (!hasValidToken() && typeof window.ensureGuestToken === 'function') {
+            void window.ensureGuestToken().then(function () {
+                syncApplyCachedToken();
+                if (typeof updateDropzoneGate === 'function')
+                    updateDropzoneGate();
+            }).catch(function () { });
+        }
+        const folderInput = document.getElementById('cli-folder-input');
+        if (folderInput) {
+            folderInput.click();
+        }
+        else {
+            tryWebkitDirectoryFallback();
+        }
     });
 }
 let _browserDragDepth = 0;
-if (browserFolderDropzone)
-    browserFolderDropzone.addEventListener('dragenter', (e) => {
-        var _a, _b;
-        e.preventDefault();
-        if (!hasValidToken() && typeof window.ensureGuestToken !== 'function')
-            return;
-        _browserDragDepth++;
-        if (_browserDragDepth === 1) {
-            browserFolderDropzone.classList.add('dragover');
-            const fileCount = ((_a = e.dataTransfer.items) === null || _a === void 0 ? void 0 : _a.length) || ((_b = e.dataTransfer.files) === null || _b === void 0 ? void 0 : _b.length) || 0;
-            const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
-            if (prompt && !browserFolderDropzone.dataset.originalText) {
-                browserFolderDropzone.dataset.originalText = prompt.innerHTML;
-            }
-            if (prompt)
-                prompt.innerHTML = `<span style="color:#60A5FA;font-weight:600;">&#128737; ${fileCount > 0 ? fileCount + ' item' + (fileCount > 1 ? 's' : '') + ' ready to scan' : 'Drop to scan'}</span>`;
+function allowFileDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+    }
+}
+function isInsideDropZone(node, selector) {
+    return !!(node && node.closest && node.closest(selector));
+}
+// Page-level dragover guard — required for folder drops to fire in Chrome/Edge
+document.addEventListener('dragover', (e) => {
+    if (isInsideDropZone(e.target, '#browser-folder-dropzone, #terminal-dropzone-prompt, .scan-dropzone__inner, #cert-dropzone, #cli-json-dropzone')) {
+        allowFileDrop(e);
+    }
+}, true);
+document.addEventListener('drop', (e) => {
+    if (isInsideDropZone(e.target, '#browser-folder-dropzone, #terminal-dropzone-prompt, .scan-dropzone__inner, #cert-dropzone, #cli-json-dropzone')) {
+        return;
+    }
+    e.preventDefault();
+}, true);
+async function handleBrowserFolderDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window._auditDropInProgress)
+        return;
+    window._auditDropInProgress = true;
+    // Capture drop payload synchronously FIRST — any await before this clears dataTransfer in Chrome/Edge.
+    const dt = e.dataTransfer;
+    const capturedEntries = [];
+    if (dt && dt.items) {
+        for (let i = 0; i < dt.items.length; i++) {
+            const entry = dt.items[i].webkitGetAsEntry && dt.items[i].webkitGetAsEntry();
+            if (entry)
+                capturedEntries.push(entry);
         }
-    });
-if (browserFolderDropzone)
-    browserFolderDropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    });
-if (browserFolderDropzone)
-    browserFolderDropzone.addEventListener('dragleave', (e) => {
-        _browserDragDepth--;
-        if (_browserDragDepth <= 0) {
-            _browserDragDepth = 0;
-            browserFolderDropzone.classList.remove('dragover');
-            const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
-            if (prompt && browserFolderDropzone.dataset.originalText) {
-                prompt.innerHTML = browserFolderDropzone.dataset.originalText;
-            }
-        }
-    });
-if (browserFolderDropzone)
-    browserFolderDropzone.addEventListener('drop', async (e) => {
-        e.preventDefault();
+    }
+    const capturedFiles = dt && dt.files ? Array.from(dt.files) : [];
+    try {
         _browserDragDepth = 0;
-        browserFolderDropzone.classList.remove('dragover');
-        var dropTokenState = await ensureScanTokenForPicker();
-        if (!dropTokenState.ok || !hasValidToken()) {
-            showToast('Paste a license token or click Start Scanning to unlock scanning.', 'warning');
-            if (typeof licenseInput !== 'undefined' && licenseInput) {
-                licenseInput.focus();
-                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
+        if (browserFolderDropzone)
+            browserFolderDropzone.classList.remove('dragover');
+        if (dropzonePrompt)
+            dropzonePrompt.classList.remove('dragover');
+        const titleEl = dropzonePrompt ? dropzonePrompt.querySelector('.scan-dropzone__title') : browserFolderDropzone && browserFolderDropzone.querySelector('#terminal-dropzone-prompt .scan-dropzone__title');
+        if (titleEl && browserFolderDropzone && browserFolderDropzone.dataset.originalText) {
+            titleEl.innerHTML = browserFolderDropzone.dataset.originalText;
         }
-        const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
-        if (prompt && browserFolderDropzone.dataset.originalText) {
-            prompt.innerHTML = browserFolderDropzone.dataset.originalText;
-        }
-        const items = e.dataTransfer.items;
-        if (items && items.length > 0) {
-            const localScanFileName = document.getElementById('localScanFileName');
-            if (localScanFileName)
-                localScanFileName.textContent = "Discovering files...";
-            const files = [];
-            const state = { traverseErrors: 0, traverseAbort: false, lastUpdate: Date.now() };
-            // Allow Escape to cancel during discovery
+        const localScanFileName = document.getElementById('localScanFileName');
+        if (localScanFileName)
+            localScanFileName.textContent = 'Discovering files...';
+        const files = [];
+        _largeFolderDiscoveryWarnShown = false;
+        const state = { traverseErrors: 0, traverseAbort: false, userCancelled: false, lastUpdate: Date.now(), skippedDirs: 0 };
+        if (capturedEntries.length > 0) {
             const onKeyDown = (ev) => {
                 if (ev.key === 'Escape') {
+                    state.userCancelled = true;
                     state.traverseAbort = true;
                     if (localScanFileName)
-                        localScanFileName.textContent = "Discovery cancelled by user.";
+                        localScanFileName.textContent = 'Discovery cancelled by user.';
                     appendTerminalLine('Discovery cancelled by user.', 'warn');
                     document.removeEventListener('keydown', onKeyDown);
                 }
             };
             document.addEventListener('keydown', onKeyDown);
-            for (let i = 0; i < items.length && !state.traverseAbort; i++) {
-                const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
-                if (entry)
-                    await traverseFileSystemEntry(entry, '', files, state);
+            for (let i = 0; i < capturedEntries.length && !state.traverseAbort; i++) {
+                await traverseFileSystemEntry(capturedEntries[i], '', files, state);
             }
             document.removeEventListener('keydown', onKeyDown);
-            if (state.traverseAbort)
+            if (state.userCancelled)
                 return;
-            // Fallback: some browsers (Firefox, Safari) don't expose webkitGetAsEntry for dropped folders
-            if (files.length === 0 && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                const dtFiles = Array.from(e.dataTransfer.files);
-                const hasRelativePath = dtFiles.some(f => f.webkitRelativePath && f.webkitRelativePath.includes('/'));
-                if (hasRelativePath) {
-                    // Chrome/Edge flattened drop — files already have webkitRelativePath
-                    safeBatchPush(files, dtFiles);
-                }
-                else {
-                    // Flat file list without paths — create minimal File wrappers
-                    dtFiles.forEach(f => {
-                        if (!f.webkitRelativePath) {
-                            Object.defineProperty(f, 'webkitRelativePath', { value: f.name, configurable: true });
-                        }
-                        files.push(f);
-                    });
-                }
+        }
+        // Fallback: Firefox/Safari or flattened drops — also covers items.length === 0
+        if (files.length === 0 && capturedFiles.length > 0) {
+            const dtFiles = capturedFiles;
+            const hasRelativePath = dtFiles.some(f => f.webkitRelativePath && f.webkitRelativePath.includes('/'));
+            if (hasRelativePath) {
+                safeBatchPush(files, dtFiles);
             }
-            if (files.length >= MAX_DISCOVERED_FILES) {
-                appendTerminalLine(`<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ${MAX_DISCOVERED_FILES.toLocaleString()} files discovered. Browser memory limit — use CLI for full coverage.`, 'warn', true);
+            else {
+                dtFiles.forEach(f => {
+                    if (!f.webkitRelativePath) {
+                        Object.defineProperty(f, 'webkitRelativePath', { value: f.name, configurable: true });
+                    }
+                    files.push(f);
+                });
             }
-            if (state.traverseErrors > 0) {
-                appendTerminalLine(`Warning: ${state.traverseErrors} files could ! be read during directory traversal.`, 'warn');
+        }
+        if (files.length === 0) {
+            console.warn('[handleBrowserFolderDrop] no files — entries:', capturedEntries.length, 'dt.files:', capturedFiles.length, 'skippedDirs:', state.skippedDirs);
+            if (capturedEntries.length === 0 && capturedFiles.length === 0) {
+                showToast('Drop payload lost (browser cleared it). Hard refresh (Ctrl+Shift+R), then use Select Drive Target or drop again immediately.', 'warning', TOAST_DURATION_LONG);
             }
-            if (files.length >= MAX_DISCOVERED_FILES) {
-                appendTerminalLine(`<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ${files.length.toLocaleString()} files discovered. Scanning very large repositories in-browser may be slow — consider using the CLI for best performance.`, 'warn', true);
+            else if (state.skippedDirs > 0) {
+                showToast('Folder contains only vendor/cache paths (node_modules, .git, etc.). Drop your project root folder, or use Select Drive Target.', 'warning', TOAST_DURATION_LONG);
             }
-            if (localScanFileName) {
-                localScanFileName.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">${files.length.toLocaleString()}</span> <span style="font-size:0.75rem;color:#94A3B8;">files in directory</span>`;
+            else {
+                showToast('No files detected. Drop a project folder (not a single file), or use Select Drive Target.', 'warning', TOAST_DURATION_LONG);
             }
-            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>${files.length.toLocaleString()}</strong> files.`, undefined, true);
-            const dropCheck = applyFolderSizeAnalysis(files, 'Drop');
-            if (!dropCheck.proceed)
+            if (localScanFileName)
+                localScanFileName.textContent = '';
+            return;
+        }
+        syncApplyCachedToken();
+        var dropTokenState = await ensureScanTokenForPicker();
+        if (!dropTokenState.ok || !browserScanUnlocked()) {
+            showToast('Click Start Scanning to unlock, then drop your folder again.', 'warning');
+            var startBtn = document.getElementById('startSandboxBtn');
+            if (startBtn)
+                startBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        if (typeof window.ensureAuditScannerLoaded === 'function') {
+            try {
+                await window.ensureAuditScannerLoaded();
+            }
+            catch (loadErr) {
+                showToast('Scanner failed to load — hard refresh (Ctrl+Shift+R) and try again.', 'error');
+                console.error('[handleBrowserFolderDrop] scanner load failed:', loadErr);
                 return;
-            // Defensive stale-data purge before new scan
-            window._scanPreviewData = null;
-            window._scanPreviewModules = null;
-            if (typeof selectedModules !== 'undefined' && selectedModules.clear)
-                selectedModules.clear();
-            if (scanPreview) {
-                scanPreview.innerHTML = '';
             }
-            if (typeof window.processLocalCLIScan === 'function')
-                await window.processLocalCLIScan(files);
+        }
+        if (files.length >= MAX_DISCOVERED_FILES) {
+            appendTerminalLine(`<span style="color:#F59E0B;font-weight:700;">&#9888; Discovery capped</span> at ${MAX_DISCOVERED_FILES.toLocaleString()} files — scanning indexed files only.`, 'warn', true);
+            showPartialDiscoveryNotice(files.length);
+        }
+        if (state.traverseErrors > 0) {
+            appendTerminalLine(`Warning: ${state.traverseErrors} files could not be read during directory traversal.`, 'warn');
+        }
+        if (localScanFileName) {
+            localScanFileName.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">${files.length.toLocaleString()}</span> <span style="font-size:0.75rem;color:#94A3B8;">files in directory</span>`;
+        }
+        appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>${files.length.toLocaleString()}</strong> files.`, undefined, true);
+        if (state.skippedDirs > 0) {
+            appendTerminalLine(`Skipped ${state.skippedDirs.toLocaleString()} vendor/cache directories during discovery (node_modules, .git, build output, etc.).`, 'info', true);
+        }
+        const dropCheck = applyFolderSizeAnalysis(files, 'Drop');
+        if (!dropCheck.proceed) {
+            showBrowserScanBlockedUI(files.length, dropCheck.analysis && dropCheck.analysis.message);
+            return;
+        }
+        if (files.length >= 500000) {
+            showLargeRepoAlternatives(files.length);
+        }
+        showAuditFileAnalysis(files, { label: 'Dropped folder' });
+        window._scanPreviewData = null;
+        window._scanPreviewModules = null;
+        if (typeof selectedModules !== 'undefined' && selectedModules.clear)
+            selectedModules.clear();
+        if (scanPreview) {
+            scanPreview.innerHTML = '';
+        }
+        if (typeof window.processLocalCLIScan === 'function')
+            await window.processLocalCLIScan(files);
+    }
+    finally {
+        window._auditDropInProgress = false;
+    }
+}
+if (browserFolderDropzone) {
+    browserFolderDropzone.addEventListener('dragenter', (e) => {
+        if (typeof window.ensureAuditScannerLoaded === 'function') {
+            window.ensureAuditScannerLoaded().catch(function () { });
+        }
+        var _a, _b;
+        allowFileDrop(e);
+        _browserDragDepth++;
+        if (_browserDragDepth === 1) {
+            browserFolderDropzone.classList.add('dragover');
+            if (dropzonePrompt)
+                dropzonePrompt.classList.add('dragover');
+            const fileCount = ((_a = e.dataTransfer.items) === null || _a === void 0 ? void 0 : _a.length) || ((_b = e.dataTransfer.files) === null || _b === void 0 ? void 0 : _b.length) || 0;
+            const titleEl = dropzonePrompt && dropzonePrompt.querySelector('.scan-dropzone__title');
+            if (titleEl && !browserFolderDropzone.dataset.originalText) {
+                browserFolderDropzone.dataset.originalText = titleEl.innerHTML;
+            }
+            if (titleEl) {
+                titleEl.innerHTML = `<span style="color:#60A5FA;font-weight:600;">&#128737; ${fileCount > 0 ? fileCount + ' item' + (fileCount > 1 ? 's' : '') + ' ready to scan' : 'Drop to scan'}</span>`;
+            }
         }
     });
+    browserFolderDropzone.addEventListener('dragover', allowFileDrop);
+    browserFolderDropzone.addEventListener('dragleave', (e) => {
+        if (browserFolderDropzone.contains(e.relatedTarget))
+            return;
+        _browserDragDepth--;
+        if (_browserDragDepth <= 0) {
+            _browserDragDepth = 0;
+            browserFolderDropzone.classList.remove('dragover');
+            if (dropzonePrompt)
+                dropzonePrompt.classList.remove('dragover');
+            const titleEl = dropzonePrompt && dropzonePrompt.querySelector('.scan-dropzone__title');
+            if (titleEl && browserFolderDropzone.dataset.originalText) {
+                titleEl.innerHTML = browserFolderDropzone.dataset.originalText;
+            }
+        }
+    });
+}
+if (browserFolderDropzone) {
+    // Single capture-phase handler — avoids triple-fire from nested drop targets
+    browserFolderDropzone.addEventListener('drop', handleBrowserFolderDrop, true);
+}
 // === Keyboard Shortcuts ===
 document.addEventListener('keydown', (e) => {
     // Escape -> clear status messages
@@ -2703,12 +3283,17 @@ function handleJsonFile(file) {
     const reader = new FileReader();
     reader.onload = async (e) => {
         try {
+            if (typeof window.ensureAuditScannerLoaded === 'function') {
+                await window.ensureAuditScannerLoaded();
+            }
             reportData = JSON.parse(e.target.result);
             // Compute hash of raw JSON content
             const hash = await computeSha256(e.target.result);
             showHashRibbon('cliHashRibbon', 'cliHashValue', hash);
             if (typeof window.renderPreview === 'function')
                 window.renderPreview(reportData);
+            if (typeof window.sbRenderAiContextPack === 'function')
+                window.sbRenderAiContextPack(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
             showToast(`Loaded "${file.name}" — ${(e.target.result.length / 1024).toFixed(1)} KB`, 'success');
@@ -2744,19 +3329,36 @@ if (cliFolderInput) {
     });
     cliFolderInput.addEventListener('change', async (e) => {
         isPickerActive = false;
-        if (!hasValidToken()) {
-            showToast('Paste a license token to unlock scanning.', 'warning');
-            licenseInput.focus();
-            licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            e.target.value = '';
-            return;
+        if (!browserScanUnlocked()) {
+            var tokenState = await ensureScanTokenForPicker();
+            syncApplyCachedToken();
+            if (!tokenState.ok || !browserScanUnlocked()) {
+                showToast('Click Start Scanning to unlock, then select your folder again.', 'warning');
+                var startBtn = document.getElementById('startSandboxBtn');
+                if (startBtn)
+                    startBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                e.target.value = '';
+                return;
+            }
         }
         const entries = e.target.webkitEntries || [];
         const filesArray = e.target.files || [];
         // Prefer .files — it's flattened, has webkitRelativePath, and is reliable across browsers.
         // webkitEntries traversal is buggy in Firefox (only returns top-level items, won't recurse).
         if (filesArray.length > 0) {
-            const pickedFiles = Array.from(filesArray);
+            if (localScanFileName)
+                localScanFileName.textContent = 'Reading ' + filesArray.length.toLocaleString() + ' files from folder...';
+            if (filesArray.length > 50000 && typeof showToast === 'function') {
+                showToast('Large folder (' + filesArray.length.toLocaleString() + ' files) — stripping vendor paths, please wait...', 'info', 8000);
+            }
+            const pickedFiles = await fileListToArrayAsync(filesArray, function (done, total, kept, dropped) {
+                if (localScanFileName && (done % 25000 === 0 || done === total)) {
+                    localScanFileName.textContent = 'Reading folder ' + done.toLocaleString() + '/' + total.toLocaleString()
+                        + (kept != null ? ' (' + kept.toLocaleString() + ' kept)' : '') + '...';
+                }
+            }, { filterVendor: false });
+            var discoveredCount = pickedFiles.length;
+            appendTerminalLine('Discovered ' + discoveredCount.toLocaleString() + ' files in selected folder.', 'info', true);
             // Firefox webkitdirectory only returns top-level files (non-recursive).
             // Detect shallow listings so the user can switch to drag-and-drop for full coverage.
             const hasSubdirFiles = pickedFiles.some(f => {
@@ -2775,19 +3377,40 @@ if (cliFolderInput) {
                 // Accept the partial file list so the scan can proceed with what Firefox provides
             }
             console.log('[cliFolderInput] using .files: ' + pickedFiles.length + ' files');
-            const inputCheck = applyFolderSizeAnalysis(pickedFiles, 'Folder input');
+            var filesForScan = pickedFiles;
+            if (typeof ScanUtils !== 'undefined' && ScanUtils.stripVendorFiles && pickedFiles.length > 500) {
+                if (localScanFileName)
+                    localScanFileName.textContent = 'Stripping vendor paths from ' + pickedFiles.length.toLocaleString() + ' files...';
+                try {
+                    var inputStripped = await ScanUtils.stripVendorFiles(pickedFiles, { chunkSize: 1500 });
+                    if (inputStripped.dropped > 0) {
+                        appendTerminalLine('Removed ' + inputStripped.dropped.toLocaleString() + ' vendor/cache paths ('
+                            + inputStripped.kept.toLocaleString() + ' of ' + discoveredCount.toLocaleString() + ' discovered files to scan).', 'info', true);
+                    }
+                    filesForScan = inputStripped.files;
+                }
+                catch (stripErr) {
+                    console.warn('[cliFolderInput strip]', stripErr);
+                }
+            }
+            const inputCheck = applyFolderSizeAnalysis(filesForScan, 'Folder input');
             if (!inputCheck.proceed) {
+                showBrowserScanBlockedUI(filesForScan.length, inputCheck.analysis && inputCheck.analysis.message);
                 e.target.value = '';
                 return;
             }
-            safeBatchPush(accumulatedPickerFiles, pickedFiles);
+            if (localScanFileName) {
+                localScanFileName.innerHTML = '<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">' + filesForScan.length.toLocaleString() + '</span> <span style="font-size:0.75rem;color:#94A3B8;">files to scan</span>';
+            }
+            showAuditFileAnalysis(filesForScan, { discoveredCount: discoveredCount, label: 'Selected folder' });
+            safeBatchPush(accumulatedPickerFiles, filesForScan);
             e.target.value = '';
             showAccumulationPrompt();
-            // Auto-start scan if user triggered via Start Local Scan button
-            if (_pickerTriggeredByButton) {
+            // Auto-start scan after folder pick (Select Drive Target sets _pickerTriggeredByButton)
+            if (_pickerTriggeredByButton || filesForScan.length > 0) {
                 _pickerTriggeredByButton = false;
-                console.log('[cliFolderInput] auto-starting scan from button trigger');
-                setTimeout(() => window._startAccumulatedScan(), 100);
+                console.log('[cliFolderInput] auto-starting scan after folder pick');
+                setTimeout(function () { window._startAccumulatedScan(); }, 0);
             }
             return;
         }
@@ -2816,14 +3439,17 @@ if (cliFolderInput) {
             await traverseFileSystemEntry(entry, '', files, state);
         }
         console.log('[cliFolderInput] webkitEntries traversal done: ' + files.length + ' files');
+        if (files.length >= MAX_DISCOVERED_FILES) {
+            appendTerminalLine('<span style="color:#EF4444;font-weight:700;">&#9888; Browser file cap reached:</span> Stopped at ' + MAX_DISCOVERED_FILES.toLocaleString() + ' files. Use CLI or Local Scanner Path.', 'warn', true);
+            showLargeRepoAlternatives(files.length);
+        }
         safeBatchPush(accumulatedPickerFiles, files);
         isAccumulatingFolders = true;
         showAccumulationPrompt();
-        // Auto-start scan if user triggered via Start Local Scan button
-        if (_pickerTriggeredByButton) {
+        if (_pickerTriggeredByButton || files.length > 0) {
             _pickerTriggeredByButton = false;
-            console.log('[cliFolderInput] auto-starting scan from button trigger (webkitEntries)');
-            setTimeout(function () { window._startAccumulatedScan(); }, 100);
+            console.log('[cliFolderInput] auto-starting scan after webkitEntries traversal');
+            setTimeout(function () { window._startAccumulatedScan(); }, 150);
         }
     });
 }
@@ -2859,15 +3485,22 @@ async function uploadFilesToServer(files, serverUrl) {
         showToast('License token required for server scan.', 'warning');
         return false;
     }
+    if (isAuditFreePreview() || files.length > 15000) {
+        appendTerminalLine('Skipping server upload (' + files.length.toLocaleString() + ' files) — using in-browser worker scan.', 'info', true);
+        return false;
+    }
     if (files.length > 500000) {
         appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' + files.length.toLocaleString() + ' files exceed server upload limit (500k). Falling back to browser scan.', 'warn', true);
         return false;
     }
     const formData = new FormData();
     const filePaths = [];
-    for (const file of files) {
+    for (let ui = 0; ui < files.length; ui++) {
+        const file = files[ui];
         formData.append('files', file, file.name);
         filePaths.push(file.webkitRelativePath || file.name);
+        if (ui > 0 && ui % 500 === 0)
+            await new Promise(r => setTimeout(r, 0));
     }
     formData.append('filePaths', JSON.stringify(filePaths));
     formData.append('licenseToken', token);
@@ -2956,7 +3589,13 @@ async function startServerScan(projectPath) {
         if (scanPreview) {
             scanPreview.innerHTML = '';
         }
-        renderFullReport(report);
+        renderPreview(report);
+        if (scanPreview) {
+            scanPreview.style.display = 'block';
+        }
+        if (typeof updateSubmit === 'function') {
+            updateSubmit();
+        }
         return true;
     }
     catch (err) {
@@ -2967,19 +3606,50 @@ async function startServerScan(projectPath) {
 }
 window._startAccumulatedScan = async function () {
     console.log('[_startAccumulatedScan] called, accumulated=' + accumulatedPickerFiles.length);
+    if (typeof window.ensureAuditScannerLoaded === 'function') {
+        try {
+            await window.ensureAuditScannerLoaded();
+        }
+        catch (loadErr) {
+            appendTerminalLine('Scanner failed to load — hard refresh (Ctrl+Shift+R) and try again.', 'error');
+            return;
+        }
+    }
     isPickerActive = false;
     if (accumulatedPickerFiles.length === 0) {
         appendTerminalLine('No files accumulated.', 'warn');
         return;
     }
     const files = accumulatedPickerFiles.slice();
+    var rawDiscoveredCount = files.length;
     accumulatedPickerFiles = [];
     isAccumulatingFolders = false;
+    if ((files.length > 200 || isAuditFreePreview()) && typeof ScanUtils !== 'undefined' && ScanUtils.stripVendorFiles) {
+        appendTerminalLine('Pre-filtering vendor paths before scan...', 'info');
+        var localScanFileName = document.getElementById('localScanFileName');
+        if (localScanFileName)
+            localScanFileName.textContent = 'Stripping vendor paths...';
+        try {
+            var preStripped = await ScanUtils.stripVendorFiles(files, { chunkSize: 1500 });
+            if (preStripped.dropped > 0) {
+                appendTerminalLine('Removed ' + preStripped.dropped.toLocaleString() + ' vendor/cache files before scan.', 'info');
+            }
+            files.length = 0;
+            Array.prototype.push.apply(files, preStripped.files);
+        }
+        catch (stripErr) {
+            console.warn('[stripVendorFiles]', stripErr);
+        }
+    }
     const accCheck = applyFolderSizeAnalysis(files, 'Accumulated');
     if (!accCheck.proceed) {
-        appendTerminalLine('Scan cancelled — folder exceeds safe limits.', 'warn');
+        showBrowserScanBlockedUI(files.length, accCheck.analysis && accCheck.analysis.message);
         return;
     }
+    if (files.length >= MAX_DISCOVERED_FILES) {
+        showPartialDiscoveryNotice(files.length);
+    }
+    showAuditFileAnalysis(files, { discoveredCount: rawDiscoveredCount, label: 'Accumulated' });
     appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting scan with <strong>' + files.length.toLocaleString() + '</strong> files...', undefined, true);
     // Low file count from browser picker — fall back to server-side scan for full coverage
     if (files.length < 1000 && serverUploadUrl) {
@@ -2991,8 +3661,8 @@ window._startAccumulatedScan = async function () {
         }
         appendTerminalLine('Server fallback failed, continuing with browser scan...', 'warn');
     }
-    // Try server upload first for full CLI scan
-    if (serverUploadUrl) {
+    // Try server upload first for full CLI scan (skip on audit page / large folders — freezes tab)
+    if (serverUploadUrl && !isAuditFreePreview() && files.length <= 15000) {
         const ok = await uploadFilesToServer(files, serverUploadUrl);
         if (ok) {
             console.log('[_startAccumulatedScan] server upload completed');
@@ -3025,7 +3695,7 @@ window._startAccumulatedScan = async function () {
 };
 if (cliFilesInput)
     cliFilesInput.addEventListener('change', (e) => {
-        if (!hasValidToken()) {
+        if (!browserScanUnlocked()) {
             showToast('Paste a license token to unlock scanning.', 'warning');
             licenseInput.focus();
             licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3058,7 +3728,7 @@ if (cliJsonDropzone) {
         }
     });
     cliJsonDropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
+        allowFileDrop(e);
     });
     cliJsonDropzone.addEventListener('dragleave', () => {
         _cliDragDepth--;
@@ -3114,6 +3784,8 @@ if (jsonPasteBtn && jsonPasteInput) {
                 integrityHashEl.textContent = hash;
             if (typeof window.renderPreview === 'function')
                 window.renderPreview(reportData);
+            if (typeof window.sbRenderAiContextPack === 'function')
+                window.sbRenderAiContextPack(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
             showToast('JSON loaded! Ready to generate certificate.', 'success');
@@ -3130,6 +3802,15 @@ if (jsonPasteBtn && jsonPasteInput) {
     });
 }
 // NOTE: renderPreview extracted to ui-renderer.js
+(function wrapRenderPreview() {
+    if (typeof window.renderPreview !== 'function' || window.__renderPreviewWrapped) return;
+    const original = window.renderPreview;
+    window.__renderPreviewWrapped = true;
+    window.renderPreview = function gatedRenderPreview(report) {
+        const gated = applyReportGating(report);
+        return original.call(window, gated);
+    };
+})();
 function showStatus(message, type) {
     status.className = 'status ' + type;
     status.textContent = message;
@@ -3248,6 +3929,13 @@ if (clearSessionBtn) {
         }
         reportData = null;
         licenseInput.value = '';
+        document.body.classList.remove('audit-page--has-results');
+        const browserEmpty = document.getElementById('browserEmptyState');
+        if (browserEmpty)
+            browserEmpty.style.display = '';
+        const boardPreview = document.getElementById('boardReportPreview');
+        if (boardPreview)
+            boardPreview.classList.remove('sb-report-preview--has-scan');
         if (typeof cliFileName !== 'undefined' && cliFileName)
             cliFileName.textContent = "";
         if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone)
@@ -3363,27 +4051,68 @@ document.addEventListener('click', e => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Local Scanner Bridge — auto-discovery + SSE streaming (unlimited file support)
 // ═══════════════════════════════════════════════════════════════════════════════
-const SCANNER_BRIDGE_PORT = 3456;
-const BRIDGE_URL = localStorage.getItem('simplebeacon-bridge-url') || 'http://127.0.0.1:' + SCANNER_BRIDGE_PORT;
+const SCANNER_BRIDGE_PORTS = [55432, 3456];
+let BRIDGE_URL = localStorage.getItem('simplebeacon-bridge-url') || '';
 let bridgeAvailable = false;
 let bridgeEventSource = null;
 let serverUploadUrl = null;
+const AGENT_PROMPT_DISMISS_KEY = 'sb-agent-prompt-dismissed';
+const AGENT_PROMPT_RESHOW_MS = 7 * 24 * 60 * 60 * 1000;
+const AGENT_DOWNLOAD_URL = 'https://simplebeacon.ai/downloads/simplebeacon-local-agent-portable.zip';
+function showAgentInstallPrompt() {
+    if (!IS_LOCAL_HOST)
+        return;
+    const dismissedAt = Number(localStorage.getItem(AGENT_PROMPT_DISMISS_KEY) || 0);
+    if (dismissedAt && (Date.now() - dismissedAt) < AGENT_PROMPT_RESHOW_MS)
+        return;
+    const banner = document.getElementById('agent-install-prompt');
+    if (!banner)
+        return;
+    banner.style.display = 'flex';
+    const dismissBtn = banner.querySelector('[data-agent-prompt-dismiss]');
+    if (dismissBtn && !dismissBtn.dataset.wired) {
+        dismissBtn.dataset.wired = '1';
+        dismissBtn.addEventListener('click', () => {
+            localStorage.setItem(AGENT_PROMPT_DISMISS_KEY, String(Date.now()));
+            banner.style.display = 'none';
+        });
+    }
+}
 async function probeLocalBridge() {
     if (!IS_LOCAL_HOST)
         return;
-    try {
-        const res = await fetch(`${BRIDGE_URL}/health`, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(2000) });
-        if (res.ok) {
-            bridgeAvailable = true;
-            const panel = document.getElementById('local-scanner-panel');
-            if (panel)
-                panel.style.display = 'block';
-            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.', 'info', true);
+    if (BRIDGE_URL) {
+        try {
+            const res = await fetch(`${BRIDGE_URL}/health`, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(2000) });
+            if (res.ok) {
+                bridgeAvailable = true;
+                const panel = document.getElementById('local-scanner-panel');
+                if (panel)
+                    panel.style.display = 'block';
+                appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.', 'info', true);
+                return;
+            }
         }
+        catch (_) { /* fall through to auto-probe */ }
     }
-    catch (_) {
-        bridgeAvailable = false;
+    for (const port of SCANNER_BRIDGE_PORTS) {
+        const url = 'http://127.0.0.1:' + port;
+        try {
+            const res = await fetch(`${url}/health`, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(1500) });
+            if (res.ok) {
+                BRIDGE_URL = url;
+                bridgeAvailable = true;
+                const panel = document.getElementById('local-scanner-panel');
+                if (panel)
+                    panel.style.display = 'block';
+                appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> (port ' + port + ') — scans will use native filesystem—no file limits.', 'info', true);
+                return;
+            }
+        }
+        catch (_) { /* try next port */ }
     }
+    bridgeAvailable = false;
+    showAgentInstallPrompt();
 }
 // VS Code: Extension Data Server — auto-discovery (sidebar scan results)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -3565,7 +4294,7 @@ async function startLocalScan() {
         console.log('[startLocalScan] picker already active — ignoring duplicate click');
         return;
     }
-    if (!hasValidToken()) {
+    if (!browserScanUnlocked()) {
         showToast('Paste a license token to unlock scanning.', 'warning');
         licenseInput.focus();
         licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3820,8 +4549,19 @@ else {
 // Auto-sync to VS Code: watch for report data changes and push automatically
 (function () {
     var lastReportJson = null;
+    function isScanRunning() {
+        var el = document.getElementById('panel-status');
+        if (!el)
+            return false;
+        var status = String(el.textContent || '').toUpperCase();
+        return status.indexOf('RUNNING') !== -1 || status.indexOf('SCANNING') !== -1 || status === 'PARTIAL_SCAN';
+    }
     function checkAndSync() {
         try {
+            if (typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW)
+                return;
+            if (isScanRunning())
+                return;
             var report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null) || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null) || (typeof reportData !== 'undefined' ? reportData : null);
             if (!report)
                 return;
@@ -3837,9 +4577,11 @@ else {
             console.warn('[AutoSync] Error:', e);
         }
     }
-    // Poll every 3 seconds; initial delay gives page time to settle
-    setTimeout(checkAndSync, 2000);
-    setInterval(checkAndSync, 3000);
+    // Poll every 3 seconds; initial delay gives page time to settle (skipped on /audit)
+    if (!(typeof window !== 'undefined' && window.SB_AUDIT_FREE_PREVIEW)) {
+        setTimeout(checkAndSync, 2000);
+        setInterval(checkAndSync, 3000);
+    }
 })();
 // Auto-load report from ?report= URL query parameter
 (function autoLoadReportFromUrl() {
@@ -3878,3 +4620,80 @@ else {
         console.warn('[AutoLoad] Error:', e);
     }
 })();
+// Audit page — sample report preview (try before you pay)
+window.applyAuditSampleReport = function (report) {
+    if (!report)
+        return;
+    reportData = report;
+    window._scanPreviewData = null;
+    window._scanPreviewModules = null;
+    const empty = document.getElementById('browserEmptyState');
+    if (empty)
+        empty.style.display = 'none';
+    if (typeof window.renderPreview === 'function')
+        window.renderPreview(report);
+    if (scanPreview) {
+        scanPreview.style.display = 'block';
+        try {
+            scanPreview.dataset.sbReportData = JSON.stringify(report);
+        }
+        catch (_e) { /* ignore */ }
+    }
+    if (typeof updateStepper === 'function')
+        updateStepper();
+    document.body.classList.add('audit-page--has-results');
+    if (typeof sbUpdateBoardReport === 'function')
+        sbUpdateBoardReport(report);
+    if (typeof sbShowConversionPanel === 'function')
+        sbShowConversionPanel(report);
+};
+async function loadAuditSampleReport() {
+    try {
+        const mod = await import('/dashboard/js-es2018/utils/sample-report.js');
+        window.applyAuditSampleReport(mod.generateSampleReport());
+        if (typeof showToast === 'function')
+            showToast('Sample report loaded — drop a folder to scan your own project', 'info', 6000);
+    }
+    catch (err) {
+        if (typeof showToast === 'function')
+            showToast('Could not load sample report', 'warning');
+        else
+            console.warn('[SampleReport]', err);
+    }
+}
+window.loadAuditSampleReport = loadAuditSampleReport;
+const loadSampleReportBtn = document.getElementById('loadSampleReportBtn');
+if (loadSampleReportBtn) {
+    loadSampleReportBtn.addEventListener('click', function () {
+        void loadAuditSampleReport();
+    });
+}
+if (isAuditFreePreview()) {
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            var signedIn = typeof window.SbAuth !== 'undefined' && typeof window.SbAuth.isAccountSignedIn === 'function'
+                && window.SbAuth.isAccountSignedIn();
+            if (signedIn || reportData)
+                return;
+            if (typeof loadAuditSampleReport === 'function')
+                void loadAuditSampleReport();
+        }, 600);
+    });
+}
+const largeFolderCliBtn = document.getElementById('large-folder-cli-tab-btn');
+if (largeFolderCliBtn) {
+    largeFolderCliBtn.addEventListener('click', function () {
+        if (typeof window.showAuditCliView === 'function')
+            window.showAuditCliView();
+        else {
+            var tabCli = document.getElementById('tab-cli');
+            if (tabCli)
+                tabCli.click();
+        }
+        if (typeof window.activateCliScanTab === 'function')
+            window.activateCliScanTab('scandir');
+        var viewCli = document.getElementById('view-cli');
+        if (viewCli)
+            viewCli.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+}

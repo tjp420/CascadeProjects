@@ -130,8 +130,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
     if (!window.JSZip) {
         throw new Error('Certificate libraries not loaded. Check your network connection.');
     }
-    if (false) { /* token optional for certificate generation */
-        throw new Error('Invalid or malformed license token. Please paste a valid token.');
+    if (typeof canExportFullReport !== 'function' || !canExportFullReport()) {
+        throw new Error('A paid license is required to generate a certificate. Paste a valid license token or upgrade at https://simplebeacon.ai/pricing');
     }
     if (!report || typeof report !== 'object' || Object.keys(report).length === 0) {
         throw new Error('Report data is missing or empty. Run a scan first.');
