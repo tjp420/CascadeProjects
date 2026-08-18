@@ -61,15 +61,18 @@ test('blockingCountFromFindings counts high and critical only', () => {
     ]), 2);
 });
 
-test('MCP exposes twenty-six tools including agent loop', () => {
+test('MCP exposes twenty-nine tools including agent loop and realtime watch', () => {
     const { createMcpStdioServer } = require('../src/mcp/stdio-server');
     const server = createMcpStdioServer({ offline: true });
     const list = server.toolListResult();
-    assert.equal(list.tools.length, 26);
+    assert.equal(list.tools.length, 29);
     assert.ok(list.tools.some((t) => t.name === 'propose_fix'));
     assert.ok(list.tools.some((t) => t.name === 'agent_status'));
     assert.ok(list.tools.some((t) => t.name === 'get_context_pack'));
     assert.ok(list.tools.some((t) => t.name === 'handoff_check'));
+    assert.ok(list.tools.some((t) => t.name === 'verify_before_write'));
+    assert.ok(list.tools.some((t) => t.name === 'verify_completion'));
+    assert.ok(list.tools.some((t) => t.name === 'watch_project'));
 });
 
 test('free scan_file returns blocked upsell', () => {

@@ -11,6 +11,7 @@ const { createAgentLoopHandlers } = require('./handlers/agent-loop-handlers');
 const { createAgentContextHandlers } = require('./handlers/agent-context-handlers');
 const { createProblemSolverHandlers } = require('./handlers/problem-solver-handlers');
 const { createSuperchargeHandlers } = require('./handlers/supercharge-handlers');
+const { createAgentVerifyHandlers } = require('./handlers/agent-verify-handlers');
 const { assertCapability, resolveAgentTier } = require('../lib/agent-tier-capabilities');
 const constants = require('../lib/constants');
 
@@ -110,6 +111,7 @@ function createMcpToolHandlers(options = {}) {
     const agentContextHandlers = createAgentContextHandlers(handlerDeps);
     const problemSolverHandlers = createProblemSolverHandlers(handlerDeps);
     const superchargeHandlers = createSuperchargeHandlers(handlerDeps);
+    const agentVerifyHandlers = createAgentVerifyHandlers(handlerDeps);
 
     return {
         ...scanHandlers,
@@ -119,6 +121,7 @@ function createMcpToolHandlers(options = {}) {
         ...agentContextHandlers,
         ...problemSolverHandlers,
         ...superchargeHandlers,
+        ...agentVerifyHandlers,
         dispose() {
             if (networkGuard) networkGuard.dispose();
         }
@@ -453,6 +456,44 @@ const TOOL_DEFINITIONS = [
                 withMcp: { type: 'boolean', description: 'Write MCP server configs (default true)' },
                 withInstructions: { type: 'boolean', description: 'Write agent instruction files (default true)' },
                 dryRun: { type: 'boolean', description: 'Preview changes without writing' }
+            }
+        }
+    },
+    {
+        name: 'verify_before_write',
+        description: 'Pre-write verification gate — agent passes proposed file content and path; returns passed/violations/recommendedAction (ok-to-write | fix-and-retry | consult-user). Runs swallowed-exception, phantom-API, hallucinated-import, and AI-slop scanners in-process. Sub-100ms warm. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                content: { type: 'string', description: 'Proposed file content to verify before writing to disk' },
+                filePath: { type: 'string', description: 'Target file path (e.g. src/api/handler.ts)' },
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' }
+            },
+            required: ['content', 'filePath']
+        }
+    },
+    {
+        name: 'verify_completion',
+        description: 'Task completion verifier — checks gate pass, test suite, and build status. Returns canClaimComplete: true|false with evidence. Prevents the "confident and wrong" failure mode where agents claim tasks are done when they are not. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                checkTests: { type: 'boolean', description: 'Run test suite (default true)' },
+                checkBuild: { type: 'boolean', description: 'Run build (default false — slower)' },
+                testCommand: { type: 'string', description: 'Override test command (default: auto-detect from package.json)' },
+                buildCommand: { type: 'string', description: 'Override build command (default: auto-detect from package.json)' }
+            }
+        }
+    },
+    {
+        name: 'watch_project',
+        description: 'Real-time file monitoring — watches the project directory and pushes findings to the agent via notifications/message as files change. No tool call needed for subsequent findings; they arrive automatically. Actions: start (begin watching), stop (stop watching), status (check watcher state). Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', description: 'start | stop | status (default: start)' },
+                projectRoot: { type: 'string', description: 'Project root to watch (default: cwd)' }
             }
         }
     }

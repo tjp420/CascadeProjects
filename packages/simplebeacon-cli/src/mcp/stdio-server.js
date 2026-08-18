@@ -4,7 +4,9 @@
  */
 
 const readline = require('readline');
+const path = require('path');
 const { TOOL_DEFINITIONS, createMcpToolHandlers } = require('./tools');
+const { createRealtimeWatcher } = require('./realtime-watcher');
 
 const PROTOCOL_VERSION = '2024-11-05';
 const SERVER_INFO = { name: 'simplebeacon', version: '1.3.0' };
@@ -27,6 +29,69 @@ function createMcpStdioServer(options = {}) {
             method: 'notifications/progress',
             params: { progressToken: token, progress, total }
         });
+    }
+
+    // ── Real-time file watcher ──────────────────────────────────────────────
+    // Watches the project directory and pushes findings to the MCP client
+    // via notifications/message — agents see issues without calling any tool.
+    let realtimeWatcher = null;
+
+    function startRealtimeWatch(projectRoot) {
+        stopRealtimeWatch();
+        const { scanFileOnDisk } = require('../lib/snippet-scanner');
+        const { resolveCliProjectRoot } = require('../lib/snippet-scanner');
+
+        const root = resolveCliProjectRoot(projectRoot || process.cwd());
+
+        realtimeWatcher = createRealtimeWatcher({
+            projectRoot: root,
+            scanFile: (absolutePath) => {
+                const rel = path.relative(root, absolutePath);
+                return scanFileOnDisk(root, rel);
+            },
+            onFindings: (relativePath, findings, summary) => {
+                // Push findings to the MCP client as a log notification
+                const level = summary.blockingCount > 0 ? 'error' : 'info';
+                const data = {
+                    type: 'realtime-scan',
+                    filePath: relativePath,
+                    blockingCount: summary.blockingCount,
+                    findingCount: summary.findingCount,
+                    severityBreakdown: summary.severityBreakdown,
+                    findings: findings.slice(0, 10).map((f) => ({
+                        severity: f.severity,
+                        type: f.type,
+                        description: f.description ? String(f.description).slice(0, 200) : '',
+                        line: f.line || null,
+                        rule: f.rule || f.pattern || null
+                    })),
+                    timestamp: summary.timestamp
+                };
+                send({
+                    jsonrpc: '2.0',
+                    method: 'notifications/message',
+                    params: { level, data }
+                });
+            },
+            logger: {
+                log: (...a) => { if (options.debug) console.error('[MCP watcher]', ...a); },
+                error: (...a) => { console.error('[MCP watcher]', ...a); }
+            }
+        });
+
+        realtimeWatcher.start();
+        return realtimeWatcher.getStats();
+    }
+
+    function stopRealtimeWatch() {
+        if (realtimeWatcher) {
+            realtimeWatcher.stop();
+            realtimeWatcher = null;
+        }
+    }
+
+    function getRealtimeWatchStats() {
+        return realtimeWatcher ? realtimeWatcher.getStats() : { active: false };
     }
 
     function toolListResult() {
@@ -101,6 +166,49 @@ function createMcpStdioServer(options = {}) {
             const name = params?.name;
             const args = params?.arguments || {};
             const handler = handlers[name];
+
+            // Real-time watch control — handled inline (not in handlers map)
+            if (name === 'watch_project') {
+                const action = String(args.action || 'start').toLowerCase();
+                if (action === 'start') {
+                    const root = args.projectRoot || process.cwd();
+                    const stats = startRealtimeWatch(root);
+                    send({
+                        jsonrpc: '2.0', id, result: {
+                            content: [{ type: 'text', text: JSON.stringify({
+                                active: true,
+                                message: 'Real-time monitoring started. Findings will be pushed via notifications/message as files change.',
+                                ...stats
+                            }, null, 2) }]
+                        }
+                    });
+                } else if (action === 'stop') {
+                    stopRealtimeWatch();
+                    send({
+                        jsonrpc: '2.0', id, result: {
+                            content: [{ type: 'text', text: JSON.stringify({
+                                active: false,
+                                message: 'Real-time monitoring stopped.'
+                            }, null, 2) }]
+                        }
+                    });
+                } else if (action === 'status') {
+                    const stats = getRealtimeWatchStats();
+                    send({
+                        jsonrpc: '2.0', id, result: {
+                            content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }]
+                        }
+                    });
+                } else {
+                    send({
+                        jsonrpc: '2.0', id, result: {
+                            content: [{ type: 'text', text: 'Invalid action. Use: start, stop, or status.' }],
+                            isError: true
+                        }
+                    });
+                }
+                return;
+            }
 
             if (!handler) {
                 send({
@@ -190,9 +298,9 @@ function createMcpStdioServer(options = {}) {
             crlfDelay: Infinity
         });
 
-        process.on('SIGINT', () => { logger.log('SIGINT'); process.exit(0); });
-        process.on('SIGTERM', () => { logger.log('SIGTERM'); process.exit(0); });
-        process.on('uncaughtException', (err) => { console.error('[MCP] Uncaught:', err.message); process.exit(1); });
+        process.on('SIGINT', () => { logger.log('SIGINT'); stopRealtimeWatch(); process.exit(0); });
+        process.on('SIGTERM', () => { logger.log('SIGTERM'); stopRealtimeWatch(); process.exit(0); });
+        process.on('uncaughtException', (err) => { console.error('[MCP] Uncaught:', err.message); stopRealtimeWatch(); process.exit(1); });
 
         rl.on('line', (line) => {
             const trimmed = line.trim();
@@ -222,7 +330,7 @@ function createMcpStdioServer(options = {}) {
         logger.log('Server ready. Protocol:', PROTOCOL_VERSION);
     }
 
-    return { start, toolListResult, handlers };
+    return { start, toolListResult, handlers, startRealtimeWatch, stopRealtimeWatch, getRealtimeWatchStats };
 }
 
 module.exports = {

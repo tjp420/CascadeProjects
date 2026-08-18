@@ -1,5 +1,67 @@
 # Simplebeacon Development Notes
 
+## Agent Supercharge — AI Coding Agent Failure Prevention (2026-08-17)
+
+SimpleBeacon now detects the top AI coding agent failure patterns identified by the Columbia DAPLab 2025 study and CodeHalu (AAAI 2025).
+
+### New Scanner: Swallowed Exception Scanner (`swallowed-exception-scanner.js`)
+Detects the #1 AI agent failure pattern — silently discarded errors.
+- **JS/TS**: empty catch blocks, catch-and-return-null/undefined/false/empty, comment-only catch
+- **Python**: `except: pass`, `except: return None`, bare `except:` (critical severity)
+- **Go**: `if err != nil { return nil }` without wrapping/logging
+
+### New Scanner: Phantom API Call Scanner (`phantom-api-scanner.js`)
+Detects the #2 AI agent failure pattern — hallucinated method calls on real libraries.
+- **80+ JS/TS phantom APIs**: `fs.readFilePromise`, `JSON.tryParse`, `Array.first`, `Object.deepClone`, `Promise.retry`, `Math.clamp`, `React.useMemoCallback`, etc.
+- **20+ Python phantom APIs**: `pd.DataFrame.to_jsonl`, `requests.get_async`, `json.loads_safe`, `os.path_exists`, etc.
+- Each finding includes a suggestion with the real API to use instead
+
+### New MCP Tool: `verify_before_write` (free tier)
+Pre-write verification gate — agents pass proposed file content before writing to disk.
+- Runs swallowed-exception, phantom-API, hallucinated-import, and AI-slop scanners in-process
+- Returns: `passed: true|false`, `recommendedAction: ok-to-write | fix-and-retry | consult-user`
+- Sub-100ms warm, zero LLM in the hot path, zero code leaves the machine
+
+### New MCP Tool: `verify_completion` (free tier)
+Task completion verifier — prevents the "confident and wrong" failure mode.
+- Checks gate pass, test suite, build status, and git cleanliness
+- Returns: `canClaimComplete: true|false` with evidence per check
+- Auto-detects test/build commands from `package.json`
+- Agents should call this before claiming a task is done
+
+### New MCP Tool: `watch_project` (free tier)
+Real-time file monitoring for MCP-connected AI agents (Cursor, Windsurf, Claude Code, Cline, Aider).
+- Watches the project directory via chokidar (excludes node_modules, .git, dist, build, etc.)
+- 500ms per-file debounce — re-scans after the agent stops typing
+- Pushes findings to the MCP client via `notifications/message` — no tool call needed
+- Actions: `start` | `stop` | `status`
+- Gives non-VS-Code agents the same real-time feedback as the VS Code extension
+
+### MCP Tool Count
+- **29 tools** (was 28) — added `watch_project` for real-time file monitoring
+
+### Files
+- `packages/simplebeacon-cli/src/rules/swallowed-exception-scanner.js` — JS/TS/Python/Go patterns
+- `packages/simplebeacon-cli/src/rules/phantom-api-scanner.js` — 100+ phantom API patterns
+- `packages/simplebeacon-cli/src/mcp/handlers/agent-verify-handlers.js` — MCP tool handlers
+- `packages/simplebeacon-cli/src/mcp/realtime-watcher.js` — chokidar file watcher + debounce + notification push
+- `packages/simplebeacon-cli/src/mcp/tools.js` — tool definitions (29 tools)
+- `packages/simplebeacon-cli/src/mcp/stdio-server.js` — wired watcher into MCP server
+- `packages/simplebeacon-cli/src/scan.js` — scanner registration
+- `packages/simplebeacon-cli/tests/swallowed-exception-scanner.test.js` — 14 tests
+- `packages/simplebeacon-cli/tests/phantom-api-scanner.test.js` — 18 tests
+- `packages/simplebeacon-cli/tests/realtime-watcher.test.js` — 9 tests
+
+### Test Results
+- Payment simulation: 24/24 pass
+- Website tests: 29/29 pass
+- CLI tests: 56/56 pass (was 24, added 32 new tests)
+- Real-time watcher tests: 9/9 pass
+- VSIX tests: 473/473 pass
+- VSIX version: 3.0.507
+
+---
+
 ## Pre-Commit Hook Configuration
 
 The project has automated pre-commit hooks configured to ensure code quality before commits:
@@ -108,25 +170,48 @@ chmod +x .git/hooks/pre-commit
 
 ## Pricing & Billing Infrastructure
 
-### Three-Tier Pricing Model (2026-08-06)
-- **Developer**: $49/mo or $490/yr (Save 17%) — unlimited scans, CI gate, 38 analyzers
-- **Team Pro**: $149/mo or $1,490/yr (Save 17%) — EU AI Act, SOC 2, board-ready certs, 5 seats
+### Five-Tier Pricing Model (2026-08-17)
+- **Game Dev Pro**: $15/mo or $150/yr (Save 17%) — indie/mod dev fix loop for Unity, Unreal, Godot, GZDoom, Lua mods: asset integrity, log correlation, engine packs, offline MCP
+- **Agent**: $25/mo or $250/yr (Save 17%) — fix loop for AI coding agents: scan_file, propose_fix, verify_fix, agent_status, explain_finding
+- **Developer**: $49/mo or $490/yr (Save 17%) — everything in Agent plus unlimited scans, CI gate, 38 analyzers, scan_staged, get_action_plan
+- **Team Pro**: $149/mo or $1,490/yr (Save 17%) — EU AI Act, SOC 2, board-ready certs, 5 seats, Agent Supercharge for every team member
 - **Enterprise**: Custom — air-gapped, SSO/SAML, dedicated analyst, Book Demo link
 - **Legacy Pro**: $9/mo — backward compatible, still functional for existing customers
+- **Executive Risk Certificate**: $999 one-time (raised from $499) — board-ready compliance paper trail
+
+### Capability Gating by Tier
+| Tier | scan_file | scan_staged | get_action_plan | agentExperience |
+|------|-----------|-------------|-----------------|-----------------|
+| Free/Developer (unpaid) | blocked | blocked | blocked | 2/10 |
+| Game Dev Pro ($15/mo) | allowed | blocked | blocked | 7/10 |
+| Agent ($25/mo) | allowed | blocked | blocked | 8/10 |
+| Developer+ ($49/mo) | allowed | allowed | allowed | 11/10 |
 
 ### Files
 - **Frontend**: `coming-soon/public/pricing.html` (primary), `coming-soon/pricing.html` (mirror)
 - **Backend**: `coming-soon/routes/subscriptions-billing.cjs` — Stripe checkout session creation + webhook handler
 - **Integration test**: `scripts/test-payment-sim.cjs` — stubs Stripe API, verifies tier-to-price mapping
+- **CLI tier system**: `packages/simplebeacon-cli/src/lib/tier-constants.js` — tier definitions and aliases
+- **Capability gating**: `packages/simplebeacon-cli/src/lib/agent-tier-capabilities.js` — `assertCapability`, `getAgentCapabilities`, `formatUpsell`
 
 ### Price Constants (cents, Stripe zero-decimal format)
 | Tier | Monthly | Annual |
 |------|---------|--------|
+| Game Dev Pro | 1500 ($15) | 15000 ($150) |
+| Agent | 2500 ($25) | 25000 ($250) |
 | Developer | 4900 ($49) | 49000 ($490) |
 | Team Pro | 14900 ($149) | 149000 ($1,490) |
 | Legacy Pro | 900 ($9) | 9000 ($90) |
 | Compliance | 39900 ($399) | 399000 ($3,990) |
 | Enterprise | 49900 ($499) | 499000 ($4,990) |
+| Executive Risk Certificate | 99900 ($999) one-time | — |
+| EU AI Act Sprint | 249900 ($2,499) one-time | — |
+| Board-Ready Audit Certificate | 14900 ($149) one-time | — |
+
+### Checkout Architecture
+- **Stripe checkout uses `price_data` (inline price creation)** — no pre-created Stripe price IDs needed
+- **`data-price-id` attributes on pricing buttons are frontend identifiers only**, not Stripe price IDs
+- **Checkout flow**: button `data-tier` → frontend `productMap` → backend `/api/checkout` → `price_data` with `unit_amount` from `tierConfig`
 
 ### Billing Bug Fixed (2026-08-06)
 - **Bug**: Frontend `subscriptionTiers` array used old names (`startup_shield`, `compliance_suite`), causing new Developer/Team Pro subscriptions to fall through to the free `/api/test-checkout` endpoint. Server `tierConfig` only had `pro`/`compliance`/`team`/`enterprise`, so the fallback billed $9 instead of $49.
@@ -688,13 +773,73 @@ The best fix is the one that uses the existing patterns, the existing imports, a
 
 ---
 
+## Monorepo vs VSIX (do not treat this as consumer-only)
+
+**This repo is a monorepo.** The SimpleBeacon scan engine and rule implementations live here — not in a separate upstream repo you must patch before adding domain rules.
+
+| Layer | Path | Role |
+|-------|------|------|
+| **Engine + rules** | `packages/simplebeacon-cli/` | Source of truth for scanners, profiles, MCP, CLI |
+| **VS Code extension (VSIX)** | `simplebeacon-vscode-merged/` | Downstream packaged consumer; calls/bundles the CLI |
+| **Mod project** | e.g. `E:/Ai/Games/Doom/TEst/results/R3DLighting/` | Target being analyzed; owns `.simplebeacon/config.json` |
+
+The VSIX does **not** infer your build stack from the IDE install alone. Stack awareness comes from:
+
+1. **Active profile** — e.g. `gamedev` (registered in `packages/simplebeacon-cli/src/config-schema.js`)
+2. **Mod/project config** — `{mod}/.simplebeacon/config.json`
+3. **Registered rule modules** — wired in `packages/simplebeacon-cli/src/scan.js`
+
+### GZDoom rule entry points (in this repo)
+
+- `packages/simplebeacon-cli/src/rules/gzdoom-integrity-patterns.js` — main orchestrator
+- `packages/simplebeacon-cli/src/lib/gzdoom-*.js` — state lint, CVAR xref, norun gate, manifest, GLDEFS, handler map, PK3 lint
+- `scripts/gzdoom-export-summary.cjs`, `scripts/gzdoom-norun-gate.cjs` — mod-facing wrappers
+- Tests: `packages/simplebeacon-cli/tests/gzdoom-*.test.js`
+
+To add or change GZDoom behavior, edit **`packages/simplebeacon-cli`**, then rebuild the VSIX if needed — do not look for rule logic only inside `simplebeacon-vscode-merged/package.json`.
+
+### Mod-side config (on the mod, not in this monorepo)
+
+```json
+{
+  "profile": "gamedev",
+  "gzdoom": {
+    "companionMod": "R3DOptions",
+    "cvarPrefix": "r3d_"
+  }
+}
+```
+
+Also add `{mod}/.simplebeaconignore` for logs, `build_temp/`, stale `*_DUPLICATE.zs`, etc.
+
+### Scan commands (run from monorepo root against mod path)
+
+```bash
+npm run gzdoom:export-summary -- --path "E:/Ai/Games/Doom/TEst/results/R3DLighting"
+npm run gzdoom:norun-gate -- --path "E:/Ai/Games/Doom/TEst/results/R3DLighting"
+```
+
+### Agent-readable outputs (prefer over `.simplebeacon/` on mods)
+
+Mod repos often gitignore `.simplebeacon/`. Read:
+
+- `{mod}/Docs/gzdoom-gate-summary.json`
+- `{mod}/Docs/gzdoom-norun-gate.json`
+
+**Mod-author setup:** [docs/gzdoom-mod-author-setup.md](../docs/gzdoom-mod-author-setup.md)
+
+`.simplebeacon/report.json` remains the CLI gate artifact for this monorepo; for external mod workspaces, **`Docs/` exports are the canonical handoff** for coding agents.
+
+---
+
 ## Canonical File Locations
 
 ### Package Directories
 
 | Package | Canonical Path | Notes |
 |---------|---------------|-------|
-| simplebeacon-cli | `packages/simplebeacon-cli/` | Root-level canonical package |
+| simplebeacon-cli | `packages/simplebeacon-cli/` | Root-level canonical package — **engine and all rule logic** |
+| simplebeacon-vscode (VSIX) | `simplebeacon-vscode-merged/` | Packaged VS Code extension; downstream consumer of CLI |
 | simplebeacon-intelligence | `ai-platform/packages/simplebeacon-intelligence/` | Optional tree-sitter grammar package |
 | ai-platform | `ai-platform/` | Main platform workspace |
 | ai-agent | `ai-agent/` | 0-dependency local agent |
@@ -828,3 +973,58 @@ Followers apply via `_applyRemoteKeyCommit()` and reply `KEY_COMMIT_ACK`, but th
 - True two-phase staging with quorum-ACK gate and staging timeout rollback.
 - Real mTLS + CA chain + per-node encrypted key wrapping (only if deployment crosses untrusted networks).
 - Edge-case simulation (quorum splits, simultaneous leader drops) — meaningful only after two-phase staging exists.
+## SimpleBeacon
+
+# SimpleBeacon Agent Supercharge
+
+You are wired to SimpleBeacon MCP — **local verify layer, no source upload**. Start every session with **`supercharge_agent`** for the full mission briefing.
+
+## 1. Session start (mandatory)
+
+1. **`supercharge_agent`** — mission, gate, code suggestions, host status, playbook (one call)
+2. Read `.simplebeacon/agent-supercharge.md` when present
+3. Read `.simplebeacon/code-suggestions.md` before editing gate-blocking files
+4. Read `.simplebeacon/master-engineering-brief.md` for recovery playbooks
+
+If MCP is unavailable: `npx simplebeacon init --starter` then reload the IDE.
+
+## 2. Edit loop (fire on all cylinders)
+
+| Phase | Tool | Rule |
+|-------|------|------|
+| Before apply | `scan_snippet` | Fix `blockingCount > 0` before accepting generated code |
+| Hints | `code_suggestions` | Prefer deterministic before/after hints |
+| Unclear finding | `explain_finding` | Paid — lookup pattern metadata |
+| Patch | `propose_fix` → apply → `verify_fix` | Paid — AST remediator loop |
+| After save | `scan_file` | Paid — rescan changed file on disk |
+| Track progress | `agent_status` | Paid — open findings + next action |
+
+## 3. Stuck? Master engineer tools
+
+- **`solve_problem`** — natural language ("CI failing", "tests timeout", "secrets in repo")
+- **`diagnose_error`** — paste stack trace or error message
+- **`master_engineering_brief`** — ten-cylinder plan + "yes you can" steps
+
+## 4. Before claiming done
+
+1. **`handoff_check`** — do not claim complete until `ready: true`
+2. **`scan_staged`** — gate scan on staged files only (paid)
+3. CLI backstop: `npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`
+
+## 5. Wire another coding agent
+
+Call **`install_agent_plugin`** with `hosts: "cursor,windsurf,continue,copilot,cline,aider,universal"` or:
+
+```bash
+npx simplebeacon init --starter --hosts all
+```
+
+Supported plugins: Cursor, Windsurf, Continue, Claude, Cline, GitHub Copilot, Aider, Universal (AGENTS.md).
+
+## Rules
+
+- Extend existing files — no parallel modules unless required
+- Never commit secrets, fiction KPIs, or mock production paths
+- Fix gate-blocking (critical/high) before refactors
+- Prefer MCP tools over inventing shell commands
+- Never brag about raw finding counts — focus on gate-blocking issues
