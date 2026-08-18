@@ -19,11 +19,17 @@ try { fs.unlinkSync(dbPath); } catch { /* ignore */ }
 const db = require('../lib/db.cjs');
 const {
     issueGuestToken,
+    recordGuestAgentScan,
+    checkGuestAgentScanLimit,
+    GUEST_AGENT_SCANS_PER_DAY,
     claimGuestTokenForUser,
     resolveTokenAccountEmail,
     isGuestTokenRegistered,
-    verifyLicenseToken
+    verifyLicenseToken,
+    upgradeGuestToken,
+    getGuestTokenByHash
 } = require('../lib/guest-token-service.cjs');
+const { hashToken } = require('../lib/token-chain-store.cjs');
 
 describe('guest token flow', () => {
     const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
@@ -96,5 +102,44 @@ describe('guest token flow', () => {
         const secondClaim = claimGuestTokenForUser(issued.token, otherEmail, owner.id + 99);
         assert.strictEqual(secondClaim.success, false);
         assert.match(secondClaim.error || '', /already linked/i);
+    });
+
+    it('enforces guest agent snippet scan daily limit', () => {
+        const guestId = 'sb-dev-agentscan-' + crypto.randomBytes(4).toString('hex');
+        const issued = issueGuestToken(guestId, secret);
+        assert.strictEqual(issued.success, true);
+
+        for (let i = 0; i < GUEST_AGENT_SCANS_PER_DAY; i++) {
+            const r = recordGuestAgentScan(guestId);
+            assert.strictEqual(r.success, true, `scan ${i + 1}`);
+        }
+        const blocked = recordGuestAgentScan(guestId);
+        assert.strictEqual(blocked.success, false);
+        const check = checkGuestAgentScanLimit(guestId);
+        assert.strictEqual(check.allowed, false);
+    });
+
+    it('upgrades guest token to paid tier with lineage', () => {
+        const guestId = 'sb-dev-upgrade-' + crypto.randomBytes(4).toString('hex');
+        const issued = issueGuestToken(guestId, secret);
+        assert.strictEqual(issued.success, true);
+
+        const paidEmail = `upgrade-${Date.now()}@example.com`;
+        db.getDb().prepare(
+            'INSERT INTO customers (email, tier, subscription_status) VALUES (?, ?, ?)'
+        ).run(paidEmail.toLowerCase(), 'developer', 'active');
+
+        const upgraded = upgradeGuestToken(issued.token, paidEmail, 'developer', secret, 60);
+        assert.strictEqual(upgraded.success, true);
+        assert.ok(upgraded.token);
+        assert.notStrictEqual(upgraded.token, issued.token);
+
+        const oldGuest = db.getDb().prepare('SELECT * FROM guest_tokens WHERE token_hash = ?').get(hashToken(issued.token));
+        assert.ok(oldGuest);
+        assert.strictEqual(oldGuest.revoked, 1);
+
+        const paidPayload = verifyLicenseToken(upgraded.token, secret);
+        assert.strictEqual(paidPayload.tier, 'developer');
+        assert.strictEqual(paidPayload.upgradedFrom, 'guest');
     });
 });

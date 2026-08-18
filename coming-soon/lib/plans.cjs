@@ -17,7 +17,7 @@ const PLANS = {
     features: [
       'Up to 50 files per scan',
       'Gate scan: credentials + AI patterns',
-      'AI Slop Cop: placeholder debris detection',
+      'AI agent preview (2/10): scan_snippet teaser only',
       'CLI + VS Code extension',
       'Text output only'
     ],
@@ -25,7 +25,21 @@ const PLANS = {
     cta: 'Install Free',
     ctaLink: '/downloads/simplebeacon.vsix',
     moduleAccess: ['gate', 'llm-slop'],
-    limits: { maxFilesPerScan: 50, maxFindingsShown: 5, showQualityScore: false },
+    limits: {
+      maxFilesPerScan: 50,
+      maxFindingsShown: 5,
+      showQualityScore: false,
+      agentExperience: '2/10',
+      agentCapabilities: {
+        scanSnippet: true,
+        scanFile: false,
+        proposeFix: false,
+        verifyFix: false,
+        scanStaged: false,
+        agentStatus: false,
+        fullAgentBrief: false
+      }
+    },
     defaultTtlDays: 365,
     stripePriceId: null,
     popular: false
@@ -43,6 +57,8 @@ const PLANS = {
     features: [
       'Unlimited files per scan (Free: 50)',
       'All findings shown (Free: 5 only)',
+      'AI agent loop (11/10): propose_fix, verify_fix, scan_staged, agent_status',
+      'Cursor pre-apply hook blocks slop before edits land',
       'Quality score visible (Free: hidden)',
       '38 analyzer engines (AI Slop Cop full suite)',
       'GitHub Action + CI gate',
@@ -64,7 +80,7 @@ const PLANS = {
       'fix-preview', 'llm-slop', 'token-bleed', 'production-leak',
       'fiction-kpi', 'architecture-drift'
     ],
-    limits: { maxFilesPerScan: null, maxFindingsShown: null, showQualityScore: true },
+    limits: { maxFilesPerScan: null, maxFindingsShown: null, showQualityScore: true, agentExperience: '11/10' },
     stripePriceId: 'price_pro_monthly',
     popular: true
   },
@@ -79,6 +95,7 @@ const PLANS = {
     description: 'Board-ready compliance. EU AI Act, SOC 2 evidence packs, and analyst support.',
     features: [
       'Everything in Pro',
+      'AI agent loop (11/10) with team session metrics',
       '60+ analyzer engines (full CLI + dashboard suite)',
       'Team management (5+ seats)',
       'SSO authentication',
@@ -108,7 +125,7 @@ const PLANS = {
       'ai-placeholder-comment', 'ai-placeholder-block', 'markdown-fence-leak',
       'empty-stub-function', 'arrow-stub', 'roadmap-marker'
     ],
-    limits: { maxFilesPerScan: null, maxFindingsShown: null, showQualityScore: true },
+    limits: { maxFilesPerScan: null, maxFindingsShown: null, showQualityScore: true, agentExperience: '11/10' },
     defaultTtlDays: 365,
     stripePriceId: null,
     popular: false
@@ -125,6 +142,7 @@ const PLANS = {
     features: [
       'Unlimited files per scan',
       'All findings shown',
+      'AI agent loop (11/10) — full Pro agent experience during trial',
       'Quality score visible',
       '38 IDE rules + 38 CLI modules (AI Slop Cop full suite)',
       'GitHub Action + CI gate',
@@ -145,7 +163,7 @@ const PLANS = {
       'fix-preview', 'llm-slop', 'token-bleed', 'production-leak',
       'fiction-kpi', 'architecture-drift'
     ],
-    limits: { maxFilesPerScan: null, maxFindingsShown: null, showQualityScore: true },
+    limits: { maxFilesPerScan: null, maxFindingsShown: null, showQualityScore: true, agentExperience: '11/10' },
     defaultTtlDays: 14,
     stripePriceId: null,
     popular: false

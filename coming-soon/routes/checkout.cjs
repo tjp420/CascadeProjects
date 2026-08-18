@@ -32,7 +32,7 @@ const SCAN_OPTION_MAP = {
   'ai-indicators': { name: 'AI System Indicators', price: 19 },
   governance: { name: 'License & Governance', price: 19 },
   one_time_certificate: { name: 'Board-Ready Audit Certificate', price: 149 },
-  executive_clearance: { name: 'Executive Risk Certificate', price: 499 },
+  executive_clearance: { name: 'Executive Risk Certificate', price: 999 },
   eu_ai_act_sprint: { name: 'EU AI Act Sprint', price: 2499 }
 };
 
@@ -180,7 +180,7 @@ router.post('/api/test-checkout', async (req, res) => {
             const isEnterprise = tier === 'eu_ai_act_sprint' || tier === 'runtime_shield';
             const priceMap = {
                 instant_report: '$19.00',
-                executive_clearance: '$499.00',
+                executive_clearance: '$999.00',
                 eu_ai_act_sprint: '$2,499.00',
                 runtime_shield: '$2,999.00/mo'
             };
@@ -210,7 +210,7 @@ router.post('/api/test-checkout', async (req, res) => {
                 .replace(/\{\{HEADLINE\}\}/g, safe(isFree ? 'Welcome!' : 'Payment Confirmed'))
                 .replace(/\{\{PRODUCT_NAME\}\}/g, safe(config.label)) // simplebeacon-ignore: template replacement, not a TODO/magic-number
                 .replace(/\{\{RECEIPT_CLASS\}\}/g, safe(isFree ? 'free' : isEnterprise ? 'enterprise' : ''))
-                .replace(/\{\{PRICE\}\}/g, safe(isFree ? 'Free' : (priceMap[tier] || '$499.00')))
+                .replace(/\{\{PRICE\}\}/g, safe(isFree ? 'Free' : (priceMap[tier] || '$999.00')))
                 .replace(/\{\{PAYMENT_METHOD\}\}/g, safe(isFree ? 'No payment required' : 'Paid via Stripe'))
                 .replace(/\{\{DATE\}\}/g, safe(new Date().toLocaleDateString('en-US')))
                 .replace(/\{\{INVOICE_LINE\}\}/g, safe(isFree ? 'Community tier — no invoice' : 'Invoice #INV-' + Date.now().toString(36).toUpperCase()))
@@ -314,7 +314,7 @@ router.post('/api/create-checkout-session', async (req, res) => {
             return res.status(400).json({ error: 'No valid scans selected.' });
         }
 
-        const successUrl = `${PUBLIC_URL}/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`;
+        const successUrl = `${PUBLIC_URL}/audit?session_id={CHECKOUT_SESSION_ID}`;
         const cancelUrl = `${PUBLIC_URL}/pricing.html?canceled=true`;
         const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
 
@@ -454,7 +454,7 @@ function setupCheckoutWebhook(app) {
             let template = fsSync.readFileSync(templatePath, 'utf8');
             const priceMap = {
                 instant_report: '$19.00',
-                executive_clearance: '$499.00',
+                executive_clearance: '$999.00',
                 eu_ai_act_sprint: '$2,499.00',
                 runtime_shield: '$2,999.00/mo'
             };
@@ -463,7 +463,7 @@ function setupCheckoutWebhook(app) {
                 .replace(/\{\{HEADLINE\}\}/g, safe('Payment Confirmed'))
                 .replace(/\{\{PRODUCT_NAME\}\}/g, safe(config.label))
                 .replace(/\{\{RECEIPT_CLASS\}\}/g, '')
-                .replace(/\{\{PRICE\}\}/g, safe(total ? '$' + total : (priceMap[product] || '$499.00')))
+                .replace(/\{\{PRICE\}\}/g, safe(total ? '$' + total : (priceMap[product] || '$999.00')))
                 .replace(/\{\{PAYMENT_METHOD\}\}/g, safe('Paid via Stripe'))
                 .replace(/\{\{DATE\}\}/g, safe(new Date().toLocaleDateString('en-US')))
                 .replace(/\{\{INVOICE_LINE\}\}/g, safe('Invoice #INV-' + Date.now().toString(36).toUpperCase()))

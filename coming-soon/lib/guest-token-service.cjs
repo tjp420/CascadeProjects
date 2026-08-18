@@ -17,6 +17,7 @@ const {
 
 const GUEST_TTL_MINUTES = 14 * 24 * 60; // 14 days
 const GUEST_EMAIL_DOMAIN = '@guest.simplebeacon.ai';
+const GUEST_AGENT_SCANS_PER_DAY = 20;
 
 function isGuestPlaceholderEmail(email) {
     return String(email || '').trim().toLowerCase().endsWith(GUEST_EMAIL_DOMAIN);
@@ -35,11 +36,19 @@ function isGuestPlaceholderEmail(email) {
                 claimed_at TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 expires_at TEXT NOT NULL,
-                revoked INTEGER NOT NULL DEFAULT 0
+                revoked INTEGER NOT NULL DEFAULT 0,
+                agent_scan_count INTEGER NOT NULL DEFAULT 0,
+                agent_scan_day TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_guest_tokens_hash ON guest_tokens(token_hash);
             CREATE INDEX IF NOT EXISTS idx_guest_tokens_user ON guest_tokens(user_email);
         `);
+        try {
+            db.exec('ALTER TABLE guest_tokens ADD COLUMN agent_scan_count INTEGER NOT NULL DEFAULT 0');
+        } catch (_) { /* column exists */ }
+        try {
+            db.exec('ALTER TABLE guest_tokens ADD COLUMN agent_scan_day TEXT');
+        } catch (_) { /* column exists */ }
     } catch (err) {
         const c = globalThis.console;
         c.error('[GuestToken] Failed to init guest_tokens table:', err.message);
@@ -68,7 +77,8 @@ function generateGuestJwt(guestId, secret) {
         email,
         guestId: String(guestId),
         tier: 'guest',
-        features: ['basic_analysis', 'sample_data_basic'],
+        features: ['gate'],
+        upgradeable: true,
         clientName: 'Guest',
         projectName: 'Browser-Sandbox',
         jti: crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex')
@@ -84,6 +94,55 @@ function getGuestTokenByGuestId(guestId) {
 function getGuestTokenByHash(tokenHash) {
     const db = getDb();
     return db.prepare('SELECT * FROM guest_tokens WHERE token_hash = ? AND revoked = 0').get(tokenHash);
+}
+
+function utcDayKey() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Rate-limit guest agent snippet scans (20/day per device).
+ * @returns {{ allowed: boolean, remaining: number, reason?: string }}
+ */
+function checkGuestAgentScanLimit(guestId) {
+    const guest = getGuestTokenByGuestId(guestId);
+    if (!guest) {
+        return { allowed: false, remaining: 0, reason: 'Guest token not found' };
+    }
+    const day = utcDayKey();
+    const count = guest.agent_scan_count || 0;
+    const scanDay = guest.agent_scan_day || '';
+    if (scanDay !== day) {
+        return { allowed: true, remaining: GUEST_AGENT_SCANS_PER_DAY - 1 };
+    }
+    if (count >= GUEST_AGENT_SCANS_PER_DAY) {
+        return {
+            allowed: false,
+            remaining: 0,
+            reason: `Free tier allows ${GUEST_AGENT_SCANS_PER_DAY} agent snippet scans per day. Upgrade for unlimited scans.`
+        };
+    }
+    return { allowed: true, remaining: GUEST_AGENT_SCANS_PER_DAY - count - 1 };
+}
+
+/**
+ * Record one guest agent snippet scan against daily quota.
+ */
+function recordGuestAgentScan(guestId) {
+    const guest = getGuestTokenByGuestId(guestId);
+    if (!guest) return { success: false, error: 'Guest token not found' };
+    const check = checkGuestAgentScanLimit(guestId);
+    if (!check.allowed) return { success: false, ...check };
+    const day = utcDayKey();
+    const db = getDb();
+    if ((guest.agent_scan_day || '') !== day) {
+        db.prepare('UPDATE guest_tokens SET agent_scan_count = 1, agent_scan_day = ? WHERE guest_id = ?')
+            .run(day, String(guestId));
+    } else {
+        db.prepare('UPDATE guest_tokens SET agent_scan_count = agent_scan_count + 1 WHERE guest_id = ?')
+            .run(String(guestId));
+    }
+    return { success: true, remaining: check.remaining };
 }
 
 function saveGuestTokenRecord(guestId, token, tokenHash, expiresAt) {
@@ -143,7 +202,7 @@ function issueGuestToken(guestId, secret) {
     try {
         createTokenChain(
             placeholderEmail,
-            { email: placeholderEmail, tier: 'guest', features: ['basic_analysis', 'sample_data_basic'] },
+            { email: placeholderEmail, tier: 'guest', features: ['gate'], upgradeable: true },
             token,
             GUEST_TTL_MINUTES
         );
@@ -241,9 +300,75 @@ function isGuestTokenRegistered(token) {
     return !!(guest && guest.user_email);
 }
 
+/**
+ * Upgrade a guest token to a paid license after subscription is active.
+ * Keeps lineage via previousToken + attachTokenToChain.
+ */
+function upgradeGuestToken(guestToken, customerEmail, paidTier, secret, ttlMinutes) {
+    const { attachTokenToChain, revokeToken, createTokenChain, activateToken } = require('./token-chain-store.cjs');
+    const jwt = require('jsonwebtoken');
+
+    if (!guestToken || !customerEmail || !secret) {
+        return { success: false, error: 'Missing required upgrade parameters' };
+    }
+
+    const payload = verifyLicenseToken(guestToken, secret);
+    if (!payload) {
+        return { success: false, error: 'Invalid or expired guest token' };
+    }
+
+    const guestHash = hashToken(guestToken);
+    const guest = getGuestTokenByHash(guestHash);
+    const isEdgeGuest = (payload.tier === 'guest' || payload.guestId) && !guest;
+    if (guest && guest.revoked) {
+        return { success: false, error: 'Guest token is not valid or has been revoked' };
+    }
+    if (!guest && !isEdgeGuest) {
+        return { success: false, error: 'Guest token is not valid or has been revoked' };
+    }
+
+    const normalizedEmail = customerEmail.trim().toLowerCase();
+    const paidToken = jwt.sign({
+        email: normalizedEmail,
+        tier: paidTier,
+        projectName: 'Upgraded',
+        clientName: normalizedEmail,
+        features: [],
+        previousToken: guestToken,
+        upgradedFrom: 'guest',
+        guestId: payload.guestId || guest.guest_id || undefined,
+        jti: crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex')
+    }, secret, { expiresIn: (ttlMinutes || 30 * 24 * 60) * 60 });
+
+    const paidHash = hashToken(paidToken);
+    const attachResult = attachTokenToChain(guestHash, paidToken, { email: normalizedEmail, tier: paidTier }, ttlMinutes || 30 * 24 * 60);
+    if (!attachResult.success) {
+        createTokenChain(normalizedEmail, { email: normalizedEmail, tier: paidTier, previousToken: guestToken }, paidToken, ttlMinutes || 30 * 24 * 60);
+        activateToken(paidHash, ttlMinutes || 30 * 24 * 60);
+    } else if (guest) {
+        revokeToken(guestHash);
+    }
+
+    if (guest) {
+        const db = getDb();
+        db.prepare('UPDATE guest_tokens SET revoked = 1 WHERE token_hash = ?').run(guestHash);
+    }
+
+    ensureCustomer(normalizedEmail, paidTier);
+
+    return {
+        success: true,
+        token: paidToken,
+        tier: paidTier,
+        previousToken: guestToken,
+        message: 'Guest token upgraded to paid license'
+    };
+}
+
 module.exports = {
     GUEST_TTL_MINUTES,
     GUEST_EMAIL_DOMAIN,
+    GUEST_AGENT_SCANS_PER_DAY,
     isGuestPlaceholderEmail,
     verifyLicenseToken,
     issueGuestToken,
@@ -251,5 +376,8 @@ module.exports = {
     resolveTokenAccountEmail,
     isGuestTokenRegistered,
     getGuestTokenByHash,
-    getGuestTokenByGuestId
+    getGuestTokenByGuestId,
+    upgradeGuestToken,
+    checkGuestAgentScanLimit,
+    recordGuestAgentScan
 };

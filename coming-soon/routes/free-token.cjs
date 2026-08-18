@@ -18,6 +18,16 @@ const logger = {
 };
 
 const DEFAULT_PORT = 3001;
+const DEV_LICENSE_SECRET = 'insecure-dev-secret-change-me'; // simplebeacon-ignore credential-pattern — dev-only fallback
+
+function resolveLicenseSecret() {
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+    if (secret) return secret;
+    if (String(process.env.NODE_ENV || '').toLowerCase() !== 'production') {
+        return DEV_LICENSE_SECRET;
+    }
+    return '';
+}
 
 function getPublicUrl(req) {
     if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, '');
@@ -122,7 +132,7 @@ async function handleFreeToken(req, res) {
             }
         }
 
-        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        const secret = resolveLicenseSecret();
         if (!secret) {
             logger.error('[FreeToken] License secret not configured');
             return res.status(500).json({ error: 'Server misconfigured — contact administrator' });
@@ -251,7 +261,7 @@ async function handleSandboxToken(req, res) {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        const secret = resolveLicenseSecret();
         if (!secret) {
             logger.error('[SandboxToken] License secret not configured');
             return res.status(500).json({ error: 'Server misconfigured — contact administrator' });
@@ -354,7 +364,9 @@ async function handleSandboxToken(req, res) {
 }
 
 // ── Token upgrade endpoint ──────────────────────────────
-// Exchanges a free token for a paid token when a subscription is active
+// Exchanges a free/guest token for a paid token when a subscription is active
+const guestTokenService = require('../lib/guest-token-service.cjs');
+
 router.post('/api/token/upgrade', express.json(), async (req, res) => {
     const { freeToken, email } = req.body;
     if (!freeToken || typeof freeToken !== 'string') {
@@ -365,12 +377,11 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
     }
 
     try {
-        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        const secret = resolveLicenseSecret();
         if (!secret) {
             return res.status(500).json({ error: 'Server misconfigured' });
         }
 
-        // Verify the free token
         let payload;
         try {
             payload = jwt.verify(freeToken, secret, { clockTolerance: 60 });
@@ -378,49 +389,59 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
             return res.status(400).json({ error: 'Invalid free token' });
         }
 
-        const tokenEmail = (payload.email || '').trim().toLowerCase();
         const reqEmail = email.trim().toLowerCase();
+        const db = getDb();
+        const customer = db.prepare('SELECT * FROM customers WHERE email = ?').get(reqEmail);
+        if (!customer || customer.subscription_status !== 'active') {
+            return res.status(403).json({ error: 'No active subscription found for this email.' });
+        }
+        const paidTier = customer.tier || 'developer';
+        const paidTtlMinutes = 30 * 24 * 60;
+
+        const guestRecord = guestTokenService.getGuestTokenByHash(hashToken(freeToken));
+        const isGuestTier = (payload.tier || '') === 'guest' || !!payload.guestId || !!guestRecord;
+
+        if (isGuestTier) {
+            const upgraded = guestTokenService.upgradeGuestToken(freeToken, reqEmail, paidTier, secret, paidTtlMinutes);
+            if (!upgraded.success) {
+                return res.status(400).json({ error: upgraded.error || 'Guest token upgrade failed' });
+            }
+            return res.json({
+                success: true,
+                token: upgraded.token,
+                tier: upgraded.tier,
+                upgradedFrom: 'guest',
+                message: 'Guest pass upgraded to your paid license. Your old token no longer works.'
+            });
+        }
+
+        const tokenEmail = (payload.email || '').trim().toLowerCase();
         if (tokenEmail !== reqEmail) {
             return res.status(400).json({ error: 'Token email mismatch' });
         }
 
-        // Check if free token is registered and not revoked
-        const db = getDb();
         const freeRecord = db.prepare('SELECT * FROM free_tokens WHERE email = ?').get(reqEmail);
         if (!freeRecord || freeRecord.revoked) {
             return res.status(400).json({ error: 'Free token is not valid or has been revoked' });
         }
 
-        // Verify customer has active subscription
-        const customer = db.prepare('SELECT * FROM customers WHERE email = ?').get(reqEmail);
-        if (!customer || customer.subscription_status !== 'active') {
-            return res.status(403).json({ error: 'No active subscription found for this email.' });
-        }
-
-        // Revoke free token
         revokeFreeToken(reqEmail);
 
-        // Generate paid token with previousToken audit trail
-        const paidTier = customer.tier || 'team';
         const paidToken = generateLicenseToken(
             { email: reqEmail, tier: paidTier, projectName: 'Upgraded', clientName: customer.email, previousToken: freeToken },
             secret,
-            30 * 24 * 60 // 30 days
+            paidTtlMinutes
         );
 
-        // Attach paid token to the free-token's chain for lineage tracking
         const { attachTokenToChain, revokeToken } = require('../lib/token-chain-store.cjs');
         const freeTokenHash = hashToken(freeToken);
-        const paidTtlMinutes = 30 * 24 * 60;
         const attachResult = attachTokenToChain(freeTokenHash, paidToken, { email: reqEmail, tier: paidTier }, paidTtlMinutes);
 
         if (!attachResult.success) {
-            // Fallback: create a new owner chain if the free token wasn't in the chain
             logger.error('[TokenUpgrade] attachTokenToChain failed, falling back to new chain:', attachResult.error);
             createTokenChain(reqEmail, { email: reqEmail, tier: paidTier }, paidToken, paidTtlMinutes);
             activateToken(hashToken(paidToken), paidTtlMinutes);
         } else {
-            // Revoke the free token in the chain (keep node for audit trail)
             revokeToken(freeTokenHash);
         }
 
@@ -437,15 +458,13 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
 });
 
 // ── Anonymous guest token (auto-issued per device, claimed on signup) ──
-const guestTokenService = require('../lib/guest-token-service.cjs');
-
 async function handleGuestToken(req, res) {
     const guestId = (req.body?.guestId || req.query?.guestId || '').trim();
     if (!guestId || guestId.length < 8) {
         return res.status(400).json({ error: 'guestId required (min 8 characters)' });
     }
     try {
-        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        const secret = resolveLicenseSecret();
         if (!secret) {
             return res.status(500).json({ error: 'Server misconfigured — contact administrator' });
         }
@@ -462,6 +481,7 @@ async function handleGuestToken(req, res) {
             success: true,
             token: result.token,
             tier: result.tier,
+            upgradeable: true,
             cached: !!result.cached,
             claimed: !!result.claimed,
             userEmail: result.userEmail || null,
@@ -482,6 +502,21 @@ async function handleGuestToken(req, res) {
 router.get('/api/free-token', handleFreeToken);
 router.post('/api/free-token', handleFreeToken);
 router.post('/api/tokens/guest', express.json(), handleGuestToken);
+router.post('/api/tokens/guest/agent-scan', express.json(), (req, res) => {
+    const guestId = (req.body?.guestId || '').trim();
+    if (!guestId || guestId.length < 8) {
+        return res.status(400).json({ error: 'guestId required (min 8 characters)' });
+    }
+    const result = guestTokenService.recordGuestAgentScan(guestId);
+    if (!result.success) {
+        return res.status(429).json({
+            error: result.reason || 'Agent scan limit exceeded',
+            upgradeUrl: 'https://simplebeacon.ai/pricing',
+            agentExperience: '2/10'
+        });
+    }
+    return res.json({ success: true, remaining: result.remaining, agentExperience: '2/10' });
+});
 router.post('/api/tokens/sandbox', handleSandboxToken);
 
 router.post('/api/tokens/verify-code', express.json(), async (req, res) => {
