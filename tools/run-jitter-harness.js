@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 
@@ -45,10 +46,20 @@ const viteProcess = spawn('npm', ['run', 'dev'], {
 });
 
 // Safeguard child lifetimes by cleaning up processes when the host terminal drops
+function killChild(proc, label) {
+  if (!proc || proc.killed) return;
+  try {
+    proc.kill();
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    console.warn(`[jitter-harness] failed to stop ${label}: ${msg}`);
+  }
+}
+
 const cleanExit = () => {
   console.log('\n🛑 Shutting down network jitter harness threads...');
-  try { proxyProcess.kill(); } catch (e) { }
-  try { viteProcess.kill(); } catch (e) { }
+  killChild(proxyProcess, 'proxy');
+  killChild(viteProcess, 'vite');
   process.exit();
 };
 
@@ -62,6 +73,11 @@ proxyProcess.on('exit', (code) => {
 viteProcess.on('exit', (code) => {
   console.log(`vite process exited with ${code}`);
   // if vite stops, also stop proxy
-  try { proxyProcess.kill(); } catch (e) { }
+  try { proxyProcess.kill(); } catch (killErr) {
+    // Vite may exit before proxy — ignore ESRCH during harness teardown
+    if (killErr && killErr.code !== 'ESRCH') {
+      console.warn('[jitter-harness] proxy shutdown:', killErr.message || killErr);
+    }
+  }
   process.exit(code || 0);
 });

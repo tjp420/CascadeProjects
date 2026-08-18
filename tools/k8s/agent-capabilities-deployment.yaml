@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-capabilities
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-capabilities
+  template:
+    metadata:
+      labels:
+        app: agent-capabilities
+    spec:
+      containers:
+        - name: agent-capabilities
+          image: simplebeacon-agent-capabilities:latest
+          ports:
+            - containerPort: 3007
+          env:
+            - name: AGENT_CAPABILITIES_PORT
+              value: "3007"
+            - name: METRICS_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agent-capabilities-secret
+                  key: METRICS_AUTH_TOKEN
+          # If you prefer TLS in-pod, uncomment volumeMounts and volumes and add certs to the secret
+          #volumeMounts:
+          #  - name: tls
+          #    mountPath: /etc/simplebeacon/tls
+          #    readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3007
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3007
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 5
+      #volumes:
+      #  - name: tls
+      #    secret:
+      #      secretName: agent-capabilities-secret

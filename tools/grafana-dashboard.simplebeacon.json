@@ -1,0 +1,21 @@
+{
+  "dashboard": {
+    "title": "SimpleBeacon Agent Handlers",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Handler Failures",
+        "targets": [
+          { "expr": "ai_agent_handler_failures_total", "legendFormat": "{{handler}} on {{ev}}" }
+        ]
+      },
+      {
+        "type": "stat",
+        "title": "Tripped Handlers",
+        "targets": [
+          { "expr": "ai_agent_handler_tripped", "legendFormat": "{{handler}} on {{ev}}" }
+        ]
+      }
+    ]
+  }
+}

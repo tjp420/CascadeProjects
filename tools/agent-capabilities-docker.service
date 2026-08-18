@@ -1,0 +1,27 @@
+[Unit]
+Description=SimpleBeacon Agent Capabilities (Docker)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=5
+# Customize the image tag or container name as needed
+Environment=IMAGE=simplebeacon-agent-capabilities
+Environment=CONTAINER_NAME=agent-capabilities
+Environment=HOST_PORT=3007
+Environment=CONTAINER_PORT=3007
+Environment=TOKEN=supersecret
+
+ExecStartPre=-/usr/bin/docker rm -f ${CONTAINER_NAME}
+ExecStartPre=/usr/bin/docker pull ${IMAGE}
+ExecStart=/usr/bin/docker run --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} \
+  -e AGENT_CAPABILITIES_PORT=${CONTAINER_PORT} \
+  -e METRICS_AUTH_TOKEN=${TOKEN} \
+  -v /etc/simplebeacon/tls:/etc/simplebeacon/tls:ro \
+  ${IMAGE}
+ExecStop=/usr/bin/docker stop -t 10 ${CONTAINER_NAME}
+ExecStopPost=-/usr/bin/docker rm -f ${CONTAINER_NAME}
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+scrape_configs:
+  - job_name: 'simplebeacon-agent-capabilities'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['localhost:3007']
+    relabel_configs:
+      - source_labels: ['__address__']
+        target_label: '__param_target'
+        replacement: 'http://localhost:3008/runtime-metrics'
+    params:
+      runtime: ['1']
+    # If METRICS_AUTH_TOKEN is set on the server, configure Prometheus to use a bearer token file
+    # create file /etc/prometheus/secrets/agent_metrics_token containing the token
+    bearer_token_file: /etc/prometheus/secrets/agent_metrics_token

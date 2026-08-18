@@ -1,0 +1,15 @@
+[Unit]
+Description=SimpleBeacon Agent Capabilities Server
+After=network.target
+
+[Service]
+Type=simple
+User=svc_simplebeacon
+WorkingDirectory=/opt/simplebeacon
+EnvironmentFile=/etc/simplebeacon/agent.env
+ExecStart=/usr/bin/node /opt/simplebeacon/tools/agent-capabilities-server.cjs
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

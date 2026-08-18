@@ -1,0 +1,20 @@
+# Dockerfile for running the Agent Capabilities server
+# Builds a lightweight image that runs tools/agent-capabilities-server.cjs
+FROM node:20-alpine
+
+WORKDIR /opt/simplebeacon
+
+# Copy package files first to leverage layer cache if dependencies present
+COPY package*.json ./
+RUN if [ -f package.json ]; then npm ci --omit=dev || true; fi
+
+# Install curl so k8s exec probes can use it (and add CA certs for HTTPS)
+RUN apk add --no-cache curl ca-certificates
+
+# Copy entire repository (server expects ../ai-agent/plugins.cjs)
+COPY . /opt/simplebeacon
+
+ENV NODE_ENV=production
+EXPOSE 3007
+
+CMD ["node", "tools/agent-capabilities-server.cjs"]

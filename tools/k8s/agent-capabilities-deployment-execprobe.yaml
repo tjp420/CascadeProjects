@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-capabilities-execprobe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-capabilities-execprobe
+  template:
+    metadata:
+      labels:
+        app: agent-capabilities-execprobe
+    spec:
+      containers:
+        - name: agent-capabilities
+          image: simplebeacon-agent-capabilities:latest
+          ports:
+            - containerPort: 3007
+          env:
+            - name: AGENT_CAPABILITIES_PORT
+              value: "3007"
+            - name: METRICS_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agent-capabilities-secret
+                  key: METRICS_AUTH_TOKEN
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  # Use curl with bearer token from env; allow self-signed certs if testing
+                  if curl -k -sS -H "Authorization: Bearer $METRICS_AUTH_TOKEN" https://127.0.0.1:3007/health -o /dev/null; then exit 0; else exit 1; fi
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  if curl -k -sS -H "Authorization: Bearer $METRICS_AUTH_TOKEN" https://127.0.0.1:3007/health -o /dev/null; then exit 0; else exit 1; fi
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 5

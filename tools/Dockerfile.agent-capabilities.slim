@@ -1,0 +1,22 @@
+# Slim Dockerfile for Agent Capabilities server
+FROM node:20-bullseye-slim
+
+WORKDIR /opt/simplebeacon
+
+# Install curl and ca-certificates for exec probes
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  curl \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy package files first to leverage cache
+COPY package*.json ./
+RUN if [ -f package.json ]; then npm ci --omit=dev || true; fi
+
+# Copy repository
+COPY . /opt/simplebeacon
+
+ENV NODE_ENV=production
+EXPOSE 3007
+
+CMD ["node", "tools/agent-capabilities-server.cjs"]

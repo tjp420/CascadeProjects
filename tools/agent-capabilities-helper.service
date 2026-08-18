@@ -1,0 +1,17 @@
+[Unit]
+Description=SimpleBeacon Agent Capabilities (helper-runner)
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=svc_simplebeacon
+WorkingDirectory=/opt/simplebeacon
+EnvironmentFile=/etc/simplebeacon/agent.env
+# Exec the helper script which builds and runs the container and waits for readiness
+ExecStart=/opt/simplebeacon/tools/run-agent-capabilities-container.sh
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
