@@ -19,13 +19,19 @@ services:
         value: 10000
       - key: ALLOWED_ORIGIN
         value: https://simplebeacon.ai,https://simplebeacon.pages.dev,https://www.simplebeacon.ai
+      - key: PUBLIC_URL
+        value: "https://simplebeacon.ai"
       - key: SIMPLEBEACON_LICENSE_SECRET
+        sync: false
+      - key: SIMPLEBEACON_JWT_SECRET
         sync: false
       - key: JWT_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET
         sync: false
       - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false
@@ -39,3 +45,13 @@ services:
         value: "true"
       - key: REDIS_URL
         sync: false
+      # ── Stripe Checkout Links (self-service purchases) ──────────────────
+      - key: STRIPE_LINK_INSTANT
+        sync: false
+      - key: STRIPE_LINK_EXECUTIVE
+        sync: false
+      - key: STRIPE_LINK_EU_SPRINT
+        sync: false
+      # ── Upgrade URL (redirect for expired/free tier users) ───────────────
+      - key: SIMPLEBEACON_UPGRADE_URL
+        value: "https://simplebeacon.ai/pricing"
