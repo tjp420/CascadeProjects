@@ -37,6 +37,81 @@ export function showToast(message, type = 'info') {
     })();
     _renderToast(container, message, typeof type === 'string' ? type : 'info', 3500);
 }
+
+/**
+ * Request browser notification permission. Must be called from a user gesture.
+ * Returns the permission string ('granted'|'denied'|'default').
+ */
+export async function requestNotificationPermission() {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return 'default';
+    try {
+        // Some browsers return a Promise, some a string — normalize
+        const result = await Notification.requestPermission();
+        return String(result || 'default');
+    }
+    catch (e) {
+        try {
+            // fallback for older APIs
+            return Notification.permission || 'default';
+        }
+        catch (_a) {
+            return 'default';
+        }
+    }
+}
+
+const SB_NOTIFICATIONS_ENABLED_KEY = 'sb_notifications_enabled';
+
+function readNotificationsEnabled() {
+    try {
+        return localStorage.getItem(SB_NOTIFICATIONS_ENABLED_KEY) !== 'false';
+    }
+    catch (_a) {
+        return true;
+    }
+}
+
+function writeNotificationsEnabled(enabled) {
+    try {
+        localStorage.setItem(SB_NOTIFICATIONS_ENABLED_KEY, String(enabled));
+    }
+    catch (_a) { }
+}
+
+/**
+ * @returns {boolean}
+ */
+export function isNotificationsEnabled() {
+    return readNotificationsEnabled();
+}
+
+/**
+ * @param {boolean} enabled
+ * @returns {void}
+ */
+export function setNotificationsEnabled(enabled) {
+    writeNotificationsEnabled(enabled);
+}
+
+/**
+ * Show an OS-level notification if permission is granted and the user has not disabled notifications.
+ * This is best-effort and silent on failure.
+ */
+export function showOSNotification(title, options) {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return null;
+    try {
+        if (readNotificationsEnabled() && Notification.permission === 'granted') {
+            try {
+                return new Notification(String(title || ''), options || {});
+            }
+            catch (_a) {
+                return null;
+            }
+        }
+    }
+    catch (_b) { }
+    return null;
+}
 /**
  * Manually remove the toast container and clear any active timers.
  * @returns {void}
@@ -677,13 +752,20 @@ export function isFilePickerBlockedError(err) {
     return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(msg);
 }
 
-/** True when a webkitdirectory FileList length matches a known browser cap (~3k on Chrome). */
+/** True when a webkitdirectory FileList length matches a known browser cap (~3k or ~8k on Chrome). */
 export function isLikelyWebkitDirectoryFileCap(fileCount) {
     const n = Number(fileCount) || 0;
     if (n < 2000)
         return false;
     const knownCaps = [2048, 2500, 3000, 3250, 4096, 8192, 10000];
-    return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
+    if (knownCaps.includes(n))
+        return true;
+    if (n >= 2900 && n <= 3300)
+        return true;
+    // Modern Chrome webkitdirectory ~8k cap (often 7792–7927, not exactly 8192)
+    if (n >= 7500 && n <= 8500)
+        return true;
+    return false;
 }
 
 /**
@@ -798,7 +880,44 @@ export function renderSkeletonChips(count = 5) {
 
 /** User-facing note when folder selection may be truncated by the browser. */
 export function browserFolderCapMessage(fileCount) {
-    const n = Number(fileCount) || 0;
-    return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
-        + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
+  const n = Number(fileCount) || 0;
+  return `Your browser limited folder selection to ${n.toLocaleString()} files (webkitdirectory cap). `
+    + 'Click **Select Folder** again — Chrome/Edge uses the unlimited folder picker — or run '
+    + '`npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`.';
+}
+
+/**
+ * True when a directory drop/pick only exposed a tiny FileList (common for system
+ * folders or IDE drops that do not recurse). Scanning these as a full repo yields
+ * false PASS reports (e.g. "Windows" with 1 file).
+ * @param {number} fileCount
+ * @param {{ isDirectoryDrop?: boolean, hasRelativePath?: boolean }} [opts]
+ */
+export function isIncompleteFolderDrop(fileCount, opts = {}) {
+  if (!opts.isDirectoryDrop) return false;
+  const n = Number(fileCount) || 0;
+  if (n > 2) return false;
+  // 1-2 files is always incomplete for a directory drop, even if
+  // webkitRelativePath is present (e.g., OS Explorer drop of a protected
+  // directory like C:\Windows that only exposes 1 file).
+  return n > 0;
+}
+
+/** Copy when refusing a false full-repo PASS from an incomplete folder drop. */
+export function incompleteFolderDropMessage(folderName) {
+  const label = folderName ? `"${folderName}"` : 'This folder';
+  return `${label} only exposed 1–2 files in the browser (incomplete access — common for OS/system directories). `
+    + 'No full-repo PASS was recorded. Use Select Folder on a project tree, or run: '
+    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+}
+
+/** Copy when browser local scan hits an inventory cap (legacy — cap removed; RAM is the practical limit). */
+export function browserLocalScanCapMessage(maxFiles) {
+  const n = Number(maxFiles) || 0;
+  if (n >= Number.MAX_SAFE_INTEGER - 1) {
+    return 'Browser scan has no file cap — very large folders may require significant RAM. CLI: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+  }
+  return `Browser local scan inventory is capped at ${n.toLocaleString()} files. `
+    + 'Results may be truncated. For full coverage run: '
+    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
 }

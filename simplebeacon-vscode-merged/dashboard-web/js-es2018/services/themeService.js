@@ -1,5 +1,5 @@
 // simplebeacon-ignore i18n
-import { apiUrl } from '../utils-lib/url.js?v=20260726fullnav1';
+import { apiUrl } from '../utils-lib/url.js';
 import { fetchApi } from '../lib/recoverable-fetch.js';
 const THEME_KEY = 'simplebeacon-theme';
 const MANUAL_KEY = 'simplebeacon-theme-manual';

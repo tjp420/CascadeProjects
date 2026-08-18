@@ -484,7 +484,7 @@ export function AgenticOrchestrationDashboard() {
                     )}
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px]" onClick={() => editAgent(agent)}>Edit</Button>
-                      <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-destructive" onClick={() => deleteAgent(agent.id)}>
+                      <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-destructive" aria-label="Delete agent" onClick={() => deleteAgent(agent.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -542,20 +542,20 @@ export function AgenticOrchestrationDashboard() {
                       <span className="font-mono text-[10px] text-foreground-muted">{exec.id}</span>
                       <span className="text-[10px]">Step: {exec.currentStep + 1}</span>
                       <div className="ml-auto flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => viewExecDetail(exec.id)}>
+                        <Button variant="ghost" size="sm" className="h-5 px-1" aria-label="View execution details" onClick={() => viewExecDetail(exec.id)}>
                           <Activity className="h-3 w-3" />
                         </Button>
                         {exec.state === 'running' && (
-                          <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => controlExec(exec.id, 'pause')}>
+                          <Button variant="ghost" size="sm" className="h-5 px-1" aria-label="Pause execution" onClick={() => controlExec(exec.id, 'pause')}>
                             <Pause className="h-3 w-3" />
                           </Button>
                         )}
                         {exec.state === 'paused' && (
-                          <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => controlExec(exec.id, 'resume')}>
+                          <Button variant="ghost" size="sm" className="h-5 px-1" aria-label="Resume execution" onClick={() => controlExec(exec.id, 'resume')}>
                             <Play className="h-3 w-3" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => controlExec(exec.id, 'abort')}>
+                        <Button variant="ghost" size="sm" className="h-5 px-1" aria-label="Abort execution" onClick={() => controlExec(exec.id, 'abort')}>
                           <Square className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>

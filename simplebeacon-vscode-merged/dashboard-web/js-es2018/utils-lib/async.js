@@ -647,23 +647,3 @@ export function tryFn(fn, ...args) {
 export function seq(...fns) {
     return (value) => fns.reduce((v, fn) => fn(v), value);
 }
-/**
- * Compose functions right-to-left.
- * @param {...((...args: any[]) => any)} fns
- * @returns {(...args: any[]) => any}
- */
-export function flow(...fns) {
-    return (value) => fns.reduceRight((v, fn) => fn(v), value);
-}
-/**
- * Returns a negated predicate function.
- * @param {(...args: any[]) => boolean} predicate
- * @returns {(...args: any[]) => boolean}
- */
-export function negate(predicate) {
-    if (typeof predicate !== 'function')
-        throw new TypeError('negate requires a function');
-    return function (...args) {
-        return !predicate(...args);
-    };
-}

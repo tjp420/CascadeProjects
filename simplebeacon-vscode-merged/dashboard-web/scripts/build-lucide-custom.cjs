@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts — build script uses console.log for build output
 'use strict';
 const fs = require('fs');
 const path = require('path');

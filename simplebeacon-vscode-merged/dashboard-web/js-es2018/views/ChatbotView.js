@@ -595,8 +595,11 @@ export class ChatbotView {
         catch (_a) { /* ignore */ }
 
         this.bindEvents();
-        this._onAiKeysUpdated = () => { void this.refreshProviders().catch(() => { /* ignore */ }); };
-        window.addEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
+        if (!this._aiKeysListenerBound) {
+            this._onAiKeysUpdated = () => { void this.refreshProviders({ force: true }).catch(() => { /* ignore */ }); };
+            window.addEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
+            this._aiKeysListenerBound = true;
+        }
         void this.refreshProviders()
             .then(() => this.maybeAutoConnectBridgeOllama())
             .catch((err) => { console['warn']('Chatbot bridge auto-connect failed:', err); });
@@ -644,7 +647,7 @@ export class ChatbotView {
             const connectStatus = document.getElementById('chatbot-ollama-connect-status');
             if (connectStatus)
                 connectStatus.textContent = 'Connected — Ollama is reachable via the extension bridge.';
-            await this.refreshProviders();
+            await this.refreshProviders({ force: true });
             void this.loadChatbotOllamaModels().catch(() => {});
             return;
         }
@@ -655,10 +658,14 @@ export class ChatbotView {
         if (statusEl && health.ok)
             statusEl.textContent = 'Extension bridge online — Ollama not connected yet.';
     }
-    async refreshProviders() {
+    async refreshProviders(options = {}) {
         if (this._refreshInFlight) {
             return this._refreshInFlight;
         }
+        if (!options.force && this._lastRefreshAt && Date.now() - this._lastRefreshAt < 5000) {
+            return Promise.resolve();
+        }
+        this._lastRefreshAt = Date.now();
         this._refreshInFlight = this._refreshProvidersInner().finally(() => {
             this._refreshInFlight = null;
         });
@@ -691,6 +698,12 @@ export class ChatbotView {
         this.applyConnectionState(resolved);
         this.updateOllamaSetupVisibility(resolved);
         this.updateOllamaModelGroupVisibility();
+        if (resolved.available.length === 0 && isHostedDashboard() && !isIdeDashboardSurface()) {
+            this.ensureHostedConnectUi();
+            const panel = document.getElementById('chatbot-ollama-setup') || document.getElementById('chatbot-bridge-connect-bar');
+            if (panel)
+                panel.style.display = 'block';
+        }
         if (resolved.available.some((provider) => provider.id === 'ollama') && !this.ollamaModels.length && !this.ollamaModelsLoading && !this._ollamaModelsLoadAttempted) {
             this._ollamaModelsLoadAttempted = true;
             void this.syncOllamaModelFromKeys().then(() => this.loadChatbotOllamaModels()).catch(() => {});
@@ -855,7 +868,7 @@ export class ChatbotView {
                     ? 'Bridge params detected — allow local network access if prompted, then click Connect local Ollama.'
                     : `Connected via ${result.apiBase || 'local data server'}. Run ollama serve, then click Connect local Ollama.`;
             }
-            await this.refreshProviders();
+            await this.refreshProviders({ force: true });
             return;
         }
         if (statusEl) {
@@ -905,7 +918,7 @@ export class ChatbotView {
             this.useBrowserOllama = true;
             if (statusEl)
                 statusEl.textContent = 'Connected — Ollama is reachable from this browser.';
-            await this.refreshProviders();
+            await this.refreshProviders({ force: true });
             void this.loadChatbotOllamaModels().catch(() => {});
             return;
         }
@@ -1216,8 +1229,11 @@ export class ChatbotView {
                 this.showPromptToast('Custom prompt reset to default');
             });
         }
-        // Load existing custom prompt
-        this.loadCustomPrompt();
+        // Load existing custom prompt (only once per view instance)
+        if (!this._customPromptLoaded) {
+            this._customPromptLoaded = true;
+            this.loadCustomPrompt();
+        }
         // Settings panel
         const settingsToggle = document.getElementById('chatbot-settings-toggle');
         const settingsPanel = document.getElementById('chatbot-settings-panel');
@@ -1293,7 +1309,7 @@ export class ChatbotView {
         this.showPromptToast(this.ollamaModel ? `Settings saved — model: ${this.ollamaModel}` : 'Settings saved');
         if (settingsPanel)
             settingsPanel.style.display = 'none';
-        void this.refreshProviders().catch((err) => { console['warn']('refreshProviders failed after saving settings:', err); });
+        void this.refreshProviders({ force: true }).catch((err) => { console['warn']('refreshProviders failed after saving settings:', err); });
     }
     showPromptToast(text) {
         const toast = document.createElement('div');
@@ -1844,6 +1860,10 @@ export class ChatbotView {
         }
     }
     destroy() {
-        // Cleanup event listeners if needed
+        if (this._onAiKeysUpdated) {
+            window.removeEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
+            this._onAiKeysUpdated = null;
+        }
+        this._aiKeysListenerBound = false;
     }
 }

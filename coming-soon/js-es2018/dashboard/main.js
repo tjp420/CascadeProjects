@@ -812,7 +812,8 @@ async function canExportFullReportServer() {
             _serverEntitlementCache = { ts: now, result: result };
             return result;
         }
-    } catch (e) { /* network error — fall through to client-side */ }
+    }
+    catch (e) { /* network error — fall through to client-side */ }
     var fallback = canExportFullReport();
     _serverEntitlementCache = { ts: now, result: fallback };
     return fallback;
@@ -2059,18 +2060,24 @@ function updateDropzoneGate() {
 const FREE_FINDING_CAP = 3;
 const PAID_TIER_NAMES = ['game_dev', 'agent', 'developer', 'team_pro', 'team', 'enterprise', 'executive', 'euai', 'eusprint', 'operator', 'continuous_shield', 'runtime_shield', 'universal', 'pro', 'startup', 'growth', 'admin', 'superuser', 'compliance'];
 function isPaidUser() {
-    if (!hasValidToken()) return false;
+    if (!hasValidToken())
+        return false;
     const payload = getActiveTokenPayload();
-    if (!payload) return false;
+    if (!payload)
+        return false;
     const tier = String(payload.tier || payload.product || '').toLowerCase();
-    if (PAID_TIER_NAMES.includes(tier)) return true;
+    if (PAID_TIER_NAMES.includes(tier))
+        return true;
     const role = String(payload.role || '').toLowerCase();
-    if (role === 'admin' || role === 'superuser') return true;
-    if (Array.isArray(payload.features) && payload.features.includes('all_modules')) return true;
+    if (role === 'admin' || role === 'superuser')
+        return true;
+    if (Array.isArray(payload.features) && payload.features.includes('all_modules'))
+        return true;
     return false;
 }
 function basename(p) {
-    if (!p) return '—';
+    if (!p)
+        return '—';
     const parts = String(p).replace(/\\/g, '/').split('/').filter(Boolean);
     return parts[parts.length - 1] || p;
 }
@@ -2092,18 +2099,23 @@ function redactFindingForFree(issue) {
     };
 }
 function redactReportForFreeTier(report) {
-    if (!report || typeof report !== 'object') return report;
-    if (isPaidUser()) return report;
+    var _m;
+    if (!report || typeof report !== 'object')
+        return report;
+    if (isPaidUser())
+        return report;
     const issues = Array.isArray(report.detectedIssues) ? report.detectedIssues : [];
     const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     const sorted = issues.slice().sort((a, b) => {
-        const sa = severityOrder[a.severity] ?? 4;
-        const sb = severityOrder[b.severity] ?? 4;
-        if (sa !== sb) return sa - sb;
+        var _m, _o;
+        const sa = (_m = severityOrder[a.severity]) !== null && _m !== void 0 ? _m : 4;
+        const sb = (_o = severityOrder[b.severity]) !== null && _o !== void 0 ? _o : 4;
+        if (sa !== sb)
+            return sa - sb;
         return (b.count || 1) - (a.count || 1);
     });
     const top3 = sorted.slice(0, FREE_FINDING_CAP).map(redactFindingForFree);
-    const totalIssueCount = report.issueCount ?? issues.length;
+    const totalIssueCount = (_m = report.issueCount) !== null && _m !== void 0 ? _m : issues.length;
     const issueTypeCounts = issues.map(i => ({ type: i.type, severity: i.severity, count: i.count || 1 }));
     return {
         ...report,
@@ -2128,12 +2140,15 @@ function redactReportForFreeTier(report) {
     };
 }
 function showUpgradeBannerIfFree(report) {
-    if (!report || !report._redacted) return;
+    if (!report || !report._redacted)
+        return;
     const banner = document.getElementById('report-upgrade-banner');
-    if (!banner) return;
+    if (!banner)
+        return;
     const total = report.issueCount || 0;
     const countEl = banner.querySelector('[data-upgrade-count]');
-    if (countEl) countEl.textContent = String(total);
+    if (countEl)
+        countEl.textContent = String(total);
     banner.style.display = 'flex';
 }
 function applyReportGating(report) {
@@ -3849,7 +3864,8 @@ if (jsonPasteBtn && jsonPasteInput) {
 }
 // NOTE: renderPreview extracted to ui-renderer.js
 (function wrapRenderPreview() {
-    if (typeof window.renderPreview !== 'function' || window.__renderPreviewWrapped) return;
+    if (typeof window.renderPreview !== 'function' || window.__renderPreviewWrapped)
+        return;
     const original = window.renderPreview;
     window.__renderPreviewWrapped = true;
     window.renderPreview = function gatedRenderPreview(report) {

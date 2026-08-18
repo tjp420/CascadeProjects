@@ -48,7 +48,7 @@ function rateLimit(options = {}) {
 
 // Whitelist the deployed Pages/dashboard hosts and common local dev origins.
 // Use the environment variable `ALLOWED_ORIGINS` to override.
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://cascadeprojects-yzzd.onrender.com,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4000,http://127.0.0.1:4000,https://simplebeacon.pages.dev').split(',');
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://simplebeacon.ai,https://simplebeacon.onrender.com,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4000,http://127.0.0.1:4000,https://simplebeacon.pages.dev').split(',');
 
 app.use(cors({
     origin: (origin, callback) => {

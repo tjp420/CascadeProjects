@@ -1,16 +1,9 @@
-import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
+import { escapeHtml, formatPercent, formatNumber, showToast, isRemoteDashboardHost, isAbsoluteLocalPath } from '../utils.js?v=20260731audit2';
 import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage } from '../utils-lib/dom.js?v=20260725dropfix2';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260726sevfix1';
 import { runLocalScan } from '../services/localScanService.js?v=20260724fix1';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix2';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260725dropfix2';
-function isRemoteDashboardHost() {
-    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-}
-function isAbsoluteLocalPath(path) {
-    const raw = String(path || '').trim();
-    return /^[a-zA-Z]:[\\/]|^\\|^\//.test(raw) && !/^https?:\/\//i.test(raw);
-}
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260817unlimited1';
 /**
  * Resolve initial scan root.
  * @param {number} report

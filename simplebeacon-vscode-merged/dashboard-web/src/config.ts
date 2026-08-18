@@ -3,7 +3,7 @@
  * Override with the `sb_api_base` query parameter, e.g.:
  *   http://localhost:5173/?sb_api_base=http://127.0.0.1:8081/api#/signin
  */
-export const DEFAULT_API_BASE = 'http://127.0.0.1:58000';
+export const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:58000';
 
 export function getApiBase(): string {
   if (typeof window === 'undefined') return DEFAULT_API_BASE;
@@ -35,11 +35,11 @@ export function getApiBase(): string {
       }
       return DEFAULT_API_BASE;
     }
-    // Canonical production domain serves the API same-origin.
-    if (host === 'simplebeacon.ai') {
+    // Canonical production + Cloudflare Pages (preview) proxy /api/* via the Worker — same-origin.
+    if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
       return window.location.origin;
     }
-    // Cloudflare Pages previews and other non-local domains talk to the production API.
+    // Other non-local domains fall back to production API (may require CORS on backend).
     if (!host.endsWith('.onrender.com')) {
       return 'https://simplebeacon.ai';
     }
@@ -56,13 +56,25 @@ export function getApiBase(): string {
  */
 export function authHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** True when the dashboard is served from production marketing host (not localhost). */
+export function isHostedProductionDashboard(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname || '';
+  return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev');
+}
+
+/** Whether the browser has a JWT available for API calls. */
+export function hasAuthToken(): boolean {
+  return Boolean(authHeaders().Authorization) && !isTokenExpired();
 }
 
 export function isTokenExpired(): boolean {
   if (typeof window === 'undefined') return false;
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   if (!token) return true;
   try {
     const parts = token.split('.');
@@ -78,6 +90,7 @@ export function isTokenExpired(): boolean {
 export function clearAuthAndRedirect(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('sb_token');
+  localStorage.removeItem('sb-token');
   localStorage.removeItem('auth_token');
   localStorage.removeItem('sb_user');
   if (window.location.hash && window.location.hash.includes('signin')) return;

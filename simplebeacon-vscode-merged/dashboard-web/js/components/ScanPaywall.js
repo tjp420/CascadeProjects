@@ -1,7 +1,7 @@
 // simplebeacon-ignore documentation
 import { escapeHtml, formatNumber } from '../utils.js';
 
-const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+const DEFAULT_CHECKOUT = 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
 /**
  * Build preview findings from scan result.
@@ -117,7 +117,7 @@ export function renderScanPaywall(publicSummary, options = {}) {
   const previewFindings = publicSummary?.previewFindings || [];
   const trust = publicSummary?.trustSignals || {};
   const checkoutUrl = options.checkoutUrl || DEFAULT_CHECKOUT;
-  const priceLabel = options.auditPriceLabel || '$499';
+  const priceLabel = options.auditPriceLabel || '$999';
   const status = summary.status || 'REVIEW';
   const total = summary.totalIssuesFound ?? '—';
   const hasCritical = (counts.critical ?? 0) > 0;

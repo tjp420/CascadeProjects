@@ -436,17 +436,34 @@ export function renderEmptyState(opts) {
       ${actionsHtml}
     </div>
   `.trim();
-
-  if (actions.some(a => typeof a.onClick === 'function')) {
+  // If any actions include JS handlers, provide an attach that builds the DOM safely
+  if (actions.some(a => typeof a.onClick === 'function' || typeof a.handler === 'function')) {
     return {
       html,
       attach(container) {
-        actions.forEach((action, idx) => {
-          if (typeof action.onClick !== 'function') return;
-          const selector = action.id ? `#${CSS.escape(action.id)}` : `[data-action-index="${idx}"]`;
-          const btn = container.querySelector(selector);
-          if (btn) btn.addEventListener('click', action.onClick);
-        });
+        const el = createElement('div', { className: 'empty-state card' });
+        const iconWrapperEl = createElement('div', { className: 'empty-state-icon-wrapper' });
+        if (iconWrapper === 'emoji') {
+          iconWrapperEl.appendChild(createElement('div', { className: 'empty-state-icon', style: 'font-size:3rem;background:none;width:auto;height:auto;' }, [String(icon || '')]));
+        } else {
+          const svgWrap = createElement('div', { className: 'empty-state-icon' });
+          svgWrap.innerHTML = String(icon || '');
+          iconWrapperEl.appendChild(svgWrap);
+        }
+        el.appendChild(iconWrapperEl);
+        el.appendChild(createElement('p', { className: 'empty-state-title' }, [String(title || '')]));
+        if (body) el.appendChild(createElement('p', { className: 'empty-state-body' }, [String(body)]));
+        if (actions.length) {
+          const actionsEl = createElement('div', { className: 'empty-state-actions' });
+          actions.forEach((a) => {
+            const btn = createElement('button', { className: `btn ${String(a.className || 'btn-primary')}`, id: a.id || undefined }, [String(a.label || '')]);
+            if (typeof a.onClick === 'function') btn.addEventListener('click', a.onClick);
+            if (typeof a.handler === 'function') btn.addEventListener('click', a.handler);
+            actionsEl.appendChild(btn);
+          });
+          el.appendChild(actionsEl);
+        }
+        if (container && typeof container.appendChild === 'function') container.appendChild(el);
       }
     };
   }
@@ -475,6 +492,7 @@ export function isIdeDashboardSurface() {
   if (typeof window === 'undefined') return false;
   if (window.__SB_IDE_EMBED__) return true;
   try { if (document.documentElement.hasAttribute('data-ide-embed')) return true; } catch { /* ignore */ }
+  try { if (typeof window.acquireVsCodeApi === 'function') return true; } catch { /* ignore */ }
   return window.self !== window.top;
 }
 
@@ -518,12 +536,15 @@ export function isFilePickerBlockedError(err) {
   return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(msg);
 }
 
-/** True when a webkitdirectory FileList length matches a known browser cap (~3k on Chrome). */
+/** True when a webkitdirectory FileList length matches a known browser cap (~3k or ~8k on Chrome). */
 export function isLikelyWebkitDirectoryFileCap(fileCount) {
   const n = Number(fileCount) || 0;
   if (n < 2000) return false;
   const knownCaps = [2048, 2500, 3000, 3250, 4096, 8192, 10000];
-  return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
+  if (knownCaps.includes(n)) return true;
+  if (n >= 2900 && n <= 3300) return true;
+  if (n >= 7500 && n <= 8500) return true;
+  return false;
 }
 
 /**
@@ -606,4 +627,40 @@ export function browserFolderCapMessage(fileCount) {
   const n = Number(fileCount) || 0;
   return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
     + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
+}
+
+/**
+ * True when a directory drop/pick only exposed a tiny FileList (common for system
+ * folders or IDE drops that do not recurse). Scanning these as a full repo yields
+ * false PASS reports (e.g. "Windows" with 1 file).
+ * @param {number} fileCount
+ * @param {{ isDirectoryDrop?: boolean, hasRelativePath?: boolean }} [opts]
+ */
+export function isIncompleteFolderDrop(fileCount, opts = {}) {
+  if (!opts.isDirectoryDrop) return false;
+  const n = Number(fileCount) || 0;
+  if (n > 2) return false;
+  // 1-2 files is always incomplete for a directory drop, even if
+  // webkitRelativePath is present (e.g., OS Explorer drop of a protected
+  // directory like C:\Windows that only exposes 1 file).
+  return n > 0;
+}
+
+/** Copy when refusing a false full-repo PASS from an incomplete folder drop. */
+export function incompleteFolderDropMessage(folderName) {
+  const label = folderName ? `"${folderName}"` : 'This folder';
+  return `${label} only exposed 1–2 files in the browser (incomplete access — common for OS/system directories). `
+    + 'No full-repo PASS was recorded. Use Select Folder on a project tree, or run: '
+    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+}
+
+/** Copy when browser local scan hits an inventory cap (legacy — cap removed; RAM is the practical limit). */
+export function browserLocalScanCapMessage(maxFiles) {
+  const n = Number(maxFiles) || 0;
+  if (n >= Number.MAX_SAFE_INTEGER - 1) {
+    return 'Browser scan has no file cap — very large folders may require significant RAM. CLI: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+  }
+  return `Browser local scan inventory is capped at ${n.toLocaleString()} files. `
+    + 'Results may be truncated. For full coverage run: '
+    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
 }

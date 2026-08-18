@@ -86,6 +86,38 @@ function _isLocalhost() {
   return /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
 
+function _isHostedHttps() {
+  if (typeof window === 'undefined' || !window.location) return false;
+  if (_isLocalhost()) return false;
+  return window.location.protocol === 'https:';
+}
+
+function _redactPayload(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(_redactPayload);
+  const out = {};
+  for (const key of Object.keys(obj)) {
+    const lower = key.toLowerCase();
+    if (lower === 'token' || lower === 'password' || lower === 'apikey' || lower === 'api_key' || lower === 'secret') {
+      out[key] = '[REDACTED]';
+    } else {
+      out[key] = _redactPayload(obj[key]);
+    }
+  }
+  return out;
+}
+
+function _postNotifyBeacon(url, entry) {
+  try {
+    const payload = _redactPayload(entry.payload || {});
+    const beaconUrl = String(url).replace(/\/api\/notify\/?$/, '/api/notify/beacon')
+      + '?type=' + encodeURIComponent(entry.type)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+    const img = new Image();
+    img.src = beaconUrl;
+  } catch (_) { /* ignore */ }
+}
+
 function _notifyUrlFromBase(notifyBase) {
   const base = String(notifyBase || '').replace(/\/+$/, '');
   if (!base) return null;
@@ -119,19 +151,16 @@ function _postNotify(entry) {
       const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
       if (resp === null) {
         _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
-        try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify network failure', url); } catch (e) {}
         if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
         return;
       }
       if (!resp.ok) {
-        try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify returned', resp.status, url); } catch (e) {}
         if (resp.status === 404) {
           _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
         }
       }
     }
     catch (err) {
-      try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify unexpected error', err, url); } catch (e) {}
     }
   })();
 }

@@ -123,11 +123,11 @@ export class Router {
             this.onNavigate(view, params);
             this.updateNav(view);
             try {
+                // Ensure viewport scroll resets when navigating (important for IDE embeds)
                 var sc = document.querySelector('#app-main') || document.querySelector('.app-main') || document.scrollingElement || document.documentElement;
                 if (sc && typeof sc.scrollTo === 'function') {
                     sc.scrollTo(0, 0);
-                }
-                else if (typeof window.scrollTo === 'function') {
+                } else if (typeof window.scrollTo === 'function') {
                     window.scrollTo(0, 0);
                 }
             }

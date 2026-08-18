@@ -323,7 +323,7 @@ export function ToolSchemaValidationDashboard() {
                     <Save className="h-3.5 w-3.5" /> Save
                   </Button>
                   {!BUILTIN_TOOLS_HAS(selectedTool) && (
-                    <Button variant="ghost" size="sm" onClick={() => deleteSchema(selectedTool)}>
+                    <Button variant="ghost" size="sm" aria-label="Delete schema" onClick={() => deleteSchema(selectedTool)}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   )}

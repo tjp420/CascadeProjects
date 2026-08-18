@@ -1,5 +1,5 @@
 import { escapeHtml, formatNumber } from '../utils.js';
-const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+const DEFAULT_CHECKOUT = 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 /**
  * Build preview findings from scan result.
  * Extracts top findings grouped by type/severity for teaser display.
@@ -115,7 +115,7 @@ export function renderScanPaywall(publicSummary, options = {}) {
     const previewFindings = (publicSummary === null || publicSummary === void 0 ? void 0 : publicSummary.previewFindings) || [];
     const trust = (publicSummary === null || publicSummary === void 0 ? void 0 : publicSummary.trustSignals) || {};
     const checkoutUrl = options.checkoutUrl || DEFAULT_CHECKOUT;
-    const priceLabel = options.auditPriceLabel || '$499';
+    const priceLabel = options.auditPriceLabel || '$999';
     const status = summary.status || 'REVIEW';
     const total = (_a = summary.totalIssuesFound) !== null && _a !== void 0 ? _a : '—';
     const hasCritical = ((_b = counts.critical) !== null && _b !== void 0 ? _b : 0) > 0;

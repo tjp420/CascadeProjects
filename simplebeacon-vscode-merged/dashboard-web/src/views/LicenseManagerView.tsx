@@ -352,6 +352,7 @@ export function LicenseManagerView() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label="Revoke seat"
                       onClick={() => handleRevoke(seat.seatId, seat.email)}
                       disabled={revokingSeatId === seat.seatId}
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"

@@ -1308,7 +1308,7 @@ async function runUploadCommand(options) {
 }
 
 async function uploadReportToDashboard(report, options) {
-    const apiUrl = (options.apiUrl || process.env.SIMPLEBEACON_API_URL || 'https://cascadeprojects-yzzd.onrender.com').replace(/\/$/, '');
+    const apiUrl = (options.apiUrl || process.env.SIMPLEBEACON_API_URL || 'https://simplebeacon.ai').replace(/\/$/, '');
     const token = options.apiToken;
     const abortController = new AbortController();
     const timer = setTimeout(() => abortController.abort(), 60000);

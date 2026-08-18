@@ -1,7 +1,8 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { authService } from './authService.js?v=20260716cachefix1';
 import { fetchUserAiKeys } from './aiKeysService.js';
-import { scanService } from './scanService.js';
+// scanService is loaded lazily in scanPath() to avoid a circular import:
+// scanService → dashboard-export.browser → analyzeService → scanService
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { notifyDownloadComplete } from '../utils-lib/notify.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
@@ -344,6 +345,7 @@ export async function fetchUnderstandSnippet(code, options = {}) {
  * @returns {any}
  */
 export async function scanPath(projectPath, options = {}) {
+  const { scanService } = await import('./scanService.js');
   return scanService.runScan(projectPath, options);
 }
 
@@ -375,7 +377,6 @@ export function slimReportForSummary(report) {
       ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed,
       fictionJsonFilesScanned: report.fictionJsonFilesScanned,
       severityCounts: report.severityCounts,
-      scanScope: report.scanScope,
       scanTargetProfile: report.scanTargetProfile,
       handoffEligible: report.handoffEligible,
       benchmarkScan: report.benchmarkScan,
@@ -2626,6 +2627,12 @@ export function assertCompleteScanComplianceFresh(report, checklist) {
 export function assertCompleteScanFileReductionFresh(scan) {
   if (!scan || typeof scan !== 'object') {
     throw new Error('File reduction scan returned no payload');
+  }
+  const scope = scan.scanScope || {};
+  if (scope.rescanRecommended === true || scope.reportHealth === 'stale-full-tree-scan') {
+    const hint = scope.limitations?.find(Boolean)
+      || 'Re-run file reduction after updating SimpleBeacon (github-cache/ may have polluted inventory).';
+    throw new Error(`File reduction scan is stale — ${hint}`);
   }
   const hasSignal = scan.fileReductionPlan?.totals?.safeToDeleteBytes != null
     || scan.fileReductionPlan?.safeToDelete?.topDirectories?.length

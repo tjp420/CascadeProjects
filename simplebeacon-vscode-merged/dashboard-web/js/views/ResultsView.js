@@ -205,7 +205,6 @@ export class ResultsView {
         if (c2) _issuesEmptyState.attach(c2);
       }
     } catch (e) {
-      try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) console.warn('[ResultsView] emptyState attach failed', e); } catch (err) {}
     }
 
     this.bindFilters(el);

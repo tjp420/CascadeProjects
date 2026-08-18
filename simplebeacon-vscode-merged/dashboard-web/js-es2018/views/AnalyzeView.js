@@ -1,12 +1,13 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260726embedfix1';
+import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState, isRemoteDashboardHost, isAbsoluteLocalPath } from '../utils.js?v=20260731audit2';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi, isIncompleteFolderDrop, incompleteFolderDropMessage } from '../utils-lib/dom.js?v=20260817webkit8k1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
-import { LocalScanService } from '../services/localScanService.js?v=20260725dropfix3';
+import { LocalScanService } from '../services/localScanService.js?v=20260804largefolder1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260726dropfix2';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard, canUseParentBridgeFetch } from '../services/localAgentService.js?v=20260726dropfix4';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260726dropfix3';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260817unlimited1';
 import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260726browserdrop2';
+import { realtimeAnalysisService } from '../services/realtimeAnalysisService.js?v=20260731rt1';
 
 const DROP_SKIP_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', '.simplebeacon',
@@ -14,16 +15,9 @@ const DROP_SKIP_DIRS = new Set([
     '.husky', '.windsurf', '.wrangler', 'bower_components'
 ]);
 
-function isRemoteDashboardHost() {
-    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-}
 function isBrowserPrivateScanSource(report) {
     const src = report?.scanSource;
     return src === 'browser-local' || src === 'browser-sandbox';
-}
-function isAbsoluteLocalPath(path) {
-    const raw = String(path || '').trim();
-    return /^[a-zA-Z]:[\\/]|^\\|^\//.test(raw) && !/^https?:\/\//i.test(raw);
 }
 /** Scan context for hosted (Pages / simplebeacon.ai) vs localhost dashboard. */
 function getHostedAnalyzeContext() {
@@ -38,7 +32,7 @@ function getHostedAnalyzeContext() {
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260726sevfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260716cachefix1';
-import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
+import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths, basenamePath } from '../lib/analyzePathSuggestions.js?v=20260817basename1';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260716cachefix1';
@@ -278,7 +272,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     {
         sku: 'clearance499',
         label: 'Executive clearance PDF',
-        price: '$499',
+        price: '$999',
         category: 'Client deliverable',
         tagline: 'Gate, fiction digest, compliance checklist, executive PDF — 48-hour operator review',
         engines: ['simplebeacon', 'mock-scan', 'compliance'],
@@ -1267,17 +1261,6 @@ function saveAnalyzePrefs(prefs) {
     localStorage.setItem(ANALYZE_PREFS_KEY, JSON.stringify({ ...existing, ...prefs }));
 }
 /**
- * Basename path.
- * @param {string} projectPath
- * @returns {any}
- */
-function basenamePath(projectPath) {
-    if (!projectPath)
-        return '';
-    const parts = projectPath.replace(/\\/g, '/').split('/').filter(Boolean);
-    return parts[parts.length - 1] || projectPath;
-}
-/**
  * Format elapsed.
  * @param {Array} ms
  * @returns {any}
@@ -1593,6 +1576,7 @@ export class AnalyzeView {
         ${this.busy ? this.renderProgress() : ''}
 
         <div id="analyze-file-results-section" class="analyze-file-results-section"></div>
+        <div id="realtime-stream-results"></div>
         <div id="analyze-results">${this.renderResults()}</div>
 
       <!-- Directory browser modal -->
@@ -1685,7 +1669,7 @@ export class AnalyzeView {
         const inVsCode = hasVsCodeApi || inVsCodeHost;
         const badge = inVsCode
             ? `<span class="ti-badge analyze-vscode-active-badge">● Active</span>`
-            : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
+            : `<a href="/downloads/simplebeacon.vsix" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
         const subtitle = inVsCode
             ? (hasVsCodeApi
                 ? 'Extension is running in this editor. Enhanced analysis active: full-directory scan, real-time monitoring, and deep code insights.'
@@ -2870,7 +2854,7 @@ export class AnalyzeView {
                 </select>
               </div>
               <div class="analyze-realtime-monitor-wrap">
-                <label class="text-muted" style="font-size: var(--font-size-xs);">Real-time monitoring</label>
+                <label class="text-muted" style="font-size: var(--font-size-xs); display:flex; align-items:center; gap:0.4rem;">Real-time monitoring <span id="realtime-ws-status" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--text-muted);opacity:0.4;" title="WebSocket: disconnected"></span></label>
                 <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
                   <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
                   <span>Watch filesystem changes and auto-rescan</span>
@@ -3243,7 +3227,7 @@ export class AnalyzeView {
           <div class="analyze-engines-col">
             <h3 class="analyze-engines-col-title">EU AI Act profile extras</h3>
             <ul class="analyze-mode-steps">${euList}</ul>
-            <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="/dashboard/deliverables">$499 PDF</a> and agency packs.</p>
+            <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="/dashboard/deliverables">$999 PDF</a> and agency packs.</p>
           </div>
         </div>
         <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
@@ -3953,7 +3937,7 @@ export class AnalyzeView {
               <li>Type a folder path or click <strong>Browse</strong> to select a directory</li>
               <li>Switch to <strong>Complete</strong> mode to run all analysis engines</li>
               <li>Drop a source file on the Quick File Check area for instant in-browser analysis</li>
-              <li>Install the <a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener">VS Code Extension</a> for real-time monitoring</li>
+              <li>Install the <a href="/downloads/simplebeacon.vsix" target="_blank" rel="noopener">VS Code Extension</a> for real-time monitoring</li>
               `}
             </ul>
           </div>
@@ -4216,7 +4200,7 @@ export class AnalyzeView {
         const MAX_ROWS = 200;
         const rows = rawIssues.slice(0, MAX_ROWS);
         const hidden = rawIssues.length - rows.length;
-        const checkoutUrl = ((_b = (_a = this.app.billingService) === null || _a === void 0 ? void 0 : _a.getAuditCheckoutUrl) === null || _b === void 0 ? void 0 : _b.call(_a)) || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+        const checkoutUrl = ((_b = (_a = this.app.billingService) === null || _a === void 0 ? void 0 : _a.getAuditCheckoutUrl) === null || _b === void 0 ? void 0 : _b.call(_a)) || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
         const lockedNote = locked
             ? `<div class="card mb-3" style="padding:var(--space-3);border-color:rgba(99,102,241,0.35);">
           <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
@@ -4817,6 +4801,228 @@ export class AnalyzeView {
             return;
         pathInput.value = fullPath ? formatPathInputValue(fullPath) : '';
     }
+    _updateRealtimeStatusIndicator(state) {
+        const dot = this._root?.querySelector('#realtime-ws-status');
+        if (!dot)
+            return;
+        const colors = {
+            connected: 'var(--success-color, #22c55e)',
+            connecting: 'var(--warning-color, #f59e0b)',
+            reconnecting: 'var(--warning-color, #f59e0b)',
+            error: 'var(--danger-color, #ef4444)',
+            disconnected: 'var(--text-muted, #6b7280)'
+        };
+        const labels = {
+            connected: 'WebSocket: connected',
+            connecting: 'WebSocket: connecting…',
+            reconnecting: 'WebSocket: reconnecting…',
+            error: 'WebSocket: error',
+            disconnected: 'WebSocket: disconnected'
+        };
+        dot.style.background = colors[state] || colors.disconnected;
+        dot.style.opacity = state === 'disconnected' ? '0.4' : '1';
+        dot.title = labels[state] || labels.disconnected;
+    }
+    _renderRealtimeStreamResults() {
+        const container = this._root?.querySelector('#realtime-stream-results');
+        if (!container) return;
+        const chunks = this._realtimeChunks || [];
+        if (chunks.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        if (!this._realtimeFilter) this._realtimeFilter = { severity: 'all', sort: 'chunk' };
+        const filter = this._realtimeFilter;
+        const totalIssues = chunks.reduce((sum, c) => sum + (c.result?.issues?.length || 0), 0);
+        const avgConfidence = chunks.length > 0
+            ? (chunks.reduce((sum, c) => sum + (c.result?.confidence || 0), 0) / chunks.length * 100).toFixed(0)
+            : '—';
+        const totalTime = chunks.reduce((sum, c) => sum + (c.result?.processingTime || 0), 0);
+        // Build flat issue list with chunk reference and stable row ID
+        const allIssues = chunks.flatMap((c, chunkIdx) => {
+            const issues = c.result?.issues || [];
+            return issues.map((issue, issueIdx) => ({
+                ...issue,
+                _chunkId: c.chunkId || '—',
+                _rowId: `rt-row-${chunkIdx}-${issueIdx}`,
+                _chunkResult: c.result
+            }));
+        });
+        if (!this._realtimeExpanded) this._realtimeExpanded = new Set();
+        // Apply severity filter
+        const filtered = filter.severity === 'all'
+            ? allIssues
+            : allIssues.filter((i) => (i.severity || '').toLowerCase() === filter.severity);
+        // Apply sort
+        const severityWeight = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+        const sorted = filter.sort === 'severity'
+            ? [...filtered].sort((a, b) => (severityWeight[a.severity] ?? 99) - (severityWeight[b.severity] ?? 99))
+            : filtered; // 'chunk' = insertion order (default)
+        const sevCounts = {
+            critical: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'critical').length,
+            high: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'high').length,
+            medium: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'medium').length,
+            low: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'low').length
+        };
+        const sevButton = (sev, label, count) => {
+            const isActive = filter.severity === sev;
+            return `<button type="button" class="btn ${isActive ? 'btn-primary' : 'btn-ghost'} btn-sm rt-sev-filter" data-sev="${sev}" style="border-radius:999px;margin:2px;">${label} <span class="gate-badge ${sev === 'critical' || sev === 'high' ? 'warn' : 'pass'}" style="margin-left:4px;font-size:0.7rem;padding:1px 6px;">${count}</span></button>`;
+        };
+        const sortButton = (sort, label) => {
+            const isActive = filter.sort === sort;
+            return `<button type="button" class="btn ${isActive ? 'btn-primary' : 'btn-ghost'} btn-sm rt-sort-toggle" data-sort="${sort}" style="border-radius:999px;margin:2px;">${label}</button>`;
+        };
+        const issueRows = sorted.map((issue) => {
+            const isExpanded = this._realtimeExpanded.has(issue._rowId);
+            const detailJson = escapeHtml(JSON.stringify({
+                type: issue.type || null,
+                severity: issue.severity || null,
+                category: issue.category || issue.rule || null,
+                message: issue.message || issue.description || null,
+                chunkId: issue._chunkId,
+                chunkMetadata: {
+                    method: issue._chunkResult?.method || null,
+                    confidence: issue._chunkResult?.confidence ?? null,
+                    processingTime: issue._chunkResult?.processingTime ?? null,
+                    recommendations: issue._chunkResult?.recommendations || []
+                }
+            }, null, 2));
+            return `
+              <tr class="rt-issue-row" data-row-id="${escapeHtml(issue._rowId)}" style="cursor:pointer;${isExpanded ? 'background:var(--bg-hover, rgba(0,0,0,0.03));' : ''}">
+                <td><span class="gate-badge ${issue.severity === 'critical' || issue.severity === 'high' ? 'warn' : 'pass'}">${escapeHtml(issue.severity || '—')}</span></td>
+                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue.category || issue.rule || '—')}</td>
+                <td><code style="font-size:var(--font-size-xs);">${escapeHtml(issue.message || issue.description || '—')}</code></td>
+                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue._chunkId)} ${isExpanded ? '▲' : '▼'}</td>
+              </tr>
+              ${isExpanded ? `
+              <tr class="rt-detail-row" data-row-id="${escapeHtml(issue._rowId)}">
+                <td colspan="4" style="padding:var(--space-3);background:var(--bg-alt, #f9fafb);border-top:1px solid var(--border);">
+                  <pre style="margin:0;font-size:var(--font-size-xs);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;">${detailJson}</pre>
+                </td>
+              </tr>` : ''}`;
+        }).join('');
+        const hiddenCount = totalIssues - filtered.length;
+        container.innerHTML = `
+          <div class="card" style="padding:var(--space-4);margin-top:var(--space-4);border:1px solid var(--border);border-radius:8px;">
+            <div class="section-heading" style="margin-bottom:var(--space-3);">
+              <h2 style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-lg);">
+                <span style="font-size:1.25rem;">⚡</span> Live Analysis Stream
+                <span class="gate-badge pass" style="margin-left:0.5rem;font-size:0.7rem;">${chunks.length} chunks</span>
+              </h2>
+            </div>
+            <div class="metrics-row mb-4">
+              <div class="metric-chip"><strong>${chunks.length}</strong> chunks</div>
+              <div class="metric-chip"><strong>${totalIssues}</strong> issues</div>
+              <div class="metric-chip"><strong>${avgConfidence}%</strong> avg confidence</div>
+              <div class="metric-chip"><strong>${totalTime}ms</strong> total time</div>
+            </div>
+            ${totalIssues > 0 ? `
+              <div style="margin-bottom:var(--space-3);">
+                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2);">
+                  <span class="text-muted" style="font-size:var(--font-size-xs);font-weight:600;">Filter:</span>
+                  ${sevButton('all', 'All', totalIssues)}
+                  ${sevButton('critical', 'Critical', sevCounts.critical)}
+                  ${sevButton('high', 'High', sevCounts.high)}
+                  ${sevButton('medium', 'Medium', sevCounts.medium)}
+                  ${sevButton('low', 'Low', sevCounts.low)}
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                  <span class="text-muted" style="font-size:var(--font-size-xs);font-weight:600;">Sort:</span>
+                  ${sortButton('chunk', 'Chunk order')}
+                  ${sortButton('severity', 'Severity')}
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap;">
+                <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">${filtered.length} shown${hiddenCount > 0 ? ` · ${hiddenCount} filtered out` : ''}</p>
+                <div style="display:flex;gap:var(--space-1);">
+                  <button type="button" class="btn btn-ghost btn-sm rt-export-csv" style="font-size:var(--font-size-xs);">Export CSV</button>
+                  <button type="button" class="btn btn-ghost btn-sm rt-export-json" style="font-size:var(--font-size-xs);">Export JSON</button>
+                </div>
+              </div>
+              ${filtered.length > 0 ? `
+              <div style="overflow-x:auto;">
+                <table style="width:100%;font-size:var(--font-size-sm);border-collapse:collapse;">
+                  <thead>
+                    <tr style="text-align:left;border-bottom:1px solid var(--border);">
+                      <th style="padding:0.5rem;">Severity</th>
+                      <th style="padding:0.5rem;">Category</th>
+                      <th style="padding:0.5rem;">Message</th>
+                      <th style="padding:0.5rem;">Chunk</th>
+                    </tr>
+                  </thead>
+                  <tbody>${issueRows}</tbody>
+                </table>
+              </div>` : '<p class="text-muted" style="font-size:var(--font-size-sm);">No issues match the active filter.</p>'}` : '<p class="text-muted" style="font-size:var(--font-size-sm);">No issues detected in streamed chunks.</p>'}
+          </div>`;
+        // Wire filter/sort button handlers
+        container.querySelectorAll('.rt-sev-filter').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                this._realtimeFilter = { ...this._realtimeFilter, severity: btn.dataset.sev };
+                this._renderRealtimeStreamResults();
+            });
+        });
+        container.querySelectorAll('.rt-sort-toggle').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                this._realtimeFilter = { ...this._realtimeFilter, sort: btn.dataset.sort };
+                this._renderRealtimeStreamResults();
+            });
+        });
+        // Wire issue row click handlers for expand/collapse
+        container.querySelectorAll('.rt-issue-row').forEach((row) => {
+            row.addEventListener('click', () => {
+                const rowId = row.dataset.rowId;
+                if (this._realtimeExpanded.has(rowId)) {
+                    this._realtimeExpanded.delete(rowId);
+                } else {
+                    this._realtimeExpanded.add(rowId);
+                }
+                this._renderRealtimeStreamResults();
+            });
+        });
+        // Wire export buttons
+        const exportCsvBtn = container.querySelector('.rt-export-csv');
+        const exportJsonBtn = container.querySelector('.rt-export-json');
+        const exportData = sorted.map((issue) => ({
+            severity: issue.severity || '',
+            category: issue.category || issue.rule || '',
+            message: issue.message || issue.description || '',
+            chunkId: issue._chunkId || ''
+        }));
+        const ts = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', () => {
+                try {
+                    downloadCsv(exportData, `realtime-issues-${ts}.csv`, ['severity', 'category', 'message', 'chunkId']);
+                    showToast(`Exported ${exportData.length} issues to CSV`, 'success');
+                } catch (err) {
+                    showToast('CSV export failed: ' + err.message, 'error');
+                }
+            });
+        }
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', () => {
+                try {
+                    const jsonData = sorted.map((issue) => ({
+                        type: issue.type || null,
+                        severity: issue.severity || null,
+                        category: issue.category || issue.rule || null,
+                        message: issue.message || issue.description || null,
+                        chunkId: issue._chunkId || null,
+                        chunkMetadata: {
+                            method: issue._chunkResult?.method || null,
+                            confidence: issue._chunkResult?.confidence ?? null,
+                            processingTime: issue._chunkResult?.processingTime ?? null,
+                            recommendations: issue._chunkResult?.recommendations || []
+                        }
+                    }));
+                    downloadJson(jsonData, `realtime-issues-${ts}.json`);
+                    showToast(`Exported ${jsonData.length} issues to JSON`, 'success');
+                } catch (err) {
+                    showToast('JSON export failed: ' + err.message, 'error');
+                }
+            });
+        }
+    }
     updateAgentStatusUI(root, text = '', available = false) {
         var _a;
         const wrap = root === null || root === void 0 ? void 0 : root.querySelector('#agent-status-wrap');
@@ -4905,14 +5111,23 @@ export class AnalyzeView {
         wizard.appendChild(subtitle);
         const step1 = document.createElement('div');
         step1.className = 'agent-wizard-step';
-        const downloadLink = document.createElement('a');
-        downloadLink.className = 'btn btn-primary agent-download-btn';
-        downloadLink.href = getAgentDownloadUrl(platform);
-        downloadLink.target = '_blank';
-        downloadLink.rel = 'noopener';
-        downloadLink.textContent = 'Download for ' + getPlatformLabel(platform);
-        downloadLink.addEventListener('click', () => this._startAgentWizardPolling());
-        step1.appendChild(downloadLink);
+        const downloadUrl = getAgentDownloadUrl(platform);
+        if (downloadUrl) {
+            const downloadLink = document.createElement('a');
+            downloadLink.className = 'btn btn-primary agent-download-btn';
+            downloadLink.href = downloadUrl;
+            downloadLink.target = '_blank';
+            downloadLink.rel = 'noopener';
+            downloadLink.textContent = 'Download for ' + getPlatformLabel(platform);
+            downloadLink.addEventListener('click', () => this._startAgentWizardPolling());
+            step1.appendChild(downloadLink);
+        } else {
+            const noDownload = document.createElement('p');
+            noDownload.className = 'agent-wizard-subtitle';
+            noDownload.style.color = 'var(--text-muted)';
+            noDownload.textContent = 'Local agent download is not available. Use "Select Folder" above to scan in your browser instead.';
+            step1.appendChild(noDownload);
+        }
         const switchBtn = document.createElement('button');
         switchBtn.type = 'button';
         switchBtn.className = 'btn btn-ghost agent-platform-switch';
@@ -5400,12 +5615,41 @@ export class AnalyzeView {
             }
         });
         // Real-time monitoring toggle
-        (_m = el.querySelector('#analyze-realtime-monitor')) === null || _m === void 0 ? void 0 : _m.addEventListener('change', (event) => {
+        (_m = el.querySelector('#analyze-realtime-monitor')) === null || _m === void 0 ? void 0 : _m.addEventListener('change', async (event) => {
             this.realtimeMonitorEnabled = Boolean(event.target.checked);
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem('simplebeacon_realtime_monitor', this.realtimeMonitorEnabled ? '1' : '0');
             }
-            showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
+            if (this.realtimeMonitorEnabled) {
+                this._realtimeChunks = [];
+                try {
+                    await realtimeAnalysisService.start({ profile: 'balanced', analysisType: 'general' });
+                    showToast('Real-time monitoring enabled — WebSocket connected', 'success');
+                } catch (err) {
+                    showToast('Real-time monitoring enabled (WebSocket unavailable — will retry)', 'info');
+                }
+            } else {
+                realtimeAnalysisService.stop();
+                this._realtimeChunks = [];
+                this._realtimeFilter = { severity: 'all', sort: 'chunk' };
+                this._realtimeExpanded = new Set();
+                this._renderRealtimeStreamResults();
+                showToast('Real-time monitoring disabled', 'info');
+            }
+        });
+        // Update realtime status indicator when connection state changes
+        this._realtimeStateUnsub = realtimeAnalysisService.on('state', (data) => {
+            this._updateRealtimeStatusIndicator(data.state);
+        });
+        // Render streaming analysis results as they arrive
+        this._realtimeResultUnsub = realtimeAnalysisService.on('analysis_result', (data) => {
+            if (!this._realtimeChunks) this._realtimeChunks = [];
+            this._realtimeChunks.push({ chunkId: data.chunkId, result: data.result, timestamp: data.timestamp });
+            // Keep last 50 chunks to avoid unbounded memory growth
+            if (this._realtimeChunks.length > 50) {
+                this._realtimeChunks = this._realtimeChunks.slice(-50);
+            }
+            this._renderRealtimeStreamResults();
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
             const agentAvailable = !!(this.agentStatus && this.agentStatus.available);
@@ -5452,6 +5696,56 @@ export class AnalyzeView {
                     const entry = (_b = (_a = dt.items[0]).webkitGetAsEntry) === null || _b === void 0 ? void 0 : _b.call(_a);
                     if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                         const folderName = entry.name || '';
+                        // Browser-sandbox fast-path: when on the hosted site without an
+                        // extension bridge, skip resolveFolderPathFromFiles (which returns
+                        // null in browsers anyway since file.path is not exposed) and go
+                        // directly to scanDroppedItems. This avoids the runPathAnalysis
+                        // slow path (agent probes, auth refreshes, API readiness checks).
+                        if (isRemoteDashboardHost() && !hasExtensionBridgeConfigured() &&
+                            dt.items && dt.items.length > 0) {
+                            const itemArray = Array.from(dt.items);
+                            analyzeDropZone.classList.add('drag-active');
+                            try {
+                                const sandboxReport = await scanDroppedItems(itemArray, {
+                                    webkitEntry: entry,
+                                    onLog: (logEntry) => {
+                                        const term = el.querySelector('#sandbox-scan-terminal');
+                                        if (term)
+                                            term.textContent += `\n[${logEntry.level.toUpperCase()}] ${logEntry.message}`;
+                                    },
+                                    onProgress: ({ processed, total }) => {
+                                        const prog = el.querySelector('#analyze-dropzone-progress-detail');
+                                        if (prog)
+                                            prog.textContent = `${processed} / ${total} files`;
+                                    }
+                                });
+                                if (sandboxReport && sandboxReport.discoveredFiles > 2) {
+                                    const cert = sandboxReport.certificate || {};
+                                    const stats = el.querySelector('#analyze-dropzone-result-stats');
+                                    if (stats)
+                                        stats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                                    const certEl = el.querySelector('#sandbox-scanner');
+                                    if (certEl) {
+                                        certEl.style.display = 'block';
+                                        renderAgentCertificate(sandboxReport, certEl);
+                                    }
+                                    this.applySandboxScanResult(sandboxReport);
+                                    showToast(`Scanned "${folderName}" — ${sandboxReport.discoveredFiles} files found`, 'success');
+                                    return;
+                                }
+                                if (sandboxReport && isIncompleteFolderDrop(sandboxReport.discoveredFiles || 0, { isDirectoryDrop: true })) {
+                                    showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
+                                    const nativePicker = el.querySelector('#trigger-native-picker');
+                                    if (nativePicker) setTimeout(() => nativePicker.click(), 100);
+                                    return;
+                                }
+                            }
+                            catch (fastPathErr) {
+                                console['warn']('[AnalyzeView] #analyze-drop-zone fast-path failed, falling back to resolveFolderPathFromFiles:', fastPathErr);
+                            }
+                            analyzeDropZone.classList.remove('drag-active');
+                            // Fall through to existing logic if fast-path failed
+                        }
                         const resolvedPath = this.resolveFolderPathFromFiles(files, folderName);
                         if (resolvedPath) {
                             const pathInput = el.querySelector('#project-path-input');
@@ -5502,7 +5796,7 @@ export class AnalyzeView {
                                                 prog.textContent = `${processed} / ${total} files`;
                                         }
                                     });
-                                    if (sandboxReport && sandboxReport.discoveredFiles >= 1) {
+                                    if (sandboxReport && sandboxReport.discoveredFiles > 2) {
                                         const cert = sandboxReport.certificate || {};
                                         const stats = el.querySelector('#analyze-dropzone-result-stats');
                                         if (stats)
@@ -5514,6 +5808,12 @@ export class AnalyzeView {
                                         }
                                         this.applySandboxScanResult(sandboxReport);
                                         showToast(`Scanned "${folderName}" — ${sandboxReport.discoveredFiles} files found`, 'success');
+                                        return;
+                                    }
+                                    if (sandboxReport && isIncompleteFolderDrop(sandboxReport.discoveredFiles || 0, { isDirectoryDrop: true })) {
+                                        showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
+                                        const nativePicker = el.querySelector('#trigger-native-picker');
+                                        if (nativePicker) setTimeout(() => nativePicker.click(), 100);
                                         return;
                                     }
                                 }
@@ -5890,6 +6190,49 @@ export class AnalyzeView {
                     setAnalyzeDropzoneState('idle');
                     return;
                 }
+                // Browser-sandbox fast-path: when on the hosted site without an extension
+                // bridge, immediately scan dropped directory entries in-browser via
+                // scanDroppedItems. This bypasses the slow runLocalScan path (double-rAF,
+                // React re-render, ignore-pattern loading, Web Worker init) that adds
+                // 2-5 seconds of latency before scanning visually starts.
+                // Falls through to existing logic if the fast-path fails.
+                if (isRemoteDashboardHost() && !hasExtensionBridgeConfigured() &&
+                    webkitEntry && webkitEntry.isDirectory && itemArray.length > 0) {
+                    setAnalyzeDropzoneState('scanning');
+                    if (analyzeTerminal)
+                        analyzeTerminal.textContent = `Scanning "${folderHint}" in your browser…`;
+                    try {
+                        const sandboxReport = await scanDroppedItems(itemArray, {
+                            webkitEntry,
+                            onLog: (entry) => {
+                                if (analyzeTerminal)
+                                    analyzeTerminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                            },
+                            onProgress: ({ processed, total }) => {
+                                if (analyzeProgress)
+                                    analyzeProgress.textContent = `${processed} / ${total} files`;
+                            }
+                        });
+                        if (sandboxReport && sandboxReport.discoveredFiles > 1) {
+                            const cert = sandboxReport.certificate || {};
+                            if (analyzeResultStats)
+                                analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                            setAnalyzeDropzoneState('done');
+                            const certEl = el.querySelector('#sandbox-scanner');
+                            if (certEl) {
+                                certEl.style.display = 'block';
+                                renderAgentCertificate(sandboxReport, certEl);
+                            }
+                            this.applySandboxScanResult(sandboxReport);
+                            return;
+                        }
+                    }
+                    catch (fastPathErr) {
+                        console['warn']('[AnalyzeView] Browser fast-path scan failed, falling back to full strategy:', fastPathErr);
+                    }
+                    setAnalyzeDropzoneState('idle');
+                    // Fall through to existing logic if fast-path failed
+                }
                 // Hosted: never route absolute local paths to the server — scan dropped files in-browser.
                 // When the extension bridge is available and the drop looks like a directory
                 // (webkit entry is a directory, or files lack webkitRelativePath suggesting
@@ -5980,10 +6323,13 @@ export class AnalyzeView {
                     }
                     // If only 1-2 files without webkitRelativePath on remote host without bridge,
                     // prompt user to use Select Folder instead of scanning 1 file.
-                    if (!fileArray.some((f) => f.webkitRelativePath) && fileArray.length <= 2 && !hasExtensionBridgeConfigured()) {
+                    if (isIncompleteFolderDrop(fileArray.length, {
+                        isDirectoryDrop: looksLikeDirDrop || !fileArray.some((f) => f.webkitRelativePath),
+                        hasRelativePath: fileArray.some((f) => f.webkitRelativePath)
+                    }) && !hasExtensionBridgeConfigured()) {
                         if (analyzeTerminal)
-                            analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                        showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                            analyzeTerminal.textContent = incompleteFolderDropMessage(folderHint);
+                        showToast(incompleteFolderDropMessage(folderHint), 'warning', { duration: 14000 });
                         setAnalyzeDropzoneState('idle');
                         const nativePicker = el.querySelector('#trigger-native-picker');
                         if (nativePicker) {
@@ -6128,10 +6474,13 @@ export class AnalyzeView {
                             }
                             // If still only 1-2 files without webkitRelativePath on remote host
                             // without bridge, prompt user to use Select Folder for full coverage.
-                            if (!hasWebkitRelPath && fileArray.length <= 2 && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
+                            if (isIncompleteFolderDrop(fileArray.length, {
+                                isDirectoryDrop: true,
+                                hasRelativePath: hasWebkitRelPath
+                            }) && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
                                 if (analyzeTerminal)
-                                    analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                                showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                    analyzeTerminal.textContent = incompleteFolderDropMessage(folderName);
+                                showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
                                 setAnalyzeDropzoneState('idle');
                                 const nativePicker = el.querySelector('#trigger-native-picker');
                                 if (nativePicker) {
@@ -6236,10 +6585,13 @@ export class AnalyzeView {
                         }
                         // Bridge unavailable or failed — if only 1-2 files without webkitRelativePath,
                         // the drop didn't expose the full directory. Prompt user to use Select Folder.
-                        if (!hasWebkitRelPath && files.length <= 2) {
+                        if (isIncompleteFolderDrop(files.length, {
+                            isDirectoryDrop: true,
+                            hasRelativePath: hasWebkitRelPath
+                        })) {
                             if (analyzeTerminal)
-                                analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                            showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                analyzeTerminal.textContent = incompleteFolderDropMessage(folderName);
+                            showToast(incompleteFolderDropMessage(folderName), 'warning', { duration: 14000 });
                             setAnalyzeDropzoneState('idle');
                             const nativePicker = el.querySelector('#trigger-native-picker');
                             if (nativePicker) {
@@ -7883,6 +8235,21 @@ export class AnalyzeView {
                     this.updateProgressDom();
                 }
             });
+            const fileArr = files ? Array.from(files) : null;
+            if (fileArr && isIncompleteFolderDrop(fileArr.length, {
+                isDirectoryDrop: true,
+                hasRelativePath: fileArr.some((f) => f.webkitRelativePath || f._virtualPath)
+            })) {
+                throw new Error(incompleteFolderDropMessage(projectPath || report.projectRoot));
+            }
+            const inventoryCount = Number(report.repositoryFilesTotal ?? report.summary?.totalFiles ?? 0);
+            if (dirHandle && inventoryCount > 0 && inventoryCount <= 2) {
+                // Directory-handle walk of a protected/system tree can yield 1 readable file and a false PASS.
+                const rootName = String(report.projectRoot || projectPath || dirHandle.name || '');
+                if (/^(windows|system32|winsxs|program files|programdata)$/i.test(rootName.trim())) {
+                    throw new Error(incompleteFolderDropMessage(rootName));
+                }
+            }
             const conclusion = buildScanConclusion(report);
             const scannedRoot = report.projectRoot || report.projectPath || (projectPath && projectPath.trim()) || 'local-project';
             this.repositoryInventory = report.inventory || null;
@@ -7902,7 +8269,12 @@ export class AnalyzeView {
             this.app.state.analyzeResult = this.lastResult;
             this.app.state.report = report;
             this.app.scanService.report = report;
-            showToast('Local scan complete — no data sent to server', 'success');
+            if (report.scanLimitNote) {
+                showToast(report.scanLimitNote, 'warning', { duration: 12000 });
+            }
+            else {
+                showToast('Local scan complete — no data sent to server', 'success');
+            }
         }
         catch (err) {
             const msg = isFilePickerBlockedError(err)
@@ -8227,7 +8599,6 @@ export class AnalyzeView {
         }
         try {
             const report = await runSandboxedDirectoryScan({
-                maxFiles: 100000,
                 onLog: (entry) => {
                     if (terminal) {
                         terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
@@ -9520,7 +9891,7 @@ export class AnalyzeView {
     renderAuditExportCallout() {
         var _a, _b;
         if (((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.kind) === 'eu-ai-act') {
-            return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Reference EU layout.</strong> PDF is built from <code>.simplebeacon/eu-ai-act-*.json</code> sprint artifacts — not the $499 pre-launch security handoff. Active offers: <a href="/dashboard/deliverables">$499 PDF</a> and agency packs.</p>`;
+            return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Reference EU layout.</strong> PDF is built from <code>.simplebeacon/eu-ai-act-*.json</code> sprint artifacts — not the $999 pre-launch security handoff. Active offers: <a href="/dashboard/deliverables">$999 PDF</a> and agency packs.</p>`;
         }
         if (((_b = this.lastResult) === null || _b === void 0 ? void 0 : _b.kind) === 'complete' && this.hasEuAiActSprintResult()) {
             return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>EU AI Act sprint included.</strong> Use <strong>Download EU PDF</strong> for the regulatory readiness report (step 11). <strong>Download audit PDF</strong> is the corporate executive / gate handoff — not the EU layout.</p>`;
@@ -9583,7 +9954,7 @@ export class AnalyzeView {
         var _a, _b, _c, _d;
         const locked = this.isResultsLocked();
         const checkoutUrl = ((_b = (_a = this.app.billingService) === null || _a === void 0 ? void 0 : _a.getAuditCheckoutUrl) === null || _b === void 0 ? void 0 : _b.call(_a)) || null;
-        const priceLabel = ((_d = (_c = this.app.billingService) === null || _c === void 0 ? void 0 : _c.plan) === null || _d === void 0 ? void 0 : _d.auditPriceLabel) || '$499';
+        const priceLabel = ((_d = (_c = this.app.billingService) === null || _c === void 0 ? void 0 : _c.plan) === null || _d === void 0 ? void 0 : _d.auditPriceLabel) || '$999';
         const downloadLabel = isComplete ? 'Download all results' : 'Download result';
         const showEuPdf = this.hasEuAiActSprintResult();
         const zipMeta = isComplete ? this.resolveZipExportButtonMeta() : null;
@@ -10720,7 +11091,7 @@ export class AnalyzeView {
         };
         const locked = this.isResultsLocked();
         const checkoutUrl = ((_m = (_l = this.app.billingService) === null || _l === void 0 ? void 0 : _l.getAuditCheckoutUrl) === null || _m === void 0 ? void 0 : _m.call(_l)) || null;
-        const priceLabel = ((_p = (_o = this.app.billingService) === null || _o === void 0 ? void 0 : _o.plan) === null || _p === void 0 ? void 0 : _p.auditPriceLabel) || '$499';
+        const priceLabel = ((_p = (_o = this.app.billingService) === null || _o === void 0 ? void 0 : _o.plan) === null || _p === void 0 ? void 0 : _p.auditPriceLabel) || '$999';
         return `
       <div class="section-block">
         <div class="section-heading">

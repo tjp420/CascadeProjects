@@ -100,7 +100,7 @@ export class BillingService {
       this.plan = {
         ...COMMUNITY_PLAN,
         auditCheckoutUrl: entitlementPayload.auditCheckoutUrl,
-        auditPriceLabel: entitlementPayload.auditPriceLabel || '$499'
+        auditPriceLabel: entitlementPayload.auditPriceLabel || '$999'
       };
       this.status = {
         ...COMMUNITY_STATUS,
@@ -126,7 +126,7 @@ export class BillingService {
 
   getAuditCheckoutUrl(plan = this.plan) {
     return plan?.auditCheckoutUrl
-      || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+      || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
   }
 
   async fetchEntitlements() {

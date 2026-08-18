@@ -1,46 +1,46 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-// cache-bust: 20260726fullnav1
+// cache-bust: 20260725dropfix3
 // DOMPurify is loaded via a script tag in the HTML (or provided by the bundler).
 // The HTML includes a CDN fallback so `window.DOMPurify` should be available.
-import { scanService } from './services/scanService.js?v=20260726fullnav1';
-import { platformService } from './services/platformService.js?v=20260726fullnav1';
-import { billingService } from './services/billingService.js?v=20260726fullnav1';
-import { authService, apiBase } from './services/authService.js?v=20260726fullnav1';
-import { themeService } from './services/themeService.js?v=20260726fullnav1';
-import { Router, PUBLIC_VIEWS } from './router.js?v=20260726fullnav1';
-import { TrustView } from './views/TrustView.js?v=20260726fullnav1';
-import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260726fullnav1';
-import { DashboardView } from './views/DashboardView.js?v=20260726fullnav1';
+import { scanService } from './services/scanService.js?v=20260716cachefix1';
+import { platformService } from './services/platformService.js?v=20260716cachefix1';
+import { billingService } from './services/billingService.js?v=20260716cachefix1';
+import { authService, apiBase } from './services/authService.js?v=20260722bridgefix1';
+import { themeService } from './services/themeService.js';
+import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
+import { TrustView } from './views/TrustView.js?v=20260724layoutfix2';
+import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
+import { DashboardView } from './views/DashboardView.js?v=20260726embedfix1';
 import { ResultsView } from './views/ResultsView.js';
-import { SettingsView } from './views/SettingsView.js?v=20260726fullnav1';
+import { SettingsView } from './views/SettingsView.js?v=20260720ollama6';
 import { ToolsView } from './views/ToolsView.js';
-import { PlatformView } from './views/PlatformView.js?v=20260726fullnav1';
-import { QualityView } from './views/QualityView.js?v=20260726fullnav1';
+import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
+import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
-import { AuditView } from './views/AuditView.js?v=20260726fullnav1';
-import { PricingView } from './views/PricingView.js?v=20260726fullnav1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260726fullnav1';
-import { SecurityView } from './views/SecurityView.js?v=20260726fullnav1';
-import { AboutView } from './views/AboutView.js?v=20260726fullnav1';
-import { AssessmentView } from './views/AssessmentView.js?v=20260726fullnav1';
-import { SignInView } from './views/SignInView.js?v=20260726fullnav1';
-import { ChatbotView } from './views/ChatbotView.js?v=20260726fullnav1';
+import { AuditView } from './views/AuditView.js?v=20260726auditfix3';
+import { PricingView } from './views/PricingView.js?v=20260724layoutfix2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260728dropfix2';
+import { SecurityView } from './views/SecurityView.js?v=20260725secredesign1';
+import { AboutView } from './views/AboutView.js?v=20260726cachefix1';
+import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
+import { SignInView } from './views/SignInView.js?v=20260722signin3';
+import { ChatbotView } from './views/ChatbotView.js?v=20260726embedfix1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
-import { ProfileView } from './views/ProfileView.js?v=20260726fullnav1';
-import { AdminPanelView } from './views/AdminPanelView.js?v=20260726fullnav1';
-import { GettingStartedView } from './views/GettingStartedView.js?v=20260726fullnav1';
-import { GuidedTour } from './components/GuidedTour.js?v=20260726fullnav1';
+import { ProfileView } from './views/ProfileView.js?v=20260726embedfix1';
+import { AdminPanelView } from './views/AdminPanelView.js?v=20260720adminfix1';
+import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
+import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
 import { COMING_SOON_URL } from './config.js';
-import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js?v=20260726fullnav1';
+import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js?v=20260718onboard1';
 import { showUpgradeModal } from './components/UpgradeModal.js';
-import { showLoginModal } from './components/LoginModal.js?v=20260726fullnav1';
+import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
-import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260726fullnav1';
-import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260726fullnav1';
+import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260726embedfix1';
 import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260728agentfix2';
-import { LocalScanService } from './services/localScanService.js?v=20260726fullnav1';
-import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260726fullnav1';
+import { LocalScanService } from './services/localScanService.js?v=20260728dropfix2';
+import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260728dropfix2';
 // Embed shim fallback: when loaded inside an IDE/webview that marks the document
 // as embedded, ensure a top padding is applied so host chrome doesn't clip content.
 (function applyEmbedShim() {
@@ -2083,4 +2083,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
-

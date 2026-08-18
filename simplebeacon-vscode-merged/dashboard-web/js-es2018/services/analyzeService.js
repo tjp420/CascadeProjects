@@ -1,7 +1,8 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { authService, apiBase } from './authService.js?v=20260728dropfix2';
 import { fetchUserAiKeys } from './aiKeysService.js?v=20260720ollama3';
-import { scanService } from './scanService.js?v=20260716cachefix1';
+// scanService is loaded lazily in scanPath() to avoid a circular import:
+// scanService → dashboard-export.browser → analyzeService → scanService
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { notifyDownloadComplete } from '../utils-lib/notify.js?v=20260716cachefix1';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
@@ -294,6 +295,7 @@ export async function fetchUnderstandSnippet(code, options = {}) {
  * @returns {any}
  */
 export async function scanPath(projectPath, options = {}) {
+    const { scanService } = await import('./scanService.js?v=20260716cachefix1');
     return scanService.runScan(projectPath, options);
 }
 /** Strip large arrays before POST /api/analyze/summary (Express body limit). */
@@ -1614,7 +1616,7 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
 
 /** True when report was produced client-side (browser sandbox) and must not be replaced by server snapshot. */
 export function isClientScanReport(report) {
-    return Boolean(report && (report.scanSource === 'browser-sandbox' || report.clientScan === true));
+    return Boolean(report && (report.scanSource === 'browser-sandbox' || report.scanSource === 'browser-local' || report.clientScan === true));
 }
 
 /**
@@ -3102,14 +3104,20 @@ export function assertCompleteScanComplianceFresh(report, checklist) {
  * @returns {any}
  */
 export function assertCompleteScanFileReductionFresh(scan) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     if (!scan || typeof scan !== 'object') {
         throw new Error('File reduction scan returned no payload');
     }
-    const hasSignal = ((_b = (_a = scan.fileReductionPlan) === null || _a === void 0 ? void 0 : _a.totals) === null || _b === void 0 ? void 0 : _b.safeToDeleteBytes) != null
-        || ((_e = (_d = (_c = scan.fileReductionPlan) === null || _c === void 0 ? void 0 : _c.safeToDelete) === null || _d === void 0 ? void 0 : _d.topDirectories) === null || _e === void 0 ? void 0 : _e.length)
-        || ((_g = (_f = scan.scanners) === null || _f === void 0 ? void 0 : _f['build-artifacts']) === null || _g === void 0 ? void 0 : _g.safeToDeleteBytes) != null
-        || ((_h = scan.summary) === null || _h === void 0 ? void 0 : _h.totalFindings) > 0;
+    const scope = scan.scanScope || {};
+    if (scope.rescanRecommended === true || scope.reportHealth === 'stale-full-tree-scan') {
+        const hint = (((_a = scope.limitations) === null || _a === void 0 ? void 0 : _a.find(Boolean))
+            || 'Re-run file reduction after updating SimpleBeacon (github-cache/ may have polluted inventory).');
+        throw new Error(`File reduction scan is stale — ${hint}`);
+    }
+    const hasSignal = ((_c = (_b = scan.fileReductionPlan) === null || _b === void 0 ? void 0 : _b.totals) === null || _c === void 0 ? void 0 : _c.safeToDeleteBytes) != null
+        || ((_f = (_e = (_d = scan.fileReductionPlan) === null || _d === void 0 ? void 0 : _d.safeToDelete) === null || _e === void 0 ? void 0 : _e.topDirectories) === null || _f === void 0 ? void 0 : _f.length)
+        || ((_h = (_g = scan.scanners) === null || _g === void 0 ? void 0 : _g['build-artifacts']) === null || _h === void 0 ? void 0 : _h.safeToDeleteBytes) != null
+        || ((_i = scan.summary) === null || _i === void 0 ? void 0 : _i.totalFindings) > 0;
     if (!hasSignal) {
         throw new Error('File reduction scan returned no findings — restart the SimpleBeacon server and retry.');
     }

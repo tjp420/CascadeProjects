@@ -13,6 +13,7 @@ interface ScanResultData {
   qualityScore: number | null;
 }
 
+// simplebeacon-ignore: euAiAct — compliance checklist UI intentionally references EU AI Act articles
 const euAiActChecklist = [
   { id: 'transparency', label: 'Transparency & User Notice', desc: 'AI-generated content is disclosed to users (Art. 52)', check: (r: ScanResultData) => r.severityCounts.critical === 0 },
   { id: 'risk-mgmt', label: 'Risk Management System', desc: 'Identified and mitigated high-risk AI system risks (Art. 9)', check: (r: ScanResultData) => r.severityCounts.high === 0 },

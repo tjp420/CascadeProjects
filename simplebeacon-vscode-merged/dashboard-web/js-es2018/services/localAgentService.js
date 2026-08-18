@@ -13,7 +13,7 @@
  */
 import { openInIde } from '../utils-lib/ideDeepLink.js';
 import { persistExtensionBridge, clearExtensionBridge } from '../utils-lib/url.js?v=20260716cachefix1';
-import { EXTENSION_ID, VSIX_DOWNLOAD_URL } from '../config.js';
+import { EXTENSION_ID, LOCAL_AGENT_DOWNLOAD_URL, VSIX_DOWNLOAD_URL } from '../config.js';
 import { shouldProbeOllamaModels } from './aiKeysService.js?v=20260720ollama3';
 // simplebeacon:production-leak-intent: localhost-agent-origins - These hardcoded loopback origins are required by the local agent bridge; they are not deploy leaks.
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432'; // simplebeacon-ignore hardcoded-url
@@ -21,10 +21,10 @@ const AGENT_4000_ORIGIN = 'http://127.0.0.1:4000'; // simplebeacon-ignore hardco
 const SB_API_BASE_KEY = 'sb_api_base';
 const AGENT_TIMEOUT_MS = 3000;
 const AGENT_DOWNLOAD_URLS = {
-    windows: '/downloads/simplebeacon-scanner.exe',
-    linux: '/downloads/simplebeacon-local-agent-portable.zip',
-    macos: '/downloads/simplebeacon-local-agent-portable.zip',
-    unknown: '/downloads/simplebeacon-local-agent-portable.zip'
+    windows: LOCAL_AGENT_DOWNLOAD_URL,
+    linux: LOCAL_AGENT_DOWNLOAD_URL,
+    macos: LOCAL_AGENT_DOWNLOAD_URL,
+    unknown: LOCAL_AGENT_DOWNLOAD_URL
 };
 let cachedAgentStatus = null;
 let cachedAt = 0;
@@ -171,6 +171,9 @@ export function getBridgeFetch() {
             catch (err) {
                 const msg = String(err?.message || err);
                 if (msg.includes('Parent bridge fetch timeout') || msg.includes('Parent bridge unavailable')) {
+                    // On hosted HTTPS, direct fetch to localhost will always CORS-fail — don't attempt it.
+                    if (isHostedHttpsDashboard())
+                        throw err;
                     return fetch(url, init);
                 }
                 throw err;
@@ -288,10 +291,17 @@ export async function probeExtensionDataServer(ports = EXTENSION_PROBE_PORTS, _o
         if (isMixedContent(origin) && !hasAgentBridge())
             continue;
         try {
-            const res = await doFetch(`${origin}/api/ping`, { signal: AbortSignal.timeout(2200) });
-            if (!res.ok)
+            const res = await doFetch(`${origin}/api/health`, { signal: AbortSignal.timeout(2200) });
+            if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                if (data && (data.service === 'simplebeacon-bridge' || data.platform === 'Simplebeacon')) {
+                    return `${origin}/api`;
+                }
+            }
+            const pingRes = await doFetch(`${origin}/api/ping`, { signal: AbortSignal.timeout(2200) });
+            if (!pingRes.ok)
                 continue;
-            const data = await res.json().catch(() => ({}));
+            const data = await pingRes.json().catch(() => ({}));
             if (data && (data.online === true || data.status === 'ok'))
                 return `${origin}/api`;
         }

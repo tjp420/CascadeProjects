@@ -253,12 +253,16 @@ export function isIgnoredPath(rel, ignorePatterns) {
 
 export function pathMatchCandidates(virtualPath, scanRootName) {
   const normalized = String(virtualPath || '').replace(/\\/g, '/');
-  const candidates = new Set([normalized]);
+  const candidates = new Set();
   if (scanRootName) {
     const prefix = `${scanRootName}/`;
     if (normalized.startsWith(prefix)) {
       candidates.add(normalized.slice(prefix.length));
+    } else {
+      candidates.add(normalized);
     }
+  } else {
+    candidates.add(normalized);
   }
   const parts = normalized.split('/');
   for (let i = 0; i < parts.length; i += 1) {

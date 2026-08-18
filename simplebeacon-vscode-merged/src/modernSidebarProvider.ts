@@ -2118,7 +2118,7 @@ $('cancelBtn').addEventListener('click', () => {
               let url = message.url;
               // Canonicalize legacy /coming-soon/*.html URLs to live marketing routes.
               const PUBLIC_URL = process.env.PUBLIC_APP_URL || 'https://simplebeacon.ai';
-              const RENDER_URL = process.env.LEGACY_RENDER_URL || 'https://cascadeprojects-yzzd.onrender.com';
+              const RENDER_URL = process.env.LEGACY_RENDER_URL || 'https://simplebeacon.onrender.com';
               const legacyMap: Record<string, string> = {
                 [`${RENDER_URL}/coming-soon/roadmap.html`]: `${PUBLIC_URL}/roadmap`,
                 [`${RENDER_URL}/coming-soon/audit.html`]: `${PUBLIC_URL}/audit`,

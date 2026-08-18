@@ -10,6 +10,7 @@ import {
   FileText,
   Map,
   BarChart3,
+  TrendingUp,
   User,
   Users,
   Wrench,
@@ -22,6 +23,15 @@ import {
   Github,
   BookOpen,
   Download,
+  Building2,
+  Server,
+  Mail,
+  Briefcase,
+  Database,
+  Webhook,
+  FileBarChart,
+  KeyRound,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +41,7 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin?: boolean;
+  isAuthenticated?: boolean;
 }
 
 interface NavItem {
@@ -69,6 +80,16 @@ const navGroups: NavGroup[] = [
       { view: 'assessments', label: 'Assessments', icon: FileText },
       { view: 'remediation', label: 'Remediation', icon: Map },
       { view: 'platform', label: 'Platform', icon: BarChart3 },
+      { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
+      { view: 'telemetry', label: 'Advanced Telemetry', icon: Activity },
+      { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail },
+      { view: 'organization', label: 'Organization', icon: Building2 },
+      { view: 'enterprise', label: 'Enterprise', icon: Server },
+      { view: 'workspace', label: 'Workspace', icon: Briefcase },
+      { view: 'fine-tuning', label: 'Fine-Tuning', icon: Database },
+      { view: 'webhook-events', label: 'Webhook Events', icon: Webhook },
+      { view: 'ops-report', label: 'Ops Report', icon: FileBarChart },
+      { view: 'license-manager', label: 'License Manager', icon: KeyRound },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
     ],
@@ -86,7 +107,15 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: SidebarProps) {
+// Views that require authentication — hidden from sidebar when signed out
+const AUTH_REQUIRED_VIEWS = new Set([
+  'admin',
+  'organization',
+  'profile',
+  'chatbot',
+]);
+
+export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isAuthenticated }: SidebarProps) {
   return (
     <>
       {isOpen && (
@@ -121,6 +150,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
               currentView={currentView}
               onNavigate={onNavigate}
               isAdmin={!!isAdmin}
+              isAuthenticated={!!isAuthenticated}
             />
           ))}
         </nav>
@@ -132,6 +162,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="GitHub"
+            aria-label="GitHub repository"
           >
             <Github className="h-4 w-4" />
           </a>
@@ -141,23 +172,31 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="Docs"
+            aria-label="Documentation"
           >
             <BookOpen className="h-4 w-4" />
           </a>
           <button
             type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/simplebeacon/report');
+                if (!res.ok) return;
+                const data = await res.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'simplebeacon-report.json';
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch { /* ignore download errors */ }
+            }}
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
-            title="Export"
+            title="Export Report"
+            aria-label="Export report"
           >
             <Download className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate('about')}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
-            title="About"
-          >
-            <Info className="h-4 w-4" />
           </button>
         </div>
       </aside>
@@ -165,7 +204,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
   );
 }
 
-function NavGroupSection({ group, currentView, onNavigate, isAdmin }: { group: NavGroup; currentView: string; onNavigate: (v: string) => void; isAdmin: boolean }) {
+function NavGroupSection({ group, currentView, onNavigate, isAdmin, isAuthenticated }: { group: NavGroup; currentView: string; onNavigate: (v: string) => void; isAdmin: boolean; isAuthenticated: boolean }) {
   return (
     <div className="mb-2">
       <div className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-foreground-muted">
@@ -175,8 +214,10 @@ function NavGroupSection({ group, currentView, onNavigate, isAdmin }: { group: N
       <div className="space-y-0.5">
         {group.items
           .filter(item => {
-            // Hide Assessments from non-admin users
-            if (item.view === 'assessments' && !isAdmin) return false;
+            // Hide admin-only items from non-admin users
+            if (!isAdmin && (item.view === 'admin' || item.view === 'workspace')) return false;
+            // Hide auth-required items from signed-out users
+            if (!isAuthenticated && AUTH_REQUIRED_VIEWS.has(item.view)) return false;
             return true;
           })
           .map((item) => {

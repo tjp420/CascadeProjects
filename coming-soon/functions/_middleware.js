@@ -18,7 +18,7 @@ export async function onRequest(context) {
     `sb_ref=${encodeURIComponent(ref)}; Path=/; Expires=${expirationDate.toUTCString()}; HttpOnly; Secure; SameSite=Lax`
   );
 
-  const backendUrl = (env && env.BACKEND_URL) || 'https://cascadeprojects-yzzd.onrender.com';
+  const backendUrl = (env && env.BACKEND_URL) || 'https://simplebeacon.onrender.com';
   const captureUrl = new URL('/api/referral/capture', backendUrl.replace(/\/$/, ''));
   context.waitUntil(
     fetch(captureUrl.toString(), {

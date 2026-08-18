@@ -2,7 +2,7 @@
  * Proxy /api/* requests to the Render backend so the frontend can call the API
  * from the same simplebeacon.ai origin.
  *
- * Set BACKEND_URL in the Cloudflare Pages dashboard (e.g. https://cascadeprojects-yzzd.onrender.com).
+ * Set BACKEND_URL in the Cloudflare Pages dashboard (e.g. https://simplebeacon.onrender.com).
  */
 
 /** Allowed CORS origins for API responses. */
@@ -69,7 +69,7 @@ function withCorsHeaders(response, request) {
 
 export async function onRequest(context) {
   const { request, env, params } = context;
-  const backendUrl = (env && env.BACKEND_URL) || 'https://cascadeprojects-yzzd.onrender.com';
+  const backendUrl = (env && env.BACKEND_URL) || 'https://simplebeacon.onrender.com';
   const path = Array.isArray(params.path) ? params.path.join('/') : (params.path || '');
 
   // Handle CORS preflight for ALL /api/* paths before _redirects can intercept.

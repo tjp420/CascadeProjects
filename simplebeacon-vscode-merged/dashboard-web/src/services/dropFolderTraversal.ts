@@ -13,7 +13,7 @@ type TraversalState = {
   maxFiles: number;
 };
 
-const DEFAULT_MAX_FILES = 100_000;
+const DEFAULT_MAX_FILES = Number.MAX_SAFE_INTEGER;
 
 /** Capture FileSystemEntry objects synchronously during the drop event. */
 export function captureDropEntries(items: DataTransferItemList | null | undefined): FileSystemEntry[] {
@@ -42,7 +42,8 @@ async function traverseFileSystemEntry(
   entry: FileSystemEntry,
   parentPath: string,
   files: VirtualFile[],
-  state: TraversalState
+  state: TraversalState,
+  onProgress?: (fileCount: number) => void
 ): Promise<void> {
   if (files.length >= state.maxFiles) return;
 
@@ -66,6 +67,7 @@ async function traverseFileSystemEntry(
               }
               virtualFile._virtualPath = currentPath.replace(/\\/g, '/');
               files.push(virtualFile);
+              if (onProgress) onProgress(files.length);
               resolve();
             },
             () => {
@@ -100,7 +102,7 @@ async function traverseFileSystemEntry(
       });
       for (const child of batch) {
         if (files.length >= state.maxFiles) break;
-        await traverseFileSystemEntry(child, currentPath, files, state);
+        await traverseFileSystemEntry(child, currentPath, files, state, onProgress);
       }
     } while (batch.length > 0 && files.length < state.maxFiles);
   } catch {
@@ -146,7 +148,7 @@ function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualF
 export async function collectFilesFromDrop(
   dataTransfer: DataTransfer | undefined,
   preCapturedEntries?: FileSystemEntry[],
-  options: { maxFiles?: number } = {}
+  options: { maxFiles?: number; onProgress?: (fileCount: number) => void } = {}
 ): Promise<{ files: VirtualFile[]; rootName: string; traverseErrors: number }> {
   const state: TraversalState = {
     errors: 0,
@@ -157,7 +159,7 @@ export async function collectFilesFromDrop(
 
   for (const entry of entries) {
     if (files.length >= state.maxFiles) break;
-    await traverseFileSystemEntry(entry, '', files, state);
+    await traverseFileSystemEntry(entry, '', files, state, options.onProgress);
   }
 
   if (files.length === 0 && dataTransfer) {

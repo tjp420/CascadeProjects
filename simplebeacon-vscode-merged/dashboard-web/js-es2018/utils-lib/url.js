@@ -18,6 +18,14 @@ function _isLocalDevHost() {
 function _isLoopbackHost(hostname) {
     return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(String(hostname || ''));
 }
+/**
+ * True when the dashboard is served from a remote (non-localhost) host.
+ * Used to gate local-path features that only work on localhost.
+ * @returns {boolean}
+ */
+export function isRemoteDashboardHost() {
+    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+}
 function _isAllowedApiBase(value) {
     if (!value) return false;
     try {
@@ -230,10 +238,10 @@ export function apiBaseUrl() {
     }
     if (typeof location !== 'undefined') {
         const host = location.hostname;
-        if (host === 'simplebeacon.ai') {
+        if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
             return location.origin;
         }
-        // Cloudflare Pages previews and other non-local/custom domains talk to the production API.
+        // Other non-local/custom domains fall back to production API.
         if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host) && !host.endsWith('.onrender.com')) {
             return 'https://simplebeacon.ai';
         }

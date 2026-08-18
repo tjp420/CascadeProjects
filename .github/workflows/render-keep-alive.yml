@@ -23,7 +23,7 @@ jobs:
       - name: Ping Render health endpoint
         run: node scripts/keep-alive.cjs --once
         env:
-          RENDER_URL: ${{ secrets.RENDER_URL || 'https://cascadeprojects-yzzd.onrender.com' }}
+          RENDER_URL: ${{ secrets.RENDER_URL || 'https://simplebeacon.onrender.com' }}
 
       - name: Verify response
         run: |

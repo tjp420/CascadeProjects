@@ -2,7 +2,7 @@
 import { escapeHtml, showToast, formatPercent, formatNumber, renderEmptyState } from '../utils.js';
 import { getScanFileMetrics, resolveDisplayScore, hydrateClientScanReport, isClientScanReport } from '../services/analyzeService.js?v=20260726sevfix1';
 import { openInIde, renderIdeFileLink, resolveProjectRootFromApp } from '../utils-lib/ideDeepLink.js';
-const SEVERITIES = ['all', 'high', 'medium', 'low'];
+const SEVERITIES = ['all', 'critical', 'high', 'medium', 'low'];
 /**
  * Results view.
  */
@@ -119,6 +119,7 @@ export class ResultsView {
         const _issuesEmptyState = report && issues.length === 0 ? renderEmptyState({
             icon: totalIssues === 0 && (report?.gate?.pass) && !filtersActive ? '✅' : '🔍',
             title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
+            body: filtersActive ? 'Try adjusting severity filter or search query.' : undefined,
             iconWrapper: 'emoji'
         }) : null;
         const _noReportEmptyHtml = _noReportEmptyState ? (typeof _noReportEmptyState === 'string' ? _noReportEmptyState : _noReportEmptyState.html) : '';
@@ -181,6 +182,8 @@ export class ResultsView {
               <button class="btn btn-secondary btn-sm w-full" id="export-full-btn" type="button">Export full report</button>
               <button class="btn btn-secondary btn-sm w-full" id="export-filtered-json-btn" type="button">Export filtered JSON</button>
               <button class="btn btn-secondary btn-sm w-full" id="export-csv-btn" type="button">Export CSV</button>
+              <button class="btn btn-secondary btn-sm w-full" id="export-trend-csv-btn" type="button">Export trend CSV</button>
+              <button class="btn btn-secondary btn-sm w-full" id="export-audit-pdf-btn" type="button">Export audit PDF</button>
               ${filtersActive ? '<button type="button" class="btn btn-ghost btn-sm w-full" id="clear-results-filters">Clear filters</button>' : ''}
             </div>
           </div>
@@ -334,6 +337,24 @@ export class ResultsView {
             }
             svc.exportIssuesCsv(issues);
             showToast(`Exported ${issues.length} issue(s) as CSV`, 'success');
+        });
+        (_e = el.querySelector('#export-trend-csv-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+            try {
+                svc.exportTrendCsv();
+                showToast('Trend CSV downloaded', 'success');
+            }
+            catch (err) {
+                showToast(err.message || 'Failed to export trend CSV', 'error');
+            }
+        });
+        (_f = el.querySelector('#export-audit-pdf-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
+            try {
+                svc.exportAuditPdf();
+                showToast('Audit PDF opened in new window — use Print to save', 'success');
+            }
+            catch (err) {
+                showToast(err.message || 'Failed to generate audit PDF', 'error');
+            }
         });
         // Send to AI Agent handlers
         const aiPanel = el.querySelector('#ai-send-panel');

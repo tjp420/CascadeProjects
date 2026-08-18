@@ -474,7 +474,7 @@ export function WebhookSigningDashboard() {
                     <span className="font-mono text-foreground">{key.keyId}</span>
                     {key.orgId && <Badge variant="outline" className="text-[10px]">org: {key.orgId}</Badge>}
                     <span className="text-[10px] text-foreground-muted ml-auto">{formatTime(key.createdAt)}</span>
-                    <Button variant="ghost" size="sm" className="h-5 px-1.5" onClick={() => deleteKey(key.keyId)}>
+                    <Button variant="ghost" size="sm" className="h-5 px-1.5" aria-label="Delete signing key" onClick={() => deleteKey(key.keyId)}>
                       <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>
                   </div>

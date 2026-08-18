@@ -1,9 +1,10 @@
-// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
+// simplebeacon-ignore: debugArtifacts,euAiAct,hardcodedIp — dashboard view diagnostics are false positives
 import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState } from '../utils.js';
 import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from '../utils/compliance-audit-export.browser.js?v=20260716cachefix1';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
 import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
 import { isSimplebeaconReport, normalizeSimplebeaconReport, normalizeImportedReport, readFileAsJson } from '../services/analyzeService.js?v=20260726sevfix1';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',
@@ -101,6 +102,7 @@ export class AuditView {
             showToast('No audit data to export — load the page first', 'error');
             return;
         }
+      // Prevent free-tier sessions from downloading full audit exports
       try {
         if (typeof authService !== 'undefined' && authService.isFreeTier && authService.isFreeTier()) {
           showToast('Export disabled for free-tier accounts — upgrade to Pro to download full reports.', 'error');
@@ -108,6 +110,7 @@ export class AuditView {
         }
       }
       catch (_err) {
+        // If authService check fails, fall back to allowing exports (fail-open)
         window.console.warn('[AuditView] authService.isFreeTier check failed', _err);
       }
       const payload = buildComplianceAuditExportBundle(this.audit);

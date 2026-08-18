@@ -2,6 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <title>SimpleBeacon Dashboard — AI Safety Scanning Platform</title>
+  <meta name="description" content="SimpleBeacon is an AI safety scanning platform that detects AI slop, credential leaks, and compliance risks in your codebase.">
   <script>
     // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
     (function() {
@@ -13,19 +15,10 @@
       }
       function neutralize(el) {
         if (!isBeacon(el)) return;
-        if (el.hasAttribute && el.hasAttribute('integrity')) {
-          try { el.removeAttribute('src'); } catch (_) {}
-          try { el.type = 'text/plain'; } catch (_) {}
-        }
-        el.removeAttribute('integrity');
-        el.removeAttribute('crossorigin');
-        var isBrave = typeof navigator.brave !== 'undefined';
-        var ua = navigator.userAgent || '';
-        if (isBrave || /Brave/.test(ua)) {
-          if (el.parentNode) el.parentNode.removeChild(el);
-          return;
-        }
-        el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
+        try { el.removeAttribute('src'); } catch (_) {}
+        try { el.type = 'text/plain'; } catch (_) {}
+        try { el.removeAttribute('integrity'); } catch (_) {}
+        try { el.removeAttribute('crossorigin'); } catch (_) {}
       }
       var origCreate = document.createElement.bind(document);
       document.createElement = function(tag) {
@@ -59,7 +52,13 @@
           });
         });
         mo.observe(document.documentElement, { childList: true, subtree: true });
+        // Stop observing after 5s — edge injection happens during initial load
+        setTimeout(function() { mo.disconnect(); }, 5000);
       }
+      // Sweep existing scripts on DOMContentLoaded for any injected before observer
+      document.addEventListener('DOMContentLoaded', function() {
+        Array.prototype.forEach.call(document.querySelectorAll('script'), neutralize);
+      });
     })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -68,15 +67,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <script>
-    (function(){
-      var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
-      var l = document.createElement('link');
-      l.rel = 'stylesheet';
-      if (devHost) l.href = '/dashboard/assets/main.css?v=20260808dropvendor'; else l.href = '/dashboard/assets/main.css?v=20260808dropvendor';
-      document.head.appendChild(l);
-    })();
-  </script>
+  <link rel="stylesheet" href="/dashboard/assets/main.css?v=20260812register">
 
   <!-- IDE embed mode detection -->
   <script>
@@ -156,7 +147,11 @@
           var el = document.getElementById('app-main') || document.querySelector('.app-main');
           if (!el) return;
           el.style.setProperty('position', 'fixed', 'important');
-          el.style.setProperty('inset', '64px 0 0 240px', 'important');
+          // Responsive inset: sidebar (240px) only on wide screens (>=1024px).
+          // On mobile/tablet the sidebar is hidden by the React app via lg:hidden,
+          // so the content area must fill the full width (left: 0).
+          var isWide = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
+          el.style.setProperty('inset', isWide ? '64px 0 0 240px' : '64px 0 0 0', 'important');
           el.style.setProperty('overflow', 'auto', 'important');
           el.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
           el.style.setProperty('box-sizing', 'border-box', 'important');
@@ -165,6 +160,8 @@
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
       var n = 0; var iv = setInterval(function(){ apply(); if (++n > 40) clearInterval(iv); }, 100);
       setTimeout(function(){ try{ clearInterval(iv); }catch(e){} }, 3000);
+      // Re-apply on viewport changes (orientation change, mobile browser UI show/hide)
+      window.addEventListener('resize', apply, { passive: true });
     })();
   </script>
 
@@ -222,12 +219,91 @@
       setTimeout(function() { clearInterval(fastIv); setInterval(cleanup, 1000); }, 5000);
     })();
   </script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script>
+// SimpleBeacon Site Configuration (inlined to avoid 404 on Cloudflare Pages)
+window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
+  env: 'production',
+  githubUrl: 'https://github.com/tjp420/simplebeacon',
+  vsixDownloadUrl: 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix',
+  sampleReportUrl: 'sample-report.html',
+  sampleCertificateUrl: 'sample-certificate.html',
+  sampleEuAiActReportUrl: null,
+  pricingUrl: 'pricing.html',
+  communityUrl: 'community.html',
+  contactUrl: 'contact.html',
+  contactPageUrl: 'contact.html',
+  termsUrl: 'terms.html',
+  privacyUrl: 'privacy.html',
+  refundUrl: 'refund.html',
+  cloudTeamsUrl: null,
+  auditEmail: null,
+  pricing: {
+    developer: { name: 'Free', price: 0, stripeLink: null, testStripeLink: null },
+    startup: { name: 'Pro', price: 9, stripeLink: null, testStripeLink: null },
+    compliance: { name: 'Compliance Suite', price: 399, stripeLink: null, testStripeLink: null },
+    enterprise: { name: 'Enterprise Air-Gapped', price: null, stripeLink: null, testStripeLink: null }
+  },
+  instantReportLink: 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07',
+  stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
+  euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
+  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === 'simplebeacon.ai' || location.hostname === 'www.simplebeacon.ai' || location.hostname.endsWith('.onrender.com'))) ? '' : 'https://simplebeacon.ai',
+  dashboardUrl: '/dashboard/',
+  dashboardAppUrl: '/dashboard/',
+  stagingMode: false,
+  paymentsEnabled: true,
+  closedSource: false,
+  products: {},
+  analysisTypes: {},
+  tierProfiles: {},
+  features: [],
+  faqs: []
+};
+(function () {
+  try {
+    const apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
+    fetch(apiBase + '/api/config/pricing')
+      .then(function (res) { if (!res.ok) return null; return res.json(); })
+      .then(function (data) {
+        if (!data || !data.success || !data.pricing) return;
+        const cfg = window.SIMPLEBEACON_SITE;
+        const p = data.pricing;
+        if (p.instant && p.instant.stripeLink) { cfg.pricing.instant.stripeLink = p.instant.stripeLink; cfg.instantReportLink = p.instant.stripeLink; }
+        if (p.executive && p.executive.stripeLink) { cfg.pricing.executive.stripeLink = p.executive.stripeLink; cfg.stripePaymentLink = p.executive.stripeLink; }
+        if (p.euSprint && p.euSprint.stripeLink) { cfg.pricing.euSprint.stripeLink = p.euSprint.stripeLink; cfg.euAiActPackLink = p.euSprint.stripeLink; }
+      }).catch(function () { });
+  } catch (e) { }
+})();
+  </script>
+  <script>
+// Referral capture (inlined to avoid 404 on Cloudflare Pages)
+(function () {
+    try {
+        var params = new URLSearchParams(window.location.search);
+        var ref = params.get('ref');
+        if (!ref) return;
+        try { localStorage.setItem('sb_ref_slug', ref); } catch (_) { }
+        fetch('/api/referral/capture', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ref: ref, channel: 'web' })
+        }).catch(function () { });
+    } catch (_) { }
+})();
+  </script>
 </head>
 <body>
-  <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
+  <noscript><div style="padding:40px;text-align:center;"><h1>JavaScript Required</h1><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
 
-  <!-- React mount point -->
-  <div id="root"></div>
+  <!-- React mount point — main landmark for pre-hydration a11y; replaced on hydration -->
+  <div id="root" role="main" aria-label="SimpleBeacon Dashboard">
+    <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;padding:0;margin:-1px;">SimpleBeacon Dashboard</h1>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;color:#64748b;background:#f8fafc;" role="status" aria-live="polite">
+      <p style="font-size:1rem;margin:0;">Loading SimpleBeacon Dashboard…</p>
+      <p style="font-size:0.875rem;margin:0.5rem 0 0;color:#64748b;">AI Safety Scanning Platform</p>
+    </div>
+  </div>
 
   <!-- Extension bridge fetch rewrite -->
   <script>
@@ -327,23 +403,8 @@
     })();
   </script>
 
-  <!-- React Dashboard Bundle -->
-  <script>
-    (function(){
-      var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
-      if (devHost) {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260730export1';
-        document.head.appendChild(s);
-      } else {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = '/dashboard/assets/main.js?v=20260730export1';
-        document.head.appendChild(s);
-      }
-    })();
-  </script>
+  <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
+  <script type="module" src="/dashboard/assets/main.js?v=20260815dash1"></script>
   <script>
     (function(){
       try{

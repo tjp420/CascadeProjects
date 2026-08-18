@@ -3,7 +3,7 @@ import { billingService } from './billingService.js';
 import { authService } from './authService.js?v=20260722bridgefix1';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
-import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';
+import { buildDashboardExportBundle, buildVulnerabilityTrendCsv, buildBulkIssuesCsv, buildAuditPrintableHtml } from '../utils/dashboard-export.browser.js?v=20260816cyclefix1';
 import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260722scanfix2';
 import { apiBaseUrl } from '../utils-lib/url.js';
 /**
@@ -184,6 +184,9 @@ export class ScanService {
         this._pendingFetches = new Map();
         this._ciMetricsInflight = null;
         this._ciMetricsUnavailable = false;
+        this._teamTelemetryUnavailable = false;
+        this._teamTrendInflight = null;
+        this._teamDistributionInflight = null;
     }
     async fetchAll(projectPath = null) {
         const [reportR, baselineR, configR, historyR] = await Promise.allSettled([
@@ -612,6 +615,32 @@ export class ScanService {
         });
         downloadText([header.join(','), ...rows].join('\n'), `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
     }
+    exportTrendCsv(report = this.report, history = this.history) {
+        const csv = buildVulnerabilityTrendCsv(report, history);
+        if (!csv) {
+            throw new Error('No scan history available for trend export');
+        }
+        downloadText(csv, `simplebeacon-trend-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+    }
+    exportAuditPdf(report = this.report, history = this.history) {
+        if (!report) {
+            throw new Error('No scan report loaded — run a scan first');
+        }
+        const html = buildAuditPrintableHtml(report, history);
+        const w = window.open('', '_blank');
+        if (!w) {
+            throw new Error('Pop-up blocked — allow pop-ups to generate audit PDF');
+        }
+        w.document.write(html);
+        w.document.close();
+    }
+    exportBulkIssuesCsv(reports = []) {
+        const csv = buildBulkIssuesCsv(reports);
+        if (!csv) {
+            throw new Error('No issues found in provided reports');
+        }
+        downloadText(csv, `simplebeacon-bulk-issues-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+    }
     getIssueCategories(report = this.report) {
         var _a, _b;
         if (!report)
@@ -765,6 +794,94 @@ export class ScanService {
             }
             const data = await readJsonResponseBody(res);
             if (!data || typeof data.total_scans !== 'number') {
+                return null;
+            }
+            return data;
+        }
+        catch {
+            return null;
+        }
+    }
+
+    /**
+     * Team gate-pass rate trend (paid team/compliance tier).
+     * @param {{ days?: number }} [options]
+     * @returns {Promise<{ trend: Array, granularity: string }|null>}
+     */
+    async fetchTeamTelemetryTrend(options = {}) {
+        if (this._teamTelemetryUnavailable) {
+            return null;
+        }
+        if (this._teamTrendInflight) {
+            return this._teamTrendInflight;
+        }
+        this._teamTrendInflight = this._fetchTeamTelemetryTrendImpl(options).finally(() => {
+            this._teamTrendInflight = null;
+        });
+        return this._teamTrendInflight;
+    }
+
+    async _fetchTeamTelemetryTrendImpl(options = {}) {
+        const days = options.days || 7;
+        try {
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/team/telemetry/trend?days=${days}`, {
+                headers: mergeAuthHeaders({ Accept: 'application/json' })
+            });
+            if (res.status === 404 || res.status === 403 || res.status === 401) {
+                if (res.status === 404) {
+                    this._teamTelemetryUnavailable = true;
+                }
+                return null;
+            }
+            if (!res.ok) {
+                return null;
+            }
+            const data = await readJsonResponseBody(res);
+            if (!data || !Array.isArray(data.trend)) {
+                return null;
+            }
+            return data;
+        }
+        catch {
+            return null;
+        }
+    }
+
+    /**
+     * Team quality-score distribution percentiles (paid team/compliance tier).
+     * @param {{ days?: number }} [options]
+     * @returns {Promise<Object|null>}
+     */
+    async fetchTeamQualityDistribution(options = {}) {
+        if (this._teamTelemetryUnavailable) {
+            return null;
+        }
+        if (this._teamDistributionInflight) {
+            return this._teamDistributionInflight;
+        }
+        this._teamDistributionInflight = this._fetchTeamQualityDistributionImpl(options).finally(() => {
+            this._teamDistributionInflight = null;
+        });
+        return this._teamDistributionInflight;
+    }
+
+    async _fetchTeamQualityDistributionImpl(options = {}) {
+        const days = options.days || 7;
+        try {
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/team/telemetry/distribution?days=${days}`, {
+                headers: mergeAuthHeaders({ Accept: 'application/json' })
+            });
+            if (res.status === 404 || res.status === 403 || res.status === 401) {
+                if (res.status === 404) {
+                    this._teamTelemetryUnavailable = true;
+                }
+                return null;
+            }
+            if (!res.ok) {
+                return null;
+            }
+            const data = await readJsonResponseBody(res);
+            if (!data || typeof data !== 'object') {
                 return null;
             }
             return data;

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
+import { setLargeItem, removeLargeItem } from '@/utils/dbStorage';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
 import { captureDropEntries, collectFilesFromDrop, type VirtualFile } from '@/services/dropFolderTraversal';
@@ -33,6 +34,8 @@ import { useExtensionBridge } from '@/hooks/useExtensionBridge';
 import { discoverAndApplyExtensionBridge } from '@services/localAgentService.js';
 import { navigate } from '@/router/HashRouter';
 import { requestNotificationPermission, showOSNotification, isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
+import { isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, canUseUnlimitedDirectoryPicker } from '@/lib/browserFolderCap';
+import { ScanPipelinePanel, type ScanPipelineMetrics } from '@/components/ScanPipelinePanel';
 
 type ScanMode = 'local' | 'server' | 'github' | 'website';
 type ScanState = 'idle' | 'scanning' | 'complete' | 'error' | 'auth_required';
@@ -186,6 +189,20 @@ async function runBridgeExtensionScan(
   return report;
 }
 
+function extractPipelineMetrics(report: any, scanResult?: ScanResult | null): ScanPipelineMetrics {
+  const scope = report?.scanScope || {};
+  const pipeline = scope.pipeline || {};
+  return {
+    scanMode: scope.scanMode || scope.resultsViewScope || 'browser-heuristic',
+    discovered: pipeline.discovered ?? scope.filesDiscovered ?? report?.repositoryFilesTotal ?? scanResult?.totalFiles,
+    filtered: pipeline.filtered ?? scope.filesAfterIgnore ?? report?.repositoryFilesTotal ?? scanResult?.totalFiles,
+    analyzed: pipeline.analyzed ?? scope.codeFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? scanResult?.scanScope?.codeFilesAnalyzed,
+    gateBlocking: pipeline.gateBlocking ?? report?.gate?.blockingCount ?? scanResult?.gate?.blockingCount,
+    gatePass: report?.gate?.pass ?? scanResult?.gate?.pass,
+    limitations: Array.isArray(scope.limitations) ? scope.limitations : undefined,
+  };
+}
+
 interface ScanResult {
   totalFiles: number;
   issueCount: number;
@@ -265,6 +282,7 @@ export function AnalyzeView() {
   const [progressLabel, setProgressLabel] = useState('');
   const [requiresManualTrigger, setRequiresManualTrigger] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [pipelineMetrics, setPipelineMetrics] = useState<ScanPipelineMetrics | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -302,6 +320,33 @@ export function AnalyzeView() {
     } else {
       setIsRemoteBackend(true);
     }
+  }, []);
+
+  // Expose a dev/test-only storage helper on the window for E2E tests.
+  useEffect(() => {
+    try {
+      const isDev = (import.meta as any)?.env?.MODE === 'development';
+      const isE2EParam = typeof window !== 'undefined' && window.location.search.includes('sb_e2e');
+      if (typeof window !== 'undefined' && (isDev || isE2EParam)) {
+        (window as any).SimpleBeaconStorage = {
+          saveReport: async (id: string, report: any) => {
+            try {
+              await setLargeItem('sb_last_scan_report', report);
+            } catch (e) {
+              // best-effort write — fall through
+            }
+            try { localStorage.setItem('sb_last_scan_report_storage', 'indexeddb'); } catch (_e) { /* ignore */ }
+            try { localStorage.setItem('sb_last_scan_id', id); } catch (_e) { /* ignore */ }
+            try { window.dispatchEvent(new Event('storage')); } catch (_e) { /* ignore */ }
+          }
+        };
+      }
+    } catch (_e) {
+      console.debug('[AnalyzeView] Environment detection failed:', _e);
+    }
+    return () => {
+      try { if (typeof window !== 'undefined') delete (window as any).SimpleBeaconStorage; } catch (_e) { }
+    };
   }, []);
 
   // Auto-open Local Agent modal when Local Network Access is denied
@@ -488,6 +533,7 @@ export function AnalyzeView() {
       try {
         localStorage.removeItem('sb_last_scan_report');
         localStorage.removeItem('sb_last_scan_full');
+        try { removeLargeItem('sb_last_scan_report'); } catch (_e) { /* ignore */ }
       } catch { /* ignore */ }
     };
 
@@ -520,18 +566,28 @@ export function AnalyzeView() {
         : (Array.isArray(fullReportData?.detectedIssues) ? fullReportData.detectedIssues : []);
       const useCompactFirst = rawIssues.length > 200 || (scanResult.issueCount ?? 0) > 500;
       const payload = useCompactFirst ? buildCompactReport(fullReportData) : fullReportData;
-      try {
-        storeReportPayload(payload);
-      } catch (e) {
-        console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
-        clearBulkyScanKeys();
+      // Try to persist the large payload into IndexedDB first (durable, async). If that fails,
+      // fall back to the existing localStorage strategy (compact payload where necessary).
+      (async () => {
         try {
-          storeReportPayload(buildCompactReport(fullReportData));
-        } catch (compactErr) {
-          console.warn('[SimpleBeacon] Failed to store compact sb_last_scan_report:', compactErr);
-          toast.warning('Findings list not saved to browser storage — use Export on the Results page or re-scan after clearing site data.');
+          await setLargeItem('sb_last_scan_report', payload);
+          try { localStorage.setItem('sb_last_scan_report_storage', 'indexeddb'); } catch { /* ignore */ }
+        } catch (dbErr) {
+          console.warn('[SimpleBeacon] IndexedDB store failed, falling back to localStorage:', dbErr);
+          try {
+            storeReportPayload(payload);
+          } catch (e) {
+            console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
+            clearBulkyScanKeys();
+            try {
+              storeReportPayload(buildCompactReport(fullReportData));
+            } catch (compactErr) {
+              console.warn('[SimpleBeacon] Failed to store compact sb_last_scan_report:', compactErr);
+              toast.warning('Findings list not saved to browser storage — use Export on the Results page or re-scan after clearing site data.');
+            }
+          }
         }
-      }
+      })();
     }
     try {
       localStorage.setItem('sb_last_scan_time', new Date().toISOString());
@@ -539,6 +595,23 @@ export function AnalyzeView() {
       console.warn('[SimpleBeacon] Failed to store sb_last_scan_time:', e);
     }
   }, []);
+
+  const refuseIncompleteBrowserDrop = useCallback((fileCount: number, folderHint?: string) => {
+    const n = Number(fileCount) || 0;
+    if (n === 0 || n > 2) return false;
+    const label = folderHint ? `"${folderHint}"` : 'This folder';
+    const msg =
+      `${label} only exposed ${n} file${n === 1 ? '' : 's'} in the browser (incomplete access — common for OS/system directories like C:\\Windows). `
+      + 'No full-repo PASS was recorded. Use Select Folder on a project tree, or run: '
+      + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+    toast.warning(msg, { duration: 14000 });
+    setRequiresManualTrigger(true);
+    setScanState('idle');
+    setProgress(0);
+    setProgressLabel('Click "Select Folder" for a project tree, or use the CLI for OS roots.');
+    appendLog(`[SimpleBeacon] Incomplete folder drop refused (${n} file${n === 1 ? '' : 's'}) — ${msg}`);
+    return true;
+  }, [appendLog]);
 
   const runBrowserLocalScan = useCallback(async (options: {
     files?: FileList | File[];
@@ -554,13 +627,30 @@ export function AnalyzeView() {
       toast.error('Sign in to run analysis.');
       return;
     }
+    if (options.files && refuseIncompleteBrowserDrop(
+      Array.isArray(options.files) ? options.files.length : options.files.length,
+      options.projectPath,
+    )) {
+      return;
+    }
     if (scanInFlightRef.current) return;
     scanInFlightRef.current = true;
+    // Clear stale scan data from previous scans so ResultsView doesn't show old findings
+    try {
+      localStorage.removeItem('sb_last_scan_full');
+      localStorage.removeItem('sb_last_scan_report');
+      localStorage.removeItem('sb_last_scan_time');
+      localStorage.removeItem('sb_last_scan_report_storage');
+      removeLargeItem('sb_last_scan_report');
+    } catch { /* ignore */ }
     setScanState('scanning');
     setProgress(2);
     setProgressLabel('Preparing files for scanning...');
     setTerminalOutput([]);
     setRequiresManualTrigger(false);
+    setResult(null);
+    setFullReport(null);
+    setPipelineMetrics(null);
     setPath(options.projectPath);
     appendLog(`[SimpleBeacon] ${options.logLabel || 'Browser local scan'}...`);
     try {
@@ -568,12 +658,13 @@ export function AnalyzeView() {
         files: options.files,
         dirHandle: options.dirHandle,
         projectPath: options.projectPath,
+        deepScan: fullDirectoryScan,
         onFilePrepProgress: (processed: number, total: number, label: string) => {
           if (total > 0) {
             setProgress(Math.min(15, Math.round((processed / total) * 15)));
             setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
           } else {
-            setProgress(2);
+            setProgress(Math.min(10, 2 + Math.round(processed / 500)));
             setProgressLabel(label);
           }
         },
@@ -604,9 +695,17 @@ export function AnalyzeView() {
       };
       setResult(scanResult);
       setFullReport(report);
+      setPipelineMetrics(extractPipelineMetrics(r, scanResult));
       setScanState('complete');
       setProgress(100);
       appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+      if ((r.gate && r.gate.incompleteDrop) || (scanResult.totalFiles > 0 && scanResult.totalFiles < 3 && scanResult.gate.pass === false)) {
+        toast.warning(
+          r.incompleteDropNote
+            || 'Incomplete folder inventory — gate FAIL. Use Select Folder on a project tree or CLI for OS roots (e.g. C:\\Windows).',
+          { duration: 14000 },
+        );
+      }
       persistScanResult(scanResult, report);
     } catch (err: any) {
       setScanState('error');
@@ -618,7 +717,7 @@ export function AnalyzeView() {
     } finally {
       scanInFlightRef.current = false;
     }
-  }, [appendLog, persistScanResult, hosted]);
+  }, [appendLog, persistScanResult, hosted, refuseIncompleteBrowserDrop, fullDirectoryScan]);
 
   const ensureScanAuthorized = useCallback((): boolean => {
     if (!hostedScanRequiresAuth(hosted) || !isTokenExpired()) return true;
@@ -720,6 +819,16 @@ export function AnalyzeView() {
       return;
     }
     scanInFlightRef.current = true;
+    // Clear stale scan data from previous scans so ResultsView doesn't show old findings
+    try {
+      localStorage.removeItem('sb_last_scan_full');
+      localStorage.removeItem('sb_last_scan_report');
+      localStorage.removeItem('sb_last_scan_time');
+      localStorage.removeItem('sb_last_scan_report_storage');
+      removeLargeItem('sb_last_scan_report');
+    } catch { /* ignore */ }
+    setResult(null);
+    setFullReport(null);
     let scanInput = path.trim();
 
     // Reject page URL or fragment as scan path
@@ -804,7 +913,7 @@ export function AnalyzeView() {
               setProgress(pct);
               setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
             } else {
-              setProgress(5);
+              setProgress(Math.min(10, 2 + Math.round(processed / 500)));
               setProgressLabel(label);
             }
           },
@@ -966,7 +1075,7 @@ export function AnalyzeView() {
             appendLog('[SimpleBeacon] Gesture chain broken — showing manual Select Folder button.');
             return;
           }
-          toast.info('Please select the folder to scan using the file picker (select any file in the folder).');
+          toast.info('Select a folder to scan — your files are processed locally in this browser and never uploaded.');
           try {
             folderInputRef.current.click();
           } catch (clickErr: any) {
@@ -982,7 +1091,7 @@ export function AnalyzeView() {
         if (!dirHandlePick) {
           setScanState('error');
           appendLog('[SimpleBeacon] No folder picker available in this context. Cannot scan local path on hosted dashboard.');
-          toast.error('No folder picker available. Use the "Browse Folder" button to select a local directory, or enter a GitHub URL.');
+          toast.error('Folder picker unavailable in this browser. Try entering a GitHub URL instead, or use Chrome/Edge for local folder scanning.');
           return;
         }
         if (dirHandlePick) {
@@ -1308,21 +1417,6 @@ export function AnalyzeView() {
     const dtFiles = Array.from(e.dataTransfer.files);
     const firstItem = e.dataTransfer.items?.[0] as DataTransferItem & { getAsFileSystemHandle?: () => Promise<FileSystemHandle> };
 
-    // Firefox invalidates DataTransfer (and all derived FileSystemEntry/File
-    // objects) after the drop event handler yields on its first await. The
-    // modern getAsFileSystemHandle() API returns a stable FileSystemDirectoryHandle
-    // that survives after the event, but the call itself MUST be initiated
-    // synchronously before any await — otherwise the DataTransferItem is already
-    // stale. Capture the Promise here; await it later as the primary path.
-    let fsHandlePromise: Promise<FileSystemHandle | null> | null = null;
-    if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
-      try {
-        fsHandlePromise = firstItem.getAsFileSystemHandle();
-      } catch {
-        /* getAsFileSystemHandle not available or DataTransferItem stale */
-      }
-    }
-
     if (dtFiles.length > 0 && (dtFiles[0] as any).path) {
       const filePath = String((dtFiles[0] as any).path).replace(/\\/g, '/');
       const folderName = (dtFiles[0] as any).webkitRelativePath?.split('/')[0] || dtFiles[0].name;
@@ -1337,12 +1431,92 @@ export function AnalyzeView() {
       }
     }
 
-    // Primary path: use the modern File System Access API handle. This is
-    // stable across event yields and supports recursive directory traversal
-    // without DataTransfer invalidation issues in Firefox.
-    if (fsHandlePromise) {
+    if (capturedEntries.length > 0) {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel(`Reading dropped files... (${capturedEntries.length} ${capturedEntries.length === 1 ? 'entry' : 'entries'})`);
+      setTerminalOutput([`[SimpleBeacon] Traversing dropped ${capturedEntries.length === 1 ? 'item' : 'items'}...`]);
+      setRequiresManualTrigger(false);
+      let lastProgressUpdate = 0;
       try {
-        const handle = await fsHandlePromise;
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries, {
+          onProgress: (count) => {
+            // Throttle progress updates to once per 100ms to avoid flooding React
+            const now = Date.now();
+            if (now - lastProgressUpdate > 100) {
+              lastProgressUpdate = now;
+              setProgressLabel(`Reading dropped files... ${count.toLocaleString()} files found`);
+            }
+          },
+        });
+        if (files.length > 0) {
+          if (traverseErrors > 0) {
+            appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
+          }
+          if (isLikelyWebkitDirectoryFileCap(files.length) && canUseUnlimitedDirectoryPicker()) {
+            toast.warning(browserFolderCapMessage(files.length), { duration: 14000 });
+            setRequiresManualTrigger(true);
+            setScanState('idle');
+            setProgress(0);
+            setProgressLabel('Browser capped this drop at ~8k files — click Select Folder for full discovery.');
+            appendLog(`[SimpleBeacon] Drop hit webkitdirectory cap (${files.length} files) — use Select Folder (unlimited picker).`);
+            return;
+          }
+          // Guard: 1-2 files from a folder drop likely means entries went stale
+          // (DOMException when worker reads the File). Show Select Folder prompt
+          // instead of producing a false-positive gate PASS on a stale single file.
+          if (refuseIncompleteBrowserDrop(files.length, rootName)) {
+            return;
+          }
+          toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
+          try {
+            await runBrowserLocalScan({
+              files,
+              projectPath: rootName,
+              logLabel: `Browser local scan via drag-and-drop (${files.length.toLocaleString()} files)`,
+            });
+          } catch (scanErr: any) {
+            appendLog(`[SimpleBeacon] Browser local scan failed: ${scanErr?.name || ''} ${scanErr?.message || scanErr}`);
+            console.error('[SimpleBeacon] runBrowserLocalScan error:', scanErr);
+            throw scanErr;
+          }
+          return;
+        }
+        appendLog('[SimpleBeacon] Drop traversal returned 0 files — showing manual Select Folder button.');
+        setRequiresManualTrigger(true);
+        setScanState('idle');
+        setProgress(0);
+        setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
+        toast.warning(
+          'Folder drop could not enumerate files (common for protected OS directories like C:\\Windows). '
+            + 'Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json',
+          { duration: 14000 },
+        );
+        return;
+      } catch (traverseErr: any) {
+        appendLog(`[SimpleBeacon] Drop traversal failed: ${traverseErr?.message || traverseErr}`);
+        console.debug('[SimpleBeacon] Drop traversal error (handled — showing manual Select Folder fallback):', traverseErr);
+        setRequiresManualTrigger(true);
+        setScanState('idle');
+        setProgress(0);
+        setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
+        toast.warning(
+          'Folder drop could not be traversed (browser cannot fully read OS roots like C:\\Windows). '
+            + 'Click Select Folder for a project tree, or use the CLI.',
+          { duration: 14000 },
+        );
+        return;
+      }
+    }
+
+    if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel('Reading dropped folder...');
+      setTerminalOutput(['[SimpleBeacon] Resolving dropped folder via File System Access API...']);
+      setRequiresManualTrigger(false);
+      try {
+        const handle = await firstItem.getAsFileSystemHandle();
         if (handle && handle.kind === 'directory') {
           const dirHandle = handle as FileSystemDirectoryHandle;
           toast.info(`Scanning dropped folder "${dirHandle.name}"...`);
@@ -1358,60 +1532,31 @@ export function AnalyzeView() {
       }
     }
 
-    // Fallback: webkitGetAsEntry traversal. In Firefox this may fail with
-    // DOMException if the DataTransfer was invalidated between capture and
-    // traversal.
-    if (capturedEntries.length > 0) {
-      try {
-        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries);
-        if (files.length > 0) {
-          if (traverseErrors > 0) {
-            appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
-          }
-          toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
-          try {
-            await runBrowserLocalScan({
-              files,
-              projectPath: rootName,
-              logLabel: `Browser local scan via drag-and-drop (${files.length.toLocaleString()} files)`,
-            });
-          } catch (scanErr: any) {
-            appendLog(`[SimpleBeacon] Browser local scan failed: ${scanErr?.name || ''} ${scanErr?.message || scanErr}`);
-            console.error('[SimpleBeacon] runBrowserLocalScan error:', scanErr);
-            try {
-              // Extra defensive logging for DOMException-like failures
-              console.error('Error details:', {
-                name: scanErr?.name,
-                message: scanErr?.message,
-                code: scanErr?.code,
-                stack: scanErr?.stack,
-              });
-            } catch (logErr) {
-              console.warn('[SimpleBeacon] Failed to stringify scan error details', logErr);
-            }
-            throw scanErr;
-          }
-          return;
-        }
-      } catch (traverseErr: any) {
-        appendLog(`[SimpleBeacon] Drop traversal failed: ${traverseErr?.message || traverseErr}`);
-        console.warn('[SimpleBeacon] Drop traversal error:', traverseErr);
-      }
-    }
-
     if (dtFiles.length > 0) {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel(`Reading ${dtFiles.length.toLocaleString()} dropped file${dtFiles.length === 1 ? '' : 's'}...`);
+      setTerminalOutput([`[SimpleBeacon] Processing ${dtFiles.length} dropped file${dtFiles.length === 1 ? '' : 's'}...`]);
+      setRequiresManualTrigger(false);
       const flatFiles: VirtualFile[] = [];
       const hasRelativePath = dtFiles.some((f) => {
         const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
         return rel && rel.includes('/');
       });
-      // Guard: if only 1-2 files without webkitRelativePath, the folder wasn't
-      // traversed (browser DOMException on readEntries). Scanning 1 file from
-      // a folder drop produces a false-positive gate PASS. Match the /audit
-      // page behavior: refuse to scan and prompt for Select Folder.
-      if (!hasRelativePath && dtFiles.length <= 2) {
-        toast.warning('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', { duration: 10000 });
+      if (refuseIncompleteBrowserDrop(dtFiles.length, dtFiles[0]?.name || 'dropped-folder')) {
+        return;
+      }
+      if (isLikelyWebkitDirectoryFileCap(dtFiles.length) && canUseUnlimitedDirectoryPicker()) {
+        toast.warning(browserFolderCapMessage(dtFiles.length), { duration: 14000 });
+        setRequiresManualTrigger(true);
         setScanState('idle');
+        setProgress(0);
+        setProgressLabel('Browser capped this drop at ~8k files — click Select Folder for full discovery.');
+        appendLog(`[SimpleBeacon] Drop hit webkitdirectory cap (${dtFiles.length} files) — use Select Folder (unlimited picker).`);
+        return;
+      }
+      if (!hasRelativePath && dtFiles.length <= 2) {
+        refuseIncompleteBrowserDrop(dtFiles.length, 'dropped-folder');
         return;
       }
       for (const f of dtFiles) {
@@ -1432,6 +1577,9 @@ export function AnalyzeView() {
       }
       const firstRel = flatFiles[0]?._virtualPath || flatFiles[0]?.name || 'dropped-files';
       const rootName = String(firstRel).split('/')[0] || 'dropped-files';
+      if (refuseIncompleteBrowserDrop(flatFiles.length, rootName)) {
+        return;
+      }
       toast.info(`Scanning dropped folder "${rootName}" (${flatFiles.length.toLocaleString()} files)...`);
       await runBrowserLocalScan({
         files: flatFiles,
@@ -1457,7 +1605,7 @@ export function AnalyzeView() {
     toast.error('Could not read dropped folder. Click Select Folder below or install the VS Code extension.');
     setRequiresManualTrigger(true);
     setScanState('idle');
-  }, [appendLog, bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
+  }, [appendLog, bridgeBase, bridgeToken, hosted, refuseIncompleteBrowserDrop, runBrowserLocalScan]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -1470,6 +1618,30 @@ export function AnalyzeView() {
       return;
     }
     console.warn('[SimpleBeacon] handleFileSelect: files.length =', files.length, '| first.webkitRelativePath =', (files[0] as any).webkitRelativePath);
+    if (isLikelyWebkitDirectoryFileCap(files.length) && canUseUnlimitedDirectoryPicker()) {
+      e.target.value = '';
+      toast.warning(browserFolderCapMessage(files.length), { duration: 14000 });
+      try {
+        const handle = await (window as any).showDirectoryPicker();
+        if (handle?.kind === 'directory') {
+          setPath(handle.name);
+          setScanState('scanning');
+          setProgress(2);
+          appendLog(`[SimpleBeacon] Re-opened unlimited folder picker after webkit cap (${files.length} files)...`);
+          await runBrowserLocalScan({
+            dirHandle: handle,
+            projectPath: handle.name,
+            logLabel: `Browser local scan via File System Access API (${handle.name})`,
+          });
+          return;
+        }
+      } catch (capErr: any) {
+        if (capErr?.name !== 'AbortError') {
+          appendLog(`[SimpleBeacon] Unlimited folder picker failed: ${capErr?.message || capErr}`);
+        }
+        return;
+      }
+    }
     const first = files[0];
     const rel = (first as any).webkitRelativePath;
     let dirName = first.name;
@@ -1540,7 +1712,7 @@ export function AnalyzeView() {
     }
     // Reset input so the same folder can be selected again
     e.target.value = '';
-  }, [appendLog, hosted, persistScanResult]);
+  }, [appendLog, hosted, persistScanResult, runBrowserLocalScan]);
 
   const handleBrowseFolder = useCallback(async () => {
     // 1. Try extension bridge folder picker first (works in cross-origin iframes)
@@ -1558,8 +1730,13 @@ export function AnalyzeView() {
         return;
       }
     }
-    // 2. Try browser-native directory picker
+    // 2. Try browser-native directory picker (Chrome/Edge)
+    // On Firefox (no showDirectoryPicker), click the webkitdirectory input
+    // synchronously to preserve the user gesture chain.
     if (typeof (window as any).showDirectoryPicker !== 'function') {
+      // Must call .click() synchronously — no awaits before this point
+      // or Firefox will break the user gesture chain.
+      // The bridgeBase check above is the only async path, and it returns early.
       folderInputRef.current?.click();
       return;
     }
@@ -1578,12 +1755,23 @@ export function AnalyzeView() {
         setPath(handle.name);
         toast.info(`Folder selected: ${handle.name}`);
         (window as any).__sbDroppedDirHandle = handle;
+        // Auto-start scan using the directory handle (bypasses webkitdirectory ~3000 file cap)
+        await runBrowserLocalScan({
+          dirHandle: handle,
+          projectPath: handle.name,
+          logLabel: `Browser local scan via File System Access API (${handle.name})`,
+        });
       }
-    } catch {
-      // User cancelled or permission denied — fall back to input
-      folderInputRef.current?.click();
+    } catch (pickErr: any) {
+      if (pickErr?.name === 'AbortError') return;
+      appendLog(`[SimpleBeacon] showDirectoryPicker failed: ${pickErr?.message || pickErr}`);
+      if (typeof (window as any).showDirectoryPicker !== 'function') {
+        folderInputRef.current?.click();
+      } else {
+        toast.error(pickErr?.message || 'Folder picker failed — try Select Folder again.');
+      }
     }
-  }, [bridgeBase, bridgeToken, hosted]);
+  }, [bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
 
   const modeTabs: { key: ScanMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = websiteMode
     ? [
@@ -1645,7 +1833,7 @@ export function AnalyzeView() {
         </div>
       )}
       {/* Hidden file inputs used for folder fallback and upload */}
-      <input ref={uploadInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={async (e) => {
+      <input ref={uploadInputRef} type="file" accept="application/json" aria-label="Upload scan JSON" style={{ display: 'none' }} onChange={async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return; try {
           const txt = await f.text();
@@ -1890,10 +2078,23 @@ export function AnalyzeView() {
                 onDrop={handleDrop}
               >
                 <Folder className="mx-auto h-10 w-10 text-foreground-muted" />
-                <p className="mt-2 text-sm text-foreground-muted">Drag a folder here to scan immediately, or browse</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
-                  Browse Folder
-                </Button>
+                <p className="mt-2 text-sm font-medium">Select a folder to scan locally</p>
+                <p className="mt-1 text-xs text-foreground-muted">
+                  Files stay in your browser — nothing is uploaded to SimpleBeacon servers.
+                </p>
+                {canUseUnlimitedDirectoryPicker() ? (
+                  <Button variant="default" size="sm" className="mt-4" onClick={handleBrowseFolder}>
+                    Select Folder (recommended)
+                  </Button>
+                ) : (
+                  <Button variant="default" size="sm" className="mt-4" onClick={handleBrowseFolder}>
+                    Browse Folder
+                  </Button>
+                )}
+                <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+                  Drag-and-drop is capped near ~7,800 files in Chrome (webkitdirectory limit). Use Select Folder for unlimited repos, or run{' '}
+                  <code className="text-[11px]">npx simplebeacon scan --full --gate</code>.
+                </p>
               </div>
               <Input
                 placeholder={serverDefaultPath || 'e.g. my-project or /path/to/project'}
@@ -1930,7 +2131,7 @@ export function AnalyzeView() {
                   onChange={(e) => setFullDirectoryScan(e.target.checked)}
                   className="h-4 w-4 rounded border-input"
                 />
-                <span><strong>Full tree</strong> — content-scan every text file</span>
+                <span><strong>Deep scan</strong> — bypass vendor/docs/build filters to scan all files</span>
               </label>
             </TabsContent>
 
@@ -1975,15 +2176,14 @@ export function AnalyzeView() {
                 <div>
                   <strong>Select Folder</strong>
                   <p className="text-xs text-foreground-muted mt-1">
-                    Your browser blocked the automatic file picker (async gesture chain broken).
-                    Click the button below to choose a local directory to scan.
+                    Your browser requires a manual folder selection. Click the button to choose a directory — your files are scanned locally in this browser and never uploaded.
                   </p>
                 </div>
                 <Button
                   size="sm"
                   onClick={() => {
                     setRequiresManualTrigger(false);
-                    folderInputRef.current?.click();
+                    handleBrowseFolder();
                   }}
                 >
                   Select Folder
@@ -2015,7 +2215,9 @@ export function AnalyzeView() {
       ) : null}
 
       {scanState === 'scanning' && (
-        <Card>
+        <>
+          {pipelineMetrics ? <ScanPipelinePanel metrics={pipelineMetrics} compact /> : null}
+          <Card>
           <CardContent className="space-y-3 p-4">
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -2034,6 +2236,7 @@ export function AnalyzeView() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {scanState === 'auth_required' && (
@@ -2061,13 +2264,14 @@ export function AnalyzeView() {
       )}
 
       {scanState === 'complete' && result && (
-        <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} fullReport={fullReport} />
+        <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} fullReport={fullReport} pipelineMetrics={pipelineMetrics} />
       )}
 
       <input
         ref={folderInputRef}
         type="file"
         className="hidden"
+        aria-label="Select folder to scan"
         // @ts-ignore
         webkitdirectory=""
         directory=""
@@ -2082,10 +2286,12 @@ export function AnalyzeView() {
   );
 }
 
-function ScanResults({ result, terminalOutput, isRemoteBackend, fullReport }: { result: ScanResult; terminalOutput: string[]; isRemoteBackend: boolean; fullReport?: any }) {
+function ScanResults({ result, terminalOutput, isRemoteBackend, fullReport, pipelineMetrics }: { result: ScanResult; terminalOutput: string[]; isRemoteBackend: boolean; fullReport?: any; pipelineMetrics?: ScanPipelineMetrics | null }) {
   const isZeroResult = result.totalFiles === 0 && result.issueCount === 0;
+  const pipeline = pipelineMetrics || extractPipelineMetrics(fullReport, result);
   return (
     <div className="space-y-4">
+      <ScanPipelinePanel metrics={pipeline} />
       {isZeroResult && (
         <Card className="border-yellow-400/30 bg-yellow-50/30">
           <CardContent className="flex items-start gap-3 p-4">
@@ -2153,6 +2359,8 @@ function ScanResults({ result, terminalOutput, isRemoteBackend, fullReport }: { 
       <Tabs defaultValue="summary">
         <TabsList>
           <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
           <TabsTrigger value="scope">Scope</TabsTrigger>
           <TabsTrigger value="terminal">Terminal</TabsTrigger>
           <TabsTrigger value="export">Export</TabsTrigger>
@@ -2170,6 +2378,79 @@ function ScanResults({ result, terminalOutput, isRemoteBackend, fullReport }: { 
                   <p>Scope: <strong>{result.scanScope.resultsViewScope}</strong></p>
                 </div>
               </div>
+              {fullReport?.qualityScorecard && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2">Quality Scorecard</h4>
+                  <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                    {Object.entries(fullReport.qualityScorecard).map(([dim, score]) => (
+                      <div key={dim} className="rounded-md border p-2 text-center">
+                        <div className="text-xs text-foreground-muted capitalize">{dim}</div>
+                        <div className={`text-lg font-bold ${(score as number) >= 80 ? 'text-green-600' : (score as number) >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>{score as number}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inventory">
+          <Card>
+            <CardContent className="space-y-4 p-4">
+              {fullReport?.fileInventory ? (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">File Inventory Breakdown</h4>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {Object.entries(fullReport.fileInventory).map(([cat, count]) => (
+                      <div key={cat} className="rounded-md border p-3">
+                        <div className="text-xs text-foreground-muted capitalize">{cat.replace(/([A-Z])/g, ' $1').trim()}</div>
+                        <div className="text-xl font-bold">{count as number}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-foreground-muted">File inventory not available for this scan.</p>
+              )}
+              {fullReport?.removableFiles && fullReport.removableFiles.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2">Removable Files ({fullReport.removableFilesTotal || fullReport.removableFiles.length} total)</h4>
+                  <div className="rounded-md bg-muted p-3 font-mono text-xs space-y-1 overflow-y-auto max-h-48">
+                    {fullReport.removableFiles.slice(0, 50).map((f: { path: string; reason: string }, i: number) => (
+                      <div key={i} className="text-foreground-secondary break-all whitespace-pre-wrap">
+                        <span className="text-yellow-600">[removable]</span> {f.path} <span className="text-foreground-muted">— {f.reason}</span>
+                      </div>
+                    ))}
+                    {fullReport.removableFiles.length > 50 && (
+                      <div className="text-foreground-muted">... and {fullReport.removableFiles.length - 50} more (export JSON for full list)</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="diagnostics">
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              {fullReport?.diagnosticReport ? (
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Raw Files</div><div className="text-xl font-bold">{fullReport.diagnosticReport.rawFiles}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Filtered Files</div><div className="text-xl font-bold">{fullReport.diagnosticReport.filteredFiles}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Scanned Files</div><div className="text-xl font-bold">{fullReport.diagnosticReport.scannedFiles}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Read Errors</div><div className="text-xl font-bold text-red-600">{fullReport.diagnosticReport.readErrors}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Large File Skips</div><div className="text-xl font-bold text-yellow-600">{fullReport.diagnosticReport.largeFileSkips}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">File Errors</div><div className="text-xl font-bold text-red-600">{fullReport.diagnosticReport.fileErrors}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Ignored Dirs</div><div className="text-xl font-bold">{fullReport.diagnosticReport.ignoredDirs}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Ignored by Pattern</div><div className="text-xl font-bold">{fullReport.diagnosticReport.ignoredByPattern}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Heavy Vendor</div><div className="text-xl font-bold">{fullReport.diagnosticReport.heavyVendor}</div></div>
+                  <div className="rounded-md border p-3"><div className="text-xs text-foreground-muted">Unaccounted</div><div className="text-xl font-bold text-yellow-600">{fullReport.diagnosticReport.unaccounted}</div></div>
+                </div>
+              ) : (
+                <p className="text-sm text-foreground-muted">Diagnostics not available for this scan.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
