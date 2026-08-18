@@ -64,6 +64,7 @@ import {
   setNotifyCallback,
   drainNotificationQueue,
   setTheme,
+  invalidateDashboardRootCache,
 } from './dataServer';
 import { SimpleBeaconFixEngine } from './fixes/fixEngine';
 import {
@@ -75,6 +76,7 @@ import {
   normalizeApiServerUrl,
 } from './utils/vscode';
 import { escapeHtml } from './utils/string';
+import { resolveEffectiveScanMode, writeScanProgressInactive } from './utils/pdaScanDefaults';
 import { openWebsiteDashboardPanel } from './sidebarMessenger';
 import {
   getAgentPort,
@@ -96,6 +98,7 @@ import { getAccountTracker } from './accountTracker';
 import { PAID_TIERS, resolveTier } from './tierConstants';
 import { countLocalDirectoryInventory } from './routes/scanReport';
 import { ComplianceSidebarProvider } from './panels/ComplianceSidebar';
+import { ensureWorkspaceAgentBridge, writeAgentBriefFromReport, AGENT_SUPERCHARGE_FILENAME } from './utils/agentMcp';
 
 /** Decode the payload section of a JWT (3-part dot-separated token). */
 function decodeJwtPayload(token: string): Record<string, any> | null {
@@ -108,6 +111,40 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
   } catch {
     return null;
   }
+}
+
+function writeWorkspaceAgentBrief(report: unknown, projectPath?: string): string | null {
+  try {
+    const root = projectPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!root || !report || typeof report !== 'object') return null;
+    const opts = getAgentBridgeOptionsSync();
+    return writeAgentBriefFromReport(root, report as Record<string, unknown>, { paid: opts.paidTier }).path;
+  } catch (err) {
+    try {
+      outputChannel?.appendLine(
+        `[AgentBridge] brief write failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    } catch {
+      /* output channel may not exist yet */
+    }
+    return null;
+  }
+}
+
+/** Sync license + paid tier for MCP env and agent rule template. */
+function getAgentBridgeOptionsSync(): { licenseToken?: string; paidTier?: boolean; supercharge?: boolean } {
+  const config = getSbConfig();
+  const licenseToken =
+    config.get<string>('licenseKey', '') || config.get<string>('licenseToken', '') || undefined;
+  let paidTier = false;
+  if (licenseToken) {
+    const meta = validateLicenseLocally(licenseToken, PUBLIC_KEY_PEM);
+    if (meta && PAID_TIERS.has(resolveTier(meta.tier))) {
+      paidTier = true;
+    }
+  }
+  const supercharge = config.get<boolean>('agentSupercharge', true) !== false;
+  return { licenseToken, paidTier, supercharge };
 }
 
 /** Check if the current user has a paid (Pro/Enterprise) license. */
@@ -717,8 +754,55 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(outputChannel);
     outputChannel.appendLine('[SimpleBeacon] Extension activating... v' + version);
     outputChannel.appendLine('[SimpleBeacon] Output channel created');
+    invalidateDashboardRootCache();
     startDataServer(context, outputChannel);
     outputChannel.appendLine('[SimpleBeacon] Data server started');
+
+    const artifactWatcher = vscode.workspace.createFileSystemWatcher('**/.simplebeacon/report.json');
+    artifactWatcher.onDidChange((uri) => {
+      try {
+        const report = JSON.parse(fs.readFileSync(uri.fsPath, 'utf8'));
+        const folder = vscode.workspace.getWorkspaceFolder(uri);
+        const root = folder?.uri.fsPath;
+        if (root && report && typeof report === 'object') {
+          writeWorkspaceAgentBrief(report, root);
+          outputChannel.appendLine(`[AgentBridge] Refreshed supercharge artifacts for ${root}`);
+        }
+      } catch (err) {
+        outputChannel.appendLine(
+          `[AgentBridge] artifact refresh failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    });
+    context.subscriptions.push(artifactWatcher);
+
+    if (getSbConfig().get<boolean>('agentBridge', true) !== false) {
+      const agentRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (agentRoot) {
+        try {
+          const bridge = ensureWorkspaceAgentBridge(agentRoot, getAgentBridgeOptionsSync());
+          outputChannel.appendLine(`[AgentBridge] mcp=${bridge.mcp.status} rule=${bridge.rule.status}`);
+          const prompted = context.globalState.get<boolean>('simplebeacon.agentBridgeReloadPrompted');
+          if ((bridge.mcp.status === 'created' || bridge.mcp.status === 'merged') && !prompted) {
+            void context.globalState.update('simplebeacon.agentBridgeReloadPrompted', true);
+            void vscode.window
+              .showInformationMessage(
+                'SimpleBeacon MCP is ready. Reload the window, then call supercharge_agent in Cursor chat.',
+                'Reload'
+              )
+              .then((choice) => {
+                if (choice === 'Reload') {
+                  void vscode.commands.executeCommand('workbench.action.reloadWindow');
+                }
+              });
+          }
+        } catch (err) {
+          outputChannel.appendLine(
+            `[AgentBridge] ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+    }
 
     // Wire up external-browser → VS Code notification bridge
     const onNotifyEntry = (entry: any): void => {
@@ -2417,13 +2501,40 @@ export function activate(context: vscode.ExtensionContext) {
         }
       }),
       registerCmd('simplebeacon.sendToAIAgent', async () => {
-        const query = await vscode.window.showInputBox({
-          prompt: 'Ask the AI Agent',
-          placeHolder: 'e.g., Review this file for security issues...',
-          ignoreFocusOut: true,
-        });
-        if (!query) return;
-        showQuietMessage(`Sending to AI Agent: "${query}" — feature coming soon.`);
+        const data = currentReport as SidebarReport | null;
+        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!root) {
+          vscode.window.showWarningMessage('Open a folder to send a SimpleBeacon brief to the AI agent.');
+          return;
+        }
+        const briefPath = writeWorkspaceAgentBrief(data || {}, root);
+        if (!briefPath) {
+          vscode.window.showWarningMessage('Could not write .simplebeacon/agent-brief.md');
+          return;
+        }
+        const markdown = fs.readFileSync(briefPath, 'utf8');
+        await vscode.env.clipboard.writeText(markdown);
+        await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(briefPath));
+        showQuietMessage('Agent brief copied. Call supercharge_agent in Cursor chat, or paste the brief.');
+      }),
+      registerCmd('simplebeacon.installAgentBridge', async () => {
+        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!root) {
+          vscode.window.showWarningMessage('Open a folder to install the SimpleBeacon agent bridge.');
+          return;
+        }
+        try {
+          const bridge = ensureWorkspaceAgentBridge(root, getAgentBridgeOptionsSync());
+          const msg = `MCP ${bridge.mcp.status}; Cursor rule ${bridge.rule.status}. Reload, then call supercharge_agent.`;
+          const choice = await vscode.window.showInformationMessage(msg, 'Reload');
+          if (choice === 'Reload') {
+            await vscode.commands.executeCommand('workbench.action.reloadWindow');
+          }
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `Agent bridge failed: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
       }),
       registerCmd(
         'simplebeacon.remediateDiagnostic',
@@ -2605,6 +2716,28 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
         await vscode.commands.executeCommand('vscode.open', contextPath);
+      }),
+      registerCmd('simplebeacon.openSuperchargeBrief', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          vscode.window.showWarningMessage('No workspace folder open');
+          return;
+        }
+        const root = workspaceFolders[0].uri.fsPath;
+        const superPath = path.join(root, '.simplebeacon', AGENT_SUPERCHARGE_FILENAME);
+        if (!fs.existsSync(superPath)) {
+          const report = currentReport as SidebarReport | null;
+          if (report) {
+            writeWorkspaceAgentBrief(report, root);
+          }
+        }
+        if (!fs.existsSync(superPath)) {
+          vscode.window.showWarningMessage(
+            'No agent-supercharge.md yet. Run a gate scan or: npx simplebeacon supercharge --write-disk'
+          );
+          return;
+        }
+        await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(superPath));
       }),
       registerCmd('simplebeacon.sendToAi', async () => {
         const data = currentReport as SidebarReport | null;
@@ -4436,24 +4569,22 @@ async function runScan(
   visualSidebarProvider.setScanning(true, { phase: 'Initializing', progress: 0, total: 100 });
   modernSidebarProvider.updateStatus('scanning', 'Scanning...');
 
-  let scanMode = options?.mode || config.get<string>('scanMode', 'full');
-  // The sidebar uses scanMode for target mode ('workspace'/'custom'). Fall back to 'full' for scan type.
-  if (scanMode === 'workspace' || scanMode === 'custom') {
-    scanMode = 'full';
-  }
+  let scanMode = options?.mode || config.get<string>('scanMode', 'gate');
+  const effectiveScanMode = resolveEffectiveScanMode(projectPath, scanMode, options);
+  scanMode = effectiveScanMode;
+  outputChannel.appendLine(`[SimpleBeacon] Scan mode: ${effectiveScanMode}${effectiveScanMode === 'gate' && config.get<string>('scanMode', 'gate') === 'full' ? ' (PDA monorepo default)' : ''}`);
   // Do not pass --path; the CLI defaults to process.cwd() which we set to projectPath.
   // Passing --path (even '.') triggers [CONFIG_ERROR] Path must stay within the project root on Windows.
   const args = ['scan', '--format', 'json', '--output', '.simplebeacon/report.json'];
 
-  if (scanMode === 'full' || scanMode === 'security' || scanMode === 'quality') {
+  if (effectiveScanMode === 'full') {
     args.push('--complete');
-  } else if (scanMode === 'gate') {
+  } else if (effectiveScanMode === 'gate') {
     args.push('--gate');
   }
-  if (options?.fullDirectory) {
+  if (options?.fullDirectory === true && effectiveScanMode === 'full') {
     args.push('--complete');
   }
-  // quick mode: no --complete flag, uses productionPaths only (fastest)
 
   const configPath = path.join(projectPath, '.simplebeacon', 'config.json');
   try {
@@ -4473,24 +4604,25 @@ async function runScan(
     if (rootsToAdd.length > 0) {
       cfg.allowedAnalysisRoots = [...allowedRoots, ...rootsToAdd];
     }
-    // Ensure scan covers all files in the target directory (not just productionPaths)
-    if (!cfg.scanPaths) {
-      cfg.scanPaths = ['.'];
-    }
-    if (!cfg.productionPaths) {
-      cfg.productionPaths = ['.'];
-    }
-    if (cfg.fullDirectoryScan !== true) {
-      cfg.fullDirectoryScan = true;
-    }
-    if (!cfg.fullDirectoryScanMaxFiles || cfg.fullDirectoryScanMaxFiles < 50000) {
-      cfg.fullDirectoryScanMaxFiles = 100000;
+    // PDA default: gate scans use production paths — do not force fullDirectoryScan on every run.
+    if (effectiveScanMode === 'full' && options?.fullDirectory !== false) {
+      if (cfg.fullDirectoryScan !== true) {
+        cfg.fullDirectoryScan = true;
+      }
+      if (!cfg.fullDirectoryScanMaxFiles || cfg.fullDirectoryScanMaxFiles < 50000) {
+        cfg.fullDirectoryScanMaxFiles = 100000;
+      }
+      if (!cfg.scanPaths) cfg.scanPaths = ['.'];
+      if (!cfg.productionPaths) cfg.productionPaths = ['.'];
+      outputChannel.appendLine('[SimpleBeacon] Full scan: fullDirectoryScan=true');
+    } else if (cfg.fullDirectoryScan === true && effectiveScanMode !== 'full') {
+      cfg.fullDirectoryScan = false;
+      outputChannel.appendLine('[SimpleBeacon] PDA gate scan: fullDirectoryScan=false (production paths only)');
     }
     fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
     if (rootsToAdd.length > 0) {
       outputChannel.appendLine(`[SimpleBeacon] Updated allowedAnalysisRoots: ${rootsToAdd.join(', ')}`);
     }
-    outputChannel.appendLine('[SimpleBeacon] Ensured scanPaths=["."], productionPaths=["."], fullDirectoryScan=true');
     args.push('--config', '.simplebeacon/config.json');
   } catch (cfgErr) {
     outputChannel.appendLine(`[SimpleBeacon] Warning: could not update config: ${cfgErr}`);
@@ -4594,7 +4726,10 @@ async function runScan(
             scanStatus: 'completed',
             scanMessage: 'Local agent scan complete',
             lastScanTime: Date.now(),
+            scanProgressProcessed: 100,
+            scanProgressTotal: 100,
           });
+          writeScanProgressInactive(projectPath);
           hasEnhancedAnalysis = false;
           enhancedAIProvider.setScanResult(currentReport);
           await fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8');
@@ -4630,6 +4765,7 @@ async function runScan(
           );
           void syncReportToCloud(report);
           handleScanCompleteTeamTelemetry(context, report as any, projectPath, outputChannel);
+          writeWorkspaceAgentBrief(report, projectPath);
           scanInProgress = false;
           setTimeout(() => modernSidebarProvider.updateScanProgress(0), 2000);
           generateCodeMap(false, projectPath)
@@ -4953,7 +5089,10 @@ async function runScan(
                 scanStatus: 'completed',
                 scanMessage: 'CLI scan complete',
                 lastScanTime: Date.now(),
+                scanProgressProcessed: 100,
+                scanProgressTotal: 100,
               });
+              writeScanProgressInactive(projectPath);
               hasEnhancedAnalysis = false;
               enhancedAIProvider.setScanResult(currentReport);
 
@@ -5023,6 +5162,7 @@ async function runScan(
               outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
               void syncReportToCloud(report);
           handleScanCompleteTeamTelemetry(context, report as any, projectPath, outputChannel);
+              writeWorkspaceAgentBrief(report, projectPath);
               scanInProgress = false;
               _stopSimulatedProgress();
               _reportProgress(100);

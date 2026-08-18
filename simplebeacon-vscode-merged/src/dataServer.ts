@@ -1484,12 +1484,29 @@ let cachedDashboardRoot: string | null = null;
 let cachedDashboardRootTime = 0;
 const DASHBOARD_ROOT_CACHE_TTL = 30000; // 30 seconds
 
+function dashboardLibExportsBasenamePath(root: string): boolean {
+  try {
+    const libPath = path.join(root, 'js-es2018', 'lib', 'analyzePathSuggestions.js');
+    if (!fs.existsSync(libPath)) {
+      return false;
+    }
+    const content = fs.readFileSync(libPath, 'utf8');
+    return (
+      /export\s+function\s+basenamePath\b/.test(content) ||
+      /export\s*\{[^}]*\bbasenamePath\b/.test(content)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function dashboardRootHasAssets(p: string): boolean {
   return (
     fs.existsSync(p) &&
     fs.existsSync(path.join(p, 'index.vanilla.html')) &&
     fs.existsSync(path.join(p, 'css', 'variables.css')) &&
-    fs.existsSync(path.join(p, 'js-es2018', 'main.js'))
+    fs.existsSync(path.join(p, 'js-es2018', 'main.js')) &&
+    dashboardLibExportsBasenamePath(p)
   );
 }
 
@@ -1517,6 +1534,11 @@ function resolveDashboardRoot(context: vscode.ExtensionContext): string {
   const found = pickDashboardRoot(candidates);
   cachedDashboardRoot = found;
   cachedDashboardRootTime = Date.now();
+  if (!dashboardLibExportsBasenamePath(found)) {
+    console.warn(
+      `[SimpleBeacon] dashboard-web at ${found} is missing export for basenamePath; AnalyzeView may fail to load`
+    );
+  }
   return found;
 }
 
@@ -3473,7 +3495,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           }
           const args = {
             projectPath: rawProjectPath ? resolveRealPath(rawProjectPath) : undefined,
-            fullDirectory: payload.fullDirectoryScan !== false,
+            fullDirectory: payload.fullDirectoryScan === true,
+            mode: payload.scanMode || (payload.fullDirectoryScan === true ? 'full' : 'gate'),
           };
           // Await the scan so the response includes the full report (matches remote server behavior)
           try {

@@ -21,6 +21,21 @@ function readProjectScanProgress(projectPath: string) {
 }
 
 function buildScanProgressPayload(projectPath: string, serverState: ServerState) {
+  // Server state wins when scan is not actively running — avoids stale progress files.
+  if (serverState.scanStatus !== 'scanning') {
+    const processed = serverState.scanProgressProcessed ?? 100;
+    const total = serverState.scanProgressTotal ?? 100;
+    return {
+      active: false,
+      label: serverState.scanMessage || 'Idle',
+      phase: serverState.scanStatus === 'completed' ? 'complete' : 'idle',
+      processed,
+      total,
+      percent: total > 0 ? Math.round((processed / total) * 100) : 100,
+      currentFile: '',
+    };
+  }
+
   const fileProgress = readProjectScanProgress(projectPath);
   if (fileProgress?.active) {
     const processed = Number(fileProgress.processed ?? fileProgress.filesProcessed ?? 0);
@@ -99,7 +114,7 @@ export function handleScanConfigRoutes(
   serverState: ServerState
 ): boolean {
   // Scan progress — reads .simplebeacon/scan-progress.json when available
-  if (parsed.pathname === '/api/simplebeacon/scan/progress' || parsed.pathname === '/api/progress') {
+  if (parsed.pathname === '/api/simplebeacon/scan/progress' || parsed.pathname === '/api/scan/progress' || parsed.pathname === '/api/progress') {
     const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
     const progress = buildScanProgressPayload(projectPath, serverState);
     res.writeHead(200, { 'Content-Type': 'application/json' });
