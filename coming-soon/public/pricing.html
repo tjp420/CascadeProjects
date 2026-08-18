@@ -2,31 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-    <title>SimpleBeacon Pricing — AI Code Quality &amp; Compliance</title>
-    <meta name="description" content="Game Dev Pro ($15/mo), Agent ($25/mo), Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
+    <title>SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance</title>
+    <meta name="description" content="Free (3 core tools), Agent ($25/mo), Developer ($49/mo). 100% local scanning, AI agent verification, CI gate. Stop AI agents from writing broken code.">
     <link rel="canonical" href="https://simplebeacon.ai/pricing.html">
     <meta name="robots" content="index, follow">
-    <meta property="og:title" content="SimpleBeacon Pricing — AI Code Quality &amp; Compliance">
-    <meta property="og:description" content="Game Dev Pro ($15/mo), Agent ($25/mo), Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
+    <meta property="og:title" content="SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance">
+    <meta property="og:description" content="Free (3 core tools), Agent ($25/mo), Developer ($49/mo). 100% local scanning, AI agent verification, CI gate. Stop AI agents from writing broken code.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/pricing.html">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon Pricing — AI Code Quality &amp; Compliance">
-    <meta name="twitter:description" content="Game Dev Pro ($15/mo), Agent ($25/mo), Developer ($49/mo), Team Pro ($149/mo), and one-time compliance passes. 100% local scanning, CI gate, EU AI Act mapping, and board-ready certificates.">
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    <meta name="twitter:title" content="SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance">
+    <meta name="twitter:description" content="Free (3 core tools), Agent ($25/mo), Developer ($49/mo). 100% local scanning, AI agent verification, CI gate. Stop AI agents from writing broken code.">
 
     
     
@@ -111,7 +98,7 @@
     <div class="pricing-gate">
       <div class="pricing-hero" data-animate="fade-up">
         <span class="hero-badge">Compliance &amp; Technical Debt</span>
-        <h1>Proof in minutes. Not weeks of legal review.</h1>
+        <h1>Proof in minutes.<br><em>Not weeks of legal review.</em></h1>
         <p class="hero-sub">SimpleBeacon delivers board-ready compliance certificates from <strong>100% local scans</strong> — your source code never leaves your machine. Skip the $10K consultant and the MSA.</p>
         <p class="hero-trust-line"><span>&#128274;</span> Zero upload — scans run in your IDE or browser. <a href="faq.html">Browser vs. CLI</a></p>
       </div>
@@ -365,8 +352,8 @@
         <div class="faq-fallback">
           <details class="faq-item"><summary>Is my source code uploaded to your servers?</summary><p>No. SimpleBeacon runs entirely offline on your machine. The browser sandbox version executes in your browser's memory and is wiped when you close the tab. The CLI version never makes network requests unless you explicitly pass --upload.</p></details>
           <details class="faq-item"><summary>What happens after I purchase a certificate?</summary><p>You receive a license token via email. Paste it into the certificate upload page, run your scan, and download the board-ready ZIP package with PDF certificate, JSON exports, and SHA-256 integrity seal.</p></details>
-          <details class="faq-item"><summary>Do you offer refunds?</summary><p>Self-service tiers (Developer and Team Pro) include a 7-day money-back guarantee. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html">refund policy</a> for complete terms.</p></details>
-          <details class="faq-item"><summary>Can I use this for EU AI Act compliance?</summary><p>The Team Pro and Enterprise tiers include EU AI Act Annex III documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks — everything a board needs for regulatory readiness. <a href="contact.html?topic=enterprise">Contact Sales</a> for custom pricing.</p></details>
+          <details class="faq-item"><summary>Do you offer refunds?</summary><p>Self-service tiers (Agent and Developer) include a 7-day money-back guarantee. See our <a href="refund.html">refund policy</a> for complete terms.</p></details>
+          <details class="faq-item"><summary>Can I use this for EU AI Act compliance?</summary><p>The Developer tier includes EU AI Act Annex III documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks. <a href="contact.html?topic=enterprise">Contact Sales</a> for custom compliance packages.</p></details>
           <details class="faq-item"><summary>What payment methods do you accept?</summary><p>Self-service tiers accept all major credit cards via Stripe. Enterprise invoices support ACH wire transfer, purchase orders, and NET-30 terms.</p></details>
         </div>
       </noscript>
@@ -384,7 +371,7 @@
       <div class="guarantee" data-animate="fade-up">
         <div class="guarantee-icon">&#128196;</div>
         <div class="guarantee-title">Satisfaction Guaranteed</div>
-        <div class="guarantee-text">Self-service tiers (Developer and Team Pro) include a 7-day money-back guarantee. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
+        <div class="guarantee-text">Self-service tiers (Agent and Developer) include a 7-day money-back guarantee. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
       </div>
 
       <!-- Checkout Modal -->
@@ -531,49 +518,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // Per-seat add-on for Team Pro tier
-    var extraSeats = 0;
-    var SEAT_PRICE_MONTHLY = 15;
-    var SEAT_PRICE_ANNUAL = 180; // 15 * 12 - ~17% saving baked in via annual
-    var INCLUDED_SEATS = 5;
-    var MAX_EXTRA_SEATS = 50;
-    function adjustSeats(delta) {
-      extraSeats = Math.max(0, Math.min(MAX_EXTRA_SEATS, extraSeats + delta));
-      var display = document.getElementById('extraSeatsDisplay');
-      if (display) {
-        var totalSeats = INCLUDED_SEATS + extraSeats;
-        display.textContent = totalSeats + (totalSeats === 1 ? ' seat' : ' seats');
-      }
-      // Visual feedback: disable minus button at 0 extra, plus button at max
-      var decBtn = document.getElementById('seatDecrement');
-      var incBtn = document.getElementById('seatIncrement');
-      if (decBtn) {
-        decBtn.style.opacity = extraSeats === 0 ? '0.4' : '1';
-        decBtn.style.cursor = extraSeats === 0 ? 'not-allowed' : 'pointer';
-      }
-      if (incBtn) {
-        incBtn.style.opacity = extraSeats >= MAX_EXTRA_SEATS ? '0.4' : '1';
-        incBtn.style.cursor = extraSeats >= MAX_EXTRA_SEATS ? 'not-allowed' : 'pointer';
-      }
-      updateSeatTotal();
-    }
-    function updateSeatTotal() {
-      var totalEl = document.getElementById('seatTotalDisplay');
-      if (!totalEl) return;
-      var base = isAnnual ? 1490 : 149;
-      var seatCost = isAnnual ? SEAT_PRICE_ANNUAL * extraSeats : SEAT_PRICE_MONTHLY * extraSeats;
-      var total = base + seatCost;
-      var unit = isAnnual ? '/yr' : '/mo';
-      totalEl.textContent = '$' + total.toLocaleString() + unit;
-      var breakdownEl = document.getElementById('seatBreakdownDisplay');
-      if (breakdownEl) {
-        if (extraSeats === 0) {
-          breakdownEl.textContent = INCLUDED_SEATS + ' seats included';
-        } else {
-          breakdownEl.textContent = INCLUDED_SEATS + ' included + ' + extraSeats + ' extra' + (extraSeats === 1 ? ' seat' : ' seats');
-        }
-      }
-    }
+    // Seat picker removed — Team Pro tier is no longer marketed
+    function adjustSeats(delta) { /* no-op — kept for backward compatibility */ }
+    function updateSeatTotal() { /* no-op */ }
 
     // Pricing tab switching: Subscriptions vs One-Time Passes
     function switchPricingTab(tab) {
@@ -1415,7 +1362,5 @@ updateAuthNav();
 </footer>
   <script>(function(){try{var params=new URLSearchParams(window.location.search);var ref=params.get('ref');if(!ref)return;try{localStorage.setItem('sb_ref_slug',ref);}catch(_){}fetch('/api/referral/capture',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:ref,channel:'web'})}).catch(function(){});}catch(_){}})();</script>
   <script src="./js-es2018/referral-capture.js" defer></script>
-  <script src="/js-es2018/site-auth.js?v=20260815auth2"></script>
-  <script src="/js-es2018/guest-token-bootstrap.js?v=20260815guest4" defer></script>
 </body>
 </html>

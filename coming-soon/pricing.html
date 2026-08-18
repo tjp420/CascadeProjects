@@ -352,8 +352,8 @@
         <div class="faq-fallback">
           <details class="faq-item"><summary>Is my source code uploaded to your servers?</summary><p>No. SimpleBeacon runs entirely offline on your machine. The browser sandbox version executes in your browser's memory and is wiped when you close the tab. The CLI version never makes network requests unless you explicitly pass --upload.</p></details>
           <details class="faq-item"><summary>What happens after I purchase a certificate?</summary><p>You receive a license token via email. Paste it into the certificate upload page, run your scan, and download the board-ready ZIP package with PDF certificate, JSON exports, and SHA-256 integrity seal.</p></details>
-          <details class="faq-item"><summary>Do you offer refunds?</summary><p>Self-service tiers (Developer and Team Pro) include a 7-day money-back guarantee. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html">refund policy</a> for complete terms.</p></details>
-          <details class="faq-item"><summary>Can I use this for EU AI Act compliance?</summary><p>The Team Pro and Enterprise tiers include EU AI Act Annex III documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks — everything a board needs for regulatory readiness. <a href="contact.html?topic=enterprise">Contact Sales</a> for custom pricing.</p></details>
+          <details class="faq-item"><summary>Do you offer refunds?</summary><p>Self-service tiers (Agent and Developer) include a 7-day money-back guarantee. See our <a href="refund.html">refund policy</a> for complete terms.</p></details>
+          <details class="faq-item"><summary>Can I use this for EU AI Act compliance?</summary><p>The Developer tier includes EU AI Act Annex III documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks. <a href="contact.html?topic=enterprise">Contact Sales</a> for custom compliance packages.</p></details>
           <details class="faq-item"><summary>What payment methods do you accept?</summary><p>Self-service tiers accept all major credit cards via Stripe. Enterprise invoices support ACH wire transfer, purchase orders, and NET-30 terms.</p></details>
         </div>
       </noscript>
@@ -371,7 +371,7 @@
       <div class="guarantee" data-animate="fade-up">
         <div class="guarantee-icon">&#128196;</div>
         <div class="guarantee-title">Satisfaction Guaranteed</div>
-        <div class="guarantee-text">Self-service tiers (Developer and Team Pro) include a 7-day money-back guarantee. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
+        <div class="guarantee-text">Self-service tiers (Agent and Developer) include a 7-day money-back guarantee. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
       </div>
 
       <!-- Checkout Modal -->
@@ -518,49 +518,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // Per-seat add-on for Team Pro tier
-    var extraSeats = 0;
-    var SEAT_PRICE_MONTHLY = 15;
-    var SEAT_PRICE_ANNUAL = 180; // 15 * 12 - ~17% saving baked in via annual
-    var INCLUDED_SEATS = 5;
-    var MAX_EXTRA_SEATS = 50;
-    function adjustSeats(delta) {
-      extraSeats = Math.max(0, Math.min(MAX_EXTRA_SEATS, extraSeats + delta));
-      var display = document.getElementById('extraSeatsDisplay');
-      if (display) {
-        var totalSeats = INCLUDED_SEATS + extraSeats;
-        display.textContent = totalSeats + (totalSeats === 1 ? ' seat' : ' seats');
-      }
-      // Visual feedback: disable minus button at 0 extra, plus button at max
-      var decBtn = document.getElementById('seatDecrement');
-      var incBtn = document.getElementById('seatIncrement');
-      if (decBtn) {
-        decBtn.style.opacity = extraSeats === 0 ? '0.4' : '1';
-        decBtn.style.cursor = extraSeats === 0 ? 'not-allowed' : 'pointer';
-      }
-      if (incBtn) {
-        incBtn.style.opacity = extraSeats >= MAX_EXTRA_SEATS ? '0.4' : '1';
-        incBtn.style.cursor = extraSeats >= MAX_EXTRA_SEATS ? 'not-allowed' : 'pointer';
-      }
-      updateSeatTotal();
-    }
-    function updateSeatTotal() {
-      var totalEl = document.getElementById('seatTotalDisplay');
-      if (!totalEl) return;
-      var base = isAnnual ? 1490 : 149;
-      var seatCost = isAnnual ? SEAT_PRICE_ANNUAL * extraSeats : SEAT_PRICE_MONTHLY * extraSeats;
-      var total = base + seatCost;
-      var unit = isAnnual ? '/yr' : '/mo';
-      totalEl.textContent = '$' + total.toLocaleString() + unit;
-      var breakdownEl = document.getElementById('seatBreakdownDisplay');
-      if (breakdownEl) {
-        if (extraSeats === 0) {
-          breakdownEl.textContent = INCLUDED_SEATS + ' seats included';
-        } else {
-          breakdownEl.textContent = INCLUDED_SEATS + ' included + ' + extraSeats + ' extra' + (extraSeats === 1 ? ' seat' : ' seats');
-        }
-      }
-    }
+    // Seat picker removed — Team Pro tier is no longer marketed
+    function adjustSeats(delta) { /* no-op — kept for backward compatibility */ }
+    function updateSeatTotal() { /* no-op */ }
 
     // Pricing tab switching: Subscriptions vs One-Time Passes
     function switchPricingTab(tab) {
