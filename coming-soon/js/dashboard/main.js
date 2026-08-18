@@ -202,8 +202,14 @@ function maybeWarnDuringDiscovery(fileCount) {
 }
 // Local server ports to probe
 const LOCAL_SERVER_PORTS = [58000, 38000, 50559, 3002, 3001, 3000, 5000];
-// API base URL — same-origin on marketing hosts (Cloudflare /api proxy); Render when embedded elsewhere
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.onrender.com')) ? '' : 'https://cascadeprojects-yzzd.onrender.com';
+// API base URL — use same-origin/default production host; do not fall back to the legacy Render URL.
+const API_BASE = (location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1'
+    || location.hostname === 'simplebeacon.ai'
+    || location.hostname.endsWith('.simplebeacon.ai')
+    || location.hostname.endsWith('.simplebeacon.pages.dev')
+    || location.hostname.endsWith('.pages.dev')
+    || location.hostname.endsWith('.onrender.com')) ? '' : 'https://simplebeacon.ai';
 const IS_LOCAL_HOST = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 function isSameOriginApiHost() {
     const host = location.hostname;

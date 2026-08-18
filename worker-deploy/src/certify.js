@@ -110,7 +110,7 @@ function canonicalizePayload(hash, timestamp, metadata) {
  * Handle POST /api/v1/certify — sign an anonymized scan payload.
  *
  * @param {Request} request - Incoming HTTP request
- * @param {Object} env - Worker environment bindings (expects SIGNING_PRIVATE_KEY)
+ * @param {Object} env - Worker environment bindings (accepts SIGNING_PRIVATE_KEY or SIMPLEBEACON_SIGNING_PRIVATE_KEY)
  * @param {string} [corsOrigin] - CORS origin from the parent router
  * @returns {Promise<Response>}
  */
@@ -132,7 +132,7 @@ export async function handleCertifyRequest(request, env, corsOrigin) {
             return jsonResponse({ error: validation.error }, 400, corsOrigin);
         }
 
-        const privateKeyJwkStr = env.SIGNING_PRIVATE_KEY;
+        const privateKeyJwkStr = env.SIGNING_PRIVATE_KEY || env.SIMPLEBEACON_SIGNING_PRIVATE_KEY;
         if (!privateKeyJwkStr) {
             return jsonResponse({ error: 'Edge signing key not configured' }, 500, corsOrigin);
         }
@@ -220,12 +220,12 @@ async function computeJwkThumbprint(jwk) {
 /**
  * Handle GET /api/v1/certify/public-key — return the public key for verification.
  *
- * @param {Object} env - Worker environment bindings (expects SIGNING_PUBLIC_KEY)
+ * @param {Object} env - Worker environment bindings (accepts SIGNING_PUBLIC_KEY or SIMPLEBEACON_SIGNING_PUBLIC_KEY)
  * @param {string} [corsOrigin] - CORS origin from the parent router
  * @returns {Promise<Response>}
  */
 export async function handlePublicKeyRequest(env, corsOrigin) {
-    const publicKeyJwkStr = env.SIGNING_PUBLIC_KEY;
+    const publicKeyJwkStr = env.SIGNING_PUBLIC_KEY || env.SIMPLEBEACON_SIGNING_PUBLIC_KEY;
     if (!publicKeyJwkStr) {
         return jsonResponse({ error: 'Public key not configured' }, 404, corsOrigin);
     }
