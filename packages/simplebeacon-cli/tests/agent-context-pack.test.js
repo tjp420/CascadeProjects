@@ -18,8 +18,8 @@ test('resolveTaskProfile maps aliases', () => {
     assert.equal(resolveTaskProfile('unknown').id, 'hygiene');
 });
 
-test('listTaskProfiles returns seven profiles', () => {
-    assert.equal(listTaskProfiles().length, 7);
+test('listTaskProfiles returns eight profiles', () => {
+    assert.equal(listTaskProfiles().length, 8);
 });
 
 test('buildPipelineMetrics explains inventory vs ruleScoped', () => {

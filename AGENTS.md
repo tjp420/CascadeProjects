@@ -39,6 +39,9 @@ Real-time file monitoring for MCP-connected AI agents (Cursor, Windsurf, Claude 
 
 ### MCP Tool Count
 - **29 tools** (was 28) — added `watch_project` for real-time file monitoring
+- **Tool categories**: 3 core (free), 5 supporting (free), 5 paid (Agent $25/mo), 5 paid (Developer $49/mo), 11 deprecated (not marketed)
+- **Core tools**: `verify_before_write`, `verify_completion`, `watch_project` — the 3 tools that define SimpleBeacon's value
+- **See `TOOL_CATEGORIES` in `tools.js`** for the full category/tier mapping
 
 ### Files
 - `packages/simplebeacon-cli/src/rules/swallowed-exception-scanner.js` — JS/TS/Python/Go patterns
@@ -170,22 +173,19 @@ chmod +x .git/hooks/pre-commit
 
 ## Pricing & Billing Infrastructure
 
-### Five-Tier Pricing Model (2026-08-17)
-- **Game Dev Pro**: $15/mo or $150/yr (Save 17%) — indie/mod dev fix loop for Unity, Unreal, Godot, GZDoom, Lua mods: asset integrity, log correlation, engine packs, offline MCP
-- **Agent**: $25/mo or $250/yr (Save 17%) — fix loop for AI coding agents: scan_file, propose_fix, verify_fix, agent_status, explain_finding
-- **Developer**: $49/mo or $490/yr (Save 17%) — everything in Agent plus unlimited scans, CI gate, 38 analyzers, scan_staged, get_action_plan
-- **Team Pro**: $149/mo or $1,490/yr (Save 17%) — EU AI Act, SOC 2, board-ready certs, 5 seats, Agent Supercharge for every team member
-- **Enterprise**: Custom — air-gapped, SSO/SAML, dedicated analyst, Book Demo link
-- **Legacy Pro**: $9/mo — backward compatible, still functional for existing customers
-- **Executive Risk Certificate**: $999 one-time (raised from $499) — board-ready compliance paper trail
+### Three-Tier Pricing Model (2026-08-18, simplified from 5 tiers)
+- **Free**: $0 — verify_before_write, verify_completion, watch_project, supercharge_agent, solve_problem, diagnose_error, install_agent_plugin, 20 snippet scans/day
+- **Agent**: $25/mo or $250/yr (Save 17%) — fix loop for AI coding agents: scan_file, propose_fix, verify_fix, agent_status, explain_finding, unlimited scans
+- **Developer**: $49/mo or $490/yr (Save 17%) — everything in Agent plus unlimited scans, CI gate, scan_staged, get_action_plan, CVE + git history scanners
+- **Deprecated tiers** (not marketed, kept for backward compatibility): Game Dev Pro ($15), Team Pro ($149), Enterprise (custom), Legacy Pro ($9), Executive Risk Certificate ($999), EU AI Act Sprint ($2,499), Audit Certificate ($149)
+- **Server-side entitlement enforcement**: `/api/v1/entitlements`, `/api/v1/certify`, `/api/v1/report/export` — browser calls server to validate tier, preventing DevTools bypass
 
 ### Capability Gating by Tier
 | Tier | scan_file | scan_staged | get_action_plan | agentExperience |
 |------|-----------|-------------|-----------------|-----------------|
-| Free/Developer (unpaid) | blocked | blocked | blocked | 2/10 |
-| Game Dev Pro ($15/mo) | allowed | blocked | blocked | 7/10 |
+| Free | blocked | blocked | blocked | 2/10 |
 | Agent ($25/mo) | allowed | blocked | blocked | 8/10 |
-| Developer+ ($49/mo) | allowed | allowed | allowed | 11/10 |
+| Developer ($49/mo) | allowed | allowed | allowed | 11/10 |
 
 ### Files
 - **Frontend**: `coming-soon/public/pricing.html` (primary), `coming-soon/pricing.html` (mirror)

@@ -1701,6 +1701,171 @@ function setupSimplebeaconAPI(app, options = {}) {
         });
       });
 
+  // ── Server-side entitlement endpoints ──
+  // These endpoints enforce paid-tier access on the server, preventing
+  // client-side bypasses via DevTools. The browser calls these instead of
+  // checking isPaidUser() locally.
+
+  /**
+   * POST /api/v1/certify
+   * Server-side certificate generation — requires a paid subscription.
+   * The client sends only the SHA-256 hash and anonymized metadata (no source code).
+   * The server validates the license token, checks the tier, signs the hash,
+   * and returns the signature.
+   */
+  app.post('/api/v1/certify', requirePaid, express.json(), async (req, res) => {
+    try {
+      const { hash, timestamp, metadata } = req.body || {};
+      if (!hash || typeof hash !== 'string') {
+        return res.status(400).json({ success: false, error: 'hash is required' });
+      }
+      if (!/^[a-f0-9]{64}$/i.test(hash)) {
+        return res.status(400).json({ success: false, error: 'hash must be a valid SHA-256 hex digest' });
+      }
+
+      const signingKey = String(process.env.REPORT_SIGNING_KEY || '').trim();
+      if (!signingKey) {
+        logger.error('[certify] REPORT_SIGNING_KEY not configured');
+        return res.status(503).json({ success: false, error: 'Certificate signing is not configured on the server' });
+      }
+      const keyId = String(process.env.REPORT_SIGNING_KEY_ID || '').trim() || 'default';
+
+      // Verify the subscription tier from the middleware
+      const tier = req.simplebeaconSubscription?.tier || 'free';
+      const FREE_TIERS_CERT = new Set(['community', 'developer', 'sandbox', 'instant', 'free', '']);
+      if (FREE_TIERS_CERT.has(tier)) {
+        return res.status(403).json({
+          success: false,
+          error: 'subscription_required',
+          message: 'Certificate generation requires a paid subscription.',
+          upgradeUrl: '/pricing.html'
+        });
+      }
+
+      // Sign the hash with HMAC-SHA256
+      const crypto = require('crypto');
+      const signatureInput = JSON.stringify({ hash, timestamp: timestamp || Date.now(), metadata: metadata || {} });
+      const h = crypto.createHmac('sha256', signingKey);
+      h.update(signatureInput, 'utf8');
+      const signature = h.digest('base64');
+
+      logger.info('[certify] Certificate issued for tier:', tier, 'hash:', hash.slice(0, 8) + '...');
+
+      res.json({
+        success: true,
+        signature,
+        algorithm: 'HMAC-SHA256',
+        issuedAt: new Date().toISOString(),
+        keyId,
+        tier
+      });
+    } catch (err) {
+      logger.error('[certify] Error:', err.message || err);
+      res.status(500).json({ success: false, error: 'Certificate generation failed' });
+    }
+  });
+
+  /**
+   * GET /api/v1/certify/public-key
+   * Returns the public key information for verifying certificates.
+   * This is a public endpoint (no subscription required) — it only returns
+   * the key ID and algorithm, not the secret key.
+   */
+  app.get('/api/v1/certify/public-key', (req, res) => {
+    const signingKey = String(process.env.REPORT_SIGNING_KEY || '').trim();
+    if (!signingKey) {
+      return res.status(503).json({ success: false, error: 'Certificate signing is not configured' });
+    }
+    const keyId = String(process.env.REPORT_SIGNING_KEY_ID || '').trim() || 'default';
+    res.json({
+      success: true,
+      algorithm: 'HMAC-SHA256',
+      keyId,
+      // Note: HMAC uses a shared secret, so we return the key ID only.
+      // Verification is done server-side via /api/reports/verify.
+      verificationUrl: '/api/reports/verify'
+    });
+  });
+
+  /**
+   * POST /api/v1/report/export
+   * Server-side report export — requires a paid subscription.
+   * The client sends the scan report JSON. The server validates the tier
+   * and returns the full unredacted report with a server-side signature.
+   * Free tiers receive a 403 with an upgrade prompt.
+   */
+  app.post('/api/v1/report/export', requirePaid, express.json({ limit: '50mb' }), async (req, res) => {
+    try {
+      const reportJson = req.body?.report || req.body;
+      if (!reportJson || typeof reportJson !== 'object') {
+        return res.status(400).json({ success: false, error: 'report is required in body' });
+      }
+
+      const tier = req.simplebeaconSubscription?.tier || 'free';
+      const FREE_TIERS_EXPORT = new Set(['community', 'developer', 'sandbox', 'instant', 'free', '']);
+      if (FREE_TIERS_EXPORT.has(tier)) {
+        return res.status(403).json({
+          success: false,
+          error: 'subscription_required',
+          message: 'Full report export requires a paid subscription.',
+          upgradeUrl: '/pricing.html'
+        });
+      }
+
+      // Sign the report server-side
+      const signingKey = String(process.env.REPORT_SIGNING_KEY || '').trim();
+      const keyId = String(process.env.REPORT_SIGNING_KEY_ID || '').trim() || 'default';
+      let cryptoValidation = null;
+      if (signingKey) {
+        const { signReport } = require('../../server/lib/report-signer.cjs');
+        cryptoValidation = signReport(reportJson, signingKey, keyId);
+      }
+
+      logger.info('[report/export] Full report exported for tier:', tier);
+
+      res.json({
+        success: true,
+        report: reportJson,
+        cryptoValidation,
+        tier,
+        exportedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      logger.error('[report/export] Error:', err.message || err);
+      res.status(500).json({ success: false, error: 'Report export failed' });
+    }
+  });
+
+  /**
+   * GET /api/v1/entitlements
+   * Returns the server-validated entitlements for the current user.
+   * The browser calls this to determine what features the user can access,
+   * instead of trusting client-side token decoding.
+   */
+  app.get('/api/v1/entitlements', requirePaidReadOnly, async (req, res) => {
+    try {
+      const sub = req.simplebeaconSubscription || {};
+      const tier = sub.tier || 'free';
+      const isPaid = sub.subscriptionActive === true;
+      const FREE_TIERS_ENT = new Set(['community', 'developer', 'sandbox', 'instant', 'free', '']);
+      const paid = isPaid && !FREE_TIERS_ENT.has(tier);
+
+      res.json({
+        success: true,
+        tier,
+        isPaid: paid,
+        canExportFullReport: paid,
+        canGenerateCertificate: paid,
+        canAccessAllModules: paid,
+        subscriptionActive: sub.subscriptionActive || false,
+        source: 'server'
+      });
+    } catch (err) {
+      logger.error('[entitlements] Error:', err.message || err);
+      res.status(500).json({ success: false, error: 'Failed to resolve entitlements' });
+    }
+  });
+
   scheduler.startScheduler();
   setupSimplebeaconDemoAPI(app);
 }

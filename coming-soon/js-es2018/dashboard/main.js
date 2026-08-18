@@ -796,6 +796,27 @@ function canExportFullReport() {
         return true;
     return false;
 }
+// Server-side entitlement check — async version that calls /api/v1/entitlements
+var _serverEntitlementCache = { ts: 0, result: null };
+async function canExportFullReportServer() {
+    var now = Date.now();
+    if (_serverEntitlementCache.result !== null && (now - _serverEntitlementCache.ts) < 30000) {
+        return _serverEntitlementCache.result;
+    }
+    try {
+        var apiBase = (typeof window !== 'undefined' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.apiBase) || '';
+        var res = await fetch(apiBase + '/api/v1/entitlements', { credentials: 'include' });
+        if (res.ok) {
+            var data = await res.json();
+            var result = data.success === true && data.canExportFullReport === true;
+            _serverEntitlementCache = { ts: now, result: result };
+            return result;
+        }
+    } catch (e) { /* network error — fall through to client-side */ }
+    var fallback = canExportFullReport();
+    _serverEntitlementCache = { ts: now, result: fallback };
+    return fallback;
+}
 // Download selected module's full data as JSON
 function downloadSelectedModule(btn) {
     var _a, _b, _c, _d, _e, _f, _g, _h;

@@ -52,6 +52,30 @@ const DEFAULT_BASELINE = {
 };
 
 const PROFILE_RULES = {
+    'agent-core': {
+        credentials: { enabled: true, scanProduction: true },
+        'json-schema': { enabled: false },
+        'sample-consistency': { enabled: false },
+        roadmap: { enabled: false },
+        'production-leak': { enabled: true, severity: 'high' },
+        'agency-handoff-patterns': { enabled: false },
+        'jest-baseline': { enabled: false, runTests: false },
+        'cve-dependency': { enabled: false },
+        'git-history-secret': { enabled: false },
+        'fiction-kpi-patterns': { enabled: false },
+        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
+        'token-bleed-patterns': { enabled: false },
+        'architecture-drift-patterns': { enabled: false },
+        'security-patterns': { enabled: false },
+        'javascript-ast-patterns': { enabled: false },
+        'file-reduction': { enabled: false },
+        'sbom-generator': { enabled: false },
+        // Core AI-agent failure scanners (always on for agent-core)
+        'swallowed-exception-scanner': { enabled: true, severity: 'high' },
+        'phantom-api-scanner': { enabled: true, severity: 'high' },
+        'hallucinated-import-scanner': { enabled: true, severity: 'high' },
+        'secret-in-comments-scanner': { enabled: true, severity: 'high' }
+    },
     minimal: {
         credentials: { enabled: true, scanProduction: true },
         'json-schema': { enabled: false },

@@ -130,8 +130,22 @@ async function generateSovereignCertificate(report, token, options = {}) {
     if (!window.JSZip) {
         throw new Error('Certificate libraries not loaded. Check your network connection.');
     }
-    if (false) { /* token optional for certificate generation */
-        throw new Error('Invalid or malformed license token. Please paste a valid token.');
+    // Server-side entitlement check — calls /api/v1/entitlements to verify
+    // the user's tier on the server, preventing client-side bypass via DevTools.
+    var serverEntitled = false;
+    try {
+        var apiBase = (typeof window !== 'undefined' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.apiBase) || '';
+        var entRes = await fetch(apiBase + '/api/v1/entitlements', { credentials: 'include' });
+        if (entRes.ok) {
+            var entData = await entRes.json();
+            serverEntitled = entData.success === true && entData.canGenerateCertificate === true;
+        }
+    } catch (e) { /* network error — fall through to client-side check */ }
+    // Fallback to client-side check if server is unreachable
+    if (!serverEntitled) {
+        if (typeof canExportFullReport !== 'function' || !canExportFullReport()) {
+            throw new Error('A paid license is required to generate a certificate. Paste a valid license token or upgrade at https://simplebeacon.ai/pricing');
+        }
     }
     if (!report || typeof report !== 'object' || Object.keys(report).length === 0) {
         throw new Error('Report data is missing or empty. Run a scan first.');

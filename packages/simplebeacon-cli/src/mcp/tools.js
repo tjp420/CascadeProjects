@@ -499,9 +499,56 @@ const TOOL_DEFINITIONS = [
     }
 ];
 
+// Tool categories — maps tool names to their product category.
+// Core tools are the 3 free tools every agent gets.
+// Supporting tools are free but secondary.
+// Paid tools require a subscription (Agent or Developer tier).
+// Deprecated tools are not marketed but remain in the codebase for backward compatibility.
+const TOOL_CATEGORIES = {
+    // Core (free) — the 3 tools that define SimpleBeacon's value
+    'verify_before_write': { category: 'core', tier: 'free', marketed: true },
+    'verify_completion': { category: 'core', tier: 'free', marketed: true },
+    'watch_project': { category: 'core', tier: 'free', marketed: true },
+
+    // Supporting (free) — useful but not the headline value
+    'supercharge_agent': { category: 'supporting', tier: 'free', marketed: true },
+    'solve_problem': { category: 'supporting', tier: 'free', marketed: true },
+    'diagnose_error': { category: 'supporting', tier: 'free', marketed: true },
+    'install_agent_plugin': { category: 'supporting', tier: 'free', marketed: true },
+    'scan_snippet': { category: 'supporting', tier: 'free', marketed: true, rateLimited: true },
+
+    // Paid — Agent tier ($25/mo)
+    'scan_file': { category: 'paid', tier: 'agent', marketed: true },
+    'propose_fix': { category: 'paid', tier: 'agent', marketed: true },
+    'verify_fix': { category: 'paid', tier: 'agent', marketed: true },
+    'agent_status': { category: 'paid', tier: 'agent', marketed: true },
+    'explain_finding': { category: 'paid', tier: 'agent', marketed: true },
+
+    // Paid — Developer tier ($49/mo)
+    'scan_staged': { category: 'paid', tier: 'developer', marketed: true },
+    'get_action_plan': { category: 'paid', tier: 'developer', marketed: true },
+    'scan_project': { category: 'paid', tier: 'developer', marketed: true },
+    'gate_status': { category: 'paid', tier: 'developer', marketed: true },
+    'run_analyzer_suite': { category: 'paid', tier: 'developer', marketed: true },
+
+    // Deprecated — not marketed, kept for backward compatibility
+    'generate_marketing': { category: 'deprecated', tier: 'developer', marketed: false },
+    'compliance_checklist': { category: 'deprecated', tier: 'developer', marketed: false },
+    'master_engineering_brief': { category: 'deprecated', tier: 'free', marketed: false },
+    'code_suggestions': { category: 'deprecated', tier: 'developer', marketed: false },
+    'suggest_fixes': { category: 'deprecated', tier: 'developer', marketed: false },
+    'export_report': { category: 'deprecated', tier: 'developer', marketed: false },
+    'list_rulesets': { category: 'deprecated', tier: 'developer', marketed: false },
+    'get_agent_brief': { category: 'deprecated', tier: 'free', marketed: false },
+    'get_context_pack': { category: 'deprecated', tier: 'free', marketed: false },
+    'init_project': { category: 'deprecated', tier: 'free', marketed: false },
+    'handoff_check': { category: 'deprecated', tier: 'developer', marketed: false }
+};
+
 module.exports = {
     createMcpToolHandlers,
     TOOL_DEFINITIONS,
+    TOOL_CATEGORIES,
     formatToolResult,
     formatMarkdownResult
 };

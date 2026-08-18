@@ -7,6 +7,18 @@
 const PDA_MODE_IDS = Object.freeze(['handoff', 'security', 'gamedev']);
 
 const TASK_PROFILES = Object.freeze({
+    'agent-core': {
+        label: 'AI agent core verification',
+        scanProfile: 'agent-core',
+        domain: 'generic',
+        pdaMode: false,
+        scanOptions: { gate: true, fullDirectoryScan: false, complete: false },
+        description: 'Core AI-agent failure scanners: swallowed exceptions, phantom APIs, hallucinated imports, LLM slop, secrets, production leaks.',
+        verifyCommands: [
+            'npx simplebeacon scan --profile agent-core --gate --offline --format json --output .simplebeacon/report.json',
+            'npx simplebeacon gate status'
+        ]
+    },
     hygiene: {
         label: 'Repository hygiene',
         scanProfile: 'standard',
