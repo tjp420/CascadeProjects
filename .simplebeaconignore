@@ -1490,6 +1490,14 @@ send-license-token-email.cjs
 send-test-email.cjs
 send-*-email.cjs
 
+# One-off HSM/track automation scripts — not production code
+expand-cpe-tests.cjs
+apply-remaining-edits.cjs
+apply-track95-edits.cjs
+apply-track95-edits-v2.cjs
+track95-all-in-one.cjs
+tests/preload-shutdown.cjs
+
 # Dashboard sample report fixture — references *-sample.json paths by design
 ai-platform/web/simplebeacon-dashboard/js-es2018/utils/sample-report.js
 

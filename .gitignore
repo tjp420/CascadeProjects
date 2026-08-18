@@ -492,3 +492,22 @@ simplebeacon-guardrails-public/
 
 # Lighthouse config (generated)
 simplebeacon-vscode-merged/dashboard-web/.lighthouserc.cjs
+
+# Disk hygiene — local-only artifacts (2026-08-15 cleanup)
+ai-platform/local-agent/dist/
+coming-soon/public/dashboard/node_modules/
+coming-soon/public/app2/node_modules/
+test-airgap-output/
+CascadeProjects-HistoryMirror*.git/
+simplebeacon-airgap-v1.tar.gz
+
+# Safety: never commit private keys, production source dumps, or generated cert artifacts
+certs/
+*.pem
+*.key
+.simplebeacon/prod-main-disc1.js
+*.sbcert
+report.sbcert
+
+# Runtime agent history (regenerated per session, not source)
+**/.simplebeacon/history.json
