@@ -52,10 +52,10 @@ test('MCP tool handlers return JSON content blocks', () => {
     assert.ok(Array.isArray(parsed.findings));
 });
 
-test('MCP stdio server exposes twenty-nine tools', () => {
+test('MCP stdio server exposes thirty-three tools', () => {
     const server = createMcpStdioServer({ offline: true });
     const list = server.toolListResult();
-    assert.equal(list.tools.length, 29);
+    assert.equal(list.tools.length, 33);
     assert.ok(list.tools.some((t) => t.name === 'gate_status'));
     assert.ok(list.tools.some((t) => t.name === 'scan_project'));
     assert.ok(list.tools.some((t) => t.name === 'get_action_plan'));
@@ -65,6 +65,10 @@ test('MCP stdio server exposes twenty-nine tools', () => {
     assert.ok(list.tools.some((t) => t.name === 'watch_project'));
     assert.ok(list.tools.some((t) => t.name === 'diagnose_error'));
     assert.ok(list.tools.some((t) => t.name === 'verify_before_write'));
+    assert.ok(list.tools.some((t) => t.name === 'get_failure_log'));
+    assert.ok(list.tools.some((t) => t.name === 'get_improvement_signals'));
+    assert.ok(list.tools.some((t) => t.name === 'log_validation_run'));
+    assert.ok(list.tools.some((t) => t.name === 'get_validation_history'));
     assert.ok(list.tools.some((t) => t.name === 'verify_completion'));
 });
 

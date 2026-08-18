@@ -64,11 +64,12 @@ function getAgentCapabilities(tierOrCtx) {
         : { tier: resolveTier(tierOrCtx), paid: isPaidTier(tierOrCtx) };
     const tier = resolveTier(ctx.tier);
     const paid = Boolean(ctx.paid);
+    const isGameDev = tier === 'game_dev';
     const isAgent = tier === 'agent';
-    const isDevPlus = paid && !isAgent;
+    const isDevPlus = paid && !isAgent && !isGameDev;
     return {
         tier,
-        agentExperience: isAgent ? '8/10' : paid ? '11/10' : '2/10',
+        agentExperience: isGameDev ? '7/10' : isAgent ? '8/10' : paid ? '11/10' : '2/10',
         scanSnippet: true,
         scanSnippetFullFindings: paid,
         scanSnippetMaxFindings: paid ? Infinity : FREE_SNIPPET_FINDING_CAP,
@@ -91,13 +92,18 @@ function getAgentCapabilities(tierOrCtx) {
 
 function formatUpsell(toolName, tierCtx) {
     const tier = tierCtx && tierCtx.tier ? resolveTier(tierCtx.tier) : 'developer';
+    const isGameDev = tier === 'game_dev';
     const isAgent = tier === 'agent';
-    const minTier = isAgent && DEVELOPER_PLUS_TOOLS.has(toolName) ? 'Developer ($49/mo)' : 'Agent ($25/mo)';
+    const needsDevPlus = DEVELOPER_PLUS_TOOLS.has(toolName);
+    const minTier = needsDevPlus
+        ? 'Developer ($49/mo)'
+        : isGameDev ? 'Agent ($25/mo)' : 'Agent ($25/mo)';
+    const expLabel = isGameDev ? '7/10' : isAgent ? '8/10' : '2/10';
     return {
         blocked: true,
         tool: toolName,
         tier: tier,
-        agentExperience: isAgent ? '8/10' : '2/10',
+        agentExperience: expLabel,
         reason: `${toolName} requires ${minTier} or higher.`,
         upgradeUrl: UPGRADE_URL,
         upsell: `Upgrade to ${minTier} to unlock ${toolName} — https://simplebeacon.ai/pricing`
@@ -108,7 +114,7 @@ function assertCapability(toolName, tierCtx) {
     const ctx = tierCtx && typeof tierCtx.paid === 'boolean' ? tierCtx : resolveAgentTier(tierCtx);
     if (ctx.paid) {
         const tier = resolveTier(ctx.tier);
-        if (tier === 'agent' && DEVELOPER_PLUS_TOOLS.has(toolName)) {
+        if ((tier === 'agent' || tier === 'game_dev') && DEVELOPER_PLUS_TOOLS.has(toolName)) {
             return { allowed: false, tier: ctx.tier, paid: true, upsell: formatUpsell(toolName, ctx) };
         }
         return { allowed: true, tier: ctx.tier, paid: true };

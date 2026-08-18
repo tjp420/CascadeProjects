@@ -61,11 +61,11 @@ test('blockingCountFromFindings counts high and critical only', () => {
     ]), 2);
 });
 
-test('MCP exposes twenty-nine tools including agent loop and realtime watch', () => {
+test('MCP exposes thirty-three tools including agent loop and realtime watch', () => {
     const { createMcpStdioServer } = require('../src/mcp/stdio-server');
     const server = createMcpStdioServer({ offline: true });
     const list = server.toolListResult();
-    assert.equal(list.tools.length, 29);
+    assert.equal(list.tools.length, 33);
     assert.ok(list.tools.some((t) => t.name === 'propose_fix'));
     assert.ok(list.tools.some((t) => t.name === 'agent_status'));
     assert.ok(list.tools.some((t) => t.name === 'get_context_pack'));
@@ -73,6 +73,10 @@ test('MCP exposes twenty-nine tools including agent loop and realtime watch', ()
     assert.ok(list.tools.some((t) => t.name === 'verify_before_write'));
     assert.ok(list.tools.some((t) => t.name === 'verify_completion'));
     assert.ok(list.tools.some((t) => t.name === 'watch_project'));
+    assert.ok(list.tools.some((t) => t.name === 'get_failure_log'));
+    assert.ok(list.tools.some((t) => t.name === 'get_improvement_signals'));
+    assert.ok(list.tools.some((t) => t.name === 'log_validation_run'));
+    assert.ok(list.tools.some((t) => t.name === 'get_validation_history'));
 });
 
 test('free scan_file returns blocked upsell', () => {

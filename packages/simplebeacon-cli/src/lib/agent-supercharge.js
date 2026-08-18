@@ -150,10 +150,12 @@ function buildMissionHeadline(gate, blockingCount, codeSuggestions) {
 }
 
 function buildAgentPrompt(mission, tierCtx, hostStatus) {
-    const tierName = tierCtx.tier === 'agent' ? 'Agent'
+    const tierName = tierCtx.tier === 'game_dev' ? 'Game Dev Pro'
+        : tierCtx.tier === 'agent' ? 'Agent'
         : tierCtx.paid ? 'Developer+'
         : 'Free';
-    const expLabel = tierCtx.tier === 'agent' ? '8/10 agent fix loop'
+    const expLabel = tierCtx.tier === 'game_dev' ? '7/10 game dev fix loop'
+        : tierCtx.tier === 'agent' ? '8/10 agent fix loop'
         : tierCtx.paid ? '11/10 paid full loop'
         : '2/10 free preview';
     const lines = [

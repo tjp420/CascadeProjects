@@ -12,6 +12,7 @@ const { createAgentContextHandlers } = require('./handlers/agent-context-handler
 const { createProblemSolverHandlers } = require('./handlers/problem-solver-handlers');
 const { createSuperchargeHandlers } = require('./handlers/supercharge-handlers');
 const { createAgentVerifyHandlers } = require('./handlers/agent-verify-handlers');
+const { createFailureTrackingHandlers } = require('./handlers/failure-tracking-handlers');
 const { assertCapability, resolveAgentTier } = require('../lib/agent-tier-capabilities');
 const constants = require('../lib/constants');
 
@@ -112,6 +113,7 @@ function createMcpToolHandlers(options = {}) {
     const problemSolverHandlers = createProblemSolverHandlers(handlerDeps);
     const superchargeHandlers = createSuperchargeHandlers(handlerDeps);
     const agentVerifyHandlers = createAgentVerifyHandlers(handlerDeps);
+    const failureTrackingHandlers = createFailureTrackingHandlers(handlerDeps);
 
     return {
         ...scanHandlers,
@@ -122,6 +124,7 @@ function createMcpToolHandlers(options = {}) {
         ...problemSolverHandlers,
         ...superchargeHandlers,
         ...agentVerifyHandlers,
+        ...failureTrackingHandlers,
         dispose() {
             if (networkGuard) networkGuard.dispose();
         }
@@ -461,13 +464,14 @@ const TOOL_DEFINITIONS = [
     },
     {
         name: 'verify_before_write',
-        description: 'Pre-write verification gate — agent passes proposed file content and path; returns passed/violations/recommendedAction (ok-to-write | fix-and-retry | consult-user). Runs swallowed-exception, phantom-API, hallucinated-import, and AI-slop scanners in-process. Sub-100ms warm. Free tier.',
+        description: 'Pre-write verification gate — agent passes proposed file content and path; returns passed/violations/recommendedAction (ok-to-write | fix-and-retry | fix-gate-first | consult-user). Runs swallowed-exception, phantom-API, hallucinated-import, and AI-slop scanners in-process. Also checks project gate status — blocks writes to non-blocking files when the gate is failing ("don\'t build on junk"). Sub-100ms warm. Free tier.',
         inputSchema: {
             type: 'object',
             properties: {
                 content: { type: 'string', description: 'Proposed file content to verify before writing to disk' },
                 filePath: { type: 'string', description: 'Target file path (e.g. src/api/handler.ts)' },
-                projectRoot: { type: 'string', description: 'Project root (default: cwd)' }
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                skipGateCheck: { type: 'boolean', description: 'Skip the pre-edit gate status check (default: false). Use when fixing gate-blocking files that are not detected by path match.' }
             },
             required: ['content', 'filePath']
         }
@@ -496,6 +500,73 @@ const TOOL_DEFINITIONS = [
                 projectRoot: { type: 'string', description: 'Project root to watch (default: cwd)' }
             }
         }
+    },
+    {
+        name: 'get_failure_log',
+        description: 'Retrieve the failure log — structured record of validation failures (compile, runtime, scan, smoke-test). Supports filtering by unresolved-only and since-date. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                unresolvedOnly: { type: 'boolean', description: 'Return only unresolved failures (default: false)' },
+                since: { type: 'string', description: 'ISO date string — only failures after this date' },
+                summary: { type: 'boolean', description: 'Return grouped summary instead of raw entries (default: false)' }
+            }
+        }
+    },
+    {
+        name: 'get_improvement_signals',
+        description: 'Retrieve improvement signals — aggregated patterns from repeated failures with suggested actions and priority. Helps identify systemic AI generation issues. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                activeOnly: { type: 'boolean', description: 'Return only unresolved signals (default: true)' }
+            }
+        }
+    },
+    {
+        name: 'log_validation_run',
+        description: 'Log a validation run result (scan, compile, smoke-test, gate). Optionally log individual failures alongside the run. Triggers signal rebuild when failures are logged. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                runType: { type: 'string', description: 'scan | compile | smoke_test | gate | full' },
+                pass: { type: 'number', description: 'Number of passing checks' },
+                failures: { type: 'number', description: 'Number of failing checks' },
+                notes: { type: 'string', description: 'Human-readable notes about the run' },
+                failureInputs: {
+                    type: 'array',
+                    description: 'Failure entries to log alongside this run',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            category: { type: 'string', description: 'compile | runtime | scan | smoke_test | gate | asset' },
+                            source: { type: 'string', description: 'engine | simplebeacon | game | ci | agent' },
+                            message: { type: 'string', description: 'Error message' },
+                            filePath: { type: 'string', description: 'File where the failure occurred' },
+                            errorType: { type: 'string', description: 'syntax_error | missing_asset | placeholder_value | undefined_symbol | etc.' },
+                            severity: { type: 'string', description: 'low | medium | high | critical (default: medium)' }
+                        }
+                    }
+                }
+            },
+            required: ['runType', 'pass', 'failures']
+        }
+    },
+    {
+        name: 'get_validation_history',
+        description: 'Retrieve validation run history — pass/fail results over time with pass-rate breakdown by run type. Free tier.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                limit: { type: 'number', description: 'Max recent runs to return (default: 20)' },
+                runType: { type: 'string', description: 'Filter by run type (scan | compile | smoke_test | gate | full)' },
+                since: { type: 'string', description: 'ISO date string — only runs after this date' }
+            }
+        }
     }
 ];
 
@@ -516,6 +587,10 @@ const TOOL_CATEGORIES = {
     'diagnose_error': { category: 'supporting', tier: 'free', marketed: true },
     'install_agent_plugin': { category: 'supporting', tier: 'free', marketed: true },
     'scan_snippet': { category: 'supporting', tier: 'free', marketed: true, rateLimited: true },
+    'get_failure_log': { category: 'supporting', tier: 'free', marketed: false },
+    'get_improvement_signals': { category: 'supporting', tier: 'free', marketed: false },
+    'log_validation_run': { category: 'supporting', tier: 'free', marketed: false },
+    'get_validation_history': { category: 'supporting', tier: 'free', marketed: false },
 
     // Paid — Agent tier ($25/mo)
     'scan_file': { category: 'paid', tier: 'agent', marketed: true },

@@ -41,6 +41,8 @@ const { scanDeadCode } = require('./rules/dead-code-scanner');
 const { scanMemoryLeaks } = require('./rules/memory-leak-scanner');
 const { scanTypeSafety } = require('./rules/type-safety-scanner');
 const { scanHallucinatedImports } = require('./rules/hallucinated-import-scanner');
+const { scanSwallowedExceptions } = require('./rules/swallowed-exception-scanner');
+const { scanPhantomApiCalls } = require('./rules/phantom-api-scanner');
 const { scanDependencyGraph } = require('./rules/dependency-graph-scanner');
 const { scanAstStructural } = require('./rules/ast-structural-scanner');
 const { scanComprehensive } = require('./rules/comprehensive-scanner');
@@ -1680,6 +1682,16 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             ignoreGlobs: opts.ignoreGlobs || config.ignore
         })),
         scannerEntry('hallucinated-import', 'hallucinatedImportScan', scanHallucinatedImports, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore
+        })),
+        scannerEntry('swallowed-exception', 'swallowedExceptionScan', scanSwallowedExceptions, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore
+        })),
+        scannerEntry('phantom-api-call', 'phantomApiScan', scanPhantomApiCalls, (opts) => ({
             sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
             productionPaths: opts.productionPaths || config.productionPaths,
             ignoreGlobs: opts.ignoreGlobs || config.ignore
