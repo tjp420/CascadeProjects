@@ -45,6 +45,7 @@ const rateLimit = require('express-rate-limit');
 const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
+const { resolveCorsOptions, isAllowedOrigin } = require('./server/lib/cors-config.cjs');
 
 const setupBuildFromPathRoute = require('./src/api/build-from-path-route.cjs');
 const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs'); // simplebeacon-ignore production-leak — real production dashboard API module, not a stub
@@ -142,28 +143,9 @@ const PORT = Number.isFinite(Number(process.env.PORT)) && Number(process.env.POR
   : constants.DEFAULT_PORT;
 const WS_PORT = 8081;
 
-// CORS — allow any origin in dev; specific origins in production
-const productionDefaultOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai').split(',').map(s => s.trim()).filter(Boolean);
-const publicUrlOrigin = process.env.PUBLIC_URL ? (process.env.PUBLIC_URL.startsWith('http') ? process.env.PUBLIC_URL : 'https://' + process.env.PUBLIC_URL) : '';
-const rawAllowedOrigins = process.env.NODE_ENV === 'production'
-    ? [...new Set([...productionDefaultOrigins, publicUrlOrigin].filter(Boolean))]
-    : true;
-const allowedOrigins = Array.isArray(rawAllowedOrigins) && rawAllowedOrigins.length > 0 ? rawAllowedOrigins : true;
-
-const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
-const renderOriginRegex = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
-const netlifyOriginRegex = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
-function isAllowedCorsOrigin(origin) {
-    if (allowedOrigins === true) { return true; }
-    if (!origin) { return true; }
-    return allowedOrigins.some(allowed => {
-        if (allowed === origin) { return true; }
-        if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(allowed)) {
-            return origin.startsWith(allowed.replace(':*', ':'));
-        }
-        return false;
-    }) || pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin) || netlifyOriginRegex.test(origin);
-}
+// CORS — uses shared cors-config.cjs (canonical implementation)
+// Reads CORS_ORIGINS > CORS_ORIGIN > ALLOWED_ORIGIN > PUBLIC_URL env vars.
+// Dev: mirrors any origin. Prod: explicit origins + pages.dev/onrender/netlify regex.
 
 // Private Network Access (PNA) support: when a secure public page fetches a
 // loopback address, browsers send Access-Control-Request-Private-Network: true
@@ -187,7 +169,10 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   if (req.method !== 'OPTIONS') return next();
   try {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    const origin = req.headers.origin || '';
+    if (isAllowedOrigin(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,X-SimpleBeacon-Bridge-Token,x-simplebeacon-bridge-token,Access-Control-Request-Private-Network');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -202,19 +187,7 @@ app.use((req, res, next) => {
   return res.status(204).end();
 });
 
-app.use(cors({
-    origin: (origin, callback) => {
-        if (isAllowedCorsOrigin(origin)) {
-            callback(null, origin || true);
-        } else {
-            callback(null, false);
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password', 'X-SimpleBeacon-Bridge-Token', 'x-simplebeacon-bridge-token'],
-    maxAge: 86400
-}));
+app.use(cors(resolveCorsOptions()));
 
 // Ensure bridge token header is always allowed in CORS preflight responses.
 app.use((req, res, next) => {
