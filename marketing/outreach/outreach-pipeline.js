@@ -25,6 +25,40 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+const OUTREACH_ROOT = path.resolve(__dirname);
+const ALLOWED_FILE_ROOTS = [
+  OUTREACH_ROOT,
+  path.resolve(process.cwd(), 'marketing', 'outreach'),
+];
+
+function resolveSafePath(inputPath, allowedRoots = ALLOWED_FILE_ROOTS) {
+  if (!inputPath || typeof inputPath !== 'string') {
+    throw new Error('File path is required');
+  }
+  const resolved = path.resolve(process.cwd(), inputPath);
+  const allowed = allowedRoots.some((root) => {
+    const base = path.resolve(root);
+    const rel = path.relative(base, resolved);
+    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  });
+  if (!allowed) {
+    throw new Error(`Path is outside allowed directories: ${inputPath}`);
+  }
+  return resolved;
+}
+
+function resolveSafeReadPath(inputPath, allowedRoots = ALLOWED_FILE_ROOTS) {
+  const resolved = resolveSafePath(inputPath, allowedRoots);
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`File not found: ${inputPath}`);
+  }
+  const stat = fs.statSync(resolved);
+  if (!stat.isFile()) {
+    throw new Error(`Path is not a file: ${inputPath}`);
+  }
+  return resolved;
+}
+
 // ── Email Sequence Definitions ──────────────────────────────────────────────
 
 const SEQUENCES = {
@@ -172,9 +206,16 @@ const DEFAULT_CAMPAIGN_PATH = path.join(process.cwd(), 'marketing', 'outreach', 
 
 function loadCampaignState(statePath) {
   try {
-    const raw = fs.readFileSync(statePath, 'utf8');
+    const safePath = resolveSafePath(statePath);
+    if (!fs.existsSync(safePath)) {
+      throw new Error('missing');
+    }
+    const raw = fs.readFileSync(safePath, 'utf8');
     return JSON.parse(raw);
-  } catch {
+  } catch (err) {
+    if (err && err.message && err.message.includes('outside allowed')) {
+      throw err;
+    }
     return {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -192,11 +233,12 @@ function loadCampaignState(statePath) {
 
 function saveCampaignState(state, statePath) {
   state.updatedAt = new Date().toISOString();
-  const dir = path.dirname(statePath);
+  const safePath = resolveSafePath(statePath);
+  const dir = path.dirname(safePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = statePath + '.tmp';
+  const tmp = safePath + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2), 'utf8');
-  fs.renameSync(tmp, statePath);
+  fs.renameSync(tmp, safePath);
 }
 
 /**
@@ -355,10 +397,12 @@ async function sendEmail(emailPayload) {
     },
   });
 
-  const templatePath = path.join(__dirname, 'templates', `${emailPayload.template}.txt`);
+  const templateName = path.basename(String(emailPayload.template || '').replace(/[^\w-]/g, ''));
+  const templatePath = path.join(__dirname, 'templates', `${templateName}.txt`);
   let body;
   try {
-    const templateContent = fs.readFileSync(templatePath, 'utf8');
+    const safeTemplatePath = resolveSafeReadPath(templatePath, [path.join(__dirname, 'templates')]);
+    const templateContent = fs.readFileSync(safeTemplatePath, 'utf8');
     body = renderTemplate(templateContent, emailPayload.prospect);
   } catch {
     body = renderTemplate(`Dear {{first_name}},\n\n[Email body for ${emailPayload.template}]\n\nBest regards,\n{{sender_name}}\n{{sender_title}}\nSimpleBeacon.ai`, emailPayload.prospect);
@@ -485,7 +529,8 @@ Sequences:
     return;
   }
 
-  const prospectsData = JSON.parse(fs.readFileSync(args.prospects, 'utf8'));
+  const prospectsPath = resolveSafeReadPath(args.prospects);
+  const prospectsData = JSON.parse(fs.readFileSync(prospectsPath, 'utf8'));
   const prospects = prospectsData.prospects || [];
   console.log(`[outreach-pipeline] Loaded ${prospects.length} prospects`);
 

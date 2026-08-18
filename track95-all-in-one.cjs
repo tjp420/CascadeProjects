@@ -13,7 +13,13 @@ function run(cmd) {
 // Switch to track95 branch
 console.log('Current branch:', run('git branch --show-current').trim());
 run('git stash');
-try { fs.unlinkSync(path.join(ROOT, 'ai-platform/server/lib/hsm-adapter/__tests__/pq-patent-verification-gating-extensions.test.cjs')); } catch {}
+try {
+  fs.unlinkSync(path.join(ROOT, 'ai-platform/server/lib/hsm-adapter/__tests__/pq-patent-verification-gating-extensions.test.cjs'));
+} catch (unlinkErr) {
+  if (unlinkErr && unlinkErr.code !== 'ENOENT') {
+    console.warn('[track95] optional test file cleanup skipped:', unlinkErr.message);
+  }
+}
 run('git checkout feature/track95-groundwork');
 console.log('Switched to:', run('git branch --show-current').trim());
 

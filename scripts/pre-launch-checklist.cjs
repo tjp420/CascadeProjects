@@ -37,8 +37,11 @@ function main() {
   // ── Phase 1: Product Artifacts ──
   section('Phase 1: Product Artifacts');
 
-  const vsixPath = path.join(ROOT, 'simplebeacon-vscode-merged', 'simplebeacon-3.0.347.vsix');
-  check('Extension .vsix exists', fs.existsSync(vsixPath), vsixPath);
+  const vsixDir = path.join(ROOT, 'simplebeacon-vscode-merged');
+  const vsixFiles = fs.existsSync(vsixDir) ? fs.readdirSync(vsixDir).filter(f => f.endsWith('.vsix')) : [];
+  const latestVsix = vsixFiles.sort().pop();
+  const vsixPath = latestVsix ? path.join(vsixDir, latestVsix) : '';
+  check('Extension .vsix exists', fs.existsSync(vsixPath), vsixPath || 'No .vsix found in simplebeacon-vscode-merged/');
 
   const iconSvg = path.join(ROOT, 'simplebeacon-vscode-merged', 'media', 'icon.svg');
   check('Marketplace icon (SVG) exists', fs.existsSync(iconSvg));

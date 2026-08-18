@@ -511,3 +511,6 @@ report.sbcert
 
 # Runtime agent history (regenerated per session, not source)
 **/.simplebeacon/history.json
+
+# Test scratch directory (generated scan reports, not source)
+test-init/

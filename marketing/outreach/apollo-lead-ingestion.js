@@ -17,7 +17,7 @@
  * Usage:
  *   node apollo-lead-ingestion.js --keywords="AI,compliance" --max-companies=50
  *   node apollo-lead-ingestion.js --keywords="fintech,regulatory" --max-companies=100 --max-people-per-company=5
- *   APOLLO_API_KEY=xxx node apollo-lead-ingestion.js --keywords="AI" --dry-run
+ *   APOLLO_API_KEY=YOUR_APOLLO_KEY node apollo-lead-ingestion.js --keywords="compliance" --dry-run
  *
  * Env vars:
  *   APOLLO_API_KEY   (required) — Apollo.io API key
@@ -106,7 +106,7 @@ function apolloHeaders() {
   if (!apiKey) {
     throw new Error(
       'APOLLO_API_KEY environment variable is required. ' +
-      'Set it via `export APOLLO_API_KEY=xxx` (Unix) or `set APOLLO_API_KEY=xxx` (Windows).'
+      'Set it via `export APOLLO_API_KEY=YOUR_APOLLO_KEY` (Unix) or `set APOLLO_API_KEY=YOUR_APOLLO_KEY` (Windows).'
     );
   }
   return {
@@ -572,7 +572,7 @@ async function main() {
 
   if (!process.env.APOLLO_API_KEY) {
     console.error('[apollo] ERROR: APOLLO_API_KEY environment variable is required.');
-    console.error('[apollo] Set it via: export APOLLO_API_KEY=xxx  (Unix)  or  set APOLLO_API_KEY=xxx  (Windows)');
+    console.error('[apollo] Set it via: export APOLLO_API_KEY=YOUR_APOLLO_KEY  (Unix)  or  set APOLLO_API_KEY=YOUR_APOLLO_KEY  (Windows)');
     process.exit(1);
   }
 
@@ -581,7 +581,7 @@ async function main() {
 Usage:
   node apollo-lead-ingestion.js --keywords="AI,compliance" --max-companies=50
   node apollo-lead-ingestion.js --keywords="fintech,regulatory" --max-companies=100 --max-people-per-company=5
-  APOLLO_API_KEY=xxx node apollo-lead-ingestion.js --keywords="AI" --dry-run
+  APOLLO_API_KEY=YOUR_APOLLO_KEY node apollo-lead-ingestion.js --keywords="compliance" --dry-run
 `);
     process.exit(1);
   }

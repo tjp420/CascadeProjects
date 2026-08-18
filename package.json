@@ -50,7 +50,9 @@
     "verify:deployment": "node ai-platform/tools/verify-deployment.cjs",
     "gzdoom:scan": "node scripts/gzdoom-mod-scan.cjs",
     "gzdoom:export-summary": "node scripts/gzdoom-export-summary.cjs",
-    "gzdoom:norun-gate": "node scripts/gzdoom-norun-gate.cjs"
+    "gzdoom:norun-gate": "node scripts/gzdoom-norun-gate.cjs",
+    "agent:capabilities-server": "node tools/agent-capabilities-server.cjs",
+    "agent:capabilities": "node tools/agent-capabilities.cjs --pretty"
   },
   "prepare": "husky install",
   "dependencies": {

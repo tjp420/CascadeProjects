@@ -34,3 +34,7 @@ Stay aligned with the user's actual workspace. Do not hallucinate files, modules
 - No enterprise jargon.
 - No ASCII art diagrams of imaginary pipelines.
 - If unsure, ask for the specific file or error output.
+
+## SimpleBeacon (Cline)
+
+Cline uses **`.cursor/rules/simplebeacon-ai-workflow.mdc`** for the Agent Supercharge workflow — not this file. Call MCP **`supercharge_agent`** at session start.
