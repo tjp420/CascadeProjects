@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-    <title>AI Slop Cop — See What SimpleBeacon Catches Before Regulators Do</title>
-    <meta name="description" content="Interactive demo: paste your code or browse real before/after samples of AI slop caught by SimpleBeacon. Leaked keys, placeholder debris, hallucinated SDK calls, Lorem Ipsum — see the exact fixes and the dollar exposure of each finding.">
+    <title>AI Slop Cop for VS Code — Scan Your Workspace for AI Slop, Leaks &amp; Compliance Gaps</title>
+    <meta name="description" content="SimpleBeacon AI Slop Cop is a VS Code extension that scans your workspace locally for AI slop, leaked credentials, and EU AI Act / SOC 2 gaps. 38 analyzer engines, zero source upload. Try the browser demo, then install the extension.">
     <link rel="canonical" href="https://simplebeacon.ai/slop-cop.html">
     <meta name="robots" content="index, follow">
-    <meta property="og:title" content="AI Slop Cop — See What SimpleBeacon Catches Before Regulators Do">
-    <meta property="og:description" content="Interactive demo: paste your code or browse real before/after samples of AI slop caught by SimpleBeacon. See the exact fixes and the dollar exposure of each finding.">
+    <meta property="og:title" content="AI Slop Cop for VS Code — Scan Your Workspace Locally">
+    <meta property="og:description" content="VS Code extension: 38 analyzer engines, zero source upload, board-ready compliance reports. Try the browser demo, then install the extension.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/slop-cop.html">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="AI Slop Cop — See What SimpleBeacon Catches Before Regulators Do">
-    <meta name="twitter:description" content="Interactive demo: paste your code or browse real before/after samples of AI slop caught by SimpleBeacon.">
+    <meta name="twitter:title" content="AI Slop Cop for VS Code — Scan Your Workspace Locally">
+    <meta name="twitter:description" content="VS Code extension: 38 analyzer engines, zero source upload, board-ready compliance reports. Try the browser demo, then install the extension.">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -67,6 +67,18 @@ body {
 .hero p.sub { color:var(--text-secondary); font-size:1.1rem; max-width:640px; margin:0 auto 28px; }
 .hero .privacy-note { color:var(--text-muted); font-size:0.85rem; margin-top:12px; }
 .hero .privacy-note strong { color:var(--success); }
+.hero-ctas { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+.btn-lg { padding:14px 28px; font-size:1rem; }
+.btn-ghost { background:transparent; border:1px solid var(--border-light); color:var(--text-secondary); }
+.btn-ghost:hover { background:rgba(255,255,255,0.06); color:var(--text-primary); border-color:var(--text-muted); }
+
+/* ---- Extension feature strip ---- */
+.ext-features { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; max-width:920px; margin:32px auto 0; }
+.ext-feature { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px; }
+.ext-feature-icon { font-size:1.4rem; margin-bottom:8px; }
+.ext-feature h4 { font-size:0.95rem; font-weight:700; margin-bottom:4px; }
+.ext-feature p { color:var(--text-muted); font-size:0.82rem; line-height:1.5; }
+.ext-feature .cmd { display:inline-block; margin-top:6px; font-family:'SF Mono',Consolas,monospace; font-size:0.72rem; color:#a5b4fc; background:rgba(99,102,241,0.1); padding:2px 8px; border-radius:4px; }
 
 /* ---- Section ---- */
 .section { padding: 56px 24px; }
@@ -174,7 +186,7 @@ body {
 
 /* ---- Value framing table ---- */
 .value-table { max-width:880px; margin:0 auto; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-.value-table-row { display:grid; grid-template-columns:1.4fr 1fr 1fr; border-bottom:1px solid var(--border); }
+.value-table-row { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; border-bottom:1px solid var(--border); }
 .value-table-row:last-child { border-bottom:none; }
 .value-table-row.head { background:rgba(255,255,255,0.03); }
 .value-table-cell { padding:14px 18px; font-size:0.88rem; border-right:1px solid var(--border); }
@@ -217,23 +229,56 @@ body {
     <a href="/pricing">Pricing</a>
     <a href="/community">Install</a>
     <a href="/blog/case-study-ai-slop-1-25m">Case Study</a>
-    <a href="/slop-cop" class="sb-nav-cta">Try Slop Cop</a>
+    <a href="/downloads/simplebeacon.vsix" class="sb-nav-cta" download>Install Extension</a>
   </div>
 </nav>
 
 <!-- Hero -->
 <section class="hero">
-    <span class="hero-badge">AI Slop Cop · Interactive Demo</span>
-    <h1>See what $49/mo catches<br>before regulators do.</h1>
-    <p class="sub">Browse real before/after samples of AI slop caught by SimpleBeacon — leaked keys, placeholder debris, hallucinated SDK calls, Lorem Ipsum. Then paste your own code and watch the Slop Cop work. Every finding carries a cited dollar exposure.</p>
-    <div class="privacy-note"><strong>100% in your browser.</strong> Zero upload. Zero signup. No network calls.</div>
+    <span class="hero-badge">VS Code Extension · Local-First</span>
+    <h1>AI Slop Cop for VS Code</h1>
+    <p class="sub">Scan your workspace locally, surface repo issues, gate quality, and export reports &mdash; no source upload. 38 analyzer engines catch AI slop, leaked credentials, and EU AI Act / SOC 2 gaps before they reach your main branch.</p>
+    <div class="hero-ctas">
+        <a href="/downloads/simplebeacon.vsix" class="btn btn-primary btn-lg" download>Install VS Code Extension</a>
+        <a href="#playground" class="btn btn-lg">Try the browser demo</a>
+        <a href="/pricing" class="btn btn-ghost btn-lg">Pricing &amp; CI gate</a>
+    </div>
+    <div class="privacy-note"><strong>Zero source upload.</strong> The extension runs the SimpleBeacon engine locally in your IDE. The browser demo below runs the same rules in your browser &mdash; nothing leaves your machine.</div>
+
+    <!-- Extension feature strip -->
+    <div class="ext-features">
+        <div class="ext-feature">
+            <div class="ext-feature-icon">&#128269;</div>
+            <h4>Scan Workspace</h4>
+            <p>One-click scan from the sidebar or Command Palette. 38 deterministic engines run locally on your repo.</p>
+            <span class="cmd">SimpleBeacon: Scan Workspace</span>
+        </div>
+        <div class="ext-feature">
+            <div class="ext-feature-icon">&#128202;</div>
+            <h4>Report Dashboard</h4>
+            <p>Findings, gate status, and severity breakdowns render in a built-in dashboard view inside VS Code.</p>
+            <span class="cmd">SimpleBeacon: Show Report Dashboard</span>
+        </div>
+        <div class="ext-feature">
+            <div class="ext-feature-icon">&#128190;</div>
+            <h4>Export Report (JSON)</h4>
+            <p>Export a structured JSON report for CI, auditors, or your compliance pipeline. Generate board-ready certificates.</p>
+            <span class="cmd">SimpleBeacon: Export Report (JSON)</span>
+        </div>
+        <div class="ext-feature">
+            <div class="ext-feature-icon">&#128274;</div>
+            <h4>Zero Source Upload</h4>
+            <p>The extension runs the SimpleBeacon engine on your machine. No source code is ever sent to a server.</p>
+            <span class="cmd">Local-first by design</span>
+        </div>
+    </div>
 </section>
 
 <!-- Section A: Guided before/after presets -->
 <section class="section" id="presets">
     <div class="container">
         <h2>Before &amp; After: Real Samples</h2>
-        <p class="section-sub">Toggle each sample between the AI-slop version and the SimpleBeacon-cleaned version. Drawn from the <a href="/blog/case-study-ai-slop-1-25m" style="color:var(--accent);text-decoration:none;">$1.25M fintech case study</a> and common AI-assisted development patterns.</p>
+        <p class="section-sub">Toggle each sample between the AI-slop version and the SimpleBeacon-cleaned version. These are the same patterns the VS Code extension catches across your whole workspace. Drawn from the <a href="/blog/case-study-ai-slop-1-25m" style="color:var(--accent);text-decoration:none;">$1.25M fintech case study</a> and common AI-assisted development patterns.</p>
         <div class="preset-grid" id="presetGrid"></div>
     </div>
 </section>
@@ -242,7 +287,7 @@ body {
 <section class="section alt" id="playground">
     <div class="container">
         <h2>Paste Your Own Code</h2>
-        <p class="section-sub">Drop in any code, config, or text. The Slop Cop runs the same 8 deterministic SB-FICTION engines plus 7 text-pattern rules — all in your browser.</p>
+        <p class="section-sub">Drop in any code, config, or text. The Slop Cop runs the same 8 deterministic SB-FICTION engines plus 7 text-pattern rules &mdash; all in your browser. For the full 38-engine workspace scan, <a href="/downloads/simplebeacon.vsix" style="color:var(--accent);text-decoration:none;font-weight:600;">install the VS Code extension</a>.</p>
         <div class="playground-wrap">
             <textarea class="playground-input" id="pgInput" placeholder="Paste code, an email, a config file, or any text here...&#10;&#10;Example:&#10;const apiKey = &quot;sk-ant-api03-xxxxx&quot;;&#10;// TODO: implement as you requested in our call&#10;return true; // placeholder"></textarea>
             <div class="playground-bar">
@@ -253,54 +298,68 @@ body {
             </div>
             <div class="playground-results empty" id="pgResults">Findings will appear here after you click <strong>Run Slop Cop</strong>.</div>
         </div>
-        <p style="text-align:center;color:var(--text-muted);font-size:0.78rem;margin-top:16px;">Uses the same deterministic engines from SimpleBeacon's CLI scanner, ported to the browser. No text leaves your machine.</p>
+        <p style="text-align:center;color:var(--text-muted);font-size:0.78rem;margin-top:16px;">Uses the same deterministic engines from the SimpleBeacon VS Code extension, ported to the browser. No text leaves your machine. <a href="/downloads/simplebeacon.vsix" style="color:var(--accent);text-decoration:none;font-weight:600;">Install the extension &rarr;</a></p>
     </div>
 </section>
 
 <!-- Section C: Value framing -->
 <section class="section" id="value">
     <div class="container">
-        <h2>This Browser Demo vs. The Paid CLI</h2>
-        <p class="section-sub">The free demo above runs in your browser on snippets. The paid CLI runs the same engines across your entire repo, in CI, and produces a board-ready certificate.</p>
+        <h2>Browser Demo vs. VS Code Extension vs. Paid Tiers</h2>
+        <p class="section-sub">The browser demo below is a teaser that runs on pasted snippets. The VS Code extension runs the same engines across your whole workspace. Paid tiers unlock unlimited scans, the CI gate, and board-ready certificates for teams and compliance.</p>
         <div class="value-table">
             <div class="value-table-row head">
                 <div class="value-table-cell head">Capability</div>
-                <div class="value-table-cell head" style="text-align:center;">Free Browser Demo</div>
-                <div class="value-table-cell head" style="text-align:center;">Paid CLI ($49/mo+)</div>
+                <div class="value-table-cell head" style="text-align:center;">Browser Demo</div>
+                <div class="value-table-cell head" style="text-align:center;">VS Code Extension</div>
+                <div class="value-table-cell head" style="text-align:center;">Paid Tiers ($49/mo+)</div>
             </div>
             <div class="value-table-row">
                 <div class="value-table-cell">15 deterministic slop + text engines</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="check">✓</span> on pasted snippets</div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span> across whole repo</div>
+                <div class="value-table-cell free" style="text-align:center;"><span class="check">✓</span> snippets</div>
+                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span> whole workspace</div>
+                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span> whole repo</div>
             </div>
             <div class="value-table-row">
-                <div class="value-table-cell">52-rule full scanner (secrets, license, EU AI Act, SOC 2)</div>
+                <div class="value-table-cell">38-rule full scanner (secrets, license, EU AI Act, SOC 2)</div>
                 <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
+                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
                 <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
             </div>
             <div class="value-table-row">
-                <div class="value-table-cell">14 deterministic auto-fix generators</div>
+                <div class="value-table-cell">Sidebar, dashboard, JSON export, certificate generation</div>
                 <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
+                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
                 <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
             </div>
             <div class="value-table-row">
                 <div class="value-table-cell">CI gate (blocks PRs on critical/high)</div>
+                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
                 <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
                 <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
             </div>
             <div class="value-table-row">
                 <div class="value-table-cell">Board-ready Executive Risk Certificate</div>
                 <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
+                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
                 <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
             </div>
             <div class="value-table-row">
                 <div class="value-table-cell">EU AI Act Article 99 + SOC 2 mapping</div>
+                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
                 <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
                 <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
             </div>
             <div class="value-table-row">
                 <div class="value-table-cell">Zero source-code upload (runs locally)</div>
                 <div class="value-table-cell free" style="text-align:center;"><span class="check">✓</span></div>
+                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
+                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
+            </div>
+            <div class="value-table-row">
+                <div class="value-table-cell">Unlimited scans (no quota)</div>
+                <div class="value-table-cell free" style="text-align:center;"><span class="check">✓</span></div>
+                <div class="value-table-cell free" style="text-align:center;">quota-limited</div>
                 <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
             </div>
         </div>
@@ -309,18 +368,19 @@ body {
 
 <!-- CTA banner -->
 <section class="cta-banner">
-    <h2>This is what $49/mo catches across your entire repo.</h2>
-    <p>The demo above runs on one snippet at a time. The paid CLI runs the same engines on every file, every commit, every PR — and ships a board-ready certificate for auditors.</p>
+    <h2>Install the AI Slop Cop extension.</h2>
+    <p>The browser demo above runs on one snippet at a time. The VS Code extension runs the same 38 engines across your whole workspace &mdash; with a sidebar, dashboard, JSON export, and certificate generation. Paid tiers unlock the CI gate, unlimited scans, and board-ready compliance certificates.</p>
     <div class="cta-buttons">
-        <a href="/pricing" class="btn btn-primary">See pricing &rarr;</a>
-        <a href="/community" class="btn">Install the free CLI</a>
+        <a href="/downloads/simplebeacon.vsix" class="btn btn-primary" download>Install VS Code Extension</a>
+        <a href="/pricing" class="btn">Pricing &amp; CI gate</a>
+        <a href="/community" class="btn">Install the CLI</a>
         <a href="/sample-report" class="btn">View a sample report</a>
     </div>
 </section>
 
 <!-- Footer -->
 <footer class="footer">
-    <div><a href="/">Home</a> · <a href="/pricing">Pricing</a> · <a href="/community">Install</a> · <a href="/blog/case-study-ai-slop-1-25m">Case Study</a> · <a href="/sample-report">Sample Report</a> · <a href="/faq">FAQ</a> · <a href="/contact">Contact</a></div>
+    <div><a href="/">Home</a> · <a href="/downloads/simplebeacon.vsix">Install Extension</a> · <a href="/pricing">Pricing</a> · <a href="/community">CLI</a> · <a href="/blog/case-study-ai-slop-1-25m">Case Study</a> · <a href="/sample-report">Sample Report</a> · <a href="/faq">FAQ</a> · <a href="/contact">Contact</a></div>
     <div style="margin-top:10px;">&copy; 2026 SimpleBeacon. Zero source upload. Local-first.</div>
 </footer>
 
