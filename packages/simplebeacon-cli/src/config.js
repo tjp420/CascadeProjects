@@ -62,7 +62,8 @@ const PROFILE_RULES = {
         'jest-baseline': { enabled: false, runTests: false },
         'cve-dependency': { enabled: true, includeDev: false },
         'git-history-secret': { enabled: true, maxCommits: 1000 },
-        'deployment-readiness': { enabled: true }
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     },
     standard: {
         credentials: { enabled: true, scanProduction: true },
@@ -82,7 +83,8 @@ const PROFILE_RULES = {
         'cve-dependency': { enabled: true, includeDev: true },
         'sbom-generator': { enabled: true, includeDev: true },
         'git-history-secret': { enabled: true, maxCommits: 1000 },
-        'deployment-readiness': { enabled: true }
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     },
     'eu-ai-act': {
         credentials: { enabled: true, scanProduction: true },
@@ -103,7 +105,8 @@ const PROFILE_RULES = {
         'cve-dependency': { enabled: true, includeDev: true },
         'sbom-generator': { enabled: true, includeDev: true },
         'git-history-secret': { enabled: true, maxCommits: 1000 },
-        'deployment-readiness': { enabled: true }
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     },
     cascade: {
         credentials: { enabled: true, scanProduction: true },
@@ -136,7 +139,8 @@ const PROFILE_RULES = {
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
         'file-reduction': { enabled: true, dryRun: true },
-        'deployment-readiness': { enabled: true }
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     }
 };
 
@@ -447,7 +451,8 @@ const FREE_RULE_ENGINES = new Set([
     'security-patterns',
     'json-schema',
     'sample-consistency',
-    'deployment-readiness'
+    'deployment-readiness',
+    'custom-heuristic'
 ]);
 
 function sanitizeConfigForTier(config, tier) {

@@ -835,7 +835,9 @@ async function executeOneScan(options, networkGuard) {
             networkEventCount: networkGuard.events.length
         }, paint);
 
-        const gateResult = evaluateGate(report, config.gate);
+        const gateResult = report.gate && typeof report.gate === 'object' && typeof report.gate.pass === 'boolean'
+            ? report.gate
+            : evaluateGate(report, config.gate);
         const jsonReport = formatJsonReport(report, gateResult);
         const airGapped = options.airGapped === true;
         spinner.stop();
@@ -1160,7 +1162,9 @@ async function runUploadCommand(options) {
                 slopCop: options.slopCop
             });
             networkGuard.assertOfflineClean();
-            const gateResult = evaluateGate(rawReport, config.gate);
+            const gateResult = rawReport.gate && typeof rawReport.gate === 'object' && typeof rawReport.gate.pass === 'boolean'
+                ? rawReport.gate
+                : evaluateGate(rawReport, config.gate);
             report = formatJsonReport(rawReport, gateResult);
         } finally {
             networkGuard.dispose();
@@ -1273,7 +1277,9 @@ async function loadOrRunReport(options) {
     const { platformRoot } = resolvePlatformRoot(scanRoot);
     const config = loadSimplebeaconConfig(platformRoot, options.config);
     const report = await runScan(scanRoot, { config, configPath: options.config });
-    const gateResult = evaluateGate(report, config.gate);
+    const gateResult = report.gate && typeof report.gate === 'object' && typeof report.gate.pass === 'boolean'
+        ? report.gate
+        : evaluateGate(report, config.gate);
     return formatJsonReport(report, gateResult);
 }
 
