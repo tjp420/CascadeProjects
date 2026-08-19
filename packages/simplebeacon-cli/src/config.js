@@ -452,7 +452,8 @@ const FREE_RULE_ENGINES = new Set([
     'json-schema',
     'sample-consistency',
     'deployment-readiness',
-    'custom-heuristic'
+    'custom-heuristic',
+    'gzdoom-integrity-patterns'
 ]);
 
 function sanitizeConfigForTier(config, tier) {
@@ -471,6 +472,13 @@ function sanitizeConfigForTier(config, tier) {
             for (const [ruleName, userRule] of Object.entries(config.rules)) {
                 if (userRule && userRule.enabled === false) {
                     profileRules[ruleName] = { ...profileRules[ruleName], enabled: false };
+                }
+                // Also preserve user-enabled free-tier rules that are not in the
+                // default profile (e.g. gzdoom-integrity-patterns for GZDoom mods).
+                // Without this, free-tier users lose custom rule configs even when
+                // the rule itself is free-tier-eligible.
+                if (userRule && userRule.enabled !== false && FREE_RULE_ENGINES.has(ruleName) && !profileRules[ruleName]) {
+                    profileRules[ruleName] = userRule;
                 }
             }
         }
