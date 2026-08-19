@@ -120,6 +120,35 @@ function extractTokenFromCookies(req) {
   return null;
 }
 
+function normalizeAdminAccess(user) {
+  if (!user || typeof user !== 'object') return user;
+
+  const role = String(user.role || '').toLowerCase();
+  if (role !== 'admin' && role !== 'superuser') return user;
+
+  const permissions = new Set(Array.isArray(user.permissions) ? user.permissions.map(String) : []);
+  const features = new Set(Array.isArray(user.features) ? user.features.map(String) : []);
+
+  permissions.add('read:all');
+  permissions.add('write:all');
+  permissions.add('admin:all');
+  permissions.add('analyze:private');
+
+  features.add('all_modules');
+  features.add('enterprise_features');
+  features.add('api_access');
+  features.add('advanced_security');
+
+  return {
+    ...user,
+    trustLevel: 'gold',
+    tier: 'enterprise',
+    plan: 'enterprise',
+    permissions: [...permissions],
+    features: [...features]
+  };
+}
+
 async function tryToken(token, res) {
   if (!token) {
     return { error: createError(401, 'Token required') };
@@ -142,7 +171,7 @@ async function tryToken(token, res) {
     }
   }
 
-  const user = {
+  const user = normalizeAdminAccess({
     id: decoded.sub,
     email: decoded.email,
     name: decoded.name,
@@ -153,8 +182,9 @@ async function tryToken(token, res) {
     tokenId: decoded.jti,
     sessionId: decoded.sessionId,
     isSandbox: sandbox,
-    tier: decoded.tier || decoded.plan || ''
-  };
+    tier: decoded.tier || decoded.plan || '',
+    plan: decoded.plan || decoded.tier || ''
+  });
 
   return { user, sandbox };
 }
@@ -162,14 +192,17 @@ async function tryToken(token, res) {
 async function resolveAuth(req, res) {
   if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_BYPASS === '1') {
     return {
-      user: {
+      user: normalizeAdminAccess({
         id: 'dev-user-01',
         email: 'dev@localhost',
         name: 'Local Developer',
         role: 'admin',
-        trustLevel: 'platinum',
-        permissions: ['read:all', 'write:all', 'admin:all']
-      }
+        trustLevel: 'gold',
+        tier: 'enterprise',
+        plan: 'enterprise',
+        permissions: ['read:all', 'write:all', 'admin:all', 'analyze:private'],
+        features: ['all_modules', 'enterprise_features', 'api_access', 'advanced_security']
+      })
     };
   }
 
@@ -210,8 +243,8 @@ const authenticate = async (req, res, next) => {
     const { user, error } = await resolveAuth(req, res);
     if (error) throw error;
 
-    req.user = user;
-    recordActivity(user.id, user.email, user.name);
+    req.user = normalizeAdminAccess(user);
+    recordActivity(req.user.id, req.user.email, req.user.name);
     authLog('[AUTH] User authenticated');
     next();
   } catch (error) {
@@ -245,8 +278,8 @@ const optionalAuthenticate = async (req, res, next) => {
   try {
     const { user, error } = await resolveAuth(req, res);
     if (!error) {
-      req.user = user;
-      recordActivity(user.id, user.email, user.name);
+      req.user = normalizeAdminAccess(user);
+      recordActivity(req.user.id, req.user.email, req.user.name);
     } else {
       req.authError = error;
       authWarn(`[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`);
