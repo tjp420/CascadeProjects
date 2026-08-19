@@ -81,7 +81,7 @@ const RULE_CATALOG = [
 const DEPLOYMENT_EXCEPTIONS = {
     'SB-DEP-003:users': {
         services: ['ai-platform', 'api-server'],
-        reason: 'Intentionally split across separate Render PostgreSQL databases (simplebeacon-db for ai-platform, simplebeacon-api-db for api-server). The two users tables have incompatible schemas (TEXT vs UUID primary key) and serve different purposes. See migration comments in api-server/migrations/004-rbac-audit-teams.sql and ai-platform/server/db/schema-phase2.sql.'
+        reason: 'Permanent architectural boundary between bounded contexts. The ai-platform users table is a gamification dashboard identity store (TEXT PK, trust levels, analysis counters) scoped to the simplebeacon-db Render PostgreSQL database. The api-server users table is an enterprise RBAC identity store (UUID PK, SSO/MFA, workspace FK targets) scoped to the simplebeacon-api-db Render PostgreSQL database. The two schemas have incompatible primary key types, different identity models, and different security requirements (no RLS vs RLS+RBAC). Merging would create a 28-column table violating single responsibility, introduce cross-service coupling, and require a risky data migration with no functional benefit. See migration comments in api-server/migrations/004-rbac-audit-teams.sql and ai-platform/server/db/schema-phase2.sql.'
     }
 };
 
