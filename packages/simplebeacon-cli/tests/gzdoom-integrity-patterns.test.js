@@ -199,3 +199,109 @@ describe('gzdoom DECORATE include expansion', () => {
             'Knuckle should be resolved through DECORATE include chain');
     });
 });
+
+describe('gzdoom case-insensitive path dedup', () => {
+    it('does not flag duplicate classes when includes use case-variant paths', async () => {
+        const tmp = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'sb-case-'));
+        const fs = require('fs');
+        const path = require('path');
+        // Create a ZSCRIPT entry that includes the same file via two
+        // case-variant paths. On Windows (case-insensitive FS), both
+        // resolve to the same file on disk. Without case-insensitive
+        // dedup, the scanner would collect the file twice and flag
+        // every class in it as a duplicate.
+        fs.writeFileSync(path.join(tmp, 'ZSCRIPT'),
+            '#include "monsters/DemonClass.zs"\n' +
+            '#include "monsters/demonclass.zs"\n', 'utf8');
+        fs.mkdirSync(path.join(tmp, 'monsters'), { recursive: true });
+        fs.writeFileSync(path.join(tmp, 'monsters', 'DemonClass.zs'),
+            'class UniqueDemon : Actor {}\n', 'utf8');
+
+        const graph = await buildGzdoomSymbolGraph(tmp, { respectIncludes: true });
+        const issues = validateGzdoomCrossReferences(graph);
+        const dupIssues = issues.filter((i) =>
+            i.type === 'gzdoom-duplicate-class' && /UniqueDemon/.test(i.description));
+        assert.equal(dupIssues.length, 0,
+            'Case-variant include paths should not create phantom duplicate classes');
+    });
+});
+
+describe('gzdoom ZSCRIPT.zs entry point detection', () => {
+    it('accepts ZSCRIPT.zs (with .zs extension) as entry point', async () => {
+        const tmp = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'sb-zs-'));
+        const fs = require('fs');
+        const path = require('path');
+        // Entry file is named ZSCRIPT.zs (with .zs extension), not bare ZSCRIPT.
+        // This is the common on-disk form. Without detecting it, the resolver
+        // treats all .zs files as orphans (no entry point found).
+        fs.writeFileSync(path.join(tmp, 'ZSCRIPT.zs'),
+            '#include "active.zs"\n', 'utf8');
+        fs.writeFileSync(path.join(tmp, 'active.zs'),
+            'class EntryActive : Actor {}\n', 'utf8');
+        // Orphan file not reachable from ZSCRIPT.zs
+        fs.writeFileSync(path.join(tmp, 'orphan.zs'),
+            'class OrphanClass : Actor {}\n', 'utf8');
+
+        const files = await require('../src/lib/gzdoom-symbol-graph').collectGzdoomFiles(tmp);
+        const { reachable, orphans } = resolveReachableGzdoomFiles(tmp, files);
+        assert.ok(reachable.has('ZSCRIPT.zs'), 'ZSCRIPT.zs should be detected as entry point');
+        assert.ok(reachable.has('active.zs'), 'active.zs should be reachable from ZSCRIPT.zs');
+        assert.ok(orphans.includes('orphan.zs'), 'orphan.zs should be flagged as unreachable');
+
+        const graph = await buildGzdoomSymbolGraph(tmp, { respectIncludes: true });
+        assert.ok(graph.actors.has('EntryActive'), 'EntryActive should be discovered via ZSCRIPT.zs');
+        assert.ok(!graph.actors.has('OrphanClass'), 'OrphanClass should not be discovered (unreachable file)');
+    });
+});
+
+describe('gzdoom expanded vanilla actors', () => {
+    it('suppresses unresolved MODELDEF refs to vanilla decorations and props', async () => {
+        const tmp = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'sb-vanilla-'));
+        const fs = require('fs');
+        const path = require('path');
+        // MODELDEF references vanilla Doom decorations that exist in the IWAD
+        // but have no source in the mod. These should be suppressed via the
+        // vanilla actor allowlist, not flagged as unresolved.
+        fs.writeFileSync(path.join(tmp, 'MODELDEF'),
+            'Model ExplosiveBarrel\n{\n  Path "models/barrel/"\n  Model 0 "barrel.md3"\n  FrameIndex BEXP A 0 0\n}\n' +
+            'Model TechLamp\n{\n  Path "models/lamp/"\n  Model 0 "lamp.md3"\n  FrameIndex TLMP A 0 0\n}\n' +
+            'Model GreenArmor\n{\n  Path "models/armor/"\n  Model 0 "armor.md3"\n  FrameIndex ARM1 A 0 0\n}\n' +
+            'Model CustomMissingActor\n{\n  Path "models/custom/"\n  Model 0 "custom.md3"\n  FrameIndex CUST A 0 0\n}\n',
+            'utf8');
+
+        const graph = await buildGzdoomSymbolGraph(tmp, { respectIncludes: false });
+        const issues = validateGzdoomCrossReferences(graph);
+        // Vanilla actors should NOT be flagged
+        assert.ok(!issues.some((i) => i.type === 'gzdoom-unresolved-actor' && /ExplosiveBarrel/.test(i.description)),
+            'ExplosiveBarrel is a vanilla actor and should not be flagged');
+        assert.ok(!issues.some((i) => i.type === 'gzdoom-unresolved-actor' && /TechLamp/.test(i.description)),
+            'TechLamp is a vanilla actor and should not be flagged');
+        assert.ok(!issues.some((i) => i.type === 'gzdoom-unresolved-actor' && /GreenArmor/.test(i.description)),
+            'GreenArmor is a vanilla actor and should not be flagged');
+        // Non-vanilla actor SHOULD still be flagged
+        assert.ok(issues.some((i) => i.type === 'gzdoom-unresolved-actor' && /CustomMissingActor/.test(i.description)),
+            'CustomMissingActor is not vanilla and should be flagged');
+    });
+
+    it('isVanillaActor recognizes newly added decorations', () => {
+        const { isVanillaActor } = require('../src/lib/gzdoom-vanilla-actors');
+        // Spot-check a representative sample of the expanded list
+        assert.ok(isVanillaActor('ExplosiveBarrel'));
+        assert.ok(isVanillaActor('BurningBarrel'));
+        assert.ok(isVanillaActor('TechLamp'));
+        assert.ok(isVanillaActor('TechPillar'));
+        assert.ok(isVanillaActor('Candle'));
+        assert.ok(isVanillaActor('Candlestick'));
+        assert.ok(isVanillaActor('GreenArmor'));
+        assert.ok(isVanillaActor('BlueArmor'));
+        assert.ok(isVanillaActor('MediKit'));
+        assert.ok(isVanillaActor('TallGreenColumn'));
+        assert.ok(isVanillaActor('EvilEye'));
+        assert.ok(isVanillaActor('FloatingSkull'));
+        assert.ok(isVanillaActor('SkullPile'));
+        assert.ok(isVanillaActor('DeadMarine'));
+        // Non-vanilla should return false
+        assert.ok(!isVanillaActor('R3DCustomActor'));
+        assert.ok(!isVanillaActor('MyModBarrel'));
+    });
+});
