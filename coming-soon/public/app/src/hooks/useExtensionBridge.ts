@@ -69,10 +69,10 @@ async function probeBridgePort(port: number): Promise<{ base: string; token: str
     clearTimeout(timer);
     if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
+    // Only accept servers that explicitly identify as a SimpleBeacon bridge.
+    // Generic { status: 'ok' } responses are rejected to avoid port collisions
+    // with other local servers (e.g. Devin CLI, VS Code, dev tools).
     if (data?.service === 'simplebeacon-bridge' || data?.platform === 'Simplebeacon') {
-      return { base: origin, token: (data.bridgeToken as string) || null };
-    }
-    if (data?.status === 'ok' || data?.online === true) {
       return { base: origin, token: (data.bridgeToken as string) || null };
     }
   } catch {

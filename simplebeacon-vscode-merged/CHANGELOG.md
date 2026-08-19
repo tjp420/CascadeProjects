@@ -1,5 +1,19 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.508] - 2026-08-18
+
+### Added
+- **Extension Webview Command Conduit** (Sprint N) - Live benchmark execution from the VS Code webview dashboard, enabling real-time performance measurements without leaving the IDE
+- **A/B remediation auto-tune triggers** (Sprint O) - Telemetry UI now surfaces A/B test results for remediation suggestions, allowing automatic tuning of fix recommendations based on acceptance rates
+- **Dashboard SPA bundle sync** - Synchronized dashboard SPA chunk hashes between the VS Code extension and the web dashboard to eliminate 404 errors on /dashboard/ routes
+
+### Fixed
+- Dashboard SPA 404 on chunked asset loads — chunk hashes now match between extension and web builds
+
+### Changed
+- `dataServer.ts` expanded with new proxy endpoints for the command conduit and telemetry streaming
+- `localAgent.ts` updated for command conduit integration
+
 ## [3.0.495] - 2026-08-07
 
 ### Added

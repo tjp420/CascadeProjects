@@ -356,6 +356,7 @@ export function LicenseManagerView() {
                       disabled={revokingSeatId === seat.seatId}
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       title="Revoke seat"
+                      aria-label="Revoke seat"
                     >
                       {revokingSeatId === seat.seatId ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

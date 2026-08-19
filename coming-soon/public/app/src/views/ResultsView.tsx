@@ -13,6 +13,7 @@ import { PostScanCliNudge } from '@/components/PostScanCliNudge';
 import { PostScanShareBanner } from '@/components/PostScanShareBanner';
 import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
 import { resolveReportIssues } from '@services/analyzeService.js';
+import { getLargeItem } from '@/utils/dbStorage';
 
 // ── Regulatory Framework Catalog (22 international frameworks) ──────────────
 const REGULATORY_FRAMEWORKS = [
@@ -132,6 +133,46 @@ export function ResultsView() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  // If localStorage doesn't contain the full report (quota or missing), fall back to IndexedDB.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const storageHint = localStorage.getItem('sb_last_scan_report_storage');
+        const hasReport = !!localStorage.getItem('sb_last_scan_report');
+        if (!hasReport && storageHint === 'indexeddb') {
+          const r = await getLargeItem<any>('sb_last_scan_report');
+          if (!cancelled && r) {
+            setFullReport(r);
+            // Try to hydrate the lightweight `result` summary if present inside the payload
+            try {
+              const summary = r.summary || {};
+              const scanResult = {
+                totalFiles: r.repositoryFilesTotal || summary.totalFiles || 0,
+                issueCount: r.issueCount || summary.totalFindings || 0,
+                severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+                gate: r.gate || { pass: false, blockingCount: 0, warningCount: 0 },
+                qualityScore: r.qualityScore ?? null,
+                projectPath: r.projectPath || r.projectRoot || '',
+                scanScope: {
+                  profile: r.scanScope?.profile || 'standard',
+                  resultsViewScope: r.scanScope?.resultsViewScope || 'browser-local',
+                  codeFilesAnalyzed: r.scanScope?.codeFilesAnalyzed || summary.codeFilesAnalyzed || 0,
+                },
+              } as any;
+              setResult(scanResult);
+            } catch (_e) {
+              // ignore summary hydration failures
+            }
+          }
+        }
+      } catch (_e) {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const reportForIssues = useMemo(() => {
@@ -307,6 +348,23 @@ export function ResultsView() {
               </Badge>
             ))}
           </div>
+          
+          {/* Storage Engine Badge Footer */}
+          <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-600">Report Storage State:</span>
+              {localStorage.getItem('sb_last_scan_report_storage') === 'indexeddb' ? (
+                <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-medium border border-blue-200">
+                  ⚡ IndexedDB (Quota-Safe)
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-medium border border-emerald-200">
+                  LocalStorage (Legacy)
+                </span>
+              )}
+            </div>
+            <div className="text-slate-600">Max Scan Bounds: Unlimited (Sentinels Active)</div>
+          </div>
         </CardContent>
       </Card>
 
@@ -446,7 +504,7 @@ export function ResultsView() {
               <CardHeader>
                 <CardTitle>Findings Breakdown</CardTitle>
                 <CardDescription>
-                  {(result?.issueCount ?? allIssues.reduce((sum, i) => sum + (Number(i.count) || 1), 0)).toLocaleString()} total issue{(result?.issueCount ?? allIssues.length) !== 1 ? 's' : ''}
+                  {Math.max(result?.issueCount ?? 0, allIssues.reduce((sum, i) => sum + (Number(i.count) || 1), 0)).toLocaleString()} total issue{Math.max(result?.issueCount ?? 0, allIssues.length) !== 1 ? 's' : ''}
                   {findingsDetailLimited && ' · detailed list limited — export JSON or use CLI for full paths'}
                   {filter !== 'all' && ` · filtered by ${filter}`}
                   {selectedCell && ` · heatmap: ${selectedCell.impact}/${selectedCell.likelihood}`}

@@ -243,24 +243,28 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
                     break;
                 batch.push(child);
                 if (batch.length >= BATCH_SIZE) {
-                    await Promise.all(batch.map(async (c) => { try {
-                        await traverseFileSystemEntry(c, currentPath, files, state);
-                    }
-                    catch (err) {
-                        state.traverseErrors++;
-                    } }));
+                    await Promise.all(batch.map(async (c) => {
+                        try {
+                            await traverseFileSystemEntry(c, currentPath, files, state);
+                        }
+                        catch (err) {
+                            state.traverseErrors++;
+                        }
+                    }));
                     batch = [];
                     await new Promise(r => setTimeout(r, 0));
                 }
             }
         }
         if (batch.length > 0 && !state.traverseAbort && files.length < MAX_DISCOVERED_FILES) {
-            await Promise.all(batch.map(async (c) => { try {
-                await traverseFileSystemEntry(c, currentPath, files, state);
-            }
-            catch (err) {
-                state.traverseErrors++;
-            } }));
+            await Promise.all(batch.map(async (c) => {
+                try {
+                    await traverseFileSystemEntry(c, currentPath, files, state);
+                }
+                catch (err) {
+                    state.traverseErrors++;
+                }
+            }));
         }
     }
     const now = Date.now();
@@ -3185,8 +3189,10 @@ const detailOverlay = document.createElement('div');
 detailOverlay.className = 'detail-overlay';
 detailOverlay.innerHTML = `<div class="detail-panel"><button type="button" class="close-btn">&times;</button><div id="detail-panel-content"></div></div>`;
 detailOverlay.querySelector('.close-btn').addEventListener('click', () => detailOverlay.classList.remove('active'));
-detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay)
-    detailOverlay.classList.remove('active'); });
+detailOverlay.addEventListener('click', e => {
+    if (e.target === detailOverlay)
+        detailOverlay.classList.remove('active');
+});
 document.body.appendChild(detailOverlay);
 function showDetailPanel(title, rows) {
     const content = document.getElementById('detail-panel-content');

@@ -510,6 +510,7 @@ export function OrganizationView() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          aria-label="Remove member"
                           onClick={() => handleRemoveMember(member.user_email)}
                         >
                           <Trash2 className="h-4 w-4" />

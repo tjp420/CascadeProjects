@@ -28,6 +28,10 @@ import {
   Mail,
   Briefcase,
   Database,
+  Webhook,
+  FileBarChart,
+  KeyRound,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -77,12 +81,15 @@ const navGroups: NavGroup[] = [
       { view: 'remediation', label: 'Remediation', icon: Map },
       { view: 'platform', label: 'Platform', icon: BarChart3 },
       { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
-      { view: 'analytics', label: 'Analytics', icon: BarChart3 },
+      { view: 'telemetry', label: 'Advanced Telemetry', icon: Activity },
       { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail },
       { view: 'organization', label: 'Organization', icon: Building2 },
       { view: 'enterprise', label: 'Enterprise', icon: Server },
       { view: 'workspace', label: 'Workspace', icon: Briefcase },
       { view: 'fine-tuning', label: 'Fine-Tuning', icon: Database },
+      { view: 'webhook-events', label: 'Webhook Events', icon: Webhook },
+      { view: 'ops-report', label: 'Ops Report', icon: FileBarChart },
+      { view: 'license-manager', label: 'License Manager', icon: KeyRound },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
     ],
@@ -155,6 +162,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isA
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="GitHub"
+            aria-label="GitHub repository"
           >
             <Github className="h-4 w-4" />
           </a>
@@ -164,6 +172,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isA
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="Docs"
+            aria-label="Documentation"
           >
             <BookOpen className="h-4 w-4" />
           </a>
@@ -185,6 +194,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isA
             }}
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="Export Report"
+            aria-label="Export report"
           >
             <Download className="h-4 w-4" />
           </button>

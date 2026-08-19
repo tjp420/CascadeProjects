@@ -233,13 +233,11 @@ async function extractIgnorePatternsFromFilesAsync(files) {
 
 // === Multi-worker scan orchestrator ===
 
-const WORKER_URL = 'js-es2018/audit-scan-worker.js?v=20260809perf1';
+const WORKER_URL = 'js-es2018/audit-scan-worker.js?v=20260808audit1';
 const MAX_WORKERS = 4;
 const MIN_WORKERS = 1;
 const BATCH_SIZE = 400;
 const CHECKPOINT_INTERVAL = 1000; // checkpoint every N files
-const PROGRESS_THROTTLE_MS = 100; // throttle progress callbacks to max 10/sec
-const MAX_FINDINGS_IN_MEMORY = 5000; // cap in-memory findings; rest stay in IndexedDB
 
 function getWorkerCount() {
     try {
@@ -411,19 +409,11 @@ window.AuditScanService = class AuditScanService {
 
         this.scanId = options.resumeScanId || ('scan-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8));
         this.aborted = false;
-        this._pendingRejects = []; // track reject functions to fire on abort
 
         if (signal) {
             signal.addEventListener('abort', () => {
                 this.aborted = true;
                 this._terminateAll();
-                // Reject all pending worker promises so Promise.all doesn't hang
-                const err = new Error('Scan aborted by user');
-                err.name = 'AbortError';
-                for (const reject of this._pendingRejects) {
-                    try { reject(err); } catch (_) {}
-                }
-                this._pendingRejects = [];
             }, { once: true });
         }
 
@@ -452,13 +442,6 @@ window.AuditScanService = class AuditScanService {
         onLog('Loading file hash cache from IndexedDB...', 'info');
         const hashCache = await this._loadHashCache();
         onLog(`Hash cache: ${hashCache.size} entries`, 'info');
-
-        // Build a lightweight hash cache map to pass to workers
-        // Format: { path: { hash, size } } — workers check this after computing hash
-        const workerHashCache = {};
-        for (const [path, entry] of hashCache) {
-            workerHashCache[path] = { hash: entry.hash, size: entry.size };
-        }
 
         // === 4. Check for resume checkpoint ===
         let resumeIndex = 0;
@@ -494,42 +477,15 @@ window.AuditScanService = class AuditScanService {
         }
 
         // === 6. Spawn workers and run parallel scan ===
-        const allFindings = []; // capped — overflow goes to IndexedDB only
-        const allHashes = []; // capped — overflow is discarded (hash cache is best-effort)
-        let totalFindingsCount = 0; // exact count even when allFindings is capped
+        const allFindings = [];
+        const allHashes = [];
         let totalProcessed = resumeIndex;
         let totalTextErrors = 0;
         let totalBinarySkipped = 0;
         let totalIgnoredDir = 0;
         let totalHeavyVendor = 0;
         let totalIgnoredByPattern = 0;
-        let totalCacheHits = 0;
         let issuesTruncated = false;
-
-        // Progress throttling — coalesce progress callbacks to avoid flooding the main thread
-        let lastProgressTime = 0;
-        let pendingProgress = null;
-        let progressRafId = 0;
-        function flushProgress() {
-            progressRafId = 0;
-            if (pendingProgress) {
-                onProgress(pendingProgress.processed, pendingProgress.total, pendingProgress.info);
-                pendingProgress = null;
-            }
-        }
-        function throttledProgress(processed, total, info) {
-            const now = performance.now();
-            if (now - lastProgressTime >= PROGRESS_THROTTLE_MS) {
-                lastProgressTime = now;
-                onProgress(processed, total, info);
-            } else {
-                // Store latest and schedule a flush
-                pendingProgress = { processed, total, info };
-                if (!progressRafId) {
-                    progressRafId = requestAnimationFrame(flushProgress);
-                }
-            }
-        }
 
         const workerPromises = [];
 
@@ -548,35 +504,25 @@ window.AuditScanService = class AuditScanService {
                     scanRootName: ignoreCtx.scanRootName,
                     patterns: ignoreCtx.patterns
                 },
-                hashCache: workerHashCache,
-                onCacheHit: () => { totalCacheHits++; },
                 onProgress: (processed, total, info) => {
-                    // Aggregate progress across all workers via throttled callback
-                    throttledProgress(totalProcessed + processed, totalFiles, {
+                    // Aggregate progress across all workers
+                    // Each worker reports its own processed/total — we map to global
+                    onProgress(totalProcessed + processed, totalFiles, {
                         ...info,
                         workerIndex,
                         workersTotal: workerCount
                     });
                 },
                 onBatchFindings: (findings) => {
-                    // Stream findings to IndexedDB; cap in-memory accumulation
-                    totalFindingsCount += findings.length;
-                    if (allFindings.length < MAX_FINDINGS_IN_MEMORY) {
-                        const remaining = MAX_FINDINGS_IN_MEMORY - allFindings.length;
-                        if (remaining >= findings.length) {
-                            allFindings.push(...findings);
-                        } else {
-                            for (let i = 0; i < remaining; i++) allFindings.push(findings[i]);
-                        }
-                    }
+                    // Stream findings to IndexedDB and accumulate
+                    allFindings.push(...findings);
                     onFindings(findings);
                     this._streamFindings(this.scanId, findings);
                 },
                 onFileHash: (path, hash, size) => {
-                    // Cap hash accumulation — hash cache is best-effort
-                    if (allHashes.length < MAX_FINDINGS_IN_MEMORY) {
-                        allHashes.push({ path, hash, size });
-                    }
+                    allHashes.push({ path, hash, size });
+                    // Check if file hash matches cache — if so, we could skip it
+                    // but since the worker already read the file, we just record it
                 },
                 onFileError: (file, err) => {
                     totalTextErrors++;
@@ -612,43 +558,8 @@ window.AuditScanService = class AuditScanService {
             await this._checkpoint(this.scanId, totalProcessed, resumeIndex + totalProcessed);
         }, 5000);
 
-        // Wait for all workers to complete (or abort)
-        try {
-            await Promise.all(workerPromises);
-        } catch (err) {
-            if (this.aborted) {
-                // Abort is expected — return partial results
-                clearInterval(checkpointTimer);
-                if (progressRafId) { cancelAnimationFrame(progressRafId); flushProgress(); }
-                const partialResult = {
-                    scanId: this.scanId,
-                    processed: totalProcessed,
-                    totalFiles,
-                    findings: allFindings,
-                    issues: allFindings,
-                    issueCount: totalFindingsCount,
-                    findingsCapped: totalFindingsCount > allFindings.length,
-                    textErrors: totalTextErrors,
-                    binarySkipped: totalBinarySkipped,
-                    ignoredDir: totalIgnoredDir,
-                    heavyVendor: totalHeavyVendor,
-                    ignoredByPattern: totalIgnoredByPattern,
-                    issuesTruncated,
-                    aborted: true,
-                    ignoreMeta: {
-                        source: ignoreCtx.source,
-                        patternCount: ignoreCtx.patterns.length,
-                        scanRootName: ignoreCtx.scanRootName
-                    },
-                    hashCacheSize: hashCache.size,
-                    filesSkippedByHashCache: totalCacheHits,
-                    resumed: resumeIndex > 0
-                };
-                onLog(`Scan aborted: ${partialResult.processed}/${partialResult.totalFiles} files processed before abort`, 'warn');
-                return partialResult;
-            }
-            throw err;
-        }
+        // Wait for all workers to complete
+        await Promise.all(workerPromises);
         clearInterval(checkpointTimer);
 
         // Final checkpoint
@@ -661,16 +572,13 @@ window.AuditScanService = class AuditScanService {
         }
 
         // === 9. Build and return result ===
-        // Flush any pending progress before finalizing
-        if (progressRafId) { cancelAnimationFrame(progressRafId); flushProgress(); }
         const result = {
             scanId: this.scanId,
             processed: totalProcessed,
             totalFiles,
             findings: allFindings,
             issues: allFindings,
-            issueCount: totalFindingsCount,
-            findingsCapped: totalFindingsCount > allFindings.length,
+            issueCount: allFindings.length,
             textErrors: totalTextErrors,
             binarySkipped: totalBinarySkipped,
             ignoredDir: totalIgnoredDir,
@@ -683,14 +591,11 @@ window.AuditScanService = class AuditScanService {
                 scanRootName: ignoreCtx.scanRootName
             },
             hashCacheSize: hashCache.size,
-            filesSkippedByHashCache: totalCacheHits,
+            filesSkippedByHashCache: 0, // Future: skip files with matching hash
             resumed: resumeIndex > 0
         };
 
         onLog(`Scan complete: ${result.processed}/${result.totalFiles} files, ${result.issueCount} findings`, 'success');
-        if (totalCacheHits > 0) {
-            onLog(`  Cache hits: ${totalCacheHits} files skipped (unchanged since last scan)`, 'info');
-        }
         return result;
     }
 
@@ -715,19 +620,9 @@ window.AuditScanService = class AuditScanService {
             let ignoredByPattern = 0;
             let issuesTruncated = false;
 
-            // Register reject so abort can unblock this promise
-            if (this._pendingRejects) {
-                this._pendingRejects.push(reject);
-            }
-
             const cleanup = () => {
                 worker.onmessage = null;
                 worker.onerror = null;
-                // Remove from pending rejects
-                if (this._pendingRejects) {
-                    const idx = this._pendingRejects.indexOf(reject);
-                    if (idx >= 0) this._pendingRejects.splice(idx, 1);
-                }
             };
 
             const finish = () => {
@@ -815,23 +710,6 @@ window.AuditScanService = class AuditScanService {
                         allHashes.push({ path: msg.path, hash: msg.hash, size: msg.size });
                         break;
 
-                    case 'file-hash-batch':
-                        // Batched file hashes — process all at once
-                        if (msg.hashes && msg.hashes.length) {
-                            for (const h of msg.hashes) {
-                                onFileHash(h.path, h.hash, h.size);
-                                if (allHashes.length < MAX_FINDINGS_IN_MEMORY) {
-                                    allHashes.push({ path: h.path, hash: h.hash, size: h.size });
-                                }
-                            }
-                        }
-                        break;
-
-                    case 'cache-hit':
-                        // Worker skipped a file because its hash matched the cache
-                        if (options.onCacheHit) options.onCacheHit();
-                        break;
-
                     case 'file-error':
                         onFileError(msg.file, { name: msg.name, message: msg.message });
                         textErrors++;
@@ -876,8 +754,7 @@ window.AuditScanService = class AuditScanService {
                 ignoreCtx: ignoreCtx ? {
                     scanRootName: ignoreCtx.scanRootName,
                     patterns: ignoreCtx.patterns
-                } : null,
-                hashCache: options.hashCache || null
+                } : null
             });
 
             // Timeout: if worker doesn't start in 15s, abort
