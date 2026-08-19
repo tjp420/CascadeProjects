@@ -1137,6 +1137,7 @@
       <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
       <div class="sb-nav-more-menu">
     <a href="/roadmap" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L9 3"/></svg>Roadmap</a>
+    <a href="/slop-cop" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>AI Slop Cop</a>
     <a href="/pricing" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Pricing</a>
     <a href="/community" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-7l-2-2z"/></svg>Install</a>
     <a href="/blog/case-study-ai-slop-1-25m" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>Blog</a>
@@ -1302,124 +1303,215 @@
         </div>
     </section>
 
-    <!-- TEXT AI ARTIFACT SCANNER — paste any text, get instant detection -->
+    <!-- AI SLOP COP — interactive widget (replaces static text scanner + static demo) -->
     <section class="section" id="text-scanner" style="padding:60px 24px;background:linear-gradient(180deg,#0a0e18,#0d1220);">
         <div class="container">
-            <h2>Try It Now: Paste Any Text</h2>
-            <p class="section-subtitle">No upload. No signup. Scan runs 100% in your browser. Detect AI artifacts, placeholder text, and LLM tells in emails, reports, and documents.</p>
-            <div style="max-width:760px;margin:32px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;">
-                <textarea id="text-scan-input" placeholder="Paste an email, report, contract, or any text here to scan for AI artifacts..." style="width:100%;min-height:160px;padding:16px;background:var(--bg-main);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;line-height:1.6;resize:vertical;outline:none;font-family:inherit;" oninput="scanText()"></textarea>
-                <div style="display:flex;gap:12px;justify-content:space-between;align-items:center;margin-top:16px;">
-                    <div id="text-scan-status" style="font-size:13px;color:var(--text-muted);">Paste text above to begin scanning.</div>
-                    <button onclick="document.getElementById('text-scan-input').value='';scanText();" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;">Clear</button>
+            <h2>AI Slop Cop — Try It Now</h2>
+            <p class="section-subtitle">No upload. No signup. Scan runs 100% in your browser. Paste code, an email, or any text and watch the Slop Cop catch AI artifacts, leaked keys, placeholder debris, and LLM tells — with cited dollar exposure per finding.</p>
+
+            <!-- Preset before/after toggle (fintech handler from the $1.25M case study) -->
+            <div id="slopPresetCard" style="max-width:760px;margin:0 auto 28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+                <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+                    <div style="font-size:0.95rem;font-weight:700;margin-bottom:4px;">Fintech API Handler <span style="font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.15);color:#a5b4fc;margin-left:6px;">from $1.25M case study</span></div>
+                    <div style="color:var(--text-muted);font-size:0.82rem;">Toggle between the AI-slop version and the SimpleBeacon-cleaned version.</div>
                 </div>
-                <div id="text-scan-results" style="margin-top:20px;"></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);">
+                    <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer;user-select:none;">
+                        <input type="checkbox" id="slopPresetToggle" style="position:absolute;opacity:0;pointer-events:none;" onchange="SlopCopIndex.togglePreset(this.checked)">
+                        <span style="width:54px;height:28px;background:#1f2937;border:1px solid #30363d;border-radius:999px;position:relative;transition:background 0.2s;">
+                            <span id="slopPresetThumb" style="position:absolute;top:2px;left:2px;width:22px;height:22px;background:#6b7280;border-radius:50%;transition:transform 0.2s,background 0.2s;"></span>
+                        </span>
+                    </label>
+                    <span style="font-size:0.82rem;font-weight:600;color:#ef4444;">Slop</span>
+                    <span style="color:var(--text-muted);font-size:0.78rem;">/</span>
+                    <span style="font-size:0.82rem;font-weight:600;color:#10b981;">Fixed</span>
+                    <span id="slopPresetState" style="margin-left:auto;font-size:0.74rem;font-weight:600;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,0.15);color:#ef4444;">AI slop</span>
+                </div>
+                <div style="padding:14px 18px;font-family:'SF Mono',Consolas,monospace;font-size:12.5px;line-height:1.7;color:#c9d1d9;background:#0d1117;white-space:pre;overflow-x:auto;" id="slopPresetCode"></div>
+                <div style="padding:12px 20px;border-top:1px solid var(--border);background:rgba(255,255,255,0.01);font-size:0.8rem;color:var(--text-secondary);" id="slopPresetExposure">
+                    <strong style="color:var(--text-primary);">Total exposure:</strong> <strong style="color:#fca5a5;">$1.25M</strong> &mdash; leaked credential ($4.45M avg breach), hallucinated SDK method ($100K+ incident), mock return value ($80K&ndash;$200K incident). <a href="/slop-cop" style="color:var(--accent);text-decoration:none;font-weight:600;">See all 4 before/after samples &rarr;</a>
+                </div>
             </div>
-            <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px;">Uses the same 52 heuristic engines from SimpleBeacon's code scanner, adapted for plain text. No text is sent to any server &mdash; scanning runs entirely in your browser.</p>
+
+            <!-- Paste-your-own playground -->
+            <div style="max-width:760px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;">
+                <textarea id="text-scan-input" placeholder="Paste code, an email, a config file, or any text here to scan for AI slop..." style="width:100%;min-height:140px;padding:16px;background:var(--bg-main);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;line-height:1.6;resize:vertical;outline:none;font-family:inherit;"></textarea>
+                <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;">
+                    <div id="text-scan-status" style="font-size:13px;color:var(--text-muted);flex:1;min-width:200px;">Paste text above to begin scanning.</div>
+                    <div style="display:flex;gap:8px;">
+                        <button id="slopDiffBtn" onclick="SlopCopIndex.toggleDiff()" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.1);color:#10b981;font-size:13px;font-weight:600;cursor:pointer;">Show cleaned version</button>
+                        <button onclick="SlopCopIndex.clearInput()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;">Clear</button>
+                    </div>
+                </div>
+                <div id="text-scan-results" style="margin-top:18px;"></div>
+            </div>
+            <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px;">Uses the same deterministic SB-FICTION engines from SimpleBeacon's CLI scanner, ported to the browser. No text is sent to any server &mdash; scanning runs entirely in your browser. <a href="/slop-cop" style="color:var(--accent);text-decoration:none;font-weight:600;">Open the full AI Slop Cop demo &rarr;</a></p>
         </div>
     </section>
+    <script src="/js-es2018/slop-cop-engine.js"></script>
     <script>
+    // simplebeacon-ignore: UI rendering code references slop patterns as preset data — all findings are false positives
     (function(){
-        // TODO: Roadmap - Add client-side template allowlist to bypass recurring corporate boilerplate
-        var TEXT_PATTERNS=[
-            {id:'aiDisclaimer',name:'AI Self-Identification',severity:'high',pattern:/As an AI language model|I am an AI|I'm an AI|as an AI assistant|As an AI,/gi,desc:'Text contains an AI self-identification phrase &mdash; the sender did not edit the LLM output.'},
-            {id:'aiAssistantNote',name:'AI Assistant Note',severity:'high',pattern:/AI Assistant Note:|AI Note:|Generated with AI|Generated by (?:ChatGPT|Claude|Copilot|GPT)/gi,desc:'Explicit AI generation marker found.'},
-            {id:'llmFiller',name:'LLM Filler Phrases',severity:'medium',pattern:/I have (?:written|implemented|created|updated|completed) the .* as requested|Let me know if you need me to (?:adjust|update|change|modify|clarify|expand)|I'd be happy to (?:help|assist|provide)|Feel free to (?:ask|reach out|let me know)|I hope this (?:helps|email finds you well)/gi,desc:'Generic LLM transitional phrase detected &mdash; common in unedited AI output.'},
-            {id:'placeholder',name:'Placeholder Text',severity:'high',pattern:/YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert [^\]]+\]|\[Your [^\]]+\]|\[Name\]|\[Date\]|\[Company\]/gi,desc:'Unfilled placeholder text found &mdash; template was not completed before sending.'},
-            {id:'loremIpsum',name:'Lorem Ipsum',severity:'high',pattern:/Lorem\s+Ipsum|dolor\s+sit\s+amet|consectetur\s+adipiscing/gi,desc:'Lorem ipsum placeholder text detected.'},
-            {id:'markdownLeak',name:'Markdown Fence Leakage',severity:'medium',pattern:/```[a-z]*\s*$/gim,desc:'Markdown code fences leaked into the text &mdash; likely copied from an AI chat interface.'},
-            {id:'todoMarker',name:'TODO/FIXME Markers',severity:'medium',pattern:/(?:TODO|FIXME|HACK|XXX|BUG)\b/gi,desc:'Unresolved TODO or FIXME marker found in the text.'},
-            {id:'fakeStats',name:'Suspicious Statistics',severity:'medium',pattern:/\b(?:99\.9|99\.99|100)\s*%?\s*(?:uptime|availability|accuracy|success\s*rate|coverage|reliability)|\b\d{4,}\s*(?:M|B|K|million|billion|thousand)\s+(?:users?|customers?|downloads?|requests?)/gi,desc:'Suspiciously round or extreme statistic detected &mdash; common in AI-hallucinated metrics.'},
-            {id:'repetitiveTransitions',name:'Repetitive Transitions',severity:'low',pattern:/(?:Furthermore|Moreover|Additionally|In conclusion|It's important to note|It's worth noting|In today's (?:fast-paced|digital) world)[^.]*\.\s*(?:Furthermore|Moreover|Additionally|In conclusion|It's important to note|It's worth noting|In today's (?:fast-paced|digital) world)/gi,desc:'Multiple repetitive LLM-style transitional phrases detected in close proximity.'},
-            {id:'vagueHedge',name:'Vague Hedging',severity:'low',pattern:/(?:It is worth noting that|It should be noted that|One must consider|It is important to recognize that|This serves as a testament to)/gi,desc:'Vague hedging language commonly used by LLMs to pad word count.'},
-            {id:'doubleEncoded',name:'Character Encoding Errors',severity:'low',pattern:/Ã¢|Ã©|Ã¨|Ã«|Ãª|Ã®|Ã¯|Ã´|Ã¶|Ã»|Ã¼|Ã§|Ã€|Ã‰|â€™|â€œ|â€/g,desc:'Double-encoded UTF-8 characters detected &mdash; copy-paste artifact from AI chat interfaces.'}
-        ];
-        window.scanText=function(){
-            var input=document.getElementById('text-scan-input');
-            var statusEl=document.getElementById('text-scan-status');
-            var resultsEl=document.getElementById('text-scan-results');
-            var text=input.value.trim();
-            if(!text){statusEl.textContent='Paste text above to begin scanning.';resultsEl.innerHTML='';return;}
-            var findings=[];
-            var wordCount=text.split(/\s+/).length;
-            for(var i=0;i<TEXT_PATTERNS.length;i++){
-                var p=TEXT_PATTERNS[i];
-                var matches=text.match(p.pattern);
-                if(matches&&matches.length>0){
-                    findings.push({id:p.id,name:p.name,severity:p.severity,count:matches.length,desc:p.desc,examples:matches.slice(0,3)});
-                }
+        var SlopCop = window.SlopCop;
+        var sevLabel = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+        var lastResult = null;
+        var diffVisible = false;
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // ---- Preset toggle (fintech handler — the most visceral example) ----
+        var fintechPreset = null;
+        for (var i = 0; i < SlopCop.PRESETS.length; i++) {
+            if (SlopCop.PRESETS[i].id === 'fintech-handler') { fintechPreset = SlopCop.PRESETS[i]; break; }
+        }
+        function renderPresetCode(checked) {
+            if (!fintechPreset) return;
+            var lines = (checked ? fintechPreset.fixed : fintechPreset.slop).split('\n');
+            var cls = checked ? 'diff-added' : 'diff-removed';
+            var html = '';
+            for (var i = 0; i < lines.length; i++) {
+                html += '<span class="code-line ' + cls + '" style="display:block;' + (checked ? 'background:rgba(63,185,80,0.1);border-left:3px solid #10b981;' : 'background:rgba(248,81,73,0.1);border-left:3px solid #ef4444;') + 'padding-left:8px;margin-left:-11px;">' + escapeHtml(lines[i] || ' ') + '</span>';
             }
-            // Anonymous analytics — tracks scan event only, no text content sent
-            try{if(typeof gtag==='function'){gtag('event','text_scan_executed',{'event_category':'engagement'});}}catch(e){}
-            try{var cf=window.__cfBeacon;if(cf&&typeof cf.trackEvent==='function'){cf.trackEvent({name:'text_scan_executed'});}}catch(e){}
-            var score=Math.max(0,100-findings.reduce(function(s,f){return s+(f.severity==='high'?25:f.severity==='medium'?12:5)*Math.min(f.count,3);},0));
-            var sevColor={high:'#ef4444',medium:'#f59e0b',low:'#64748b'};
-            var sevLabel={high:'High',medium:'Medium',low:'Low'};
-            var scoreColor=score>=80?'#10b981':score>=50?'#f59e0b':'#ef4444';
-            var scoreLabel=score>=80?'Likely Human-Edited':score>=50?'Mixed &mdash; Review Needed':'Likely AI-Generated';
-            statusEl.innerHTML='Scanned '+wordCount+' words &middot; <strong style="color:'+scoreColor+';">AI Artifact Score: '+score+'/100</strong> &mdash; '+scoreLabel;
-            if(findings.length===0){
-                resultsEl.innerHTML='<div style="padding:16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;color:#10b981;font-size:14px;">&#10003; No AI artifacts detected. The text appears to be human-edited.</div>';
-            }else{
-                var html='<div style="margin-bottom:12px;font-size:14px;color:var(--text-secondary);">'+findings.length+' finding(s) detected:</div>';
-                for(var i=0;i<findings.length;i++){
-                    var f=findings[i];
-                    html+='<div style="padding:14px 16px;background:var(--bg-main);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-weight:600;font-size:14px;color:var(--text-primary);">'+f.name+'</span><span style="padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:'+sevColor[f.severity]+'20;color:'+sevColor[f.severity]+';">'+sevLabel[f.severity]+' &times;'+f.count+'</span></div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">'+f.desc+'</div><div style="font-size:12px;color:var(--text-muted);font-family:monospace;background:rgba(0,0,0,0.2);padding:8px 10px;border-radius:6px;">'+f.examples.map(function(e){return '&ldquo;'+e.replace(/</g,'&lt;').substring(0,80)+'&rdquo;'}).join('<br>')+'</div></div>';
-                }
-                resultsEl.innerHTML=html;
+            var codeEl = document.getElementById('slopPresetCode');
+            var stateEl = document.getElementById('slopPresetState');
+            var thumbEl = document.getElementById('slopPresetThumb');
+            var trackEl = thumbEl ? thumbEl.parentElement : null;
+            codeEl.innerHTML = html;
+            if (checked) {
+                stateEl.textContent = 'SimpleBeacon-cleaned';
+                stateEl.style.background = 'rgba(16,185,129,0.15)';
+                stateEl.style.color = '#10b981';
+                thumbEl.style.transform = 'translateX(26px)';
+                thumbEl.style.background = '#10b981';
+                if (trackEl) { trackEl.style.background = 'rgba(16,185,129,0.2)'; trackEl.style.borderColor = '#10b981'; }
+            } else {
+                stateEl.textContent = 'AI slop';
+                stateEl.style.background = 'rgba(239,68,68,0.15)';
+                stateEl.style.color = '#ef4444';
+                thumbEl.style.transform = 'translateX(0)';
+                thumbEl.style.background = '#6b7280';
+                if (trackEl) { trackEl.style.background = '#1f2937'; trackEl.style.borderColor = '#30363d'; }
             }
+        }
+        if (fintechPreset) renderPresetCode(false);
+
+        // ---- Playground scan (consolidates the old scanText() inline engine) ----
+        function scanText() {
+            var input = document.getElementById('text-scan-input');
+            var statusEl = document.getElementById('text-scan-status');
+            var resultsEl = document.getElementById('text-scan-results');
+            var text = input.value.trim();
+            if (!text) {
+                statusEl.textContent = 'Paste text above to begin scanning.';
+                resultsEl.innerHTML = '';
+                lastResult = null;
+                return;
+            }
+            var result = SlopCop.scan(text);
+            lastResult = result;
+            // Anonymous analytics — event only, no content
+            try { if (typeof gtag === 'function') gtag('event', 'slop_cop_scan', { 'event_category': 'engagement', 'findings': result.findings.length }); } catch (e) {}
+            try { var cf = window.__cfBeacon; if (cf && typeof cf.trackEvent === 'function') cf.trackEvent({ name: 'slop_cop_scan' }); } catch (e) {}
+
+            var scoreColor = result.score >= 80 ? '#10b981' : result.score >= 50 ? '#f59e0b' : '#ef4444';
+            statusEl.innerHTML = 'Scanned &middot; <strong>' + result.findings.length + '</strong> finding(s) &middot; <strong style="color:' + scoreColor + ';">Slop Score: ' + result.score + '/100</strong> &mdash; ' + escapeHtml(result.scoreLabel);
+
+            if (diffVisible && result.diff && result.diff.length) {
+                renderDiff(resultsEl, result.diff);
+                return;
+            }
+
+            if (!result.findings.length) {
+                resultsEl.innerHTML = '<div style="padding:14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;color:#10b981;font-size:14px;">&#10003; No AI slop detected. The text appears to be human-edited and production-ready.</div>';
+                return;
+            }
+
+            var html = '<div style="margin-bottom:10px;font-size:13px;color:var(--text-secondary);">' + result.findings.length + ' finding(s) detected:</div>';
+            for (var i = 0; i < result.findings.length; i++) {
+                var f = result.findings[i];
+                var sevColor = f.severity === 'critical' ? '#fca5a5' : f.severity === 'high' ? '#fca5a5' : f.severity === 'medium' ? '#fcd34d' : '#9CA3AF';
+                html += '<div style="padding:12px 14px;background:var(--bg-main);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px;flex-wrap:wrap;">';
+                html += '<span style="font-weight:600;font-size:13px;color:var(--text-primary);">' + escapeHtml(f.name) + '</span>';
+                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+                html += '<span style="padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;background:' + sevColor + '20;color:' + sevColor + ';">' + sevLabel[f.severity] + '</span>';
+                html += '<span style="font-family:monospace;font-size:10px;color:var(--text-muted);">' + escapeHtml(f.ruleId) + '</span>';
+                html += '<span style="font-family:monospace;font-size:10px;color:var(--text-muted);">L' + f.line + '</span>';
+                html += '</div></div>';
+                html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:5px;">' + escapeHtml(f.desc) + '</div>';
+                html += '<div style="font-size:11px;color:var(--text-muted);font-family:monospace;background:rgba(0,0,0,0.2);padding:5px 8px;border-radius:5px;margin-bottom:5px;word-break:break-all;">' + escapeHtml(f.matched.substring(0, 100)) + (f.matched.length > 100 ? '…' : '') + '</div>';
+                html += '<div style="font-size:11px;color:#a5b4fc;">&rarr; fix: ' + escapeHtml(f.suggestion) + '</div>';
+                if (f.exposure) {
+                    html += '<div style="display:inline-block;margin-top:6px;padding:2px 8px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:5px;font-size:10px;color:#a5b4fc;"><strong style="color:#c7d2fe;">' + escapeHtml(f.exposure.figure) + '</strong> ' + escapeHtml(f.exposure.label) + ' <em style="font-style:normal;color:var(--text-muted);">&middot; ' + escapeHtml(f.exposure.source) + '</em></div>';
+                }
+                html += '</div>';
+            }
+            resultsEl.innerHTML = html;
+        }
+
+        function renderDiff(resultsEl, diff) {
+            var html = '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:10px;">';
+            html += '<div style="padding:8px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-secondary);">Before &rarr; After (SimpleBeacon auto-fix)</div>';
+            for (var i = 0; i < diff.length; i++) {
+                var d = diff[i];
+                var bg = d.type === 'added' ? 'rgba(63,185,80,0.1)' : d.type === 'removed' ? 'rgba(248,81,73,0.1)' : 'transparent';
+                var color = d.type === 'added' ? '#7ee78b' : d.type === 'removed' ? '#ffa198' : 'var(--text-muted)';
+                var prefix = d.type === 'added' ? '+' : d.type === 'removed' ? '-' : ' ';
+                var content = d.type === 'added' ? d.after : d.before;
+                html += '<div style="display:flex;font-family:monospace;font-size:11.5px;line-height:1.6;background:' + bg + ';"><span style="flex-shrink:0;width:36px;text-align:right;padding-right:8px;color:var(--text-muted);">' + (i + 1) + '</span><span style="flex:1;padding:0 10px;white-space:pre;overflow-x:auto;color:' + color + ';">' + prefix + ' ' + escapeHtml(content || '') + '</span></div>';
+            }
+            html += '</div>';
+            resultsEl.innerHTML = html;
+        }
+
+        function toggleDiff() {
+            if (!lastResult) { scanText(); if (!lastResult) return; }
+            diffVisible = !diffVisible;
+            var btn = document.getElementById('slopDiffBtn');
+            btn.textContent = diffVisible ? 'Show findings list' : 'Show cleaned version';
+            btn.style.background = diffVisible ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.1)';
+            scanText();
+        }
+
+        function clearInput() {
+            document.getElementById('text-scan-input').value = '';
+            lastResult = null;
+            diffVisible = false;
+            var btn = document.getElementById('slopDiffBtn');
+            btn.textContent = 'Show cleaned version';
+            btn.style.background = 'rgba(16,185,129,0.1)';
+            document.getElementById('text-scan-status').textContent = 'Paste text above to begin scanning.';
+            document.getElementById('text-scan-results').innerHTML = '';
+        }
+
+        // Expose for inline onclick handlers
+        window.SlopCopIndex = {
+            togglePreset: renderPresetCode,
+            scanText: scanText,
+            toggleDiff: toggleDiff,
+            clearInput: clearInput
         };
+        // Keep window.scanText as an alias for any legacy callers
+        window.scanText = scanText;
+
+        // Auto-scan on input (debounced)
+        var debounceTimer = null;
+        document.getElementById('text-scan-input').addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(scanText, 400);
+        });
     })();
     </script>
 
-    <!-- SCAN SIMULATION — split view: code editor + log console -->
+    <!-- SCAN SIMULATION — terminal install block (kept; the static split-view was replaced above) -->
     <section class="section" id="demo" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18);">
         <div class="container">
-            <h2>Scan Your Repository in Real Time</h2>
-            <p class="section-subtitle">Watch SimpleBeacon detect and auto-fix regulatory violations, token leaks, and algorithmic redundancy before they reach your main branch.</p>
-
-            <!-- Split view: code editor (left) + log console (right) -->
-            <div class="scan-split">
-                <!-- Left: simulated code editor with slop highlighting -->
-                <div class="scan-pane">
-                    <div class="scan-pane-header">
-                        <div class="tw-dot tw-red" style="width:10px;height:10px;border-radius:50%;background:#f85149;"></div>
-                        <div class="tw-dot tw-yellow" style="width:10px;height:10px;border-radius:50%;background:#d29922;"></div>
-                        <div class="tw-dot tw-green" style="width:10px;height:10px;border-radius:50%;background:#3fb950;"></div>
-                        <span style="margin-left:8px;">src/api/handler.ts — Code Editor</span>
-                    </div>
-                    <div class="scan-pane-body" id="scanCodePane">
-                        <span class="code-line"><span style="color:#8b949e;">// AI-generated handler — contains slop</span></span>
-                        <span class="code-line"><span style="color:#ff7b72;">export async function</span> <span style="color:#d2a8ff;">handleRequest</span>(req: Request) {</span>
-                        <span class="code-line highlight">  <span style="color:#ff7b72;">const</span> apiKey = <span style="color:#a5d6ff;">"sk-ant-api03-xxxxx"</span>; <span style="color:#f85149;">// ← leaked credential</span></span>
-                        <span class="code-line">  <span style="color:#ff7b72;">const</span> data = <span style="color:#79c0ff;">await</span> fetch(apiKey);</span>
-                        <span class="code-line highlight">  <span style="color:#8b949e;">// TODO: implement error handling</span> <span style="color:#f85149;">// ← placeholder</span></span>
-                        <span class="code-line">  <span style="color:#ff7b72;">return</span> Response.json(data);</span>
-                        <span class="code-line">}</span>
-                        <span class="code-line" style="margin-top:12px;color:#8b949e;">— scanning —</span>
-                    </div>
-                </div>
-                <!-- Right: rolling log console with security warnings -->
-                <div class="scan-pane">
-                    <div class="scan-pane-header">
-                        <div class="tw-dot tw-red" style="width:10px;height:10px;border-radius:50%;background:#f85149;"></div>
-                        <div class="tw-dot tw-yellow" style="width:10px;height:10px;border-radius:50%;background:#d29922;"></div>
-                        <div class="tw-dot tw-green" style="width:10px;height:10px;border-radius:50%;background:#3fb950;"></div>
-                        <span style="margin-left:8px;">simplebeacon — scan log</span>
-                    </div>
-                    <div class="scan-pane-body" id="scanLogPane">
-                        <div style="color:#3fb950;">$ simplebeacon scan . --gate --format json</div>
-                        <div style="color:#8b949e;">→ Loading 52 rule engines...</div>
-                        <div style="color:#8b949e;">→ Scanning src/api/handler.ts</div>
-                        <div style="color:#f85149;">  ⚠ CRITICAL: Hardcoded API key (sk-ant-*)</div>
-                        <div style="color:#d29922;">  ⚠ MEDIUM: Unimplemented TODO placeholder</div>
-                        <div style="color:#3fb950;">  ✓ Auto-fix: credential quarantined to .env</div>
-                        <div style="color:#3fb950;">  ✓ Auto-fix: placeholder flagged for remediation</div>
-                        <div style="color:#3fb950;">→ Gate: PASS (2 fixed, 0 blocking)</div>
-                        <div style="color:#58a6ff;">→ Certificate ready: B+ grade</div>
-                    </div>
-                </div>
-            </div>
+            <h2>Install &amp; Scan in 38 Seconds</h2>
+            <p class="section-subtitle">The browser demo above runs on snippets. The CLI runs the same engines across your whole repo, in CI, and ships a board-ready certificate.</p>
 
             <!-- Stylized terminal window with copy button -->
             <div style="max-width:680px;margin:32px auto 0;">
@@ -1794,6 +1886,7 @@ jobs:
         <p>&copy; 2026 SimpleBeacon. All rights reserved.</p>
         <p class="footer-links">
             <a href="/sample-report">Sample report</a> ·
+            <a href="/slop-cop">AI Slop Cop</a> ·
             <a href="/pricing">Pricing</a> ·
             <a href="/contact">Contact</a> ·
             <a href="/terms">Terms</a> ·
