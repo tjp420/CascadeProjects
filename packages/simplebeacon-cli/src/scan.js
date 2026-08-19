@@ -1698,7 +1698,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             // Project-level scanner — no file options needed, reads render.yaml + package.json
         })),
         scannerEntry('custom-heuristic', 'customHeuristicScan', scanCustomHeuristicRules, (opts) => ({
-            ignoreGlobs: opts.ignoreGlobs || config.ignore
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            universalRules: opts.universalRules !== false
         }))
     ];
 

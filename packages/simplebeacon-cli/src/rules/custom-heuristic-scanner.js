@@ -45,6 +45,7 @@ function loadAstTraverse() {
 }
 
 const CUSTOM_RULES_FILE = 'custom-rules.json';
+const UNIVERSAL_RULES_FILE = path.join(__dirname, 'universal-ai-rules.json');
 const MAX_RULES = 100;
 const MAX_PATTERN_LENGTH = 5000;
 const DEFAULT_MAX_FILE_SIZE = 512000;
@@ -161,11 +162,88 @@ function validateRule(rule, index) {
 }
 
 /**
- * Load custom rules from .simplebeacon/custom-rules.json.
+ * Load the built-in universal AI ruleset that ships with SimpleBeacon.
+ * These rules catch common AI coding mistakes across all languages.
  * Returns { rules, errors, warnings }.
  */
-function loadCustomRules(projectRoot) {
+function loadUniversalRules() {
     const result = { rules: [], errors: [], warnings: [] };
+
+    let raw;
+    try {
+        raw = fs.readFileSync(UNIVERSAL_RULES_FILE, 'utf8');
+    } catch {
+        result.warnings.push('Universal AI ruleset not found — skipping');
+        return result;
+    }
+
+    let data;
+    try {
+        data = JSON.parse(raw);
+    } catch (e) {
+        result.errors.push(`Failed to parse universal-ai-rules.json: ${e.message}`);
+        return result;
+    }
+
+    const ruleList = Array.isArray(data) ? data : data.rules;
+    if (!Array.isArray(ruleList)) {
+        result.errors.push('universal-ai-rules.json: expected an array or { rules: [...] }');
+        return result;
+    }
+
+    for (let i = 0; i < Math.min(ruleList.length, MAX_RULES); i++) {
+        const rule = ruleList[i];
+        const validation = validateRule(rule, i);
+        result.errors.push(...validation.errors);
+        result.warnings.push(...validation.warnings);
+
+        if (!validation.valid) continue;
+
+        const engine = String(rule.engine || 'regex').toLowerCase();
+        const isAst = engine === 'ast' || (rule.astCriteria && typeof rule.astCriteria === 'object');
+        const fileExtensions = Array.isArray(rule.fileExtensions)
+            ? rule.fileExtensions
+            : (isAst ? DEFAULT_AST_EXTENSIONS : null);
+        const normalized = {
+            id: rule.id,
+            name: rule.name || rule.id,
+            engine,
+            astCriteria: rule.astCriteria || null,
+            language: rule.language || 'universal',
+            pattern: rule.pattern || null,
+            patternFlags: rule.patternFlags || (rule.caseSensitive ? 'g' : 'gi'),
+            severity: VALID_SEVERITIES.has(rule.severity) ? rule.severity : 'medium',
+            fileExtensions,
+            description: rule.description || `${rule.name || rule.id}: ${isAst ? 'universal AST rule match' : 'universal pattern match'}`,
+            recommendation: rule.recommendation || 'Review and address the flagged pattern',
+            excludePaths: Array.isArray(rule.excludePaths) ? rule.excludePaths : [],
+            includePaths: Array.isArray(rule.includePaths) ? rule.includePaths : null,
+            maxFileSize: typeof rule.maxFileSize === 'number' ? rule.maxFileSize : DEFAULT_MAX_FILE_SIZE,
+            enabled: rule.enabled !== false,
+            universal: true,
+        };
+
+        result.rules.push(normalized);
+    }
+
+    return result;
+}
+
+/**
+ * Load custom rules from .simplebeacon/custom-rules.json, merged with the
+ * built-in universal AI ruleset. Project-specific rules override universal
+ * rules with the same ID. The universal ruleset can be disabled via
+ * config: { rules: { 'custom-heuristic': { universalRules: false } } }.
+ * Returns { rules, errors, warnings }.
+ */
+function loadCustomRules(projectRoot, options = {}) {
+    const result = { rules: [], errors: [], warnings: [] };
+
+    // Load universal ruleset unless explicitly disabled
+    const loadUniversal = options.universalRules !== false;
+    const universalResult = loadUniversal ? loadUniversalRules() : { rules: [], errors: [], warnings: [] };
+    result.errors.push(...universalResult.errors);
+    result.warnings.push(...universalResult.warnings);
 
     const simplebeaconDir = path.join(projectRoot, '.simplebeacon');
     const rulesPath = path.join(simplebeaconDir, CUSTOM_RULES_FILE);
@@ -174,7 +252,9 @@ function loadCustomRules(projectRoot) {
     try {
         raw = fs.readFileSync(rulesPath, 'utf8');
     } catch {
-        return result; // No custom rules file — that's fine
+        // No project-specific custom rules file — return universal rules only
+        result.rules = universalResult.rules;
+        return result;
     }
 
     let data;
@@ -182,17 +262,26 @@ function loadCustomRules(projectRoot) {
         data = JSON.parse(raw);
     } catch (e) {
         result.errors.push(`Failed to parse ${CUSTOM_RULES_FILE}: ${e.message}`);
+        // Return universal rules even if project rules file is invalid
+        result.rules = universalResult.rules;
         return result;
     }
 
     const ruleList = Array.isArray(data) ? data : data.rules;
     if (!Array.isArray(ruleList)) {
         result.errors.push(`${CUSTOM_RULES_FILE}: expected an array or { rules: [...] }`);
+        result.rules = universalResult.rules;
         return result;
     }
 
     if (ruleList.length > MAX_RULES) {
         result.warnings.push(`${CUSTOM_RULES_FILE}: ${ruleList.length} rules defined, only first ${MAX_RULES} will be loaded`);
+    }
+
+    // Build a map of universal rules by ID so project rules can override them
+    const rulesById = new Map();
+    for (const ur of universalResult.rules) {
+        rulesById.set(ur.id, ur);
     }
 
     const seenIds = new Set();
@@ -233,8 +322,12 @@ function loadCustomRules(projectRoot) {
             enabled: rule.enabled !== false,
         };
 
-        result.rules.push(normalized);
+        // Project-specific rule overrides universal rule with same ID
+        rulesById.set(normalized.id, normalized);
     }
+
+    // Combine: universal rules (that weren't overridden) + project rules
+    result.rules = Array.from(rulesById.values());
 
     return result;
 }
@@ -451,7 +544,9 @@ function scanFileAgainstAstRule(content, relPath, rule) {
 }
 
 async function scanCustomHeuristicRules(projectRoot, options = {}) {
-    const { rules, errors, warnings } = loadCustomRules(projectRoot);
+    const { rules, errors, warnings } = loadCustomRules(projectRoot, {
+        universalRules: options.universalRules !== false,
+    });
 
     if (errors.length > 0) {
         return {
@@ -572,11 +667,13 @@ async function walkProjectFiles(root, relDir, results, extensions, ignoreGlobs, 
  * Get a summary of loaded custom rules for reporting.
  */
 function getCustomRulesSummary(projectRoot) {
-    const { rules, errors, warnings } = loadCustomRules(projectRoot);
+    const { rules, errors, warnings } = loadCustomRules(projectRoot, { universalRules: true });
     return {
         totalRules: rules.length,
         enabledRules: rules.filter((r) => r.enabled).length,
-        ruleIds: rules.map((r) => ({ id: r.id, name: r.name, severity: r.severity, enabled: r.enabled })),
+        universalRules: rules.filter((r) => r.universal).length,
+        projectRules: rules.filter((r) => !r.universal).length,
+        ruleIds: rules.map((r) => ({ id: r.id, name: r.name, severity: r.severity, enabled: r.enabled, universal: r.universal || false })),
         errors,
         warnings,
     };
@@ -590,6 +687,7 @@ module.exports = {
     scanFileAgainstRule,
     scanFileAgainstAstRule,
     getCustomRulesSummary,
+    loadUniversalRules,
     VALID_SEVERITIES,
     VALID_EXTENSIONS,
     CUSTOM_RULES_FILE,
