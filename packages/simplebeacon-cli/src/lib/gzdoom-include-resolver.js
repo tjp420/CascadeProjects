@@ -16,9 +16,18 @@ function normalizeRel(baseDir, filePath) {
 
 function extractIncludes(content) {
     const includes = [];
+    const text = String(content || '');
+    // Strip line comments (// ...) and block comments (/* ... */) before
+    // scanning for #include directives. GZDoom mods frequently have many
+    // commented-out #include lines (e.g. archived experimental files),
+    // and following those would pull in orphan files that contain
+    // duplicate class definitions, causing false findings.
+    const stripped = text
+        .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '))
+        .replace(/\/\/[^\n]*/g, '');
     const re = /#include\s+["']([^"']+)["']/g;
     let match;
-    while ((match = re.exec(String(content || ''))) !== null) {
+    while ((match = re.exec(stripped)) !== null) {
         includes.push(match[1]);
     }
     return includes;

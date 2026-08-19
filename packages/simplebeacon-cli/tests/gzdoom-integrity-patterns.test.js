@@ -305,3 +305,66 @@ describe('gzdoom expanded vanilla actors', () => {
         assert.ok(!isVanillaActor('MyModBarrel'));
     });
 });
+
+describe('gzdoom extend class handling', () => {
+    it('does not flag duplicate class for ZScript "extend class" blocks', async () => {
+        const tmp = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'sb-ext-'));
+        const fs = require('fs');
+        const path = require('path');
+        // ZScript "extend class" adds members to an existing class — it is NOT
+        // a new class definition. The scanner must not treat it as a duplicate.
+        fs.writeFileSync(path.join(tmp, 'ZSCRIPT'),
+            '#include "real.zs"\n', 'utf8');
+        fs.writeFileSync(path.join(tmp, 'real.zs'),
+            'class MyActor : Actor {\n' +
+            '  States { Spawn: TNT1 A 1; Stop; }\n' +
+            '}\n' +
+            '// Add attack method to existing class\n' +
+            'extend class MyActor {\n' +
+            '  action void A_CustomAttack() { A_FaceTarget(); }\n' +
+            '}\n', 'utf8');
+        const graph = await buildGzdoomSymbolGraph(tmp, { respectIncludes: true });
+        const issues = validateGzdoomCrossReferences(graph);
+        const dupIssues = issues.filter((i) =>
+            i.type === 'gzdoom-duplicate-class' && /MyActor/.test(i.description));
+        assert.equal(dupIssues.length, 0,
+            '"extend class" should not be treated as a new class definition');
+    });
+});
+
+describe('gzdoom commented-out #include handling', () => {
+    it('does not follow #include directives inside comments', async () => {
+        const tmp = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'sb-cinc-'));
+        const fs = require('fs');
+        const path = require('path');
+        // ZSCRIPT entry includes active.zs but has commented-out includes
+        // for archived files that contain duplicate class definitions.
+        // The scanner must NOT follow commented-out #include lines.
+        fs.writeFileSync(path.join(tmp, 'ZSCRIPT'),
+            '#include "active.zs"\n' +
+            '// #include "archived_dup.zs"  // ARCHIVED - duplicate class definitions\n' +
+            '/* #include "blocked_dup.zs" */\n', 'utf8');
+        fs.writeFileSync(path.join(tmp, 'active.zs'),
+            'class ActiveClass : Actor {}\n', 'utf8');
+        // These files have duplicate class names but should never be reached
+        fs.writeFileSync(path.join(tmp, 'archived_dup.zs'),
+            'class ActiveClass : Actor {}\n', 'utf8');
+        fs.writeFileSync(path.join(tmp, 'blocked_dup.zs'),
+            'class ActiveClass : Actor {}\n', 'utf8');
+
+        const files = await require('../src/lib/gzdoom-symbol-graph').collectGzdoomFiles(tmp);
+        const { reachable, orphans } = resolveReachableGzdoomFiles(tmp, files);
+        assert.ok(reachable.has('active.zs'), 'active.zs should be reachable');
+        assert.ok(!reachable.has('archived_dup.zs'),
+            'archived_dup.zs should NOT be reachable (commented-out include)');
+        assert.ok(!reachable.has('blocked_dup.zs'),
+            'blocked_dup.zs should NOT be reachable (block-comment include)');
+
+        const graph = await buildGzdoomSymbolGraph(tmp, { respectIncludes: true });
+        const issues = validateGzdoomCrossReferences(graph);
+        const dupIssues = issues.filter((i) =>
+            i.type === 'gzdoom-duplicate-class' && /ActiveClass/.test(i.description));
+        assert.equal(dupIssues.length, 0,
+            'Commented-out includes should not pull in duplicate class files');
+    });
+});

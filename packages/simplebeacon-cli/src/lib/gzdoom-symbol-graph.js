@@ -263,7 +263,10 @@ function ingestZScript(content, relativePath, graph) {
     // Strip comments before scanning for class definitions to avoid
     // false duplicate-class findings from class names in // or /* */ comments
     const stripped = stripComments(content);
-    const classRe = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*([A-Za-z_][A-Za-z0-9_.]*))?\s*\{/g;
+    // Match class definitions but NOT "extend class" — ZScript's `extend class`
+    // adds members to an existing class and must not be treated as a new definition.
+    // The negative lookbehind (?<!extend\s) prevents matching "extend class Foo {".
+    const classRe = /(?<!extend\s)\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*([A-Za-z_][A-Za-z0-9_.]*))?\s*\{/g;
     let match;
     while ((match = classRe.exec(stripped)) !== null) {
         registerActor(graph, match[1], relativePath, lineNumberAt(stripped, match.index), 'zscript');
