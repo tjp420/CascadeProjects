@@ -8,7 +8,9 @@
     "ai-platform/packages/*",
     "api-server",
     "coming-soon",
-    "simplebeacon-vscode-merged"
+    "simplebeacon-vscode-merged",
+    "local-agent",
+    "local-analyzer"
   ],
   "scripts": {
     "start": "node scripts/check-port.js && node ai-platform/simplebeacon-server.cjs",
