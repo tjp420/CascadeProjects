@@ -48,6 +48,7 @@ const { generateSbom } = require('./rules/sbom-generator');
 const { scanGitHistorySecrets } = require('./rules/git-history-secret-scanner');
 const { scanDeploymentReadiness } = require('./rules/deployment-readiness-scanner');
 const { scanCustomHeuristicRules } = require('./rules/custom-heuristic-scanner');
+const { scanGzdoomIntegrity } = require('./rules/gzdoom-integrity-patterns');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, sanitizeConfigForTier } = require('./config');
 const { detectTier } = require('./lib/tier-detector');
 const { checkLocalScanQuota, incrementLocalScan, incrementPipelineScan, isPipelineScan } = require('./lib/scan-usage-tracker');
@@ -963,7 +964,7 @@ function buildScanReport(opts) {
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
         dependencyGraphScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan, deploymentReadinessScan,
-        customHeuristicScan
+        customHeuristicScan, gzdoomIntegrityScan
     } = resolved;
 
     const scanScope = {
@@ -1700,7 +1701,26 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         scannerEntry('custom-heuristic', 'customHeuristicScan', scanCustomHeuristicRules, (opts) => ({
             ignoreGlobs: opts.ignoreGlobs || config.ignore,
             universalRules: opts.universalRules !== false
-        }))
+        })),
+        {
+            key: 'gzdoom-integrity-patterns',
+            varName: 'gzdoomIntegrityScan',
+            enabled: (cfg) => isRuleEnabled(cfg, 'gzdoom-integrity-patterns'),
+            run: () => {
+                const opts = getRuleOptions(config, 'gzdoom-integrity-patterns');
+                return scanGzdoomIntegrity(root, {
+                    ignoreGlobs: opts.ignoreGlobs || config.ignore,
+                    logPath: options.gzdoomLog || options.gameLog || opts.logPath || null,
+                    severity: opts.severity || 'high',
+                    extraActors: opts.extraActors || [],
+                    respectIncludes: opts.respectIncludes !== false,
+                    cvarPrefix: opts.cvarPrefix || config.gzdoom?.cvarPrefix || null,
+                    cvarAllowlist: opts.cvarAllowlist || config.gzdoom?.cvarAllowlist || [],
+                    companionMod: opts.companionMod || config.gzdoom?.companionMod || null,
+                    companionModPaths: opts.companionModPaths || config.gzdoom?.companionModPaths || null
+                });
+            }
+        }
     ];
 
     // --- Selective rule execution ---
@@ -1805,7 +1825,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, _astStructuralScan,
         dependencyGraphScan, comprehensiveScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan, deploymentReadinessScan,
-        customHeuristicScan
+        customHeuristicScan, gzdoomIntegrityScan
     } = resolved;
 
     if (roadmapValidation.issues?.length) {
@@ -1842,6 +1862,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     normalizeScannerOutput(issues, gitHistorySecretScan, 'git-history-secret', 'SB-GITSEC-001', 'Secret found in git history');
     normalizeScannerOutput(issues, deploymentReadinessScan, 'deployment-readiness', 'SB-DEP-001', 'Deployment topology issue');
     normalizeScannerOutput(issues, customHeuristicScan, 'custom-heuristic', 'SB-CUSTOM', 'Custom rule finding');
+    normalizeScannerOutput(issues, gzdoomIntegrityScan, 'gzdoom-integrity', 'GZ-XREF', 'GZDoom mod reference integrity issue');
     if (fileReduction.allFindings?.length) {
         for (const finding of fileReduction.allFindings) {
             issues.push({

@@ -1,0 +1,11 @@
+Model RiotgunVoxel
+{
+  Path "models/riotgun.md3"
+  FrameIndex SPRITE RGVX A 0 0
+}
+
+Model VoxelRiotgun
+{
+  Path "models/missing-actor.md3"
+  FrameIndex SPRITE RIOT A 0 0
+}
