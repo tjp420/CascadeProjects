@@ -61,7 +61,8 @@ const PROFILE_RULES = {
         'agency-handoff-patterns': { enabled: true, severity: 'medium' },
         'jest-baseline': { enabled: false, runTests: false },
         'cve-dependency': { enabled: true, includeDev: false },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+        'git-history-secret': { enabled: true, maxCommits: 1000 },
+        'deployment-readiness': { enabled: true }
     },
     standard: {
         credentials: { enabled: true, scanProduction: true },
@@ -80,7 +81,8 @@ const PROFILE_RULES = {
         'file-reduction': { enabled: true, dryRun: true },
         'cve-dependency': { enabled: true, includeDev: true },
         'sbom-generator': { enabled: true, includeDev: true },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+        'git-history-secret': { enabled: true, maxCommits: 1000 },
+        'deployment-readiness': { enabled: true }
     },
     'eu-ai-act': {
         credentials: { enabled: true, scanProduction: true },
@@ -100,7 +102,8 @@ const PROFILE_RULES = {
         'file-reduction': { enabled: true, dryRun: true },
         'cve-dependency': { enabled: true, includeDev: true },
         'sbom-generator': { enabled: true, includeDev: true },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+        'git-history-secret': { enabled: true, maxCommits: 1000 },
+        'deployment-readiness': { enabled: true }
     },
     cascade: {
         credentials: { enabled: true, scanProduction: true },
@@ -132,7 +135,8 @@ const PROFILE_RULES = {
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true }
+        'file-reduction': { enabled: true, dryRun: true },
+        'deployment-readiness': { enabled: true }
     }
 };
 
@@ -442,7 +446,8 @@ const FREE_RULE_ENGINES = new Set([
     'dead-code',
     'security-patterns',
     'json-schema',
-    'sample-consistency'
+    'sample-consistency',
+    'deployment-readiness'
 ]);
 
 function sanitizeConfigForTier(config, tier) {
