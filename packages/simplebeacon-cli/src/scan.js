@@ -1716,6 +1716,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
                     respectIncludes: opts.respectIncludes !== false,
                     cvarPrefix: opts.cvarPrefix || config.gzdoom?.cvarPrefix || null,
                     cvarAllowlist: opts.cvarAllowlist || config.gzdoom?.cvarAllowlist || [],
+                    cvarAllowlistPrefixes: opts.cvarAllowlistPrefixes || config.gzdoom?.cvarAllowlistPrefixes || [],
                     companionMod: opts.companionMod || config.gzdoom?.companionMod || null,
                     companionModPaths: opts.companionModPaths || config.gzdoom?.companionModPaths || null
                 });

@@ -26,7 +26,7 @@ function readConfigGzdoom(modPath) {
 
 /**
  * @param {string} baseDir
- * @param {{ignoreGlobs?:string[],logPath?:string,severity?:string,sourcePaths?:string[],norunGate?:boolean,gzdoomExe?:string,iwad?:string,norunTimeoutMs?:number,timeoutMs?:number,norunDryRun?:boolean,companionMod?:string,companionModPaths?:string[],cvarPrefix?:string,cvarAllowlist?:string[],extraActors?:string[],respectIncludes?:boolean}} [options]
+ * @param {{ignoreGlobs?:string[],logPath?:string,severity?:string,sourcePaths?:string[],norunGate?:boolean,gzdoomExe?:string,iwad?:string,norunTimeoutMs?:number,timeoutMs?:number,norunDryRun?:boolean,companionMod?:string,companionModPaths?:string[],cvarPrefix?:string,cvarAllowlist?:string[],cvarAllowlistPrefixes?:string[],extraActors?:string[],respectIncludes?:boolean}} [options]
  * @returns {Promise<{scanned:number,findings:number,issues:Array<Object>,graphSummary:Object|null}>}
  */
 async function scanGzdoomIntegrity(baseDir, options = {}) {
@@ -41,7 +41,8 @@ async function scanGzdoomIntegrity(baseDir, options = {}) {
         companionMod: opts.companionMod,
         companionModPaths: opts.companionModPaths,
         cvarPrefix: opts.cvarPrefix,
-        cvarAllowlist: opts.cvarAllowlist
+        cvarAllowlist: opts.cvarAllowlist,
+        cvarAllowlistPrefixes: opts.cvarAllowlistPrefixes
     };
 
     const graph = await buildGzdoomSymbolGraph(baseDir, {

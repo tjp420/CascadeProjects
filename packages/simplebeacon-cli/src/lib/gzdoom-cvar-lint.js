@@ -173,10 +173,19 @@ async function lintGzdoomCvars(modPath, options = {}) {
     const opts = { ...gzdoomCfg, ...options };
     const prefix = opts.cvarPrefix || 'r3d_';
     const allowlist = new Set([...ENGINE_CVAR_ALLOWLIST, ...(opts.cvarAllowlist || [])]);
+    const allowlistPrefixes = opts.cvarAllowlistPrefixes || [];
     const severity = opts.severity || 'high';
     const deadSeverity = opts.deadCvarSeverity || 'low';
     const ignoreGlobs = opts.ignoreGlobs || [];
     const roots = resolveCompanionPaths(modPath, opts);
+
+    function isAllowlisted(name) {
+        if (allowlist.has(name)) return true;
+        for (const p of allowlistPrefixes) {
+            if (name.startsWith(p)) return true;
+        }
+        return false;
+    }
 
     /** @type {Map<string, {name:string,filePath:string,line:number}[]>} */
     const definitions = new Map();
@@ -215,7 +224,7 @@ async function lintGzdoomCvars(modPath, options = {}) {
     const undefinedByName = new Map();
 
     for (const ref of references) {
-        if (definedNames.has(ref.name) || allowlist.has(ref.name)) continue;
+        if (definedNames.has(ref.name) || isAllowlisted(ref.name)) continue;
         const isMenu = ref.source === 'menuddef';
         const isPrefixed = ref.name.startsWith(prefix);
         if (!isMenu && !isPrefixed) continue;
@@ -253,7 +262,7 @@ async function lintGzdoomCvars(modPath, options = {}) {
 
     let deadCount = 0;
     for (const [name, defs] of definitions.entries()) {
-        if (referencedNames.has(name) || allowlist.has(name)) continue;
+        if (referencedNames.has(name) || isAllowlisted(name)) continue;
         if (!name.startsWith(prefix)) continue;
         if (deadCount >= 30) break;
         deadCount++;
@@ -271,7 +280,7 @@ async function lintGzdoomCvars(modPath, options = {}) {
     }
 
     for (const [name, defs] of definitions.entries()) {
-        if (allowlist.has(name)) continue;
+        if (isAllowlisted(name)) continue;
         if (name.startsWith(prefix)) continue;
         if (/^(wraith_|mm_|hellfire_)/.test(name)) {
             issues.push({
