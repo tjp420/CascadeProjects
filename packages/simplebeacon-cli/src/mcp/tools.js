@@ -7,6 +7,7 @@ const { createNetworkGuard } = require('../lib/trust-guard');
 const { createScanHandlers } = require('./handlers/scan-handlers');
 const { createReportHandlers } = require('./handlers/report-handlers');
 const { createUtilityHandlers } = require('./handlers/utility-handlers');
+const { createDeploymentHandlers } = require('./handlers/deployment-handlers');
 const constants = require('../lib/constants');
 
 function resolveProjectRoot(override) {
@@ -81,11 +82,13 @@ function createMcpToolHandlers(options = {}) {
     const scanHandlers = createScanHandlers({ withGuard, resolveProjectRoot, formatToolResult, cacheReport });
     const reportHandlers = createReportHandlers({ withGuard, resolveProjectRoot, formatToolResult, formatMarkdownResult, getCachedReport });
     const utilityHandlers = createUtilityHandlers({ withGuard, resolveProjectRoot, formatToolResult, formatMarkdownResult });
+    const deploymentHandlers = createDeploymentHandlers({ withGuard, resolveProjectRoot, formatToolResult });
 
     return {
         ...scanHandlers,
         ...reportHandlers,
         ...utilityHandlers,
+        ...deploymentHandlers,
         dispose() {
             if (networkGuard) networkGuard.dispose();
         }
@@ -251,6 +254,16 @@ const TOOL_DEFINITIONS = [
             type: 'object',
             properties: {},
             required: []
+        }
+    },
+    {
+        name: 'scan_deployment_readiness',
+        description: 'Validate monorepo deployment topology — workspace membership, env var completeness, DB schema conflicts, CORS consistency, and render.yaml presence. Returns ready=true if no high/critical findings. Agents should call this before claiming "ready to deploy". Runs locally — no source uploaded.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root to scan (default: cwd or SIMPLEBEACON_PROJECT_ROOT)' }
+            }
         }
     }
 ];
