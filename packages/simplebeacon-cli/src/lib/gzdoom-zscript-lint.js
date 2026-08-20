@@ -8,7 +8,7 @@ const { globMatch } = require('../rules/production-leak');
 const { collectGzdoomFiles } = require('./gzdoom-symbol-graph');
 const { resolveReachableGzdoomFiles } = require('./gzdoom-include-resolver');
 
-const PARAM_DEFAULT_RE = /\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*[^,)]+/;
+const PARAM_DEFAULT_RE = /\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*[^,)]+/g;
 const FN_HEAD_RE = /^\s*(?:override\s+)?(?:static\s+)?(?:void|bool|int|float|double|string|Vector2|Vector3|Name|State|Color)\s+([A-Za-z_]\w*)\s*\(/;
 
 function lintDefaultParameters(content, filePath, severity = 'high') {

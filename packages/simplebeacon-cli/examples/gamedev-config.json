@@ -22,7 +22,16 @@
     "game-shader-integrity-patterns": { "enabled": true, "severity": "medium" },
     "lua-script-graph-patterns": { "enabled": true, "severity": "high" },
     "game-engine-packs": { "enabled": true, "severity": "high" },
-    "gzdoom-integrity-patterns": { "enabled": true, "severity": "high", "respectIncludes": true }
+    "gzdoom-integrity-patterns": {
+      "enabled": true,
+      "severity": "high",
+      "respectIncludes": true,
+      "extraActors": [],
+      "cvarPrefix": "r3d_",
+      "cvarAllowlist": [],
+      "cvarAllowlistPrefixes": ["mm_"],
+      "extendedLint": false
+    }
   },
   "gate": { "enabled": true, "failOn": ["high"] }
 }

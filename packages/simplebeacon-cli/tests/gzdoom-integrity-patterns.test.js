@@ -15,6 +15,11 @@ const { scanGzdoomIntegrity } = require('../src/rules/gzdoom-integrity-patterns'
 const { isVanillaActor } = require('../src/lib/gzdoom-vanilla-actors');
 const { resolveReachableGzdoomFiles } = require('../src/lib/gzdoom-include-resolver');
 
+const fs = require('fs');
+const os = require('os');
+const { runScan } = require('../src/scan');
+const { getTierLimits } = require('../src/lib/tier-constants');
+
 const FIXTURE_ROOT = path.join(__dirname, 'fixtures', 'gzdoom-minimod');
 const INCLUDE_FIXTURE = path.join(__dirname, 'fixtures', 'gzdoom-includes');
 const VANILLA_FIXTURE = path.join(__dirname, 'fixtures', 'gzdoom-vanilla');
@@ -110,5 +115,108 @@ describe('gzdoom inventory cleanup suppression', () => {
         const issues = validateGzdoomCrossReferences(graph);
         assert.ok(!issues.some((i) => i.type === 'gzdoom-inventory-asymmetry' && /RenderAliasToken/.test(i.description)));
         assert.ok(issues.some((i) => i.type === 'gzdoom-inventory-asymmetry' && /NeverGivenItem/.test(i.description)));
+    });
+});
+
+function writeGzdoomMod(prefix, { config, companionCvarinfo } = {}) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    fs.mkdirSync(path.join(root, '.simplebeacon'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'zscript'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'ZSCRIPT'), '#include "zscript/main.zs"\n', 'utf8');
+    fs.writeFileSync(
+        path.join(root, 'zscript', 'main.zs'),
+        'class TestThing : Actor\n{\n    void Configure(int mode = 1)\n    {\n    }\n}\n',
+        'utf8'
+    );
+    fs.writeFileSync(path.join(root, 'CVARINFO'), 'user int r3d_known = 0;\n', 'utf8');
+    fs.writeFileSync(path.join(root, 'MENUDEF_R3D'), 'Option "X", "r3d_companion_only", "OnOff"\n', 'utf8');
+    fs.writeFileSync(path.join(root, '.simplebeacon', 'config.json'), JSON.stringify(config, null, 2), 'utf8');
+    if (companionCvarinfo) {
+        fs.mkdirSync(path.dirname(companionCvarinfo), { recursive: true });
+        fs.writeFileSync(companionCvarinfo, 'user int r3d_companion_only = 0;\n', 'utf8');
+    }
+    return root;
+}
+
+function gzdoomConfig(ruleOptions = {}, gzdoomBlock = null) {
+    const config = {
+        profile: 'gamedev',
+        engine: 'gzdoom',
+        scanPaths: ['.'],
+        productionPaths: ['.'],
+        rules: {
+            'gzdoom-integrity-patterns': { enabled: true, norunGate: false, ...ruleOptions }
+        }
+    };
+    if (gzdoomBlock) config.gzdoom = gzdoomBlock;
+    return config;
+}
+
+// Rule-level options are only honoured on tiers that allow custom config.
+const PAID_TIER_OPTIONS = { tier: 'pro', paidLicense: true, tierLimits: getTierLimits('pro') };
+
+async function scanIssueTypes(root, scanOptions = {}) {
+    const report = await runScan(root, { offline: true, ...PAID_TIER_OPTIONS, ...scanOptions });
+    return (report.rawIssues || []).map((i) => i.type);
+}
+
+describe('gzdoom scan option wiring', () => {
+    it('enables the extended linters from the rule option', async () => {
+        const root = writeGzdoomMod('sb-gz-extended-', { config: gzdoomConfig({ extendedLint: true }) });
+        try {
+            const types = await scanIssueTypes(root);
+            assert.ok(types.includes('gzdoom-zscript-default-param'));
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    });
+
+    it('leaves the extended linters off by default', async () => {
+        const root = writeGzdoomMod('sb-gz-extended-off-', { config: gzdoomConfig() });
+        try {
+            const types = await scanIssueTypes(root);
+            assert.ok(!types.includes('gzdoom-zscript-default-param'));
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    });
+
+    it('enables the extended linters from the --gzdoom-extended-lint flag', async () => {
+        const root = writeGzdoomMod('sb-gz-extended-cli-', { config: gzdoomConfig() });
+        try {
+            const types = await scanIssueTypes(root, { gzdoomExtendedLint: true });
+            assert.ok(types.includes('gzdoom-zscript-default-param'));
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    });
+
+    it('honours cvarAllowlist from the mod top-level gzdoom block', async () => {
+        const baseline = writeGzdoomMod('sb-gz-cvar-baseline-', { config: gzdoomConfig() });
+        const allowlisted = writeGzdoomMod('sb-gz-cvar-allow-', {
+            config: gzdoomConfig({}, { cvarAllowlist: ['r3d_companion_only'] })
+        });
+        try {
+            assert.ok((await scanIssueTypes(baseline)).includes('gzdoom-cvar-undefined'));
+            assert.ok(!(await scanIssueTypes(allowlisted)).includes('gzdoom-cvar-undefined'));
+        } finally {
+            fs.rmSync(baseline, { recursive: true, force: true });
+            fs.rmSync(allowlisted, { recursive: true, force: true });
+        }
+    });
+
+    it('honours companionModPaths from the mod top-level gzdoom block', async () => {
+        const companionRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-gz-companion-'));
+        const root = writeGzdoomMod('sb-gz-cvar-companion-', {
+            config: gzdoomConfig({}, { companionModPaths: [companionRoot] }),
+            companionCvarinfo: path.join(companionRoot, 'CVARINFO')
+        });
+        try {
+            const types = await scanIssueTypes(root);
+            assert.ok(!types.includes('gzdoom-cvar-undefined'));
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+            fs.rmSync(companionRoot, { recursive: true, force: true });
+        }
     });
 });

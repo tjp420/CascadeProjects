@@ -40,6 +40,29 @@ describe('gzdoom cvar lint', () => {
         assert.ok(result.issues.some((i) => i.type === 'gzdoom-cvar-undefined' && /r3d_missing_menu/.test(i.description)));
     });
 
+    it('skips CVARs matching cvarAllowlistPrefixes in undefined, dead, and prefix checks', async () => {
+        const tmp = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'sb-cvar-prefixes-'));
+        const fs = require('fs');
+        const path = require('path');
+        fs.writeFileSync(
+            path.join(tmp, 'CVARINFO'),
+            'user int r3d_dead_option = 0;\nuser int hellfire_health = 100;\n',
+            'utf8'
+        );
+        fs.writeFileSync(path.join(tmp, 'MENUDEF_R3D'), 'Option "X", "r3d_missing_menu", "OnOff"\n', 'utf8');
+
+        const baseline = await lintGzdoomCvars(tmp, { cvarPrefix: 'r3d_' });
+        assert.ok(baseline.issues.some((i) => i.type === 'gzdoom-cvar-undefined'));
+        assert.ok(baseline.issues.some((i) => i.type === 'gzdoom-cvar-dead'));
+        assert.ok(baseline.issues.some((i) => i.type === 'gzdoom-cvar-prefix'));
+
+        const result = await lintGzdoomCvars(tmp, {
+            cvarPrefix: 'r3d_',
+            cvarAllowlistPrefixes: ['r3d_missing', 'r3d_dead_', 'hellfire_']
+        });
+        assert.equal(result.issues.length, 0);
+    });
+
     it('flags non-r3d_ CVAR definitions as prefix violations', async () => {
         const tmp = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'sb-cvar2-'));
         const fs = require('fs');

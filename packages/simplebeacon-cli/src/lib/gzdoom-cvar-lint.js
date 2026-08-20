@@ -141,13 +141,15 @@ function readConfigGzdoom(modPath) {
 
 /**
  * @param {string} modPath
- * @param {{cvarPrefix?:string,cvarAllowlist?:string[],companionMod?:string,companionModPaths?:string[],ignoreGlobs?:string[],severity?:string,deadCvarSeverity?:string}} [options]
+ * @param {{cvarPrefix?:string,cvarAllowlist?:string[],cvarAllowlistPrefixes?:string[],companionMod?:string,companionModPaths?:string[],ignoreGlobs?:string[],severity?:string,deadCvarSeverity?:string}} [options]
  */
 async function lintGzdoomCvars(modPath, options = {}) {
     const gzdoomCfg = readConfigGzdoom(modPath);
     const opts = { ...gzdoomCfg, ...options };
     const prefix = opts.cvarPrefix || 'r3d_';
     const allowlist = new Set([...ENGINE_CVAR_ALLOWLIST, ...(opts.cvarAllowlist || [])]);
+    const allowlistPrefixes = (opts.cvarAllowlistPrefixes || []).filter(Boolean);
+    const isAllowlisted = (name) => allowlist.has(name) || allowlistPrefixes.some((p) => name.startsWith(p));
     const severity = opts.severity || 'high';
     const deadSeverity = opts.deadCvarSeverity || 'low';
     const ignoreGlobs = opts.ignoreGlobs || [];
@@ -190,7 +192,7 @@ async function lintGzdoomCvars(modPath, options = {}) {
     const undefinedByName = new Map();
 
     for (const ref of references) {
-        if (definedNames.has(ref.name) || allowlist.has(ref.name)) continue;
+        if (definedNames.has(ref.name) || isAllowlisted(ref.name)) continue;
         const isMenu = ref.source === 'menuddef';
         const isPrefixed = ref.name.startsWith(prefix);
         if (!isMenu && !isPrefixed) continue;
@@ -228,7 +230,7 @@ async function lintGzdoomCvars(modPath, options = {}) {
 
     let deadCount = 0;
     for (const [name, defs] of definitions.entries()) {
-        if (referencedNames.has(name) || allowlist.has(name)) continue;
+        if (referencedNames.has(name) || isAllowlisted(name)) continue;
         if (!name.startsWith(prefix)) continue;
         if (deadCount >= 30) break;
         deadCount++;
@@ -246,7 +248,7 @@ async function lintGzdoomCvars(modPath, options = {}) {
     }
 
     for (const [name, defs] of definitions.entries()) {
-        if (allowlist.has(name)) continue;
+        if (isAllowlisted(name)) continue;
         if (name.startsWith(prefix)) continue;
         if (/^(wraith_|mm_|hellfire_)/.test(name)) {
             issues.push({

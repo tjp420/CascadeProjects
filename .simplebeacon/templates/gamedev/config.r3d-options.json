@@ -11,40 +11,40 @@
     "zscript/test_*.zs"
   ],
   "gzdoom": {
-    "cvarPrefix": "r3d_",
-    "baseClasses": [
-      "Pure3DDemonBase",
-      "Pure3DBaronOfHellBase",
-      "Pure3DImpBase",
-      "Pure3DRevenantBase",
-      "Pure3DHellKnightBase",
-      "Pure3DSpectreBase",
-      "Pure3DCacodemonBase",
-      "Pure3DPainElementalBase",
-      "Pure3DArchvileBase",
-      "Pure3DMancubusBase",
-      "Pure3DArachnotronBase",
-      "Pure3DCyberdemonBase",
-      "Pure3DSpiderMastermindBase",
-      "Pure3DLostSoulBase",
-      "Pure3DZombiemanBase",
-      "Pure3DShotgunGuyBase",
-      "Pure3DChaingunGuyBase",
-      "Pure3DWolfSSBase",
-      "Pure3DPlayerBase",
-      "Pure3DCivilianBase",
-      "Pure3DAssassinBase",
-      "Pure3DOgreBase",
-      "Pure3DGruntBase",
-      "Pure3DShamblerBase",
-      "Pure3DQuakeZombieBase"
-    ]
+    "cvarPrefix": "r3d_"
   },
   "rules": {
     "gzdoom-integrity-patterns": {
       "enabled": true,
       "respectIncludes": true,
-      "severity": "high"
+      "severity": "high",
+      "extraActors": [
+        "Pure3DDemonBase",
+        "Pure3DBaronOfHellBase",
+        "Pure3DImpBase",
+        "Pure3DRevenantBase",
+        "Pure3DHellKnightBase",
+        "Pure3DSpectreBase",
+        "Pure3DCacodemonBase",
+        "Pure3DPainElementalBase",
+        "Pure3DArchvileBase",
+        "Pure3DMancubusBase",
+        "Pure3DArachnotronBase",
+        "Pure3DCyberdemonBase",
+        "Pure3DSpiderMastermindBase",
+        "Pure3DLostSoulBase",
+        "Pure3DZombiemanBase",
+        "Pure3DShotgunGuyBase",
+        "Pure3DChaingunGuyBase",
+        "Pure3DWolfSSBase",
+        "Pure3DPlayerBase",
+        "Pure3DCivilianBase",
+        "Pure3DAssassinBase",
+        "Pure3DOgreBase",
+        "Pure3DGruntBase",
+        "Pure3DShamblerBase",
+        "Pure3DQuakeZombieBase"
+      ]
     }
   },
   "gate": {

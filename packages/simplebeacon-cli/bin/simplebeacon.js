@@ -358,6 +358,7 @@ const FLAG_MAP = [
     { aliases: ['--iwad'], key: 'iwad', type: 'string' },
     { aliases: ['--gzdoom-norun-dry-run'], key: 'gzdoomNorunDryRun', type: 'boolean' },
     { aliases: ['--no-gzdoom-norun'], key: 'noGzdoomNorun', type: 'boolean', extra: (o) => { o.gzdoomNorun = false; } },
+    { aliases: ['--gzdoom-extended-lint'], key: 'gzdoomExtendedLint', type: 'boolean' },
     { aliases: ['--include-deps'], key: 'includeDeps', type: 'boolean' },
     { aliases: ['--min-confidence'], key: 'minConfidence', type: 'number', fallback: 0.5 },
     { aliases: ['--tier-limits'], key: 'tierLimits', type: 'string' },
@@ -637,6 +638,8 @@ GZDoom options:
   --gzdoom-exe <path> Path to gzdoom.exe (overrides env GZDOOM_EXE and auto-detect)
   --iwad <path>       Path to IWAD file (overrides auto-detect)
   --gzdoom-norun-dry-run  Run gate in dry-run mode (report command without executing)
+  --gzdoom-extended-lint  Enable extended GZDoom linters (ZScript, EventHandler, GLDEFS,
+                          manifest, handler map, PK3)
 
 Comment options:
   --report <file>     JSON report path (default: .simplebeacon/report.json)
@@ -929,7 +932,8 @@ async function executeOneScan(options, networkGuard) {
             gzdoomNorun: options.gzdoomNorun !== undefined ? options.gzdoomNorun : undefined,
             gzdoomExe: options.gzdoomExe,
             iwad: options.iwad,
-            gzdoomNorunDryRun: options.gzdoomNorunDryRun
+            gzdoomNorunDryRun: options.gzdoomNorunDryRun,
+            gzdoomExtendedLint: options.gzdoomExtendedLint
         });
         networkGuard.assertOfflineClean();
         printTrustCompletion({
@@ -1293,7 +1297,8 @@ async function runUploadCommand(options) {
                 gzdoomNorun: options.gzdoomNorun !== undefined ? options.gzdoomNorun : undefined,
                 gzdoomExe: options.gzdoomExe,
                 iwad: options.iwad,
-                gzdoomNorunDryRun: options.gzdoomNorunDryRun
+                gzdoomNorunDryRun: options.gzdoomNorunDryRun,
+                gzdoomExtendedLint: options.gzdoomExtendedLint
             });
             networkGuard.assertOfflineClean();
             const gateResult = evaluateGate(rawReport, config.gate);

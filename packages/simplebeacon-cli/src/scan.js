@@ -359,6 +359,19 @@ function scannedCount(scan) {
     return scan.scanned || (scan.results ? scan.results.length : 0) || 0;
 }
 
+/** GZDoom rule options forwarded only when explicitly configured (see gzdoom-cvar-lint merge order). */
+const GZDOOM_PASSTHROUGH_OPTIONS = Object.freeze([
+    'companionMod',
+    'companionModPaths',
+    'cvarPrefix',
+    'cvarAllowlist',
+    'cvarAllowlistPrefixes',
+    'extendedLint',
+    'skipLints',
+    'requiredLumps',
+    'deadCvarSeverity'
+]);
+
 /** Per-rule fallback defaults for scan results. */
 const SCAN_RESULT_DEFAULTS = Object.freeze({
     roadmap: Object.freeze({ checked: 0, passed: 0, issues: [] }),
@@ -1766,7 +1779,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             },
             run: () => {
                 const opts = getRuleOptions(config, 'gzdoom-integrity-patterns');
-                return scanGzdoomIntegrity(root, {
+                const gzdoomOptions = {
                     ignoreGlobs: opts.ignoreGlobs || config.ignore,
                     logPath: options.gzdoomLog || options.gameLog || opts.logPath || null,
                     severity: opts.severity || 'high',
@@ -1777,12 +1790,16 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
                     gzdoomExe: options.gzdoomExe || opts.gzdoomExe || null,
                     iwad: options.iwad || opts.iwad || null,
                     norunTimeoutMs: opts.norunTimeoutMs || null,
-                    norunDryRun: options.gzdoomNorunDryRun || opts.norunDryRun || false,
-                    companionMod: opts.companionMod || null,
-                    companionModPaths: opts.companionModPaths || null,
-                    cvarPrefix: opts.cvarPrefix || 'r3d_',
-                    cvarAllowlist: opts.cvarAllowlist || []
-                });
+                    norunDryRun: options.gzdoomNorunDryRun || opts.norunDryRun || false
+                };
+                // Only forward keys the rule options actually set — the lint layers merge
+                // the mod's own top-level `gzdoom` config block underneath these options,
+                // so sentinel defaults here would silently discard the mod's settings.
+                for (const key of GZDOOM_PASSTHROUGH_OPTIONS) {
+                    if (opts[key] !== undefined) gzdoomOptions[key] = opts[key];
+                }
+                if (options.gzdoomExtendedLint === true) gzdoomOptions.extendedLint = true;
+                return scanGzdoomIntegrity(root, gzdoomOptions);
             }
         }
     ];

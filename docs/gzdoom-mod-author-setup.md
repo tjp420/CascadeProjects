@@ -78,13 +78,37 @@ Path: `{mod}/.simplebeacon/config.json`
     "cvarPrefix": "r3d_"
   },
   "rules": {
-    "gzdoom-integrity-patterns": { "enabled": true, "respectIncludes": true }
+    "gzdoom-integrity-patterns": {
+      "enabled": true,
+      "respectIncludes": true,
+      "extraActors": ["Pure3DImpBase", "Pure3DDemonBase"]
+    }
   },
   "gate": { "enabled": true, "failOn": ["high"] }
 }
 ```
 
-Copy the full template from the monorepo: `.simplebeacon/templates/gamedev/` (or legacy `.simplebeacon/config-gzdoom.json` for R3DOptions with `baseClasses`).
+`extraActors` lists base classes defined outside the scanned tree so cross-reference checks do not flag them as unresolved.
+
+Copy the full template from the monorepo: `.simplebeacon/templates/gamedev/`.
+
+### `gzdoom-integrity-patterns` rule options
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `respectIncludes` | boolean | Only scan ZScript files reachable from `ZSCRIPT` (default: `true`) |
+| `extraActors` | string[] | Actor/base class names defined outside the scanned tree |
+| `companionMod` | string | Sibling mod folder name (e.g. `R3DOptions`) |
+| `companionModPaths` | string[] | Extra mod roots to include in cross-mod checks |
+| `cvarPrefix` | string | Project CVAR prefix (default: `r3d_`) |
+| `cvarAllowlist` | string[] | Exact CVAR names to skip in all CVAR checks |
+| `cvarAllowlistPrefixes` | string[] | CVAR name prefixes to skip in all CVAR checks |
+| `deadCvarSeverity` | string | Severity for defined-but-unreferenced CVARs (default: `low`) |
+| `extendedLint` | boolean | Run the extended linters (ZScript, EventHandler, GLDEFS, manifest, handler map, PK3) — also available as `--gzdoom-extended-lint` |
+| `skipLints` | string[] | Extended linters to skip (e.g. `["zscript"]`) |
+| `requiredLumps` | string[] | Lumps the PK3 lint requires in a packaged build |
+
+Options set in the mod's top-level `gzdoom` block apply too; rule options win when both set the same key.
 
 ## 2. Add `.simplebeaconignore`
 
