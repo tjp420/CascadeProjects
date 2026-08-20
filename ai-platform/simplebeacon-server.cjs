@@ -1967,6 +1967,16 @@ async function startServer() {
   app.post('/api/prompts/set', (req, res) => {
     res.json({ success: true, userId: req.body?.userId || 'anonymous', message: 'Prompt saved' });
   });
+
+  // Billing API — proration preview and tier pricing (authenticated, non-admin)
+  try {
+    const billingRoutes = require('./server/routes/billing-routes.cjs');
+    app.use('/api/billing', billingRoutes);
+    logger.info('[Routes] Billing API loaded at /api/billing');
+  } catch (err) {
+    logger.error('[Routes] Billing API not loaded:', err?.message || err);
+  }
+
   // JSON 404 for unknown API routes (must be after Phase 2 + stub registration)
   app.use('/api', (req, res) => {
     res.status(404).json({
