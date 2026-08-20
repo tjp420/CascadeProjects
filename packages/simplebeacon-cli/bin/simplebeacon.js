@@ -14,10 +14,18 @@ let RemediationEngine = null;
 let STRUCTURAL_RULES = null;
 try {
     ({ orchestratePolicyPipeline } = require('../src/policy/PolicyOrchestrator'));
+} catch {
+    // PolicyOrchestrator not available — orchestratePolicyPipeline stays null
+}
+try {
     ({ TrustStore } = require('../src/policy/signature-verifier'));
+} catch {
+    // signature-verifier not available — TrustStore stays null
+}
+try {
     ({ RemediationEngine, STRUCTURAL_RULES } = require('../src/policy/RemediationEngine'));
 } catch {
-    // Policy module not available — functions will throw if called
+    // RemediationEngine not available — functions will throw if called
 }
 const {
     loadSimplebeaconConfig,
@@ -66,7 +74,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics', 'update-cve-db']);
+const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics', 'update-cve-db', 'agent', 'task', 'policy', 'gate-finalize', 'handoff', 'learn']);
 
 let _cliDebugMode = false;
 
@@ -2231,11 +2239,72 @@ const COMMAND_REGISTRY = {
     doctor: runDoctorCommand,
     cache: runCacheCommand,
     'team-metrics': runTeamMetricsCommand,
-    'update-cve-db': runUpdateCveDbCommand
+    'update-cve-db': runUpdateCveDbCommand,
+    // PDA commands
+    agent: (opts) => {
+        const { runAgentCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runAgentCommand(opts);
+    },
+    task: (opts) => {
+        const { runTaskCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runTaskCommand(opts);
+    },
+    policy: (opts) => {
+        const { runPolicyCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runPolicyCommand(opts);
+    },
+    'gate-finalize': (opts) => {
+        const { runGateFinalizeCommand } = require('../src/cli-pda-commands');
+        return runGateFinalizeCommand(opts);
+    },
+    handoff: (opts) => {
+        const { runHandoffCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runHandoffCommand(opts);
+    }
 };
 
 async function main() {
     const argvCommand = process.argv[2];
+
+    // PDA commands (agent, task, policy, gate-finalize, handoff) use their own
+    // arg parsing — intercept before the strict CLI parser rejects unknown flags.
+    const PDA_COMMANDS = new Set(['agent', 'task', 'policy', 'gate-finalize', 'handoff', 'learn']);
+    if (PDA_COMMANDS.has(argvCommand)) {
+        const pdaCmds = require('../src/cli-pda-commands');
+        const rawArgs = process.argv.slice(3);
+        const sub = rawArgs[0] || '';
+        const opts = { _subcommand: sub, _args: rawArgs, projectRoot: process.cwd() };
+        // Parse simple --flag value pairs from raw args
+        for (let i = 0; i < rawArgs.length; i++) {
+            if (rawArgs[i].startsWith('--')) {
+                const rawKey = rawArgs[i].slice(2);
+                // Convert hyphenated keys to camelCase (e.g. no-scan → noScan)
+                const key = rawKey.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+                const val = rawArgs[i + 1] && !rawArgs[i + 1].startsWith('--') ? rawArgs[i + 1] : true;
+                opts[key] = val;
+                if (val !== true) i++;
+            }
+        }
+        const handlers = {
+            agent: pdaCmds.runAgentCommand,
+            task: pdaCmds.runTaskCommand,
+            policy: pdaCmds.runPolicyCommand,
+            'gate-finalize': pdaCmds.runGateFinalizeCommand,
+            handoff: pdaCmds.runHandoffCommand,
+            learn: pdaCmds.runLearnCommand
+        };
+        const result = await handlers[argvCommand](opts);
+        return typeof result === 'number' ? result : 0;
+    }
+
     const skipPolicyGate = argvCommand === 'secrets-gate' || argvCommand === 'fix';
     const activeCompliancePolicy = skipPolicyGate ? null : runPolicyGate();
     if (activeCompliancePolicy) {
