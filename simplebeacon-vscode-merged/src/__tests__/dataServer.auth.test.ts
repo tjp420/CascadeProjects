@@ -42,6 +42,7 @@ jest.mock(
   { virtual: true }
 );
 
+/* eslint-disable-next-line @typescript-eslint/no-var-requires */
 const vscode = require('vscode');
 
 function waitForServer(): Promise<void> {
