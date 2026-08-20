@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { escapeHtml } from './utils/string';
+import { randomId } from './utils/misc';
 
 interface CodeMapTreeNode {
   name: string;
@@ -98,7 +99,7 @@ export class CodeMapTreeProvider implements vscode.WebviewViewProvider {
   }
 
   private _getHtml(webview: vscode.Webview): string {
-    const nonce = this._getNonce();
+    const nonce = randomId(32);
     const csp = webview.cspSource;
     return `<!DOCTYPE html>
 <html lang="en">

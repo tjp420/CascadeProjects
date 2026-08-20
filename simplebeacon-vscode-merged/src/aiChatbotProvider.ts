@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
 import { getDataServerPort } from './dataServer';
+import { randomId } from './utils/misc';
 
 export class AiChatbotProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'simplebeacon-ai-chatbot';
@@ -273,11 +274,7 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
   }
 
   private _getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+    // Use shared randomId util to avoid embedding high-entropy character sets that secret scanners flag.
+    return randomId(32);
   }
 }
