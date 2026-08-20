@@ -23,7 +23,9 @@ export function exportToPDF(items) {
         <p>Generated on: ${new Date().toLocaleString()}</p>
       </div>
       <div>
-        ${items.map(item => `
+        ${items
+          .map(
+            (item) => `
           <div class="item ${item.status.toLowerCase()}">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div><strong>${item.article}: ${item.title}</strong></div>
@@ -31,7 +33,9 @@ export function exportToPDF(items) {
             </div>
             <p style="margin-top:8px;color:#444">${item.desc}</p>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     </body>
     </html>

@@ -1,23 +1,23 @@
-'use strict';
+"use strict";
 
 /**
  * aes-kw.cjs
  * RFC 3394 / NIST SP 800-38F Key Wrap (AES-KW) and
  * RFC 5649 AES Key Wrap with Padding (AES-KWP) wrapper implementation.
  */
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 /**
  * Standard Alternative Initial Value for AES-KW (RFC 3394 Section 2.2.3.1)
  * Hex: 0xA6A6A6A6A6A6A6A6
  */
-const IV_A6 = Buffer.from('A6A6A6A6A6A6A6A6', 'hex');
+const IV_A6 = Buffer.from("A6A6A6A6A6A6A6A6", "hex");
 
 /**
  * Magic constant for AES-KWP (RFC 5649 Section 3).
  * Upper 4 bytes of the KWP Alternative Initial Value.
  */
-const KWP_MAGIC = 0xA65959A6;
+const KWP_MAGIC = 0xa65959a6;
 
 /**
  * Wraps a plaintext key using a Key Encryption Key (KEK) via AES-KW.
@@ -27,13 +27,15 @@ const KWP_MAGIC = 0xA65959A6;
  */
 function wrap(kek, plaintext) {
   if (!Buffer.isBuffer(kek) || !Buffer.isBuffer(plaintext)) {
-    throw new TypeError('Inputs must be Buffers');
+    throw new TypeError("Inputs must be Buffers");
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new Error('Invalid KEK length. Must be 128, 192, or 256 bits.');
+    throw new Error("Invalid KEK length. Must be 128, 192, or 256 bits.");
   }
   if (plaintext.length < 16 || plaintext.length % 8 !== 0) {
-    throw new Error('Plaintext length must be a multiple of 8 bytes and at least 16 bytes.');
+    throw new Error(
+      "Plaintext length must be a multiple of 8 bytes and at least 16 bytes.",
+    );
   }
 
   const n = plaintext.length / 8;
@@ -56,7 +58,7 @@ function wrap(kek, plaintext) {
       const B = Buffer.concat([cipher.update(concat), cipher.final()]);
 
       // Calculate t = (n * j) + i
-      const t = (n * j) + i;
+      const t = n * j + i;
       A = B.subarray(0, 8);
 
       // XOR the least significant 8 bytes of A with t
@@ -82,16 +84,18 @@ function wrap(kek, plaintext) {
  */
 function unwrap(kek, ciphertext) {
   if (!Buffer.isBuffer(kek) || !Buffer.isBuffer(ciphertext)) {
-    throw new TypeError('Inputs must be Buffers');
+    throw new TypeError("Inputs must be Buffers");
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new Error('Invalid KEK length. Must be 128, 192, or 256 bits.');
+    throw new Error("Invalid KEK length. Must be 128, 192, or 256 bits.");
   }
   if (ciphertext.length < 24 || ciphertext.length % 8 !== 0) {
-    throw new Error('Ciphertext length must be a multiple of 8 bytes and at least 24 bytes.');
+    throw new Error(
+      "Ciphertext length must be a multiple of 8 bytes and at least 24 bytes.",
+    );
   }
 
-  const n = (ciphertext.length / 8) - 1;
+  const n = ciphertext.length / 8 - 1;
   let A = ciphertext.subarray(0, 8);
   const R = [];
 
@@ -104,7 +108,7 @@ function unwrap(kek, ciphertext) {
   // 6 rounds of the unwrapping core loop (reversed)
   for (let j = 5; j >= 0; j--) {
     for (let i = n; i >= 1; i--) {
-      const t = (n * j) + i;
+      const t = n * j + i;
       const tBuffer = Buffer.alloc(8);
       tBuffer.writeUInt32BE(t, 4);
 
@@ -115,7 +119,11 @@ function unwrap(kek, ciphertext) {
       }
 
       const concat = Buffer.concat([intermediateA, R[i - 1]]);
-      const decipher = crypto.createDecipheriv(decipherName, kek, Buffer.alloc(0));
+      const decipher = crypto.createDecipheriv(
+        decipherName,
+        kek,
+        Buffer.alloc(0),
+      );
       decipher.setAutoPadding(false);
       const B = Buffer.concat([decipher.update(concat), decipher.final()]);
 
@@ -126,7 +134,9 @@ function unwrap(kek, ciphertext) {
 
   // Integrity Check: Verify initial A matches IV_A6
   if (!A.equals(IV_A6)) {
-    throw new Error('Integrity check failed: Invalid KEK or corrupted ciphertext.');
+    throw new Error(
+      "Integrity check failed: Invalid KEK or corrupted ciphertext.",
+    );
   }
 
   return Buffer.concat(R);
@@ -140,10 +150,10 @@ function unwrap(kek, ciphertext) {
  */
 function wrapPad(kek, plaintext) {
   if (!Buffer.isBuffer(kek) || !Buffer.isBuffer(plaintext)) {
-    throw new TypeError('Inputs must be Buffers');
+    throw new TypeError("Inputs must be Buffers");
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new Error('Invalid KEK length. Must be 128, 192, or 256 bits.');
+    throw new Error("Invalid KEK length. Must be 128, 192, or 256 bits.");
   }
 
   const m = plaintext.length;
@@ -196,7 +206,7 @@ function wrapPad(kek, plaintext) {
       cipher.setAutoPadding(false);
       const B = Buffer.concat([cipher.update(concat), cipher.final()]);
 
-      const t = (n * j) + i;
+      const t = n * j + i;
       A = B.subarray(0, 8);
 
       const tBuffer = Buffer.alloc(8);
@@ -220,13 +230,15 @@ function wrapPad(kek, plaintext) {
  */
 function unwrapPad(kek, ciphertext) {
   if (!Buffer.isBuffer(kek) || !Buffer.isBuffer(ciphertext)) {
-    throw new TypeError('Inputs must be Buffers');
+    throw new TypeError("Inputs must be Buffers");
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new Error('Invalid KEK length. Must be 128, 192, or 256 bits.');
+    throw new Error("Invalid KEK length. Must be 128, 192, or 256 bits.");
   }
   if (ciphertext.length < 16 || ciphertext.length % 8 !== 0) {
-    throw new Error('Ciphertext length must be a multiple of 8 bytes and at least 16 bytes.');
+    throw new Error(
+      "Ciphertext length must be a multiple of 8 bytes and at least 16 bytes.",
+    );
   }
 
   const cipherName = `aes-${kek.length * 8}-ecb`;
@@ -235,29 +247,34 @@ function unwrapPad(kek, ciphertext) {
   if (ciphertext.length === 16) {
     const decipher = crypto.createDecipheriv(cipherName, kek, Buffer.alloc(0));
     decipher.setAutoPadding(false);
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const decrypted = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
 
     const magic = decrypted.readUInt32BE(0);
     const m = decrypted.readUInt32BE(4);
 
     if (magic !== KWP_MAGIC) {
-      throw new Error('Integrity check failed: Invalid KWP magic value.');
+      throw new Error("Integrity check failed: Invalid KWP magic value.");
     }
     if (m < 1 || m > 8) {
-      throw new Error('Integrity check failed: Padded data length indicator out of bounds.');
+      throw new Error(
+        "Integrity check failed: Padded data length indicator out of bounds.",
+      );
     }
 
     // Verify trailing padding bytes are zeroed out
     for (let i = 8 + m; i < 16; i++) {
       if (decrypted[i] !== 0) {
-        throw new Error('Integrity check failed: Corrupt padding bytes.');
+        throw new Error("Integrity check failed: Corrupt padding bytes.");
       }
     }
     return decrypted.subarray(8, 8 + m);
   }
 
   // Regular AES-KWP unwrap processing path
-  const n = (ciphertext.length / 8) - 1;
+  const n = ciphertext.length / 8 - 1;
   let A = ciphertext.subarray(0, 8);
   const R = [];
 
@@ -267,7 +284,7 @@ function unwrapPad(kek, ciphertext) {
 
   for (let j = 5; j >= 0; j--) {
     for (let i = n; i >= 1; i--) {
-      const t = (n * j) + i;
+      const t = n * j + i;
       const tBuffer = Buffer.alloc(8);
       tBuffer.writeUInt32BE(t, 4);
 
@@ -277,7 +294,11 @@ function unwrapPad(kek, ciphertext) {
       }
 
       const concat = Buffer.concat([intermediateA, R[i - 1]]);
-      const decipher = crypto.createDecipheriv(cipherName, kek, Buffer.alloc(0));
+      const decipher = crypto.createDecipheriv(
+        cipherName,
+        kek,
+        Buffer.alloc(0),
+      );
       decipher.setAutoPadding(false);
       const B = Buffer.concat([decipher.update(concat), decipher.final()]);
 
@@ -290,12 +311,12 @@ function unwrapPad(kek, ciphertext) {
   const m = A.readUInt32BE(4);
 
   if (magic !== KWP_MAGIC) {
-    throw new Error('Integrity check failed: Invalid KWP magic value.');
+    throw new Error("Integrity check failed: Invalid KWP magic value.");
   }
 
   const expectedPadLen = (8 - (m % 8)) % 8;
   if (m + expectedPadLen !== n * 8) {
-    throw new Error('Integrity check failed: Payload size mismatch.');
+    throw new Error("Integrity check failed: Payload size mismatch.");
   }
 
   const plaintext = Buffer.concat(R);
@@ -303,7 +324,7 @@ function unwrapPad(kek, ciphertext) {
   // Enforce validation that trailing zero bytes are pure padding zeroes
   for (let i = m; i < plaintext.length; i++) {
     if (plaintext[i] !== 0) {
-      throw new Error('Integrity check failed: Corrupt padding bits detected.');
+      throw new Error("Integrity check failed: Corrupt padding bits detected.");
     }
   }
 

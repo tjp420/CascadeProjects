@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                                             |
+| ---------------- | --------------------------------------------------------------------------------- |
 | Feature / change | Track 20: Post-Quantum Cryptographic Wrapping Pairs & Hybrid Transitions (ML-KEM) |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track20-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                                             |
+| Date             | 2026-08-01                                                                        |
+| Branch           | `feature/track20-groundwork`                                                      |
+| Packages touched | ai-platform                                                                       |
 
 ## Scope
 
@@ -82,51 +82,51 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | PQC hybrid tests pass | `cd ai-platform && npx jest --config jest.config.cjs pqc-hybrid` | [ ] |
-| L1-03 | Crypto policy tests still pass | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine` | [ ] |
-| L1-04 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-05 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-06 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                | Command / method                                                           | Pass |
+| ----- | ------------------------------------ | -------------------------------------------------------------------------- | ---- |
+| L1-01 | Syntax on changed `.cjs` files       | `node -c <file>`                                                           | [ ]  |
+| L1-02 | PQC hybrid tests pass                | `cd ai-platform && npx jest --config jest.config.cjs pqc-hybrid`           | [ ]  |
+| L1-03 | Crypto policy tests still pass       | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine` | [ ]  |
+| L1-04 | Full `ai-platform` test suite passes | `cd ai-platform && npm test`                                               | [ ]  |
+| L1-05 | SimpleBeacon full gate               | `npx simplebeacon scan --full --gate --format json`                        | [ ]  |
+| L1-06 | No secrets in diff                   | `git diff --cached`                                                        | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | Hybrid encapsulation produces combined root key | `adapter.hybridEncapsulate()` | Returns payload and root key | [ ] |
-| L2-02 | Decapsulation recovers the same root key | `decapsulate(payload)` | Returns the same combined root key | [ ] |
-| L2-03 | Different tenants produce different root keys | `encapsulate` for `t1` vs `t2` | Root keys differ | [ ] |
-| L2-04 | Invalid ciphertext fails integrity | Mutate `pqc.ciphertext` and decapsulate | Throws `PQC_KEY_INTEGRITY` | [ ] |
-| L2-05 | Policy rejects unsupported KEM levels | `validate('t1', 'pqc', { kemLevel: 256 })` | Throws `POLICY_VIOLATION_BLOCKED` | [ ] |
+| ID    | Scenario                                        | Steps                                      | Expected                           | Pass |
+| ----- | ----------------------------------------------- | ------------------------------------------ | ---------------------------------- | ---- |
+| L2-01 | Hybrid encapsulation produces combined root key | `adapter.hybridEncapsulate()`              | Returns payload and root key       | [ ]  |
+| L2-02 | Decapsulation recovers the same root key        | `decapsulate(payload)`                     | Returns the same combined root key | [ ]  |
+| L2-03 | Different tenants produce different root keys   | `encapsulate` for `t1` vs `t2`             | Root keys differ                   | [ ]  |
+| L2-04 | Invalid ciphertext fails integrity              | Mutate `pqc.ciphertext` and decapsulate    | Throws `PQC_KEY_INTEGRITY`         | [ ]  |
+| L2-05 | Policy rejects unsupported KEM levels           | `validate('t1', 'pqc', { kemLevel: 256 })` | Throws `POLICY_VIOLATION_BLOCKED`  | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Kem level 512, 768, and 1024 all produce distinct key sizes | Larger levels generate larger ciphertexts | [ ] |
-| L3-02 | Missing classic component throws `HYBRID_TRANSITION_FAILED` | Throws on decapsulate | [ ] |
-| L3-03 | Existing Tracks 10–19 tests still pass | No regressions | [ ] |
+| ID    | Case                                                        | Expected                                  | Pass |
+| ----- | ----------------------------------------------------------- | ----------------------------------------- | ---- |
+| L3-01 | Kem level 512, 768, and 1024 all produce distinct key sizes | Larger levels generate larger ciphertexts | [ ]  |
+| L3-02 | Missing classic component throws `HYBRID_TRANSITION_FAILED` | Throws on decapsulate                     | [ ]  |
+| L3-03 | Existing Tracks 10–19 tests still pass                      | No regressions                            | [ ]  |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Classic secret and quantum secret are never logged separately | [ ] |
-| S-02 | Combined root key is derived with context-bound HKDF | [ ] |
-| S-03 | PQC component seeds are zeroized after encapsulation/decapsulation | [ ] |
-| S-04 | `pqc.publicKeyHash` can be used for integrity without exposing the public key | [ ] |
+| ID   | Requirement                                                                   | Pass |
+| ---- | ----------------------------------------------------------------------------- | ---- |
+| S-01 | Classic secret and quantum secret are never logged separately                 | [ ]  |
+| S-02 | Combined root key is derived with context-bound HKDF                          | [ ]  |
+| S-03 | PQC component seeds are zeroized after encapsulation/decapsulation            | [ ]  |
+| S-04 | `pqc.publicKeyHash` can be used for integrity without exposing the public key | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

@@ -4,7 +4,7 @@
     "total": 100,
     "totalItems": 100
   },
-  "items": [{"name":"scan","status":"active"}],
-  "commands": [{"name":"simplebeacon scan","usage":150}],
-  "rules": [{"id":"SEC-001","severity":"high"}]
+  "items": [{ "name": "scan", "status": "active" }],
+  "commands": [{ "name": "simplebeacon scan", "usage": 150 }],
+  "rules": [{ "id": "SEC-001", "severity": "high" }]
 }

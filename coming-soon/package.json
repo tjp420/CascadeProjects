@@ -1,44 +1,44 @@
 {
-  "name": "simplebeacon-coming-soon",
-  "version": "1.0.0",
-  "description": "SimpleBeacon landing page with integrated backend",
-  "main": "server.cjs",
-  "scripts": {
-    "start": "node server.cjs",
-    "dev": "node server.cjs",
-    "test": "node --test test/analyzer-coverage.test.cjs test/db.test.cjs test/scan-utils.test.cjs test/token-chain.test.cjs test/token-upgrade-validate.test.cjs",
-    "test:integration": "node --test test/payment-workflow.test.cjs test/payment-workflow-v2.test.cjs",
-    "build": "tsc && tsc -p tsconfig.dashboard.json && node build-public.js",
-    "lint": "node -c server.cjs",
-    "format": "npx prettier --write .",
-    "analyze": "node analyze-directory.js",
-    "analyze:full": "node analyze-directory.js --output .simplebeacon/analyzer-report.json",
-    "quality:check": "node scripts/quality-check.cjs",
-    "email:setup": "node tools/setup-email.cjs",
-    "email:test": "node tools/setup-email.cjs --send",
-    "email:probe": "node tools/probe-email.cjs --dry-run",
-    "email:probe:send": "node tools/probe-email.cjs --send",
-    "deploy": "wrangler pages deploy public --project-name=simplebeacon"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "type": "commonjs",
-  "dependencies": {
-    "express": "^4.22.2",
-    "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^9.0.3",
-    "pdfkit": "^0.19.1"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240701.0",
-    "@types/node": "^22.15.21",
-    "typescript": "^5.9.2",
-    "vite": "^8.0.16",
-    "wrangler": "^4.111.0"
-  }
+    "name": "simplebeacon-coming-soon",
+    "version": "1.0.0",
+    "description": "SimpleBeacon landing page with integrated backend",
+    "main": "server.cjs",
+    "scripts": {
+        "start": "node server.cjs",
+        "dev": "node server.cjs",
+        "test": "node --test test/analyzer-coverage.test.cjs test/db.test.cjs test/scan-utils.test.cjs test/token-chain.test.cjs test/token-upgrade-validate.test.cjs",
+        "test:integration": "node --test test/payment-workflow.test.cjs test/payment-workflow-v2.test.cjs",
+        "build": "tsc && tsc -p tsconfig.dashboard.json && node build-public.js",
+        "lint": "node -c server.cjs",
+        "format": "npx prettier --write .",
+        "analyze": "node analyze-directory.js",
+        "analyze:full": "node analyze-directory.js --output .simplebeacon/analyzer-report.json",
+        "quality:check": "node scripts/quality-check.cjs",
+        "email:setup": "node tools/setup-email.cjs",
+        "email:test": "node tools/setup-email.cjs --send",
+        "email:probe": "node tools/probe-email.cjs --dry-run",
+        "email:probe:send": "node tools/probe-email.cjs --send",
+        "deploy": "wrangler pages deploy public --project-name=simplebeacon"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "type": "commonjs",
+    "dependencies": {
+        "express": "^4.22.2",
+        "jsonwebtoken": "^9.0.3",
+        "nodemailer": "^9.0.3",
+        "pdfkit": "^0.19.1"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=9.0.0"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "^4.20240701.0",
+        "@types/node": "^22.15.21",
+        "typescript": "^5.9.2",
+        "vite": "^8.0.16",
+        "wrangler": "^4.111.0"
+    }
 }

@@ -1,26 +1,32 @@
-'use strict';
+"use strict";
 
-const crypto = require('crypto');
-const providers = require('./hsm-providers.cjs');
-const clusterSync = require('./cluster-keyring-sync.cjs');
+const crypto = require("crypto");
+const providers = require("./hsm-providers.cjs");
+const clusterSync = require("./cluster-keyring-sync.cjs");
 
-const DEFAULT_KEY_ID = 'sb-master-key';
-const DEFAULT_REGION = 'us-east-1';
-const SANDBOX_PREFIX = 'enc:sb:';
+const DEFAULT_KEY_ID = "sb-master-key";
+const DEFAULT_REGION = "us-east-1";
+const SANDBOX_PREFIX = "enc:sb:";
 const _hsmVersions = [];
 
 async function deriveOrgKeyViaHsm(orgId, options = {}) {
-  if (!orgId || typeof orgId !== 'string') {
-    throw new TypeError('HSM key derivation requires a valid organization identifier string');
+  if (!orgId || typeof orgId !== "string") {
+    throw new TypeError(
+      "HSM key derivation requires a valid organization identifier string",
+    );
   }
   if (options.actorOrgId && options.actorOrgId !== orgId) {
     if (clusterSync && clusterSync._recordEvent) {
-      clusterSync._recordEvent(clusterSync.EVENT_TYPES.ISOLATION_VIOLATION, null, {
-        targetOrg: orgId,
-        actorOrg: options.actorOrgId,
-        keyId: options.keyId || process.env.HSM_KEY_ID || DEFAULT_KEY_ID,
-        region: options.region || process.env.HSM_REGION || DEFAULT_REGION,
-      });
+      clusterSync._recordEvent(
+        clusterSync.EVENT_TYPES.ISOLATION_VIOLATION,
+        null,
+        {
+          targetOrg: orgId,
+          actorOrg: options.actorOrgId,
+          keyId: options.keyId || process.env.HSM_KEY_ID || DEFAULT_KEY_ID,
+          region: options.region || process.env.HSM_REGION || DEFAULT_REGION,
+        },
+      );
     }
     throw isolationViolationError(orgId, options.actorOrgId);
   }
@@ -56,18 +62,20 @@ function getHsmTimeoutMs() {
 }
 
 function hsmTimeoutError() {
-  const err = new Error('HSM operation timed out and was aborted');
-  err.name = 'HsmTimeoutError';
-  err.code = 'hsm_timeout';
+  const err = new Error("HSM operation timed out and was aborted");
+  err.name = "HsmTimeoutError";
+  err.code = "hsm_timeout";
   err.statusCode = 503;
   err.hsmTimeout = true;
   return err;
 }
 
 function isolationViolationError(targetOrg, actorOrg) {
-  const err = new Error(`Tenant isolation violation: actor ${actorOrg} attempted access to ${targetOrg}`);
-  err.name = 'IsolationViolationError';
-  err.code = 'isolation_violation';
+  const err = new Error(
+    `Tenant isolation violation: actor ${actorOrg} attempted access to ${targetOrg}`,
+  );
+  err.name = "IsolationViolationError";
+  err.code = "isolation_violation";
   err.statusCode = 403;
   err.targetOrg = targetOrg;
   err.actorOrg = actorOrg;
@@ -81,7 +89,9 @@ function withHsmTimeout(promise, details) {
   const timeout = new Promise((_, reject) => {
     t = setTimeout(() => {
       if (clusterSync && clusterSync._recordEvent) {
-        clusterSync._recordEvent(clusterSync.EVENT_TYPES.HSM_TIMEOUT, null, { ...(details || {}) });
+        clusterSync._recordEvent(clusterSync.EVENT_TYPES.HSM_TIMEOUT, null, {
+          ...(details || {}),
+        });
       }
       reject(hsmTimeoutError());
     }, ms);
@@ -91,7 +101,13 @@ function withHsmTimeout(promise, details) {
     // record HSM operation errors to cluster timeline where available
     try {
       if (clusterSync && clusterSync._recordEvent) {
-        clusterSync._recordEvent(clusterSync.EVENT_TYPES && clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR ? clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR : 'hsm_operation_error', null, { ...(details || {}), error: err.message });
+        clusterSync._recordEvent(
+          clusterSync.EVENT_TYPES && clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR
+            ? clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR
+            : "hsm_operation_error",
+          null,
+          { ...(details || {}), error: err.message },
+        );
       }
     } catch (e) {
       // best-effort
@@ -111,17 +127,24 @@ async function hsmHandshake(provider, keyId, region) {
 }
 
 async function deriveWithFailover(orgId, options = {}) {
-  const regions = [process.env.HSM_REGION || DEFAULT_REGION, ...(process.env.HSM_FAILOVER_REGIONS || '').split(',').map((s) => s.trim()).filter(Boolean)];
+  const regions = [
+    process.env.HSM_REGION || DEFAULT_REGION,
+    ...(process.env.HSM_FAILOVER_REGIONS || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ];
   const errors = [];
   for (const region of regions) {
     try {
       return await deriveOrgKeyViaHsm(orgId, { ...options, region });
     } catch (err) {
-      if (err.code === 'hsm_timeout' || err.code === 'isolation_violation') throw err;
+      if (err.code === "hsm_timeout" || err.code === "isolation_violation")
+        throw err;
       errors.push(`${region}: ${err.message}`);
     }
   }
-  throw new Error(`HSM unavailable in all regions: ${errors.join('; ')}`);
+  throw new Error(`HSM unavailable in all regions: ${errors.join("; ")}`);
 }
 
 async function hsmRotate(newKeyId, newRegion) {
@@ -129,7 +152,10 @@ async function hsmRotate(newKeyId, newRegion) {
   const region = newRegion || process.env.HSM_REGION || DEFAULT_REGION;
   recordHsmVersion(keyId, region);
   const p = providers.createProvider({ keyId, region });
-  const handshake = await withHsmTimeout(Promise.resolve(p.handshake()), { keyId, region });
+  const handshake = await withHsmTimeout(Promise.resolve(p.handshake()), {
+    keyId,
+    region,
+  });
   return {
     success: true,
     ...handshake,
@@ -138,17 +164,17 @@ async function hsmRotate(newKeyId, newRegion) {
 }
 
 function parseSandboxPayload(stored) {
-  if (!stored || typeof stored !== 'string') return null;
+  if (!stored || typeof stored !== "string") return null;
   if (!stored.startsWith(SANDBOX_PREFIX)) return null;
   const payload = stored.slice(SANDBOX_PREFIX.length);
-  const parts = payload.split(':');
+  const parts = payload.split(":");
   if (parts.length !== 3) return null;
   return parts;
 }
 
 async function decryptWithHsm(orgId, stored, options = {}) {
   const parts = parseSandboxPayload(stored);
-  if (!parts) return '';
+  if (!parts) return "";
 
   const versions = [null, ...getHsmVersions().slice(1)];
   for (const version of versions) {
@@ -157,18 +183,19 @@ async function decryptWithHsm(orgId, stored, options = {}) {
         ? { ...options, keyId: version.keyId, region: version.region }
         : options;
       const key = await deriveOrgKeyViaHsm(orgId, opts);
-      const iv = Buffer.from(parts[0], 'hex');
-      const tag = Buffer.from(parts[1], 'hex');
-      const encrypted = Buffer.from(parts[2], 'hex');
-      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      const iv = Buffer.from(parts[0], "hex");
+      const tag = Buffer.from(parts[1], "hex");
+      const encrypted = Buffer.from(parts[2], "hex");
+      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAuthTag(tag);
-      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+      return decipher.update(encrypted, null, "utf8") + decipher.final("utf8");
     } catch (err) {
-      if (err.code === 'hsm_timeout' || err.code === 'isolation_violation') throw err;
+      if (err.code === "hsm_timeout" || err.code === "isolation_violation")
+        throw err;
       // try older version
     }
   }
-  return '';
+  return "";
 }
 
 module.exports = {

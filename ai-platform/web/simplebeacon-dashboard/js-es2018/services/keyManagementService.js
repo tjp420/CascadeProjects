@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Dashboard code — key management service
-import { apiBase } from './authService.js?v=20260722bridgefix1';
+import { apiBase } from "./authService.js?v=20260722bridgefix1";
 
 /**
  * Fetch the current key rotation status from the backend.
@@ -8,13 +8,13 @@ import { apiBase } from './authService.js?v=20260722bridgefix1';
  * @returns {Promise<object>} Rotation status with activeFingerprint, previousFingerprint, graceExpired, etc.
  */
 export async function fetchKeyStatus(authHeaders = {}) {
-  const base = apiBase() || '';
+  const base = apiBase() || "";
   const url = `${base}/api/audit/key/status`;
   try {
     const resp = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: { ...authHeaders },
-      credentials: 'include',
+      credentials: "include",
     });
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
@@ -35,7 +35,7 @@ export async function fetchKeyStatus(authHeaders = {}) {
  * @returns {Promise<object>} Result with success flag and message
  */
 export async function triggerKeyRotation(newKeyRaw, graceMs, authHeaders = {}) {
-  const base = apiBase() || '';
+  const base = apiBase() || "";
   const url = `${base}/api/audit/key/rotate`;
   const body = { newKeyRaw };
   if (graceMs && Number.isFinite(graceMs)) {
@@ -43,9 +43,9 @@ export async function triggerKeyRotation(newKeyRaw, graceMs, authHeaders = {}) {
   }
   try {
     const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders },
+      credentials: "include",
       body: JSON.stringify(body),
     });
     if (!resp.ok) {
@@ -64,13 +64,13 @@ export async function triggerKeyRotation(newKeyRaw, graceMs, authHeaders = {}) {
  * @returns {Promise<object>} Result with migrated, skipped, failed, purged counts
  */
 export async function forceReKeySweep(authHeaders = {}) {
-  const base = apiBase() || '';
+  const base = apiBase() || "";
   const url = `${base}/api/audit/key/rekey-now`;
   try {
     const resp = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: { ...authHeaders },
-      credentials: 'include',
+      credentials: "include",
     });
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
@@ -88,13 +88,13 @@ export async function forceReKeySweep(authHeaders = {}) {
  * @returns {Promise<object>} Stats with totalSweeps, totalMigrated, totalFailed, etc.
  */
 export async function fetchReKeyStats(authHeaders = {}) {
-  const base = apiBase() || '';
+  const base = apiBase() || "";
   const url = `${base}/api/audit/key/rekey-stats`;
   try {
     const resp = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: { ...authHeaders },
-      credentials: 'include',
+      credentials: "include",
     });
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
@@ -113,7 +113,9 @@ export async function fetchReKeyStats(authHeaders = {}) {
 export function generateRandomKey() {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -123,10 +125,10 @@ export function generateRandomKey() {
  * @returns {string} Human-readable countdown like "47h 23m remaining" or "Expired"
  */
 export function formatGraceCountdown(rotatedAt, graceMs) {
-  if (!rotatedAt) return '—';
+  if (!rotatedAt) return "—";
   const elapsed = Date.now() - rotatedAt;
   const remaining = graceMs - elapsed;
-  if (remaining <= 0) return 'Expired';
+  if (remaining <= 0) return "Expired";
   const hours = Math.floor(remaining / (60 * 60 * 1000));
   const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
   if (hours > 0) {

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Analytics Seed Script — Populates the usage analytics store with realistic
@@ -17,9 +17,9 @@
  * @module seed-analytics
  */
 
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 
 // ── Configuration ───────────────────────────────────────────────────────────
 
@@ -28,101 +28,141 @@ const cliArgs = {};
 for (const a of args) {
   const m = a.match(/^--([a-zA-Z]+)=(.+)$/);
   if (m) cliArgs[m[1]] = m[2];
-  else if (a.startsWith('--')) cliArgs[a.slice(2)] = true;
+  else if (a.startsWith("--")) cliArgs[a.slice(2)] = true;
 }
 
 const DAYS = parseInt(cliArgs.days, 10) || 90;
 const NUM_ORGS = parseInt(cliArgs.orgs, 10) || 4;
 const CLEAR = !!cliArgs.clear;
 
-const STORE_PATH = cliArgs.storePath
-  || process.env.USAGE_ANALYTICS_STORE_PATH
-  || path.join(__dirname, '..', '.simplebeacon', 'usage-analytics.json');
+const STORE_PATH =
+  cliArgs.storePath ||
+  process.env.USAGE_ANALYTICS_STORE_PATH ||
+  path.join(__dirname, "..", ".simplebeacon", "usage-analytics.json");
 
 // ── Enterprise Org Profiles ─────────────────────────────────────────────────
 
 const ORG_PROFILES = [
   {
-    orgId: 'acme-corp',
-    companyName: 'Acme Corporation',
-    industry: 'Financial Services',
-    repos: ['acme-payment-gateway', 'acme-risk-engine', 'acme-compliance-api', 'acme-trading-platform'],
+    orgId: "acme-corp",
+    companyName: "Acme Corporation",
+    industry: "Financial Services",
+    repos: [
+      "acme-payment-gateway",
+      "acme-risk-engine",
+      "acme-compliance-api",
+      "acme-trading-platform",
+    ],
     languages: { JavaScript: 35, TypeScript: 30, Python: 20, Java: 10, Go: 5 },
     baseFiles: 850,
     baseFindings: 45,
     initialPosture: 62,
-    triggerSources: ['ci-pipeline', 'scheduled-scan', 'pr-check', 'manual-scan'],
-    branches: ['main', 'develop', 'feature/payment-v2', 'release/v3.1'],
+    triggerSources: [
+      "ci-pipeline",
+      "scheduled-scan",
+      "pr-check",
+      "manual-scan",
+    ],
+    branches: ["main", "develop", "feature/payment-v2", "release/v3.1"],
   },
   {
-    orgId: 'globex-health',
-    companyName: 'Globex Health Systems',
-    industry: 'Healthcare / HIPAA',
-    repos: ['globex-patient-portal', 'globex-ehr-backend', 'globex-medical-ml', 'globex-claims-processor'],
+    orgId: "globex-health",
+    companyName: "Globex Health Systems",
+    industry: "Healthcare / HIPAA",
+    repos: [
+      "globex-patient-portal",
+      "globex-ehr-backend",
+      "globex-medical-ml",
+      "globex-claims-processor",
+    ],
     languages: { Python: 40, TypeScript: 25, JavaScript: 15, Java: 15, SQL: 5 },
     baseFiles: 620,
     baseFindings: 38,
     initialPosture: 55,
-    triggerSources: ['ci-pipeline', 'scheduled-scan', 'pr-check'],
-    branches: ['main', 'develop', 'feature/hipaa-audit'],
+    triggerSources: ["ci-pipeline", "scheduled-scan", "pr-check"],
+    branches: ["main", "develop", "feature/hipaa-audit"],
   },
   {
-    orgId: 'initech-ai',
-    companyName: 'Initech AI Labs',
-    industry: 'AI / ML Platform',
-    repos: ['initech-model-training', 'initech-inference-api', 'initech-data-pipeline', 'initech-feature-store'],
+    orgId: "initech-ai",
+    companyName: "Initech AI Labs",
+    industry: "AI / ML Platform",
+    repos: [
+      "initech-model-training",
+      "initech-inference-api",
+      "initech-data-pipeline",
+      "initech-feature-store",
+    ],
     languages: { Python: 50, TypeScript: 20, Go: 15, JavaScript: 10, Rust: 5 },
     baseFiles: 480,
     baseFindings: 28,
     initialPosture: 71,
-    triggerSources: ['ci-pipeline', 'scheduled-scan', 'manual-scan', 'pr-check'],
-    branches: ['main', 'develop', 'feature/gpu-optimization', 'experiment/v2'],
+    triggerSources: [
+      "ci-pipeline",
+      "scheduled-scan",
+      "manual-scan",
+      "pr-check",
+    ],
+    branches: ["main", "develop", "feature/gpu-optimization", "experiment/v2"],
   },
   {
-    orgId: 'umbrella-logistics',
-    companyName: 'Umbrella Logistics',
-    industry: 'Supply Chain / IoT',
-    repos: ['umbrella-fleet-tracker', 'umbrella-route-optimizer', 'umbrella-warehouse-api'],
+    orgId: "umbrella-logistics",
+    companyName: "Umbrella Logistics",
+    industry: "Supply Chain / IoT",
+    repos: [
+      "umbrella-fleet-tracker",
+      "umbrella-route-optimizer",
+      "umbrella-warehouse-api",
+    ],
     languages: { JavaScript: 30, TypeScript: 25, Python: 20, Go: 15, C: 10 },
     baseFiles: 410,
     baseFindings: 32,
     initialPosture: 58,
-    triggerSources: ['ci-pipeline', 'scheduled-scan', 'pr-check'],
-    branches: ['main', 'develop', 'feature/iot-sensors'],
+    triggerSources: ["ci-pipeline", "scheduled-scan", "pr-check"],
+    branches: ["main", "develop", "feature/iot-sensors"],
   },
   {
-    orgId: 'stark-industries',
-    companyName: 'Stark Industries',
-    industry: 'Defense / Aerospace',
-    repos: ['stark-guidance-system', 'stark-telemetry-processor', 'stark-mission-control', 'stark-sim-engine'],
+    orgId: "stark-industries",
+    companyName: "Stark Industries",
+    industry: "Defense / Aerospace",
+    repos: [
+      "stark-guidance-system",
+      "stark-telemetry-processor",
+      "stark-mission-control",
+      "stark-sim-engine",
+    ],
     languages: { C: 30, Python: 25, TypeScript: 20, Java: 15, Rust: 10 },
     baseFiles: 720,
     baseFindings: 52,
     initialPosture: 48,
-    triggerSources: ['ci-pipeline', 'scheduled-scan', 'manual-scan', 'pr-check'],
-    branches: ['main', 'develop', 'feature/avionics-v4', 'classified/v2'],
+    triggerSources: [
+      "ci-pipeline",
+      "scheduled-scan",
+      "manual-scan",
+      "pr-check",
+    ],
+    branches: ["main", "develop", "feature/avionics-v4", "classified/v2"],
   },
 ];
 
 // ── Violation Categories ────────────────────────────────────────────────────
 
 const VIOLATION_CATEGORIES = [
-  'EU AI Act — Prohibited Practices',
-  'EU AI Act — High-Risk Obligations',
-  'California SB 1047 — Critical Harm',
-  'GDPR — Data Subject Rights',
-  'HIPAA — PHI Exposure',
-  'OWASP — Injection',
-  'OWASP — Broken Access Control',
-  'OWASP — Security Misconfiguration',
-  'OWASP — Vulnerable Dependencies',
-  'Hardcoded Secrets',
-  'Unsafe Deserialization',
-  'Missing Input Validation',
-  'Improper Error Handling',
-  'Non-deterministic Output',
-  'Missing Model Card',
-  'Bias Detection Gap',
+  "EU AI Act — Prohibited Practices",
+  "EU AI Act — High-Risk Obligations",
+  "California SB 1047 — Critical Harm",
+  "GDPR — Data Subject Rights",
+  "HIPAA — PHI Exposure",
+  "OWASP — Injection",
+  "OWASP — Broken Access Control",
+  "OWASP — Security Misconfiguration",
+  "OWASP — Vulnerable Dependencies",
+  "Hardcoded Secrets",
+  "Unsafe Deserialization",
+  "Missing Input Validation",
+  "Improper Error Handling",
+  "Non-deterministic Output",
+  "Missing Model Card",
+  "Bias Detection Gap",
 ];
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -175,13 +215,18 @@ function generateSeverityCounts(total, trendFactor) {
 function generateCategoryCounts(total) {
   const cats = {};
   const numCats = randomInt(3, 7);
-  const selected = [...VIOLATION_CATEGORIES].sort(() => Math.random() - 0.5).slice(0, numCats);
+  const selected = [...VIOLATION_CATEGORIES]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, numCats);
   let remaining = total;
   for (let i = 0; i < selected.length; i++) {
     if (i === selected.length - 1) {
       cats[selected[i]] = Math.max(0, remaining);
     } else {
-      const portion = randomInt(1, Math.max(2, Math.floor(remaining / (selected.length - i))));
+      const portion = randomInt(
+        1,
+        Math.max(2, Math.floor(remaining / (selected.length - i))),
+      );
       cats[selected[i]] = portion;
       remaining -= portion;
     }
@@ -192,7 +237,9 @@ function generateCategoryCounts(total) {
 function generateLanguageBreakdown(baseFiles, langDist) {
   const breakdown = {};
   for (const [lang, pct] of Object.entries(langDist)) {
-    breakdown[lang] = Math.round(baseFiles * (pct / 100) * randomFloat(0.85, 1.15));
+    breakdown[lang] = Math.round(
+      baseFiles * (pct / 100) * randomFloat(0.85, 1.15),
+    );
   }
   return breakdown;
 }
@@ -205,7 +252,8 @@ function generateLanguageBreakdown(baseFiles, langDist) {
  */
 function postureForDay(profile, dayIndex, totalDays) {
   const progress = dayIndex / totalDays;
-  const improvement = (90 - profile.initialPosture) * Math.min(1, progress * 1.2);
+  const improvement =
+    (90 - profile.initialPosture) * Math.min(1, progress * 1.2);
   const noise = randomFloat(-4, 4);
   const score = profile.initialPosture + improvement + noise;
   return Math.max(20, Math.min(98, Math.round(score)));
@@ -240,39 +288,63 @@ function generateScans() {
 
       for (let s = 0; s < scansToday; s++) {
         const scanTime = new Date(date);
-        scanTime.setHours(randomInt(7, 20), randomInt(0, 59), randomInt(0, 59), 0);
+        scanTime.setHours(
+          randomInt(7, 20),
+          randomInt(0, 59),
+          randomInt(0, 59),
+          0,
+        );
 
         const repo = pick(profile.repos);
         const trendFactor = 1 - (dayOffset / DAYS) * 0.4; // fewer criticals over time
         const fileVariance = randomFloat(0.7, 1.3);
         const filesAnalyzed = Math.round(profile.baseFiles * fileVariance);
         const findingsVariance = randomFloat(0.6, 1.4);
-        const totalFindings = Math.max(0, Math.round(profile.baseFindings * findingsVariance * (1 - (1 - trendFactor) * 0.3)));
+        const totalFindings = Math.max(
+          0,
+          Math.round(
+            profile.baseFindings *
+              findingsVariance *
+              (1 - (1 - trendFactor) * 0.3),
+          ),
+        );
 
-        const severityCounts = generateSeverityCounts(totalFindings, trendFactor);
+        const severityCounts = generateSeverityCounts(
+          totalFindings,
+          trendFactor,
+        );
         const postureScore = postureForDay(profile, DAYS - dayOffset, DAYS);
 
         // Adjust findings to match posture score roughly
-        const adjustedFindings = severityCounts.critical + severityCounts.high + severityCounts.medium + severityCounts.low + severityCounts.info;
+        const adjustedFindings =
+          severityCounts.critical +
+          severityCounts.high +
+          severityCounts.medium +
+          severityCounts.low +
+          severityCounts.info;
 
         const branch = pick(profile.branches);
         const triggeredBy = pick(profile.triggerSources);
-        const gateStatus = postureScore >= 70 ? 'pass' : (postureScore >= 50 ? 'warn' : 'fail');
+        const gateStatus =
+          postureScore >= 70 ? "pass" : postureScore >= 50 ? "warn" : "fail";
 
         scans.push({
-          scanId: `scan-${crypto.randomBytes(4).toString('hex')}`,
+          scanId: `scan-${crypto.randomBytes(4).toString("hex")}`,
           orgId: profile.orgId,
           timestamp: scanTime.toISOString(),
           projectPath: `/repos/${repo}`,
           repository: repo,
           branch,
-          commitSha: crypto.randomBytes(7).toString('hex'),
+          commitSha: crypto.randomBytes(7).toString("hex"),
           triggeredBy,
           codeFilesAnalyzed: filesAnalyzed,
           totalFindings: adjustedFindings,
           severityCounts,
           categoryCounts: generateCategoryCounts(adjustedFindings),
-          languageBreakdown: generateLanguageBreakdown(filesAnalyzed, profile.languages),
+          languageBreakdown: generateLanguageBreakdown(
+            filesAnalyzed,
+            profile.languages,
+          ),
           scanDurationMs: randomInt(3000, 45000),
           gateStatus,
           postureScore,
@@ -317,13 +389,18 @@ function buildStoreFromScans(scans) {
     org.severityTotals.low += scan.severityCounts.low;
     org.severityTotals.info += scan.severityCounts.info;
     org.postureScores.push(scan.postureScore);
-    if (org.postureScores.length > 100) org.postureScores = org.postureScores.slice(-100);
+    if (org.postureScores.length > 100)
+      org.postureScores = org.postureScores.slice(-100);
     org.lastScanAt = scan.timestamp;
     if (!org.firstScanAt) org.firstScanAt = scan.timestamp;
 
     if (scan.repository) {
       if (!org.repositories[scan.repository]) {
-        org.repositories[scan.repository] = { scans: 0, findings: 0, lastScanAt: null };
+        org.repositories[scan.repository] = {
+          scans: 0,
+          findings: 0,
+          lastScanAt: null,
+        };
       }
       org.repositories[scan.repository].scans++;
       org.repositories[scan.repository].findings += scan.totalFindings;
@@ -338,52 +415,66 @@ function buildStoreFromScans(scans) {
 
 function main() {
   console.log(`\n  Analytics Seed Script`);
-  console.log(`  ${'─'.repeat(50)}`);
+  console.log(`  ${"─".repeat(50)}`);
   console.log(`  Days: ${DAYS} | Orgs: ${NUM_ORGS} | Clear: ${CLEAR}`);
   console.log(`  Store: ${STORE_PATH}`);
-  console.log(`  ${'─'.repeat(50)}\n`);
+  console.log(`  ${"─".repeat(50)}\n`);
 
   if (CLEAR && fs.existsSync(STORE_PATH)) {
     fs.unlinkSync(STORE_PATH);
-    console.log('  [clear] Removed existing store file.');
+    console.log("  [clear] Removed existing store file.");
   }
 
-  console.log('  [generate] Building realistic scan data...');
+  console.log("  [generate] Building realistic scan data...");
   const scans = generateScans();
-  console.log(`  [generate] Created ${scans.length} scan records across ${NUM_ORGS} orgs.\n`);
+  console.log(
+    `  [generate] Created ${scans.length} scan records across ${NUM_ORGS} orgs.\n`,
+  );
 
   // Print per-org summary
-  const orgIds = [...new Set(scans.map(s => s.orgId))];
+  const orgIds = [...new Set(scans.map((s) => s.orgId))];
   for (const orgId of orgIds) {
-    const orgScans = scans.filter(s => s.orgId === orgId);
-    const profile = ORG_PROFILES.find(p => p.orgId === orgId);
-    const avgPosture = Math.round(orgScans.reduce((a, s) => a + s.postureScore, 0) / orgScans.length);
+    const orgScans = scans.filter((s) => s.orgId === orgId);
+    const profile = ORG_PROFILES.find((p) => p.orgId === orgId);
+    const avgPosture = Math.round(
+      orgScans.reduce((a, s) => a + s.postureScore, 0) / orgScans.length,
+    );
     const firstScore = orgScans[0]?.postureScore || 0;
     const lastScore = orgScans[orgScans.length - 1]?.postureScore || 0;
     const totalFiles = orgScans.reduce((a, s) => a + s.codeFilesAnalyzed, 0);
     const totalFindings = orgScans.reduce((a, s) => a + s.totalFindings, 0);
-    const repos = [...new Set(orgScans.map(s => s.repository))];
+    const repos = [...new Set(orgScans.map((s) => s.repository))];
 
-    console.log(`  ${profile?.companyName || orgId} (${profile?.industry || 'Unknown'})`);
-    console.log(`    Scans: ${orgScans.length} | Files: ${totalFiles.toLocaleString()} | Findings: ${totalFindings.toLocaleString()}`);
-    console.log(`    Posture: ${firstScore} → ${lastScore} (avg ${avgPosture}) | Repos: ${repos.length}`);
-    console.log(`    First: ${orgScans[0]?.timestamp?.slice(0, 10)} | Last: ${orgScans[orgScans.length - 1]?.timestamp?.slice(0, 10)}\n`);
+    console.log(
+      `  ${profile?.companyName || orgId} (${profile?.industry || "Unknown"})`,
+    );
+    console.log(
+      `    Scans: ${orgScans.length} | Files: ${totalFiles.toLocaleString()} | Findings: ${totalFindings.toLocaleString()}`,
+    );
+    console.log(
+      `    Posture: ${firstScore} → ${lastScore} (avg ${avgPosture}) | Repos: ${repos.length}`,
+    );
+    console.log(
+      `    First: ${orgScans[0]?.timestamp?.slice(0, 10)} | Last: ${orgScans[orgScans.length - 1]?.timestamp?.slice(0, 10)}\n`,
+    );
   }
 
-  console.log('  [write] Building store with org aggregates...');
+  console.log("  [write] Building store with org aggregates...");
   const store = buildStoreFromScans(scans);
 
   const dir = path.dirname(STORE_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-  const tmpPath = STORE_PATH + '.tmp';
-  fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf8');
+  const tmpPath = STORE_PATH + ".tmp";
+  fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), "utf8");
   fs.renameSync(tmpPath, STORE_PATH);
 
   const fileSizeKB = Math.round(fs.statSync(STORE_PATH).size / 1024);
   console.log(`  [write] Store saved to ${STORE_PATH} (${fileSizeKB} KB)\n`);
-  console.log(`  ${'═'.repeat(50)}`);
-  console.log(`  DONE — ${scans.length} scans seeded across ${orgIds.length} orgs.`);
+  console.log(`  ${"═".repeat(50)}`);
+  console.log(
+    `  DONE — ${scans.length} scans seeded across ${orgIds.length} orgs.`,
+  );
   console.log(`  Launch the dashboard and navigate to the Analytics tab`);
   console.log(`  to view populated charts and KPI cards.\n`);
 }

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 60: MPC Homomorphic Consensus Verifier.
@@ -12,8 +12,8 @@
  * @module hsm-adapter/mpc-homomorphic-consensus-verifier
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class MpcHomomorphicConsensusVerifier {
   /**
@@ -40,58 +40,120 @@ class MpcHomomorphicConsensusVerifier {
   processAssertion(request) {
     _validateAssertionRequest(this.policy, request);
     if (!this._bridge) {
-      throw new HsmAdapterError('HOMOID_ASSERT_BRIDGE_MISSING', 'identity bridge hub is required');
+      throw new HsmAdapterError(
+        "HOMOID_ASSERT_BRIDGE_MISSING",
+        "identity bridge hub is required",
+      );
     }
     const bridge = this._bridge.getBridge(request.bridgeId);
     if (!bridge) {
-      if (this.policy.banMalformedOrOutOfOrderProofs && typeof request.peerId === 'string') {
+      if (
+        this.policy.banMalformedOrOutOfOrderProofs &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('HOMOID_BRIDGE_NOT_FOUND', `bridge ${request.bridgeId} not found`);
+      throw new HsmAdapterError(
+        "HOMOID_BRIDGE_NOT_FOUND",
+        `bridge ${request.bridgeId} not found`,
+      );
     }
     if (!this._bridge.isBridgeActive(request.bridgeId)) {
-      if (this.policy.banMalformedOrOutOfOrderProofs && typeof request.peerId === 'string') {
+      if (
+        this.policy.banMalformedOrOutOfOrderProofs &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('HOMOID_BRIDGE_INACTIVE', `bridge ${request.bridgeId} is no longer active`);
+      throw new HsmAdapterError(
+        "HOMOID_BRIDGE_INACTIVE",
+        `bridge ${request.bridgeId} is no longer active`,
+      );
     }
-    if (this.policy.requireCommitteeVerifierAttestation && this._attestationClient) {
+    if (
+      this.policy.requireCommitteeVerifierAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.committeeVerifierAttestation);
+        const result = this._attestationClient.verify(
+          request.committeeVerifierAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('HOMOID_COMMITTEE_VERIFIER_UNATTESTED', 'committee verifier attestation invalid');
+          throw new HsmAdapterError(
+            "HOMOID_COMMITTEE_VERIFIER_UNATTESTED",
+            "committee verifier attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('HOMOID_COMMITTEE_VERIFIER_UNATTESTED', 'committee verifier attestation invalid');
+        throw new HsmAdapterError(
+          "HOMOID_COMMITTEE_VERIFIER_UNATTESTED",
+          "committee verifier attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('HOMOID_ASSERT_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "HOMOID_ASSERT_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('HOMOID_ASSERT_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "HOMOID_ASSERT_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
     const assertionKey = `${request.bridgeId}:${request.entityIdHash}`;
     if (this._assertions.has(assertionKey)) {
-      if (this.policy.banMalformedOrOutOfOrderProofs && typeof request.peerId === 'string') {
+      if (
+        this.policy.banMalformedOrOutOfOrderProofs &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('HOMOID_ASSERT_DUPLICATE', `assertion for entity ${request.entityIdHash} already recorded for bridge ${request.bridgeId}`);
+      throw new HsmAdapterError(
+        "HOMOID_ASSERT_DUPLICATE",
+        `assertion for entity ${request.entityIdHash} already recorded for bridge ${request.bridgeId}`,
+      );
     }
-    if (!request.zkProofHash || typeof request.zkProofHash !== 'string') {
-      if (this.policy.banMalformedOrOutOfOrderProofs && typeof request.peerId === 'string') {
+    if (!request.zkProofHash || typeof request.zkProofHash !== "string") {
+      if (
+        this.policy.banMalformedOrOutOfOrderProofs &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('HOMOID_ZK_PROOF_MISSING', 'zero-knowledge proof hash is required');
+      throw new HsmAdapterError(
+        "HOMOID_ZK_PROOF_MISSING",
+        "zero-knowledge proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
-      if (this.policy.banMalformedOrOutOfOrderProofs && typeof request.peerId === 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
+      if (
+        this.policy.banMalformedOrOutOfOrderProofs &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('HOMOID_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "HOMOID_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
-    const assertionId = request.assertionId || `assert-${crypto.randomBytes(4).toString('hex')}`;
+    const assertionId =
+      request.assertionId || `assert-${crypto.randomBytes(4).toString("hex")}`;
     const assertion = {
       assertionId,
       bridgeId: request.bridgeId,
@@ -99,7 +161,7 @@ class MpcHomomorphicConsensusVerifier {
       thresholdGroupHash: request.thresholdGroupHash,
       zkProofHash: request.zkProofHash,
       partialSignature: request.partialSignature,
-      platformId: request.platformId || 'unknown',
+      platformId: request.platformId || "unknown",
       recordedAt: Math.floor(Date.now() / 1000),
     };
     this._assertions.set(assertionKey, assertion);
@@ -113,17 +175,29 @@ class MpcHomomorphicConsensusVerifier {
    */
   checkAndFinalize(bridgeId) {
     if (!this._bridge) {
-      throw new HsmAdapterError('HOMOID_FINALIZE_BRIDGE_MISSING', 'identity bridge hub is required');
+      throw new HsmAdapterError(
+        "HOMOID_FINALIZE_BRIDGE_MISSING",
+        "identity bridge hub is required",
+      );
     }
     const bridge = this._bridge.getBridge(bridgeId);
     if (!bridge) {
-      throw new HsmAdapterError('HOMOID_BRIDGE_NOT_FOUND', `bridge ${bridgeId} not found`);
+      throw new HsmAdapterError(
+        "HOMOID_BRIDGE_NOT_FOUND",
+        `bridge ${bridgeId} not found`,
+      );
     }
-    if (bridge.status === 'finalized') {
-      throw new HsmAdapterError('HOMOID_BRIDGE_ALREADY_FINALIZED', `bridge ${bridgeId} already finalized`);
+    if (bridge.status === "finalized") {
+      throw new HsmAdapterError(
+        "HOMOID_BRIDGE_ALREADY_FINALIZED",
+        `bridge ${bridgeId} already finalized`,
+      );
     }
     if (!this._bridge.isBridgeActive(bridgeId)) {
-      throw new HsmAdapterError('HOMOID_BRIDGE_INACTIVE', `bridge ${bridgeId} is no longer active`);
+      throw new HsmAdapterError(
+        "HOMOID_BRIDGE_INACTIVE",
+        `bridge ${bridgeId} is no longer active`,
+      );
     }
     const assertions = [];
     for (const [key, assertion] of this._assertions) {
@@ -146,7 +220,7 @@ class MpcHomomorphicConsensusVerifier {
       finalizedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('MPC_CROSS_CHAIN_CONSENSUS_FINALIZED', { ...result });
+      this._audit("MPC_CROSS_CHAIN_CONSENSUS_FINALIZED", { ...result });
     }
     return result;
   }
@@ -177,11 +251,24 @@ class MpcHomomorphicConsensusVerifier {
 }
 
 function _validateAssertionRequest(policy, request) {
-  if (!request.bridgeId || !request.entityIdHash || !request.thresholdGroupHash) {
-    throw new HsmAdapterError('HOMOID_ASSERT_FIELDS_MISSING', 'bridgeId, entityIdHash, and thresholdGroupHash are required');
+  if (
+    !request.bridgeId ||
+    !request.entityIdHash ||
+    !request.thresholdGroupHash
+  ) {
+    throw new HsmAdapterError(
+      "HOMOID_ASSERT_FIELDS_MISSING",
+      "bridgeId, entityIdHash, and thresholdGroupHash are required",
+    );
   }
-  if (policy.requireCommitteeVerifierAttestation && !request.committeeVerifierAttestation) {
-    throw new HsmAdapterError('HOMOID_ASSERT_ATTESTATION_MISSING', 'committee verifier attestation is required');
+  if (
+    policy.requireCommitteeVerifierAttestation &&
+    !request.committeeVerifierAttestation
+  ) {
+    throw new HsmAdapterError(
+      "HOMOID_ASSERT_ATTESTATION_MISSING",
+      "committee verifier attestation is required",
+    );
   }
 }
 

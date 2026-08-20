@@ -40,27 +40,22 @@ let cachedAgent4000At = 0;
 let pendingProbe4000 = null;
 /** Dashboard + API on the same localhost machine (e.g. coming-soon dev on :59150). */
 export function isIntegratedLocalDashboard() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     const host = window.location.hostname.toLowerCase();
-    if (host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]')
-        return false;
+    if (host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]') return false;
     return window.location.protocol === 'http:';
 }
 function isAgentJs4000Origin(origin) {
-    if (!origin)
-        return false;
+    if (!origin) return false;
     try {
         return new URL(String(origin)).port === '4000';
-    }
-    catch (_a) {
+    } catch (_a) {
         return String(origin).includes(':4000');
     }
 }
 /** Drop stale agent.js:4000 bridge params when the integrated dashboard already serves /api. */
 export function clearStaleIntegratedBridgeParams() {
-    if (!isIntegratedLocalDashboard())
-        return false;
+    if (!isIntegratedLocalDashboard()) return false;
     const override = readSbApiBaseOverride();
     let cleared = false;
     if (override) {
@@ -69,14 +64,16 @@ export function clearStaleIntegratedBridgeParams() {
                 clearExtensionBridge({ updateUrl: true });
                 cleared = true;
             }
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
     }
     if (typeof window !== 'undefined' && window.__SB_BRIDGE_HOST__ && isAgentJs4000Origin(window.__SB_BRIDGE_HOST__)) {
         try {
             delete window.__SB_BRIDGE_HOST__;
+        } catch (_b) {
+            /* ignore */
         }
-        catch (_b) { /* ignore */ }
         cleared = true;
     }
     return cleared;
@@ -92,12 +89,10 @@ function getAgentFetch() {
 }
 /** True when the hosted dashboard can relay loopback fetches via the VS Code wrapper iframe. */
 export function canUseParentBridgeFetch() {
-    if (typeof window === 'undefined' || !hasExtensionBridgeConfigured())
-        return false;
+    if (typeof window === 'undefined' || !hasExtensionBridgeConfigured()) return false;
     try {
         return !!(window.parent && window.parent !== window);
-    }
-    catch (_a) {
+    } catch (_a) {
         return false;
     }
 }
@@ -121,39 +116,41 @@ export function bridgeFetchViaParent(url, init = {}, timeoutMs = 4000) {
             window.removeEventListener('message', onMsg);
         };
         const timer = setTimeout(() => {
-            if (settled)
-                return;
+            if (settled) return;
             cleanup();
             reject(new Error('Parent bridge fetch timeout'));
         }, timeoutMs);
-        const onMsg = (event) => {
+        const onMsg = event => {
             const data = event === null || event === void 0 ? void 0 : event.data;
-            if (!data || data.command !== 'bridgeFetchResponse' || data.requestId !== requestId)
-                return;
+            if (!data || data.command !== 'bridgeFetchResponse' || data.requestId !== requestId) return;
             cleanup();
             if (data.error) {
                 reject(new Error(String(data.error)));
                 return;
             }
-            resolve(new Response(data.body ?? '', {
-                status: data.status || 200,
-                headers: { 'Content-Type': data.contentType || 'application/json' }
-            }));
+            resolve(
+                new Response(data.body ?? '', {
+                    status: data.status || 200,
+                    headers: { 'Content-Type': data.contentType || 'application/json' }
+                })
+            );
         };
         window.addEventListener('message', onMsg);
         try {
-            window.parent.postMessage({
-                command: 'bridgeFetch',
-                requestId,
-                url,
-                init: {
-                    method: init.method || 'GET',
-                    headers: init.headers || undefined,
-                    body: init.body || undefined
-                }
-            }, '*');
-        }
-        catch (err) {
+            window.parent.postMessage(
+                {
+                    command: 'bridgeFetch',
+                    requestId,
+                    url,
+                    init: {
+                        method: init.method || 'GET',
+                        headers: init.headers || undefined,
+                        body: init.body || undefined
+                    }
+                },
+                '*'
+            );
+        } catch (err) {
             cleanup();
             reject(err);
         }
@@ -161,19 +158,16 @@ export function bridgeFetchViaParent(url, init = {}, timeoutMs = 4000) {
 }
 /** Prefer browser extension bridge, then VS Code wrapper relay, then direct fetch. */
 export function getBridgeFetch() {
-    if (hasAgentBridge())
-        return getAgentFetch();
+    if (hasAgentBridge()) return getAgentFetch();
     if (canUseParentBridgeFetch()) {
         return async (url, init) => {
             try {
                 return await bridgeFetchViaParent(url, init);
-            }
-            catch (err) {
+            } catch (err) {
                 const msg = String(err?.message || err);
                 if (msg.includes('Parent bridge fetch timeout') || msg.includes('Parent bridge unavailable')) {
                     // On hosted HTTPS, direct fetch to localhost will always CORS-fail — don't attempt it.
-                    if (isHostedHttpsDashboard())
-                        throw err;
+                    if (isHostedHttpsDashboard()) throw err;
                     return fetch(url, init);
                 }
                 throw err;
@@ -183,48 +177,42 @@ export function getBridgeFetch() {
     return fetch;
 }
 function readSbApiBaseOverride() {
-    if (typeof window === 'undefined')
-        return null;
+    if (typeof window === 'undefined') return null;
     try {
         const params = new URLSearchParams(window.location.search);
         const fromQuery = params.get(SB_API_BASE_KEY) || params.get('sb_notify_base');
-        if (fromQuery)
-            return fromQuery;
+        if (fromQuery) return fromQuery;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     if (typeof sessionStorage !== 'undefined') {
         try {
             return sessionStorage.getItem(SB_API_BASE_KEY) || sessionStorage.getItem('sb_notify_base');
+        } catch (_b) {
+            /* ignore */
         }
-        catch (_b) { /* ignore */ }
     }
     return null;
 }
 /** Extension IDE data-server origin (dynamic port), when sb_api_base is injected. */
 export function getExtensionBridgeOrigin() {
     const override = readSbApiBaseOverride();
-    if (!override)
-        return null;
+    if (!override) return null;
     try {
         const base = override.replace(/\/api\/?$/, '');
         const parsed = new URL(base);
         const host = parsed.hostname.toLowerCase();
-        if (host !== '127.0.0.1' && host !== 'localhost')
-            return null;
-        if (isIntegratedLocalDashboard() && isAgentJs4000Origin(parsed.origin))
-            return null;
+        if (host !== '127.0.0.1' && host !== 'localhost') return null;
+        if (isIntegratedLocalDashboard() && isAgentJs4000Origin(parsed.origin)) return null;
         return parsed.origin;
-    }
-    catch (_a) {
+    } catch (_a) {
         return null;
     }
 }
 function resolveBridgeOrigin() {
     const bridge = getExtensionBridgeOrigin();
-    if (bridge)
-        return bridge;
-    if (isIntegratedLocalDashboard())
-        return null;
+    if (bridge) return bridge;
+    if (isIntegratedLocalDashboard()) return null;
     return AGENT_4000_ORIGIN;
 }
 function isExtensionBridgeOrigin(origin) {
@@ -250,25 +238,27 @@ export function getVsixDownloadUrl() {
 
 /** vscode:// or cursor:// deep link — extension opens simplebeacon.ai with bridge params in the system browser. */
 export function buildExtensionConnectDeepLink(route = 'chatbot') {
-    if (typeof window === 'undefined')
-        return '';
+    if (typeof window === 'undefined') return '';
     const scheme = /Cursor/i.test(navigator.userAgent || '') ? 'cursor' : 'vscode';
-    const segment = String(route || 'chatbot').replace(/^\//, '').replace(/^dashboard\/?/, '') || 'chatbot';
+    const segment =
+        String(route || 'chatbot')
+            .replace(/^\//, '')
+            .replace(/^dashboard\/?/, '') || 'chatbot';
     return `${scheme}://${EXTENSION_ID}/connect?route=${encodeURIComponent(segment)}`;
 }
 
 function canProbeLoopbackPorts() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     const host = window.location.hostname;
     const isLoopback = /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host);
     return isLoopback && window.location.protocol === 'http:';
 }
 
 function normalizeExtensionApiBase(value) {
-    const trimmed = String(value || '').trim().replace(/\/+$/, '');
-    if (!trimmed)
-        return null;
+    const trimmed = String(value || '')
+        .trim()
+        .replace(/\/+$/, '');
+    if (!trimmed) return null;
     return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 }
 
@@ -281,15 +271,12 @@ function normalizeExtensionApiBase(value) {
  * @returns {Promise<string|null>} API base e.g. http://127.0.0.1:54358/api
  */
 export async function probeExtensionDataServer(ports = EXTENSION_PROBE_PORTS, _options = {}) {
-    if (typeof window === 'undefined')
-        return null;
-    if (!canProbeLoopbackPorts())
-        return null;
+    if (typeof window === 'undefined') return null;
+    if (!canProbeLoopbackPorts()) return null;
     const doFetch = getLocalBridgeFetch();
     for (const port of ports) {
         const origin = `http://127.0.0.1:${port}`; // simplebeacon-ignore hardcoded-url
-        if (isMixedContent(origin) && !hasAgentBridge())
-            continue;
+        if (isMixedContent(origin) && !hasAgentBridge()) continue;
         try {
             const res = await doFetch(`${origin}/api/health`, { signal: AbortSignal.timeout(2200) });
             if (res.ok) {
@@ -299,13 +286,10 @@ export async function probeExtensionDataServer(ports = EXTENSION_PROBE_PORTS, _o
                 }
             }
             const pingRes = await doFetch(`${origin}/api/ping`, { signal: AbortSignal.timeout(2200) });
-            if (!pingRes.ok)
-                continue;
+            if (!pingRes.ok) continue;
             const data = await pingRes.json().catch(() => ({}));
-            if (data && (data.online === true || data.status === 'ok'))
-                return `${origin}/api`;
-        }
-        catch {
+            if (data && (data.online === true || data.status === 'ok')) return `${origin}/api`;
+        } catch {
             /* extension not on this port */
         }
     }
@@ -333,10 +317,10 @@ export async function discoverAndApplyExtensionBridge(options = {}) {
         let ports = EXTENSION_PROBE_PORTS;
         try {
             const port = Number(new URL(String(stored).replace(/\/api\/?$/, '')).port);
-            if (port)
-                ports = [port];
+            if (port) ports = [port];
+        } catch (_a) {
+            /* use defaults */
         }
-        catch (_a) { /* use defaults */ }
         const alive = await probeExtensionDataServer(ports);
         if (!alive) {
             if (hasExplicitBridgeParam()) {
@@ -364,11 +348,9 @@ export async function discoverAndApplyExtensionBridge(options = {}) {
 
 /** Validate stored bridge on page load. Only clear it if there was no explicit user/extension-provided param. */
 export async function validateExtensionBridgeOnLoad() {
-    if (typeof window === 'undefined')
-        return { ok: false };
+    if (typeof window === 'undefined') return { ok: false };
     const override = readSbApiBaseOverride();
-    if (!override)
-        return { ok: false, source: 'none' };
+    if (!override) return { ok: false, source: 'none' };
     const normalized = normalizeExtensionApiBase(override);
     if (!canProbeLoopbackPorts()) {
         if (hasExplicitBridgeParam()) {
@@ -380,13 +362,12 @@ export async function validateExtensionBridgeOnLoad() {
     let port = 54358;
     try {
         port = Number(new URL(override.replace(/\/api\/?$/, '')).port) || 54358;
+    } catch (_a) {
+        /* default port */
     }
-    catch (_a) { /* default port */ }
     const apiBase = await probeExtensionDataServer([port]);
-    if (apiBase)
-        return { ok: true, apiBase };
-    if (hasExplicitBridgeParam())
-        return { ok: true, apiBase: normalized, source: 'existing', unverified: true };
+    if (apiBase) return { ok: true, apiBase };
+    if (hasExplicitBridgeParam()) return { ok: true, apiBase: normalized, source: 'existing', unverified: true };
     clearExtensionBridge({ updateUrl: true });
     return { ok: false, source: 'stale' };
 }
@@ -396,14 +377,16 @@ export function hasExplicitBridgeParam() {
     try {
         const params = new URLSearchParams(location.search);
         if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     try {
         if (typeof sessionStorage !== 'undefined') {
             if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')) return true;
         }
+    } catch (_b) {
+        /* ignore */
     }
-    catch (_b) { /* ignore */ }
     return false;
 }
 
@@ -452,8 +435,7 @@ async function parseOllamaProbeResponse(res) {
         if (data && Array.isArray(data.models)) {
             return { ok: true, corsBlocked: false, status: res.status };
         }
-    }
-    catch (_a) {
+    } catch (_a) {
         // Direct Ollama /api/tags may not be JSON in edge cases — treat HTTP 200 as success.
     }
     return { ok: true, corsBlocked: false, status: res.status };
@@ -503,8 +485,7 @@ export async function probeExtensionBridgeHealth() {
         }
         const data = await res.json().catch(() => ({}));
         return { ok: data?.online !== false, reason: 'ping-ok' };
-    }
-    catch (err) {
+    } catch (err) {
         return { ok: false, reason: 'unreachable', error: String(err?.message || err) };
     }
 }
@@ -517,14 +498,11 @@ export async function probeExtensionBridgeHealth() {
  * @returns {Promise<boolean>}
  */
 export async function probeLocalOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     const origin = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/$/, '');
     // Hosted dashboard: never auto-probe loopback — use Connect local Ollama (probeUserInitiatedOllama).
-    if (isHostedHttpsDashboard())
-        return false;
-    if (!shouldProbeOllamaModels(origin))
-        return false;
+    if (isHostedHttpsDashboard()) return false;
+    if (!shouldProbeOllamaModels(origin)) return false;
     const doFetch = getLocalBridgeFetch();
     const probeUrl = resolveOllamaProxyUrl('/api/tags', origin);
     // On an HTTPS-hosted dashboard, probing an HTTP loopback URL will be blocked by the
@@ -537,16 +515,14 @@ export async function probeLocalOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
         const res = await doFetch(probeUrl, { signal: AbortSignal.timeout(2500) });
         const parsed = await parseOllamaProbeResponse(res);
         return parsed.ok;
-    }
-    catch {
+    } catch {
         return false;
     }
 }
 
 /** Single user-initiated probe (Connect local Ollama) — bypasses hosted auto-probe guard. */
 export async function probeUserInitiatedOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
-    if (typeof window === 'undefined')
-        return { ok: false, corsBlocked: false, status: 0 };
+    if (typeof window === 'undefined') return { ok: false, corsBlocked: false, status: 0 };
     const origin = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/$/, '');
     const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://simplebeacon.ai';
     // Hosted HTTPS can reach Ollama directly when OLLAMA_ORIGINS allows the site origin.
@@ -568,10 +544,10 @@ export async function probeUserInitiatedOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) 
             if (res.status !== 404) {
                 break;
             }
-        }
-        catch (err) {
+        } catch (err) {
             const msg = String(err?.message || err).toLowerCase();
-            const isLocalNetworkAccessBlocked = msg.includes('local network access') ||
+            const isLocalNetworkAccessBlocked =
+                msg.includes('local network access') ||
                 msg.includes('private network access') ||
                 msg.includes('permission required');
             lastResult = {
@@ -626,13 +602,14 @@ export async function probeUserInitiatedOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) 
             return { ok: true, corsBlocked: false, status: parsed.status };
         }
         return { ok: false, corsBlocked: res.status === 403, status: res.status, error: parsed.error };
-    }
-    catch (err) {
+    } catch (err) {
         const msg = String(err?.message || err).toLowerCase();
-        const isLocalNetworkAccessBlocked = msg.includes('local network access') ||
+        const isLocalNetworkAccessBlocked =
+            msg.includes('local network access') ||
             msg.includes('private network access') ||
             msg.includes('permission required');
-        const corsBlocked = isLocalNetworkAccessBlocked ||
+        const corsBlocked =
+            isLocalNetworkAccessBlocked ||
             msg.includes('cors') ||
             msg.includes('cross-origin') ||
             msg.includes('networkerror') ||
@@ -649,11 +626,9 @@ export async function probeUserInitiatedOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) 
  */
 export async function findFolderViaBridge(folderName) {
     const origin = getExtensionBridgeOrigin();
-    if (!origin)
-        return null;
+    if (!origin) return null;
     const health = await probeExtensionBridgeHealth();
-    if (!health.ok)
-        return null;
+    if (!health.ok) return null;
     const doFetch = getLocalBridgeFetch();
     try {
         const statusRes = await doFetch(`${origin}/api/status`, { headers: { Accept: 'application/json' } });
@@ -664,22 +639,25 @@ export async function findFolderViaBridge(folderName) {
                 return String(status.workspace);
             }
         }
-    } catch { /* fall through to find-folder */ }
-    try {
-        const response = await doFetch(`${origin}/api/find-folder`, {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ folderName }),
-        }, 25000);
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok)
-            return null;
-        const results = Array.isArray(body.results) ? body.results : [];
-        if (results.length > 0)
-            return String(results[0]);
-        return null;
+    } catch {
+        /* fall through to find-folder */
     }
-    catch (_a) {
+    try {
+        const response = await doFetch(
+            `${origin}/api/find-folder`,
+            {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderName })
+            },
+            25000
+        );
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) return null;
+        const results = Array.isArray(body.results) ? body.results : [];
+        if (results.length > 0) return String(results[0]);
+        return null;
+    } catch (_a) {
         return null;
     }
 }
@@ -690,25 +668,25 @@ export async function findFolderViaBridge(folderName) {
  */
 export async function pickFolderViaExtensionBridge() {
     const origin = getExtensionBridgeOrigin();
-    if (!origin)
-        return null;
+    if (!origin) return null;
     const health = await probeExtensionBridgeHealth();
-    if (!health.ok)
-        return null;
+    if (!health.ok) return null;
     const doFetch = getLocalBridgeFetch();
     try {
-        const response = await doFetch(`${origin}/api/analyze/pick-folder`, {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-            body: '{}',
-        }, AGENT_TIMEOUT_MS);
+        const response = await doFetch(
+            `${origin}/api/analyze/pick-folder`,
+            {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+                body: '{}'
+            },
+            AGENT_TIMEOUT_MS
+        );
         const body = await response.json().catch(() => ({}));
-        if (!response.ok || body.success !== true)
-            return null;
+        if (!response.ok || body.success !== true) return null;
         const picked = String(body.path || '').trim();
         return picked || null;
-    }
-    catch (_a) {
+    } catch (_a) {
         return null;
     }
 }
@@ -722,10 +700,8 @@ async function agentFetchWithTimeout(url, options = {}, timeoutMs = 300000) {
 }
 export function isLocalPath(value) {
     const raw = String(value || '').trim();
-    if (!raw)
-        return false;
-    if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw))
-        return false;
+    if (!raw) return false;
+    if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return false;
     const isWindowsClient = typeof navigator !== 'undefined' && /Win(dows|32|64)/i.test(navigator.userAgent || '');
     if (isWindowsClient) {
         return /^[A-Za-z]:[\\/]/.test(raw) || /^\\\\/.test(raw);
@@ -756,10 +732,14 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
             return status;
         }
         try {
-            const response = await agentFetchWithTimeout(`${origin}/health`, {
-                method: 'GET',
-                headers: { Accept: 'application/json' }
-            }, AGENT_TIMEOUT_MS);
+            const response = await agentFetchWithTimeout(
+                `${origin}/health`,
+                {
+                    method: 'GET',
+                    headers: { Accept: 'application/json' }
+                },
+                AGENT_TIMEOUT_MS
+            );
             const body = await response.json().catch(() => ({}));
             const status = {
                 available: response.ok && body.success === true,
@@ -770,14 +750,12 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
             cachedAgentStatus = status;
             cachedAt = Date.now();
             return status;
-        }
-        catch (err) {
+        } catch (err) {
             const likelyBlocked = !hasAgentBridge() && isMixedContentBlocked(origin, err);
             cachedAgentStatus = { available: false, scannerAvailable: false, likelyBlocked };
             cachedAt = Date.now();
             return cachedAgentStatus;
-        }
-        finally {
+        } finally {
             pendingProbe = null;
         }
     })();
@@ -789,36 +767,34 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
  * but Firefox/Safari will throw a mixed-content error.
  */
 function isMixedContentBlocked(origin, err) {
-    if (isMixedContent(origin))
-        return true;
-    if (!origin || !origin.startsWith('http://'))
-        return false;
-    if (typeof window === 'undefined')
-        return false;
-    if (window.location.protocol !== 'https:')
-        return false;
+    if (isMixedContent(origin)) return true;
+    if (!origin || !origin.startsWith('http://')) return false;
+    if (typeof window === 'undefined') return false;
+    if (window.location.protocol !== 'https:') return false;
     const message = String((err === null || err === void 0 ? void 0 : err.message) || '').toLowerCase();
-    return message.includes('mixed content') ||
+    return (
+        message.includes('mixed content') ||
         message.includes('insecure') ||
         message.includes('blocked') ||
         message.includes('failed to fetch') ||
-        message.includes('ns_error');
+        message.includes('ns_error')
+    );
 }
 function isMixedContent(origin) {
-    if (!origin || !origin.startsWith('http://'))
-        return false;
-    if (typeof window === 'undefined')
-        return false;
-    if (window.location.protocol !== 'https:')
-        return false;
+    if (!origin || !origin.startsWith('http://')) return false;
+    if (typeof window === 'undefined') return false;
+    if (window.location.protocol !== 'https:') return false;
     try {
         var params = new URLSearchParams(window.location.search);
-        if (params.get('sb_api_base') || params.get('sb_notify_base'))
+        if (params.get('sb_api_base') || params.get('sb_notify_base')) return false;
+        if (
+            typeof sessionStorage !== 'undefined' &&
+            (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
+        )
             return false;
-        if (typeof sessionStorage !== 'undefined' && (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')))
-            return false;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     return true;
 }
 /**
@@ -855,14 +831,18 @@ export async function scanViaAgent(projectPath, options = {}, origin = DEFAULT_A
         resolvedOrigin = options;
         scanOptions = {};
     }
-    const response = await agentFetchWithTimeout(`${resolvedOrigin}/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-            projectPath,
-            fullDirectoryScan: scanOptions.fullDirectoryScan === true
-        })
-    }, 600000);
+    const response = await agentFetchWithTimeout(
+        `${resolvedOrigin}/scan`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({
+                projectPath,
+                fullDirectoryScan: scanOptions.fullDirectoryScan === true
+            })
+        },
+        600000
+    );
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.success) {
         throw new Error(data.error || `Agent scan failed (${response.status})`);
@@ -877,9 +857,13 @@ export async function scanViaAgent(projectPath, options = {}, origin = DEFAULT_A
  */
 export async function fetchScanProgressViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
     const params = new URLSearchParams({ projectPath: String(projectPath || '') });
-    const response = await agentFetchWithTimeout(`${origin}/progress?${params}`, {
-        headers: { Accept: 'application/json' }
-    }, 15000);
+    const response = await agentFetchWithTimeout(
+        `${origin}/progress?${params}`,
+        {
+            headers: { Accept: 'application/json' }
+        },
+        15000
+    );
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.success) {
         return { active: false };
@@ -898,9 +882,13 @@ export async function fetchScanProgressViaExtensionBridge(projectPath) {
     }
     const params = new URLSearchParams({ projectPath: String(projectPath || '') });
     try {
-        const response = await agentFetchWithTimeout(`${origin}/api/simplebeacon/scan/progress?${params}`, {
-            headers: { Accept: 'application/json' }
-        }, 15000);
+        const response = await agentFetchWithTimeout(
+            `${origin}/api/simplebeacon/scan/progress?${params}`,
+            {
+                headers: { Accept: 'application/json' }
+            },
+            15000
+        );
         const data = await response.json().catch(() => ({}));
         if (response.status === 404) {
             return { active: false, endpointUnavailable: true };
@@ -909,8 +897,7 @@ export async function fetchScanProgressViaExtensionBridge(projectPath) {
             return { active: false };
         }
         return data.progress || { active: false };
-    }
-    catch (_a) {
+    } catch (_a) {
         return { active: false, endpointUnavailable: true };
     }
 }
@@ -943,8 +930,11 @@ export async function probeAgent4000(origin = resolveBridgeOrigin()) {
         return { available: false, likelyBlocked: false, extensionBridge: false, origin, hostedSkipped: true };
     }
     const now = Date.now();
-    if (cachedAgent4000Status && cachedAgent4000Status.origin === origin &&
-        probeCacheFresh(cachedAgent4000At, cachedAgent4000Status)) {
+    if (
+        cachedAgent4000Status &&
+        cachedAgent4000Status.origin === origin &&
+        probeCacheFresh(cachedAgent4000At, cachedAgent4000Status)
+    ) {
         return cachedAgent4000Status;
     }
     if (pendingProbe4000) {
@@ -962,10 +952,14 @@ export async function probeAgent4000(origin = resolveBridgeOrigin()) {
             return status;
         }
         try {
-            const response = await agentFetchWithTimeout(`${origin}/api/ping`, {
-                method: 'GET',
-                headers: { Accept: 'application/json' }
-            }, AGENT_TIMEOUT_MS);
+            const response = await agentFetchWithTimeout(
+                `${origin}/api/ping`,
+                {
+                    method: 'GET',
+                    headers: { Accept: 'application/json' }
+                },
+                AGENT_TIMEOUT_MS
+            );
             const body = await response.json().catch(() => ({}));
             const status = {
                 available: response.ok && body.online === true,
@@ -975,14 +969,12 @@ export async function probeAgent4000(origin = resolveBridgeOrigin()) {
             cachedAgent4000Status = status;
             cachedAgent4000At = Date.now();
             return status;
-        }
-        catch (_a) {
+        } catch (_a) {
             const status = { available: false, extensionBridge, origin };
             cachedAgent4000Status = status;
             cachedAgent4000At = Date.now();
             return status;
-        }
-        finally {
+        } finally {
             pendingProbe4000 = null;
         }
     })();
@@ -996,9 +988,11 @@ async function pollForScanCompletion(origin, projectPath, doFetch) {
     const startTime = Date.now();
     let inactiveCount = 0;
     while (Date.now() - startTime < SCAN_POLL_TIMEOUT_MS) {
-        await new Promise((r) => setTimeout(r, SCAN_POLL_INTERVAL_MS));
+        await new Promise(r => setTimeout(r, SCAN_POLL_INTERVAL_MS));
         try {
-            const progressRes = await doFetch(`${origin}/api/simplebeacon/scan/progress?projectPath=${encodeURIComponent(projectPath)}`);
+            const progressRes = await doFetch(
+                `${origin}/api/simplebeacon/scan/progress?projectPath=${encodeURIComponent(projectPath)}`
+            );
             const progressData = await progressRes.json().catch(() => ({}));
             const progress = progressData.progress || {};
             if (!progress.active) {
@@ -1076,14 +1070,12 @@ export async function scanViaAgent4000(projectPath, origin = resolveBridgeOrigin
  * @param {HTMLElement} [container]
  */
 export function renderAgentCertificate(report, container) {
-    if (!container)
-        return;
+    if (!container) return;
     container.replaceChildren();
     const cert = report && report.certificate;
-    if (!cert)
-        return;
+    if (!cert) return;
     const files = report.files || [];
-    const issueFiles = files.filter((f) => f.status && f.status !== 'Clean');
+    const issueFiles = files.filter(f => f.status && f.status !== 'Clean');
     const cleanCount = files.length - issueFiles.length;
     const discovered = typeof report.discoveredFiles === 'number' ? report.discoveredFiles : files.length;
     const skipped = typeof report.skippedFiles === 'number' ? report.skippedFiles : 0;
@@ -1126,7 +1118,7 @@ export function renderAgentCertificate(report, container) {
         { label: 'Risk liability', value: cert.liabilityStr || '$0', danger: true },
         ...(skipped > 0 ? [{ label: 'Skipped', value: `${skipped} unreadable` }] : [])
     ];
-    metricDefs.forEach((item) => {
+    metricDefs.forEach(item => {
         const chip = document.createElement('div');
         chip.className = 'sb-compliance-metric';
         const label = document.createElement('span');
@@ -1155,7 +1147,7 @@ export function renderAgentCertificate(report, container) {
         { label: 'Remediation roadmap', route: 'roadmap' },
         { label: 'Export report', route: 'export' }
     ];
-    actionDefs.forEach((item) => {
+    actionDefs.forEach(item => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = item.route === 'results' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
@@ -1196,12 +1188,10 @@ export function renderAgentCertificate(report, container) {
         const renderList = () => {
             list.replaceChildren();
             let rows = files;
-            if (activeFilter === 'issues')
-                rows = issueFiles;
-            else if (activeFilter === 'clean')
-                rows = files.filter((f) => !f.status || f.status === 'Clean');
+            if (activeFilter === 'issues') rows = issueFiles;
+            else if (activeFilter === 'clean') rows = files.filter(f => !f.status || f.status === 'Clean');
             const limit = activeFilter === 'all' ? 80 : 120;
-            rows.slice(0, limit).forEach((f) => {
+            rows.slice(0, limit).forEach(f => {
                 const row = document.createElement('div');
                 const isClean = !f.status || f.status === 'Clean';
                 row.className = `sb-compliance-file-row${isClean ? ' is-clean' : ' is-issue'}`;
@@ -1241,14 +1231,14 @@ export function renderAgentCertificate(report, container) {
                 list.appendChild(more);
             }
         };
-        filters.forEach((filter) => {
+        filters.forEach(filter => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = `btn btn-ghost btn-xs sb-compliance-filter${filter.id === activeFilter ? ' is-active' : ''}`;
             btn.textContent = filter.label;
             btn.addEventListener('click', () => {
                 activeFilter = filter.id;
-                toolbar.querySelectorAll('.sb-compliance-filter').forEach((el) => el.classList.remove('is-active'));
+                toolbar.querySelectorAll('.sb-compliance-filter').forEach(el => el.classList.remove('is-active'));
                 btn.classList.add('is-active');
                 renderList();
             });
@@ -1275,29 +1265,26 @@ export function renderAgentCertificate(report, container) {
  * @returns {boolean}
  */
 export function shouldUseAgent(projectPath, agentStatus) {
-    if (!(agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.available) || !(agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.scannerAvailable))
+    if (
+        !(agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.available) ||
+        !(agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.scannerAvailable)
+    )
         return false;
     return isLocalPath(projectPath);
 }
 /** True when the dashboard is served over HTTPS on a non-localhost host (Pages, production). */
 export function isHostedHttpsDashboard() {
-    if (typeof window === 'undefined')
-        return false;
-    if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname))
-        return false;
+    if (typeof window === 'undefined') return false;
+    if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) return false;
     return window.location.protocol === 'https:';
 }
 /** Skip standalone agent.js:4000 when the integrated dashboard already serves /api on this origin. */
 export function shouldProbeAgent4000() {
-    if (hasAgentBridge())
-        return true;
+    if (hasAgentBridge()) return true;
     const bridge = getExtensionBridgeOrigin();
-    if (bridge)
-        return true;
-    if (isHostedHttpsDashboard())
-        return false;
-    if (isIntegratedLocalDashboard())
-        return false;
+    if (bridge) return true;
+    if (isHostedHttpsDashboard()) return false;
+    if (isIntegratedLocalDashboard()) return false;
     return canProbeLoopbackPorts();
 }
 /** Skip doomed localhost agent probes on hosted HTTPS unless an extension bridge is configured. */
@@ -1324,11 +1311,9 @@ const INTEGRATED_AGENT_SKIP = {
  * Format a status message for the UI.
  */
 export function formatAgentStatus(agentStatus) {
-    if (!agentStatus)
-        return '';
+    if (!agentStatus) return '';
     // Hosted dashboard: in-browser folder scan is primary — suppress agent nag when offline.
-    if (isHostedHttpsDashboard() && (!agentStatus.available || agentStatus.hostedSkipped))
-        return '';
+    if (isHostedHttpsDashboard() && (!agentStatus.available || agentStatus.hostedSkipped)) return '';
     if (!agentStatus.available) {
         if (agentStatus.likelyBlocked && !isHostedHttpsDashboard()) {
             return 'Local agent blocked by HTTPS mixed-content policy — use Chrome/Edge or download the Local Scan Agent below';
@@ -1346,15 +1331,11 @@ export function formatAgentStatus(agentStatus) {
  * @returns {'windows'|'linux'|'macos'|'unknown'}
  */
 export function detectPlatform() {
-    if (typeof window === 'undefined' || !window.navigator)
-        return 'unknown';
+    if (typeof window === 'undefined' || !window.navigator) return 'unknown';
     const ua = window.navigator.userAgent.toLowerCase();
-    if (ua.includes('win'))
-        return 'windows';
-    if (ua.includes('mac') || ua.includes('darwin'))
-        return 'macos';
-    if (ua.includes('linux'))
-        return 'linux';
+    if (ua.includes('win')) return 'windows';
+    if (ua.includes('mac') || ua.includes('darwin')) return 'macos';
+    if (ua.includes('linux')) return 'linux';
     return 'unknown';
 }
 /**
@@ -1372,7 +1353,11 @@ export function getAgentDownloadUrl(platform) {
  */
 export function getAgentFallbackMessage(agentStatus) {
     var _a, _b, _c;
-    if (isHostedHttpsDashboard() && (!(agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.available) || (agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.hostedSkipped))) {
+    if (
+        isHostedHttpsDashboard() &&
+        (!(agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.available) ||
+            (agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.hostedSkipped))
+    ) {
         return 'Use Select Folder above to scan your project privately in this browser. Typed PC paths cannot be read from the hosted dashboard.';
     }
     if ((_a = agentStatus) === null || _a === void 0 ? void 0 : _a.likelyBlocked) {
@@ -1383,7 +1368,9 @@ export function getAgentFallbackMessage(agentStatus) {
     }
     if (!((_c = agentStatus) === null || _c === void 0 ? void 0 : _c.scannerAvailable)) {
         var _d;
-        const error = ((_d = agentStatus) === null || _d === void 0 ? void 0 : _d.scannerLoadError) ? ` (${agentStatus.scannerLoadError})` : '';
+        const error = ((_d = agentStatus) === null || _d === void 0 ? void 0 : _d.scannerLoadError)
+            ? ` (${agentStatus.scannerLoadError})`
+            : '';
         return `Local Scan Agent is running but the scanner is not loaded.${error} Restart the agent or reinstall the portable package.`;
     }
     return 'Local Scan Agent is not ready.';

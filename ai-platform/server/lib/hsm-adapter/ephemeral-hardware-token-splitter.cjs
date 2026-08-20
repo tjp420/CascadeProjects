@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 21: Ephemeral hardware token splitter.
@@ -9,8 +9,8 @@
  * @module hsm-adapter/ephemeral-hardware-token-splitter
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_TOKEN_LENGTH = 16;
 const DEFAULT_TOKEN_EXPIRY_MS = 300000;
@@ -36,11 +36,17 @@ class EphemeralHardwareTokenSplitter {
    */
   constructor(attestationRoot, options = {}) {
     if (!Buffer.isBuffer(attestationRoot) || attestationRoot.length < 16) {
-      throw new HsmAdapterError('INVALID_INPUT', 'attestationRoot must be a Buffer of at least 16 bytes');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "attestationRoot must be a Buffer of at least 16 bytes",
+      );
     }
     this._attestationRoot = Buffer.from(attestationRoot);
     this._tokenExpiryMs = options.tokenExpiryMs || DEFAULT_TOKEN_EXPIRY_MS;
-    this._clockSkewMs = typeof options.clockSkewMs === 'number' ? options.clockSkewMs : DEFAULT_CLOCK_SKEW_MS;
+    this._clockSkewMs =
+      typeof options.clockSkewMs === "number"
+        ? options.clockSkewMs
+        : DEFAULT_CLOCK_SKEW_MS;
     this._tokenLength = options.tokenLength || DEFAULT_TOKEN_LENGTH;
     this._logger = options.logger || null;
     this._counter = 0;
@@ -49,15 +55,21 @@ class EphemeralHardwareTokenSplitter {
 
   _audit(event, extra = {}) {
     if (!this._logger || !this._logger.info) return;
-    this._logger.info(event, { sub: 'hsm-adapter', provider: 'ephemeral-token', ...extra });
+    this._logger.info(event, {
+      sub: "hsm-adapter",
+      provider: "ephemeral-token",
+      ...extra,
+    });
   }
 
   _derive(tenantId, timestamp, counter) {
-    const hmac = crypto.createHmac('sha256', this._attestationRoot);
-    hmac.update(Buffer.isBuffer(tenantId) ? tenantId : Buffer.from(tenantId, 'utf8'));
+    const hmac = crypto.createHmac("sha256", this._attestationRoot);
+    hmac.update(
+      Buffer.isBuffer(tenantId) ? tenantId : Buffer.from(tenantId, "utf8"),
+    );
     const ts = _bigIntToBytes(BigInt(timestamp), 8);
     hmac.update(ts);
-    hmac.update(Buffer.from(counter.toString(10), 'utf8'));
+    hmac.update(Buffer.from(counter.toString(10), "utf8"));
     return hmac.digest().subarray(0, this._tokenLength);
   }
 
@@ -67,15 +79,18 @@ class EphemeralHardwareTokenSplitter {
    * @returns {{value: Buffer, issuedAt: number, expiresAt: number, tenantId: string, counter: number}}
    */
   issue(tenantId) {
-    if (typeof tenantId !== 'string' && !Buffer.isBuffer(tenantId)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'tenantId must be a string or Buffer');
+    if (typeof tenantId !== "string" && !Buffer.isBuffer(tenantId)) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "tenantId must be a string or Buffer",
+      );
     }
-    const id = Buffer.isBuffer(tenantId) ? tenantId.toString('utf8') : tenantId;
+    const id = Buffer.isBuffer(tenantId) ? tenantId.toString("utf8") : tenantId;
     const issuedAt = Date.now();
     const expiresAt = issuedAt + this._tokenExpiryMs;
     this._counter++;
     const value = this._derive(tenantId, issuedAt, this._counter);
-    this._audit('TOKEN_ISSUED', { tenantId: id, issuedAt, expiresAt });
+    this._audit("TOKEN_ISSUED", { tenantId: id, issuedAt, expiresAt });
     return { value, issuedAt, expiresAt, tenantId: id, counter: this._counter };
   }
 
@@ -87,25 +102,38 @@ class EphemeralHardwareTokenSplitter {
    */
   verify(token, tenantId) {
     if (!token || !Buffer.isBuffer(token.value)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'token must contain a value Buffer');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "token must contain a value Buffer",
+      );
     }
     if (token.value.length !== this._tokenLength) {
-      throw new HsmAdapterError('INVALID_INPUT', `token value must be ${this._tokenLength} bytes`);
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        `token value must be ${this._tokenLength} bytes`,
+      );
     }
 
-    const id = Buffer.isBuffer(tenantId) ? tenantId.toString('utf8') : tenantId;
+    const id = Buffer.isBuffer(tenantId) ? tenantId.toString("utf8") : tenantId;
     if (token.tenantId !== id) {
-      throw new HsmAdapterError('TOKEN_NOT_BOUND', `token is not bound to tenant ${id}`);
+      throw new HsmAdapterError(
+        "TOKEN_NOT_BOUND",
+        `token is not bound to tenant ${id}`,
+      );
     }
 
     const now = Date.now();
     if (now > token.expiresAt + this._clockSkewMs) {
-      throw new HsmAdapterError('IDENTITY_PROOF_EXPIRED', 'token has expired');
+      throw new HsmAdapterError("IDENTITY_PROOF_EXPIRED", "token has expired");
     }
 
-    const expected = this._derive(tenantId, token.issuedAt, token.counter || this._counter);
+    const expected = this._derive(
+      tenantId,
+      token.issuedAt,
+      token.counter || this._counter,
+    );
     const ok = crypto.timingSafeEqual(expected, token.value);
-    this._audit('TOKEN_VERIFIED', { tenantId: id, ok });
+    this._audit("TOKEN_VERIFIED", { tenantId: id, ok });
     return ok;
   }
 
@@ -117,7 +145,10 @@ class EphemeralHardwareTokenSplitter {
   recordProof(tenantId, maxProofs) {
     const count = (this._proofCount.get(tenantId) || 0) + 1;
     if (count > maxProofs) {
-      throw new HsmAdapterError('PROOF_LIMIT_EXCEEDED', `tenant ${tenantId} exceeded ${maxProofs} proofs`);
+      throw new HsmAdapterError(
+        "PROOF_LIMIT_EXCEEDED",
+        `tenant ${tenantId} exceeded ${maxProofs} proofs`,
+      );
     }
     this._proofCount.set(tenantId, count);
   }

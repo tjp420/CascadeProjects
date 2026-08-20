@@ -36,12 +36,12 @@ function scanTextContent(fileName, content) {
  * About view.
  */
 export class AboutView {
-  constructor(app) {
-    this.app = app;
-  }
+    constructor(app) {
+        this.app = app;
+    }
 
-  mount(container) {
-container.innerHTML = `
+    mount(container) {
+        container.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">About</h1>
         <p class="text-muted analyze-hero-sub">Free · local · zero runtime dependencies</p>
@@ -133,14 +133,14 @@ container.innerHTML = `
       </section>
     `;
 
-    this._aboutClickHandler = () => this.app.navigate('dashboard');
-    container.querySelector('#about-open-dashboard')?.addEventListener('click', this._aboutClickHandler);
-  }
-
-  destroy() {
-    const el = document.getElementById('about-open-dashboard');
-    if (el && this._aboutClickHandler) {
-      el.removeEventListener('click', this._aboutClickHandler);
+        this._aboutClickHandler = () => this.app.navigate('dashboard');
+        container.querySelector('#about-open-dashboard')?.addEventListener('click', this._aboutClickHandler);
     }
-  }
+
+    destroy() {
+        const el = document.getElementById('about-open-dashboard');
+        if (el && this._aboutClickHandler) {
+            el.removeEventListener('click', this._aboutClickHandler);
+        }
+    }
 }

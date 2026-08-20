@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Agentic Orchestration Store — Multi-agent executor loop environment
@@ -14,13 +14,17 @@
  * @module agentic-orchestration-store
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const logger = require('./app-logger.cjs');
-const schemaValidator = require('./tool-schema-validation-store.cjs');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const logger = require("./app-logger.cjs");
+const schemaValidator = require("./tool-schema-validation-store.cjs");
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'agentic-orchestration.json');
+const STORE_PATH = path.join(
+  process.cwd(),
+  ".simplebeacon",
+  "agentic-orchestration.json",
+);
 const MAX_AGENTS = 100;
 const MAX_EXECUTIONS = 50;
 const MAX_STEPS = 20;
@@ -33,81 +37,82 @@ const DEFAULT_AGENT_CONFIG = {
   autoTerminateOnRefusal: true,
   autoTerminateOnRepetition: true,
   repetitionThreshold: 0.85,
-  provider: 'openai',
+  provider: "openai",
   model: null,
   temperature: 0.7,
-  systemPrompt: '',
+  systemPrompt: "",
 };
 
 const BUILTIN_TOOLS = {
-  'code_search': {
-    name: 'code_search',
-    description: 'Search the codebase for relevant code patterns, functions, or files',
-    parameters: { query: 'string', maxResults: 'number' },
-    category: 'analysis',
+  code_search: {
+    name: "code_search",
+    description:
+      "Search the codebase for relevant code patterns, functions, or files",
+    parameters: { query: "string", maxResults: "number" },
+    category: "analysis",
   },
-  'file_read': {
-    name: 'file_read',
-    description: 'Read the contents of a file at a given path',
-    parameters: { filePath: 'string' },
-    category: 'io',
+  file_read: {
+    name: "file_read",
+    description: "Read the contents of a file at a given path",
+    parameters: { filePath: "string" },
+    category: "io",
   },
-  'web_search': {
-    name: 'web_search',
-    description: 'Search the web for information',
-    parameters: { query: 'string' },
-    category: 'research',
+  web_search: {
+    name: "web_search",
+    description: "Search the web for information",
+    parameters: { query: "string" },
+    category: "research",
   },
-  'code_execution': {
-    name: 'code_execution',
-    description: 'Execute code in a sandboxed environment',
-    parameters: { language: 'string', code: 'string' },
-    category: 'execution',
+  code_execution: {
+    name: "code_execution",
+    description: "Execute code in a sandboxed environment",
+    parameters: { language: "string", code: "string" },
+    category: "execution",
   },
-  'data_analysis': {
-    name: 'data_analysis',
-    description: 'Analyze data and produce statistical summaries',
-    parameters: { data: 'string', operation: 'string' },
-    category: 'analysis',
+  data_analysis: {
+    name: "data_analysis",
+    description: "Analyze data and produce statistical summaries",
+    parameters: { data: "string", operation: "string" },
+    category: "analysis",
   },
-  'api_call': {
-    name: 'api_call',
-    description: 'Make an HTTP API call to a configured endpoint',
-    parameters: { url: 'string', method: 'string', body: 'string' },
-    category: 'network',
+  api_call: {
+    name: "api_call",
+    description: "Make an HTTP API call to a configured endpoint",
+    parameters: { url: "string", method: "string", body: "string" },
+    category: "network",
   },
-  'summarize': {
-    name: 'summarize',
-    description: 'Summarize a block of text',
-    parameters: { text: 'string', maxLength: 'number' },
-    category: 'text',
+  summarize: {
+    name: "summarize",
+    description: "Summarize a block of text",
+    parameters: { text: "string", maxLength: "number" },
+    category: "text",
   },
-  'translate': {
-    name: 'translate',
-    description: 'Translate text between languages',
-    parameters: { text: 'string', from: 'string', to: 'string' },
-    category: 'text',
+  translate: {
+    name: "translate",
+    description: "Translate text between languages",
+    parameters: { text: "string", from: "string", to: "string" },
+    category: "text",
   },
 };
 
 const EXECUTION_STATES = {
-  PENDING: 'pending',
-  RUNNING: 'running',
-  PAUSED: 'paused',
-  COMPLETED: 'completed',
-  ABORTED: 'aborted',
-  FAILED: 'failed',
-  GUARDRAIL_BLOCKED: 'guardrail_blocked',
+  PENDING: "pending",
+  RUNNING: "running",
+  PAUSED: "paused",
+  COMPLETED: "completed",
+  ABORTED: "aborted",
+  FAILED: "failed",
+  GUARDRAIL_BLOCKED: "guardrail_blocked",
 };
 
 const STEP_STATES = {
-  PENDING: 'pending',
-  EXECUTING: 'executing',
-  GUARDRAIL_CHECK: 'guardrail_check',
-  TOOL_EXECUTION: 'tool_execution',
-  COMPLETED: 'completed',
-  BLOCKED: 'blocked',
-  FAILED: 'failed',
+  PENDING: "pending",
+  EXECUTING: "executing",
+  GUARDRAIL_CHECK: "guardrail_check",
+  TOOL_EXECUTION: "tool_execution",
+  COMPLETED: "completed",
+  BLOCKED: "blocked",
+  FAILED: "failed",
 };
 
 // In-memory state
@@ -118,7 +123,7 @@ const MAX_HISTORY = 200;
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { agents: {}, tools: {} };
-    return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
+    return JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
   } catch {
     return { agents: {}, tools: {} };
   }
@@ -127,8 +132,8 @@ function readStore() {
 function writeStore(store) {
   const dir = path.dirname(STORE_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = STORE_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+  const tmp = STORE_PATH + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), "utf8");
   fs.renameSync(tmp, STORE_PATH);
 }
 
@@ -145,22 +150,22 @@ function getAgent(agentId, orgId) {
 
 function getAllAgents(orgId) {
   const store = readStore();
-  return Object.values(store.agents).filter(a => a.orgId === orgId);
+  return Object.values(store.agents).filter((a) => a.orgId === orgId);
 }
 
 function createAgent(agentId, agent, orgId) {
   const store = readStore();
   const key = makeKey(orgId, agentId);
   if (store.agents[key]) {
-    return { success: false, error: 'Agent already exists: ' + agentId };
+    return { success: false, error: "Agent already exists: " + agentId };
   }
   const config = { ...DEFAULT_AGENT_CONFIG, ...(agent.config || {}) };
   store.agents[key] = {
     id: agentId,
     orgId,
-    name: agent.name || 'Unnamed Agent',
-    description: agent.description || '',
-    systemPrompt: agent.systemPrompt || config.systemPrompt || '',
+    name: agent.name || "Unnamed Agent",
+    description: agent.description || "",
+    systemPrompt: agent.systemPrompt || config.systemPrompt || "",
     tools: agent.tools || [],
     config,
     enabled: agent.enabled !== false,
@@ -179,18 +184,20 @@ function createAgent(agentId, agent, orgId) {
   }
 
   writeStore(store);
-  logger.info('[AgenticOrchestration] Agent created: ' + agentId);
+  logger.info("[AgenticOrchestration] Agent created: " + agentId);
   return { success: true, agent: store.agents[key] };
 }
 
 function updateAgent(agentId, updates, orgId) {
   const store = readStore();
   const key = makeKey(orgId, agentId);
-  if (!store.agents[key]) return { success: false, error: 'Agent not found' };
+  if (!store.agents[key]) return { success: false, error: "Agent not found" };
   const agent = store.agents[key];
   if (updates.name !== undefined) agent.name = updates.name;
-  if (updates.description !== undefined) agent.description = updates.description;
-  if (updates.systemPrompt !== undefined) agent.systemPrompt = updates.systemPrompt;
+  if (updates.description !== undefined)
+    agent.description = updates.description;
+  if (updates.systemPrompt !== undefined)
+    agent.systemPrompt = updates.systemPrompt;
   if (updates.tools !== undefined) agent.tools = updates.tools;
   if (updates.enabled !== undefined) agent.enabled = updates.enabled;
   if (updates.config) agent.config = { ...agent.config, ...updates.config };
@@ -202,7 +209,7 @@ function updateAgent(agentId, updates, orgId) {
 function deleteAgent(agentId, orgId) {
   const store = readStore();
   const key = makeKey(orgId, agentId);
-  if (!store.agents[key]) return { success: false, error: 'Agent not found' };
+  if (!store.agents[key]) return { success: false, error: "Agent not found" };
   delete store.agents[key];
   writeStore(store);
   return { success: true };
@@ -224,9 +231,9 @@ function registerTool(toolId, toolDef, orgId) {
     id: toolId,
     orgId,
     name: toolDef.name || toolId,
-    description: toolDef.description || '',
+    description: toolDef.description || "",
     parameters: toolDef.parameters || {},
-    category: toolDef.category || 'custom',
+    category: toolDef.category || "custom",
     handler: toolDef.handler || null,
     enabled: toolDef.enabled !== false,
     createdAt: new Date().toISOString(),
@@ -238,7 +245,8 @@ function registerTool(toolId, toolDef, orgId) {
 function unregisterTool(toolId, orgId) {
   const store = readStore();
   const key = makeKey(orgId, toolId);
-  if (!store.tools || !store.tools[key]) return { success: false, error: 'Tool not found' };
+  if (!store.tools || !store.tools[key])
+    return { success: false, error: "Tool not found" };
   delete store.tools[key];
   writeStore(store);
   return { success: true };
@@ -268,17 +276,18 @@ const INJECTION_PATTERNS = [
  * @returns {{ passed: boolean, violations: string[], severity: string }}
  */
 function inspectStep(text, config) {
-  if (!config.guardrailEnabled) return { passed: true, violations: [], severity: 'none' };
+  if (!config.guardrailEnabled)
+    return { passed: true, violations: [], severity: "none" };
 
   const violations = [];
-  var severity = 'none';
+  var severity = "none";
 
   // Check for refusals
   if (config.autoTerminateOnRefusal) {
     for (const pattern of REFUSAL_PATTERNS) {
       if (pattern.test(text)) {
-        violations.push('refusal_detected');
-        severity = 'high';
+        violations.push("refusal_detected");
+        severity = "high";
         break;
       }
     }
@@ -287,8 +296,8 @@ function inspectStep(text, config) {
   // Check for prompt injection attempts
   for (const pattern of INJECTION_PATTERNS) {
     if (pattern.test(text)) {
-      violations.push('prompt_injection_attempt');
-      severity = severity === 'none' ? 'critical' : severity;
+      violations.push("prompt_injection_attempt");
+      severity = severity === "none" ? "critical" : severity;
       break;
     }
   }
@@ -299,9 +308,9 @@ function inspectStep(text, config) {
     if (words.length > 10) {
       const uniqueWords = new Set(words);
       const uniquenessRatio = uniqueWords.size / words.length;
-      if (uniquenessRatio < (1 - (config.repetitionThreshold || 0.85))) {
-        violations.push('repetitive_reasoning_detected');
-        severity = severity === 'none' ? 'medium' : severity;
+      if (uniquenessRatio < 1 - (config.repetitionThreshold || 0.85)) {
+        violations.push("repetitive_reasoning_detected");
+        severity = severity === "none" ? "medium" : severity;
       }
     }
   }
@@ -317,15 +326,15 @@ function inspectStep(text, config) {
 
 function createExecution(agentId, orgId, input, options) {
   const agent = getAgent(agentId, orgId);
-  if (!agent) return { success: false, error: 'Agent not found' };
-  if (!agent.enabled) return { success: false, error: 'Agent is disabled' };
+  if (!agent) return { success: false, error: "Agent not found" };
+  if (!agent.enabled) return { success: false, error: "Agent is disabled" };
 
-  const execId = 'exec-' + crypto.randomBytes(6).toString('hex');
+  const execId = "exec-" + crypto.randomBytes(6).toString("hex");
   const execution = {
     id: execId,
     agentId,
     orgId,
-    input: input || '',
+    input: input || "",
     options: options || {},
     state: EXECUTION_STATES.PENDING,
     steps: [],
@@ -345,7 +354,8 @@ function createExecution(agentId, orgId, input, options) {
   const store = readStore();
   const key = makeKey(orgId, agentId);
   if (store.agents[key]) {
-    store.agents[key].executionCount = (store.agents[key].executionCount || 0) + 1;
+    store.agents[key].executionCount =
+      (store.agents[key].executionCount || 0) + 1;
     store.agents[key].lastExecutedAt = new Date().toISOString();
     writeStore(store);
   }
@@ -360,8 +370,8 @@ function startStep(execId, stepData) {
   const step = {
     index: exec.steps.length,
     state: STEP_STATES.PENDING,
-    prompt: stepData.prompt || '',
-    reasoning: '',
+    prompt: stepData.prompt || "",
+    reasoning: "",
     toolCalls: [],
     toolResults: [],
     guardrailResult: null,
@@ -383,7 +393,7 @@ function completeStep(execId, stepIndex, result) {
   if (!exec || !exec.steps[stepIndex]) return null;
 
   const step = exec.steps[stepIndex];
-  step.reasoning = result.reasoning || result.text || '';
+  step.reasoning = result.reasoning || result.text || "";
   step.tokensUsed = result.tokensUsed || 0;
   step.latencyMs = Date.now() - step.startedAt;
   step.completedAt = Date.now();
@@ -403,9 +413,16 @@ function completeStep(execId, stepIndex, result) {
       severity: step.guardrailResult.severity,
     });
 
-    if (config.guardrailStrictMode || step.guardrailResult.severity === 'critical') {
+    if (
+      config.guardrailStrictMode ||
+      step.guardrailResult.severity === "critical"
+    ) {
       exec.state = EXECUTION_STATES.GUARDRAIL_BLOCKED;
-      exec.error = 'Guardrail violation at step ' + stepIndex + ': ' + step.guardrailResult.violations.join(', ');
+      exec.error =
+        "Guardrail violation at step " +
+        stepIndex +
+        ": " +
+        step.guardrailResult.violations.join(", ");
       finalizeExecution(execId);
     }
   } else {
@@ -419,9 +436,15 @@ function addToolCall(execId, stepIndex, toolName, args) {
   const exec = activeExecutions.get(execId);
   if (!exec || !exec.steps[stepIndex]) return;
   // Validate tool request against registered schema
-  var reqValidation = schemaValidator.validateRequest(toolName, args, exec.orgId);
+  var reqValidation = schemaValidator.validateRequest(
+    toolName,
+    args,
+    exec.orgId,
+  );
   exec.steps[stepIndex].toolCalls.push({
-    tool: toolName, args, timestamp: Date.now(),
+    tool: toolName,
+    args,
+    timestamp: Date.now(),
     schemaValid: reqValidation.valid,
     schemaErrors: reqValidation.errors || [],
     schemaSkipped: reqValidation.skipped || false,
@@ -432,9 +455,15 @@ function addToolResult(execId, stepIndex, toolName, result) {
   const exec = activeExecutions.get(execId);
   if (!exec || !exec.steps[stepIndex]) return;
   // Validate tool response against registered schema
-  var resValidation = schemaValidator.validateResponse(toolName, result, exec.orgId);
+  var resValidation = schemaValidator.validateResponse(
+    toolName,
+    result,
+    exec.orgId,
+  );
   exec.steps[stepIndex].toolResults.push({
-    tool: toolName, result, timestamp: Date.now(),
+    tool: toolName,
+    result,
+    timestamp: Date.now(),
     schemaValid: resValidation.valid,
     schemaErrors: resValidation.errors || [],
     schemaSkipped: resValidation.skipped || false,
@@ -447,8 +476,8 @@ function addToolResult(execId, stepIndex, toolName, result) {
       exec.steps[stepIndex].state = STEP_STATES.BLOCKED;
       exec.guardrailViolations.push({
         step: stepIndex,
-        violations: ['tool_schema_validation_failed'],
-        severity: 'high',
+        violations: ["tool_schema_validation_failed"],
+        severity: "high",
         tool: toolName,
         errors: resValidation.errors,
       });
@@ -461,7 +490,10 @@ function finalizeExecution(execId) {
   if (!exec) return;
 
   exec.completedAt = new Date().toISOString();
-  if (exec.state === EXECUTION_STATES.RUNNING || exec.state === EXECUTION_STATES.PENDING) {
+  if (
+    exec.state === EXECUTION_STATES.RUNNING ||
+    exec.state === EXECUTION_STATES.PENDING
+  ) {
     exec.state = EXECUTION_STATES.COMPLETED;
   }
 
@@ -476,17 +508,21 @@ function finalizeExecution(execId) {
 }
 
 function getExecution(execId) {
-  return activeExecutions.get(execId) || executionHistory.find(e => e.id === execId) || null;
+  return (
+    activeExecutions.get(execId) ||
+    executionHistory.find((e) => e.id === execId) ||
+    null
+  );
 }
 
 function getActiveExecutions(orgId) {
-  return Array.from(activeExecutions.values()).filter(e => e.orgId === orgId);
+  return Array.from(activeExecutions.values()).filter((e) => e.orgId === orgId);
 }
 
 function getExecutionHistory(orgId, limit) {
   limit = limit || 50;
   return executionHistory
-    .filter(e => e.orgId === orgId)
+    .filter((e) => e.orgId === orgId)
     .slice()
     .reverse()
     .slice(0, limit);
@@ -494,25 +530,27 @@ function getExecutionHistory(orgId, limit) {
 
 function pauseExecution(execId) {
   const exec = activeExecutions.get(execId);
-  if (!exec) return { success: false, error: 'Execution not found' };
-  if (exec.state !== EXECUTION_STATES.RUNNING) return { success: false, error: 'Execution not running' };
+  if (!exec) return { success: false, error: "Execution not found" };
+  if (exec.state !== EXECUTION_STATES.RUNNING)
+    return { success: false, error: "Execution not running" };
   exec.state = EXECUTION_STATES.PAUSED;
   return { success: true };
 }
 
 function resumeExecution(execId) {
   const exec = activeExecutions.get(execId);
-  if (!exec) return { success: false, error: 'Execution not found' };
-  if (exec.state !== EXECUTION_STATES.PAUSED) return { success: false, error: 'Execution not paused' };
+  if (!exec) return { success: false, error: "Execution not found" };
+  if (exec.state !== EXECUTION_STATES.PAUSED)
+    return { success: false, error: "Execution not paused" };
   exec.state = EXECUTION_STATES.RUNNING;
   return { success: true };
 }
 
 function abortExecution(execId) {
   const exec = activeExecutions.get(execId);
-  if (!exec) return { success: false, error: 'Execution not found' };
+  if (!exec) return { success: false, error: "Execution not found" };
   exec.state = EXECUTION_STATES.ABORTED;
-  exec.error = 'Aborted by user';
+  exec.error = "Aborted by user";
   finalizeExecution(execId);
   return { success: true };
 }
@@ -521,9 +559,13 @@ function abortExecution(execId) {
 
 function getStats(orgId) {
   const store = readStore();
-  const orgAgents = Object.values(store.agents).filter(a => a.orgId === orgId);
-  const allExecs = executionHistory.filter(e => e.orgId === orgId);
-  const active = Array.from(activeExecutions.values()).filter(e => e.orgId === orgId);
+  const orgAgents = Object.values(store.agents).filter(
+    (a) => a.orgId === orgId,
+  );
+  const allExecs = executionHistory.filter((e) => e.orgId === orgId);
+  const active = Array.from(activeExecutions.values()).filter(
+    (e) => e.orgId === orgId,
+  );
 
   var totalSteps = 0;
   var guardrailBlocks = 0;
@@ -545,7 +587,8 @@ function getStats(orgId) {
   }
 
   var tools = listTools();
-  var totalTools = Object.keys(tools.builtin).length + Object.keys(tools.custom).length;
+  var totalTools =
+    Object.keys(tools.builtin).length + Object.keys(tools.custom).length;
 
   return {
     agentCount: orgAgents.length,
@@ -558,7 +601,8 @@ function getStats(orgId) {
     totalSteps: totalSteps,
     totalTokensUsed: totalTokens,
     totalLatencyMs: totalLatency,
-    avgStepsPerExecution: allExecs.length > 0 ? totalSteps / allExecs.length : 0,
+    avgStepsPerExecution:
+      allExecs.length > 0 ? totalSteps / allExecs.length : 0,
     avgLatencyMs: allExecs.length > 0 ? totalLatency / allExecs.length : 0,
     toolCount: totalTools,
     builtinToolCount: Object.keys(tools.builtin).length,
@@ -586,8 +630,8 @@ function getStats(orgId) {
 async function executeAgentLoop(agentId, orgId, input, inferenceFn, options) {
   options = options || {};
   const agent = getAgent(agentId, orgId);
-  if (!agent) return { success: false, error: 'Agent not found' };
-  if (!agent.enabled) return { success: false, error: 'Agent is disabled' };
+  if (!agent) return { success: false, error: "Agent not found" };
+  if (!agent.enabled) return { success: false, error: "Agent is disabled" };
 
   const config = agent.config;
   const maxSteps = options.maxSteps || config.maxSteps || 10;
@@ -600,15 +644,15 @@ async function executeAgentLoop(agentId, orgId, input, inferenceFn, options) {
   exec.startedAt = new Date().toISOString();
 
   var conversationHistory = [];
-  var systemPrompt = agent.systemPrompt || config.systemPrompt || '';
-  var lastOutput = '';
+  var systemPrompt = agent.systemPrompt || config.systemPrompt || "";
+  var lastOutput = "";
 
   try {
     for (var stepNum = 0; stepNum < maxSteps; stepNum++) {
       // Check if paused or aborted
       if (exec.state === EXECUTION_STATES.PAUSED) {
         // Wait for resume or abort
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         if (exec.state === EXECUTION_STATES.PAUSED) continue;
         if (exec.state === EXECUTION_STATES.ABORTED) break;
       }
@@ -618,9 +662,12 @@ async function executeAgentLoop(agentId, orgId, input, inferenceFn, options) {
       // Build step prompt
       var stepPrompt;
       if (stepNum === 0) {
-        stepPrompt = systemPrompt ? systemPrompt + '\n\n' + input : input;
+        stepPrompt = systemPrompt ? systemPrompt + "\n\n" + input : input;
       } else {
-        stepPrompt = 'Continue reasoning. Previous output: ' + lastOutput + '\n\nProceed to the next step or provide a final answer.';
+        stepPrompt =
+          "Continue reasoning. Previous output: " +
+          lastOutput +
+          "\n\nProceed to the next step or provide a final answer.";
       }
 
       var step = startStep(execId, { prompt: stepPrompt });
@@ -641,23 +688,35 @@ async function executeAgentLoop(agentId, orgId, input, inferenceFn, options) {
         step.completedAt = Date.now();
         step.latencyMs = Date.now() - step.startedAt;
         exec.state = EXECUTION_STATES.FAILED;
-        exec.error = 'Inference failed at step ' + stepNum + ': ' + infErr.message;
+        exec.error =
+          "Inference failed at step " + stepNum + ": " + infErr.message;
         finalizeExecution(execId);
         return { success: false, executionId: execId, error: exec.error };
       }
 
-      lastOutput = inferenceResult.text || inferenceResult.output || '';
-      conversationHistory.push({ step: stepNum, role: 'assistant', content: lastOutput });
+      lastOutput = inferenceResult.text || inferenceResult.output || "";
+      conversationHistory.push({
+        step: stepNum,
+        role: "assistant",
+        content: lastOutput,
+      });
 
       var stepResult = completeStep(execId, stepNum, {
         reasoning: lastOutput,
         text: lastOutput,
-        tokensUsed: inferenceResult.usage ? (inferenceResult.usage.total_tokens || 0) : 0,
+        tokensUsed: inferenceResult.usage
+          ? inferenceResult.usage.total_tokens || 0
+          : 0,
       });
 
       // Check guardrail
       if (stepResult && stepResult.state === STEP_STATES.BLOCKED) {
-        logger.warn('[AgenticOrchestration] Guardrail blocked execution ' + execId + ' at step ' + stepNum);
+        logger.warn(
+          "[AgenticOrchestration] Guardrail blocked execution " +
+            execId +
+            " at step " +
+            stepNum,
+        );
         break;
       }
 
@@ -666,7 +725,12 @@ async function executeAgentLoop(agentId, orgId, input, inferenceFn, options) {
         exec.result = lastOutput;
         exec.state = EXECUTION_STATES.COMPLETED;
         finalizeExecution(execId);
-        return { success: true, executionId: execId, result: lastOutput, steps: stepNum + 1 };
+        return {
+          success: true,
+          executionId: execId,
+          result: lastOutput,
+          steps: stepNum + 1,
+        };
       }
     }
 
@@ -677,12 +741,19 @@ async function executeAgentLoop(agentId, orgId, input, inferenceFn, options) {
     }
 
     finalizeExecution(execId);
-    return { success: true, executionId: execId, result: lastOutput, steps: exec.steps.length };
+    return {
+      success: true,
+      executionId: execId,
+      result: lastOutput,
+      steps: exec.steps.length,
+    };
   } catch (err) {
     exec.state = EXECUTION_STATES.FAILED;
     exec.error = err.message;
     finalizeExecution(execId);
-    logger.error('[AgenticOrchestration] Execution ' + execId + ' failed: ' + err.message);
+    logger.error(
+      "[AgenticOrchestration] Execution " + execId + " failed: " + err.message,
+    );
     return { success: false, executionId: execId, error: err.message };
   }
 }

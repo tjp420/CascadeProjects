@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 70: PQC Carbon Credit Tokenization Hub.
@@ -19,20 +19,20 @@
  * @module hsm-adapter/pqc-carbon-credit-tokenization-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const POOL_STATUS = {
-  OPEN: 'open',
-  REBALANCING: 'rebalancing',
-  RETIRED: 'retired',
-  SETTLED: 'settled',
-  CANCELLED: 'cancelled',
+  OPEN: "open",
+  REBALANCING: "rebalancing",
+  RETIRED: "retired",
+  SETTLED: "settled",
+  CANCELLED: "cancelled",
 };
 
 const REBALANCE_DIRECTION = {
-  INCREASE: 'increase',
-  DECREASE: 'decrease',
+  INCREASE: "increase",
+  DECREASE: "decrease",
 };
 
 class PqcCarbonCreditTokenizationHub {
@@ -66,35 +66,80 @@ class PqcCarbonCreditTokenizationHub {
   initializePool(request) {
     _validateInitRequest(this.policy, request);
     if (this._pools.size >= this._maxPools) {
-      throw new HsmAdapterError('CARBONPOOL_MAX_POOLS',
-        `maximum ${this._maxPools} pools reached`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_MAX_POOLS",
+        `maximum ${this._maxPools} pools reached`,
+      );
     }
-    if (this.policy.requireAssetInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireAssetInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.assetInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.assetInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('CARBONPOOL_ASSET_INITIALIZER_UNATTESTED', 'asset initializer attestation invalid');
+          throw new HsmAdapterError(
+            "CARBONPOOL_ASSET_INITIALIZER_UNATTESTED",
+            "asset initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('CARBONPOOL_ASSET_INITIALIZER_UNATTESTED', 'asset initializer attestation invalid');
+        throw new HsmAdapterError(
+          "CARBONPOOL_ASSET_INITIALIZER_UNATTESTED",
+          "asset initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('CARBONPOOL_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "CARBONPOOL_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('CARBONPOOL_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "CARBONPOOL_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.vintageAgeSeconds === 'number' && request.vintageAgeSeconds > (this.policy.maxVintageAgeSeconds || 63072000)) {
-      throw new HsmAdapterError('CARBONPOOL_VINTAGE_AGE_EXCEEDED', `vintage age seconds ${request.vintageAgeSeconds} exceeds maximum ${this.policy.maxVintageAgeSeconds}`);
+    if (
+      typeof request.vintageAgeSeconds === "number" &&
+      request.vintageAgeSeconds > (this.policy.maxVintageAgeSeconds || 63072000)
+    ) {
+      throw new HsmAdapterError(
+        "CARBONPOOL_VINTAGE_AGE_EXCEEDED",
+        `vintage age seconds ${request.vintageAgeSeconds} exceeds maximum ${this.policy.maxVintageAgeSeconds}`,
+      );
     }
-    if (typeof request.carbonTonnageCap === 'number' && request.carbonTonnageCap > (this.policy.maxCarbonTonnageCap || 1000000000)) {
-      throw new HsmAdapterError('CARBONPOOL_TONNAGE_CAP_EXCEEDED', `carbon tonnage cap ${request.carbonTonnageCap} exceeds maximum ${this.policy.maxCarbonTonnageCap}`);
+    if (
+      typeof request.carbonTonnageCap === "number" &&
+      request.carbonTonnageCap > (this.policy.maxCarbonTonnageCap || 1000000000)
+    ) {
+      throw new HsmAdapterError(
+        "CARBONPOOL_TONNAGE_CAP_EXCEEDED",
+        `carbon tonnage cap ${request.carbonTonnageCap} exceeds maximum ${this.policy.maxCarbonTonnageCap}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('CARBONPOOL_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -102,8 +147,10 @@ class PqcCarbonCreditTokenizationHub {
       sourceTenantId: request.sourceTenantId,
       targetChainId: request.targetChainId,
       blindedCarbonVolumeCommitment: request.blindedCarbonVolumeCommitment,
-      blindedVintageCertificationCommitment: request.blindedVintageCertificationCommitment,
-      blindedRetiredAllocationCommitment: request.blindedRetiredAllocationCommitment,
+      blindedVintageCertificationCommitment:
+        request.blindedVintageCertificationCommitment,
+      blindedRetiredAllocationCommitment:
+        request.blindedRetiredAllocationCommitment,
       vintageAgeSeconds: request.vintageAgeSeconds,
       carbonTonnageCap: request.carbonTonnageCap || 0,
       pqcSignatureScheme: request.pqcSignatureScheme,
@@ -119,7 +166,7 @@ class PqcCarbonCreditTokenizationHub {
     this._pools.set(poolId, pool);
     this._initCount++;
     if (this._audit) {
-      this._audit('CARBON_POOL_INITIALIZED', { ...pool });
+      this._audit("CARBON_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -131,11 +178,16 @@ class PqcCarbonCreditTokenizationHub {
    */
   batchInitializePools(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('CARBONPOOL_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "CARBONPOOL_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('CARBONPOOL_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let successCount = 0;
@@ -147,17 +199,26 @@ class PqcCarbonCreditTokenizationHub {
         successCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'auto',
+          poolId: req.poolId || "auto",
           initialized: false,
-          error: err.code || 'CARBONPOOL_BATCH_ERROR',
+          error: err.code || "CARBONPOOL_BATCH_ERROR",
         });
         failedCount++;
       }
     }
     if (this._audit) {
-      this._audit('CARBONPOOL_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
+      this._audit("CARBONPOOL_BATCH_INITIALIZED", {
+        successCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, successCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      successCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -177,7 +238,10 @@ class PqcCarbonCreditTokenizationHub {
   markRetirementProofVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.retirementProofVerified = true;
     return pool;
@@ -190,29 +254,48 @@ class PqcCarbonCreditTokenizationHub {
    */
   rebalanceTonnage(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('CARBONPOOL_REBALANCE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "CARBONPOOL_REBALANCE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_REBALANCEABLE',
-        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    if (
+      pool.status !== POOL_STATUS.OPEN &&
+      pool.status !== POOL_STATUS.REBALANCING
+    ) {
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_REBALANCEABLE",
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`,
+      );
     }
     const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
     if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
-      throw new HsmAdapterError('CARBONPOOL_REBALANCE_DIRECTION_INVALID',
-        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(', ')}`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_REBALANCE_DIRECTION_INVALID",
+        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(", ")}`,
+      );
     }
-    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
-      throw new HsmAdapterError('CARBONPOOL_REBALANCE_AMOUNT_INVALID',
-        'rebalanceAmount must be a positive number');
+    if (
+      typeof request.rebalanceAmount !== "number" ||
+      request.rebalanceAmount <= 0
+    ) {
+      throw new HsmAdapterError(
+        "CARBONPOOL_REBALANCE_AMOUNT_INVALID",
+        "rebalanceAmount must be a positive number",
+      );
     }
     const newEpoch = pool.rebalanceEpoch + 1;
     pool.rebalanceEpoch = newEpoch;
     pool.status = POOL_STATUS.REBALANCING;
-    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalanceId =
+      request.rebalanceId || `rebal-${crypto.randomBytes(4).toString("hex")}`;
     const rebalance = {
       rebalanceId,
       poolId: request.poolId,
@@ -228,7 +311,7 @@ class PqcCarbonCreditTokenizationHub {
       pool.carbonTonnageCap = request.newCarbonTonnageCap;
     }
     if (this._audit) {
-      this._audit('CARBONPOOL_TONNAGE_REBALANCED', { ...rebalance });
+      this._audit("CARBONPOOL_TONNAGE_REBALANCED", { ...rebalance });
     }
     return rebalance;
   }
@@ -251,30 +334,52 @@ class PqcCarbonCreditTokenizationHub {
     _validateFinalizeRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.retirementProofVerified) {
-      throw new HsmAdapterError('CARBONPOOL_RETIREMENT_PROOF_NOT_VERIFIED', `pool ${request.poolId} retirement proof not verified`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_RETIREMENT_PROOF_NOT_VERIFIED",
+        `pool ${request.poolId} retirement proof not verified`,
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('CARBONPOOL_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "CARBONPOOL_CLEARING_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('CARBONPOOL_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "CARBONPOOL_CLEARING_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minRetirementQuorum || 3)) {
-      throw new HsmAdapterError('CARBONPOOL_RETIREMENT_QUORUM_INSUFFICIENT', `retirement signatures ${signatures.length} below minimum ${this.policy.minRetirementQuorum}`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_RETIREMENT_QUORUM_INSUFFICIENT",
+        `retirement signatures ${signatures.length} below minimum ${this.policy.minRetirementQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     pool.status = POOL_STATUS.RETIRED;
     pool.retirementFinalizedAt = now;
-    const finalizationId = request.finalizationId || `finalize-${crypto.randomBytes(4).toString('hex')}`;
+    const finalizationId =
+      request.finalizationId ||
+      `finalize-${crypto.randomBytes(4).toString("hex")}`;
     const finalization = {
       finalizationId,
       poolId: request.poolId,
@@ -283,7 +388,7 @@ class PqcCarbonCreditTokenizationHub {
     };
     this._retireCount++;
     if (this._audit) {
-      this._audit('CARBON_CREDIT_RETIREMENT_FINALIZED', { ...finalization });
+      this._audit("CARBON_CREDIT_RETIREMENT_FINALIZED", { ...finalization });
     }
     return finalization;
   }
@@ -295,41 +400,58 @@ class PqcCarbonCreditTokenizationHub {
    */
   settlePool(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('CARBONPOOL_SETTLE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "CARBONPOOL_SETTLE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (pool.status !== POOL_STATUS.RETIRED) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_RETIRED',
-        `pool ${request.poolId} status is ${pool.status}, expected retired`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_RETIRED",
+        `pool ${request.poolId} status is ${pool.status}, expected retired`,
+      );
     }
-    if (!request.targetChainId || typeof request.targetChainId !== 'string') {
-      throw new HsmAdapterError('CARBONPOOL_SETTLE_CHAIN_MISSING', 'targetChainId is required for settlement');
+    if (!request.targetChainId || typeof request.targetChainId !== "string") {
+      throw new HsmAdapterError(
+        "CARBONPOOL_SETTLE_CHAIN_MISSING",
+        "targetChainId is required for settlement",
+      );
     }
     if (request.targetChainId !== pool.targetChainId) {
-      throw new HsmAdapterError('CARBONPOOL_SETTLE_CHAIN_MISMATCH',
-        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_SETTLE_CHAIN_MISMATCH",
+        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
+    const settlementId =
+      request.settlementId || `settle-${crypto.randomBytes(4).toString("hex")}`;
     const settlement = {
       settlementId,
       poolId: request.poolId,
       targetChainId: request.targetChainId,
-      settlementProofHash: request.settlementProofHash || crypto.createHash('sha256')
-        .update(`${request.poolId}:${request.targetChainId}:${now}`)
-        .digest('hex'),
+      settlementProofHash:
+        request.settlementProofHash ||
+        crypto
+          .createHash("sha256")
+          .update(`${request.poolId}:${request.targetChainId}:${now}`)
+          .digest("hex"),
       settledAt: now,
     };
     pool.status = POOL_STATUS.SETTLED;
-    pool.settlementStatus = 'settled';
+    pool.settlementStatus = "settled";
     pool.settledAt = now;
     this._settlements.set(request.poolId, settlement);
     this._settleCount++;
     if (this._audit) {
-      this._audit('CARBONPOOL_SETTLED', { ...settlement });
+      this._audit("CARBONPOOL_SETTLED", { ...settlement });
     }
     return settlement;
   }
@@ -343,27 +465,39 @@ class PqcCarbonCreditTokenizationHub {
   aggregateCommitteeSignatures(poolId, partialSignatures) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('CARBONPOOL_NO_SIGNATURES', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "CARBONPOOL_NO_SIGNATURES",
+        "partialSignatures array is required",
+      );
     }
     if (partialSignatures.length < (this.policy.minRetirementQuorum || 3)) {
-      throw new HsmAdapterError('CARBONPOOL_RETIREMENT_QUORUM_INSUFFICIENT',
-        `${partialSignatures.length} signatures below minimum ${this.policy.minRetirementQuorum || 3}`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_RETIREMENT_QUORUM_INSUFFICIENT",
+        `${partialSignatures.length} signatures below minimum ${this.policy.minRetirementQuorum || 3}`,
+      );
     }
-    const aggregatedSig = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSig = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: partialSignatures.length,
       aggregatedSignature: aggregatedSig,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('CARBONPOOL_SIGNATURES_AGGREGATED', { poolId, count: partialSignatures.length });
+      this._audit("CARBONPOOL_SIGNATURES_AGGREGATED", {
+        poolId,
+        count: partialSignatures.length,
+      });
     }
     return result;
   }
@@ -376,21 +510,31 @@ class PqcCarbonCreditTokenizationHub {
   cancelPool(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
-    if (pool.status === POOL_STATUS.RETIRED || pool.status === POOL_STATUS.SETTLED) {
-      throw new HsmAdapterError('CARBONPOOL_ALREADY_RETIRED',
-        `pool ${poolId} has been retired/settled and cannot be cancelled`);
+    if (
+      pool.status === POOL_STATUS.RETIRED ||
+      pool.status === POOL_STATUS.SETTLED
+    ) {
+      throw new HsmAdapterError(
+        "CARBONPOOL_ALREADY_RETIRED",
+        `pool ${poolId} has been retired/settled and cannot be cancelled`,
+      );
     }
     if (pool.status === POOL_STATUS.CANCELLED) {
-      throw new HsmAdapterError('CARBONPOOL_ALREADY_CANCELLED',
-        `pool ${poolId} is already cancelled`);
+      throw new HsmAdapterError(
+        "CARBONPOOL_ALREADY_CANCELLED",
+        `pool ${poolId} is already cancelled`,
+      );
     }
     pool.status = POOL_STATUS.CANCELLED;
     pool.cancelledAt = Math.floor(Date.now() / 1000);
     this._cancelCount++;
     if (this._audit) {
-      this._audit('CARBONPOOL_CANCELLED', { poolId });
+      this._audit("CARBONPOOL_CANCELLED", { poolId });
     }
     return { poolId, cancelled: true };
   }
@@ -409,7 +553,7 @@ class PqcCarbonCreditTokenizationHub {
    * @returns {object[]}
    */
   getPools() {
-    return Array.from(this._pools.values()).map(p => ({
+    return Array.from(this._pools.values()).map((p) => ({
       poolId: p.poolId,
       sourceTenantId: p.sourceTenantId,
       targetChainId: p.targetChainId,
@@ -453,25 +597,53 @@ class PqcCarbonCreditTokenizationHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('CARBONPOOL_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "CARBONPOOL_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedCarbonVolumeCommitment || !request.blindedVintageCertificationCommitment || !request.blindedRetiredAllocationCommitment) {
-    throw new HsmAdapterError('CARBONPOOL_FIELDS_MISSING', 'blindedCarbonVolumeCommitment, blindedVintageCertificationCommitment, and blindedRetiredAllocationCommitment are required');
+  if (
+    !request.blindedCarbonVolumeCommitment ||
+    !request.blindedVintageCertificationCommitment ||
+    !request.blindedRetiredAllocationCommitment
+  ) {
+    throw new HsmAdapterError(
+      "CARBONPOOL_FIELDS_MISSING",
+      "blindedCarbonVolumeCommitment, blindedVintageCertificationCommitment, and blindedRetiredAllocationCommitment are required",
+    );
   }
-  if (typeof request.vintageAgeSeconds !== 'number') {
-    throw new HsmAdapterError('CARBONPOOL_FIELDS_MISSING', 'vintageAgeSeconds is required');
+  if (typeof request.vintageAgeSeconds !== "number") {
+    throw new HsmAdapterError(
+      "CARBONPOOL_FIELDS_MISSING",
+      "vintageAgeSeconds is required",
+    );
   }
-  if (policy.requireAssetInitializerAttestation && !request.assetInitializerAttestation) {
-    throw new HsmAdapterError('CARBONPOOL_ASSET_INITIALIZER_ATTESTATION_MISSING', 'asset initializer attestation is required');
+  if (
+    policy.requireAssetInitializerAttestation &&
+    !request.assetInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "CARBONPOOL_ASSET_INITIALIZER_ATTESTATION_MISSING",
+      "asset initializer attestation is required",
+    );
   }
 }
 
 function _validateFinalizeRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('CARBONPOOL_FINALIZE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "CARBONPOOL_FINALIZE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('CARBONPOOL_CLEARING_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "CARBONPOOL_CLEARING_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

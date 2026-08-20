@@ -1,5 +1,6 @@
-const fs = require('fs');
-const targetPath = 'ai-platform/server/lib/hsm-adapter/__tests__/pq-deep-sea-mineral-rights-gating.test.cjs';
+const fs = require("fs");
+const targetPath =
+  "ai-platform/server/lib/hsm-adapter/__tests__/pq-deep-sea-mineral-rights-gating.test.cjs";
 
 const content = `'use strict';
 
@@ -171,4 +172,4 @@ describe('Track 95 PQ deep-sea mineral rights gating', () => {
 `;
 
 fs.writeFileSync(targetPath, content);
-console.log('Written:', fs.existsSync(targetPath));
+console.log("Written:", fs.existsSync(targetPath));

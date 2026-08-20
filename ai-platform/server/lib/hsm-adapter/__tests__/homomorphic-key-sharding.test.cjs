@@ -1,18 +1,26 @@
-'use strict';
+"use strict";
 
 /**
  * Track 53: Homomorphic key sharding tests.
  */
-const { HomomorphicKeyShardDisperser } = require('../homomorphic-key-shard-disperser.cjs');
-const { MultiPlatformShardCombiner } = require('../multi-platform-shard-combiner.cjs');
-const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
-const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
-const { HsmAdapterError } = require('../base-adapter.cjs');
+const {
+  HomomorphicKeyShardDisperser,
+} = require("../homomorphic-key-shard-disperser.cjs");
+const {
+  MultiPlatformShardCombiner,
+} = require("../multi-platform-shard-combiner.cjs");
+const {
+  EnclaveAttestationClient,
+} = require("../enclave-attestation-client.cjs");
+const { CryptoPolicyEngine } = require("../crypto-policy-engine.cjs");
+const { HsmAdapterError } = require("../base-adapter.cjs");
 
 class MockAttestationClient {
   verify(attestation) {
-    if (!attestation || typeof attestation !== 'object') return { verified: false };
-    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    if (!attestation || typeof attestation !== "object")
+      return { verified: false };
+    if (!attestation.authority || attestation.authority !== "mock-authority")
+      return { verified: false };
     return { verified: true };
   }
 }
@@ -23,8 +31,8 @@ const POLICY = {
   signatureTimeoutSeconds: 300,
   requireLocalNodeAttestation: true,
   requireDestinationAttestation: true,
-  allowedAttestationAuthorities: ['mock-authority'],
-  kemAlgorithm: 'ML-KEM-1024',
+  allowedAttestationAuthorities: ["mock-authority"],
+  kemAlgorithm: "ML-KEM-1024",
   isolateLowQuorumDestinations: true,
   requireCanonicalPayloadLayout: true,
 };
@@ -32,36 +40,36 @@ const POLICY = {
 function mockAttestation() {
   return {
     version: 1,
-    enclaveType: 'mock',
-    measurement: 'MOCK_MEASUREMENT_00000000000000000000000000000000',
-    mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+    enclaveType: "mock",
+    measurement: "MOCK_MEASUREMENT_00000000000000000000000000000000",
+    mrenclave: "MOCK_MRENCLAVE_00000000000000000000000000000000",
     timestamp: Math.floor(Date.now() / 1000),
     attestationAgeSeconds: 0,
-    authority: 'mock-authority',
-    signature: 'mock-signature-placeholder',
+    authority: "mock-authority",
+    signature: "mock-signature-placeholder",
   };
 }
 
 function baseDestinations() {
   return [
-    { platformId: 'platform-a', destinationAttestation: mockAttestation() },
-    { platformId: 'platform-b', destinationAttestation: mockAttestation() },
-    { platformId: 'platform-c', destinationAttestation: mockAttestation() },
+    { platformId: "platform-a", destinationAttestation: mockAttestation() },
+    { platformId: "platform-b", destinationAttestation: mockAttestation() },
+    { platformId: "platform-c", destinationAttestation: mockAttestation() },
   ];
 }
 
 function baseDisperseRequest() {
   return {
-    sourcePlatformId: 'platform-source',
+    sourcePlatformId: "platform-source",
     destinations: baseDestinations(),
-    kemAlgorithm: 'ML-KEM-1024',
+    kemAlgorithm: "ML-KEM-1024",
     shardDepth: 4,
     localNodeAttestation: mockAttestation(),
   };
 }
 
-describe('Track 53 homomorphic key sharding', () => {
-  test('HomomorphicKeyShardDisperser disperses shards to multiple platforms', () => {
+describe("Track 53 homomorphic key sharding", () => {
+  test("HomomorphicKeyShardDisperser disperses shards to multiple platforms", () => {
     const events = [];
     const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
@@ -72,10 +80,12 @@ describe('Track 53 homomorphic key sharding', () => {
     const result = disperser.disperse(baseDisperseRequest());
     expect(result.dispersed).toBe(3);
     expect(result.shards.length).toBe(3);
-    expect(events.filter((e) => e.event === 'HOMOMORPHIC_SHARD_DISPERSED').length).toBe(3);
+    expect(
+      events.filter((e) => e.event === "HOMOMORPHIC_SHARD_DISPERSED").length,
+    ).toBe(3);
   });
 
-  test('MultiPlatformShardCombiner aggregates evaluations and verifies', () => {
+  test("MultiPlatformShardCombiner aggregates evaluations and verifies", () => {
     const events = [];
     const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
@@ -89,75 +99,85 @@ describe('Track 53 homomorphic key sharding', () => {
       audit: (event, info) => events.push({ event, info }),
     });
     const session = combiner.initiate({
-      combinationId: 'combo-1',
+      combinationId: "combo-1",
       shards: result.shards,
     });
-    expect(session.status).toBe('pending');
+    expect(session.status).toBe("pending");
     const now = Math.floor(Date.now() / 1000);
-    combiner.submit('combo-1', 'platform-a', mockAttestation(), 'eval-a', now);
-    combiner.submit('combo-1', 'platform-b', mockAttestation(), 'eval-b', now);
-    const final = combiner.submit('combo-1', 'platform-c', mockAttestation(), 'eval-c', now);
-    expect(final.status).toBe('verified');
-    expect(events.some((e) => e.event === 'CROSS_PLATFORM_COMBINER_VERIFIED')).toBe(true);
+    combiner.submit("combo-1", "platform-a", mockAttestation(), "eval-a", now);
+    combiner.submit("combo-1", "platform-b", mockAttestation(), "eval-b", now);
+    const final = combiner.submit(
+      "combo-1",
+      "platform-c",
+      mockAttestation(),
+      "eval-c",
+      now,
+    );
+    expect(final.status).toBe("verified");
+    expect(
+      events.some((e) => e.event === "CROSS_PLATFORM_COMBINER_VERIFIED"),
+    ).toBe(true);
   });
 
-  test('HomomorphicKeyShardDisperser rejects un-attested local node', () => {
+  test("HomomorphicKeyShardDisperser rejects un-attested local node", () => {
     const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
       attestationClient,
     });
     const request = baseDisperseRequest();
-    request.localNodeAttestation = { authority: 'bad' };
+    request.localNodeAttestation = { authority: "bad" };
     expect(() => disperser.disperse(request)).toThrow(HsmAdapterError);
   });
 
-  test('HomomorphicKeyShardDisperser rejects un-attested destination', () => {
+  test("HomomorphicKeyShardDisperser rejects un-attested destination", () => {
     const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
       attestationClient,
     });
     const request = baseDisperseRequest();
-    request.destinations[0].destinationAttestation = { authority: 'bad' };
+    request.destinations[0].destinationAttestation = { authority: "bad" };
     expect(() => disperser.disperse(request)).toThrow(HsmAdapterError);
   });
 
-  test('HomomorphicKeyShardDisperser rejects insufficient target quorum', () => {
+  test("HomomorphicKeyShardDisperser rejects insufficient target quorum", () => {
     const disperser = new HomomorphicKeyShardDisperser({ policy: POLICY });
     const request = baseDisperseRequest();
     request.destinations = [baseDestinations()[0]];
     expect(() => disperser.disperse(request)).toThrow(HsmAdapterError);
   });
 
-  test('HomomorphicKeyShardDisperser rejects shard depth exceeding maximum', () => {
+  test("HomomorphicKeyShardDisperser rejects shard depth exceeding maximum", () => {
     const disperser = new HomomorphicKeyShardDisperser({ policy: POLICY });
     const request = baseDisperseRequest();
     request.shardDepth = 16;
     expect(() => disperser.disperse(request)).toThrow(HsmAdapterError);
   });
 
-  test('HomomorphicKeyShardDisperser rejects wrong KEM algorithm', () => {
+  test("HomomorphicKeyShardDisperser rejects wrong KEM algorithm", () => {
     const disperser = new HomomorphicKeyShardDisperser({ policy: POLICY });
     const request = baseDisperseRequest();
-    request.kemAlgorithm = 'ML-KEM-512';
+    request.kemAlgorithm = "ML-KEM-512";
     expect(() => disperser.disperse(request)).toThrow(HsmAdapterError);
   });
 
-  test('MultiPlatformShardCombiner isolates low quorum destinations', () => {
+  test("MultiPlatformShardCombiner isolates low quorum destinations", () => {
     const combiner = new MultiPlatformShardCombiner({ policy: POLICY });
-    expect(() => combiner.initiate({
-      combinationId: 'combo-bad',
-      shards: [
-        { destinationPlatformId: 'platform-a' },
-        { destinationPlatformId: 'platform-b' },
-      ],
-    })).toThrow(HsmAdapterError);
-    expect(combiner.isIsolated('platform-a')).toBe(true);
-    expect(combiner.isIsolated('platform-b')).toBe(true);
+    expect(() =>
+      combiner.initiate({
+        combinationId: "combo-bad",
+        shards: [
+          { destinationPlatformId: "platform-a" },
+          { destinationPlatformId: "platform-b" },
+        ],
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(combiner.isIsolated("platform-a")).toBe(true);
+    expect(combiner.isIsolated("platform-b")).toBe(true);
   });
 
-  test('MultiPlatformShardCombiner rejects expired signatures', () => {
+  test("MultiPlatformShardCombiner rejects expired signatures", () => {
     const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
@@ -168,32 +188,70 @@ describe('Track 53 homomorphic key sharding', () => {
       policy: POLICY,
       attestationClient,
     });
-    combiner.initiate({ combinationId: 'combo-2', shards: result.shards });
-    expect(() => combiner.submit('combo-2', 'platform-a', mockAttestation(), 'eval-a', 1)).toThrow(HsmAdapterError);
+    combiner.initiate({ combinationId: "combo-2", shards: result.shards });
+    expect(() =>
+      combiner.submit("combo-2", "platform-a", mockAttestation(), "eval-a", 1),
+    ).toThrow(HsmAdapterError);
   });
 
-  test('CryptoPolicyEngine validates homomorphic key sharding configuration', () => {
+  test("CryptoPolicyEngine validates homomorphic key sharding configuration", () => {
     const engine = new CryptoPolicyEngine({ default: {} });
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', {
-      targetPlatformQuorum: 3,
-      shardDepth: 4,
-      signatureAgeSeconds: 100,
-      localNodeAttestation: true,
-      destinationAttestation: true,
-      attestationAuthority: 'mock-authority',
-      kemAlgorithm: 'ML-KEM-1024',
-      isolateLowQuorumDestinations: true,
-      canonicalPayloadLayout: true,
-    })).not.toThrow();
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        targetPlatformQuorum: 3,
+        shardDepth: 4,
+        signatureAgeSeconds: 100,
+        localNodeAttestation: true,
+        destinationAttestation: true,
+        attestationAuthority: "mock-authority",
+        kemAlgorithm: "ML-KEM-1024",
+        isolateLowQuorumDestinations: true,
+        canonicalPayloadLayout: true,
+      }),
+    ).not.toThrow();
 
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { targetPlatformQuorum: 1 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { shardDepth: 16 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { signatureAgeSeconds: 600 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { localNodeAttestation: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { destinationAttestation: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { attestationAuthority: 'bad' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { kemAlgorithm: 'ML-KEM-512' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { isolateLowQuorumDestinations: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'homomorphicKeySharding', { canonicalPayloadLayout: false })).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        targetPlatformQuorum: 1,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", { shardDepth: 16 }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        signatureAgeSeconds: 600,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        localNodeAttestation: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        destinationAttestation: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        attestationAuthority: "bad",
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        kemAlgorithm: "ML-KEM-512",
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        isolateLowQuorumDestinations: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "homomorphicKeySharding", {
+        canonicalPayloadLayout: false,
+      }),
+    ).toThrow(HsmAdapterError);
   });
 });

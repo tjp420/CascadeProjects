@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Session Token Replicator — distributed session-state coordinator.
@@ -13,10 +13,10 @@
  *   - Delta-only responses for state sync.
  */
 
-const tokenStore = require('./token-store-adapter.cjs');
+const tokenStore = require("./token-store-adapter.cjs");
 
-const DEFAULT_TENANT = 'default';
-const NODE_ID = process.env.NODE_ID || 'node-1';
+const DEFAULT_TENANT = "default";
+const NODE_ID = process.env.NODE_ID || "node-1";
 
 let _broadcast = null;
 const _tenantSequence = new Map(); // tenantId -> number
@@ -45,7 +45,8 @@ function _setSequence(tenantId, seq) {
 
 function _validateTenant(msg, socket) {
   const payloadTenant = msg.tenantId || DEFAULT_TENANT;
-  const socketTenant = socket && socket.tenantId ? socket.tenantId : DEFAULT_TENANT;
+  const socketTenant =
+    socket && socket.tenantId ? socket.tenantId : DEFAULT_TENANT;
   return payloadTenant === socketTenant;
 }
 
@@ -53,14 +54,17 @@ function _validateTenant(msg, socket) {
  * Broadcast a new session token issuance to the cluster.
  */
 async function issueToken({ tokenHash, accountId, tenantId, expiresAt }) {
-  if (!_broadcast) return { accepted: false, reason: 'broadcast_unavailable' };
+  if (!_broadcast) return { accepted: false, reason: "broadcast_unavailable" };
   const t = _getTenant(tenantId);
   const store = await tokenStore.getStore();
-  let seq = typeof store.nextSequence === 'function' ? (await store.nextSequence(t)) : null;
+  let seq =
+    typeof store.nextSequence === "function"
+      ? await store.nextSequence(t)
+      : null;
   if (seq === null || seq === undefined) seq = _nextSequence(t);
 
   const frame = {
-    type: 'SESSION_TOKEN_ISSUE',
+    type: "SESSION_TOKEN_ISSUE",
     from: NODE_ID,
     tokenHash,
     accountId,
@@ -89,14 +93,17 @@ async function issueToken({ tokenHash, accountId, tenantId, expiresAt }) {
  * Broadcast a session token revocation to the cluster.
  */
 async function revokeToken({ tokenHash, tenantId }) {
-  if (!_broadcast) return { accepted: false, reason: 'broadcast_unavailable' };
+  if (!_broadcast) return { accepted: false, reason: "broadcast_unavailable" };
   const t = _getTenant(tenantId);
   const store = await tokenStore.getStore();
-  let seq = typeof store.nextSequence === 'function' ? (await store.nextSequence(t)) : null;
+  let seq =
+    typeof store.nextSequence === "function"
+      ? await store.nextSequence(t)
+      : null;
   if (seq === null || seq === undefined) seq = _nextSequence(t);
 
   const frame = {
-    type: 'SESSION_TOKEN_REVOKE',
+    type: "SESSION_TOKEN_REVOKE",
     from: NODE_ID,
     tokenHash,
     tenantId: t,
@@ -121,16 +128,16 @@ async function revokeToken({ tokenHash, tenantId }) {
  * Broadcast a request for session-token state delta to all cluster peers.
  */
 function requestStateSync({ lastKnownSequence = 0, tenantId } = {}) {
-  if (!_broadcast) return { accepted: false, reason: 'broadcast_unavailable' };
+  if (!_broadcast) return { accepted: false, reason: "broadcast_unavailable" };
   const t = _getTenant(tenantId);
   const frame = {
-    type: 'SESSION_STATE_REQUEST',
+    type: "SESSION_STATE_REQUEST",
     from: NODE_ID,
     tenantId: t,
     lastKnownSequence,
   };
   _broadcast(frame);
-  return { accepted: true, action: 'state_request_broadcast' };
+  return { accepted: true, action: "state_request_broadcast" };
 }
 
 /**
@@ -148,17 +155,18 @@ async function buildStateDelta(tenantId, lastKnownSequence) {
  * Returns { handled: boolean } so the dispatcher can stop processing.
  */
 async function handleSessionTokenMessage(msg, socket) {
-  if (!msg || !msg.type || !msg.type.startsWith('SESSION_')) return { handled: false };
+  if (!msg || !msg.type || !msg.type.startsWith("SESSION_"))
+    return { handled: false };
 
   if (!_validateTenant(msg, socket)) {
-    throw new Error('CROSS_TENANT_SESSION_INJECTION_REJECTED');
+    throw new Error("CROSS_TENANT_SESSION_INJECTION_REJECTED");
   }
 
   const tenantId = _getTenant(msg.tenantId);
   const store = await tokenStore.getStore();
 
   switch (msg.type) {
-    case 'SESSION_TOKEN_ISSUE': {
+    case "SESSION_TOKEN_ISSUE": {
       _setSequence(tenantId, msg.tokenSequence);
       return store.syncSessionToken({
         id: msg.tokenHash,
@@ -171,7 +179,7 @@ async function handleSessionTokenMessage(msg, socket) {
         created_at: new Date().toISOString(),
       });
     }
-    case 'SESSION_TOKEN_REVOKE': {
+    case "SESSION_TOKEN_REVOKE": {
       _setSequence(tenantId, msg.tokenSequence);
       return store.syncSessionToken({
         id: msg.tokenHash,
@@ -182,20 +190,25 @@ async function handleSessionTokenMessage(msg, socket) {
         revoked_at: new Date().toISOString(),
       });
     }
-    case 'SESSION_STATE_REQUEST': {
+    case "SESSION_STATE_REQUEST": {
       const delta = await buildStateDelta(tenantId, msg.lastKnownSequence || 0);
       const response = {
-        type: 'SESSION_STATE_RESPONSE',
+        type: "SESSION_STATE_RESPONSE",
         from: NODE_ID,
         tenantId,
         lastKnownSequence: msg.lastKnownSequence || 0,
         tokens: delta,
       };
-      if (!_broadcast) return { accepted: false, reason: 'broadcast_unavailable' };
+      if (!_broadcast)
+        return { accepted: false, reason: "broadcast_unavailable" };
       _broadcast(response);
-      return { accepted: true, action: 'state_response_sent', count: delta.length };
+      return {
+        accepted: true,
+        action: "state_response_sent",
+        count: delta.length,
+      };
     }
-    case 'SESSION_STATE_RESPONSE': {
+    case "SESSION_STATE_RESPONSE": {
       const tokens = Array.isArray(msg.tokens) ? msg.tokens : [];
       const results = [];
       let rejected = 0;

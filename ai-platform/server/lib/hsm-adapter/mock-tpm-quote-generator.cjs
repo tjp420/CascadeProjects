@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Mock TPM 2.0 Quote Generator.
@@ -12,9 +12,9 @@
  * @module hsm-adapter/mock-tpm-quote-generator
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
-const MOCK_SIGNING_SECRET = 'mock-tpm-attestation-secret';
+const MOCK_SIGNING_SECRET = "mock-tpm-attestation-secret";
 
 /**
  * Default expected PCR values for testing.
@@ -24,9 +24,9 @@ const MOCK_SIGNING_SECRET = 'mock-tpm-attestation-secret';
  *   PCR 7:  Secure Boot state
  */
 const DEFAULT_EXPECTED_PCRS = {
-  0: crypto.createHash('sha256').update('firmware-v1.0').digest('hex'),
-  1: crypto.createHash('sha256').update('bios-config-v1.0').digest('hex'),
-  7: crypto.createHash('sha256').update('secureboot-enabled').digest('hex'),
+  0: crypto.createHash("sha256").update("firmware-v1.0").digest("hex"),
+  1: crypto.createHash("sha256").update("bios-config-v1.0").digest("hex"),
+  7: crypto.createHash("sha256").update("secureboot-enabled").digest("hex"),
 };
 
 /**
@@ -35,8 +35,15 @@ const DEFAULT_EXPECTED_PCRS = {
  * SGX MRENCLAVE is 16 bytes (256-bit hash truncated).
  */
 const DEFAULT_EXPECTED_MRENCLAVE = {
-  'sev-snp': crypto.createHash('sha384').update('sev-snp-enclave-v1').digest('hex'),
-  'sgx': crypto.createHash('sha256').update('sgx-enclave-v1').digest('hex').slice(0, 32), // 16 bytes = 32 hex chars
+  "sev-snp": crypto
+    .createHash("sha384")
+    .update("sev-snp-enclave-v1")
+    .digest("hex"),
+  sgx: crypto
+    .createHash("sha256")
+    .update("sgx-enclave-v1")
+    .digest("hex")
+    .slice(0, 32), // 16 bytes = 32 hex chars
 };
 
 /**
@@ -47,7 +54,10 @@ const DEFAULT_EXPECTED_MRENCLAVE = {
 function _canonical(attestation) {
   const { signature, ...rest } = attestation;
   void signature;
-  return Object.keys(rest).sort().map((k) => `${k}=${JSON.stringify(rest[k])}`).join('&');
+  return Object.keys(rest)
+    .sort()
+    .map((k) => `${k}=${JSON.stringify(rest[k])}`)
+    .join("&");
 }
 
 /**
@@ -57,7 +67,10 @@ function _canonical(attestation) {
  */
 function _sign(attestation) {
   const canonical = _canonical(attestation);
-  return crypto.createHmac('sha256', MOCK_SIGNING_SECRET).update(canonical).digest('hex');
+  return crypto
+    .createHmac("sha256", MOCK_SIGNING_SECRET)
+    .update(canonical)
+    .digest("hex");
 }
 
 class MockTpmQuoteGenerator {
@@ -68,7 +81,7 @@ class MockTpmQuoteGenerator {
    */
   constructor(options = {}) {
     this._expectedPcrs = options.expectedPcrs || DEFAULT_EXPECTED_PCRS;
-    this._authority = options.authority || 'tpm2';
+    this._authority = options.authority || "tpm2";
   }
 
   /**
@@ -111,11 +124,12 @@ class MockTpmQuoteGenerator {
    * @returns {object}
    */
   generateSevSnpQuote(nonce, options = {}) {
-    const mrenclave = options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE['sev-snp'];
+    const mrenclave =
+      options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE["sev-snp"];
     const timestamp = options.timestamp || Date.now();
 
     const attestation = {
-      authority: 'sev-snp',
+      authority: "sev-snp",
       mrenclave,
       nonce,
       timestamp,
@@ -134,11 +148,11 @@ class MockTpmQuoteGenerator {
    * @returns {object}
    */
   generateSgxQuote(nonce, options = {}) {
-    const mrenclave = options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE['sgx'];
+    const mrenclave = options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE["sgx"];
     const timestamp = options.timestamp || Date.now();
 
     const attestation = {
-      authority: 'sgx',
+      authority: "sgx",
       mrenclave,
       nonce,
       timestamp,
@@ -155,7 +169,7 @@ class MockTpmQuoteGenerator {
    */
   generateTamperedQuote(nonce) {
     const quote = this.generateQuote(nonce);
-    quote.signature = 'tampered-' + quote.signature.slice(8);
+    quote.signature = "tampered-" + quote.signature.slice(8);
     return quote;
   }
 
@@ -166,9 +180,12 @@ class MockTpmQuoteGenerator {
    */
   generateWrongMeasurementQuote(nonce) {
     const wrongPcrs = {
-      0: crypto.createHash('sha256').update('malicious-firmware').digest('hex'),
-      1: crypto.createHash('sha256').update('tampered-bios').digest('hex'),
-      7: crypto.createHash('sha256').update('secureboot-disabled').digest('hex'),
+      0: crypto.createHash("sha256").update("malicious-firmware").digest("hex"),
+      1: crypto.createHash("sha256").update("tampered-bios").digest("hex"),
+      7: crypto
+        .createHash("sha256")
+        .update("secureboot-disabled")
+        .digest("hex"),
     };
     return this.generateQuote(nonce, { pcrs: wrongPcrs });
   }
@@ -184,9 +201,10 @@ class MockTpmQuoteGenerator {
    * @returns {object} attestation with rawReport (Buffer), nonce, timestamp, authority, signature
    */
   generateSevSnpRawReport(nonce, options = {}) {
-    const measurement = options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE['sev-snp'];
+    const measurement =
+      options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE["sev-snp"];
     const version = options.version || 1;
-    const policy = options.policy !== undefined ? options.policy : 0x1F;
+    const policy = options.policy !== undefined ? options.policy : 0x1f;
     const timestamp = options.timestamp || Date.now();
 
     const buf = Buffer.alloc(4096, 0);
@@ -199,24 +217,27 @@ class MockTpmQuoteGenerator {
     buf.writeUInt32LE(policy, 0x08);
 
     // REPORT_DATA (offset 0xC0, 48 bytes) — pad nonce to 48 bytes
-    const nonceBytes = Buffer.from(nonce, 'hex');
-    nonceBytes.copy(buf, 0xC0);
+    const nonceBytes = Buffer.from(nonce, "hex");
+    nonceBytes.copy(buf, 0xc0);
 
     // MEASUREMENT (offset 0xF0, 48 bytes) — MRENCLAVE
-    const measBytes = Buffer.from(measurement, 'hex');
-    measBytes.copy(buf, 0xF0);
+    const measBytes = Buffer.from(measurement, "hex");
+    measBytes.copy(buf, 0xf0);
 
     // SIGNATURE (offset 0x2D0, 512 bytes) — mock signature (zeros, real would be ECC P-384)
     // For testing, we fill with a deterministic pattern
-    const sigFill = crypto.createHash('sha384').update(measurement + nonce).digest();
-    sigFill.copy(buf, 0x2D0);
+    const sigFill = crypto
+      .createHash("sha384")
+      .update(measurement + nonce)
+      .digest();
+    sigFill.copy(buf, 0x2d0);
     // Pad the rest of the signature area
     for (let i = sigFill.length; i < 512; i += sigFill.length) {
-      sigFill.copy(buf, 0x2D0 + i);
+      sigFill.copy(buf, 0x2d0 + i);
     }
 
     const attestation = {
-      authority: 'sev-snp',
+      authority: "sev-snp",
       rawReport: buf,
       nonce,
       timestamp,
@@ -237,8 +258,15 @@ class MockTpmQuoteGenerator {
    * @returns {object} attestation with rawQuote (Buffer), nonce, timestamp, authority, signature
    */
   generateSgxRawQuote(nonce, options = {}) {
-    const mrenclave = options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE['sgx'].slice(0, 32); // 16 bytes = 32 hex chars
-    const mrsigner = options.mrsigner || crypto.createHash('sha256').update('intel-signing-key').digest('hex').slice(0, 32);
+    const mrenclave =
+      options.mrenclave || DEFAULT_EXPECTED_MRENCLAVE["sgx"].slice(0, 32); // 16 bytes = 32 hex chars
+    const mrsigner =
+      options.mrsigner ||
+      crypto
+        .createHash("sha256")
+        .update("intel-signing-key")
+        .digest("hex")
+        .slice(0, 32);
     const isvProdId = options.isvProdId || 1;
     const timestamp = options.timestamp || Date.now();
 
@@ -256,10 +284,10 @@ class MockTpmQuoteGenerator {
     const rb = 28;
 
     // MRENCLAVE (offset 0x00 in report body, 16 bytes)
-    Buffer.from(mrenclave, 'hex').copy(buf, rb + 0x00);
+    Buffer.from(mrenclave, "hex").copy(buf, rb + 0x00);
 
     // MRSIGNER (offset 0x10 in report body, 16 bytes)
-    Buffer.from(mrsigner, 'hex').copy(buf, rb + 0x10);
+    Buffer.from(mrsigner, "hex").copy(buf, rb + 0x10);
 
     // ISVPRODID (offset 0x20 in report body, 2 bytes LE)
     buf.writeUInt16LE(isvProdId, rb + 0x20);
@@ -271,11 +299,11 @@ class MockTpmQuoteGenerator {
     buf.writeUInt8(0x01, rb + 0x24); // INITIALIZED flag
 
     // REPORT_DATA (offset 0x68 in report body, 16 bytes) — first 16 bytes of nonce
-    const nonceBytes = Buffer.from(nonce, 'hex');
+    const nonceBytes = Buffer.from(nonce, "hex");
     nonceBytes.subarray(0, 16).copy(buf, rb + 0x68);
 
     const attestation = {
-      authority: 'sgx',
+      authority: "sgx",
       rawQuote: buf,
       nonce,
       timestamp,
@@ -291,7 +319,10 @@ class MockTpmQuoteGenerator {
    * @returns {object}
    */
   generateSevSnpWrongMeasurementReport(nonce) {
-    const wrongMrenclave = crypto.createHash('sha384').update('malicious-enclave').digest('hex');
+    const wrongMrenclave = crypto
+      .createHash("sha384")
+      .update("malicious-enclave")
+      .digest("hex");
     return this.generateSevSnpRawReport(nonce, { mrenclave: wrongMrenclave });
   }
 
@@ -301,7 +332,11 @@ class MockTpmQuoteGenerator {
    * @returns {object}
    */
   generateSgxWrongMeasurementQuote(nonce) {
-    const wrongMrenclave = crypto.createHash('sha256').update('malicious-sgx-enclave').digest('hex').slice(0, 32);
+    const wrongMrenclave = crypto
+      .createHash("sha256")
+      .update("malicious-sgx-enclave")
+      .digest("hex")
+      .slice(0, 32);
     return this.generateSgxRawQuote(nonce, { mrenclave: wrongMrenclave });
   }
 }

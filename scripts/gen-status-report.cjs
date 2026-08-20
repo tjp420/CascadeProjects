@@ -1,40 +1,51 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+const fs = require("fs");
+const path = require("path");
+const { execSync } = require("child_process");
 
-const ROOT = path.resolve(__dirname, '..');
-const ROADMAP = path.join(ROOT, '..', 'roadmap-2026-07-16.json');
-const REPORT = path.join(ROOT, 'WORKSPACE-STATUS-REPORT-2026-07-16.md');
+const ROOT = path.resolve(__dirname, "..");
+const ROADMAP = path.join(ROOT, "..", "roadmap-2026-07-16.json");
+const REPORT = path.join(ROOT, "WORKSPACE-STATUS-REPORT-2026-07-16.md");
 
 function runGitStatus() {
   try {
-    return execSync('git status --porcelain', { cwd: ROOT, encoding: 'utf8' }) || '';
+    return (
+      execSync("git status --porcelain", { cwd: ROOT, encoding: "utf8" }) || ""
+    );
   } catch {
-    return '';
+    return "";
   }
 }
 
 function parseGitStatus(output) {
-  const summary = { modified: 0, deleted: 0, added: 0, untracked: 0, renamed: 0, copied: 0, other: 0, total: 0 };
-  const lines = output.split('\n').filter(Boolean);
+  const summary = {
+    modified: 0,
+    deleted: 0,
+    added: 0,
+    untracked: 0,
+    renamed: 0,
+    copied: 0,
+    other: 0,
+    total: 0,
+  };
+  const lines = output.split("\n").filter(Boolean);
   for (const line of lines) {
     const x = line[0];
     const y = line[1];
     const file = line.slice(3);
-    if (x === '?' && y === '?') {
+    if (x === "?" && y === "?") {
       summary.untracked += 1;
-    } else if (x === 'A' || (x === ' ' && y === 'A')) {
+    } else if (x === "A" || (x === " " && y === "A")) {
       summary.added += 1;
-    } else if (x === 'M' || y === 'M') {
+    } else if (x === "M" || y === "M") {
       summary.modified += 1;
-    } else if (x === 'D' || y === 'D') {
+    } else if (x === "D" || y === "D") {
       summary.deleted += 1;
-    } else if (x === 'R') {
+    } else if (x === "R") {
       summary.renamed += 1;
-    } else if (x === 'C') {
+    } else if (x === "C") {
       summary.copied += 1;
     } else {
       summary.other += 1;
@@ -45,7 +56,7 @@ function parseGitStatus(output) {
 }
 
 function main() {
-  const roadmap = JSON.parse(fs.readFileSync(ROADMAP, 'utf8'));
+  const roadmap = JSON.parse(fs.readFileSync(ROADMAP, "utf8"));
   const phases = roadmap.phases || [];
 
   let totalTasks = 0;
@@ -61,13 +72,15 @@ function main() {
     completedTasks += done;
 
     statusRows.push(
-      `| ${phase.title} | ${phase.status} | ${phase.progress}% | ${done}/${ts.length} | ${todo} | ${phase.description} |`
+      `| ${phase.title} | ${phase.status} | ${phase.progress}% | ${done}/${ts.length} | ${todo} | ${phase.description} |`,
     );
 
     for (const task of ts) {
       if (!task.done) {
-        const snippet = task.codeSnippet ? `  \`${task.codeSnippet}\`` : '';
-        openTasks.push(`- [ ] **${phase.title}** — ${task.description} (${task.type})${snippet}`);
+        const snippet = task.codeSnippet ? `  \`${task.codeSnippet}\`` : "";
+        openTasks.push(
+          `- [ ] **${phase.title}** — ${task.description} (${task.type})${snippet}`,
+        );
       }
     }
   }
@@ -79,7 +92,7 @@ function main() {
 
 ## Roadmap Overview
 
-- Phases: ${phases.length} total, ${phases.filter((p) => p.status === 'completed').length} completed, ${phases.filter((p) => p.status === 'inProgress').length} in-progress, ${phases.filter((p) => p.status === 'pending').length} pending, 0 blocked
+- Phases: ${phases.length} total, ${phases.filter((p) => p.status === "completed").length} completed, ${phases.filter((p) => p.status === "inProgress").length} in-progress, ${phases.filter((p) => p.status === "pending").length} pending, 0 blocked
 - Tasks: ${totalTasks} total, ${completedTasks} completed, ${totalTasks - completedTasks} remaining
 - Health score: 100/100
 
@@ -87,11 +100,11 @@ function main() {
 
 | Phase | Status | Progress | Done | Todo | Description |
 |-------|--------|----------|------|------|-------------|
-${statusRows.join('\n')}
+${statusRows.join("\n")}
 
 ## Open Tasks (${totalTasks - completedTasks} remaining)
 
-${openTasks.length ? openTasks.join('\n') : 'All tasks completed.'}
+${openTasks.length ? openTasks.join("\n") : "All tasks completed."}
 
 ## Git Working Tree Summary
 
@@ -120,7 +133,7 @@ ${openTasks.length ? openTasks.join('\n') : 'All tasks completed.'}
 3. Monitor Dependabot weekly PRs for dependency updates.
 `;
 
-  fs.writeFileSync(REPORT, content, 'utf8');
+  fs.writeFileSync(REPORT, content, "utf8");
 }
 
 main();

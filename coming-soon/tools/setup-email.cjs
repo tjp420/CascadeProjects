@@ -94,18 +94,24 @@ async function main() {
     });
 
     if (result.sent) {
-        console.log('Sent via', result.provider || 'unknown', result.providerMessageId ? `(id: ${result.providerMessageId})` : '');
+        console.log(
+            'Sent via',
+            result.provider || 'unknown',
+            result.providerMessageId ? `(id: ${result.providerMessageId})` : ''
+        );
         process.exit(0);
     }
 
     console.error('Send failed:', result.error || 'unknown error');
     if (result.queued) {
-        console.error('Message was queued for retry. Check pending rows in email_queue or run scripts/email-retry-worker.cjs');
+        console.error(
+            'Message was queued for retry. Check pending rows in email_queue or run scripts/email-retry-worker.cjs'
+        );
     }
     process.exit(1);
 }
 
-main().catch((err) => {
+main().catch(err => {
     console.error('Fatal:', err.message);
     process.exit(1);
 });

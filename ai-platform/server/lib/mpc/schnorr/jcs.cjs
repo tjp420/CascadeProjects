@@ -14,7 +14,9 @@ class JcsCanonicalizer {
    */
   constructor(options) {
     options = options || {};
-    this.allowBigIntMarker = Boolean(options.allowBigIntMarker) || (process && process.env && process.env.ALLOW_BIGINT_MARKER === '1');
+    this.allowBigIntMarker =
+      Boolean(options.allowBigIntMarker) ||
+      (process && process.env && process.env.ALLOW_BIGINT_MARKER === "1");
   }
 
   /**
@@ -26,50 +28,52 @@ class JcsCanonicalizer {
    * @returns {string} Whitespace-free, key-sorted string representation.
    */
   canonicalize(obj) {
-    if (obj === null) return 'null';
+    if (obj === null) return "null";
     const t = typeof obj;
-    if (t === 'boolean') return obj ? 'true' : 'false';
-    if (t === 'number') {
-      if (!Number.isFinite(obj)) return 'null';
-      if (Object.is(obj, -0)) return '0';
+    if (t === "boolean") return obj ? "true" : "false";
+    if (t === "number") {
+      if (!Number.isFinite(obj)) return "null";
+      if (Object.is(obj, -0)) return "0";
 
       // Bound significant digits and normalize exponent/decimal form
-      let s = obj.toPrecision ? obj.toPrecision(MAX_SIGNIFICANT) : JSON.stringify(obj);
-      s = s.replace(/E/, 'e');
-      s = s.replace(/e\+/, 'e');
-      if (s.indexOf('.') >= 0) {
-        s = s.replace(/(\.\d*?[1-9])0+$/,'$1');
-        s = s.replace(/\.0+$/,'');
+      let s = obj.toPrecision
+        ? obj.toPrecision(MAX_SIGNIFICANT)
+        : JSON.stringify(obj);
+      s = s.replace(/E/, "e");
+      s = s.replace(/e\+/, "e");
+      if (s.indexOf(".") >= 0) {
+        s = s.replace(/(\.\d*?[1-9])0+$/, "$1");
+        s = s.replace(/\.0+$/, "");
       }
-      s = s.replace(/e\+/, 'e');
+      s = s.replace(/e\+/, "e");
       return s;
     }
-    if (t === 'string') {
+    if (t === "string") {
       // normalize string values to NFC for cross-language parity
       try {
-        const n = obj.normalize && obj.normalize('NFC') || obj;
+        const n = (obj.normalize && obj.normalize("NFC")) || obj;
         return JSON.stringify(n);
       } catch (e) {
         return JSON.stringify(obj);
       }
     }
-    if (t === 'bigint') return JSON.stringify(obj.toString(16)); // hex string
+    if (t === "bigint") return JSON.stringify(obj.toString(16)); // hex string
 
     if (Array.isArray(obj)) {
-      const items = obj.map(item => this.canonicalize(item));
-      return `[${items.join(',')}]`;
+      const items = obj.map((item) => this.canonicalize(item));
+      return `[${items.join(",")}]`;
     }
 
-    if (t === 'object') {
+    if (t === "object") {
       // Reject BigInt marker on untrusted inputs unless explicitly allowed.
       const ownKeys = Object.keys(obj);
-      if (ownKeys.length === 1 && ownKeys[0] === '__bigint_hex') {
-        const val = obj['__bigint_hex'];
+      if (ownKeys.length === 1 && ownKeys[0] === "__bigint_hex") {
+        const val = obj["__bigint_hex"];
         if (!this.allowBigIntMarker) {
-          throw new Error('Refusing __bigint_hex marker from untrusted input');
+          throw new Error("Refusing __bigint_hex marker from untrusted input");
         }
-        if (typeof val !== 'string') {
-          throw new Error('Invalid __bigint_hex marker: expected string');
+        if (typeof val !== "string") {
+          throw new Error("Invalid __bigint_hex marker: expected string");
         }
         return JSON.stringify(val);
       }
@@ -77,8 +81,8 @@ class JcsCanonicalizer {
       // sort keys by NFC-normalized Unicode codepoint order
       const keys = Object.keys(obj).slice();
       const codepointCompare = (A, B) => {
-        const a = (A && A.normalize) ? A.normalize('NFC') : A;
-        const b = (B && B.normalize) ? B.normalize('NFC') : B;
+        const a = A && A.normalize ? A.normalize("NFC") : A;
+        const b = B && B.normalize ? B.normalize("NFC") : B;
         const arrA = Array.from(a);
         const arrB = Array.from(b);
         const L = Math.min(arrA.length, arrB.length);
@@ -94,13 +98,13 @@ class JcsCanonicalizer {
       for (const k of keys) {
         const v = obj[k];
         if (v === undefined) continue; // prune undefined
-        const nk = (k && k.normalize) ? k.normalize('NFC') : k;
+        const nk = k && k.normalize ? k.normalize("NFC") : k;
         kv.push(`${JSON.stringify(nk)}:${this.canonicalize(v)}`);
       }
-      return `{${kv.join(',')}}`;
+      return `{${kv.join(",")}}`;
     }
 
-    return 'null';
+    return "null";
   }
 }
 

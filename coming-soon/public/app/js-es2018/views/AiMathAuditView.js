@@ -22,10 +22,7 @@ export class AiMathAuditView {
         if (!this.container) return;
         const report = this.data?.report || this.data;
         if (!report) {
-            window.setSafeHTML(
-                this.container,
-                '<div class="empty-state">No AI Math Audit data available.</div>'
-            );;
+            window.setSafeHTML(this.container, '<div class="empty-state">No AI Math Audit data available.</div>');
             return;
         }
 
@@ -44,31 +41,38 @@ export class AiMathAuditView {
             return ta.localeCompare(tb);
         });
 
-        const severityBadge = (sev) => {
+        const severityBadge = sev => {
             const colours = {
                 critical: 'background:#7f1d1d;color:#fca5a5;',
                 high: 'background:#451a03;color:#fcd34d;',
                 medium: 'background:#1e3a8a;color:#93c5fd;',
-                low: 'background:#064e3b;color:#86efac;',
+                low: 'background:#064e3b;color:#86efac;'
             };
             const style = colours[sev] || 'background:#334155;color:#94a3b8;';
             return `<span class="gate-badge" style="${style}font-size:10px;padding:2px 8px;border-radius:999px;text-transform:uppercase;font-weight:600;">${escapeHtml(sev)}</span>`;
         };
 
-        const vizHtml = viz.map((v) => {
-            const typeLabel = String(v.type || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-            return `
+        const vizHtml = viz
+            .map(v => {
+                const typeLabel = String(v.type || '')
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, c => c.toUpperCase());
+                return `
                 <div style="margin-bottom:var(--space-4);">
                     <h4 style="font-size:var(--font-size-sm);color:var(--muted);margin-bottom:var(--space-2);">${escapeHtml(typeLabel)}${v.layer ? ' — ' + escapeHtml(v.layer) : ''}</h4>
                     <img src="${escapeHtml(v.url || '')}" alt="${escapeHtml(typeLabel)}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);"/>
                 </div>
             `;
-        }).join('');
+            })
+            .join('');
 
-        const findingRows = sortedFindings.map((f) => {
-            const layerOrToken = f.layer ? escapeHtml(f.layer) : f.token ? escapeHtml(f.token) : '—';
-            const metrics = f.metrics ? `<pre style="margin:0;font-size:10px;background:var(--surface-2);padding:4px 8px;border-radius:6px;overflow:auto;">${escapeHtml(JSON.stringify(f.metrics, null, 2))}</pre>` : '—';
-            return `
+        const findingRows = sortedFindings
+            .map(f => {
+                const layerOrToken = f.layer ? escapeHtml(f.layer) : f.token ? escapeHtml(f.token) : '—';
+                const metrics = f.metrics
+                    ? `<pre style="margin:0;font-size:10px;background:var(--surface-2);padding:4px 8px;border-radius:6px;overflow:auto;">${escapeHtml(JSON.stringify(f.metrics, null, 2))}</pre>`
+                    : '—';
+                return `
                 <tr style="border-bottom:1px solid var(--border);">
                     <td style="padding:8px 12px;vertical-align:top;">${severityBadge(f.severity)}</td>
                     <td style="padding:8px 12px;vertical-align:top;font-size:var(--font-size-xs);color:var(--foreground);">${escapeHtml(f.type || '—')}</td>
@@ -77,7 +81,8 @@ export class AiMathAuditView {
                     <td style="padding:8px 12px;vertical-align:top;">${metrics}</td>
                 </tr>
             `;
-        }).join('');
+            })
+            .join('');
         this.container.innerHTML = `
             <div class="section-block" style="margin-top:var(--space-6);">
                 <div class="section-heading" style="margin-bottom:var(--space-3);">
@@ -113,11 +118,15 @@ export class AiMathAuditView {
                 <div class="card" style="padding:var(--space-3);margin-bottom:var(--space-4);">
                     <h4 style="font-size:var(--font-size-sm);color:var(--muted);margin-bottom:var(--space-2);">Thresholds Used</h4>
                     <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);">
-                        ${Object.entries(thresholds).map(([k, v]) => `
+                        ${Object.entries(thresholds)
+                            .map(
+                                ([k, v]) => `
                             <span class="gate-badge" style="background:var(--surface-2);color:var(--foreground);font-size:10px;padding:2px 8px;border-radius:999px;">
                                 ${escapeHtml(k.replace(/_/g, ' '))}: ${v}
                             </span>
-                        `).join('')}
+                        `
+                            )
+                            .join('')}
                     </div>
                 </div>
 

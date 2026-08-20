@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 87: ZK Orbital Slot Claim Validator.
@@ -18,28 +18,28 @@
  * @module hsm-adapter/zk-orbital-slot-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const CLAIM_STATUS = {
-  VERIFIED: 'verified',
-  SLASHED: 'slashed',
+  VERIFIED: "verified",
+  SLASHED: "slashed",
 };
 
 const SLASH_REASON = {
-  MALFORMED: 'malformed_claim',
-  DUPLICATE: 'duplicate_claim',
-  SLOT_WINDOW_OUT_OF_BOUNDS: 'slot_window_out_of_bounds',
-  POOL_NOT_FOUND: 'pool_not_found',
-  BANNED_PEER: 'banned_peer',
-  OUT_OF_WINDOW: 'out_of_window',
+  MALFORMED: "malformed_claim",
+  DUPLICATE: "duplicate_claim",
+  SLOT_WINDOW_OUT_OF_BOUNDS: "slot_window_out_of_bounds",
+  POOL_NOT_FOUND: "pool_not_found",
+  BANNED_PEER: "banned_peer",
+  OUT_OF_WINDOW: "out_of_window",
 };
 
 const HW_ACCEL_TYPES = {
-  GPU_CUDA: 'gpu_cuda',
-  FPGA: 'fpga',
-  ASIC: 'asic',
-  SIMULATED: 'simulated',
+  GPU_CUDA: "gpu_cuda",
+  FPGA: "fpga",
+  ASIC: "asic",
+  SIMULATED: "simulated",
 };
 
 class ZkOrbitalSlotClaimValidator {
@@ -74,62 +74,131 @@ class ZkOrbitalSlotClaimValidator {
   verifyTelemetryClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('SPACECLAIM_HUB_MISSING', 'space-asset telemetry gating hub is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_HUB_MISSING",
+        "space-asset telemetry gating hub is required",
+      );
     }
-    if (this.policy.requireOrbitalOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireOrbitalOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.orbitalOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.orbitalOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SPACECLAIM_COMMITTEE_UNATTESTED', 'orbital oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "SPACECLAIM_COMMITTEE_UNATTESTED",
+            "orbital oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SPACECLAIM_COMMITTEE_UNATTESTED', 'orbital oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "SPACECLAIM_COMMITTEE_UNATTESTED",
+          "orbital oversight committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('SPACECLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SPACECLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.BANNED_PEER);
-      throw new HsmAdapterError('SPACECLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.BANNED_PEER,
+      );
+      throw new HsmAdapterError(
+        "SPACECLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkOrbitalRangeProofHash || typeof request.zkOrbitalRangeProofHash !== 'string') {
+    if (
+      !request.zkOrbitalRangeProofHash ||
+      typeof request.zkOrbitalRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('SPACECLAIM_ZK_PROOF_MISSING', 'zero-knowledge orbital range proof hash is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge orbital range proof hash is required",
+      );
     }
-    if (!request.thresholdSignature || typeof request.thresholdSignature !== 'string') {
+    if (
+      !request.thresholdSignature ||
+      typeof request.thresholdSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('SPACECLAIM_THRESHOLD_SIG_MISSING', 'threshold signature is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_THRESHOLD_SIG_MISSING",
+        "threshold signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.POOL_NOT_FOUND);
-      throw new HsmAdapterError('SPACECLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.POOL_NOT_FOUND,
+      );
+      throw new HsmAdapterError(
+        "SPACECLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.slotAllocationWindowSeconds === 'number' && request.slotAllocationWindowSeconds > (this.policy.maxSlotAllocationWindowSeconds || 31536000)) {
+    if (
+      typeof request.slotAllocationWindowSeconds === "number" &&
+      request.slotAllocationWindowSeconds >
+        (this.policy.maxSlotAllocationWindowSeconds || 31536000)
+    ) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.SLOT_WINDOW_OUT_OF_BOUNDS);
-      throw new HsmAdapterError('SPACECLAIM_SLOT_WINDOW_OUT_OF_BOUNDS', `slot allocation window seconds ${request.slotAllocationWindowSeconds} exceeds maximum ${this.policy.maxSlotAllocationWindowSeconds}`);
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.SLOT_WINDOW_OUT_OF_BOUNDS,
+      );
+      throw new HsmAdapterError(
+        "SPACECLAIM_SLOT_WINDOW_OUT_OF_BOUNDS",
+        `slot allocation window seconds ${request.slotAllocationWindowSeconds} exceeds maximum ${this.policy.maxSlotAllocationWindowSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.DUPLICATE);
-      throw new HsmAdapterError('SPACECLAIM_DUPLICATE', `telemetry claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "SPACECLAIM_DUPLICATE",
+        `telemetry claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedSlotAllocationCommitment: request.blindedSlotAllocationCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedSlotAllocationCommitment:
+        request.blindedSlotAllocationCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkOrbitalRangeProofHash: request.zkOrbitalRangeProofHash,
-      orbitalOversightCommitteeAttestationHash: request.orbitalOversightCommitteeAttestationHash || 'unspecified',
+      orbitalOversightCommitteeAttestationHash:
+        request.orbitalOversightCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
       status: CLAIM_STATUS.VERIFIED,
     };
@@ -137,7 +206,7 @@ class ZkOrbitalSlotClaimValidator {
     this._hub.markTelemetryClaimVerified(request.poolId);
     this._claimCount++;
     if (this._audit) {
-      this._audit('ZK_TELEMETRY_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_TELEMETRY_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -149,34 +218,51 @@ class ZkOrbitalSlotClaimValidator {
    */
   generateHwSnarkProof(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('SPACECLAIM_HW_PROOF_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_HW_PROOF_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (typeof request.slotAllocationMetric !== 'number' || typeof request.claimValue !== 'number') {
-      throw new HsmAdapterError('SPACECLAIM_HW_PROOF_FIELDS_MISSING',
-        'slotAllocationMetric and claimValue numbers are required');
+    if (
+      typeof request.slotAllocationMetric !== "number" ||
+      typeof request.claimValue !== "number"
+    ) {
+      throw new HsmAdapterError(
+        "SPACECLAIM_HW_PROOF_FIELDS_MISSING",
+        "slotAllocationMetric and claimValue numbers are required",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('SPACECLAIM_HUB_MISSING', 'space-asset telemetry gating hub is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_HUB_MISSING",
+        "space-asset telemetry gating hub is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SPACECLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SPACECLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    const proofHash = crypto.createHash('sha256')
-      .update(`${request.poolId}:${request.slotAllocationMetric}:${request.claimValue}:${this._hwAccelType}`)
-      .digest('hex');
+    const proofHash = crypto
+      .createHash("sha256")
+      .update(
+        `${request.poolId}:${request.slotAllocationMetric}:${request.claimValue}:${this._hwAccelType}`,
+      )
+      .digest("hex");
     const proof = {
       zkOrbitalRangeProofHash: proofHash,
       poolId: request.poolId,
       slotAllocationMetric: request.slotAllocationMetric,
       claimValue: request.claimValue,
       hwAccelType: this._hwAccelType,
-      proofSystem: 'groth16',
+      proofSystem: "groth16",
       generatedAt: Math.floor(Date.now() / 1000),
     };
     this._hwProofCount++;
     if (this._audit) {
-      this._audit('SPACECLAIM_HW_SNARK_PROOF_GENERATED', { ...proof });
+      this._audit("SPACECLAIM_HW_SNARK_PROOF_GENERATED", { ...proof });
     }
     return proof;
   }
@@ -188,11 +274,16 @@ class ZkOrbitalSlotClaimValidator {
    */
   batchVerifyTelemetryClaims(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('SPACECLAIM_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('SPACECLAIM_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "SPACECLAIM_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let verifiedCount = 0;
@@ -208,9 +299,9 @@ class ZkOrbitalSlotClaimValidator {
         verifiedCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'unknown',
+          poolId: req.poolId || "unknown",
           verified: false,
-          error: err.code || 'SPACECLAIM_BATCH_ERROR',
+          error: err.code || "SPACECLAIM_BATCH_ERROR",
         });
         failedCount++;
       }
@@ -223,9 +314,18 @@ class ZkOrbitalSlotClaimValidator {
       verifiedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('SPACECLAIM_BATCH_VERIFIED', { verifiedCount, failedCount, batchSize: requests.length });
+      this._audit("SPACECLAIM_BATCH_VERIFIED", {
+        verifiedCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, verifiedCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      verifiedCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -236,17 +336,29 @@ class ZkOrbitalSlotClaimValidator {
    */
   validateSlashingWindow(poolId, claimTimestamp) {
     if (!poolId) {
-      throw new HsmAdapterError('SPACECLAIM_WINDOW_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_WINDOW_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (typeof claimTimestamp !== 'number' || claimTimestamp <= 0) {
-      throw new HsmAdapterError('SPACECLAIM_WINDOW_FIELDS_MISSING', 'claimTimestamp must be a positive number');
+    if (typeof claimTimestamp !== "number" || claimTimestamp <= 0) {
+      throw new HsmAdapterError(
+        "SPACECLAIM_WINDOW_FIELDS_MISSING",
+        "claimTimestamp must be a positive number",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('SPACECLAIM_HUB_MISSING', 'space-asset telemetry gating hub is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_HUB_MISSING",
+        "space-asset telemetry gating hub is required",
+      );
     }
     const pool = this._hub.getPool(poolId);
     if (!pool) {
-      throw new HsmAdapterError('SPACECLAIM_POOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "SPACECLAIM_POOL_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const maxWindow = this.policy.maxSlotAllocationWindowSeconds || 31536000;
@@ -270,33 +382,50 @@ class ZkOrbitalSlotClaimValidator {
    */
   aggregateThresholdSignatures(poolId, thresholdSignatures) {
     if (!poolId) {
-      throw new HsmAdapterError('SPACECLAIM_AGG_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SPACECLAIM_AGG_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (!Array.isArray(thresholdSignatures) || thresholdSignatures.length === 0) {
-      throw new HsmAdapterError('SPACECLAIM_AGG_NO_SIGNATURES', 'thresholdSignatures array is required');
+    if (
+      !Array.isArray(thresholdSignatures) ||
+      thresholdSignatures.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "SPACECLAIM_AGG_NO_SIGNATURES",
+        "thresholdSignatures array is required",
+      );
     }
     for (const sig of thresholdSignatures) {
       if (sig.peerId && this._bannedPeers.has(sig.peerId)) {
-        throw new HsmAdapterError('SPACECLAIM_PEER_BANNED',
-          `peer ${sig.peerId} is banned and cannot participate in aggregation`);
+        throw new HsmAdapterError(
+          "SPACECLAIM_PEER_BANNED",
+          `peer ${sig.peerId} is banned and cannot participate in aggregation`,
+        );
       }
     }
     if (thresholdSignatures.length < (this.policy.minOrbitalSlotQuorum || 5)) {
-      throw new HsmAdapterError('SPACECLAIM_AGG_INSUFFICIENT',
-        `${thresholdSignatures.length} signatures below minimum ${this.policy.minOrbitalSlotQuorum || 5}`);
+      throw new HsmAdapterError(
+        "SPACECLAIM_AGG_INSUFFICIENT",
+        `${thresholdSignatures.length} signatures below minimum ${this.policy.minOrbitalSlotQuorum || 5}`,
+      );
     }
-    const aggregatedSignature = crypto.createHash('sha256')
-      .update(thresholdSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSignature = crypto
+      .createHash("sha256")
+      .update(thresholdSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: thresholdSignatures.length,
       aggregatedSignature,
-      participantIds: thresholdSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: thresholdSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('SPACECLAIM_THRESHOLD_SIGS_AGGREGATED', { poolId, count: thresholdSignatures.length });
+      this._audit("SPACECLAIM_THRESHOLD_SIGS_AGGREGATED", {
+        poolId,
+        count: thresholdSignatures.length,
+      });
     }
     return result;
   }
@@ -372,7 +501,10 @@ class ZkOrbitalSlotClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderOrbitalClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderOrbitalClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -387,22 +519,31 @@ class ZkOrbitalSlotClaimValidator {
   _recordSlash(poolId, peerId, reason) {
     this._slashedClaims.push({
       poolId,
-      peerId: peerId || 'anonymous',
+      peerId: peerId || "anonymous",
       reason,
       slashedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('SPACECLAIM_SLASHED', { poolId, peerId, reason });
+      this._audit("SPACECLAIM_SLASHED", { poolId, peerId, reason });
     }
   }
 }
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('SPACECLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "SPACECLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireOrbitalOversightCommitteeAttestation && !request.orbitalOversightCommitteeAttestation) {
-    throw new HsmAdapterError('SPACECLAIM_ATTESTATION_MISSING', 'orbital oversight committee attestation is required');
+  if (
+    policy.requireOrbitalOversightCommitteeAttestation &&
+    !request.orbitalOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SPACECLAIM_ATTESTATION_MISSING",
+      "orbital oversight committee attestation is required",
+    );
   }
 }
 

@@ -11,7 +11,10 @@ const SUB_RATE_LIMIT_MAX = 5;
 const subRateLog = new Map(); // ip -> { count, resetAt }
 
 const logger = {
-    error: (...a) => { const c = globalThis.console; c.error(...a); }
+    error: (...a) => {
+        const c = globalThis.console;
+        c.error(...a);
+    }
 };
 
 router.post('/api/subscribe', async (req, res) => {

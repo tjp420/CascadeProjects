@@ -49,15 +49,19 @@ export class AssessmentView {
           <div class="settings-row"><span class="settings-label">High issues</span><span class="settings-value">${(_b = summary.highIssues) !== null && _b !== void 0 ? _b : 0}</span></div>
           <div class="settings-row"><span class="settings-label">Expires</span><span class="settings-value">${escapeHtml(((_c = assessment.metadata) === null || _c === void 0 ? void 0 : _c.expiresAt) || '—')}</span></div>
         </div>
-        ${rules.length ? `
+        ${
+            rules.length
+                ? `
           <div class="section-heading" style="padding:0 var(--space-4)"><h2>Corporate safety checklist</h2></div>
           <div class="table-scroll-wrapper">
           <table class="results-table">
             <thead><tr><th scope="col">Rule</th><th scope="col">Title</th><th scope="col">Evidence</th></tr></thead>
-            <tbody>${rules.map((r) => this.renderRuleRow(r)).join('')}</tbody>
+            <tbody>${rules.map(r => this.renderRuleRow(r)).join('')}</tbody>
           </table>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
         <div class="card-actions" style="padding:var(--space-4)">
           <a class="btn btn-secondary btn-sm" href="${assessmentService.downloadUrl((_d = assessment.metadata) === null || _d === void 0 ? void 0 : _d.assessmentId)}" download>Download JSON</a>
         </div>
@@ -73,14 +77,18 @@ export class AssessmentView {
       <table class="results-table">
         <thead><tr><th scope="col">Company</th><th scope="col">ID</th><th scope="col">When</th><th scope="col"></th></tr></thead>
         <tbody>
-          ${this.recent.map((item) => `
+          ${this.recent
+              .map(
+                  item => `
             <tr>
               <td>${escapeHtml(item.company)}</td>
               <td><code>${escapeHtml(item.assessmentId)}</code></td>
               <td>${escapeHtml(new Date(item.createdAt).toLocaleString())}</td>
               <td><button type="button" class="btn btn-ghost btn-sm" data-open-assessment="${escapeHtml(item.assessmentId)}">View</button></td>
             </tr>
-          `).join('')}
+          `
+              )
+              .join('')}
         </tbody>
       </table>
       </div>
@@ -113,12 +121,16 @@ export class AssessmentView {
             <span class="input-label">Git repo URL ${authed ? '(public or signed-in)' : '(required)'}</span>
             <input class="input" name="repoUrl" placeholder="https://github.com/org/repo" value="${escapeHtml(this.form.repoUrl)}">
           </label>
-          ${authed ? `
+          ${
+              authed
+                  ? `
           <label class="input-group">
             <span class="input-label">Local project path (signed-in only)</span>
             <input class="input" name="projectPath" placeholder="C:\\\\Projects\\\\client-repo" value="${escapeHtml(this.form.projectPath)}">
-          </label>` : `
-          <p class="text-muted">Sign in to scan a local path on this server instead of cloning a repo.</p>`}
+          </label>`
+                  : `
+          <p class="text-muted">Sign in to scan a local path on this server instead of cloning a repo.</p>`
+          }
           <div class="card-actions">
             <button type="submit" class="btn btn-primary" ${this.busy ? 'disabled' : ''}>
               ${this.busy ? 'Scanning…' : 'Run assessment scan'}
@@ -134,13 +146,20 @@ export class AssessmentView {
 
       <div id="assessment-detail">${this.busy ? '<div class="card" style="padding:var(--space-4);text-align:center;"><span class="loading-spinner"></span> <span class="text-muted">Running assessment scan…</span></div>' : this.report ? this.renderReportDetail(this.report) : ''}</div>
     `;
-        (_b = el.querySelector('#assessment-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.onSubmit(e));
-        el.querySelectorAll('[data-open-assessment]').forEach((btn) => {
+        (_b = el.querySelector('#assessment-form')) === null || _b === void 0
+            ? void 0
+            : _b.addEventListener('submit', e => this.onSubmit(e));
+        el.querySelectorAll('[data-open-assessment]').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.app.navigate('assessments', { id: btn.dataset.openAssessment });
             });
         });
-        if (selectedId && ((_d = (_c = this.report) === null || _c === void 0 ? void 0 : _c.metadata) === null || _d === void 0 ? void 0 : _d.assessmentId) === selectedId) {
+        if (
+            selectedId &&
+            ((_d = (_c = this.report) === null || _c === void 0 ? void 0 : _c.metadata) === null || _d === void 0
+                ? void 0
+                : _d.assessmentId) === selectedId
+        ) {
             // detail rendered inline below
         }
         return el;
@@ -152,8 +171,7 @@ export class AssessmentView {
     }
     async onSubmit(e) {
         e.preventDefault();
-        if (this.busy)
-            return;
+        if (this.busy) return;
         const fd = new FormData(e.target);
         const payload = {
             company: String(fd.get('company') || '').trim(),
@@ -180,16 +198,13 @@ export class AssessmentView {
             this.app.navigate('assessments', { id: result.assessmentId });
             const data = await assessmentService.fetchReport(result.assessmentId);
             this.report = data.assessment;
-        }
-        catch (err) {
+        } catch (err) {
             if (err.status === 401) {
                 showLoginModal({ onSuccess: () => e.target.requestSubmit() });
-            }
-            else {
+            } else {
                 showToast(err.message, 'error');
             }
-        }
-        finally {
+        } finally {
             this.busy = false;
             this.app.refreshCurrentView();
         }
@@ -200,21 +215,25 @@ export class AssessmentView {
             window.setSafeHTML(
                 container,
                 '\n                <div class="page-header"><h1>Assessments</h1></div>\n                <div class="card notice-card"><p>Admin access required.</p></div>\n            '
-            );;
+            );
             return;
         }
         const selectedId = (_a = this.app.state.routeParams) === null || _a === void 0 ? void 0 : _a.id;
         if (selectedId) {
-            if (((_c = (_b = this.report) === null || _b === void 0 ? void 0 : _b.metadata) === null || _c === void 0 ? void 0 : _c.assessmentId) !== selectedId) {
-                assessmentService.fetchReport(selectedId)
-                    .then((data) => {
-                    this.report = data.assessment;
-                    this.app.refreshCurrentView();
-                })
-                    .catch((err) => showToast(err.message, 'error'));
+            if (
+                ((_c = (_b = this.report) === null || _b === void 0 ? void 0 : _b.metadata) === null || _c === void 0
+                    ? void 0
+                    : _c.assessmentId) !== selectedId
+            ) {
+                assessmentService
+                    .fetchReport(selectedId)
+                    .then(data => {
+                        this.report = data.assessment;
+                        this.app.refreshCurrentView();
+                    })
+                    .catch(err => showToast(err.message, 'error'));
             }
-        }
-        else {
+        } else {
             this.report = null;
         }
         this.recent = assessmentService.getRecentAssessments();

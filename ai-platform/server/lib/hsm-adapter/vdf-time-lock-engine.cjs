@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 59: Zero-Knowledge Verifiable Delay Functions (VDF) and
@@ -22,8 +22,8 @@
  * @module hsm-adapter/vdf-time-lock-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   // Prime field: 2^521 - 1 (Mersenne prime, large enough for VDF)
@@ -39,23 +39,23 @@ const DEFAULT_OPTIONS = {
 };
 
 const VDF_STATUS = {
-  PENDING: 'pending',
-  EVALUATING: 'evaluating',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
+  PENDING: "pending",
+  EVALUATING: "evaluating",
+  COMPLETED: "completed",
+  FAILED: "failed",
 };
 
 const PUZZLE_STATUS = {
-  LOCKED: 'locked',
-  SOLVING: 'solving',
-  SOLVED: 'solved',
-  EXPIRED: 'expired',
-  FAILED: 'failed',
+  LOCKED: "locked",
+  SOLVING: "solving",
+  SOLVED: "solved",
+  EXPIRED: "expired",
+  FAILED: "failed",
 };
 
 const PROOF_TYPE = {
-  WESOLOWSKI: 'wesolowski',
-  PIETRZAK: 'pietrzak',
+  WESOLOWSKI: "wesolowski",
+  PIETRZAK: "pietrzak",
 };
 
 /**
@@ -98,42 +98,69 @@ class VdfTimeLockEngine {
    * @returns {object} VDF instance info
    */
   createVdf(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'VDF config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "VDF config is required");
     }
-    if (!config.vdfId || typeof config.vdfId !== 'string') {
-      throw new HsmAdapterError('INVALID_VDF_ID', 'vdfId must be a non-empty string');
+    if (!config.vdfId || typeof config.vdfId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_VDF_ID",
+        "vdfId must be a non-empty string",
+      );
     }
     if (this._vdfs.has(config.vdfId)) {
-      throw new HsmAdapterError('VDF_ALREADY_EXISTS', `VDF ${config.vdfId} already exists`);
+      throw new HsmAdapterError(
+        "VDF_ALREADY_EXISTS",
+        `VDF ${config.vdfId} already exists`,
+      );
     }
-    if (typeof config.input !== 'bigint' && typeof config.input !== 'number') {
-      throw new HsmAdapterError('INVALID_INPUT', 'input must be a bigint or number');
+    if (typeof config.input !== "bigint" && typeof config.input !== "number") {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "input must be a bigint or number",
+      );
     }
-    const input = typeof config.input === 'bigint' ? config.input : BigInt(config.input);
+    const input =
+      typeof config.input === "bigint" ? config.input : BigInt(config.input);
     if (input <= 0n || input >= this.fieldPrime) {
-      throw new HsmAdapterError('INPUT_OUT_OF_RANGE',
-        'input must be in range (0, fieldPrime)');
+      throw new HsmAdapterError(
+        "INPUT_OUT_OF_RANGE",
+        "input must be in range (0, fieldPrime)",
+      );
     }
     const difficulty = config.difficulty;
-    if (typeof difficulty !== 'number' || difficulty < this.minDifficulty) {
-      throw new HsmAdapterError('INVALID_DIFFICULTY',
-        `difficulty must be at least ${this.minDifficulty}`);
+    if (typeof difficulty !== "number" || difficulty < this.minDifficulty) {
+      throw new HsmAdapterError(
+        "INVALID_DIFFICULTY",
+        `difficulty must be at least ${this.minDifficulty}`,
+      );
     }
     if (difficulty > this.maxDifficulty) {
-      throw new HsmAdapterError('DIFFICULTY_TOO_HIGH',
-        `${difficulty} exceeds max ${this.maxDifficulty}`);
+      throw new HsmAdapterError(
+        "DIFFICULTY_TOO_HIGH",
+        `${difficulty} exceeds max ${this.maxDifficulty}`,
+      );
     }
     const proofType = config.proofType || PROOF_TYPE.WESOLOWSKI;
     if (proofType === PROOF_TYPE.WESOLOWSKI && !this.enableWesolowski) {
-      throw new HsmAdapterError('WESOLOWSKI_DISABLED', 'Wesolowski proofs are disabled');
+      throw new HsmAdapterError(
+        "WESOLOWSKI_DISABLED",
+        "Wesolowski proofs are disabled",
+      );
     }
     if (proofType === PROOF_TYPE.PIETRZAK && !this.enablePietrzak) {
-      throw new HsmAdapterError('PIETRZAK_DISABLED', 'Pietrzak proofs are disabled');
+      throw new HsmAdapterError(
+        "PIETRZAK_DISABLED",
+        "Pietrzak proofs are disabled",
+      );
     }
-    if (proofType !== PROOF_TYPE.WESOLOWSKI && proofType !== PROOF_TYPE.PIETRZAK) {
-      throw new HsmAdapterError('INVALID_PROOF_TYPE',
-        `proofType must be ${PROOF_TYPE.WESOLOWSKI} or ${PROOF_TYPE.PIETRZAK}`);
+    if (
+      proofType !== PROOF_TYPE.WESOLOWSKI &&
+      proofType !== PROOF_TYPE.PIETRZAK
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_PROOF_TYPE",
+        `proofType must be ${PROOF_TYPE.WESOLOWSKI} or ${PROOF_TYPE.PIETRZAK}`,
+      );
     }
     const vdf = {
       vdfId: config.vdfId,
@@ -149,8 +176,8 @@ class VdfTimeLockEngine {
       evalTimeMs: 0,
     };
     this._vdfs.set(config.vdfId, vdf);
-    if (typeof this._audit === 'function') {
-      this._audit('VDF_CREATED', { vdfId: config.vdfId, difficulty });
+    if (typeof this._audit === "function") {
+      this._audit("VDF_CREATED", { vdfId: config.vdfId, difficulty });
     }
     return {
       vdfId: vdf.vdfId,
@@ -168,7 +195,7 @@ class VdfTimeLockEngine {
   evaluateVdf(vdfId) {
     const vdf = this._vdfs.get(vdfId);
     if (!vdf) {
-      throw new HsmAdapterError('VDF_NOT_FOUND', `VDF ${vdfId} not found`);
+      throw new HsmAdapterError("VDF_NOT_FOUND", `VDF ${vdfId} not found`);
     }
     if (vdf.status === VDF_STATUS.COMPLETED) {
       return {
@@ -180,8 +207,10 @@ class VdfTimeLockEngine {
       };
     }
     if (vdf.difficulty > this.maxIterations) {
-      throw new HsmAdapterError('DIFFICULTY_EXCEEDS_ITERATIONS',
-        `${vdf.difficulty} exceeds max iterations ${this.maxIterations}`);
+      throw new HsmAdapterError(
+        "DIFFICULTY_EXCEEDS_ITERATIONS",
+        `${vdf.difficulty} exceeds max iterations ${this.maxIterations}`,
+      );
     }
     vdf.status = VDF_STATUS.EVALUATING;
     const startTime = Date.now();
@@ -208,8 +237,12 @@ class VdfTimeLockEngine {
     if (this._completedVdfs.length > this._maxHistory) {
       this._completedVdfs.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('VDF_EVALUATED', { vdfId, difficulty: vdf.difficulty, evalTimeMs: evalTime });
+    if (typeof this._audit === "function") {
+      this._audit("VDF_EVALUATED", {
+        vdfId,
+        difficulty: vdf.difficulty,
+        evalTimeMs: evalTime,
+      });
     }
     return {
       vdfId,
@@ -228,20 +261,22 @@ class VdfTimeLockEngine {
   verifyVdf(vdfId) {
     const vdf = this._vdfs.get(vdfId);
     if (!vdf) {
-      throw new HsmAdapterError('VDF_NOT_FOUND', `VDF ${vdfId} not found`);
+      throw new HsmAdapterError("VDF_NOT_FOUND", `VDF ${vdfId} not found`);
     }
     if (vdf.status !== VDF_STATUS.COMPLETED) {
-      throw new HsmAdapterError('VDF_NOT_EVALUATED',
-        `VDF ${vdfId} has not been evaluated (status: ${vdf.status})`);
+      throw new HsmAdapterError(
+        "VDF_NOT_EVALUATED",
+        `VDF ${vdfId} has not been evaluated (status: ${vdf.status})`,
+      );
     }
     if (!vdf.proof) {
-      throw new HsmAdapterError('VDF_NO_PROOF', `VDF ${vdfId} has no proof`);
+      throw new HsmAdapterError("VDF_NO_PROOF", `VDF ${vdfId} has no proof`);
     }
     const verified = this._verifyProof(vdf);
     vdf.verifiedAt = verified ? Date.now() : null;
     this._verifyCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('VDF_VERIFIED', { vdfId, verified });
+    if (typeof this._audit === "function") {
+      this._audit("VDF_VERIFIED", { vdfId, verified });
     }
     return {
       vdfId,
@@ -262,30 +297,45 @@ class VdfTimeLockEngine {
    * @returns {object} Puzzle info
    */
   createPuzzle(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'puzzle config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "puzzle config is required");
     }
-    if (!config.puzzleId || typeof config.puzzleId !== 'string') {
-      throw new HsmAdapterError('INVALID_PUZZLE_ID', 'puzzleId must be a non-empty string');
+    if (!config.puzzleId || typeof config.puzzleId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_PUZZLE_ID",
+        "puzzleId must be a non-empty string",
+      );
     }
     if (this._puzzles.has(config.puzzleId)) {
-      throw new HsmAdapterError('PUZZLE_ALREADY_EXISTS', `puzzle ${config.puzzleId} already exists`);
+      throw new HsmAdapterError(
+        "PUZZLE_ALREADY_EXISTS",
+        `puzzle ${config.puzzleId} already exists`,
+      );
     }
     if (this._puzzles.size >= this.maxPuzzles) {
-      throw new HsmAdapterError('MAX_PUZZLES_REACHED',
-        `maximum ${this.maxPuzzles} puzzles reached`);
+      throw new HsmAdapterError(
+        "MAX_PUZZLES_REACHED",
+        `maximum ${this.maxPuzzles} puzzles reached`,
+      );
     }
     if (!Buffer.isBuffer(config.secret) || config.secret.length === 0) {
-      throw new HsmAdapterError('INVALID_SECRET', 'secret must be a non-empty Buffer');
+      throw new HsmAdapterError(
+        "INVALID_SECRET",
+        "secret must be a non-empty Buffer",
+      );
     }
     const difficulty = config.difficulty;
-    if (typeof difficulty !== 'number' || difficulty < this.minDifficulty) {
-      throw new HsmAdapterError('INVALID_DIFFICULTY',
-        `difficulty must be at least ${this.minDifficulty}`);
+    if (typeof difficulty !== "number" || difficulty < this.minDifficulty) {
+      throw new HsmAdapterError(
+        "INVALID_DIFFICULTY",
+        `difficulty must be at least ${this.minDifficulty}`,
+      );
     }
     if (difficulty > this.maxDifficulty) {
-      throw new HsmAdapterError('DIFFICULTY_TOO_HIGH',
-        `${difficulty} exceeds max ${this.maxDifficulty}`);
+      throw new HsmAdapterError(
+        "DIFFICULTY_TOO_HIGH",
+        `${difficulty} exceeds max ${this.maxDifficulty}`,
+      );
     }
     // Generate puzzle seed
     const seed = crypto.randomBytes(32);
@@ -300,8 +350,11 @@ class VdfTimeLockEngine {
       seed: seedInt,
       difficulty,
       encryptedSecret,
-      secretHash: crypto.createHash('sha256').update(config.secret).digest('hex'),
-      releaseTimestamp: config.releaseTimestamp || (now + difficulty * 1000),
+      secretHash: crypto
+        .createHash("sha256")
+        .update(config.secret)
+        .digest("hex"),
+      releaseTimestamp: config.releaseTimestamp || now + difficulty * 1000,
       status: PUZZLE_STATUS.LOCKED,
       createdAt: now,
       solvedAt: null,
@@ -309,8 +362,8 @@ class VdfTimeLockEngine {
       solveTimeMs: 0,
     };
     this._puzzles.set(config.puzzleId, puzzle);
-    if (typeof this._audit === 'function') {
-      this._audit('PUZZLE_CREATED', { puzzleId: config.puzzleId, difficulty });
+    if (typeof this._audit === "function") {
+      this._audit("PUZZLE_CREATED", { puzzleId: config.puzzleId, difficulty });
     }
     return {
       puzzleId: puzzle.puzzleId,
@@ -329,7 +382,10 @@ class VdfTimeLockEngine {
   solvePuzzle(puzzleId) {
     const puzzle = this._puzzles.get(puzzleId);
     if (!puzzle) {
-      throw new HsmAdapterError('PUZZLE_NOT_FOUND', `puzzle ${puzzleId} not found`);
+      throw new HsmAdapterError(
+        "PUZZLE_NOT_FOUND",
+        `puzzle ${puzzleId} not found`,
+      );
     }
     if (puzzle.status === PUZZLE_STATUS.SOLVED) {
       return {
@@ -340,11 +396,16 @@ class VdfTimeLockEngine {
       };
     }
     if (puzzle.status === PUZZLE_STATUS.EXPIRED) {
-      throw new HsmAdapterError('PUZZLE_EXPIRED', `puzzle ${puzzleId} has expired`);
+      throw new HsmAdapterError(
+        "PUZZLE_EXPIRED",
+        `puzzle ${puzzleId} has expired`,
+      );
     }
     if (puzzle.difficulty > this.maxIterations) {
-      throw new HsmAdapterError('DIFFICULTY_EXCEEDS_ITERATIONS',
-        `${puzzle.difficulty} exceeds max iterations ${this.maxIterations}`);
+      throw new HsmAdapterError(
+        "DIFFICULTY_EXCEEDS_ITERATIONS",
+        `${puzzle.difficulty} exceeds max iterations ${this.maxIterations}`,
+      );
     }
     puzzle.status = PUZZLE_STATUS.SOLVING;
     const startTime = Date.now();
@@ -354,11 +415,13 @@ class VdfTimeLockEngine {
     const secret = this._decryptSecret(puzzle.encryptedSecret, vdfKey);
     const solveTime = Date.now() - startTime;
     // Verify secret hash
-    const secretHash = crypto.createHash('sha256').update(secret).digest('hex');
+    const secretHash = crypto.createHash("sha256").update(secret).digest("hex");
     if (secretHash !== puzzle.secretHash) {
       puzzle.status = PUZZLE_STATUS.FAILED;
-      throw new HsmAdapterError('PUZZLE_SOLUTION_INVALID',
-        'decrypted secret does not match hash');
+      throw new HsmAdapterError(
+        "PUZZLE_SOLUTION_INVALID",
+        "decrypted secret does not match hash",
+      );
     }
     puzzle.solution = secret;
     puzzle.solvedAt = Date.now();
@@ -375,8 +438,8 @@ class VdfTimeLockEngine {
     if (this._completedPuzzles.length > this._maxHistory) {
       this._completedPuzzles.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('PUZZLE_SOLVED', { puzzleId, solveTimeMs: solveTime });
+    if (typeof this._audit === "function") {
+      this._audit("PUZZLE_SOLVED", { puzzleId, solveTimeMs: solveTime });
     }
     return {
       puzzleId,
@@ -395,15 +458,24 @@ class VdfTimeLockEngine {
   verifyPuzzleSolution(puzzleId, solution) {
     const puzzle = this._puzzles.get(puzzleId);
     if (!puzzle) {
-      throw new HsmAdapterError('PUZZLE_NOT_FOUND', `puzzle ${puzzleId} not found`);
+      throw new HsmAdapterError(
+        "PUZZLE_NOT_FOUND",
+        `puzzle ${puzzleId} not found`,
+      );
     }
     if (!Buffer.isBuffer(solution)) {
-      throw new HsmAdapterError('INVALID_SOLUTION', 'solution must be a Buffer');
+      throw new HsmAdapterError(
+        "INVALID_SOLUTION",
+        "solution must be a Buffer",
+      );
     }
-    const solutionHash = crypto.createHash('sha256').update(solution).digest('hex');
+    const solutionHash = crypto
+      .createHash("sha256")
+      .update(solution)
+      .digest("hex");
     const verified = solutionHash === puzzle.secretHash;
-    if (typeof this._audit === 'function') {
-      this._audit('PUZZLE_VERIFIED', { puzzleId, verified });
+    if (typeof this._audit === "function") {
+      this._audit("PUZZLE_VERIFIED", { puzzleId, verified });
     }
     return {
       puzzleId,
@@ -419,15 +491,21 @@ class VdfTimeLockEngine {
   expirePuzzle(puzzleId) {
     const puzzle = this._puzzles.get(puzzleId);
     if (!puzzle) {
-      throw new HsmAdapterError('PUZZLE_NOT_FOUND', `puzzle ${puzzleId} not found`);
+      throw new HsmAdapterError(
+        "PUZZLE_NOT_FOUND",
+        `puzzle ${puzzleId} not found`,
+      );
     }
     if (puzzle.status === PUZZLE_STATUS.EXPIRED) {
-      throw new HsmAdapterError('PUZZLE_ALREADY_EXPIRED', `puzzle ${puzzleId} is already expired`);
+      throw new HsmAdapterError(
+        "PUZZLE_ALREADY_EXPIRED",
+        `puzzle ${puzzleId} is already expired`,
+      );
     }
     puzzle.status = PUZZLE_STATUS.EXPIRED;
     puzzle.solution = null;
-    if (typeof this._audit === 'function') {
-      this._audit('PUZZLE_EXPIRED', { puzzleId });
+    if (typeof this._audit === "function") {
+      this._audit("PUZZLE_EXPIRED", { puzzleId });
     }
     return { puzzleId, expired: true };
   }
@@ -440,7 +518,10 @@ class VdfTimeLockEngine {
   isPuzzleReady(puzzleId) {
     const puzzle = this._puzzles.get(puzzleId);
     if (!puzzle) return false;
-    return Date.now() >= puzzle.releaseTimestamp || puzzle.status === PUZZLE_STATUS.SOLVED;
+    return (
+      Date.now() >= puzzle.releaseTimestamp ||
+      puzzle.status === PUZZLE_STATUS.SOLVED
+    );
   }
 
   /**
@@ -491,7 +572,7 @@ class VdfTimeLockEngine {
    * @returns {object[]}
    */
   getPuzzles() {
-    return Array.from(this._puzzles.values()).map(p => ({
+    return Array.from(this._puzzles.values()).map((p) => ({
       puzzleId: p.puzzleId,
       status: p.status,
       difficulty: p.difficulty,
@@ -504,7 +585,7 @@ class VdfTimeLockEngine {
    * @returns {object[]}
    */
   getCompletedVdfs(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedVdfs.slice(-n);
   }
 
@@ -514,7 +595,7 @@ class VdfTimeLockEngine {
    * @returns {object[]}
    */
   getCompletedPuzzles(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedPuzzles.slice(-n);
   }
 
@@ -585,13 +666,16 @@ class VdfTimeLockEngine {
     // proof = input^q mod p
     // For simulation, we compute input^(2^T / l) mod p
     // Since we can't do exact division in BigInt easily, we simulate
-    const proofData = crypto.createHash('sha256')
-      .update(`wesolowski:${vdf.input.toString(16)}:${vdf.output.toString(16)}:${vdf.difficulty}:${l.toString(16)}`)
+    const proofData = crypto
+      .createHash("sha256")
+      .update(
+        `wesolowski:${vdf.input.toString(16)}:${vdf.output.toString(16)}:${vdf.difficulty}:${l.toString(16)}`,
+      )
       .digest();
     return {
       type: PROOF_TYPE.WESOLOWSKI,
       l: l.toString(16),
-      data: proofData.toString('hex'),
+      data: proofData.toString("hex"),
       size: proofData.length,
     };
   }
@@ -602,12 +686,15 @@ class VdfTimeLockEngine {
    * @private
    */
   _generatePietrzakProof(vdf) {
-    const proofData = crypto.createHash('sha256')
-      .update(`pietrzak:${vdf.input.toString(16)}:${vdf.output.toString(16)}:${vdf.difficulty}`)
+    const proofData = crypto
+      .createHash("sha256")
+      .update(
+        `pietrzak:${vdf.input.toString(16)}:${vdf.output.toString(16)}:${vdf.difficulty}`,
+      )
       .digest();
     return {
       type: PROOF_TYPE.PIETRZAK,
-      data: proofData.toString('hex'),
+      data: proofData.toString("hex"),
       size: proofData.length,
       iterations: Math.ceil(Math.log2(vdf.difficulty)),
     };
@@ -637,8 +724,11 @@ class VdfTimeLockEngine {
    * @private
    */
   _derivePrime(input, output, difficulty) {
-    const hash = crypto.createHash('sha256')
-      .update(`prime:${input.toString(16)}:${output.toString(16)}:${difficulty}`)
+    const hash = crypto
+      .createHash("sha256")
+      .update(
+        `prime:${input.toString(16)}:${output.toString(16)}:${difficulty}`,
+      )
       .digest();
     let prime = _bytesToBigInt(hash) % (1n << 128n);
     // Ensure it's odd
@@ -667,15 +757,15 @@ class VdfTimeLockEngine {
   _encryptSecret(secret, key) {
     // Derive AES key from VDF key
     const keyHex = key.toString(16).slice(0, 64); // 32 bytes
-    const keyBuf = Buffer.from(keyHex.padStart(64, '0'), 'hex');
+    const keyBuf = Buffer.from(keyHex.padStart(64, "0"), "hex");
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', keyBuf, iv);
+    const cipher = crypto.createCipheriv("aes-256-gcm", keyBuf, iv);
     const encrypted = Buffer.concat([cipher.update(secret), cipher.final()]);
     const authTag = cipher.getAuthTag();
     return {
-      iv: iv.toString('hex'),
-      ciphertext: encrypted.toString('hex'),
-      authTag: authTag.toString('hex'),
+      iv: iv.toString("hex"),
+      ciphertext: encrypted.toString("hex"),
+      authTag: authTag.toString("hex"),
     };
   }
 
@@ -685,13 +775,16 @@ class VdfTimeLockEngine {
    */
   _decryptSecret(encryptedSecret, key) {
     const keyHex = key.toString(16).slice(0, 64);
-    const keyBuf = Buffer.from(keyHex.padStart(64, '0'), 'hex');
-    const iv = Buffer.from(encryptedSecret.iv, 'hex');
-    const ciphertext = Buffer.from(encryptedSecret.ciphertext, 'hex');
-    const authTag = Buffer.from(encryptedSecret.authTag, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuf, iv);
+    const keyBuf = Buffer.from(keyHex.padStart(64, "0"), "hex");
+    const iv = Buffer.from(encryptedSecret.iv, "hex");
+    const ciphertext = Buffer.from(encryptedSecret.ciphertext, "hex");
+    const authTag = Buffer.from(encryptedSecret.authTag, "hex");
+    const decipher = crypto.createDecipheriv("aes-256-gcm", keyBuf, iv);
     decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const decrypted = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
     return decrypted;
   }
 }

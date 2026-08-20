@@ -2,16 +2,16 @@
  * Get the dashboard API base URL from a meta tag or fall back to relative root.
  * @returns {string}
  */
-const SB_API_BASE_KEY = 'sb_api_base';
-const SB_NOTIFY_BASE_KEY = 'sb_notify_base';
+const SB_API_BASE_KEY = "sb_api_base";
+const SB_NOTIFY_BASE_KEY = "sb_notify_base";
 
 function _normalizeApiBase(value) {
-  if (!value) return '';
-  return String(value).replace(/\/api\/?$/, '');
+  if (!value) return "";
+  return String(value).replace(/\/api\/?$/, "");
 }
 
 function _isLocalDevHost() {
-  if (typeof location === 'undefined') return false;
+  if (typeof location === "undefined") return false;
   return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
 }
 function _isAllowedApiBase(value) {
@@ -22,69 +22,83 @@ function _isAllowedApiBase(value) {
     // appear in test or CI configs but do not resolve in developer machines.
     // Prefer same-origin or fully qualified hostnames so browser DNS/CORS
     // failures don't cause noisy errors.
-    const hostname = String(url.hostname || '');
-    if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
+    const hostname = String(url.hostname || "");
+    if (
+      !/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) &&
+      hostname.indexOf(".") === -1
+    ) {
       return false;
     }
     // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
-    if (location.protocol === 'https:' && url.protocol === 'http:') return false;
+    if (location.protocol === "https:" && url.protocol === "http:")
+      return false;
     // Never bridge a localhost/loopback data server from a remote or non-local host.
-    if (!_isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return false;
+    if (
+      !_isLocalDevHost() &&
+      /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)
+    )
+      return false;
     return true;
+  } catch (_a) {
+    return false;
   }
-  catch (_a) { return false; }
 }
 
 function _readStoredApiBase() {
-  if (typeof sessionStorage !== 'undefined') {
+  if (typeof sessionStorage !== "undefined") {
     try {
       return sessionStorage.getItem(SB_API_BASE_KEY);
+    } catch (_a) {
+      /* ignore */
     }
-    catch (_a) { /* ignore */ }
   }
   return null;
 }
 
 function _storeApiBase(value) {
-  if (typeof sessionStorage !== 'undefined' && value) {
+  if (typeof sessionStorage !== "undefined" && value) {
     try {
       sessionStorage.setItem(SB_API_BASE_KEY, value);
+    } catch (_a) {
+      /* ignore */
     }
-    catch (_a) { /* ignore */ }
   }
 }
 
 function _storeNotifyBase(value) {
-  if (typeof sessionStorage !== 'undefined' && value) {
+  if (typeof sessionStorage !== "undefined" && value) {
     try {
       sessionStorage.setItem(SB_NOTIFY_BASE_KEY, value);
+    } catch (_a) {
+      /* ignore */
     }
-    catch (_a) { /* ignore */ }
   }
 }
 
 function _readEmbedApiBaseFromQuery() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const params = new URLSearchParams(window.location.search);
-    const override = params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
+    const override =
+      params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
     if (override && _isAllowedApiBase(override)) {
       const normalized = _normalizeApiBase(override);
       _storeApiBase(normalized);
       if (params.get(SB_NOTIFY_BASE_KEY)) {
-        _storeNotifyBase(String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, ''));
+        _storeNotifyBase(
+          String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, ""),
+        );
       }
       return normalized;
     }
-  }
-  catch (_a) {
+  } catch (_a) {
     return null;
   }
   return null;
 }
 
 export function apiBaseUrl() {
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     const fromQuery = _readEmbedApiBaseFromQuery();
     if (fromQuery) {
       _storeApiBase(fromQuery);
@@ -93,9 +107,9 @@ export function apiBaseUrl() {
     const stored = _readStoredApiBase();
     if (stored && _isAllowedApiBase(stored)) return stored;
     const meta = document.querySelector('meta[name="api-base-url"]');
-    if (meta) return meta.getAttribute('content') || '';
+    if (meta) return meta.getAttribute("content") || "";
   }
-  return '/';
+  return "/";
 }
 
 /**
@@ -104,12 +118,11 @@ export function apiBaseUrl() {
  * @returns {string}
  */
 export function apiUrl(path) {
-  const base = apiBaseUrl().replace(/\/+$/, '');
-  const segment = String(path || '').replace(/^\/+/, '');
-  if (!segment) return base || '/';
+  const base = apiBaseUrl().replace(/\/+$/, "");
+  const segment = String(path || "").replace(/^\/+/, "");
+  if (!segment) return base || "/";
   return `${base}/${segment}`;
 }
-
 
 /**
  * Fetch with timeout and caller abort support.
@@ -120,49 +133,77 @@ export function apiUrl(path) {
  * @param {{count?:number,delay?:number,maxDelay?:number}} [retry] Retry config.
  * @returns {Promise<Response>}
  */
-export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
-  const target = String(url || '');
-  const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+export async function fetchWithTimeout(
+  url,
+  options = {},
+  ms = 10000,
+  retry = { count: 0, delay: 1000, maxDelay: 30000 },
+) {
+  const target = String(url || "");
+  const opts =
+    options && typeof options === "object" && !Array.isArray(options)
+      ? options
+      : {};
   const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
-  const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}) };
+  const retryCfg = {
+    count: 0,
+    delay: 1000,
+    maxDelay: 30000,
+    ...(retry && typeof retry === "object" && !Array.isArray(retry)
+      ? retry
+      : {}),
+  };
 
   const attempt = async (attemptNum) => {
     const controller = new AbortController();
     let timer;
     let cleanup = null;
     try {
-      if (opts.signal && typeof opts.signal.addEventListener === 'function') {
+      if (opts.signal && typeof opts.signal.addEventListener === "function") {
         if (opts.signal.aborted) {
-          throw new Error('Request aborted by caller');
+          throw new Error("Request aborted by caller");
         }
         const onAbort = () => controller.abort();
-        opts.signal.addEventListener('abort', onAbort, { once: true });
-        cleanup = () => opts.signal.removeEventListener('abort', onAbort);
+        opts.signal.addEventListener("abort", onAbort, { once: true });
+        cleanup = () => opts.signal.removeEventListener("abort", onAbort);
       }
       timer = setTimeout(() => controller.abort(), timeoutMs);
       const res = await fetch(target, { ...opts, signal: controller.signal });
       if (!res.ok) {
-        const shouldRetry = retryCfg.count > 0 && attemptNum < retryCfg.count && res.status >= 500;
+        const shouldRetry =
+          retryCfg.count > 0 &&
+          attemptNum < retryCfg.count &&
+          res.status >= 500;
         if (shouldRetry) {
-          const backoff = Math.min(retryCfg.delay * Math.pow(2, attemptNum), retryCfg.maxDelay);
-          await new Promise(r => setTimeout(r, backoff));
+          const backoff = Math.min(
+            retryCfg.delay * Math.pow(2, attemptNum),
+            retryCfg.maxDelay,
+          );
+          await new Promise((r) => setTimeout(r, backoff));
           return attempt(attemptNum + 1);
         }
         if (opts.acceptNon2xx !== true) {
-          throw new Error(`HTTP ${res.status}${res.statusText ? ' ' + res.statusText : ''} — ${target}`);
+          throw new Error(
+            `HTTP ${res.status}${res.statusText ? " " + res.statusText : ""} — ${target}`,
+          );
         }
       }
       return res;
     } catch (err) {
-      if (err.name === 'AbortError') {
+      if (err.name === "AbortError") {
         if (opts.signal?.aborted) {
-          throw new Error('Request aborted by caller');
+          throw new Error("Request aborted by caller");
         }
-        throw new Error(`Request timed out — is the server running? (${target})`);
+        throw new Error(
+          `Request timed out — is the server running? (${target})`,
+        );
       }
       if (retryCfg.count > 0 && attemptNum < retryCfg.count) {
-        const backoff = Math.min(retryCfg.delay * Math.pow(2, attemptNum), retryCfg.maxDelay);
-        await new Promise(r => setTimeout(r, backoff));
+        const backoff = Math.min(
+          retryCfg.delay * Math.pow(2, attemptNum),
+          retryCfg.maxDelay,
+        );
+        await new Promise((r) => setTimeout(r, backoff));
         return attempt(attemptNum + 1);
       }
       throw err;
@@ -181,19 +222,19 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
  * @returns {Record<string, string | string[]>} Parsed key-value pairs.
  */
 export function parseQueryString(queryString) {
-  if (typeof queryString !== 'string') return {};
-  const qs = queryString.startsWith('?') ? queryString.slice(1) : queryString;
+  if (typeof queryString !== "string") return {};
+  const qs = queryString.startsWith("?") ? queryString.slice(1) : queryString;
   const result = {};
   if (!qs) return result;
-  for (const pair of qs.split('&')) {
-    const eqIdx = pair.indexOf('=');
+  for (const pair of qs.split("&")) {
+    const eqIdx = pair.indexOf("=");
     const rawKey = eqIdx >= 0 ? pair.slice(0, eqIdx) : pair;
-    const rawValue = eqIdx >= 0 ? pair.slice(eqIdx + 1) : '';
+    const rawValue = eqIdx >= 0 ? pair.slice(eqIdx + 1) : "";
     if (!rawKey) continue;
     let key, value;
     try {
-      key = decodeURIComponent(rawKey.replace(/\+/g, ' '));
-      value = decodeURIComponent(rawValue.replace(/\+/g, ' '));
+      key = decodeURIComponent(rawKey.replace(/\+/g, " "));
+      value = decodeURIComponent(rawValue.replace(/\+/g, " "));
     } catch {
       key = rawKey;
       value = rawValue;
@@ -214,19 +255,24 @@ export function parseQueryString(queryString) {
  * @returns {string} Query string without leading `?`.
  */
 export function stringifyQueryString(params) {
-  if (!params || typeof params !== 'object') return '';
+  if (!params || typeof params !== "object") return "";
   const pairs = [];
   for (const [key, value] of Object.entries(params)) {
-    if (value == null || value === '') continue;
+    if (value == null || value === "") continue;
     if (Array.isArray(value)) {
       for (const v of value) {
-        if (v != null && v !== '') pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`);
+        if (v != null && v !== "")
+          pairs.push(
+            `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`,
+          );
       }
     } else {
-      pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+      pairs.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+      );
     }
   }
-  return pairs.join('&');
+  return pairs.join("&");
 }
 
 /**
@@ -235,7 +281,7 @@ export function stringifyQueryString(params) {
  * @returns {string|null}
  */
 export function getQueryParam(key) {
-  if (typeof window === 'undefined' || !window.location || !key) return null;
+  if (typeof window === "undefined" || !window.location || !key) return null;
   const params = new URLSearchParams(window.location.search);
   return params.has(key) ? params.get(key) : null;
 }
@@ -247,11 +293,11 @@ export function getQueryParam(key) {
  * @returns {string}
  */
 export function setQueryParam(key, value) {
-  if (typeof window === 'undefined' || !window.location || !key) {
-    return typeof window !== 'undefined' ? window.location?.href || '' : '';
+  if (typeof window === "undefined" || !window.location || !key) {
+    return typeof window !== "undefined" ? window.location?.href || "" : "";
   }
   const url = new URL(window.location.href);
-  if (value == null || value === '') {
+  if (value == null || value === "") {
     url.searchParams.delete(key);
   } else {
     url.searchParams.set(key, String(value));
@@ -268,7 +314,7 @@ export function setQueryParam(key, value) {
 export function buildUrl(base, params) {
   const qs = stringifyQueryString(params);
   if (!qs) return base;
-  const sep = base.includes('?') ? '&' : '?';
+  const sep = base.includes("?") ? "&" : "?";
   return `${base}${sep}${qs}`;
 }
 
@@ -278,10 +324,10 @@ export function buildUrl(base, params) {
  * @returns {boolean}
  */
 export function isValidUrl(str) {
-  if (typeof str !== 'string' || !str) return false;
+  if (typeof str !== "string" || !str) return false;
   try {
     const url = new URL(str);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
   }
@@ -292,10 +338,10 @@ export function isValidUrl(str) {
  * @returns {boolean}
  */
 export function isUrl(str) {
-  if (typeof str !== 'string') return false;
+  if (typeof str !== "string") return false;
   try {
     const url = new URL(str);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
   }

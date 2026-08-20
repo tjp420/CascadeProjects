@@ -9,146 +9,212 @@
  * Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, RESEND_FROM
  */
 
-const express = require('express');
-const crypto = require('crypto');
-const logger = require('../lib/app-logger.cjs');
-const { getTierConfigByPriceId } = require('../config/stripe.cjs');
-const { setSubscriptionActive, getSubscriptionByEmail, upsertSubscription, readStore } = require('../lib/simplebeacon-subscription-store.cjs');
-const { sendEmail } = require('../lib/email-service.cjs');
-const { sendPurchaseAlert } = require('../lib/purchase-alerts.cjs');
-const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
-const { logWebhookEvent } = require('../lib/webhook-event-log.cjs');
-const { renderSubscriptionActivated, renderSubscriptionCanceled, renderSubscriptionReactivated, renderPaymentFailed, renderTrialEnding, renderDisputeAlert, renderInvoiceUpcoming, renderProrationNotice, renderSubscriptionPaused, renderSubscriptionResumed } = require('../lib/billing-email-templates.cjs');
-const { calculateProration } = require('../lib/proration-calculator.cjs');
-const { sendError } = require('../lib/response-helpers.cjs');
+const express = require("express");
+const crypto = require("crypto");
+const logger = require("../lib/app-logger.cjs");
+const { getTierConfigByPriceId } = require("../config/stripe.cjs");
+const {
+  setSubscriptionActive,
+  getSubscriptionByEmail,
+  upsertSubscription,
+  readStore,
+} = require("../lib/simplebeacon-subscription-store.cjs");
+const { sendEmail } = require("../lib/email-service.cjs");
+const { sendPurchaseAlert } = require("../lib/purchase-alerts.cjs");
+const { recordProcessedEvent } = require("../lib/stripe-event-store.cjs");
+const { logWebhookEvent } = require("../lib/webhook-event-log.cjs");
+const {
+  renderSubscriptionActivated,
+  renderSubscriptionCanceled,
+  renderSubscriptionReactivated,
+  renderPaymentFailed,
+  renderTrialEnding,
+  renderDisputeAlert,
+  renderInvoiceUpcoming,
+  renderProrationNotice,
+  renderSubscriptionPaused,
+  renderSubscriptionResumed,
+} = require("../lib/billing-email-templates.cjs");
+const { calculateProration } = require("../lib/proration-calculator.cjs");
+const { sendError } = require("../lib/response-helpers.cjs");
 
 const router = express.Router();
 
 // Use raw body for Stripe signature verification
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const signature = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+router.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const signature = req.headers["stripe-signature"];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!webhookSecret) {
-    logger.error('[StripeWebhook] STRIPE_WEBHOOK_SECRET not configured');
-    return sendError(res, 503, 'stripe_not_configured');
-  }
-
-  if (!signature) {
-    return sendError(res, 400, 'missing_signature');
-  }
-
-  if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
-    return sendError(res, 400, 'missing_body');
-  }
-
-  // Verify webhook signature
-  let event;
-  try {
-    event = verifyStripeSignature(req.body, signature, webhookSecret);
-  } catch (err) {
-    logger.error('[StripeWebhook] Signature verification failed:', err.message);
-    return sendError(res, 400, 'invalid_signature');
-  }
-
-  logger.info('[StripeWebhook] Received event:', event.type, event.id);
-
-  // Idempotency guard — prevent double-processing on Stripe retries
-  const isFirstSeen = await recordProcessedEvent(event.id);
-  if (!isFirstSeen) {
-    logger.warn('[StripeWebhook] Duplicate event ignored:', event.id);
-    await logWebhookEvent({ eventId: event.id, eventType: event.type, status: 'duplicate' });
-    return res.status(200).json({ received: true, status: 'duplicate_ignored', eventId: event.id });
-  }
-
-  let logStatus = 'processed';
-  let logEmail = null;
-  let logTier = null;
-  let logAmount = null;
-  let logReason = null;
-  let logDetail = null;
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const result = await handleCheckoutCompleted(event, {
-          licenseToken: req.headers['x-license-token'] || '',
-          licenseTier: req.headers['x-license-tier'] || ''
-        });
-        const session = event.data?.object;
-        logEmail = session?.customer_details?.email || session?.customer_email || null;
-        logAmount = session?.amount_total ? `$${(session.amount_total / 100).toFixed(2)}` : null;
-        logDetail = 'Subscription activated';
-        break;
-      }
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event);
-        logDetail = 'Subscription updated';
-        break;
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event);
-        logDetail = 'Subscription canceled';
-        break;
-      case 'invoice.paid':
-        await handleInvoicePaid(event);
-        logDetail = 'Payment succeeded';
-        break;
-      case 'invoice.payment_failed': {
-        const inv = event.data?.object;
-        logEmail = inv?.customer_email || inv?.customer_details?.email || null;
-        logReason = inv ? `attempt ${inv.attempt_count || 1}` : null;
-        logDetail = 'Payment failed';
-        await handleInvoicePaymentFailed(event);
-        break;
-      }
-      case 'customer.subscription.trial_will_end':
-        await handleTrialWillEnd(event);
-        logDetail = 'Trial ending soon';
-        break;
-      case 'charge.dispute.created': {
-        const dispute = event.data?.object;
-        logReason = dispute?.reason || null;
-        logAmount = dispute?.amount ? `$${(dispute.amount / 100).toFixed(2)} ${dispute.currency || 'usd'.toUpperCase()}` : null;
-        logDetail = 'Dispute filed';
-        await handleDisputeCreated(event);
-        break;
-      }
-      case 'invoice.upcoming': {
-        const inv = event.data?.object;
-        logEmail = inv?.customer_email || inv?.customer_details?.email || null;
-        logAmount = inv?.amount_due ? `$${(inv.amount_due / 100).toFixed(2)}` : null;
-        logDetail = 'Invoice coming due';
-        await handleInvoiceUpcoming(event);
-        break;
-      }
-      case 'customer.subscription.paused': {
-        const sub = event.data?.object;
-        logDetail = 'Subscription paused';
-        await handleSubscriptionPaused(event);
-        break;
-      }
-      case 'customer.subscription.resumed': {
-        const sub = event.data?.object;
-        logDetail = 'Subscription resumed';
-        await handleSubscriptionResumed(event);
-        break;
-      }
-      default:
-        logger.info('[StripeWebhook] Unhandled event type:', event.type);
-        logStatus = 'ignored';
-        await logWebhookEvent({ eventId: event.id, eventType: event.type, status: 'ignored' });
-        return res.json({ received: true, ignored: true, type: event.type });
+    if (!webhookSecret) {
+      logger.error("[StripeWebhook] STRIPE_WEBHOOK_SECRET not configured");
+      return sendError(res, 503, "stripe_not_configured");
     }
-  } catch (err) {
-    logger.error('[StripeWebhook] Event handler failed for', event.type, ':', err.message);
-    logStatus = 'error';
-    logDetail = err.message;
-    await logWebhookEvent({ eventId: event.id, eventType: event.type, status: 'error', customerEmail: logEmail, detail: logDetail });
-    return sendError(res, 500, 'handler_failed', { type: event.type });
-  }
 
-  await logWebhookEvent({ eventId: event.id, eventType: event.type, status: logStatus, customerEmail: logEmail, tier: logTier, amount: logAmount, reason: logReason, detail: logDetail });
-  res.json({ received: true, type: event.type });
-});
+    if (!signature) {
+      return sendError(res, 400, "missing_signature");
+    }
+
+    if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return sendError(res, 400, "missing_body");
+    }
+
+    // Verify webhook signature
+    let event;
+    try {
+      event = verifyStripeSignature(req.body, signature, webhookSecret);
+    } catch (err) {
+      logger.error(
+        "[StripeWebhook] Signature verification failed:",
+        err.message,
+      );
+      return sendError(res, 400, "invalid_signature");
+    }
+
+    logger.info("[StripeWebhook] Received event:", event.type, event.id);
+
+    // Idempotency guard — prevent double-processing on Stripe retries
+    const isFirstSeen = await recordProcessedEvent(event.id);
+    if (!isFirstSeen) {
+      logger.warn("[StripeWebhook] Duplicate event ignored:", event.id);
+      await logWebhookEvent({
+        eventId: event.id,
+        eventType: event.type,
+        status: "duplicate",
+      });
+      return res
+        .status(200)
+        .json({
+          received: true,
+          status: "duplicate_ignored",
+          eventId: event.id,
+        });
+    }
+
+    let logStatus = "processed";
+    let logEmail = null;
+    let logTier = null;
+    let logAmount = null;
+    let logReason = null;
+    let logDetail = null;
+    try {
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const result = await handleCheckoutCompleted(event, {
+            licenseToken: req.headers["x-license-token"] || "",
+            licenseTier: req.headers["x-license-tier"] || "",
+          });
+          const session = event.data?.object;
+          logEmail =
+            session?.customer_details?.email || session?.customer_email || null;
+          logAmount = session?.amount_total
+            ? `$${(session.amount_total / 100).toFixed(2)}`
+            : null;
+          logDetail = "Subscription activated";
+          break;
+        }
+        case "customer.subscription.updated":
+          await handleSubscriptionUpdated(event);
+          logDetail = "Subscription updated";
+          break;
+        case "customer.subscription.deleted":
+          await handleSubscriptionDeleted(event);
+          logDetail = "Subscription canceled";
+          break;
+        case "invoice.paid":
+          await handleInvoicePaid(event);
+          logDetail = "Payment succeeded";
+          break;
+        case "invoice.payment_failed": {
+          const inv = event.data?.object;
+          logEmail =
+            inv?.customer_email || inv?.customer_details?.email || null;
+          logReason = inv ? `attempt ${inv.attempt_count || 1}` : null;
+          logDetail = "Payment failed";
+          await handleInvoicePaymentFailed(event);
+          break;
+        }
+        case "customer.subscription.trial_will_end":
+          await handleTrialWillEnd(event);
+          logDetail = "Trial ending soon";
+          break;
+        case "charge.dispute.created": {
+          const dispute = event.data?.object;
+          logReason = dispute?.reason || null;
+          logAmount = dispute?.amount
+            ? `$${(dispute.amount / 100).toFixed(2)} ${dispute.currency || "usd".toUpperCase()}`
+            : null;
+          logDetail = "Dispute filed";
+          await handleDisputeCreated(event);
+          break;
+        }
+        case "invoice.upcoming": {
+          const inv = event.data?.object;
+          logEmail =
+            inv?.customer_email || inv?.customer_details?.email || null;
+          logAmount = inv?.amount_due
+            ? `$${(inv.amount_due / 100).toFixed(2)}`
+            : null;
+          logDetail = "Invoice coming due";
+          await handleInvoiceUpcoming(event);
+          break;
+        }
+        case "customer.subscription.paused": {
+          const sub = event.data?.object;
+          logDetail = "Subscription paused";
+          await handleSubscriptionPaused(event);
+          break;
+        }
+        case "customer.subscription.resumed": {
+          const sub = event.data?.object;
+          logDetail = "Subscription resumed";
+          await handleSubscriptionResumed(event);
+          break;
+        }
+        default:
+          logger.info("[StripeWebhook] Unhandled event type:", event.type);
+          logStatus = "ignored";
+          await logWebhookEvent({
+            eventId: event.id,
+            eventType: event.type,
+            status: "ignored",
+          });
+          return res.json({ received: true, ignored: true, type: event.type });
+      }
+    } catch (err) {
+      logger.error(
+        "[StripeWebhook] Event handler failed for",
+        event.type,
+        ":",
+        err.message,
+      );
+      logStatus = "error";
+      logDetail = err.message;
+      await logWebhookEvent({
+        eventId: event.id,
+        eventType: event.type,
+        status: "error",
+        customerEmail: logEmail,
+        detail: logDetail,
+      });
+      return sendError(res, 500, "handler_failed", { type: event.type });
+    }
+
+    await logWebhookEvent({
+      eventId: event.id,
+      eventType: event.type,
+      status: logStatus,
+      customerEmail: logEmail,
+      tier: logTier,
+      amount: logAmount,
+      reason: logReason,
+      detail: logDetail,
+    });
+    res.json({ received: true, type: event.type });
+  },
+);
 
 /**
  * Verify Stripe webhook signature using HMAC-SHA256.
@@ -159,40 +225,40 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
  */
 function verifyStripeSignature(payload, signatureHeader, secret) {
   const parts = {};
-  for (const part of signatureHeader.split(',')) {
-    const [key, ...valueParts] = part.split('=');
-    parts[key.trim()] = valueParts.join('=').trim();
+  for (const part of signatureHeader.split(",")) {
+    const [key, ...valueParts] = part.split("=");
+    parts[key.trim()] = valueParts.join("=").trim();
   }
 
-  const timestamp = parts['t'];
-  const v1Signature = parts['v1'];
+  const timestamp = parts["t"];
+  const v1Signature = parts["v1"];
 
   if (!timestamp || !v1Signature) {
-    throw new Error('Missing timestamp or signature in header');
+    throw new Error("Missing timestamp or signature in header");
   }
 
   // Prevent replay attacks (5 minute tolerance)
   const ageSeconds = Math.floor(Date.now() / 1000) - parseInt(timestamp, 10);
   if (ageSeconds > 300) {
-    throw new Error('Webhook timestamp too old');
+    throw new Error("Webhook timestamp too old");
   }
 
-  const signedPayload = `${timestamp}.${payload.toString('utf8')}`;
+  const signedPayload = `${timestamp}.${payload.toString("utf8")}`;
   const expectedSignature = crypto
-    .createHmac('sha256', secret)
+    .createHmac("sha256", secret)
     .update(signedPayload)
-    .digest('hex');
+    .digest("hex");
 
   const expectedSigBuf = Buffer.from(expectedSignature);
   const receivedSigBuf = Buffer.from(v1Signature);
   if (expectedSigBuf.length !== receivedSigBuf.length) {
-    throw new Error('Signature length mismatch');
+    throw new Error("Signature length mismatch");
   }
   if (!crypto.timingSafeEqual(expectedSigBuf, receivedSigBuf)) {
-    throw new Error('Signature mismatch');
+    throw new Error("Signature mismatch");
   }
 
-  return JSON.parse(payload.toString('utf8'));
+  return JSON.parse(payload.toString("utf8"));
 }
 
 /**
@@ -203,32 +269,50 @@ function verifyStripeSignature(payload, signatureHeader, secret) {
 async function handleCheckoutCompleted(event, headers = {}) {
   const session = event.data?.object;
   if (!session) {
-    logger.warn('[StripeWebhook] checkout.session.completed: no session object');
+    logger.warn(
+      "[StripeWebhook] checkout.session.completed: no session object",
+    );
     return;
   }
 
-  const customerEmail = session.customer_details?.email || session.customer_email;
+  const customerEmail =
+    session.customer_details?.email || session.customer_email;
   const customerId = session.customer;
   const subscriptionId = session.subscription;
-  const priceId = session.metadata?.price_id || extractPriceIdFromSession(session);
-  const extraSeatsRaw = session.metadata?.extraSeats || session.metadata?.extra_seats || '0';
-  const extraSeatsCount = Math.max(0, Math.min(50, parseInt(extraSeatsRaw, 10) || 0));
+  const priceId =
+    session.metadata?.price_id || extractPriceIdFromSession(session);
+  const extraSeatsRaw =
+    session.metadata?.extraSeats || session.metadata?.extra_seats || "0";
+  const extraSeatsCount = Math.max(
+    0,
+    Math.min(50, parseInt(extraSeatsRaw, 10) || 0),
+  );
 
   if (!customerEmail) {
-    logger.warn('[StripeWebhook] checkout.session.completed: no customer email in session', session.id);
+    logger.warn(
+      "[StripeWebhook] checkout.session.completed: no customer email in session",
+      session.id,
+    );
     return;
   }
 
   // Resolve tier from price ID
   const tierConfig = priceId ? getTierConfigByPriceId(priceId) : null;
-  const tier = tierConfig?.tier || 'pro';
+  const tier = tierConfig?.tier || "pro";
 
-  logger.info('[StripeWebhook] Activating subscription for', customerEmail, 'tier:', tier, 'extraSeats:', extraSeatsCount);
+  logger.info(
+    "[StripeWebhook] Activating subscription for",
+    customerEmail,
+    "tier:",
+    tier,
+    "extraSeats:",
+    extraSeatsCount,
+  );
 
   // Activate subscription in store
   // Team Pro base includes 5 seats; extraSeats adds beyond that.
-  const baseSeats = tier === 'team_pro' ? 5 : 1;
-  const totalSeats = tier === 'team_pro' ? baseSeats + extraSeatsCount : 1;
+  const baseSeats = tier === "team_pro" ? 5 : 1;
+  const totalSeats = tier === "team_pro" ? baseSeats + extraSeatsCount : 1;
 
   await setSubscriptionActive(customerEmail, true, {
     tier,
@@ -237,27 +321,40 @@ async function handleCheckoutCompleted(event, headers = {}) {
     stripePriceId: priceId,
     periodStart: new Date().toISOString(),
     seatCount: totalSeats,
-    extraSeats: extraSeatsCount
+    extraSeats: extraSeatsCount,
   });
 
   // Build email content using centralized template
-  const licenseToken = headers.licenseToken || '';
+  const licenseToken = headers.licenseToken || "";
   const licenseTier = headers.licenseTier || tier;
 
-  const { subject, text, html } = renderSubscriptionActivated({ tier, licenseToken, totalSeats, extraSeats: extraSeatsCount });
+  const { subject, text, html } = renderSubscriptionActivated({
+    tier,
+    licenseToken,
+    totalSeats,
+    extraSeats: extraSeatsCount,
+  });
 
   // Send confirmation email via Resend (with disk queue fallback)
   const emailResult = await sendEmail({
     to: customerEmail,
     subject,
     text,
-    html
+    html,
   });
 
-  logger.info('[StripeWebhook] Confirmation email result:', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail, 'token included:', !!licenseToken);
+  logger.info(
+    "[StripeWebhook] Confirmation email result:",
+    emailResult.sent ? "sent" : "queued",
+    "for",
+    customerEmail,
+    "token included:",
+    !!licenseToken,
+  );
 
   // Send Slack/Discord purchase notification (no-op if PURCHASE_ALERT_WEBHOOK not set)
-  var alertAmount = session.amount_total || (tierConfig ? tierConfig.basePrice : null);
+  var alertAmount =
+    session.amount_total || (tierConfig ? tierConfig.basePrice : null);
   var alertResult = await sendPurchaseAlert({
     tier: tier,
     email: customerEmail,
@@ -265,10 +362,15 @@ async function handleCheckoutCompleted(event, headers = {}) {
     amount: alertAmount,
     customerId: customerId,
     extraSeats: extraSeatsCount,
-    totalSeats: totalSeats
+    totalSeats: totalSeats,
   });
   if (alertResult.sent) {
-    logger.info('[StripeWebhook] Purchase alert sent to', alertResult.platform, 'for tier:', tier);
+    logger.info(
+      "[StripeWebhook] Purchase alert sent to",
+      alertResult.platform,
+      "for tier:",
+      tier,
+    );
   }
 }
 
@@ -302,16 +404,27 @@ async function handleSubscriptionUpdated(event) {
   const tierConfig = priceId ? getTierConfigByPriceId(priceId) : null;
 
   if (!tierConfig) {
-    logger.info('[StripeWebhook] subscription.updated: no tier mapping for price', priceId);
+    logger.info(
+      "[StripeWebhook] subscription.updated: no tier mapping for price",
+      priceId,
+    );
     return;
   }
 
-  logger.info('[StripeWebhook] subscription.updated: tier', tierConfig.tier, 'for customer', customerId);
+  logger.info(
+    "[StripeWebhook] subscription.updated: tier",
+    tierConfig.tier,
+    "for customer",
+    customerId,
+  );
 
   // Look up existing subscription by stripeCustomerId to get the email
   const existing = await findSubscriptionByCustomerId(customerId);
   if (!existing) {
-    logger.warn('[StripeWebhook] subscription.updated: no existing subscription for customer', customerId);
+    logger.warn(
+      "[StripeWebhook] subscription.updated: no existing subscription for customer",
+      customerId,
+    );
     return;
   }
 
@@ -324,19 +437,31 @@ async function handleSubscriptionUpdated(event) {
     ? new Date(subscription.current_period_start * 1000).toISOString()
     : new Date().toISOString();
 
-  await setSubscriptionActive(existing.email, subscription.status === 'active', {
-    tier: newTier,
-    stripeCustomerId: customerId,
-    stripeSubscriptionId: subscription.id,
-    stripePriceId: priceId,
-    periodStart
-  });
+  await setSubscriptionActive(
+    existing.email,
+    subscription.status === "active",
+    {
+      tier: newTier,
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscription.id,
+      stripePriceId: priceId,
+      periodStart,
+    },
+  );
 
-  logger.info('[StripeWebhook] subscription.updated: store updated for', existing.email, 'tier:', newTier, 'active:', subscription.status === 'active');
+  logger.info(
+    "[StripeWebhook] subscription.updated: store updated for",
+    existing.email,
+    "tier:",
+    newTier,
+    "active:",
+    subscription.status === "active",
+  );
 
   // Send proration notice email if tier changed
   if (tierChanged) {
-    const isAnnual = tierConfig.product && tierConfig.product.includes('annual');
+    const isAnnual =
+      tierConfig.product && tierConfig.product.includes("annual");
     const proration = calculateProration({
       fromTier: oldTier,
       toTier: newTier,
@@ -345,7 +470,16 @@ async function handleSubscriptionUpdated(event) {
       isAnnual,
     });
 
-    logger.info('[StripeWebhook] Tier change detected for', existing.email, ':', oldTier, '→', newTier, 'proration:', proration.netAdjustmentDisplay);
+    logger.info(
+      "[StripeWebhook] Tier change detected for",
+      existing.email,
+      ":",
+      oldTier,
+      "→",
+      newTier,
+      "proration:",
+      proration.netAdjustmentDisplay,
+    );
 
     try {
       const { subject, text, html } = renderProrationNotice({
@@ -357,10 +491,23 @@ async function handleSubscriptionUpdated(event) {
         netAdjustmentDisplay: proration.netAdjustmentDisplay,
         isAnnual,
       });
-      const emailResult = await sendEmail({ to: existing.email, subject, text, html });
-      logger.info('[StripeWebhook] Proration notice email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+      const emailResult = await sendEmail({
+        to: existing.email,
+        subject,
+        text,
+        html,
+      });
+      logger.info(
+        "[StripeWebhook] Proration notice email",
+        emailResult.sent ? "sent" : "queued",
+        "for",
+        existing.email,
+      );
     } catch (emailErr) {
-      logger.error('[StripeWebhook] Proration notice email failed:', emailErr.message);
+      logger.error(
+        "[StripeWebhook] Proration notice email failed:",
+        emailErr.message,
+      );
     }
   }
 }
@@ -374,27 +521,36 @@ async function handleSubscriptionDeleted(event) {
   if (!subscription) return;
 
   const customerId = subscription.customer;
-  logger.info('[StripeWebhook] subscription.deleted for customer', customerId);
+  logger.info("[StripeWebhook] subscription.deleted for customer", customerId);
 
   const existing = await findSubscriptionByCustomerId(customerId);
   if (!existing) {
-    logger.warn('[StripeWebhook] subscription.deleted: no existing subscription for customer', customerId);
+    logger.warn(
+      "[StripeWebhook] subscription.deleted: no existing subscription for customer",
+      customerId,
+    );
     return;
   }
 
   await setSubscriptionActive(existing.email, false, {
     stripeCustomerId: customerId,
-    stripeSubscriptionId: subscription.id
+    stripeSubscriptionId: subscription.id,
   });
 
-  logger.info('[StripeWebhook] subscription.deleted: deactivated for', existing.email);
+  logger.info(
+    "[StripeWebhook] subscription.deleted: deactivated for",
+    existing.email,
+  );
 
   try {
     const { subject, text, html } = renderSubscriptionCanceled();
     await sendEmail({ to: existing.email, subject, text, html });
-    logger.info('[StripeWebhook] Cancellation email sent to', existing.email);
+    logger.info("[StripeWebhook] Cancellation email sent to", existing.email);
   } catch (emailErr) {
-    logger.error('[StripeWebhook] Cancellation email failed:', emailErr.message);
+    logger.error(
+      "[StripeWebhook] Cancellation email failed:",
+      emailErr.message,
+    );
   }
 }
 
@@ -410,35 +566,60 @@ async function handleInvoicePaid(event) {
   // Only handle invoices for subscription payments (not one-time charges)
   if (!invoice.subscription) return;
 
-  const customerEmail = invoice.customer_email || invoice.customer_details?.email;
+  const customerEmail =
+    invoice.customer_email || invoice.customer_details?.email;
   if (!customerEmail) {
-    logger.warn('[StripeWebhook] invoice.paid: no customer email on invoice', invoice.id);
+    logger.warn(
+      "[StripeWebhook] invoice.paid: no customer email on invoice",
+      invoice.id,
+    );
     return;
   }
 
   // Check current subscription state
   const existing = await getSubscriptionByEmail(customerEmail);
   if (!existing) {
-    logger.info('[StripeWebhook] invoice.paid: no existing subscription for', customerEmail, '— skipping');
+    logger.info(
+      "[StripeWebhook] invoice.paid: no existing subscription for",
+      customerEmail,
+      "— skipping",
+    );
     return;
   }
 
   // Only re-activate if currently inactive (failed payment recovery)
   if (existing.subscriptionActive) {
-    logger.info('[StripeWebhook] invoice.paid: subscription already active for', customerEmail, '— no action needed');
+    logger.info(
+      "[StripeWebhook] invoice.paid: subscription already active for",
+      customerEmail,
+      "— no action needed",
+    );
     return;
   }
 
-  logger.info('[StripeWebhook] invoice.paid: re-activating suspended subscription for', customerEmail);
+  logger.info(
+    "[StripeWebhook] invoice.paid: re-activating suspended subscription for",
+    customerEmail,
+  );
 
   await setSubscriptionActive(customerEmail, true, {
-    periodStart: new Date().toISOString()
+    periodStart: new Date().toISOString(),
   });
 
   const { subject, text, html } = renderSubscriptionReactivated();
-  const emailResult = await sendEmail({ to: customerEmail, subject, text, html });
+  const emailResult = await sendEmail({
+    to: customerEmail,
+    subject,
+    text,
+    html,
+  });
 
-  logger.info('[StripeWebhook] Reactivation email result:', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
+  logger.info(
+    "[StripeWebhook] Reactivation email result:",
+    emailResult.sent ? "sent" : "queued",
+    "for",
+    customerEmail,
+  );
 }
 
 /**
@@ -466,9 +647,13 @@ async function handleInvoicePaymentFailed(event) {
 
   if (!invoice.subscription) return;
 
-  const customerEmail = invoice.customer_email || invoice.customer_details?.email;
+  const customerEmail =
+    invoice.customer_email || invoice.customer_details?.email;
   if (!customerEmail) {
-    logger.warn('[StripeWebhook] invoice.payment_failed: no customer email on invoice', invoice.id);
+    logger.warn(
+      "[StripeWebhook] invoice.payment_failed: no customer email on invoice",
+      invoice.id,
+    );
     return;
   }
 
@@ -478,34 +663,62 @@ async function handleInvoicePaymentFailed(event) {
     : null;
 
   logger.warn(
-    '[StripeWebhook] Payment FAILED for', customerEmail,
-    'invoice:', invoice.id,
-    'attempt:', attemptCount,
-    'nextRetry:', nextRetry || 'none'
+    "[StripeWebhook] Payment FAILED for",
+    customerEmail,
+    "invoice:",
+    invoice.id,
+    "attempt:",
+    attemptCount,
+    "nextRetry:",
+    nextRetry || "none",
   );
 
   const existing = await getSubscriptionByEmail(customerEmail);
   if (!existing) {
-    logger.info('[StripeWebhook] invoice.payment_failed: no existing subscription for', customerEmail);
+    logger.info(
+      "[StripeWebhook] invoice.payment_failed: no existing subscription for",
+      customerEmail,
+    );
     return;
   }
 
   await setSubscriptionActive(customerEmail, false, {
     stripeCustomerId: invoice.customer,
     stripeSubscriptionId: invoice.subscription,
-    paymentStatus: 'past_due',
+    paymentStatus: "past_due",
     lastPaymentFailure: new Date().toISOString(),
-    retryAttempt: attemptCount
+    retryAttempt: attemptCount,
   });
 
-  logger.info('[StripeWebhook] Subscription marked past_due for', customerEmail, 'attempt:', attemptCount);
+  logger.info(
+    "[StripeWebhook] Subscription marked past_due for",
+    customerEmail,
+    "attempt:",
+    attemptCount,
+  );
 
   try {
-    const { subject, text, html } = renderPaymentFailed({ attemptCount, nextRetry });
-    const emailResult = await sendEmail({ to: customerEmail, subject, text, html });
-    logger.info('[StripeWebhook] Payment failure email', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
+    const { subject, text, html } = renderPaymentFailed({
+      attemptCount,
+      nextRetry,
+    });
+    const emailResult = await sendEmail({
+      to: customerEmail,
+      subject,
+      text,
+      html,
+    });
+    logger.info(
+      "[StripeWebhook] Payment failure email",
+      emailResult.sent ? "sent" : "queued",
+      "for",
+      customerEmail,
+    );
   } catch (emailErr) {
-    logger.error('[StripeWebhook] Payment failure email failed:', emailErr.message);
+    logger.error(
+      "[StripeWebhook] Payment failure email failed:",
+      emailErr.message,
+    );
   }
 }
 
@@ -523,20 +736,41 @@ async function handleTrialWillEnd(event) {
     ? new Date(subscription.trial_end * 1000).toISOString()
     : null;
 
-  logger.info('[StripeWebhook] trial_will_end for customer', customerId, 'trial ends:', trialEnd);
+  logger.info(
+    "[StripeWebhook] trial_will_end for customer",
+    customerId,
+    "trial ends:",
+    trialEnd,
+  );
 
   const existing = await findSubscriptionByCustomerId(customerId);
   if (!existing) {
-    logger.warn('[StripeWebhook] trial_will_end: no existing subscription for customer', customerId);
+    logger.warn(
+      "[StripeWebhook] trial_will_end: no existing subscription for customer",
+      customerId,
+    );
     return;
   }
 
   try {
     const { subject, text, html } = renderTrialEnding({ trialEnd });
-    const emailResult = await sendEmail({ to: existing.email, subject, text, html });
-    logger.info('[StripeWebhook] Trial ending email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+    const emailResult = await sendEmail({
+      to: existing.email,
+      subject,
+      text,
+      html,
+    });
+    logger.info(
+      "[StripeWebhook] Trial ending email",
+      emailResult.sent ? "sent" : "queued",
+      "for",
+      existing.email,
+    );
   } catch (emailErr) {
-    logger.error('[StripeWebhook] Trial ending email failed:', emailErr.message);
+    logger.error(
+      "[StripeWebhook] Trial ending email failed:",
+      emailErr.message,
+    );
   }
 }
 
@@ -550,19 +784,25 @@ async function handleDisputeCreated(event) {
   if (!dispute) return;
 
   const chargeId = dispute.charge;
-  const reason = dispute.reason || 'unspecified';
-  const status = dispute.status || 'needs_response';
-  const amount = dispute.amount ? (dispute.amount / 100).toFixed(2) : 'unknown';
-  const currency = dispute.currency || 'usd';
+  const reason = dispute.reason || "unspecified";
+  const status = dispute.status || "needs_response";
+  const amount = dispute.amount ? (dispute.amount / 100).toFixed(2) : "unknown";
+  const currency = dispute.currency || "usd";
 
   logger.warn(
-    '[StripeWebhook] Dispute CREATED — charge:', chargeId,
-    'reason:', reason,
-    'amount:', amount, currency.toUpperCase(),
-    'status:', status
+    "[StripeWebhook] Dispute CREATED — charge:",
+    chargeId,
+    "reason:",
+    reason,
+    "amount:",
+    amount,
+    currency.toUpperCase(),
+    "status:",
+    status,
   );
 
-  const customerEmail = dispute.evidence_details?.customer_email ||
+  const customerEmail =
+    dispute.evidence_details?.customer_email ||
     (dispute.metadata && dispute.metadata.customer_email);
 
   if (customerEmail) {
@@ -572,23 +812,40 @@ async function handleDisputeCreated(event) {
         disputeStatus: status,
         disputeReason: reason,
         disputeChargeId: chargeId,
-        disputeOpenedAt: new Date().toISOString()
+        disputeOpenedAt: new Date().toISOString(),
       });
-      logger.warn('[StripeWebhook] Dispute recorded for', customerEmail, 'reason:', reason);
+      logger.warn(
+        "[StripeWebhook] Dispute recorded for",
+        customerEmail,
+        "reason:",
+        reason,
+      );
     }
   }
 
   try {
-    const { subject, text, html } = renderDisputeAlert({ chargeId, reason, status, amountCents: dispute.amount, currency });
+    const { subject, text, html } = renderDisputeAlert({
+      chargeId,
+      reason,
+      status,
+      amountCents: dispute.amount,
+      currency,
+    });
     await sendEmail({
-      to: process.env.DISPUTE_ALERT_EMAIL || 'support@simplebeacon.ai',
+      to: process.env.DISPUTE_ALERT_EMAIL || "support@simplebeacon.ai",
       subject,
       text,
-      html
+      html,
     });
-    logger.info('[StripeWebhook] Dispute alert email sent for charge', chargeId);
+    logger.info(
+      "[StripeWebhook] Dispute alert email sent for charge",
+      chargeId,
+    );
   } catch (emailErr) {
-    logger.error('[StripeWebhook] Dispute alert email failed:', emailErr.message);
+    logger.error(
+      "[StripeWebhook] Dispute alert email failed:",
+      emailErr.message,
+    );
   }
 }
 
@@ -603,14 +860,18 @@ async function handleInvoiceUpcoming(event) {
 
   if (!invoice.subscription) return;
 
-  const customerEmail = invoice.customer_email || invoice.customer_details?.email;
+  const customerEmail =
+    invoice.customer_email || invoice.customer_details?.email;
   if (!customerEmail) {
-    logger.warn('[StripeWebhook] invoice.upcoming: no customer email on invoice', invoice.id);
+    logger.warn(
+      "[StripeWebhook] invoice.upcoming: no customer email on invoice",
+      invoice.id,
+    );
     return;
   }
 
   const amountCents = invoice.amount_due || invoice.total;
-  const currency = invoice.currency || 'usd';
+  const currency = invoice.currency || "usd";
   const dueDate = invoice.due_date
     ? new Date(invoice.due_date * 1000).toISOString()
     : invoice.next_payment_attempt
@@ -619,16 +880,43 @@ async function handleInvoiceUpcoming(event) {
   const invoiceNumber = invoice.number || invoice.id || null;
 
   const existing = await getSubscriptionByEmail(customerEmail);
-  const tier = existing?.tier || 'pro';
+  const tier = existing?.tier || "pro";
 
-  logger.info('[StripeWebhook] invoice.upcoming for', customerEmail, 'amount:', amountCents, currency, 'due:', dueDate);
+  logger.info(
+    "[StripeWebhook] invoice.upcoming for",
+    customerEmail,
+    "amount:",
+    amountCents,
+    currency,
+    "due:",
+    dueDate,
+  );
 
   try {
-    const { subject, text, html } = renderInvoiceUpcoming({ amountCents, currency, dueDate, tier, invoiceNumber });
-    const emailResult = await sendEmail({ to: customerEmail, subject, text, html });
-    logger.info('[StripeWebhook] Invoice upcoming email', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
+    const { subject, text, html } = renderInvoiceUpcoming({
+      amountCents,
+      currency,
+      dueDate,
+      tier,
+      invoiceNumber,
+    });
+    const emailResult = await sendEmail({
+      to: customerEmail,
+      subject,
+      text,
+      html,
+    });
+    logger.info(
+      "[StripeWebhook] Invoice upcoming email",
+      emailResult.sent ? "sent" : "queued",
+      "for",
+      customerEmail,
+    );
   } catch (emailErr) {
-    logger.error('[StripeWebhook] Invoice upcoming email failed:', emailErr.message);
+    logger.error(
+      "[StripeWebhook] Invoice upcoming email failed:",
+      emailErr.message,
+    );
   }
 }
 
@@ -643,23 +931,49 @@ async function handleSubscriptionPaused(event) {
   const customerId = subscription.customer;
   const existing = await findSubscriptionByCustomerId(customerId);
   if (!existing) {
-    logger.warn('[StripeWebhook] subscription.paused: no existing subscription for customer', customerId);
+    logger.warn(
+      "[StripeWebhook] subscription.paused: no existing subscription for customer",
+      customerId,
+    );
     return;
   }
 
-  const tier = existing.tier || 'pro';
+  const tier = existing.tier || "pro";
   const resumeDate = subscription.pause_collection?.resumes_at
     ? new Date(subscription.pause_collection.resumes_at * 1000).toISOString()
     : null;
 
-  logger.info('[StripeWebhook] subscription.paused for', existing.email, 'tier:', tier, 'resume:', resumeDate);
+  logger.info(
+    "[StripeWebhook] subscription.paused for",
+    existing.email,
+    "tier:",
+    tier,
+    "resume:",
+    resumeDate,
+  );
 
   try {
-    const { subject, text, html } = renderSubscriptionPaused({ tier, resumeDate });
-    const emailResult = await sendEmail({ to: existing.email, subject, text, html });
-    logger.info('[StripeWebhook] Subscription paused email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+    const { subject, text, html } = renderSubscriptionPaused({
+      tier,
+      resumeDate,
+    });
+    const emailResult = await sendEmail({
+      to: existing.email,
+      subject,
+      text,
+      html,
+    });
+    logger.info(
+      "[StripeWebhook] Subscription paused email",
+      emailResult.sent ? "sent" : "queued",
+      "for",
+      existing.email,
+    );
   } catch (emailErr) {
-    logger.error('[StripeWebhook] Subscription paused email failed:', emailErr.message);
+    logger.error(
+      "[StripeWebhook] Subscription paused email failed:",
+      emailErr.message,
+    );
   }
 }
 
@@ -674,20 +988,41 @@ async function handleSubscriptionResumed(event) {
   const customerId = subscription.customer;
   const existing = await findSubscriptionByCustomerId(customerId);
   if (!existing) {
-    logger.warn('[StripeWebhook] subscription.resumed: no existing subscription for customer', customerId);
+    logger.warn(
+      "[StripeWebhook] subscription.resumed: no existing subscription for customer",
+      customerId,
+    );
     return;
   }
 
-  const tier = existing.tier || 'pro';
+  const tier = existing.tier || "pro";
 
-  logger.info('[StripeWebhook] subscription.resumed for', existing.email, 'tier:', tier);
+  logger.info(
+    "[StripeWebhook] subscription.resumed for",
+    existing.email,
+    "tier:",
+    tier,
+  );
 
   try {
     const { subject, text, html } = renderSubscriptionResumed({ tier });
-    const emailResult = await sendEmail({ to: existing.email, subject, text, html });
-    logger.info('[StripeWebhook] Subscription resumed email', emailResult.sent ? 'sent' : 'queued', 'for', existing.email);
+    const emailResult = await sendEmail({
+      to: existing.email,
+      subject,
+      text,
+      html,
+    });
+    logger.info(
+      "[StripeWebhook] Subscription resumed email",
+      emailResult.sent ? "sent" : "queued",
+      "for",
+      existing.email,
+    );
   } catch (emailErr) {
-    logger.error('[StripeWebhook] Subscription resumed email failed:', emailErr.message);
+    logger.error(
+      "[StripeWebhook] Subscription resumed email failed:",
+      emailErr.message,
+    );
   }
 }
 

@@ -85,6 +85,7 @@ node scripts/benchmark-scan.js /path/to/project
 See [RULE-AUTHORING.md](RULE-AUTHORING.md) for the full guide.
 
 Quick checklist:
+
 - [ ] Rule file in `src/rules/<name>-scanner.js`
 - [ ] Wired into `src/scan.js` (import, scan orchestrator, result aggregation, report metrics)
 - [ ] Suppression comment support (`// simplebeacon-ignore <rule-name>`)
@@ -108,6 +109,7 @@ Quick checklist:
 ## PR Checklist
 
 Before submitting:
+
 - [ ] All tests pass (`npm test`)
 - [ ] Syntax check passes (`node -c` on edited files)
 - [ ] No new hardcoded secrets or tokens
@@ -120,4 +122,4 @@ Before submitting:
 
 Open an issue on GitHub or reach out in discussions.
 
-*Last updated: June 2026*
+_Last updated: June 2026_

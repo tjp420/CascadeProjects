@@ -14,20 +14,23 @@
  *  - Stripe webhook test mode returns 200
  */
 
-const https = require('https');
-const http = require('http');
+const https = require("https");
+const http = require("http");
 
-const PROD_URL = 'https://simplebeacon.ai';
-const API_URL = 'https://simplebeacon.ai/api';
+const PROD_URL = "https://simplebeacon.ai";
+const API_URL = "https://simplebeacon.ai/api";
 
-function request(url, method = 'GET') {
+function request(url, method = "GET") {
   return new Promise((resolve, reject) => {
-    const client = url.startsWith('https:') ? https : http;
+    const client = url.startsWith("https:") ? https : http;
     const req = client.request(url, { method, timeout: 15000 }, (res) => {
       resolve({ status: res.statusCode, headers: res.headers });
     });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Timeout"));
+    });
     req.end();
   });
 }
@@ -36,7 +39,9 @@ function check(label, promise, expectStatus, expectHeader) {
   return promise
     .then(({ status, headers }) => {
       const statusOk = expectStatus ? status === expectStatus : true;
-      const headerOk = expectHeader ? headers[expectHeader[0]] === expectHeader[1] : true;
+      const headerOk = expectHeader
+        ? headers[expectHeader[0]] === expectHeader[1]
+        : true;
       if (statusOk && headerOk) {
         console.log(`  ✅ ${label} (HTTP ${status})`);
         return true;
@@ -55,38 +60,50 @@ function check(label, promise, expectStatus, expectHeader) {
 }
 
 async function main() {
-  const isFull = process.argv.includes('--full');
-  console.log('🔦 SimpleBeacon Production Validation\n');
+  const isFull = process.argv.includes("--full");
+  console.log("🔦 SimpleBeacon Production Validation\n");
 
   let passed = 0;
   let failed = 0;
 
   const results = await Promise.all([
-    check('DNS resolves', request(PROD_URL), 200),
-    check('Landing page loads', request(`${PROD_URL}/index.html`), 200),
-    check('.env is blocked', request(`${PROD_URL}/.env`), 403),
-    check('server.cjs is blocked', request(`${PROD_URL}/server.cjs`), 403),
-    check('subscriptions.json is blocked', request(`${PROD_URL}/subscriptions.json`), 403),
+    check("DNS resolves", request(PROD_URL), 200),
+    check("Landing page loads", request(`${PROD_URL}/index.html`), 200),
+    check(".env is blocked", request(`${PROD_URL}/.env`), 403),
+    check("server.cjs is blocked", request(`${PROD_URL}/server.cjs`), 403),
+    check(
+      "subscriptions.json is blocked",
+      request(`${PROD_URL}/subscriptions.json`),
+      403,
+    ),
     isFull
-      ? check('Security headers — HSTS', request(PROD_URL), 200, ['strict-transport-security', 'max-age='])
+      ? check("Security headers — HSTS", request(PROD_URL), 200, [
+          "strict-transport-security",
+          "max-age=",
+        ])
       : Promise.resolve(true),
     isFull
-      ? check('Security headers — X-Content-Type-Options', request(PROD_URL), 200, ['x-content-type-options', 'nosniff'])
+      ? check(
+          "Security headers — X-Content-Type-Options",
+          request(PROD_URL),
+          200,
+          ["x-content-type-options", "nosniff"],
+        )
       : Promise.resolve(true),
     isFull
-      ? check('Health endpoint', request(`${API_URL}/health`), 200)
+      ? check("Health endpoint", request(`${API_URL}/health`), 200)
       : Promise.resolve(true),
   ]);
 
   passed = results.filter(Boolean).length;
-  failed = results.filter(r => !r).length;
+  failed = results.filter((r) => !r).length;
 
   console.log(`\n=== Results ===`);
   console.log(`Passed: ${passed}`);
   console.log(`Failed: ${failed}`);
 
   if (failed === 0) {
-    console.log('\n🚀 All production checks passed.');
+    console.log("\n🚀 All production checks passed.");
     process.exit(0);
   } else {
     console.log(`\n⚠️  ${failed} check(s) failed.`);

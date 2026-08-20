@@ -1,7 +1,7 @@
-'use strict';
+"use strict";
 
-const { CryptoPolicyEngine } = require('./crypto-policy-engine.cjs');
-const { incrementCounter } = require('./hsm-metrics.cjs');
+const { CryptoPolicyEngine } = require("./crypto-policy-engine.cjs");
+const { incrementCounter } = require("./hsm-metrics.cjs");
 
 class ZkRingClaimValidator {
   constructor(engine) {
@@ -12,15 +12,18 @@ class ZkRingClaimValidator {
     const policy = this.engine.getPolicy(tenantId);
 
     if (policy.ringGating.requireBlindedLinkabilityAttestation) {
-      if (!claim.blindedLinkabilityAttestation || typeof claim.linkabilityToken !== 'string') {
-        throw new Error('RINGCLAIM_UNATTESTED_LINKABILITY');
+      if (
+        !claim.blindedLinkabilityAttestation ||
+        typeof claim.linkabilityToken !== "string"
+      ) {
+        throw new Error("RINGCLAIM_UNATTESTED_LINKABILITY");
       }
     }
 
-    this.engine.validate(tenantId, 'ringGating', claim);
+    this.engine.validate(tenantId, "ringGating", claim);
 
     if (!Array.isArray(claim.anonymitySet)) {
-      throw new Error('RINGCLAIM_INVALID_ANONYMITY_SET_SIZE');
+      throw new Error("RINGCLAIM_INVALID_ANONYMITY_SET_SIZE");
     }
 
     const setSize = claim.anonymitySet.length;
@@ -28,10 +31,10 @@ class ZkRingClaimValidator {
     const max = policy.ringGating.maxRingSize;
 
     if (setSize < min || setSize > max) {
-      throw new Error('RINGCLAIM_INVALID_ANONYMITY_SET_SIZE');
+      throw new Error("RINGCLAIM_INVALID_ANONYMITY_SET_SIZE");
     }
 
-    incrementCounter('hsm_zk_ring_claim_verified_total');
+    incrementCounter("hsm_zk_ring_claim_verified_total");
     return true;
   }
 }

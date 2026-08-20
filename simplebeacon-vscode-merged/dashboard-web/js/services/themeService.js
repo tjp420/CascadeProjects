@@ -40,7 +40,9 @@ export class ThemeService {
     this._listenForParentTheme();
     if (this.manualOverride) {
       this.apply(this.theme);
-      if (window.__SIMPLEBEACON_ENV__) { this.pollServerTheme(); }
+      if (window.__SIMPLEBEACON_ENV__) {
+        this.pollServerTheme();
+      }
       return;
     }
     const ideTheme = detectIdeTheme();
@@ -102,8 +104,14 @@ export class ThemeService {
 
   followIde() {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const applyMq = () => { if (!this.manualOverride) this.set(mq.matches ? 'dark' : 'light'); };
-    try { mq.addEventListener('change', applyMq); } catch (_) { /* older browsers */ }
+    const applyMq = () => {
+      if (!this.manualOverride) this.set(mq.matches ? 'dark' : 'light');
+    };
+    try {
+      mq.addEventListener('change', applyMq);
+    } catch (_) {
+      /* older browsers */
+    }
     if (!this.manualOverride) applyMq();
   }
 
@@ -124,7 +132,9 @@ export class ThemeService {
 
   set(theme) {
     const valid = ['dark', 'light', 'fox'];
-    if (!valid.includes(theme)) { return this.theme; }
+    if (!valid.includes(theme)) {
+      return this.theme;
+    }
     this.theme = theme;
     localStorage.setItem(THEME_KEY, this.theme);
     this.apply(this.theme);
@@ -143,7 +153,9 @@ export class ThemeService {
         icon.textContent = '';
         icon.setAttribute('data-lucide', iconName);
         if (typeof window !== 'undefined' && window.lucide && typeof window.lucide.createIcons === 'function') {
-          try { window.lucide.createIcons({ attrs: { 'stroke-width': 2 } }); } catch (_) {}
+          try {
+            window.lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+          } catch (_) {}
         }
       } else if (btn.children.length === 0) {
         const emoji = { dark: '☀️', light: '🌙', fox: '🦊' };

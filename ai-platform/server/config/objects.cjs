@@ -10,16 +10,19 @@
  * @returns {Object}
  */
 function defaultsDeep(target, ...sources) {
-  if (!target || typeof target !== 'object') return target;
+  if (!target || typeof target !== "object") return target;
   for (const source of sources) {
-    if (!source || typeof source !== 'object') continue;
+    if (!source || typeof source !== "object") continue;
     for (const key of Object.keys(source)) {
       if (target[key] === undefined) {
         target[key] = source[key];
       } else if (
-        target[key] != null && typeof target[key] === 'object' &&
-        source[key] != null && typeof source[key] === 'object' &&
-        !Array.isArray(target[key]) && !Array.isArray(source[key])
+        target[key] != null &&
+        typeof target[key] === "object" &&
+        source[key] != null &&
+        typeof source[key] === "object" &&
+        !Array.isArray(target[key]) &&
+        !Array.isArray(source[key])
       ) {
         defaultsDeep(target[key], source[key]);
       }
@@ -35,7 +38,7 @@ function defaultsDeep(target, ...sources) {
  * @returns {Object}
  */
 function mapValues(obj, fn) {
-  if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
+  if (!obj || typeof obj !== "object" || typeof fn !== "function") return {};
   const result = {};
   for (const [key, val] of Object.entries(obj)) {
     result[key] = fn(val, key);
@@ -50,7 +53,7 @@ function mapValues(obj, fn) {
  * @returns {Object}
  */
 function mapKeys(obj, fn) {
-  if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
+  if (!obj || typeof obj !== "object" || typeof fn !== "function") return {};
   const result = {};
   for (const [key, val] of Object.entries(obj)) {
     result[fn(key, val)] = val;
@@ -64,7 +67,7 @@ function mapKeys(obj, fn) {
  * @returns {Object}
  */
 function invert(obj) {
-  if (!obj || typeof obj !== 'object') return {};
+  if (!obj || typeof obj !== "object") return {};
   const result = {};
   for (const [key, val] of Object.entries(obj)) {
     result[String(val)] = key;
@@ -76,5 +79,5 @@ module.exports = Object.freeze({
   defaultsDeep,
   mapValues,
   mapKeys,
-  invert
+  invert,
 });

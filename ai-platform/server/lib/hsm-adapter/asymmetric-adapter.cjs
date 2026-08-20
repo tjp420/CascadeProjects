@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 11 / 12 / 13 / 15: Asymmetric HSM adapter.
@@ -21,27 +21,36 @@
  * @module hsm-adapter/asymmetric-adapter
  */
 
-const crypto = require('crypto');
-const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
-const { Attestation } = require('./attestation.cjs');
-const { secureZeroizeKeyObject } = require('./secure-zeroize.cjs');
-const { VolatileEvictionEngine } = require('./volatile-eviction-engine.cjs');
-const { ProvenanceTracker } = require('./provenance-tracker.cjs');
+const crypto = require("crypto");
+const { BaseHsmAdapter, HsmAdapterError } = require("./base-adapter.cjs");
+const { Attestation } = require("./attestation.cjs");
+const { secureZeroizeKeyObject } = require("./secure-zeroize.cjs");
+const { VolatileEvictionEngine } = require("./volatile-eviction-engine.cjs");
+const { ProvenanceTracker } = require("./provenance-tracker.cjs");
 
-const SUPPORTED_ALGORITHMS = new Set(['rsa-oaep', 'ecdh']);
+const SUPPORTED_ALGORITHMS = new Set(["rsa-oaep", "ecdh"]);
 const RSA_KEY_SIZES = new Set([2048, 4096]);
 const ECDH_KEY_SIZES = new Set([256, 384, 521]);
-const DEFAULT_HKDF_CONTEXT = 'AsymmetricHsmAdapter:default';
+const DEFAULT_HKDF_CONTEXT = "AsymmetricHsmAdapter:default";
 
 function _validateAlgorithmAndSize(algorithm, keySize) {
   if (!SUPPORTED_ALGORITHMS.has(algorithm)) {
-    throw new HsmAdapterError('INVALID_ALGORITHM', `Unsupported asymmetric algorithm: ${algorithm}`);
+    throw new HsmAdapterError(
+      "INVALID_ALGORITHM",
+      `Unsupported asymmetric algorithm: ${algorithm}`,
+    );
   }
-  if (algorithm === 'rsa-oaep' && !RSA_KEY_SIZES.has(keySize)) {
-    throw new HsmAdapterError('INVALID_KEK_BITS', `RSA-OAEP keySize must be 2048 or 4096; got ${keySize}`);
+  if (algorithm === "rsa-oaep" && !RSA_KEY_SIZES.has(keySize)) {
+    throw new HsmAdapterError(
+      "INVALID_KEK_BITS",
+      `RSA-OAEP keySize must be 2048 or 4096; got ${keySize}`,
+    );
   }
-  if (algorithm === 'ecdh' && !ECDH_KEY_SIZES.has(keySize)) {
-    throw new HsmAdapterError('INVALID_KEK_BITS', `ECDH keySize must be 256, 384, or 521; got ${keySize}`);
+  if (algorithm === "ecdh" && !ECDH_KEY_SIZES.has(keySize)) {
+    throw new HsmAdapterError(
+      "INVALID_KEK_BITS",
+      `ECDH keySize must be 256, 384, or 521; got ${keySize}`,
+    );
   }
 }
 
@@ -52,14 +61,21 @@ function _namedCurveForEcdh(keySize) {
 function _generateKeyPair(algorithm, keySize) {
   return new Promise((resolve, reject) => {
     const options =
-      algorithm === 'rsa-oaep'
+      algorithm === "rsa-oaep"
         ? { modulusLength: keySize }
         : { namedCurve: _namedCurveForEcdh(keySize) };
 
-    crypto.generateKeyPair(algorithm === 'rsa-oaep' ? 'rsa' : 'ec', options, (err, publicKey, privateKey) => {
-      if (err) return reject(new HsmAdapterError('KEY_GENERATION_FAILED', err.message));
-      resolve({ publicKey, privateKey });
-    });
+    crypto.generateKeyPair(
+      algorithm === "rsa-oaep" ? "rsa" : "ec",
+      options,
+      (err, publicKey, privateKey) => {
+        if (err)
+          return reject(
+            new HsmAdapterError("KEY_GENERATION_FAILED", err.message),
+          );
+        resolve({ publicKey, privateKey });
+      },
+    );
   });
 }
 
@@ -68,7 +84,9 @@ function _deriveAesKey(sharedSecret, iv, context, tenantId) {
   // tenant so a re-used secret cannot be replayed across different contexts
   // or tenants.
   const fullContext = `${tenantId}:${context}`;
-  return Buffer.from(crypto.hkdfSync('sha256', sharedSecret, iv, fullContext, 32));
+  return Buffer.from(
+    crypto.hkdfSync("sha256", sharedSecret, iv, fullContext, 32),
+  );
 }
 
 class AsymmetricHsmAdapter extends BaseHsmAdapter {
@@ -82,8 +100,8 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
    * @param {string} [options.hardwareRootToken] - root token for provenance
    */
   constructor(options = {}) {
-    super({ providerName: 'asymmetric', ...options });
-    this.algorithm = options.algorithm || 'rsa-oaep';
+    super({ providerName: "asymmetric", ...options });
+    this.algorithm = options.algorithm || "rsa-oaep";
     this.keySize = options.keySize || 2048;
     _validateAlgorithmAndSize(this.algorithm, this.keySize);
     this._attestation = options.attestation || null;
@@ -108,10 +126,13 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
   _getKek(tenantId, kekId) {
     const info = this._keks.get(kekId);
     if (!info) {
-      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
+      throw new HsmAdapterError("UNKNOWN_KEK", `KEK not found: ${kekId}`);
     }
     if (info.tenantId !== tenantId) {
-      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', `KEK ${kekId} does not belong to tenant ${tenantId}`);
+      throw new HsmAdapterError(
+        "UNAUTHORIZED_KEY_ACCESS",
+        `KEK ${kekId} does not belong to tenant ${tenantId}`,
+      );
     }
     return info;
   }
@@ -137,13 +158,16 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
 
   async _createKEK(tenantId, meta = {}) {
     if (this._policyEngine) {
-      this._policyEngine.validate(tenantId, 'createKEK', {
+      this._policyEngine.validate(tenantId, "createKEK", {
         algorithm: this.algorithm,
         keySize: this.keySize,
       });
     }
-    const { publicKey, privateKey } = await _generateKeyPair(this.algorithm, this.keySize);
-    const kekId = crypto.randomBytes(16).toString('hex');
+    const { publicKey, privateKey } = await _generateKeyPair(
+      this.algorithm,
+      this.keySize,
+    );
+    const kekId = crypto.randomBytes(16).toString("hex");
     const createdAt = Date.now();
     this._keks.set(kekId, {
       publicKey,
@@ -164,41 +188,50 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
 
   async _wrap(tenantId, kekId, plaintext, context = DEFAULT_HKDF_CONTEXT) {
     if (!Buffer.isBuffer(plaintext)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "plaintext must be a Buffer");
     }
 
     const info = this._getKek(tenantId, kekId);
-    this._validatePolicy(tenantId, 'wrap', info);
+    this._validatePolicy(tenantId, "wrap", info);
     this._validateProvenance(tenantId, kekId, info);
 
-    if (info.algorithm === 'rsa-oaep') {
+    if (info.algorithm === "rsa-oaep") {
       const maxPlaintextLength = info.keySize / 8 - 2 * 32 - 2; // SHA-256 OAEP
       if (plaintext.length > maxPlaintextLength) {
-        throw new HsmAdapterError('INVALID_INPUT', `Plaintext too large for RSA-OAEP-${info.keySize}; max ${maxPlaintextLength} bytes`);
+        throw new HsmAdapterError(
+          "INVALID_INPUT",
+          `Plaintext too large for RSA-OAEP-${info.keySize}; max ${maxPlaintextLength} bytes`,
+        );
       }
       return crypto.publicEncrypt(
         {
           key: info.publicKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: 'sha256',
+          oaepHash: "sha256",
         },
-        plaintext
+        plaintext,
       );
     }
 
     // ECDH ECIES-style wrap
-    const ephemeral = await _generateKeyPair('ecdh', this.keySize);
+    const ephemeral = await _generateKeyPair("ecdh", this.keySize);
     const sharedSecret = crypto.diffieHellman({
       privateKey: ephemeral.privateKey,
       publicKey: info.publicKey,
     });
     const iv = crypto.randomBytes(12);
     const key = _deriveAesKey(sharedSecret, iv, context, tenantId);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+    const ciphertext = Buffer.concat([
+      cipher.update(plaintext),
+      cipher.final(),
+    ]);
     const tag = cipher.getAuthTag();
 
-    const ephemeralSpki = ephemeral.publicKey.export({ type: 'spki', format: 'der' });
+    const ephemeralSpki = ephemeral.publicKey.export({
+      type: "spki",
+      format: "der",
+    });
     const header = Buffer.alloc(4);
     header.writeUInt32BE(ephemeralSpki.length, 0);
 
@@ -207,52 +240,70 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
 
   async _unwrap(tenantId, kekId, wrapped, context = DEFAULT_HKDF_CONTEXT) {
     if (!Buffer.isBuffer(wrapped)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "wrapped must be a Buffer");
     }
 
     const info = this._getKek(tenantId, kekId);
-    this._validatePolicy(tenantId, 'unwrap', info);
+    this._validatePolicy(tenantId, "unwrap", info);
     this._validateProvenance(tenantId, kekId, info);
 
-    if (info.algorithm === 'rsa-oaep') {
+    if (info.algorithm === "rsa-oaep") {
       try {
         return crypto.privateDecrypt(
           {
             key: info.privateKey,
             padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-            oaepHash: 'sha256',
+            oaepHash: "sha256",
           },
-          wrapped
+          wrapped,
         );
       } catch (err) {
-        throw new HsmAdapterError('UNWRAP_FAILED', err.message);
+        throw new HsmAdapterError("UNWRAP_FAILED", err.message);
       }
     }
 
     // ECDH ECIES-style unwrap
     if (wrapped.length < 4) {
-      throw new HsmAdapterError('UNWRAP_FAILED', 'Malformed ECDH wrapped payload');
+      throw new HsmAdapterError(
+        "UNWRAP_FAILED",
+        "Malformed ECDH wrapped payload",
+      );
     }
     const spkiLen = wrapped.readUInt32BE(0);
     const offsetAfterHeader = 4;
     if (wrapped.length < offsetAfterHeader + spkiLen + 12 + 16) {
-      throw new HsmAdapterError('UNWRAP_FAILED', 'Malformed ECDH wrapped payload');
+      throw new HsmAdapterError(
+        "UNWRAP_FAILED",
+        "Malformed ECDH wrapped payload",
+      );
     }
 
-    const ephemeralSpki = wrapped.subarray(offsetAfterHeader, offsetAfterHeader + spkiLen);
-    const iv = wrapped.subarray(offsetAfterHeader + spkiLen, offsetAfterHeader + spkiLen + 12);
-    const tag = wrapped.subarray(offsetAfterHeader + spkiLen + 12, offsetAfterHeader + spkiLen + 12 + 16);
+    const ephemeralSpki = wrapped.subarray(
+      offsetAfterHeader,
+      offsetAfterHeader + spkiLen,
+    );
+    const iv = wrapped.subarray(
+      offsetAfterHeader + spkiLen,
+      offsetAfterHeader + spkiLen + 12,
+    );
+    const tag = wrapped.subarray(
+      offsetAfterHeader + spkiLen + 12,
+      offsetAfterHeader + spkiLen + 12 + 16,
+    );
     const ciphertext = wrapped.subarray(offsetAfterHeader + spkiLen + 12 + 16);
 
     let ephemeralPublic;
     try {
       ephemeralPublic = crypto.createPublicKey({
         key: ephemeralSpki,
-        format: 'der',
-        type: 'spki',
+        format: "der",
+        type: "spki",
       });
     } catch (err) {
-      throw new HsmAdapterError('UNWRAP_FAILED', `Invalid ephemeral public key: ${err.message}`);
+      throw new HsmAdapterError(
+        "UNWRAP_FAILED",
+        `Invalid ephemeral public key: ${err.message}`,
+      );
     }
 
     const sharedSecret = crypto.diffieHellman({
@@ -261,19 +312,22 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     });
     const key = _deriveAesKey(sharedSecret, iv, context, tenantId);
     try {
-      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAuthTag(tag);
       return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
     } catch (err) {
-      throw new HsmAdapterError('UNWRAP_FAILED', err.message);
+      throw new HsmAdapterError("UNWRAP_FAILED", err.message);
     }
   }
 
   async _rotateKEK(tenantId, oldKekId) {
     const info = this._getKek(tenantId, oldKekId);
-    this._validatePolicy(tenantId, 'rotateKEK', info);
+    this._validatePolicy(tenantId, "rotateKEK", info);
     this._validateProvenance(tenantId, oldKekId, info);
-    const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
+    const newKekId = await this._createKEK(tenantId, {
+      rotatedFrom: oldKekId,
+      ...info.meta,
+    });
     return newKekId;
   }
 
@@ -310,7 +364,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(plaintext)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "plaintext must be a Buffer");
     }
     return this._wrap(tenantId, kekId, plaintext, context);
   }
@@ -328,7 +382,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(wrapped)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "wrapped must be a Buffer");
     }
     return this._unwrap(tenantId, kekId, wrapped, context);
   }
@@ -343,7 +397,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     const info = this._getKek(tenantId, kekId);
-    return info.publicKey.export({ type: 'spki', format: 'der' });
+    return info.publicKey.export({ type: "spki", format: "der" });
   }
 
   /**
@@ -356,10 +410,13 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!this._attestation) {
-      throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'No attestation engine configured');
+      throw new HsmAdapterError(
+        "ATTESTATION_NOT_CONFIGURED",
+        "No attestation engine configured",
+      );
     }
     const info = this._getKek(tenantId, kekId);
-    const spki = info.publicKey.export({ type: 'spki', format: 'der' });
+    const spki = info.publicKey.export({ type: "spki", format: "der" });
     return this._attestation.signPublicKey(spki, kekId, {
       algorithm: info.algorithm,
       keySize: info.keySize,
@@ -377,22 +434,39 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!this._attestation) {
-      throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'No attestation engine configured');
+      throw new HsmAdapterError(
+        "ATTESTATION_NOT_CONFIGURED",
+        "No attestation engine configured",
+      );
     }
     const info = this._getKek(tenantId, kekId);
 
-    const expectedSpki = info.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+    const expectedSpki = info.publicKey
+      .export({ type: "spki", format: "der" })
+      .toString("base64");
     if (certificate.subjectPublicKeyInfo !== expectedSpki) {
-      throw new HsmAdapterError('ATTESTATION_MISMATCH', 'Certificate public key does not match kekId');
+      throw new HsmAdapterError(
+        "ATTESTATION_MISMATCH",
+        "Certificate public key does not match kekId",
+      );
     }
 
     const now = new Date();
-    if (now < new Date(certificate.notBefore) || now > new Date(certificate.notAfter)) {
-      throw new HsmAdapterError('ATTESTATION_INVALID', 'Certificate outside validity window');
+    if (
+      now < new Date(certificate.notBefore) ||
+      now > new Date(certificate.notAfter)
+    ) {
+      throw new HsmAdapterError(
+        "ATTESTATION_INVALID",
+        "Certificate outside validity window",
+      );
     }
 
     if (!this._attestation.verifyCertificate(certificate)) {
-      throw new HsmAdapterError('ATTESTATION_INVALID', 'Certificate signature verification failed');
+      throw new HsmAdapterError(
+        "ATTESTATION_INVALID",
+        "Certificate signature verification failed",
+      );
     }
 
     return true;

@@ -1,8 +1,8 @@
-const Mixnet = require('../mixnet.cjs');
-const { wrapOnionPayload } = require('../client.cjs');
+const Mixnet = require("../mixnet.cjs");
+const { wrapOnionPayload } = require("../client.cjs");
 
-test('deterministic shuffle changes order and delivers to sink', () => {
-  const seedBase = 'test-seed';
+test("deterministic shuffle changes order and delivers to sink", () => {
+  const seedBase = "test-seed";
   const m = new Mixnet(3, { seed: seedBase, threshold: 3, epochMs: 1000 });
   const route = m.nodes.map((n, i) => ({ id: n.id, seed: `${seedBase}-${i}` }));
   const packets = [];
@@ -17,8 +17,8 @@ test('deterministic shuffle changes order and delivers to sink', () => {
   // sink should contain 6 entries
   expect(out.length).toBe(6);
   // order should not equal original ordering in most cases (probabilistic determinism)
-  const outIds = out.map(p => p.id);
-  const inIds = packets.map(p => p.id);
+  const outIds = out.map((p) => p.id);
+  const inIds = packets.map((p) => p.id);
   // at least one position differs
   const same = outIds.every((v, i) => v === inIds[i]);
   expect(same).toBe(false);

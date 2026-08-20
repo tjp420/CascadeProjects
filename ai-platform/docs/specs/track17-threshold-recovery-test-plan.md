@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                                            |
+| ---------------- | -------------------------------------------------------------------------------- |
 | Feature / change | Track 17: Threshold Cryptography & Distributed Multi-Party Key Recovery (M-of-N) |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track17-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                                            |
+| Date             | 2026-08-01                                                                       |
+| Branch           | `feature/track17-groundwork`                                                     |
+| Packages touched | ai-platform                                                                      |
 
 ## Scope
 
@@ -50,54 +50,54 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | Threshold splitter tests pass | `cd ai-platform && npx jest --config jest.config.cjs threshold-secret-splitter` | [ ] |
-| L1-03 | Threshold recoverer tests pass | `cd ai-platform && npx jest --config jest.config.cjs threshold-key-recoverer` | [ ] |
-| L1-04 | Crypto policy tests still pass with threshold schema | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine` | [ ] |
-| L1-05 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-06 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-07 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                                | Command / method                                                                | Pass |
+| ----- | ---------------------------------------------------- | ------------------------------------------------------------------------------- | ---- |
+| L1-01 | Syntax on changed `.cjs` files                       | `node -c <file>`                                                                | [ ]  |
+| L1-02 | Threshold splitter tests pass                        | `cd ai-platform && npx jest --config jest.config.cjs threshold-secret-splitter` | [ ]  |
+| L1-03 | Threshold recoverer tests pass                       | `cd ai-platform && npx jest --config jest.config.cjs threshold-key-recoverer`   | [ ]  |
+| L1-04 | Crypto policy tests still pass with threshold schema | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine`      | [ ]  |
+| L1-05 | Full `ai-platform` test suite passes                 | `cd ai-platform && npm test`                                                    | [ ]  |
+| L1-06 | SimpleBeacon full gate                               | `npx simplebeacon scan --full --gate --format json`                             | [ ]  |
+| L1-07 | No secrets in diff                                   | `git diff --cached`                                                             | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | Split a 32-byte KEK into 5 shards with threshold 3 | `split(secret, 5, 3, ids)` | Returns 5 shards, none of which reveal the secret alone | [ ] |
-| L2-02 | Reconstruct from exactly M shards | `recover(shards.slice(0, 3), 3)` | Returns original secret | [ ] |
-| L2-03 | Reconstruct from M+1 shards | `recover(shards, 3)` | Returns original secret | [ ] |
-| L2-04 | Reconstruction with duplicate custodian IDs rejected | Provide two shards with same `custodianId` | Throws `SHARD_CUSTODIAN_MISMATCH` | [ ] |
-| L2-05 | Policy rejects invalid threshold | `validate(tenant, 'threshold', { total: 2, threshold: 3 })` | Throws `INVALID_THRESHOLD` | [ ] |
-| L2-06 | Audit log emits `KEY_SHARD_GENERATED` | Split a key and inspect logger calls | Logger receives `KEY_SHARD_GENERATED` | [ ] |
+| ID    | Scenario                                             | Steps                                                       | Expected                                                | Pass |
+| ----- | ---------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------- | ---- |
+| L2-01 | Split a 32-byte KEK into 5 shards with threshold 3   | `split(secret, 5, 3, ids)`                                  | Returns 5 shards, none of which reveal the secret alone | [ ]  |
+| L2-02 | Reconstruct from exactly M shards                    | `recover(shards.slice(0, 3), 3)`                            | Returns original secret                                 | [ ]  |
+| L2-03 | Reconstruct from M+1 shards                          | `recover(shards, 3)`                                        | Returns original secret                                 | [ ]  |
+| L2-04 | Reconstruction with duplicate custodian IDs rejected | Provide two shards with same `custodianId`                  | Throws `SHARD_CUSTODIAN_MISMATCH`                       | [ ]  |
+| L2-05 | Policy rejects invalid threshold                     | `validate(tenant, 'threshold', { total: 2, threshold: 3 })` | Throws `INVALID_THRESHOLD`                              | [ ]  |
+| L2-06 | Audit log emits `KEY_SHARD_GENERATED`                | Split a key and inspect logger calls                        | Logger receives `KEY_SHARD_GENERATED`                   | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Reconstruction with fewer than M shards fails | Throws `INSUFFICIENT_SHARDS` | [ ] |
-| L3-02 | Tampered shard y-value yields wrong secret | Recovered value does not equal original | [ ] |
-| L3-03 | total = 1, threshold = 1 is allowed for single-custodian backups | Returns one shard equal to secret? (degenerate case) | [ ] |
-| L3-04 | Existing Tracks 10–16 tests still pass | No regressions | [ ] |
+| ID    | Case                                                             | Expected                                             | Pass |
+| ----- | ---------------------------------------------------------------- | ---------------------------------------------------- | ---- |
+| L3-01 | Reconstruction with fewer than M shards fails                    | Throws `INSUFFICIENT_SHARDS`                         | [ ]  |
+| L3-02 | Tampered shard y-value yields wrong secret                       | Recovered value does not equal original              | [ ]  |
+| L3-03 | total = 1, threshold = 1 is allowed for single-custodian backups | Returns one shard equal to secret? (degenerate case) | [ ]  |
+| L3-04 | Existing Tracks 10–16 tests still pass                           | No regressions                                       | [ ]  |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Any `M - 1` or fewer shards leak zero secret bits | [ ] |
-| S-02 | Random polynomial coefficients are generated with `crypto.randomBytes` / `randomInt` over the field | [ ] |
-| S-03 | Shards never include the raw secret or private key | [ ] |
-| S-04 | Reconstruction verifies `y ≡ f(x) (mod p)`? Optional integrity check | [ ] |
+| ID   | Requirement                                                                                         | Pass |
+| ---- | --------------------------------------------------------------------------------------------------- | ---- |
+| S-01 | Any `M - 1` or fewer shards leak zero secret bits                                                   | [ ]  |
+| S-02 | Random polynomial coefficients are generated with `crypto.randomBytes` / `randomInt` over the field | [ ]  |
+| S-03 | Shards never include the raw secret or private key                                                  | [ ]  |
+| S-04 | Reconstruction verifies `y ≡ f(x) (mod p)`? Optional integrity check                                | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

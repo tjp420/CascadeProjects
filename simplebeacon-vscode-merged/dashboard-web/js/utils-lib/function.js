@@ -9,7 +9,16 @@
  * @returns {never}
  */
 export function assertNever(value, message = 'Unexpected value') {
-  const display = typeof value === 'string' ? value : (() => { try { return JSON.stringify(value); } catch { return String(value); } })();
+  const display =
+    typeof value === 'string'
+      ? value
+      : (() => {
+          try {
+            return JSON.stringify(value);
+          } catch {
+            return String(value);
+          }
+        })();
   throw new Error(`${message}: ${display}`);
 }
 
@@ -40,7 +49,9 @@ export function tryFn(fn, ...args) {
  * No-op function.
  * @returns {void}
  */
-export function noop() { /* intentionally empty */ }
+export function noop() {
+  /* intentionally empty */
+}
 
 /**
  * Compose functions right-to-left.
@@ -165,7 +176,11 @@ export function deepFreeze(obj) {
     for (const v of values) obj.add(deepFreeze(v));
     return Object.freeze(obj);
   }
-  try { Object.freeze(obj); } catch { return obj; }
+  try {
+    Object.freeze(obj);
+  } catch {
+    return obj;
+  }
   for (const key of Object.keys(obj)) {
     const value = obj[key];
     if (value && typeof value === 'object' && !Object.isFrozen(value)) {

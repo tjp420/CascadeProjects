@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 64: ZK Market Resolution Validator.
@@ -16,30 +16,30 @@
  * @module hsm-adapter/zk-market-resolution-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const VOTE_STATUS = {
-  PENDING: 'pending',
-  RECORDED: 'recorded',
-  INVALID: 'invalid',
-  SLASHED: 'slashed',
+  PENDING: "pending",
+  RECORDED: "recorded",
+  INVALID: "invalid",
+  SLASHED: "slashed",
 };
 
 const SLASH_REASON = {
-  MALFORMED: 'malformed_vote',
-  DUPLICATE: 'duplicate_vote',
-  MARKET_NOT_OPEN: 'market_not_open',
-  BANNED_PEER: 'banned_peer',
-  OUT_OF_ORDER: 'out_of_order',
+  MALFORMED: "malformed_vote",
+  DUPLICATE: "duplicate_vote",
+  MARKET_NOT_OPEN: "market_not_open",
+  BANNED_PEER: "banned_peer",
+  OUT_OF_ORDER: "out_of_order",
 };
 
 const HW_ACCEL_TYPES = {
-  NONE: 'none',
-  GPU_CUDA: 'gpu_cuda',
-  FPGA: 'fpga',
-  ASIC: 'asic',
-  SIMULATED: 'simulated',
+  NONE: "none",
+  GPU_CUDA: "gpu_cuda",
+  FPGA: "fpga",
+  ASIC: "asic",
+  SIMULATED: "simulated",
 };
 
 class ZkMarketResolutionValidator {
@@ -77,66 +77,117 @@ class ZkMarketResolutionValidator {
   recordResolutionVote(request) {
     _validateVoteRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('RESVOTE_HUB_MISSING', 'prediction market hub is required');
+      throw new HsmAdapterError(
+        "RESVOTE_HUB_MISSING",
+        "prediction market hub is required",
+      );
     }
-    if (this.policy.requireReporterRelayAttestation && this._attestationClient) {
+    if (
+      this.policy.requireReporterRelayAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.reporterRelayAttestation);
+        const result = this._attestationClient.verify(
+          request.reporterRelayAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('RESVOTE_REPORTER_UNATTESTED', 'reporter relay attestation invalid');
+          throw new HsmAdapterError(
+            "RESVOTE_REPORTER_UNATTESTED",
+            "reporter relay attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('RESVOTE_REPORTER_UNATTESTED', 'reporter relay attestation invalid');
+        throw new HsmAdapterError(
+          "RESVOTE_REPORTER_UNATTESTED",
+          "reporter relay attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('RESVOTE_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "RESVOTE_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.BANNED_PEER);
-      throw new HsmAdapterError('RESVOTE_PEER_BANNED', `peer ${request.peerId} is banned`);
+      throw new HsmAdapterError(
+        "RESVOTE_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkTruthProofHash || typeof request.zkTruthProofHash !== 'string') {
+    if (
+      !request.zkTruthProofHash ||
+      typeof request.zkTruthProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('RESVOTE_ZK_PROOF_MISSING', 'zero-knowledge truth proof hash is required');
+      throw new HsmAdapterError(
+        "RESVOTE_ZK_PROOF_MISSING",
+        "zero-knowledge truth proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('RESVOTE_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "RESVOTE_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const market = this._hub.getMarket(request.marketId);
     if (!market) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('RESVOTE_MARKET_NOT_FOUND', `market ${request.marketId} not found`);
+      throw new HsmAdapterError(
+        "RESVOTE_MARKET_NOT_FOUND",
+        `market ${request.marketId} not found`,
+      );
     }
-    if (market.status !== 'open' && market.status !== 'disputed') {
+    if (market.status !== "open" && market.status !== "disputed") {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.MARKET_NOT_OPEN);
-      throw new HsmAdapterError('RESVOTE_MARKET_NOT_OPEN', `market ${request.marketId} is not open (status: ${market.status})`);
+      throw new HsmAdapterError(
+        "RESVOTE_MARKET_NOT_OPEN",
+        `market ${request.marketId} is not open (status: ${market.status})`,
+      );
     }
-    const voteKey = `${request.marketId}:${request.peerId || 'anonymous'}`;
+    const voteKey = `${request.marketId}:${request.peerId || "anonymous"}`;
     if (this._recordedVotes.has(voteKey)) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.DUPLICATE);
-      throw new HsmAdapterError('RESVOTE_DUPLICATE', `vote for market ${request.marketId} from peer ${request.peerId || 'anonymous'} already recorded`);
+      throw new HsmAdapterError(
+        "RESVOTE_DUPLICATE",
+        `vote for market ${request.marketId} from peer ${request.peerId || "anonymous"} already recorded`,
+      );
     }
-    const voteId = request.voteId || `vote-${crypto.randomBytes(4).toString('hex')}`;
+    const voteId =
+      request.voteId || `vote-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const hwAccelUsed = request.hwAccelType || this._hwAccelType;
     const vote = {
       voteId,
       marketId: request.marketId,
-      blindedVoteCommitment: request.blindedVoteCommitment || 'unspecified',
+      blindedVoteCommitment: request.blindedVoteCommitment || "unspecified",
       zkTruthProofHash: request.zkTruthProofHash,
-      reporterRelayAttestationHash: request.reporterRelayAttestationHash || 'unspecified',
+      reporterRelayAttestationHash:
+        request.reporterRelayAttestationHash || "unspecified",
       recordedAt: now,
       status: VOTE_STATUS.RECORDED,
-      peerId: request.peerId || 'anonymous',
+      peerId: request.peerId || "anonymous",
       hwAccelType: hwAccelUsed,
     };
     this._recordedVotes.set(voteKey, vote);
@@ -146,7 +197,7 @@ class ZkMarketResolutionValidator {
       this._hwProofCount++;
     }
     if (this._audit) {
-      this._audit('ZK_RESOLUTION_VOTE_RECORDED', { ...vote });
+      this._audit("ZK_RESOLUTION_VOTE_RECORDED", { ...vote });
     }
     return vote;
   }
@@ -158,11 +209,16 @@ class ZkMarketResolutionValidator {
    */
   batchRecordVotes(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('RESVOTE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "RESVOTE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('RESVOTE_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "RESVOTE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let recordedCount = 0;
@@ -170,13 +226,17 @@ class ZkMarketResolutionValidator {
     for (const req of requests) {
       try {
         const vote = this.recordResolutionVote(req);
-        results.push({ voteId: vote.voteId, marketId: vote.marketId, recorded: true });
+        results.push({
+          voteId: vote.voteId,
+          marketId: vote.marketId,
+          recorded: true,
+        });
         recordedCount++;
       } catch (err) {
         results.push({
-          marketId: req.marketId || 'unknown',
+          marketId: req.marketId || "unknown",
           recorded: false,
-          error: err.code || 'RESVOTE_BATCH_ERROR',
+          error: err.code || "RESVOTE_BATCH_ERROR",
         });
         failedCount++;
       }
@@ -192,9 +252,18 @@ class ZkMarketResolutionValidator {
       this._batchResults.shift();
     }
     if (this._audit) {
-      this._audit('RESVOTE_BATCH_RECORDED', { recordedCount, failedCount, batchSize: requests.length });
+      this._audit("RESVOTE_BATCH_RECORDED", {
+        recordedCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, recordedCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      recordedCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -204,36 +273,53 @@ class ZkMarketResolutionValidator {
    */
   generateHwSnarkProof(request) {
     if (!request || !request.marketId) {
-      throw new HsmAdapterError('RESVOTE_GEN_FIELDS_MISSING', 'marketId is required');
+      throw new HsmAdapterError(
+        "RESVOTE_GEN_FIELDS_MISSING",
+        "marketId is required",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('RESVOTE_HUB_MISSING', 'prediction market hub is required');
+      throw new HsmAdapterError(
+        "RESVOTE_HUB_MISSING",
+        "prediction market hub is required",
+      );
     }
     const market = this._hub.getMarket(request.marketId);
     if (!market) {
-      throw new HsmAdapterError('RESVOTE_MARKET_NOT_FOUND', `market ${request.marketId} not found`);
+      throw new HsmAdapterError(
+        "RESVOTE_MARKET_NOT_FOUND",
+        `market ${request.marketId} not found`,
+      );
     }
-    if (typeof request.voteOutcome !== 'string' && typeof request.voteOutcome !== 'number') {
-      throw new HsmAdapterError('RESVOTE_GEN_OUTCOME_MISSING',
-        'voteOutcome is required for proof generation');
+    if (
+      typeof request.voteOutcome !== "string" &&
+      typeof request.voteOutcome !== "number"
+    ) {
+      throw new HsmAdapterError(
+        "RESVOTE_GEN_OUTCOME_MISSING",
+        "voteOutcome is required for proof generation",
+      );
     }
     const hwAccelType = request.hwAccelType || this._hwAccelType;
     const now = Math.floor(Date.now() / 1000);
     const proofSeed = crypto.randomBytes(32);
-    const zkTruthProofHash = crypto.createHash('sha256')
-      .update(`snark:${proofSeed.toString('hex')}:${request.marketId}:${request.voteOutcome}`)
-      .digest('hex');
+    const zkTruthProofHash = crypto
+      .createHash("sha256")
+      .update(
+        `snark:${proofSeed.toString("hex")}:${request.marketId}:${request.voteOutcome}`,
+      )
+      .digest("hex");
     const proof = {
       marketId: request.marketId,
       zkTruthProofHash,
       hwAccelType,
       voteOutcome: request.voteOutcome,
       generatedAt: now,
-      proofSystem: 'groth16',
+      proofSystem: "groth16",
       circuitId: `market_resolution_${market.marketType}`,
     };
     if (this._audit) {
-      this._audit('RESVOTE_HW_SNARK_GENERATED', { ...proof });
+      this._audit("RESVOTE_HW_SNARK_GENERATED", { ...proof });
     }
     return proof;
   }
@@ -245,34 +331,48 @@ class ZkMarketResolutionValidator {
    * @returns {object}
    */
   aggregatePartialSignatures(marketId, partialSignatures) {
-    if (!marketId || typeof marketId !== 'string') {
-      throw new HsmAdapterError('RESVOTE_MARKET_ID_REQUIRED', 'marketId is required');
+    if (!marketId || typeof marketId !== "string") {
+      throw new HsmAdapterError(
+        "RESVOTE_MARKET_ID_REQUIRED",
+        "marketId is required",
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('RESVOTE_NO_PARTIAL_SIGS', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "RESVOTE_NO_PARTIAL_SIGS",
+        "partialSignatures array is required",
+      );
     }
     if (partialSignatures.length < (this.policy.minReporterQuorum || 3)) {
-      throw new HsmAdapterError('RESVOTE_QUORUM_INSUFFICIENT',
-        `${partialSignatures.length} partial signatures below minimum ${this.policy.minReporterQuorum || 3}`);
+      throw new HsmAdapterError(
+        "RESVOTE_QUORUM_INSUFFICIENT",
+        `${partialSignatures.length} partial signatures below minimum ${this.policy.minReporterQuorum || 3}`,
+      );
     }
     for (const sig of partialSignatures) {
       if (sig.peerId && this._bannedPeers.has(sig.peerId)) {
-        throw new HsmAdapterError('RESVOTE_PEER_BANNED',
-          `peer ${sig.peerId} is banned and cannot participate in signature aggregation`);
+        throw new HsmAdapterError(
+          "RESVOTE_PEER_BANNED",
+          `peer ${sig.peerId} is banned and cannot participate in signature aggregation`,
+        );
       }
     }
-    const sigHash = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const sigHash = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const aggregated = {
       marketId,
       signatureCount: partialSignatures.length,
       aggregatedSignature: sigHash,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('RESVOTE_SIGNATURES_AGGREGATED', { marketId, count: partialSignatures.length });
+      this._audit("RESVOTE_SIGNATURES_AGGREGATED", {
+        marketId,
+        count: partialSignatures.length,
+      });
     }
     return aggregated;
   }
@@ -286,14 +386,21 @@ class ZkMarketResolutionValidator {
   validateSlashingWindow(marketId, voteTimestamp) {
     const market = this._hub ? this._hub.getMarket(marketId) : null;
     if (!market) {
-      throw new HsmAdapterError('RESVOTE_MARKET_NOT_FOUND', `market ${marketId} not found`);
+      throw new HsmAdapterError(
+        "RESVOTE_MARKET_NOT_FOUND",
+        `market ${marketId} not found`,
+      );
     }
-    if (typeof voteTimestamp !== 'number') {
-      throw new HsmAdapterError('RESVOTE_TIMESTAMP_INVALID', 'voteTimestamp must be a number');
+    if (typeof voteTimestamp !== "number") {
+      throw new HsmAdapterError(
+        "RESVOTE_TIMESTAMP_INVALID",
+        "voteTimestamp must be a number",
+      );
     }
     const windowStart = market.initializedAt;
     const windowEnd = market.expirationTimestamp + this._slashingWindowSeconds;
-    const withinWindow = voteTimestamp >= windowStart && voteTimestamp <= windowEnd;
+    const withinWindow =
+      voteTimestamp >= windowStart && voteTimestamp <= windowEnd;
     const result = {
       marketId,
       voteTimestamp,
@@ -303,8 +410,12 @@ class ZkMarketResolutionValidator {
       slashingWindowSeconds: this._slashingWindowSeconds,
     };
     if (!withinWindow && this._audit) {
-      this._audit('RESVOTE_SLASHING_WINDOW_VIOLATION',
-        { marketId, voteTimestamp, windowStart, windowEnd });
+      this._audit("RESVOTE_SLASHING_WINDOW_VIOLATION", {
+        marketId,
+        voteTimestamp,
+        windowStart,
+        windowEnd,
+      });
     }
     return result;
   }
@@ -331,7 +442,7 @@ class ZkMarketResolutionValidator {
    * @returns {object[]}
    */
   getBatchHistory(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._batchResults.slice(-n);
   }
 
@@ -383,7 +494,10 @@ class ZkMarketResolutionValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderResolutionClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderResolutionClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -395,26 +509,36 @@ class ZkMarketResolutionValidator {
    * @private
    */
   _recordSlash(request, reason) {
-    const voteKey = `${request.marketId || 'unknown'}:${request.peerId || 'anonymous'}`;
+    const voteKey = `${request.marketId || "unknown"}:${request.peerId || "anonymous"}`;
     this._slashedVotes.set(voteKey, {
-      marketId: request.marketId || 'unknown',
-      peerId: request.peerId || 'anonymous',
+      marketId: request.marketId || "unknown",
+      peerId: request.peerId || "anonymous",
       reason,
       slashedAt: Math.floor(Date.now() / 1000),
     });
     this._slashCount++;
     if (this._audit) {
-      this._audit('RESVOTE_SLASHED', { marketId: request.marketId, peerId: request.peerId, reason });
+      this._audit("RESVOTE_SLASHED", {
+        marketId: request.marketId,
+        peerId: request.peerId,
+        reason,
+      });
     }
   }
 }
 
 function _validateVoteRequest(policy, request) {
   if (!request.marketId) {
-    throw new HsmAdapterError('RESVOTE_FIELDS_MISSING', 'marketId is required');
+    throw new HsmAdapterError("RESVOTE_FIELDS_MISSING", "marketId is required");
   }
-  if (policy.requireReporterRelayAttestation && !request.reporterRelayAttestation) {
-    throw new HsmAdapterError('RESVOTE_ATTESTATION_MISSING', 'reporter relay attestation is required');
+  if (
+    policy.requireReporterRelayAttestation &&
+    !request.reporterRelayAttestation
+  ) {
+    throw new HsmAdapterError(
+      "RESVOTE_ATTESTATION_MISSING",
+      "reporter relay attestation is required",
+    );
   }
 }
 

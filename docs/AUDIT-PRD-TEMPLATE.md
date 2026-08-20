@@ -50,7 +50,7 @@ Describe the critical paths end-to-end (login → action → result).
 ## API / integration contracts
 
 | Endpoint or integration | Expected behavior | Status (planned / done / unknown) |
-|-------------------------|-------------------|-----------------------------------|
+| ----------------------- | ----------------- | --------------------------------- |
 |                         |                   |                                   |
 
 ## Data model notes

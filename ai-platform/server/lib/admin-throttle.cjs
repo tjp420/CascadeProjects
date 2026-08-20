@@ -1,15 +1,15 @@
-'use strict';
+"use strict";
 
-const crypto = require('crypto');
-const { getIpKey } = require('./getIpKey.cjs');
-const logger = require('./app-logger.cjs').child('admin-throttle');
+const crypto = require("crypto");
+const { getIpKey } = require("./getIpKey.cjs");
+const logger = require("./app-logger.cjs").child("admin-throttle");
 
 const CAPACITY = parseInt(process.env.ADMIN_THROTTLE_CAPACITY, 10) || 20;
 const LEAK_RATE = parseInt(process.env.ADMIN_THROTTLE_LEAK_RATE, 10) || 5; // tokens per second
 const RESERVE_PCT = parseInt(process.env.ADMIN_THROTTLE_RESERVE_PCT, 10) || 25;
 const IPV4_MASK = parseInt(process.env.ADMIN_THROTTLE_IPV4_MASK, 10) || 24;
 const IPV6_MASK = parseInt(process.env.ADMIN_THROTTLE_IPV6_MASK, 10) || 64;
-const KEY_PREFIX = 'sb:admin-throttle';
+const KEY_PREFIX = "sb:admin-throttle";
 const KEY_TTL_MS = 24 * 60 * 60 * 1000;
 
 let redisClient = null;
@@ -19,22 +19,27 @@ let _shuttingDown = false;
 // Allow tests or ops to disable Redis usage explicitly. This avoids background
 // connection attempts during `NODE_ENV=test` runs or CI diagnostics when the
 // environment cannot reach a Redis instance.
-const _disableRedis = (process.env.ADMIN_THROTTLE_DISABLE_REDIS && process.env.ADMIN_THROTTLE_DISABLE_REDIS !== 'false');
+const _disableRedis =
+  process.env.ADMIN_THROTTLE_DISABLE_REDIS &&
+  process.env.ADMIN_THROTTLE_DISABLE_REDIS !== "false";
 if (_disableRedis) {
-  logger.info('Admin throttle: Redis disabled via ADMIN_THROTTLE_DISABLE_REDIS');
+  logger.info(
+    "Admin throttle: Redis disabled via ADMIN_THROTTLE_DISABLE_REDIS",
+  );
 } else {
-try {
-  const IORedis = require('ioredis');
-  const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
-  redisClient = new IORedis(url, {
-    lazyConnect: true,
-    maxRetriesPerRequest: 3,
-    enableOfflineQueue: false,
-    connectTimeout: 2000,
-  });
-  // Define a named Lua command to avoid runtime dynamic-eval usage flagged by scanners.
   try {
-    const tokenBucketLua = `
+    const IORedis = require("ioredis");
+    const url =
+      process.env.REDIS_URL || process.env.REDIS || "redis://127.0.0.1:6379";
+    redisClient = new IORedis(url, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 3,
+      enableOfflineQueue: false,
+      connectTimeout: 2000,
+    });
+    // Define a named Lua command to avoid runtime dynamic-eval usage flagged by scanners.
+    try {
+      const tokenBucketLua = `
       local key = KEYS[1]
       local capacity = tonumber(ARGV[1])
       local leak = tonumber(ARGV[2])
@@ -59,41 +64,57 @@ try {
       redis.call('PEXPIRE', key, ${KEY_TTL_MS})
       return {allowed, newTokens}
     `;
-    // register as a named command: tokenBucketConsume(key, capacity, leak, now, consume, reserve)
-    redisClient.defineCommand('tokenBucketConsume', { numberOfKeys: 1, lua: tokenBucketLua });
-  } catch (err) {
-    // best-effort: if defineCommand fails (older ioredis), we'll fall back to legacy EVAL usage at call-site
-    logger.warn('Could not define named Redis command tokenBucketConsume; falling back to legacy EVAL usage', { error: err.message });
-  }
-  // Attempt the initial connection without blocking server startup.
-  redisClient.connect().then(() => {
-    usingRedis = true;
-    _redisReady = true;
-    if (!_shuttingDown) logger.info('Redis throttle backend connected');
-  }).catch((err) => {
-    usingRedis = false;
-    _redisReady = false;
-    if (!_shuttingDown) logger.info('Redis not available; admin-throttle running in in-memory mode', { error: err.message });
-  });
-  // Hook into ioredis native events for automatic recovery.
-  // ioredis auto-reconnects by default; when the connection is restored
-  // it emits 'ready', which re-enables the Redis backend so that the
-  // throttle exits the in-memory fallback mode.
-  redisClient.on('ready', () => {
-    if (!usingRedis) {
-      if (!_shuttingDown) logger.info('Redis connection restored; re-enabling distributed throttle');
+      // register as a named command: tokenBucketConsume(key, capacity, leak, now, consume, reserve)
+      redisClient.defineCommand("tokenBucketConsume", {
+        numberOfKeys: 1,
+        lua: tokenBucketLua,
+      });
+    } catch (err) {
+      // best-effort: if defineCommand fails (older ioredis), we'll fall back to legacy EVAL usage at call-site
+      logger.warn(
+        "Could not define named Redis command tokenBucketConsume; falling back to legacy EVAL usage",
+        { error: err.message },
+      );
     }
-    usingRedis = true;
-    _redisReady = true;
-  });
-  redisClient.on('error', (err) => {
-    // Don't log on every error — ioredis retries internally and this
-    // would flood logs during an extended outage. Just mark the flag.
-    _redisReady = false;
-  });
-  redisClient.on('close', () => {
-    _redisReady = false;
-  });
+    // Attempt the initial connection without blocking server startup.
+    redisClient
+      .connect()
+      .then(() => {
+        usingRedis = true;
+        _redisReady = true;
+        if (!_shuttingDown) logger.info("Redis throttle backend connected");
+      })
+      .catch((err) => {
+        usingRedis = false;
+        _redisReady = false;
+        if (!_shuttingDown)
+          logger.info(
+            "Redis not available; admin-throttle running in in-memory mode",
+            { error: err.message },
+          );
+      });
+    // Hook into ioredis native events for automatic recovery.
+    // ioredis auto-reconnects by default; when the connection is restored
+    // it emits 'ready', which re-enables the Redis backend so that the
+    // throttle exits the in-memory fallback mode.
+    redisClient.on("ready", () => {
+      if (!usingRedis) {
+        if (!_shuttingDown)
+          logger.info(
+            "Redis connection restored; re-enabling distributed throttle",
+          );
+      }
+      usingRedis = true;
+      _redisReady = true;
+    });
+    redisClient.on("error", (err) => {
+      // Don't log on every error — ioredis retries internally and this
+      // would flood logs during an extended outage. Just mark the flag.
+      _redisReady = false;
+    });
+    redisClient.on("close", () => {
+      _redisReady = false;
+    });
   } catch (e) {
     usingRedis = false;
   }
@@ -106,29 +127,41 @@ function _nowMs() {
 }
 
 function _hash(input) {
-  return crypto.createHash('sha256').update(String(input)).digest('hex').slice(0, 32);
+  return crypto
+    .createHash("sha256")
+    .update(String(input))
+    .digest("hex")
+    .slice(0, 32);
 }
 
 function _isLoopback(ip) {
-  if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
-  if (ip.startsWith('::ffff:127.')) return true;
-  if (ip.startsWith('::ffff:127.0.0.1')) return true;
+  if (ip === "127.0.0.1" || ip === "::1" || ip === "localhost") return true;
+  if (ip.startsWith("::ffff:127.")) return true;
+  if (ip.startsWith("::ffff:127.0.0.1")) return true;
   return false;
 }
 
 function _stripV4Mapped(ip) {
-  if (ip.startsWith('::ffff:')) return ip.slice(7);
+  if (ip.startsWith("::ffff:")) return ip.slice(7);
   return ip;
 }
 
 function getClientIp(req) {
-  return req.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown';
+  return (
+    req.ip ||
+    req.socket?.remoteAddress ||
+    req.connection?.remoteAddress ||
+    "unknown"
+  );
 }
 
 function getSubnet(ip) {
   const clean = _stripV4Mapped(ip);
-  if (clean.includes('.')) {
-    const parts = clean.split('.').map(Number).map((n) => (Number.isNaN(n) ? 0 : n));
+  if (clean.includes(".")) {
+    const parts = clean
+      .split(".")
+      .map(Number)
+      .map((n) => (Number.isNaN(n) ? 0 : n));
     const mask = Math.min(Math.max(IPV4_MASK, 0), 32);
     const octets = Math.floor(mask / 8);
     const bits = mask % 8;
@@ -139,16 +172,16 @@ function getSubnet(ip) {
       net.push(byte);
     }
     while (net.length < 4) net.push(0);
-    return `${net.slice(0, Math.ceil(mask / 8)).join('.')}/${mask}`;
+    return `${net.slice(0, Math.ceil(mask / 8)).join(".")}/${mask}`;
   }
-  if (clean.includes(':')) {
-    let parts = clean.split(':').filter(Boolean);
+  if (clean.includes(":")) {
+    let parts = clean.split(":").filter(Boolean);
     if (parts.length < 8) {
       // Cannot reliably subnet compressed IPv6; return as-is
       return `${clean}/${IPV6_MASK}`;
     }
     const hextets = Math.floor(IPV6_MASK / 16);
-    const prefix = parts.slice(0, hextets).join(':');
+    const prefix = parts.slice(0, hextets).join(":");
     if (IPV6_MASK % 16 !== 0 && parts[hextets] !== undefined) {
       const bits = IPV6_MASK % 16;
       const val = parseInt(parts[hextets], 16);
@@ -168,12 +201,18 @@ function _consumeFromMemory(bucketKey, consume, reserve) {
     state = { tokens: reserveTokens, lastUpdate: now };
   }
   const elapsed = now - state.lastUpdate;
-  const newTokens = Math.min(CAPACITY, state.tokens + (elapsed * LEAK_RATE / 1000));
+  const newTokens = Math.min(
+    CAPACITY,
+    state.tokens + (elapsed * LEAK_RATE) / 1000,
+  );
   if (newTokens < consume) {
     inMemoryBuckets.set(bucketKey, { tokens: newTokens, lastUpdate: now });
     return { allowed: false, tokens: newTokens };
   }
-  inMemoryBuckets.set(bucketKey, { tokens: newTokens - consume, lastUpdate: now });
+  inMemoryBuckets.set(bucketKey, {
+    tokens: newTokens - consume,
+    lastUpdate: now,
+  });
   return { allowed: true, tokens: newTokens - consume };
 }
 
@@ -191,7 +230,7 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
   // transient Redis drops do not immediately wipe an active bucket.
   let lastKnown = null;
   try {
-    lastKnown = await redisClient.hmget(bucketKey, 'tokens', 'lastUpdate');
+    lastKnown = await redisClient.hmget(bucketKey, "tokens", "lastUpdate");
   } catch (e) {
     // Could not reach Redis; ignore and let the eval attempt fail below.
   }
@@ -220,11 +259,18 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
     redis.call('PEXPIRE', key, ${KEY_TTL_MS})
     return {allowed, newTokens}
   `;
+  try {
+    if (_shuttingDown) return _consumeFromMemory(bucketKey, consume, reserve);
     try {
-      if (_shuttingDown) return _consumeFromMemory(bucketKey, consume, reserve);
-    try {
-      if (typeof redisClient.tokenBucketConsume === 'function') {
-        const res = await redisClient.tokenBucketConsume(bucketKey, CAPACITY, LEAK_RATE, now, consume, reserveTokens);
+      if (typeof redisClient.tokenBucketConsume === "function") {
+        const res = await redisClient.tokenBucketConsume(
+          bucketKey,
+          CAPACITY,
+          LEAK_RATE,
+          now,
+          consume,
+          reserveTokens,
+        );
         return { allowed: Number(res[0]) === 1, tokens: Number(res[1]) };
       }
     } catch (err) {
@@ -232,14 +278,27 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
     }
     // Fallback for older ioredis versions where defineCommand is unavailable
     // Use send_command to avoid literal eval token in source which can trigger scanners
-    const res = await redisClient.send_command('EVAL', [script, '1', bucketKey, CAPACITY, LEAK_RATE, now, consume, reserveTokens]);
+    const res = await redisClient.send_command("EVAL", [
+      script,
+      "1",
+      bucketKey,
+      CAPACITY,
+      LEAK_RATE,
+      now,
+      consume,
+      reserveTokens,
+    ]);
     return { allowed: Number(res[0]) === 1, tokens: Number(res[1]) };
-    } catch (e) {
+  } catch (e) {
     // Temporarily disable Redis — the 'ready' event handler will
     // re-enable usingRedis when ioredis reconnects. This avoids a
     // permanent downgrade to in-memory from a single transient blip.
     usingRedis = false;
-      if (!_shuttingDown) logger.warn('Redis token bucket failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
+    if (!_shuttingDown)
+      logger.warn(
+        "Redis token bucket failed; falling back to in-memory (will auto-recover on reconnect)",
+        { error: e.message },
+      );
     if (lastKnown && lastKnown[0] !== null && lastKnown[1] !== null) {
       inMemoryBuckets.set(bucketKey, {
         tokens: Number(lastKnown[0]),
@@ -264,12 +323,16 @@ function _drainFromMemory(bucketKey) {
 async function _drainFromRedis(bucketKey) {
   const now = _nowMs();
   try {
-    await redisClient.hmset(bucketKey, 'tokens', 0, 'lastUpdate', now);
+    await redisClient.hmset(bucketKey, "tokens", 0, "lastUpdate", now);
     await redisClient.pexpire(bucketKey, KEY_TTL_MS);
   } catch (e) {
     // Temporary disable — 'ready' event will re-enable on reconnect.
     usingRedis = false;
-    if (!_shuttingDown) logger.warn('Redis drain failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
+    if (!_shuttingDown)
+      logger.warn(
+        "Redis drain failed; falling back to in-memory (will auto-recover on reconnect)",
+        { error: e.message },
+      );
     _drainFromMemory(bucketKey);
   }
 }
@@ -295,7 +358,7 @@ async function recordPenalty(ip, type) {
   // Backwards-compatible: accept either a request object or an IP string
   let clientIp = ip;
   let masked = null;
-  if (ip && typeof ip === 'object' && ip.headers) {
+  if (ip && typeof ip === "object" && ip.headers) {
     clientIp = getClientIp(ip);
     masked = getIpKey(ip);
   } else {
@@ -306,12 +369,16 @@ async function recordPenalty(ip, type) {
   const netKey = `${KEY_PREFIX}:net:${_hash(subnet)}`;
   await _drain(ipKey);
   await _drain(netKey);
-  logger.warn('Admin throttle penalty recorded', { ipHash: masked, subnetHash: _hash(subnet), type });
+  logger.warn("Admin throttle penalty recorded", {
+    ipHash: masked,
+    subnetHash: _hash(subnet),
+    type,
+  });
 }
 
 async function checkAdminRequest(ip) {
   // Backwards-compatible: accept either a request object (preferred) or an IP string
-  if (ip && typeof ip === 'object' && ip.headers) {
+  if (ip && typeof ip === "object" && ip.headers) {
     const req = ip;
     const clientIp = getClientIp(req);
     const subnet = getSubnet(clientIp);
@@ -343,7 +410,10 @@ async function checkAdminRequest(ip) {
 
 function middleware(req, res, next) {
   const ip = getClientIp(req);
-  if (ip === 'unknown' || (process.env.NODE_ENV !== 'production' && _isLoopback(ip))) {
+  if (
+    ip === "unknown" ||
+    (process.env.NODE_ENV !== "production" && _isLoopback(ip))
+  ) {
     return next();
   }
   checkAdminRequest(req)
@@ -351,16 +421,16 @@ function middleware(req, res, next) {
       if (!result.allowed) {
         return res.status(429).json({
           success: false,
-          error: 'admin_throttled',
-          code: 'admin_throttled',
+          error: "admin_throttled",
+          code: "admin_throttled",
           retryAfter: Math.ceil(1000 / LEAK_RATE),
         });
       }
-      res.on('finish', () => {
+      res.on("finish", () => {
         const status = res.statusCode;
-        if (status === 423) recordPenalty(ip, 'locked');
-        else if (status === 403) recordPenalty(ip, 'isolation_violation');
-        else if (status === 503) recordPenalty(ip, 'hsm_timeout');
+        if (status === 423) recordPenalty(ip, "locked");
+        else if (status === 403) recordPenalty(ip, "isolation_violation");
+        else if (status === 503) recordPenalty(ip, "hsm_timeout");
       });
       next();
     })
@@ -378,7 +448,10 @@ async function _probeRedisHealth() {
   try {
     await redisClient.ping();
     if (!usingRedis) {
-      if (!_shuttingDown) logger.info('Redis health probe succeeded; re-enabling distributed throttle');
+      if (!_shuttingDown)
+        logger.info(
+          "Redis health probe succeeded; re-enabling distributed throttle",
+        );
     }
     usingRedis = true;
     _redisReady = true;
@@ -410,23 +483,34 @@ module.exports = {
     _shuttingDown = true;
     try {
       // Remove ioredis listeners to avoid logging after tests finish
-      if (redisClient && typeof redisClient.removeAllListeners === 'function') {
-        try { redisClient.removeAllListeners('ready'); } catch (e) {}
-        try { redisClient.removeAllListeners('error'); } catch (e) {}
-        try { redisClient.removeAllListeners('close'); } catch (e) {}
+      if (redisClient && typeof redisClient.removeAllListeners === "function") {
+        try {
+          redisClient.removeAllListeners("ready");
+        } catch (e) {}
+        try {
+          redisClient.removeAllListeners("error");
+        } catch (e) {}
+        try {
+          redisClient.removeAllListeners("close");
+        } catch (e) {}
       }
       if (redisClient) {
         try {
-          if (typeof redisClient.quit === 'function') await redisClient.quit();
-          else if (typeof redisClient.disconnect === 'function') await redisClient.disconnect();
+          if (typeof redisClient.quit === "function") await redisClient.quit();
+          else if (typeof redisClient.disconnect === "function")
+            await redisClient.disconnect();
         } catch (e) {
           // best-effort, ignore errors during shutdown
         }
       }
     } finally {
       // Reset internal state so subsequent tests don't see stale handles
-      try { inMemoryBuckets.clear(); } catch (e) {}
-      try { redisClient = null; } catch (e) {}
+      try {
+        inMemoryBuckets.clear();
+      } catch (e) {}
+      try {
+        redisClient = null;
+      } catch (e) {}
       usingRedis = false;
       _redisReady = false;
     }

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 52: Secure Multi-Party Inner Product and Encrypted Search Indexes.
@@ -19,8 +19,8 @@
  * @module hsm-adapter/secure-inner-product-search
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   maxIndexSize: 100000,
@@ -36,19 +36,19 @@ const DEFAULT_OPTIONS = {
 };
 
 const INDEX_STATUS = {
-  BUILDING: 'building',
-  ACTIVE: 'active',
-  FROZEN: 'frozen',
-  DEPRECATED: 'deprecated',
+  BUILDING: "building",
+  ACTIVE: "active",
+  FROZEN: "frozen",
+  DEPRECATED: "deprecated",
 };
 
 const QUERY_STATUS = {
-  PENDING: 'pending',
-  DISTRIBUTED: 'distributed',
-  EVALUATING: 'evaluating',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  EXPIRED: 'expired',
+  PENDING: "pending",
+  DISTRIBUTED: "distributed",
+  EVALUATING: "evaluating",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  EXPIRED: "expired",
 };
 
 /**
@@ -86,27 +86,39 @@ class SecureInnerProductSearch {
    * @param {object} [meta.attestation] - Enclave attestation
    */
   registerParty(partyId, meta) {
-    if (!partyId || typeof partyId !== 'string') {
-      throw new HsmAdapterError('INVALID_PARTY', 'partyId must be a non-empty string');
+    if (!partyId || typeof partyId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_PARTY",
+        "partyId must be a non-empty string",
+      );
     }
     if (this._parties.has(partyId)) {
-      throw new HsmAdapterError('PARTY_ALREADY_REGISTERED', `party ${partyId} already registered`);
+      throw new HsmAdapterError(
+        "PARTY_ALREADY_REGISTERED",
+        `party ${partyId} already registered`,
+      );
     }
     if (this._parties.size >= this.maxParties) {
-      throw new HsmAdapterError('MAX_PARTIES_REACHED', `maximum ${this.maxParties} parties reached`);
+      throw new HsmAdapterError(
+        "MAX_PARTIES_REACHED",
+        `maximum ${this.maxParties} parties reached`,
+      );
     }
     if (this.requireAttestation && !(meta && meta.attestation)) {
-      throw new HsmAdapterError('ATTESTATION_REQUIRED', `party ${partyId} attestation is required`);
+      throw new HsmAdapterError(
+        "ATTESTATION_REQUIRED",
+        `party ${partyId} attestation is required`,
+      );
     }
     this._parties.set(partyId, {
       id: partyId,
-      status: 'active',
+      status: "active",
       shardCount: 0,
       attestation: (meta && meta.attestation) || null,
       addedAt: Date.now(),
     });
-    if (typeof this._audit === 'function') {
-      this._audit('PARTY_REGISTERED', { partyId });
+    if (typeof this._audit === "function") {
+      this._audit("PARTY_REGISTERED", { partyId });
     }
   }
 
@@ -116,11 +128,14 @@ class SecureInnerProductSearch {
    */
   unregisterParty(partyId) {
     if (!this._parties.has(partyId)) {
-      throw new HsmAdapterError('PARTY_NOT_FOUND', `party ${partyId} not found`);
+      throw new HsmAdapterError(
+        "PARTY_NOT_FOUND",
+        `party ${partyId} not found`,
+      );
     }
     this._parties.delete(partyId);
-    if (typeof this._audit === 'function') {
-      this._audit('PARTY_UNREGISTERED', { partyId });
+    if (typeof this._audit === "function") {
+      this._audit("PARTY_UNREGISTERED", { partyId });
     }
   }
 
@@ -133,31 +148,47 @@ class SecureInnerProductSearch {
    * @returns {object} Index build result
    */
   buildIndex(indexId, documents, config) {
-    if (!indexId || typeof indexId !== 'string') {
-      throw new HsmAdapterError('INVALID_INDEX_ID', 'indexId must be a non-empty string');
+    if (!indexId || typeof indexId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_INDEX_ID",
+        "indexId must be a non-empty string",
+      );
     }
     if (this._indexes.has(indexId)) {
-      throw new HsmAdapterError('INDEX_ALREADY_EXISTS', `index ${indexId} already exists`);
+      throw new HsmAdapterError(
+        "INDEX_ALREADY_EXISTS",
+        `index ${indexId} already exists`,
+      );
     }
     if (!Array.isArray(documents) || documents.length === 0) {
-      throw new HsmAdapterError('INVALID_DOCUMENTS', 'documents must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_DOCUMENTS",
+        "documents must be a non-empty array",
+      );
     }
     if (documents.length > this.maxIndexSize) {
-      throw new HsmAdapterError('INDEX_TOO_LARGE',
-        `${documents.length} documents exceed max ${this.maxIndexSize}`);
+      throw new HsmAdapterError(
+        "INDEX_TOO_LARGE",
+        `${documents.length} documents exceed max ${this.maxIndexSize}`,
+      );
     }
     // Build vocabulary
     const vocabulary = new Map(); // keyword -> dimension index
     let dimIdx = 0;
     for (const doc of documents) {
       if (!doc.id || !Array.isArray(doc.keywords)) {
-        throw new HsmAdapterError('INVALID_DOCUMENT', 'each document must have id and keywords array');
+        throw new HsmAdapterError(
+          "INVALID_DOCUMENT",
+          "each document must have id and keywords array",
+        );
       }
       for (const kw of doc.keywords) {
         if (!vocabulary.has(kw)) {
           if (dimIdx >= this.maxQueryDimensions) {
-            throw new HsmAdapterError('DIMENSIONS_EXCEEDED',
-              `vocabulary size exceeds max ${this.maxQueryDimensions} dimensions`);
+            throw new HsmAdapterError(
+              "DIMENSIONS_EXCEEDED",
+              `vocabulary size exceeds max ${this.maxQueryDimensions} dimensions`,
+            );
           }
           vocabulary.set(kw, dimIdx++);
         }
@@ -174,18 +205,23 @@ class SecureInnerProductSearch {
       docVectors.push({ id: doc.id, vector });
     }
     // Generate blinding factor
-    const blindingKey = (config && config.blindingKey) ||
-      crypto.randomBytes(this.blindingFactorBytes).toString('hex');
+    const blindingKey =
+      (config && config.blindingKey) ||
+      crypto.randomBytes(this.blindingFactorBytes).toString("hex");
     // Apply blinding to vectors (additive blinding per-element)
-    const blindedVectors = docVectors.map(dv => ({
+    const blindedVectors = docVectors.map((dv) => ({
       id: dv.id,
-      vector: dv.vector.map((v, dim) => v + _blindValue(blindingKey, dv.id, dim)),
+      vector: dv.vector.map(
+        (v, dim) => v + _blindValue(blindingKey, dv.id, dim),
+      ),
     }));
     // Distribute shards across parties
     const activeParties = this._getActiveParties();
     if (activeParties.length < this.minParties) {
-      throw new HsmAdapterError('INSUFFICIENT_PARTIES',
-        `need at least ${this.minParties} active parties, got ${activeParties.length}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_PARTIES",
+        `need at least ${this.minParties} active parties, got ${activeParties.length}`,
+      );
     }
     const shards = _distributeShards(blindedVectors, activeParties);
     // Update party shard counts
@@ -205,8 +241,8 @@ class SecureInnerProductSearch {
       builtAt: Date.now(),
     };
     this._indexes.set(indexId, index);
-    if (typeof this._audit === 'function') {
-      this._audit('INDEX_BUILT', {
+    if (typeof this._audit === "function") {
+      this._audit("INDEX_BUILT", {
         indexId,
         documentCount: documents.length,
         dimensionCount: dimCount,
@@ -231,18 +267,27 @@ class SecureInnerProductSearch {
    * @returns {object} Query result
    */
   search(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'search config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "search config is required");
     }
     const index = this._indexes.get(config.indexId);
     if (!index) {
-      throw new HsmAdapterError('INDEX_NOT_FOUND', `index ${config.indexId} not found`);
+      throw new HsmAdapterError(
+        "INDEX_NOT_FOUND",
+        `index ${config.indexId} not found`,
+      );
     }
     if (index.status !== INDEX_STATUS.ACTIVE) {
-      throw new HsmAdapterError('INDEX_NOT_ACTIVE', `index is in status ${index.status}`);
+      throw new HsmAdapterError(
+        "INDEX_NOT_ACTIVE",
+        `index is in status ${index.status}`,
+      );
     }
     if (!Array.isArray(config.keywords) || config.keywords.length === 0) {
-      throw new HsmAdapterError('INVALID_KEYWORDS', 'keywords must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_KEYWORDS",
+        "keywords must be a non-empty array",
+      );
     }
     // Build query vector
     const queryVector = new Array(index.dimensionCount).fill(0);
@@ -256,7 +301,7 @@ class SecureInnerProductSearch {
     const activeParties = this._getActiveParties();
     // Compute inner product at each party using the full query vector
     // (in production, secret sharing + threshold decryption would be used)
-    const queryId = _generateId('sip-query', Date.now());
+    const queryId = _generateId("sip-query", Date.now());
     const now = Date.now();
     const query = {
       queryId,
@@ -275,7 +320,10 @@ class SecureInnerProductSearch {
       // Compute inner product for this party's shard
       for (const doc of partyShard) {
         const innerProduct = _innerProduct(queryVector, doc.vector);
-        query.partyResults.set(doc.id, (query.partyResults.get(doc.id) || 0) + innerProduct);
+        query.partyResults.set(
+          doc.id,
+          (query.partyResults.get(doc.id) || 0) + innerProduct,
+        );
       }
     }
     // Aggregate results and rank
@@ -294,10 +342,13 @@ class SecureInnerProductSearch {
     // Sort by score descending
     aggregatedResults.sort((a, b) => b.score - a.score);
     // Apply topK limit
-    const topK = typeof config.topK === 'number' && config.topK > 0 ? config.topK : 10;
+    const topK =
+      typeof config.topK === "number" && config.topK > 0 ? config.topK : 10;
     const topResults = aggregatedResults.slice(0, topK);
     // Filter by similarity threshold
-    const filtered = topResults.filter(r => r.score >= this.similarityThreshold);
+    const filtered = topResults.filter(
+      (r) => r.score >= this.similarityThreshold,
+    );
     query.status = QUERY_STATUS.COMPLETED;
     query.completedAt = Date.now();
     // Move to history
@@ -312,8 +363,8 @@ class SecureInnerProductSearch {
     if (this._completedQueries.length > this._maxHistory) {
       this._completedQueries.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('SEARCH_COMPLETED', {
+    if (typeof this._audit === "function") {
+      this._audit("SEARCH_COMPLETED", {
         queryId,
         indexId: config.indexId,
         keywordCount: config.keywords.length,
@@ -336,11 +387,14 @@ class SecureInnerProductSearch {
   freezeIndex(indexId) {
     const index = this._indexes.get(indexId);
     if (!index) {
-      throw new HsmAdapterError('INDEX_NOT_FOUND', `index ${indexId} not found`);
+      throw new HsmAdapterError(
+        "INDEX_NOT_FOUND",
+        `index ${indexId} not found`,
+      );
     }
     index.status = INDEX_STATUS.FROZEN;
-    if (typeof this._audit === 'function') {
-      this._audit('INDEX_FROZEN', { indexId });
+    if (typeof this._audit === "function") {
+      this._audit("INDEX_FROZEN", { indexId });
     }
   }
 
@@ -351,11 +405,14 @@ class SecureInnerProductSearch {
   deprecateIndex(indexId) {
     const index = this._indexes.get(indexId);
     if (!index) {
-      throw new HsmAdapterError('INDEX_NOT_FOUND', `index ${indexId} not found`);
+      throw new HsmAdapterError(
+        "INDEX_NOT_FOUND",
+        `index ${indexId} not found`,
+      );
     }
     index.status = INDEX_STATUS.DEPRECATED;
-    if (typeof this._audit === 'function') {
-      this._audit('INDEX_DEPRECATED', { indexId });
+    if (typeof this._audit === "function") {
+      this._audit("INDEX_DEPRECATED", { indexId });
     }
   }
 
@@ -365,11 +422,14 @@ class SecureInnerProductSearch {
    */
   deleteIndex(indexId) {
     if (!this._indexes.has(indexId)) {
-      throw new HsmAdapterError('INDEX_NOT_FOUND', `index ${indexId} not found`);
+      throw new HsmAdapterError(
+        "INDEX_NOT_FOUND",
+        `index ${indexId} not found`,
+      );
     }
     this._indexes.delete(indexId);
-    if (typeof this._audit === 'function') {
-      this._audit('INDEX_DELETED', { indexId });
+    if (typeof this._audit === "function") {
+      this._audit("INDEX_DELETED", { indexId });
     }
   }
 
@@ -396,7 +456,7 @@ class SecureInnerProductSearch {
    * @returns {object[]}
    */
   getIndexes() {
-    return Array.from(this._indexes.values()).map(i => ({
+    return Array.from(this._indexes.values()).map((i) => ({
       indexId: i.indexId,
       status: i.status,
       documentCount: i.documentCount,
@@ -409,7 +469,7 @@ class SecureInnerProductSearch {
    * @returns {object[]}
    */
   getParties() {
-    return Array.from(this._parties.values()).map(p => ({
+    return Array.from(this._parties.values()).map((p) => ({
       id: p.id,
       status: p.status,
       shardCount: p.shardCount,
@@ -422,7 +482,7 @@ class SecureInnerProductSearch {
    * @returns {object[]}
    */
   getCompletedQueries(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedQueries.slice(-n);
   }
 
@@ -462,7 +522,9 @@ class SecureInnerProductSearch {
    * @private
    */
   _getActiveParties() {
-    return Array.from(this._parties.values()).filter(p => p.status === 'active');
+    return Array.from(this._parties.values()).filter(
+      (p) => p.status === "active",
+    );
   }
 }
 

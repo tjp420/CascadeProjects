@@ -20,7 +20,7 @@ export class UploadView {
     const sessionId = params.session_id || '';
     const autoLookup = Boolean(sessionId && !prefillToken);
 
-container.innerHTML = `
+    container.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Upload Scan Report</h1>
         <p class="text-muted analyze-hero-sub">Upload the report JSON to generate your Executive Risk Certificate.</p>
@@ -96,12 +96,14 @@ container.innerHTML = `
         .then((data) => {
           if (data.licenseToken && !licenseInput.value.trim()) {
             licenseInput.value = data.licenseToken;
-            tokenHelp.textContent = 'License token auto-filled from checkout. Scan your project locally, then upload the report JSON below.';
+            tokenHelp.textContent =
+              'License token auto-filled from checkout. Scan your project locally, then upload the report JSON below.';
             tokenHelp.style.color = 'var(--success)';
             this.reportData = null;
             updateSubmit();
           } else {
-            tokenHelp.textContent = 'Could not retrieve license token from checkout. Paste it manually from your email.';
+            tokenHelp.textContent =
+              'Could not retrieve license token from checkout. Paste it manually from your email.';
             tokenHelp.style.color = 'var(--error)';
           }
         })
@@ -120,10 +122,10 @@ container.innerHTML = `
     const scanMeta = container.querySelector('#upload-scan-meta');
     const previewContent = container.querySelector('#upload-preview-content');
 
-/**
- * Update submit.
- * @returns {any}
- */
+    /**
+     * Update submit.
+     * @returns {any}
+     */
     const updateSubmit = () => {
       const hasToken = licenseInput.value.trim().length > 10;
       const hasFile = this.reportData !== null;
@@ -177,9 +179,9 @@ container.innerHTML = `
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ reportJson: this.reportData, licenseToken: token })
+          body: JSON.stringify({ reportJson: this.reportData, licenseToken: token }),
         });
 
         const result = await response.json();
@@ -194,7 +196,11 @@ container.innerHTML = `
           this.showStatus(status, result.error || 'Upload failed', 'error');
         }
       } catch (err) {
-        this.showStatus(status, 'Network error — please check your connection and try again. (' + err.message + ')', 'error');
+        this.showStatus(
+          status,
+          'Network error — please check your connection and try again. (' + err.message + ')',
+          'error'
+        );
       } finally {
         submitBtn.disabled = false;
       }
@@ -228,12 +234,16 @@ container.innerHTML = `
     const gatePass = gate.pass ?? false;
     const detectedIssues = data.detectedIssues || data.rawIssues || [];
     const rawIssues = data.rawIssues || detectedIssues || [];
-    const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : '—');
+    const quality =
+      data.qualityScore ??
+      data.results?.simplebeacon?.qualityScore ??
+      (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : '—');
     const files = data.repositoryFilesTotal ?? data.totalFiles ?? data.filesAnalyzed ?? data.summary?.files ?? '—';
     const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? rawIssues.length ?? '—';
-    const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || '—';
+    const project =
+      data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || '—';
 
-scanMetaEl.innerHTML = `
+    scanMetaEl.innerHTML = `
       <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
         <div style="font-size:1.3rem;font-weight:700;color:${gatePass ? 'var(--success)' : 'var(--error)'};">${gatePass ? 'PASS' : 'REVIEW'}</div>
         <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Gate</div>
@@ -279,11 +289,7 @@ scanMetaEl.innerHTML = `
   }
 
   escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   destroy() {}

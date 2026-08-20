@@ -7,6 +7,7 @@ There is **no official `render` CLI**. Render deploys via GitHub-connected web d
 ### Steps:
 
 1. **Push your code to GitHub:**
+
    ```powershell
    git add -A
    git commit -m "Fix deploy: add stripe, Node 22, env vars"
@@ -21,15 +22,16 @@ There is **no official `render` CLI**. Render deploys via GitHub-connected web d
    - Render will auto-detect `render.yaml`
 
 4. **Set environment variables** in the Render dashboard:
-   | Variable | Value | How to get it |
-   |----------|-------|---------------|
-   | `STRIPE_SECRET_KEY` | `sk_live_...` | Stripe Dashboard → Developers → API keys |
-   | `STRIPE_PRICE_ID_INSTANT` | `price_...` | Stripe Dashboard → Products |
-   | `STRIPE_PRICE_ID_EXECUTIVE` | `price_...` | Stripe Dashboard → Products |
-   | `STRIPE_PRICE_ID_EUAI` | `price_...` | Stripe Dashboard → Products |
-   | `RESEND_API_KEY` | `re_...` | Resend Dashboard → API Keys |
-   | `SMTP_PASS` | `...` | Your email provider |
-   | `PUBLIC_URL` | `https://simplebeacon.onrender.com` | Your Render service URL |
+
+   | Variable                    | Value                               | How to get it                            |
+   | --------------------------- | ----------------------------------- | ---------------------------------------- |
+   | `STRIPE_SECRET_KEY`         | `sk_live_...`                       | Stripe Dashboard → Developers → API keys |
+   | `STRIPE_PRICE_ID_INSTANT`   | `price_...`                         | Stripe Dashboard → Products              |
+   | `STRIPE_PRICE_ID_EXECUTIVE` | `price_...`                         | Stripe Dashboard → Products              |
+   | `STRIPE_PRICE_ID_EUAI`      | `price_...`                         | Stripe Dashboard → Products              |
+   | `RESEND_API_KEY`            | `re_...`                            | Resend Dashboard → API Keys              |
+   | `SMTP_PASS`                 | `...`                               | Your email provider                      |
+   | `PUBLIC_URL`                | `https://simplebeacon.onrender.com` | Your Render service URL                  |
 
 5. **Deploy:** Render auto-deploys on every push to `main`.
 

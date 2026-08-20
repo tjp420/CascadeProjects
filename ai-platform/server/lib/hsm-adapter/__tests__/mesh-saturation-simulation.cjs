@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 115 high-throughput cross-enclave mesh saturation simulation.
@@ -9,21 +9,25 @@
  * Usage: node __tests__/mesh-saturation-simulation.cjs
  */
 
-const { fork } = require('child_process');
-const { performance } = require('perf_hooks');
-const os = require('os');
-const path = require('path');
-const { PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub } = require('../pqc-multi-enclave-confidential-mesh-state-reconciliation-gating-hub.cjs');
-const { ZkMeshReconciliationClaimValidator } = require('../zk-mesh-reconciliation-claim-validator.cjs');
-const hsmMetrics = require('../hsm-metrics.cjs');
+const { fork } = require("child_process");
+const { performance } = require("perf_hooks");
+const os = require("os");
+const path = require("path");
+const {
+  PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub,
+} = require("../pqc-multi-enclave-confidential-mesh-state-reconciliation-gating-hub.cjs");
+const {
+  ZkMeshReconciliationClaimValidator,
+} = require("../zk-mesh-reconciliation-claim-validator.cjs");
+const hsmMetrics = require("../hsm-metrics.cjs");
 
-const WORKER_PATH = path.join(__dirname, 'mesh-load-worker.cjs');
+const WORKER_PATH = path.join(__dirname, "mesh-load-worker.cjs");
 const DEFAULT_POLICY = {
   minMeshQuorum: 50,
   maxEpochFinalityWindowSeconds: 10,
   maxReconciliationChainDepth: 100,
-  allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
-  allowedAttestationAuthorities: ['mock-authority'],
+  allowedPqcSignatureSchemes: ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+  allowedAttestationAuthorities: ["mock-authority"],
   requireMeshReconciliationAuthorityInitializerAttestation: false,
   requireMeshEthicsOversightCommitteeAttestation: false,
 };
@@ -37,17 +41,23 @@ function reportStage(name, metrics) {
   console.log(`  elapsedMs:       ${metrics.elapsedMs.toFixed(2)}`);
   console.log(`  operations:      ${metrics.operations}`);
   console.log(`  throughput:      ${metrics.throughput.toFixed(2)} ops/sec`);
-  console.log(`  peakRssMB:       ${(metrics.peakRssMB).toFixed(2)}`);
+  console.log(`  peakRssMB:       ${metrics.peakRssMB.toFixed(2)}`);
   console.log(`  validated:       ${metrics.validated}`);
   console.log(`  dropped:         ${metrics.dropped}`);
   console.log(`  averageMs:       ${metrics.averageMs.toFixed(4)}`);
 }
 
-async function runWorker(workerId, batchSize, delayMs, timestampOffsetMs, reconcileValid) {
+async function runWorker(
+  workerId,
+  batchSize,
+  delayMs,
+  timestampOffsetMs,
+  reconcileValid,
+) {
   return new Promise((resolve, reject) => {
     const child = fork(WORKER_PATH, [], { silent: true });
-    child.on('message', (msg) => {
-      if (msg.type === 'batch_complete') {
+    child.on("message", (msg) => {
+      if (msg.type === "batch_complete") {
         resolve({
           workerId: msg.workerId,
           durationMs: msg.durationMs,
@@ -57,19 +67,28 @@ async function runWorker(workerId, batchSize, delayMs, timestampOffsetMs, reconc
         });
       }
     });
-    child.on('error', reject);
-    child.on('exit', (code) => {
+    child.on("error", reject);
+    child.on("exit", (code) => {
       if (code !== 0) {
         reject(new Error(`Worker ${workerId} exited with code ${code}`));
       }
     });
-    child.send({ type: 'run_batch', workerId, batchSize, delayMs, timestampOffsetMs, reconcileValid });
+    child.send({
+      type: "run_batch",
+      workerId,
+      batchSize,
+      delayMs,
+      timestampOffsetMs,
+      reconcileValid,
+    });
   });
 }
 
 async function stage1Baseline() {
   hsmMetrics.reset();
-  const hub = new PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub({ policy: DEFAULT_POLICY });
+  const hub = new PqcMultiEnclaveConfidentialMeshStateReconciliationGatingHub({
+    policy: DEFAULT_POLICY,
+  });
   const start = now();
   const initialRss = process.memoryUsage.rss();
   let peakRss = initialRss;
@@ -78,7 +97,7 @@ async function stage1Baseline() {
     const pool = hub.initializePool({
       blindedConfidentialStateReconciliationDigestCommitment: `state-${i}`,
       blindedEpochFinalityCommitment: `finality-${i}`,
-      pqcSignatureScheme: 'ML-DSA-87',
+      pqcSignatureScheme: "ML-DSA-87",
     });
     hub.reconcileMeshState({ poolId: pool.poolId, proofValid: true });
 
@@ -118,11 +137,14 @@ async function stage2BurstSaturation() {
   if (finalRss > peakRss) peakRss = finalRss;
 
   const elapsed = now() - start;
-  const total = results.reduce((acc, r) => ({
-    operations: acc.operations + r.batchSize,
-    validated: acc.validated + r.validated,
-    dropped: acc.dropped + r.dropped,
-  }), { operations: 0, validated: 0, dropped: 0 });
+  const total = results.reduce(
+    (acc, r) => ({
+      operations: acc.operations + r.batchSize,
+      validated: acc.validated + r.validated,
+      dropped: acc.dropped + r.dropped,
+    }),
+    { operations: 0, validated: 0, dropped: 0 },
+  );
 
   return {
     elapsedMs: elapsed,
@@ -148,11 +170,14 @@ async function stage3BoundaryDrift() {
       workers.push(runWorker(i, totalPerOffset, 0, offset, true));
     }
     const results = await Promise.all(workers);
-    const total = results.reduce((acc, r) => ({
-      operations: acc.operations + r.batchSize,
-      validated: acc.validated + r.validated,
-      dropped: acc.dropped + r.dropped,
-    }), { operations: 0, validated: 0, dropped: 0 });
+    const total = results.reduce(
+      (acc, r) => ({
+        operations: acc.operations + r.batchSize,
+        validated: acc.validated + r.validated,
+        dropped: acc.dropped + r.dropped,
+      }),
+      { operations: 0, validated: 0, dropped: 0 },
+    );
     allResults.push({ offset, ...total });
   }
 
@@ -172,28 +197,34 @@ async function stage3BoundaryDrift() {
 }
 
 async function main() {
-  console.log('Track 115 Cross-Enclave Mesh Saturation Simulation');
+  console.log("Track 115 Cross-Enclave Mesh Saturation Simulation");
   console.log(`Workers: ${os.cpus().length}`);
 
   const s1 = await stage1Baseline();
-  reportStage('Stage 1: Baseline Linear Load (1,000 ops)', s1);
+  reportStage("Stage 1: Baseline Linear Load (1,000 ops)", s1);
 
   const s2 = await stage2BurstSaturation();
-  reportStage('Stage 2: Concurrent Burst Saturation (5,000 ops)', s2);
+  reportStage("Stage 2: Concurrent Burst Saturation (5,000 ops)", s2);
 
   const s3 = await stage3BoundaryDrift();
-  reportStage('Stage 3: Boundary Drift & Window Exhaustion', s3);
+  reportStage("Stage 3: Boundary Drift & Window Exhaustion", s3);
 
-  console.log('\n=== Boundary Drift Breakdown ===');
+  console.log("\n=== Boundary Drift Breakdown ===");
   for (const row of s3.breakdown) {
-    console.log(`  offset ${row.offset}ms: validated=${row.validated} dropped=${row.dropped}`);
+    console.log(
+      `  offset ${row.offset}ms: validated=${row.validated} dropped=${row.dropped}`,
+    );
     if (row.offset <= 10000) {
       if (row.dropped !== 0) {
-        throw new Error(`Expected 0 drops for offset ${row.offset}ms, got ${row.dropped}`);
+        throw new Error(
+          `Expected 0 drops for offset ${row.offset}ms, got ${row.dropped}`,
+        );
       }
     } else {
       if (row.dropped !== row.operations) {
-        throw new Error(`Expected all drops for offset ${row.offset}ms, got ${row.dropped}/${row.operations}`);
+        throw new Error(
+          `Expected all drops for offset ${row.offset}ms, got ${row.dropped}/${row.operations}`,
+        );
       }
     }
   }
@@ -201,16 +232,18 @@ async function main() {
   const l2 = s3.breakdown.find((r) => r.offset === 9500);
   const l3 = s3.breakdown.find((r) => r.offset === 10001);
   if (!l2 || l2.validated !== l2.operations) {
-    throw new Error('SIM-L2-03: expected 9500ms claims to validate cleanly');
+    throw new Error("SIM-L2-03: expected 9500ms claims to validate cleanly");
   }
   if (!l3 || l3.dropped !== l3.operations) {
-    throw new Error('SIM-L3-03: expected 10001ms claims to be dropped at the boundary');
+    throw new Error(
+      "SIM-L3-03: expected 10001ms claims to be dropped at the boundary",
+    );
   }
 
-  console.log('\nSimulation complete.');
+  console.log("\nSimulation complete.");
 }
 
 main().catch((err) => {
-  console.error('Simulation failed:', err);
+  console.error("Simulation failed:", err);
   process.exit(1);
 });

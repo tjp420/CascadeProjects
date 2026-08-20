@@ -4,7 +4,7 @@
  */
 
 /** Default text encoding. */
-const DEFAULT_ENCODING = 'utf8';
+const DEFAULT_ENCODING = "utf8";
 
 /**
  * Clamp a number between min and max.
@@ -24,7 +24,12 @@ function clamp(value, min, max) {
  * @returns {boolean}
  */
 function isValidEncoding(enc) {
-  return typeof enc === 'string' && enc.length > 0 && typeof Buffer !== 'undefined' && Buffer.isEncoding(enc);
+  return (
+    typeof enc === "string" &&
+    enc.length > 0 &&
+    typeof Buffer !== "undefined" &&
+    Buffer.isEncoding(enc)
+  );
 }
 
 /**
@@ -34,21 +39,21 @@ function isValidEncoding(enc) {
  */
 function getEncodingForExt(ext) {
   const map = {
-    '.txt': 'utf8',
-    '.md': 'utf8',
-    '.json': 'utf8',
-    '.js': 'utf8',
-    '.ts': 'utf8',
-    '.css': 'utf8',
-    '.html': 'utf8',
-    '.xml': 'utf8',
-    '.csv': 'utf8',
-    '.bin': 'binary',
-    '.dat': 'binary',
-    '.db': 'binary',
-    '.wasm': 'binary'
+    ".txt": "utf8",
+    ".md": "utf8",
+    ".json": "utf8",
+    ".js": "utf8",
+    ".ts": "utf8",
+    ".css": "utf8",
+    ".html": "utf8",
+    ".xml": "utf8",
+    ".csv": "utf8",
+    ".bin": "binary",
+    ".dat": "binary",
+    ".db": "binary",
+    ".wasm": "binary",
   };
-  if (typeof ext !== 'string') return DEFAULT_ENCODING;
+  if (typeof ext !== "string") return DEFAULT_ENCODING;
   return map[ext.toLowerCase()] || DEFAULT_ENCODING;
 }
 
@@ -56,5 +61,5 @@ module.exports = Object.freeze({
   DEFAULT_ENCODING,
   clamp,
   isValidEncoding,
-  getEncodingForExt
+  getEncodingForExt,
 });

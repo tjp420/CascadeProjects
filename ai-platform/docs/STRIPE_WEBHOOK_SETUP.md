@@ -3,10 +3,12 @@ Stripe webhook setup and local testing
 
 Overview
 --------
+
 This document explains how to configure Stripe webhook signing secrets in production and how to verify the billing webhook locally.
 
 Production steps
 ----------------
+
 - In your production host (Render, Vercel, Docker swarm, etc.) set the following secrets:
   - `STRIPE_SECRET_KEY` — your Stripe secret key (sk_live_...)
   - `STRIPE_WEBHOOK_SECRET` — the webhook signing secret for the endpoint `/api/simplebeacon/billing/webhook`
@@ -18,6 +20,7 @@ Production steps
 
 Local testing (no real Stripe account required)
 ---------------------------------------------
+
 1. Start the local server with a temporary webhook secret. From the repo root run:
 
 ```powershell
@@ -39,6 +42,7 @@ If the server responds with HTTP 200 and `{ received: true }`, signature validat
 
 Using the Stripe CLI (recommended for live testing)
 -------------------------------------------------
+
 1. Install Stripe CLI: https://stripe.com/docs/stripe-cli
 2. Log in: `stripe login`
 3. Listen and forward to your local server (replace the URL if different):
@@ -51,15 +55,18 @@ stripe listen --forward-to http://127.0.0.1:58000/api/simplebeacon/billing/webho
 
 Notes
 -----
+
 - The webhook handler uses `stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], webhookSecret)` (Stripe SDK) to validate signatures. Keep `STRIPE_WEBHOOK_SECRET` private and rotate it if leaked.
 - Do not commit real signing secrets into the repository. Use host secret managers or CI/CD repository secrets.
 
 Production deployment snippets
 ---------------------------
+
 Below are examples for provisioning `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` on common hosts and CI. Replace the example values with your real secrets and never check secrets into git.
 
 Render (dashboard)
 -------------------
+
 - Go to your Render service dashboard → "Environment" → "Environment Variables".
 - Add variables:
   - `STRIPE_SECRET_KEY` = `sk_live_...`
@@ -76,6 +83,7 @@ render services redeploy <SERVICE_ID>
 
 Vercel (dashboard / CLI)
 ------------------------
+
 - In Vercel dashboard: Project → Settings → Environment Variables → Add the two secrets (select `Production` scope).
 - CLI example:
 
@@ -86,6 +94,7 @@ vercel env add STRIPE_WEBHOOK_SECRET production
 
 Docker / docker-compose (hosted)
 --------------------------------
+
 - For Docker Compose, avoid embedding secrets in `docker-compose.yml` — use an external `.env` or your orchestration secret manager.
 - Example `.env.production` (store outside repo):
 
@@ -97,7 +106,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 `docker-compose.yml` snippet (read from host env):
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   api:
     image: your-image:latest
@@ -110,6 +119,7 @@ services:
 
 GitHub Actions (deploy + secrets)
 ---------------------------------
+
 - Add secrets via the repository UI: `Settings -> Secrets -> Actions`.
   - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (set as repository or environment secrets).
 - Example workflow job step that verifies webhook after deployment (requires `stripe` CLI installed on runner):
@@ -136,6 +146,7 @@ jobs:
 
 Secret rotation checklist (safe rollover)
 ----------------------------------------
+
 Follow this checklist to rotate `STRIPE_WEBHOOK_SECRET` without disrupting production webhook processing.
 
 1. Create the new webhook secret in Stripe Dashboard:
@@ -146,7 +157,10 @@ Follow this checklist to rotate `STRIPE_WEBHOOK_SECRET` without disrupting produ
 3. Update your server to accept both old and new secrets for verification (recommended temporary code):
 
 ```js
-const webhookSecrets = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_WEBHOOK_SECRET_NEW].filter(Boolean);
+const webhookSecrets = [
+  process.env.STRIPE_WEBHOOK_SECRET,
+  process.env.STRIPE_WEBHOOK_SECRET_NEW,
+].filter(Boolean);
 let event = null;
 for (const s of webhookSecrets) {
   try {
@@ -156,7 +170,7 @@ for (const s of webhookSecrets) {
     // try next secret
   }
 }
-if (!event) throw new Error('Invalid webhook signature');
+if (!event) throw new Error("Invalid webhook signature");
 ```
 
 4. Deploy the server with the dual-secret acceptance code (above) while both secrets are present.
@@ -171,16 +185,18 @@ if (!event) throw new Error('Invalid webhook signature');
 
 Notes on fail-open vs fail-closed
 ---------------------------------
+
 - Webhook verification should be `fail-closed` — do not accept unsigned requests. During a rotation, accept both secrets temporarily to prevent missed events.
 - Keep an idempotency/event-store (`stripe-event-store.cjs`) to ignore duplicate deliveries and make rotation safe.
 
 CI verification job (recommended)
 --------------------------------
+
 Add a lightweight CI job that runs after deploy and uses the Stripe CLI or the `tools/send-test-stripe-webhook.cjs` helper to POST a signed event to the live endpoint. This verifies both network reachability and signature handling.
 
 Security reminders
 ------------------
+
 - Use host-managed secrets (Render / Vercel / GitHub Secrets) and grant access only to deploy pipelines and operations.
 - Rotate `STRIPE_SECRET_KEY` (the API key) periodically and keep a limited list of valid API keys in Stripe. Update the `STRIPE_SECRET_KEY` in the same controlled rotation process.
 - Log webhook deliveries and keep delivery summaries for 30–90 days for auditing.
-

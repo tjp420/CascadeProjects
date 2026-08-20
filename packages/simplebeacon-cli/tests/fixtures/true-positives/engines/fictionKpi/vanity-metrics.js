@@ -11,13 +11,13 @@
  */
 
 function getDashboardMetrics() {
-    return {
-        completionRate: 87,        // Matches rejected fiction baseline
-        aiConfidence: 98.5,        // Matches rejected fiction baseline
-        totalFeatures: 47,         // Matches rejected fiction baseline
-        issuesDetected: 156,       // Matches rejected fiction baseline
-        throughputClaim: '1559'    // Matches rejected fiction baseline
-    };
+  return {
+    completionRate: 87, // Matches rejected fiction baseline
+    aiConfidence: 98.5, // Matches rejected fiction baseline
+    totalFeatures: 47, // Matches rejected fiction baseline
+    issuesDetected: 156, // Matches rejected fiction baseline
+    throughputClaim: "1559", // Matches rejected fiction baseline
+  };
 }
 
 module.exports = { getDashboardMetrics };

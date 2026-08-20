@@ -12,11 +12,11 @@ Make your changes on a feature branch and open a PR targeting `main`.
 
 Apply one of three labels to your PR before merging:
 
-| Label | Bump Type | Example | When to Use |
-|-------|-----------|---------|-------------|
-| `release:patch` | patch | `1.1.3` → `1.1.4` | Bug fixes, small tweaks, dependency updates |
-| `release:minor` | minor | `1.1.3` → `1.2.0` | New features, no breaking changes |
-| `release:major` | major | `1.1.3` → `2.0.0` | Breaking changes, API removals |
+| Label           | Bump Type | Example           | When to Use                                 |
+| --------------- | --------- | ----------------- | ------------------------------------------- |
+| `release:patch` | patch     | `1.1.3` → `1.1.4` | Bug fixes, small tweaks, dependency updates |
+| `release:minor` | minor     | `1.1.3` → `1.2.0` | New features, no breaking changes           |
+| `release:major` | major     | `1.1.3` → `2.0.0` | Breaking changes, API removals              |
 
 > If no release label is present, the auto-release workflow skips entirely. The PR can still be merged — it just won't trigger a release.
 
@@ -70,24 +70,24 @@ npm run release:patch:publish -- --otp 123456
 
 ### release.cjs Flags
 
-| Flag | Description |
-|------|-------------|
-| `--dry-run` | Preview the release without making any changes |
-| `--skip-tests` | Skip the test suite (use when tests already ran) |
-| `--no-clean-check` | Skip git clean tree check (for CI environments) |
-| `--publish` | Publish to npm after tagging |
-| `--otp <code>` | 2FA code for npm publish |
+| Flag               | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| `--dry-run`        | Preview the release without making any changes   |
+| `--skip-tests`     | Skip the test suite (use when tests already ran) |
+| `--no-clean-check` | Skip git clean tree check (for CI environments)  |
+| `--publish`        | Publish to npm after tagging                     |
+| `--otp <code>`     | 2FA code for npm publish                         |
 
 ## Commit Message Conventions
 
 The changelog generator categorizes commits by message prefix:
 
-| Prefix | Category in Changelog |
-|--------|----------------------|
-| `feat:`, `add `, `new feature` | Features |
-| `fix:`, `bugfix`, `resolve ` | Bug Fixes |
-| `chore:`, `refactor:`, `docs:`, `test:`, `ci:`, `build:`, `style:` | Maintenance |
-| Anything else | Other Changes |
+| Prefix                                                             | Category in Changelog |
+| ------------------------------------------------------------------ | --------------------- |
+| `feat:`, `add `, `new feature`                                     | Features              |
+| `fix:`, `bugfix`, `resolve `                                       | Bug Fixes             |
+| `chore:`, `refactor:`, `docs:`, `test:`, `ci:`, `build:`, `style:` | Maintenance           |
+| Anything else                                                      | Other Changes         |
 
 Use conventional commit prefixes (`feat:`, `fix:`, `chore:`, etc.) for best changelog quality.
 
@@ -99,6 +99,7 @@ The repository has two release workflows:
 - **`release-tagger.yml`** — general-purpose tagger that fires on every push to main
 
 `release-tagger.yml` includes a skip check that prevents duplicate releases:
+
 - Skips if the latest commit message starts with `chore(release):` (auto-release commit)
 - Skips if HEAD already has a git tag
 
@@ -108,11 +109,11 @@ This means `auto-release.yml` and `release-tagger.yml` can coexist without creat
 
 ### Severity Levels and Escalation
 
-| Severity | Scenario | Who Acts | Timeframe |
-|----------|----------|----------|-----------|
+| Severity          | Scenario                                                      | Who Acts                     | Timeframe            |
+| ----------------- | ------------------------------------------------------------- | ---------------------------- | -------------------- |
 | **P1 — Critical** | Major version published with breaking changes, users impacted | Engineering Lead + npm owner | Immediate (< 1 hour) |
-| **P2 — High** | Minor version published with a regression, limited impact | Release engineer on call | < 4 hours |
-| **P3 — Standard** | Patch version published with a minor bug, no user impact | Any developer | Next business day |
+| **P2 — High**     | Minor version published with a regression, limited impact     | Release engineer on call     | < 4 hours            |
+| **P3 — Standard** | Patch version published with a minor bug, no user impact      | Any developer                | Next business day    |
 
 ### P1/P2: Emergency Rollback (published to npm)
 
@@ -138,6 +139,7 @@ npm unpublish simplebeacon@<version>
 ```
 
 > If 72 hours have passed, **do not unpublish**. Instead, publish a new patch version with the fix and deprecate the bad version:
+>
 > ```bash
 > npm deprecate simplebeacon@<version> "Known issue — please upgrade to <fixed-version>"
 > ```
@@ -202,6 +204,7 @@ npm view simplebeacon@<version>  # Should return 404
 #### Step 9: Document the Incident
 
 Create a post-mortem entry in the engineering wiki or incident log:
+
 - What was released and why it needed rollback
 - Root cause (bad merge, missed test, etc.)
 - Time to detection and time to resolution
@@ -231,10 +234,10 @@ To enable automatic npm publishing:
 
 ## Files
 
-| File | Purpose |
-|------|---------|
+| File                                            | Purpose                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------- |
 | `packages/simplebeacon-cli/scripts/release.cjs` | Release script (semver bump, changelog, tag, push, publish) |
-| `packages/simplebeacon-cli/CHANGELOG.md` | Auto-generated changelog |
-| `.github/workflows/auto-release.yml` | Label-triggered release workflow |
-| `.github/workflows/cli-test-gate.yml` | PR test gate for CLI changes |
-| `.github/workflows/release-tagger.yml` | General-purpose tagger (with skip check) |
+| `packages/simplebeacon-cli/CHANGELOG.md`        | Auto-generated changelog                                    |
+| `.github/workflows/auto-release.yml`            | Label-triggered release workflow                            |
+| `.github/workflows/cli-test-gate.yml`           | PR test gate for CLI changes                                |
+| `.github/workflows/release-tagger.yml`          | General-purpose tagger (with skip check)                    |

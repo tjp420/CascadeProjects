@@ -1,10 +1,17 @@
-const MixNode = require('./mixnode.cjs');
+const MixNode = require("./mixnode.cjs");
 
 class Mixnet {
   constructor(count = 3, opts = {}) {
     this.nodes = [];
     for (let i = 0; i < count; i++) {
-      this.nodes.push(new MixNode({ id: `node-${i}`, seed: `${opts.seed || 'mixnet-seed'}-${i}`, threshold: opts.threshold || 8, epochMs: opts.epochMs || 2000 }));
+      this.nodes.push(
+        new MixNode({
+          id: `node-${i}`,
+          seed: `${opts.seed || "mixnet-seed"}-${i}`,
+          threshold: opts.threshold || 8,
+          epochMs: opts.epochMs || 2000,
+        }),
+      );
     }
     // wire nodes sequentially
     for (let i = 0; i < this.nodes.length - 1; i++) {
@@ -18,7 +25,8 @@ class Mixnet {
     };
     // aggregate metrics
     this.metrics = {
-      getNodeMetrics: () => this.nodes.map(n => ({ id: n.id, metrics: n.metrics }))
+      getNodeMetrics: () =>
+        this.nodes.map((n) => ({ id: n.id, metrics: n.metrics })),
     };
   }
 
@@ -33,10 +41,12 @@ class Mixnet {
     return this.sink.slice();
   }
 
-  resetSink() { this.sink = []; }
+  resetSink() {
+    this.sink = [];
+  }
 
   getMetrics() {
-    return this.nodes.map(n => ({ id: n.id, metrics: n.metrics }));
+    return this.nodes.map((n) => ({ id: n.id, metrics: n.metrics }));
   }
 }
 

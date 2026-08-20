@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 "use strict";
-const { exec } = require('child_process');
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { exec } = require("child_process");
+const { spawn } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 
 const POLL_INTERVAL = Number(process.env.SB_POLL_INTERVAL_MS) || 1000;
 const MAX_RUN_MS = Number(process.env.SB_MAX_RUN_MS) || 5 * 60 * 1000; // 5 minutes
@@ -19,17 +19,26 @@ function runCmd(cmd) {
 
 async function captureSockets() {
   try {
-    if (process.platform === 'win32') {
-      const out = await runCmd('netstat -ano');
-      return out.split('\n').map(l => l.trim()).filter(Boolean);
+    if (process.platform === "win32") {
+      const out = await runCmd("netstat -ano");
+      return out
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
     }
     // prefer ss if available
     try {
-      const out = await runCmd('ss -tuna');
-      return out.split('\n').map(l => l.trim()).filter(Boolean);
+      const out = await runCmd("ss -tuna");
+      return out
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
     } catch (e) {
-      const out = await runCmd('netstat -tuna');
-      return out.split('\n').map(l => l.trim()).filter(Boolean);
+      const out = await runCmd("netstat -tuna");
+      return out
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
     }
   } catch (e) {
     return [];
@@ -45,9 +54,9 @@ function extractAddresses(lines) {
       addrs.add(m[1]);
     }
     // quick ipv6 check
-    if (l.includes('::1') || l.match(/([0-9a-fA-F:]{2,})/)) {
+    if (l.includes("::1") || l.match(/([0-9a-fA-F:]{2,})/)) {
       // crude: collect ::1 explicitly
-      if (l.includes('::1')) addrs.add('::1');
+      if (l.includes("::1")) addrs.add("::1");
     }
   }
   return Array.from(addrs);
@@ -55,11 +64,11 @@ function extractAddresses(lines) {
 
 function isPrivateOrLoopback(ip) {
   if (!ip) return true;
-  if (ip === '::1') return true;
+  if (ip === "::1") return true;
   // IPv4
-  const parts = ip.split('.');
+  const parts = ip.split(".");
   if (parts.length === 4) {
-    const [a, b] = parts.map(n => parseInt(n, 10));
+    const [a, b] = parts.map((n) => parseInt(n, 10));
     if (a === 10) return true;
     if (a === 127) return true;
     if (a === 169 && b === 254) return true;
@@ -77,23 +86,28 @@ function isPrivateOrLoopback(ip) {
     return false;
   }
   // IPv6: treat fe80, fc00, fd00, ::1 as local
-  if (ip.startsWith('fe80') || ip.startsWith('fc') || ip.startsWith('fd')) return true;
+  if (ip.startsWith("fe80") || ip.startsWith("fc") || ip.startsWith("fd"))
+    return true;
   return false;
 }
 
 async function main() {
-  console.log('verify-isolation: starting');
-  const absReport = path.resolve(process.cwd(), '.simplebeacon', 'report.json');
+  console.log("verify-isolation: starting");
+  const absReport = path.resolve(process.cwd(), ".simplebeacon", "report.json");
   try {
     const baseline = extractAddresses(await captureSockets());
-    console.log('baseline addresses:', baseline.slice(0, 10));
+    console.log("baseline addresses:", baseline.slice(0, 10));
 
-    const scanner = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['simplebeacon', '--offline', '--output', './.simplebeacon/report.json'], {
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
+    const scanner = spawn(
+      process.platform === "win32" ? "npx.cmd" : "npx",
+      ["simplebeacon", "--offline", "--output", "./.simplebeacon/report.json"],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
 
-    scanner.stdout.on('data', d => process.stdout.write(`[scanner] ${d}`));
-    scanner.stderr.on('data', d => process.stderr.write(`[scanner] ${d}`));
+    scanner.stdout.on("data", (d) => process.stdout.write(`[scanner] ${d}`));
+    scanner.stderr.on("data", (d) => process.stderr.write(`[scanner] ${d}`));
 
     const observed = new Set();
     const start = Date.now();
@@ -104,7 +118,7 @@ async function main() {
           const snap = extractAddresses(await captureSockets());
           for (const ip of snap) observed.add(ip);
           if (Date.now() - start > MAX_RUN_MS) {
-            reject(new Error('verify-isolation: scanner timed out'));
+            reject(new Error("verify-isolation: scanner timed out"));
             return;
           }
           if (scanner.exitCode !== null) {
@@ -117,11 +131,11 @@ async function main() {
         }
       };
       poll();
-      scanner.on('exit', (code, sig) => {
-        console.log('scanner exited', code, sig);
+      scanner.on("exit", (code, sig) => {
+        console.log("scanner exited", code, sig);
         // continue to resolve once poll observes exit
       });
-      scanner.on('error', (err) => reject(err));
+      scanner.on("error", (err) => reject(err));
     });
 
     // final snapshot
@@ -129,23 +143,37 @@ async function main() {
     for (const ip of after) observed.add(ip);
 
     // compute newly observed addresses not in baseline
-    const newAddrs = Array.from(observed).filter(a => !baseline.includes(a));
-    const external = newAddrs.filter(a => !isPrivateOrLoopback(a));
+    const newAddrs = Array.from(observed).filter((a) => !baseline.includes(a));
+    const external = newAddrs.filter((a) => !isPrivateOrLoopback(a));
 
-    const result = { baseline, observed: Array.from(observed), newAddrs, external };
+    const result = {
+      baseline,
+      observed: Array.from(observed),
+      newAddrs,
+      external,
+    };
     fs.mkdirSync(path.dirname(absReport), { recursive: true });
-    fs.writeFileSync(path.resolve(process.cwd(), '.simplebeacon', 'verify-isolation.json'), JSON.stringify(result, null, 2));
+    fs.writeFileSync(
+      path.resolve(process.cwd(), ".simplebeacon", "verify-isolation.json"),
+      JSON.stringify(result, null, 2),
+    );
 
     if (external.length > 0) {
-      console.error('verify-isolation: detected external network endpoints during scan:', external);
+      console.error(
+        "verify-isolation: detected external network endpoints during scan:",
+        external,
+      );
       process.exitCode = 2;
       process.exit(2);
     }
 
-    console.log('verify-isolation: no external endpoints detected');
+    console.log("verify-isolation: no external endpoints detected");
     process.exit(0);
   } catch (err) {
-    console.error('verify-isolation: error', err && err.message ? err.message : err);
+    console.error(
+      "verify-isolation: error",
+      err && err.message ? err.message : err,
+    );
     process.exitCode = 3;
     process.exit(3);
   }

@@ -18,12 +18,14 @@ const CREDENTIAL_PATTERNS = [
  * About view.
  */
 export class AboutView {
-  constructor(app) {
-    this.app = app;
-  }
+    constructor(app) {
+        this.app = app;
+    }
 
-  mount(container) {
-    setHtml(container, `
+    mount(container) {
+        setHtml(
+            container,
+            `
       <div class="analyze-hero">
         <h1 class="page-title">About</h1>
         <p class="text-muted analyze-hero-sub">Free · local · zero runtime dependencies</p>
@@ -113,16 +115,17 @@ export class AboutView {
         <p><a href="${GITHUB_REPO}" target="_blank" rel="noopener noreferrer">${escapeHtml(GITHUB_REPO)}</a></p>
         <p class="text-muted">Found a bug or want a new pattern? Open a PR — I review contributions regularly.</p>
       </section>
-    `);
+    `
+        );
 
-    this._aboutClickHandler = () => this.app.navigate('dashboard');
-    container.querySelector('#about-open-dashboard')?.addEventListener('click', this._aboutClickHandler);
-  }
-
-  destroy() {
-    const el = document.getElementById('about-open-dashboard');
-    if (el && this._aboutClickHandler) {
-      el.removeEventListener('click', this._aboutClickHandler);
+        this._aboutClickHandler = () => this.app.navigate('dashboard');
+        container.querySelector('#about-open-dashboard')?.addEventListener('click', this._aboutClickHandler);
     }
-  }
+
+    destroy() {
+        const el = document.getElementById('about-open-dashboard');
+        if (el && this._aboutClickHandler) {
+            el.removeEventListener('click', this._aboutClickHandler);
+        }
+    }
 }

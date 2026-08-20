@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 56: Oblivious RAM (ORAM) and Secure Side-Channel Memory Attenuation.
@@ -20,15 +20,15 @@
  * @module hsm-adapter/oram-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
-  bucketSize: 4,          // blocks per bucket
-  treeDepth: 10,          // tree height (2^depth leaves)
-  blockSize: 4096,        // bytes per block
-  maxStashSize: 100,      // max blocks in stash
-  maxBlocks: 10000,       // max logical blocks
+  bucketSize: 4, // blocks per bucket
+  treeDepth: 10, // tree height (2^depth leaves)
+  blockSize: 4096, // bytes per block
+  maxStashSize: 100, // max blocks in stash
+  maxBlocks: 10000, // max logical blocks
   enableDummyAccesses: true,
   enablePathReshuffle: true,
   constantTimeCompare: true,
@@ -36,9 +36,9 @@ const DEFAULT_OPTIONS = {
 };
 
 const BLOCK_STATUS = {
-  EMPTY: 'empty',
-  OCCUPIED: 'occupied',
-  EVICTED: 'evicted',
+  EMPTY: "empty",
+  OCCUPIED: "occupied",
+  EVICTED: "evicted",
 };
 
 /**
@@ -106,19 +106,26 @@ class OramEngine {
    * @returns {object} Write result
    */
   write(blockId, data) {
-    if (typeof blockId !== 'number' || blockId < 0) {
-      throw new HsmAdapterError('INVALID_BLOCK_ID', 'blockId must be a non-negative number');
+    if (typeof blockId !== "number" || blockId < 0) {
+      throw new HsmAdapterError(
+        "INVALID_BLOCK_ID",
+        "blockId must be a non-negative number",
+      );
     }
     if (blockId >= this.maxBlocks) {
-      throw new HsmAdapterError('BLOCK_ID_TOO_HIGH',
-        `blockId ${blockId} exceeds max ${this.maxBlocks - 1}`);
+      throw new HsmAdapterError(
+        "BLOCK_ID_TOO_HIGH",
+        `blockId ${blockId} exceeds max ${this.maxBlocks - 1}`,
+      );
     }
     if (!Buffer.isBuffer(data)) {
-      throw new HsmAdapterError('INVALID_DATA', 'data must be a Buffer');
+      throw new HsmAdapterError("INVALID_DATA", "data must be a Buffer");
     }
     if (data.length > this.blockSize) {
-      throw new HsmAdapterError('DATA_TOO_LARGE',
-        `${data.length} bytes exceeds block size ${this.blockSize}`);
+      throw new HsmAdapterError(
+        "DATA_TOO_LARGE",
+        `${data.length} bytes exceeds block size ${this.blockSize}`,
+      );
     }
     // Assign or update position
     const oldLeaf = this._positionMap.get(blockId);
@@ -151,9 +158,13 @@ class OramEngine {
     if (this.enableDummyAccesses) {
       this._performDummyAccess();
     }
-    this._appendLog('ORAM_WRITE', { blockId, leaf: newLeaf, size: data.length });
-    if (typeof this._audit === 'function') {
-      this._audit('ORAM_WRITE', { blockId, size: data.length });
+    this._appendLog("ORAM_WRITE", {
+      blockId,
+      leaf: newLeaf,
+      size: data.length,
+    });
+    if (typeof this._audit === "function") {
+      this._audit("ORAM_WRITE", { blockId, size: data.length });
     }
     return {
       blockId,
@@ -169,16 +180,24 @@ class OramEngine {
    * @returns {object} Read result with data
    */
   read(blockId) {
-    if (typeof blockId !== 'number' || blockId < 0) {
-      throw new HsmAdapterError('INVALID_BLOCK_ID', 'blockId must be a non-negative number');
+    if (typeof blockId !== "number" || blockId < 0) {
+      throw new HsmAdapterError(
+        "INVALID_BLOCK_ID",
+        "blockId must be a non-negative number",
+      );
     }
     if (blockId >= this.maxBlocks) {
-      throw new HsmAdapterError('BLOCK_ID_TOO_HIGH',
-        `blockId ${blockId} exceeds max ${this.maxBlocks - 1}`);
+      throw new HsmAdapterError(
+        "BLOCK_ID_TOO_HIGH",
+        `blockId ${blockId} exceeds max ${this.maxBlocks - 1}`,
+      );
     }
     const leaf = this._positionMap.get(blockId);
     if (leaf === undefined) {
-      throw new HsmAdapterError('BLOCK_NOT_FOUND', `block ${blockId} not found`);
+      throw new HsmAdapterError(
+        "BLOCK_NOT_FOUND",
+        `block ${blockId} not found`,
+      );
     }
     // Assign new leaf (remap)
     const newLeaf = this._randomLeaf();
@@ -187,7 +206,7 @@ class OramEngine {
     const foundBlock = this._readPath(blockId, leaf);
     if (!foundBlock) {
       // Check stash
-      const stashIdx = this._stash.findIndex(b => b.blockId === blockId);
+      const stashIdx = this._stash.findIndex((b) => b.blockId === blockId);
       if (stashIdx >= 0) {
         const block = this._stash[stashIdx];
         block.leaf = newLeaf;
@@ -195,10 +214,13 @@ class OramEngine {
         this._accessCount++;
         if (this.enableDummyAccesses) this._performDummyAccess();
         this._updateMeta(blockId);
-        this._appendLog('ORAM_READ', { blockId, leaf: newLeaf });
+        this._appendLog("ORAM_READ", { blockId, leaf: newLeaf });
         return { blockId, data: block.data, read: true };
       }
-      throw new HsmAdapterError('BLOCK_NOT_FOUND', `block ${blockId} not found in tree or stash`);
+      throw new HsmAdapterError(
+        "BLOCK_NOT_FOUND",
+        `block ${blockId} not found in tree or stash`,
+      );
     }
     // Update block's leaf in stash
     foundBlock.leaf = newLeaf;
@@ -207,9 +229,9 @@ class OramEngine {
     this._accessCount++;
     if (this.enableDummyAccesses) this._performDummyAccess();
     this._updateMeta(blockId);
-    this._appendLog('ORAM_READ', { blockId, leaf: newLeaf });
-    if (typeof this._audit === 'function') {
-      this._audit('ORAM_READ', { blockId });
+    this._appendLog("ORAM_READ", { blockId, leaf: newLeaf });
+    if (typeof this._audit === "function") {
+      this._audit("ORAM_READ", { blockId });
     }
     return { blockId, data: foundBlock.data, read: true };
   }
@@ -220,17 +242,23 @@ class OramEngine {
    * @returns {object}
    */
   delete(blockId) {
-    if (typeof blockId !== 'number' || blockId < 0) {
-      throw new HsmAdapterError('INVALID_BLOCK_ID', 'blockId must be a non-negative number');
+    if (typeof blockId !== "number" || blockId < 0) {
+      throw new HsmAdapterError(
+        "INVALID_BLOCK_ID",
+        "blockId must be a non-negative number",
+      );
     }
     const leaf = this._positionMap.get(blockId);
     if (leaf === undefined) {
-      throw new HsmAdapterError('BLOCK_NOT_FOUND', `block ${blockId} not found`);
+      throw new HsmAdapterError(
+        "BLOCK_NOT_FOUND",
+        `block ${blockId} not found`,
+      );
     }
     // Read path to get the block
     this._readPath(blockId, leaf);
     // Remove from stash
-    this._stash = this._stash.filter(b => b.blockId !== blockId);
+    this._stash = this._stash.filter((b) => b.blockId !== blockId);
     // Remove from position map
     this._positionMap.delete(blockId);
     // Remove metadata
@@ -238,9 +266,9 @@ class OramEngine {
     // Write back path (without the deleted block)
     this._writePath(leaf);
     this._accessCount++;
-    this._appendLog('ORAM_DELETE', { blockId });
-    if (typeof this._audit === 'function') {
-      this._audit('ORAM_DELETE', { blockId });
+    this._appendLog("ORAM_DELETE", { blockId });
+    if (typeof this._audit === "function") {
+      this._audit("ORAM_DELETE", { blockId });
     }
     return { blockId, deleted: true };
   }
@@ -251,7 +279,7 @@ class OramEngine {
    * @returns {boolean}
    */
   has(blockId) {
-    if (typeof blockId !== 'number' || blockId < 0) return false;
+    if (typeof blockId !== "number" || blockId < 0) return false;
     return this._positionMap.has(blockId);
   }
 
@@ -294,7 +322,7 @@ class OramEngine {
    * @returns {object[]}
    */
   getAccessLog(limit) {
-    const n = typeof limit === 'number' ? limit : 50;
+    const n = typeof limit === "number" ? limit : 50;
     return this._accessLog.slice(-n);
   }
 
@@ -306,8 +334,10 @@ class OramEngine {
     for (let i = 1; i < this._accessLog.length; i++) {
       const prev = this._accessLog[i - 1];
       const curr = this._accessLog[i];
-      const expectedPrevHash = crypto.createHash('sha256')
-        .update(JSON.stringify(prev)).digest('hex');
+      const expectedPrevHash = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(prev))
+        .digest("hex");
       if (curr.prevHash !== expectedPrevHash) {
         return { intact: false, brokenAt: i };
       }
@@ -348,7 +378,7 @@ class OramEngine {
       evicted++;
     }
     this._reshuffleCount++;
-    this._appendLog('STASH_EVICTED', { evicted });
+    this._appendLog("STASH_EVICTED", { evicted });
     return evicted;
   }
 
@@ -398,7 +428,10 @@ class OramEngine {
             leaf: block.leaf,
           });
           // Check if this is the target block
-          if (blockId !== null && this._constantTimeEqual(block.blockId, blockId)) {
+          if (
+            blockId !== null &&
+            this._constantTimeEqual(block.blockId, blockId)
+          ) {
             foundBlock = this._stash[this._stash.length - 1];
           }
           // Clear the bucket slot
@@ -565,9 +598,13 @@ class OramEngine {
    * @private
    */
   _appendLog(event, info) {
-    const prevHash = this._accessLog.length > 0
-      ? crypto.createHash('sha256').update(JSON.stringify(this._accessLog[this._accessLog.length - 1])).digest('hex')
-      : '0'.repeat(64);
+    const prevHash =
+      this._accessLog.length > 0
+        ? crypto
+            .createHash("sha256")
+            .update(JSON.stringify(this._accessLog[this._accessLog.length - 1]))
+            .digest("hex")
+        : "0".repeat(64);
     this._accessLog.push({
       seq: this._accessLog.length,
       event,

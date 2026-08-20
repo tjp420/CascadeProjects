@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 51: PQC identity hub router.
@@ -11,8 +11,8 @@
  * @module hsm-adapter/pqc-identity-hub-router
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class PqcIdentityHubRouter {
   /**
@@ -37,13 +37,19 @@ class PqcIdentityHubRouter {
   register(packet) {
     _validatePacket(this.policy, packet);
     if (this._bannedPeers.has(packet.entityId)) {
-      throw new HsmAdapterError('IDENTITY_PEER_BANNED', `entity ${packet.entityId} is banned`);
+      throw new HsmAdapterError(
+        "IDENTITY_PEER_BANNED",
+        `entity ${packet.entityId} is banned`,
+      );
     }
     if (this.policy.requireHostAttestation && this._attestationClient) {
       try {
         const result = this._attestationClient.verify(packet.hostAttestation);
         if (!result.verified) {
-          throw new HsmAdapterError('IDENTITY_HOST_UNATTESTED', `host attestation invalid for entity ${packet.entityId}`);
+          throw new HsmAdapterError(
+            "IDENTITY_HOST_UNATTESTED",
+            `host attestation invalid for entity ${packet.entityId}`,
+          );
         }
       } catch (err) {
         if (this.policy.banUnattestedPeers) {
@@ -52,27 +58,42 @@ class PqcIdentityHubRouter {
         if (err instanceof HsmAdapterError) {
           throw err;
         }
-        throw new HsmAdapterError('IDENTITY_HOST_UNATTESTED', `host attestation invalid for entity ${packet.entityId}`);
+        throw new HsmAdapterError(
+          "IDENTITY_HOST_UNATTESTED",
+          `host attestation invalid for entity ${packet.entityId}`,
+        );
       }
     }
-    if (packet.kemAlgorithm && packet.kemAlgorithm !== this.policy.kemAlgorithm) {
-      throw new HsmAdapterError('IDENTITY_KEM_BLOCKED', `KEM algorithm ${packet.kemAlgorithm} is not allowed; permitted: ${this.policy.kemAlgorithm}`);
+    if (
+      packet.kemAlgorithm &&
+      packet.kemAlgorithm !== this.policy.kemAlgorithm
+    ) {
+      throw new HsmAdapterError(
+        "IDENTITY_KEM_BLOCKED",
+        `KEM algorithm ${packet.kemAlgorithm} is not allowed; permitted: ${this.policy.kemAlgorithm}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const age = now - (packet.registrationEpoch || now);
     if (age > (this.policy.maxIdentityAgeSeconds || 86400)) {
-      throw new HsmAdapterError('IDENTITY_EXPIRED', `identity age ${age}s exceeds maximum ${this.policy.maxIdentityAgeSeconds}s`);
+      throw new HsmAdapterError(
+        "IDENTITY_EXPIRED",
+        `identity age ${age}s exceeds maximum ${this.policy.maxIdentityAgeSeconds}s`,
+      );
     }
-    const kemPublicKeyHash = crypto.createHash('sha256').update(packet.kemPublicKey || '').digest('hex');
+    const kemPublicKeyHash = crypto
+      .createHash("sha256")
+      .update(packet.kemPublicKey || "")
+      .digest("hex");
     const identity = {
       entityId: packet.entityId,
       kemPublicKeyHash,
       registrationEpoch: packet.registrationEpoch || now,
-      status: 'registered',
+      status: "registered",
     };
     this._identities.set(packet.entityId, identity);
     if (this._audit) {
-      this._audit('PQC_IDENTITY_HUB_REGISTERED', {
+      this._audit("PQC_IDENTITY_HUB_REGISTERED", {
         entityId: packet.entityId,
         kemPublicKeyHash,
         registrationEpoch: identity.registrationEpoch,
@@ -102,10 +123,16 @@ class PqcIdentityHubRouter {
 
 function _validatePacket(policy, packet) {
   if (!packet.entityId || !packet.kemPublicKey) {
-    throw new HsmAdapterError('IDENTITY_FIELDS_MISSING', 'entityId and kemPublicKey are required');
+    throw new HsmAdapterError(
+      "IDENTITY_FIELDS_MISSING",
+      "entityId and kemPublicKey are required",
+    );
   }
   if (policy.requireHostAttestation && !packet.hostAttestation) {
-    throw new HsmAdapterError('IDENTITY_HOST_ATTESTATION_MISSING', 'host attestation is required');
+    throw new HsmAdapterError(
+      "IDENTITY_HOST_ATTESTATION_MISSING",
+      "host attestation is required",
+    );
   }
 }
 

@@ -16,12 +16,12 @@ Add this snippet to your Prometheus `prometheus.yml` under `scrape_configs`:
 
 ```yaml
 scrape_configs:
-  - job_name: 'ai-platform-agentic-orchestration'
+  - job_name: "ai-platform-agentic-orchestration"
     scrape_interval: 15s
-    metrics_path: '/api/agentic/metrics'
-    bearer_token: 'YOUR_ADMIN_ROLE_BEARER_TOKEN'
+    metrics_path: "/api/agentic/metrics"
+    bearer_token: "YOUR_ADMIN_ROLE_BEARER_TOKEN"
     static_configs:
-      - targets: ['localhost:3000']
+      - targets: ["localhost:3000"]
 ```
 
 > NOTE: The `/api/agentic/metrics` endpoint is protected by the application's RBAC layer and requires an admin-scoped bearer token or equivalent authentication configured in your environment.

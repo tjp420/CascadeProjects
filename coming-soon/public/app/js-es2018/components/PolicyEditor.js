@@ -45,7 +45,7 @@ const RULE_ORDER = [
  * @returns {string}
  */
 function formatRuleName(name) {
-    return name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 /**
@@ -125,7 +125,7 @@ function renderGateCheckbox(group, severity, list) {
  * @returns {Array}
  */
 function readGateSelection(root, group) {
-    return SEVERITIES.filter((sev) => {
+    return SEVERITIES.filter(sev => {
         const input = root.querySelector(`[data-policy-gate="${group}"][value="${sev}"]`);
         return input ? input.checked : false;
     });
@@ -208,7 +208,7 @@ export function renderPolicyEditor(config, dirty) {
                         <div class="policy-section-header">
                             <span class="settings-label">Profile preset</span>
                             <select class="settings-input policy-profile-select" id="policy-profile-select" style="max-width:200px;">
-                                ${PROFILES.map((p) => `<option value="${escapeHtml(p)}" ${p === profile ? 'selected' : ''}>${escapeHtml(p.charAt(0).toUpperCase() + p.slice(1))}</option>`).join('')}
+                                ${PROFILES.map(p => `<option value="${escapeHtml(p)}" ${p === profile ? 'selected' : ''}>${escapeHtml(p.charAt(0).toUpperCase() + p.slice(1))}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -218,13 +218,13 @@ export function renderPolicyEditor(config, dirty) {
                         <div class="policy-gate-group">
                             <span class="settings-label">Fail on</span>
                             <div class="settings-checkbox-group">
-                                ${SEVERITIES.map((sev) => renderGateCheckbox('fail', sev, gate.failOn)).join('')}
+                                ${SEVERITIES.map(sev => renderGateCheckbox('fail', sev, gate.failOn)).join('')}
                             </div>
                         </div>
                         <div class="policy-gate-group">
                             <span class="settings-label">Warn on</span>
                             <div class="settings-checkbox-group">
-                                ${SEVERITIES.map((sev) => renderGateCheckbox('warn', sev, gate.warnOn)).join('')}
+                                ${SEVERITIES.map(sev => renderGateCheckbox('warn', sev, gate.warnOn)).join('')}
                             </div>
                         </div>
                     </div>
@@ -232,7 +232,7 @@ export function renderPolicyEditor(config, dirty) {
                     <div class="policy-section">
                         <h3 class="policy-section-title">Rule Engines</h3>
                         <div class="policy-rules-list">
-                            ${RULE_ORDER.map((name) => renderRuleRow(name, rules[name])).join('')}
+                            ${RULE_ORDER.map(name => renderRuleRow(name, rules[name])).join('')}
                         </div>
                     </div>
                 </div>
@@ -272,7 +272,7 @@ function buildConfigFromDom(baseConfig, root) {
     config.gate.failOn = readGateSelection(root, 'fail');
     config.gate.warnOn = readGateSelection(root, 'warn');
     config.rules = config.rules || {};
-    root.querySelectorAll('[data-policy-rule]').forEach((btn) => {
+    root.querySelectorAll('[data-policy-rule]').forEach(btn => {
         const name = btn.getAttribute('data-policy-rule');
         const enabled = btn.getAttribute('data-enabled') === 'true';
         if (!config.rules[name]) {
@@ -377,38 +377,41 @@ export function mountPolicyEditor(container, app) {
     // Profile select
     const profileSelect = root.querySelector('#policy-profile-select');
     if (profileSelect) {
-        profileSelect.addEventListener('change', (e) => {
+        profileSelect.addEventListener('change', e => {
             const newProfile = e.target.value;
             draftConfig = buildConfigFromDom(savedSnapshot, root);
             draftConfig.profile = newProfile;
 
             // If presets are available, apply the preset rules
             if (scanService && typeof scanService.fetchConfigPresets === 'function') {
-                scanService.fetchConfigPresets().then((presets) => {
-                    const preset = presets[newProfile];
-                    if (preset && preset.rules) {
-                        draftConfig.rules = draftConfig.rules || {};
-                        for (const [ruleName, ruleCfg] of Object.entries(preset.rules)) {
-                            if (draftConfig.rules[ruleName]) {
-                                draftConfig.rules[ruleName].enabled = ruleCfg.enabled !== false;
-                            } else {
-                                draftConfig.rules[ruleName] = { enabled: ruleCfg.enabled !== false };
+                scanService
+                    .fetchConfigPresets()
+                    .then(presets => {
+                        const preset = presets[newProfile];
+                        if (preset && preset.rules) {
+                            draftConfig.rules = draftConfig.rules || {};
+                            for (const [ruleName, ruleCfg] of Object.entries(preset.rules)) {
+                                if (draftConfig.rules[ruleName]) {
+                                    draftConfig.rules[ruleName].enabled = ruleCfg.enabled !== false;
+                                } else {
+                                    draftConfig.rules[ruleName] = { enabled: ruleCfg.enabled !== false };
+                                }
                             }
                         }
-                    }
-                    // Re-render the rules list with updated toggle states
-                    const rulesList = root.querySelector('.policy-rules-list');
-                    if (rulesList) {
-                        rulesList.innerHTML = RULE_ORDER.map((name) =>
-                            renderRuleRow(name, (draftConfig.rules || {})[name])
-                        ).join('');
-                        // Re-bind rule toggles
-                        bindRuleToggles();
-                    }
-                    refreshDirtyState();
-                }).catch(() => {
-                    refreshDirtyState();
-                });
+                        // Re-render the rules list with updated toggle states
+                        const rulesList = root.querySelector('.policy-rules-list');
+                        if (rulesList) {
+                            rulesList.innerHTML = RULE_ORDER.map(name =>
+                                renderRuleRow(name, (draftConfig.rules || {})[name])
+                            ).join('');
+                            // Re-bind rule toggles
+                            bindRuleToggles();
+                        }
+                        refreshDirtyState();
+                    })
+                    .catch(() => {
+                        refreshDirtyState();
+                    });
             } else {
                 refreshDirtyState();
             }
@@ -416,7 +419,7 @@ export function mountPolicyEditor(container, app) {
     }
 
     // Gate checkboxes
-    root.querySelectorAll('[data-policy-gate]').forEach((input) => {
+    root.querySelectorAll('[data-policy-gate]').forEach(input => {
         input.addEventListener('change', syncFromDom);
     });
 
@@ -424,7 +427,7 @@ export function mountPolicyEditor(container, app) {
      * Bind click handlers to rule toggle buttons.
      */
     function bindRuleToggles() {
-        root.querySelectorAll('[data-policy-rule]').forEach((btn) => {
+        root.querySelectorAll('[data-policy-rule]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const name = btn.getAttribute('data-policy-rule');
                 const currentEnabled = btn.getAttribute('data-enabled') === 'true';
@@ -482,7 +485,7 @@ export function mountPolicyEditor(container, app) {
                 // Re-bind profile select
                 const newProfileSelect = newRoot.querySelector('#policy-profile-select');
                 if (newProfileSelect) {
-                    newProfileSelect.addEventListener('change', (e) => {
+                    newProfileSelect.addEventListener('change', e => {
                         const newProfile = e.target.value;
                         draftConfig = buildConfigFromDom(savedSnapshot, newRoot);
                         draftConfig.profile = newProfile;
@@ -490,14 +493,14 @@ export function mountPolicyEditor(container, app) {
                     });
                 }
                 // Re-bind gate checkboxes
-                newRoot.querySelectorAll('[data-policy-gate]').forEach((input) => {
+                newRoot.querySelectorAll('[data-policy-gate]').forEach(input => {
                     input.addEventListener('change', () => {
                         draftConfig = buildConfigFromDom(savedSnapshot, newRoot);
                         refreshDirtyStateFor(newRoot);
                     });
                 });
                 // Re-bind rule toggles
-                newRoot.querySelectorAll('[data-policy-rule]').forEach((btn) => {
+                newRoot.querySelectorAll('[data-policy-rule]').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const name = btn.getAttribute('data-policy-rule');
                         const currentEnabled = btn.getAttribute('data-enabled') === 'true';
@@ -570,19 +573,19 @@ export function mountPolicyEditor(container, app) {
         if (!r) return;
         const ps = r.querySelector('#policy-profile-select');
         if (ps) {
-            ps.addEventListener('change', (e) => {
+            ps.addEventListener('change', e => {
                 draftConfig = buildConfigFromDom(savedSnapshot, r);
                 draftConfig.profile = e.target.value;
                 refreshDirtyStateFor(r);
             });
         }
-        r.querySelectorAll('[data-policy-gate]').forEach((input) => {
+        r.querySelectorAll('[data-policy-gate]').forEach(input => {
             input.addEventListener('change', () => {
                 draftConfig = buildConfigFromDom(savedSnapshot, r);
                 refreshDirtyStateFor(r);
             });
         });
-        r.querySelectorAll('[data-policy-rule]').forEach((btn) => {
+        r.querySelectorAll('[data-policy-rule]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const name = btn.getAttribute('data-policy-rule');
                 const currentEnabled = btn.getAttribute('data-enabled') === 'true';

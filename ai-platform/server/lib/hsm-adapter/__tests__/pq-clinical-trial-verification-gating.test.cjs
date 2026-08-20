@@ -1,18 +1,24 @@
-'use strict';
+"use strict";
 
 /**
  * Track 79: PQ Clinical Trial Verification Gating tests.
  */
-const { PqcClinicalTrialVerificationGatingHub } = require('../pqc-clinical-trial-verification-gating-hub.cjs');
-const { ZkTrialClaimValidator } = require('../zk-trial-claim-validator.cjs');
-const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
-const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
-const { HsmAdapterError } = require('../base-adapter.cjs');
+const {
+  PqcClinicalTrialVerificationGatingHub,
+} = require("../pqc-clinical-trial-verification-gating-hub.cjs");
+const { ZkTrialClaimValidator } = require("../zk-trial-claim-validator.cjs");
+const {
+  EnclaveAttestationClient,
+} = require("../enclave-attestation-client.cjs");
+const { CryptoPolicyEngine } = require("../crypto-policy-engine.cjs");
+const { HsmAdapterError } = require("../base-adapter.cjs");
 
 class MockAttestationClient {
   verify(attestation) {
-    if (!attestation || typeof attestation !== 'object') return { verified: false };
-    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    if (!attestation || typeof attestation !== "object")
+      return { verified: false };
+    if (!attestation.authority || attestation.authority !== "mock-authority")
+      return { verified: false };
     return { verified: true };
   }
 }
@@ -21,10 +27,10 @@ const POLICY = {
   minTrialOversightQuorum: 3,
   maxTrialDurationSeconds: 94608000,
   maxCohortMetricDepth: 24,
-  allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+  allowedPqcSignatureSchemes: ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
   requireTrialOversightInitializerAttestation: true,
   requireClearingCommitteeAttestation: true,
-  allowedAttestationAuthorities: ['mock-authority'],
+  allowedAttestationAuthorities: ["mock-authority"],
   banMalformedOrOutOfOrderTrialClaims: true,
   requireCanonicalPayloadLayout: true,
 };
@@ -32,51 +38,51 @@ const POLICY = {
 function mockAttestation() {
   return {
     version: 1,
-    enclaveType: 'mock',
-    measurement: 'MOCK_MEASUREMENT_00000000000000000000000000000000',
-    mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+    enclaveType: "mock",
+    measurement: "MOCK_MEASUREMENT_00000000000000000000000000000000",
+    mrenclave: "MOCK_MRENCLAVE_00000000000000000000000000000000",
     timestamp: Math.floor(Date.now() / 1000),
     attestationAgeSeconds: 0,
-    authority: 'mock-authority',
-    signature: 'mock-signature-placeholder',
+    authority: "mock-authority",
+    signature: "mock-signature-placeholder",
   };
 }
 
 function baseInitRequest() {
   return {
-    sourceTenantId: 'tenant-a',
-    targetChainId: 'chain-b',
-    blindedProtocolHashCommitment: 'pedersen-protocol-001',
-    blindedCohortMetricCommitment: 'pedersen-cohort-001',
-    blindedInvestigatorHashCommitment: 'pedersen-investigator-001',
+    sourceTenantId: "tenant-a",
+    targetChainId: "chain-b",
+    blindedProtocolHashCommitment: "pedersen-protocol-001",
+    blindedCohortMetricCommitment: "pedersen-cohort-001",
+    blindedInvestigatorHashCommitment: "pedersen-investigator-001",
     trialDurationSeconds: 47304000,
     cohortMetricDepth: 12,
-    pqcSignatureScheme: 'ML-DSA-65',
+    pqcSignatureScheme: "ML-DSA-65",
     trialOversightInitializerAttestation: mockAttestation(),
-    attestationAuthority: 'mock-authority',
+    attestationAuthority: "mock-authority",
   };
 }
 
 function baseClaimRequest(poolId) {
   return {
-    poolId: poolId || 'pool-001',
-    blindedCohortMetricCommitment: 'pedersen-cohort-001',
-    blindedClaimValueCommitment: 'pedersen-claimval-001',
-    zkTrialRangeProofHash: 'zk-trial-proof-001',
+    poolId: poolId || "pool-001",
+    blindedCohortMetricCommitment: "pedersen-cohort-001",
+    blindedClaimValueCommitment: "pedersen-claimval-001",
+    zkTrialRangeProofHash: "zk-trial-proof-001",
     clearingCommitteeAttestation: mockAttestation(),
-    clearingCommitteeAttestationHash: 'committee-hash-001',
-    attestationAuthority: 'mock-authority',
-    partialSignature: 'partial-sig-001',
+    clearingCommitteeAttestationHash: "committee-hash-001",
+    attestationAuthority: "mock-authority",
+    partialSignature: "partial-sig-001",
     trialDurationSeconds: 47304000,
   };
 }
 
 function baseCompleteRequest(poolId) {
   return {
-    poolId: poolId || 'pool-001',
+    poolId: poolId || "pool-001",
     clearingCommitteeAttestation: mockAttestation(),
-    attestationAuthority: 'mock-authority',
-    committeeSignatures: ['sig-a', 'sig-b', 'sig-c'],
+    attestationAuthority: "mock-authority",
+    committeeSignatures: ["sig-a", "sig-b", "sig-c"],
   };
 }
 
@@ -105,140 +111,195 @@ function setupAndInitPool() {
 
 function setupInitAndClaim() {
   const ctx = setupAndInitPool();
-  const claim = ctx.validator.verifyTrialClaim(baseClaimRequest(ctx.pool.poolId));
+  const claim = ctx.validator.verifyTrialClaim(
+    baseClaimRequest(ctx.pool.poolId),
+  );
   return { ...ctx, claim };
 }
 
-describe('Track 79 PQ clinical trial verification gating', () => {
-  test('PqcClinicalTrialVerificationGatingHub initializes a pool and emits CLINICAL_TRIAL_GATING_POOL_INITIALIZED', () => {
+describe("Track 79 PQ clinical trial verification gating", () => {
+  test("PqcClinicalTrialVerificationGatingHub initializes a pool and emits CLINICAL_TRIAL_GATING_POOL_INITIALIZED", () => {
     const { events, hub } = setupHubAndValidator();
     const pool = hub.initializePool(baseInitRequest());
-    expect(pool.status).toBe('open');
+    expect(pool.status).toBe("open");
     expect(pool.poolId).toBeDefined();
-    expect(events.some((e) => e.event === 'CLINICAL_TRIAL_GATING_POOL_INITIALIZED')).toBe(true);
+    expect(
+      events.some((e) => e.event === "CLINICAL_TRIAL_GATING_POOL_INITIALIZED"),
+    ).toBe(true);
   });
 
-  test('ZkTrialClaimValidator verifies a trial claim and emits ZK_TRIAL_CLAIM_VERIFIED', () => {
+  test("ZkTrialClaimValidator verifies a trial claim and emits ZK_TRIAL_CLAIM_VERIFIED", () => {
     const { events, validator, pool } = setupAndInitPool();
     const claim = validator.verifyTrialClaim(baseClaimRequest(pool.poolId));
     expect(claim.claimId).toBeDefined();
-    expect(events.some((e) => e.event === 'ZK_TRIAL_CLAIM_VERIFIED')).toBe(true);
+    expect(events.some((e) => e.event === "ZK_TRIAL_CLAIM_VERIFIED")).toBe(
+      true,
+    );
   });
 
-  test('PqcClinicalTrialVerificationGatingHub completes accreditation after claim and emits COHORT_ACCREDITATION_COMPLETED', () => {
+  test("PqcClinicalTrialVerificationGatingHub completes accreditation after claim and emits COHORT_ACCREDITATION_COMPLETED", () => {
     const { events, hub, pool } = setupInitAndClaim();
-    const completion = hub.completeAccreditation(baseCompleteRequest(pool.poolId));
+    const completion = hub.completeAccreditation(
+      baseCompleteRequest(pool.poolId),
+    );
     expect(completion.completionId).toBeDefined();
-    expect(events.some((e) => e.event === 'COHORT_ACCREDITATION_COMPLETED')).toBe(true);
+    expect(
+      events.some((e) => e.event === "COHORT_ACCREDITATION_COMPLETED"),
+    ).toBe(true);
   });
 
-  test('PqcClinicalTrialVerificationGatingHub rejects trial duration exceeding maximum', () => {
+  test("PqcClinicalTrialVerificationGatingHub rejects trial duration exceeding maximum", () => {
     const hub = new PqcClinicalTrialVerificationGatingHub({ policy: POLICY });
     const request = baseInitRequest();
     request.trialDurationSeconds = 999999999;
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcClinicalTrialVerificationGatingHub rejects cohort metric depth exceeding maximum', () => {
+  test("PqcClinicalTrialVerificationGatingHub rejects cohort metric depth exceeding maximum", () => {
     const hub = new PqcClinicalTrialVerificationGatingHub({ policy: POLICY });
     const request = baseInitRequest();
     request.cohortMetricDepth = 48;
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcClinicalTrialVerificationGatingHub rejects un-attested trial oversight initializer', () => {
+  test("PqcClinicalTrialVerificationGatingHub rejects un-attested trial oversight initializer", () => {
     const attestationClient = new MockAttestationClient();
-    const hub = new PqcClinicalTrialVerificationGatingHub({ policy: POLICY, attestationClient });
+    const hub = new PqcClinicalTrialVerificationGatingHub({
+      policy: POLICY,
+      attestationClient,
+    });
     const request = baseInitRequest();
-    request.trialOversightInitializerAttestation = { authority: 'bad' };
+    request.trialOversightInitializerAttestation = { authority: "bad" };
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('ZkTrialClaimValidator rejects un-attested clearing committee', () => {
+  test("ZkTrialClaimValidator rejects un-attested clearing committee", () => {
     const { hub, pool } = setupAndInitPool();
     const attestationClient = new MockAttestationClient();
-    const validator = new ZkTrialClaimValidator({ policy: POLICY, hub, attestationClient });
+    const validator = new ZkTrialClaimValidator({
+      policy: POLICY,
+      hub,
+      attestationClient,
+    });
     const clReq = baseClaimRequest(pool.poolId);
-    clReq.clearingCommitteeAttestation = { authority: 'bad' };
+    clReq.clearingCommitteeAttestation = { authority: "bad" };
     expect(() => validator.verifyTrialClaim(clReq)).toThrow(HsmAdapterError);
   });
 
-  test('PqcClinicalTrialVerificationGatingHub rejects unpermitted PQC signature scheme', () => {
+  test("PqcClinicalTrialVerificationGatingHub rejects unpermitted PQC signature scheme", () => {
     const hub = new PqcClinicalTrialVerificationGatingHub({ policy: POLICY });
     const request = baseInitRequest();
-    request.pqcSignatureScheme = 'RSA-2048';
+    request.pqcSignatureScheme = "RSA-2048";
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcClinicalTrialVerificationGatingHub rejects duplicate pool initialization', () => {
+  test("PqcClinicalTrialVerificationGatingHub rejects duplicate pool initialization", () => {
     const { hub } = setupHubAndValidator();
     const request = baseInitRequest();
-    request.poolId = 'pool-dup';
+    request.poolId = "pool-dup";
     hub.initializePool(request);
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcClinicalTrialVerificationGatingHub rejects accreditation completion before trial claim verification', () => {
+  test("PqcClinicalTrialVerificationGatingHub rejects accreditation completion before trial claim verification", () => {
     const { hub, pool } = setupAndInitPool();
-    expect(() => hub.completeAccreditation(baseCompleteRequest(pool.poolId))).toThrow(HsmAdapterError);
+    expect(() =>
+      hub.completeAccreditation(baseCompleteRequest(pool.poolId)),
+    ).toThrow(HsmAdapterError);
   });
 
-  test('PqcClinicalTrialVerificationGatingHub rejects accreditation completion with insufficient quorum', () => {
+  test("PqcClinicalTrialVerificationGatingHub rejects accreditation completion with insufficient quorum", () => {
     const { hub, pool } = setupInitAndClaim();
     const compReq = baseCompleteRequest(pool.poolId);
-    compReq.committeeSignatures = ['sig-a'];
+    compReq.committeeSignatures = ["sig-a"];
     expect(() => hub.completeAccreditation(compReq)).toThrow(HsmAdapterError);
   });
 
-  test('ZkTrialClaimValidator bans peers broadcasting malformed claims', () => {
+  test("ZkTrialClaimValidator bans peers broadcasting malformed claims", () => {
     const { validator, pool } = setupAndInitPool();
     const clReq = baseClaimRequest(pool.poolId);
     clReq.zkTrialRangeProofHash = null;
-    clReq.peerId = 'peer-bad';
+    clReq.peerId = "peer-bad";
     expect(() => validator.verifyTrialClaim(clReq)).toThrow(HsmAdapterError);
-    expect(validator.isPeerBanned('peer-bad')).toBe(true);
+    expect(validator.isPeerBanned("peer-bad")).toBe(true);
   });
 
-  test('ZkTrialClaimValidator bans peers broadcasting out-of-bounds trial durations', () => {
+  test("ZkTrialClaimValidator bans peers broadcasting out-of-bounds trial durations", () => {
     const { validator, pool } = setupAndInitPool();
     const clReq = baseClaimRequest(pool.poolId);
     clReq.trialDurationSeconds = 999999999;
-    clReq.peerId = 'peer-bad';
+    clReq.peerId = "peer-bad";
     expect(() => validator.verifyTrialClaim(clReq)).toThrow(HsmAdapterError);
-    expect(validator.isPeerBanned('peer-bad')).toBe(true);
+    expect(validator.isPeerBanned("peer-bad")).toBe(true);
   });
 
-  test('ZkTrialClaimValidator bans peers broadcasting duplicate claims', () => {
+  test("ZkTrialClaimValidator bans peers broadcasting duplicate claims", () => {
     const { validator, pool } = setupAndInitPool();
     const clReq = baseClaimRequest(pool.poolId);
-    clReq.peerId = 'peer-bad';
+    clReq.peerId = "peer-bad";
     validator.verifyTrialClaim(clReq);
     expect(() => validator.verifyTrialClaim(clReq)).toThrow(HsmAdapterError);
-    expect(validator.isPeerBanned('peer-bad')).toBe(true);
+    expect(validator.isPeerBanned("peer-bad")).toBe(true);
   });
 
-  test('CryptoPolicyEngine validates pq clinical trial gating configuration', () => {
+  test("CryptoPolicyEngine validates pq clinical trial gating configuration", () => {
     const engine = new CryptoPolicyEngine({ default: {} });
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', {
-      trialOversightQuorum: 3,
-      trialDurationSeconds: 47304000,
-      cohortMetricDepth: 12,
-      pqcSignatureScheme: 'ML-DSA-65',
-      trialOversightInitializerAttestation: true,
-      clearingCommitteeAttestation: true,
-      attestationAuthority: 'mock-authority',
-      banMalformedOrOutOfOrderTrialClaims: true,
-      canonicalPayloadLayout: true,
-    })).not.toThrow();
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        trialOversightQuorum: 3,
+        trialDurationSeconds: 47304000,
+        cohortMetricDepth: 12,
+        pqcSignatureScheme: "ML-DSA-65",
+        trialOversightInitializerAttestation: true,
+        clearingCommitteeAttestation: true,
+        attestationAuthority: "mock-authority",
+        banMalformedOrOutOfOrderTrialClaims: true,
+        canonicalPayloadLayout: true,
+      }),
+    ).not.toThrow();
 
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { trialOversightQuorum: 1 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { trialDurationSeconds: 999999999 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { cohortMetricDepth: 48 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { pqcSignatureScheme: 'RSA-2048' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { trialOversightInitializerAttestation: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { clearingCommitteeAttestation: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { attestationAuthority: 'bad' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { banMalformedOrOutOfOrderTrialClaims: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqClinicalTrialGating', { canonicalPayloadLayout: false })).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        trialOversightQuorum: 1,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        trialDurationSeconds: 999999999,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", { cohortMetricDepth: 48 }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        pqcSignatureScheme: "RSA-2048",
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        trialOversightInitializerAttestation: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        clearingCommitteeAttestation: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        attestationAuthority: "bad",
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        banMalformedOrOutOfOrderTrialClaims: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqClinicalTrialGating", {
+        canonicalPayloadLayout: false,
+      }),
+    ).toThrow(HsmAdapterError);
   });
 });

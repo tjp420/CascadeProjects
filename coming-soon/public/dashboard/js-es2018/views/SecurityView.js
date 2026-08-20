@@ -1,11 +1,28 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
-import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
+import {
+    extractSecurityFindings,
+    buildSecuritySummary,
+    buildSecurityExportPayload,
+    fetchComplianceHeadline
+} from '../services/securityService.js';
 import { fetchSecurityTelemetry, buildTelemetrySummary } from '../services/telemetryService.js';
-import { fetchKeyStatus, triggerKeyRotation, forceReKeySweep, fetchReKeyStats, generateRandomKey, formatGraceCountdown } from '../services/keyManagementService.js';
+import {
+    fetchKeyStatus,
+    triggerKeyRotation,
+    forceReKeySweep,
+    fetchReKeyStats,
+    generateRandomKey,
+    formatGraceCountdown
+} from '../services/keyManagementService.js';
 import { fetchQuarantineEntries, verifyQuarantineEntry } from '../services/quarantineService.js';
 import { fetchInterdictions, blockKey, releaseKey } from '../services/interdictionService.js';
-import { fetchRetentionConfig, updateRetentionConfig, fetchRetentionStats, triggerRetentionPurge } from '../services/retentionService.js';
+import {
+    fetchRetentionConfig,
+    updateRetentionConfig,
+    fetchRetentionStats,
+    triggerRetentionPurge
+} from '../services/retentionService.js';
 import { fetchComplianceReport, downloadComplianceCsv, complianceService } from '../services/complianceService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
@@ -87,27 +104,28 @@ export class SecurityView {
         this._container = null;
     }
     async handleExportCompliance(format = 'json') {
-      try {
-        const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
-        if (format === 'json') this.complianceDownloadingJson = true; else this.complianceDownloadingCsv = true;
-        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            if (format === 'json') this.complianceDownloadingJson = true;
+            else this.complianceDownloadingCsv = true;
+            if (this._container) this.app.render(this._container);
 
-        const res = await complianceService.downloadReport(authHeaders, format);
+            const res = await complianceService.downloadReport(authHeaders, format);
 
-        // If JSON returned as object, show success with report id if present
-        if (res && typeof res === 'object') {
-          const id = res.reportId || res.report_id || null;
-          showToast(id ? `Compliance report generated: ${id}` : 'Compliance report downloaded', 'success');
-        } else if (res && res.success) {
-          showToast('Compliance CSV downloaded', 'success');
+            // If JSON returned as object, show success with report id if present
+            if (res && typeof res === 'object') {
+                const id = res.reportId || res.report_id || null;
+                showToast(id ? `Compliance report generated: ${id}` : 'Compliance report downloaded', 'success');
+            } else if (res && res.success) {
+                showToast('Compliance CSV downloaded', 'success');
+            }
+        } catch (err) {
+            showToast('Compliance export failed: ' + err.message, 'error');
+        } finally {
+            this.complianceDownloadingJson = false;
+            this.complianceDownloadingCsv = false;
+            if (this._container) this.app.render(this._container);
         }
-      } catch (err) {
-        showToast('Compliance export failed: ' + err.message, 'error');
-      } finally {
-        this.complianceDownloadingJson = false;
-        this.complianceDownloadingCsv = false;
-        if (this._container) this.app.render(this._container);
-      }
     }
     getReport() {
         return this.app.state.report;
@@ -127,10 +145,11 @@ export class SecurityView {
                 iconWrapper: 'emoji'
             });
         }
-        const rows = findings.map((finding) => {
-            const sev = String(finding.severity || 'medium').toLowerCase();
-            const cfg = SEVERITY_COLORS[sev] || SEVERITY_COLORS.medium;
-            return `
+        const rows = findings
+            .map(finding => {
+                const sev = String(finding.severity || 'medium').toLowerCase();
+                const cfg = SEVERITY_COLORS[sev] || SEVERITY_COLORS.medium;
+                return `
               <tr style="transition:background var(--transition);">
                 <td><span style="display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);font-size:var(--font-size-xs);font-weight:600;background:${cfg.bg};color:${cfg.text};">${cfg.icon} ${escapeHtml(finding.severity)}</span></td>
                 <td><span style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-secondary);">${escapeHtml(finding.type)}</span></td>
@@ -138,7 +157,8 @@ export class SecurityView {
                 <td style="font-size:var(--font-size-sm);color:var(--text-primary);">${escapeHtml(finding.description || '—')}</td>
                 <td style="font-size:var(--font-size-sm);color:var(--text-muted);">${escapeHtml(finding.recommendation || '—')}</td>
               </tr>`;
-        }).join('');
+            })
+            .join('');
         return `
       <div class="card" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);">
         <div class="table-scroll-wrapper">
@@ -288,7 +308,8 @@ export class SecurityView {
         const reKey = this.reKeyStats ? this.reKeyStats.stats : null;
         const hasPrevious = s && s.hasPrevious;
         const graceText = hasPrevious ? formatGraceCountdown(s.rotatedAt, s.graceMs) : '—';
-        const graceColor = hasPrevious && s.graceExpired ? 'var(--danger)' : (hasPrevious ? 'var(--warning)' : 'var(--text-muted)');
+        const graceColor =
+            hasPrevious && s.graceExpired ? 'var(--danger)' : hasPrevious ? 'var(--warning)' : 'var(--text-muted)';
         const activeFp = s && s.activeFingerprint ? s.activeFingerprint : '—';
         const prevFp = s && s.previousFingerprint ? s.previousFingerprint : '—';
         const rotatedDate = s && s.rotatedAt ? new Date(s.rotatedAt).toLocaleString() : '—';
@@ -343,7 +364,9 @@ export class SecurityView {
               ${this.rekeying ? '⟳ Sweeping…' : '⚡ Force Re-Key Sweep'}
             </button>
           </div>
-          ${reKey ? `
+          ${
+              reKey
+                  ? `
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--space-3);">
               <div style="text-align:center;padding:var(--space-3);background:var(--surface-hover);border-radius:var(--radius-md);">
                 <div style="font-size:var(--font-size-xl);font-weight:700;">${formatNumber(reKey.totalSweeps || 0)}</div>
@@ -366,9 +389,11 @@ export class SecurityView {
                 <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Keys Purged</div>
               </div>
             </div>
-          ` : `
+          `
+                  : `
             <p style="font-size:var(--font-size-sm);color:var(--text-muted);text-align:center;padding:var(--space-4);">No migration stats available yet. Click "Force Re-Key Sweep" to run a manual migration.</p>
-          `}
+          `
+          }
         </div>
       </div>`;
     }
@@ -425,7 +450,10 @@ export class SecurityView {
             const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
             const result = await forceReKeySweep(authHeaders);
             const r = result.result || {};
-            showToast(`Re-key sweep complete: ${r.migrated || 0} migrated, ${r.failed || 0} failed`, r.failed > 0 ? 'error' : 'success');
+            showToast(
+                `Re-key sweep complete: ${r.migrated || 0} migrated, ${r.failed || 0} failed`,
+                r.failed > 0 ? 'error' : 'success'
+            );
             await this.loadKeyStatus();
         } catch (err) {
             showToast('Re-key sweep failed: ' + err.message, 'error');
@@ -443,7 +471,10 @@ export class SecurityView {
             // purgeStaleKeys is provided by keyManagementService
             const { purgeStaleKeys } = await import('../services/keyManagementService.js?v=20260722bridgefix1');
             const res = await purgeStaleKeys(authHeaders);
-            const purged = (res && (res.purged || res.purgedCount || res.deleted)) ? (res.purged || res.purgedCount || res.deleted) : 0;
+            const purged =
+                res && (res.purged || res.purgedCount || res.deleted)
+                    ? res.purged || res.purgedCount || res.deleted
+                    : 0;
             showToast(`Purge complete: ${purged} stale key(s) removed`, purged > 0 ? 'success' : 'info');
             await this.loadKeyStatus();
         } catch (err) {
@@ -482,9 +513,9 @@ export class SecurityView {
           </div>
         </div>`;
         }
-        const keys = this.interdiction ? (this.interdiction.keys || []) : [];
-        const stats = this.interdiction ? (this.interdiction.stats || {}) : {};
-        const total = this.interdiction ? (this.interdiction.total || 0) : 0;
+        const keys = this.interdiction ? this.interdiction.keys || [] : [];
+        const stats = this.interdiction ? this.interdiction.stats || {} : {};
+        const total = this.interdiction ? this.interdiction.total || 0 : 0;
         return `
       <div class="section-block">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
@@ -494,7 +525,9 @@ export class SecurityView {
             <button class="btn btn-ghost btn-sm" id="interdiction-refresh" type="button">↻ Refresh</button>
           </div>
         </div>
-        ${total > 0 ? `
+        ${
+            total > 0
+                ? `
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin-bottom:var(--space-4);">
             <div class="card" style="padding:var(--space-3) var(--space-4);">
               <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Active Lockouts</div>
@@ -513,14 +546,19 @@ export class SecurityView {
               <div style="font-size:var(--font-size-xl);font-weight:700;margin-top:var(--space-1);">${stats.totalRequestsRejected || 0}</div>
             </div>
           </div>
-        ` : ''}
-        ${keys.length === 0 ? `
+        `
+                : ''
+        }
+        ${
+            keys.length === 0
+                ? `
           <div class="card" style="padding:var(--space-6);text-align:center;">
             <div style="font-size:2rem;margin-bottom:var(--space-2);">🛡️</div>
             <p style="font-size:var(--font-size-sm);color:var(--text-muted);">No active interdictions.</p>
             <p style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-2);">API keys that cross violation thresholds will appear here automatically.</p>
           </div>
-        ` : `
+        `
+                : `
           <div class="card" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);margin-bottom:var(--space-4);">
             <div class="table-scroll-wrapper">
             <table class="results-table">
@@ -535,12 +573,13 @@ export class SecurityView {
                 </tr>
               </thead>
               <tbody>
-                ${keys.map((entry) => this._renderInterdictionRow(entry)).join('')}
+                ${keys.map(entry => this._renderInterdictionRow(entry)).join('')}
               </tbody>
             </table>
             </div>
           </div>
-        `}
+        `
+        }
         <div class="card" style="padding:var(--space-5);">
           <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Manual Key Lockout</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:var(--space-3);align-items:end;">
@@ -566,9 +605,10 @@ export class SecurityView {
     _renderInterdictionRow(entry) {
         const maskedKey = escapeHtml(entry.apiKey || '—');
         const source = entry.source || 'manual';
-        const sourceBadge = source === 'auto'
-            ? '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--warning);background:var(--warning-bg);padding:2px 8px;border-radius:var(--radius-sm);">AUTO</span>'
-            : '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-muted);background:var(--surface-hover);padding:2px 8px;border-radius:var(--radius-sm);">MANUAL</span>';
+        const sourceBadge =
+            source === 'auto'
+                ? '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--warning);background:var(--warning-bg);padding:2px 8px;border-radius:var(--radius-sm);">AUTO</span>'
+                : '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-muted);background:var(--surface-hover);padding:2px 8px;border-radius:var(--radius-sm);">MANUAL</span>';
         const reason = escapeHtml(entry.reason || '—');
         const blockedAt = entry.blockedAt ? new Date(entry.blockedAt).toLocaleString() : '—';
         const expiresAt = entry.expiresAt ? new Date(entry.expiresAt).toLocaleString() : '—';
@@ -699,11 +739,15 @@ export class SecurityView {
             </label>
           </div>
         </div>
-        ${error ? `
+        ${
+            error
+                ? `
           <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4);border-left:3px solid var(--danger);">
             <p style="color:var(--danger);font-size:var(--font-size-sm);">${escapeHtml(error)}</p>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
         <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-4);">
           <button class="btn btn-primary" id="compliance-gen-btn" type="button" ${this.complianceLoading ? 'disabled' : ''}>
             ${this.complianceLoading ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Generate Report'}
@@ -712,7 +756,9 @@ export class SecurityView {
             Download CSV
           </button>
         </div>
-        ${report ? `
+        ${
+            report
+                ? `
           <div class="card" style="padding:var(--space-5);">
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:var(--space-3);margin-bottom:var(--space-4);">
               <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Report ID: <span style="color:var(--primary);font-weight:600;font-family:monospace;">${escapeHtml(report.reportId)}</span></div>
@@ -748,9 +794,10 @@ export class SecurityView {
                 </tr>
               </thead>
               <tbody>
-                ${(report.orgs || []).map((org) => {
-                  const valid = org.chainIntegrity?.valid;
-                  return `
+                ${(report.orgs || [])
+                    .map(org => {
+                        const valid = org.chainIntegrity?.valid;
+                        return `
                   <tr style="border-bottom:1px solid var(--border);">
                     <td style="padding:var(--space-2) var(--space-3);font-weight:600;">${escapeHtml(org.orgId)}</td>
                     <td style="padding:var(--space-2) var(--space-3);">
@@ -760,12 +807,15 @@ export class SecurityView {
                     <td style="padding:var(--space-2) var(--space-3);text-align:right;">${escapeHtml(String(org.retentionPolicy?.retentionDays || '—'))}</td>
                     <td style="padding:var(--space-2) var(--space-3);text-align:right;color:var(--primary);">${escapeHtml(String(org.piiPolicyCount || 0))}</td>
                   </tr>`;
-                }).join('')}
+                    })
+                    .join('')}
               </tbody>
             </table>
             ${this.renderControlMappings ? this.renderControlMappings(report) : ''}
           </div>
-        ` : ''}
+        `
+                : ''
+        }
       </div>`;
     }
     async handleGenerateComplianceReport() {
@@ -930,7 +980,9 @@ export class SecurityView {
             </button>
           </div>
         </div>
-        ${this.retentionConfirmPurge ? `
+        ${
+            this.retentionConfirmPurge
+                ? `
           <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;" id="retention-purge-modal">
             <div class="card" style="padding:var(--space-6);max-width:480px;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
               <div style="font-size:var(--font-size-base);font-weight:700;margin-bottom:var(--space-3);color:var(--danger);">⚠ Confirm Purge</div>
@@ -946,12 +998,14 @@ export class SecurityView {
               </div>
             </div>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
       </div>`;
     }
 
     renderControlMappings(report) {
-        const mappings = (report && report.controlMappings) ? report.controlMappings : [];
+        const mappings = report && report.controlMappings ? report.controlMappings : [];
         if (!mappings || !mappings.length) {
             return `
               <div style="margin-top:var(--space-4);font-size:var(--font-size-sm);color:var(--text-muted);">No control mappings included in this report.</div>
@@ -974,14 +1028,18 @@ export class SecurityView {
                   </tr>
                 </thead>
                 <tbody>
-                  ${mappings.map((m) => `
+                  ${mappings
+                      .map(
+                          m => `
                     <tr style="border-bottom:1px solid var(--border);">
                       <td style="padding:var(--space-2) var(--space-3);font-weight:600;">${escapeHtml(m.framework || '')}</td>
                       <td style="padding:var(--space-2) var(--space-3);">${escapeHtml(m.controlId || '')}</td>
                       <td style="padding:var(--space-2) var(--space-3);">${escapeHtml(m.controlDescription || '')}</td>
                       <td style="padding:var(--space-2) var(--space-3);">${escapeHtml((m.mappedTo || []).join(', '))}</td>
                     </tr>
-                  `).join('')}
+                  `
+                      )
+                      .join('')}
                 </tbody>
               </table>
             </div>
@@ -996,7 +1054,7 @@ export class SecurityView {
             const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
             const [configResp, statsResp] = await Promise.all([
                 fetchRetentionConfig(authHeaders),
-                fetchRetentionStats(authHeaders),
+                fetchRetentionStats(authHeaders)
             ]);
             this.retentionConfig = configResp.policy;
             this.retentionStats = statsResp;
@@ -1054,7 +1112,10 @@ export class SecurityView {
             if (result.purged === 0) {
                 showToast('Nothing to purge — no entries older than retention period', 'info');
             } else {
-                showToast(`Purged ${result.purged} entries (${result.archived} archived, ${result.remaining} remaining)`, 'success');
+                showToast(
+                    `Purged ${result.purged} entries (${result.archived} archived, ${result.remaining} remaining)`,
+                    'success'
+                );
             }
             this.retentionConfirmPurge = false;
             await this.loadRetention();
@@ -1087,9 +1148,9 @@ export class SecurityView {
           </div>
         </div>`;
         }
-        const entries = this.quarantine ? (this.quarantine.entries || []) : [];
-        const metadata = this.quarantine ? (this.quarantine.metadata || {}) : {};
-        const total = this.quarantine ? (this.quarantine.totalEntries || 0) : 0;
+        const entries = this.quarantine ? this.quarantine.entries || [] : [];
+        const metadata = this.quarantine ? this.quarantine.metadata || {} : {};
+        const total = this.quarantine ? this.quarantine.totalEntries || 0 : 0;
         const decryptionError = metadata.decryptionError === true;
         const allOrgsChecked = this.quarantineAllOrgs ? 'checked' : '';
         return `
@@ -1104,18 +1165,25 @@ export class SecurityView {
             <button class="btn btn-ghost btn-sm" id="quarantine-refresh" type="button">↻ Refresh</button>
           </div>
         </div>
-        ${decryptionError ? `
+        ${
+            decryptionError
+                ? `
           <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);border-left:3px solid var(--danger);background:var(--danger-bg);">
             <span style="font-size:var(--font-size-sm);color:var(--danger);">⚠️ Quarantine file could not be decrypted with the current keyring. This may indicate a key rotation is in progress or the data was encrypted with a retired key.</span>
           </div>
-        ` : ''}
-        ${entries.length === 0 ? `
+        `
+                : ''
+        }
+        ${
+            entries.length === 0
+                ? `
           <div class="card" style="padding:var(--space-6);text-align:center;">
             <div style="font-size:2rem;margin-bottom:var(--space-2);">📋</div>
             <p style="font-size:var(--font-size-sm);color:var(--text-muted);">No quarantined entries${this.quarantineAllOrgs ? ' across all orgs' : ''}.</p>
             <p style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-2);">Tampered or broken-chain audit entries will appear here after auto-healing runs.</p>
           </div>
-        ` : `
+        `
+                : `
           <div class="card" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);">
             <div class="table-scroll-wrapper">
             <table class="results-table">
@@ -1131,12 +1199,13 @@ export class SecurityView {
                 </tr>
               </thead>
               <tbody>
-                ${entries.map((entry) => this._renderQuarantineRow(entry)).join('')}
+                ${entries.map(entry => this._renderQuarantineRow(entry)).join('')}
               </tbody>
             </table>
             </div>
           </div>
-        `}
+        `
+        }
       </div>`;
     }
     _renderQuarantineRow(entry) {
@@ -1145,7 +1214,8 @@ export class SecurityView {
         const action = escapeHtml(entry.action || '—');
         const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—';
         const reason = entry.quarantineReason || '—';
-        const reasonLabel = reason === 'content_tampered' ? 'Tampered' : reason === 'broken_link' ? 'Broken Link' : escapeHtml(reason);
+        const reasonLabel =
+            reason === 'content_tampered' ? 'Tampered' : reason === 'broken_link' ? 'Broken Link' : escapeHtml(reason);
         const isExpanded = this.quarantineExpanded.has(entry.id);
         const verifyResult = this.quarantineVerifyResults[entry.id];
         const isVerifying = this.quarantineVerifying.has(entry.id);
@@ -1171,24 +1241,32 @@ export class SecurityView {
             <td><span style="font-size:var(--font-size-xs);color:${reason === 'content_tampered' ? 'var(--danger)' : 'var(--warning)'};font-weight:600;">${reasonLabel}</span></td>
             <td>${verifyCell}</td>
           </tr>
-          ${isExpanded ? `
+          ${
+              isExpanded
+                  ? `
             <tr>
               <td colspan="7" style="padding:0;border-top:none;">
                 <div style="padding:var(--space-4) var(--space-5);background:var(--surface-hover);">
                   <div style="font-size:var(--font-size-xs);font-weight:700;color:var(--text-muted);margin-bottom:var(--space-2);text-transform:uppercase;letter-spacing:0.05em;">Raw Entry Payload</div>
                   <pre style="margin:0;padding:var(--space-3);background:var(--surface);border-radius:var(--radius-md);font-size:var(--font-size-xs);overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;">${escapeHtml(detailJson)}</pre>
-                  ${verifyResult ? `
+                  ${
+                      verifyResult
+                          ? `
                     <div style="margin-top:var(--space-3);padding:var(--space-3);background:${verifyResult.hashMatches ? 'var(--success-bg)' : 'var(--danger-bg)'};border-radius:var(--radius-md);font-size:var(--font-size-xs);">
                       <div style="font-weight:700;color:${verifyResult.hashMatches ? 'var(--success)' : 'var(--danger)'};margin-bottom:var(--space-1);">Cryptographic Verification Result</div>
                       <div style="color:var(--text-muted);">Expected: <code style="color:var(--text-primary);">${escapeHtml(verifyResult.expectedHash)}</code></div>
                       <div style="color:var(--text-muted);">Actual: <code style="color:var(--text-primary);">${escapeHtml(verifyResult.actualHash)}</code></div>
                       <div style="color:var(--text-muted);margin-top:var(--space-1);">Decryption: ${escapeHtml(verifyResult.decryptionStatus || '—')}</div>
                     </div>
-                  ` : ''}
+                  `
+                          : ''
+                  }
                 </div>
               </td>
             </tr>
-          ` : ''}`;
+          `
+                  : ''
+          }`;
     }
     async loadQuarantine() {
         this.quarantineLoading = true;
@@ -1221,7 +1299,10 @@ export class SecurityView {
             this.quarantineVerifyResults[entryId] = result;
             // Auto-expand the row to show the verification details
             this.quarantineExpanded.add(entryId);
-            showToast(result.hashMatches ? 'Entry hash verified — match' : 'Entry hash mismatch detected', result.hashMatches ? 'success' : 'error');
+            showToast(
+                result.hashMatches ? 'Entry hash verified — match' : 'Entry hash mismatch detected',
+                result.hashMatches ? 'success' : 'error'
+            );
         } catch (err) {
             showToast('Verification failed: ' + err.message, 'error');
         } finally {
@@ -1251,7 +1332,9 @@ export class SecurityView {
           <p class="text-muted" style="margin-bottom:var(--space-6);">${escapeHtml(this.error)}</p>
           <button class="btn btn-primary" id="security-retry" type="button">Retry</button>
         </div>`;
-            (_a = el.querySelector('#security-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.loadReport(this._container));
+            (_a = el.querySelector('#security-retry')) === null || _a === void 0
+                ? void 0
+                : _a.addEventListener('click', () => this.loadReport(this._container));
             return el;
         }
         const _report = this.getReport();
@@ -1261,10 +1344,12 @@ export class SecurityView {
         const gateColor = summary.gatePass ? 'var(--success)' : 'var(--danger)';
         const gateBg = summary.gatePass ? 'var(--success-bg)' : 'var(--danger-bg)';
         const gateIcon = summary.gatePass ? '✅' : summary.gatePass === false ? '⚠️' : '❓';
-        const lastScan = summary.generatedAt
-            ? new Date(summary.generatedAt).toLocaleString()
-            : 'Never';
-        const complianceScore = (_c = (_b = this.compliance) === null || _b === void 0 ? void 0 : _b.securityScore) !== null && _c !== void 0 ? _c : null;
+        const lastScan = summary.generatedAt ? new Date(summary.generatedAt).toLocaleString() : 'Never';
+        const complianceScore =
+            (_c = (_b = this.compliance) === null || _b === void 0 ? void 0 : _b.securityScore) !== null &&
+            _c !== void 0
+                ? _c
+                : null;
         const totalScanned = (summary.credentialScanned || 0) + (summary.productionLeakScanned || 0);
         el.innerHTML = `
       <!-- Hero -->
@@ -1295,12 +1380,16 @@ export class SecurityView {
         </div>
       </div>
 
-      ${this.scanning ? `
+      ${
+          this.scanning
+              ? `
         <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-3);border-left:3px solid var(--primary);">
           <span class="loading-spinner" style="width:16px;height:16px;flex-shrink:0;"></span>
           <span style="font-size:var(--font-size-sm);color:var(--text-secondary);">Running Simplebeacon scan — credential + production-leak rules…</span>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
       <!-- Gate status banner -->
       <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-6);background:${gateBg};border:1px solid ${gateColor}33;display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap;">
@@ -1368,8 +1457,12 @@ export class SecurityView {
 
       ${this.renderComplianceSection()}
     `;
-        (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
-        (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
+        (_d = el.querySelector('#security-run-scan')) === null || _d === void 0
+            ? void 0
+            : _d.addEventListener('click', () => this.runScan(this._container));
+        (_e = el.querySelector('#security-export-json')) === null || _e === void 0
+            ? void 0
+            : _e.addEventListener('click', () => this.exportResults());
         // Telemetry button listeners
         const _tlLoad = el.querySelector('#telemetry-load');
         const _tlRefresh = el.querySelector('#telemetry-refresh');
@@ -1377,52 +1470,62 @@ export class SecurityView {
         if (_tlLoad) _tlLoad.addEventListener('click', () => this.loadTelemetry());
         if (_tlRefresh) _tlRefresh.addEventListener('click', () => this.loadTelemetry());
         if (_tlRetry) _tlRetry.addEventListener('click', () => this.loadTelemetry());
-        (_f = el.querySelector('#security-send-ai-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', async () => {
-            var _a, _b;
-            const report = this.getReport();
-            const findings = this.getFindings();
-            if (!findings.length) {
-                showToast('No security findings to send', 'error');
-                return;
-            }
-            const summary = this.getSummary();
-            const payload = {
-                projectPath: (report === null || report === void 0 ? void 0 : report.projectRoot) || (report === null || report === void 0 ? void 0 : report.projectPath) || window.location.origin,
-                reportType: 'security-scan',
-                reportSummary: {
-                    totalFindings: summary.totalFindings,
-                    credentialCount: summary.credentialCount,
-                    productionLeakCount: summary.productionLeakCount,
-                    complianceScore: (_b = (_a = this.compliance) === null || _a === void 0 ? void 0 : _a.securityScore) !== null && _b !== void 0 ? _b : 'N/A'
-                },
-                notes: 'Security Scanner findings — credential patterns and production leaks'
-            };
-            const vscode = getVsCodeApi();
-            if (vscode) {
-                try {
-                    vscode.postMessage({ command: 'sendToAI', data: payload });
-                    showToast('Security findings sent to AI agent', 'success');
-                    return;
-                }
-                catch (err) {
-                    window["console"]["warn"]('[Security-AI] vscode.postMessage failed:', err);
-                } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
-            }
-            try {
-                const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const json = await res.json();
-                if (json.success && json.content) {
-                    await navigator.clipboard.writeText(json.content);
-                    showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
-                }
-                else {
-                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
-                }
-            }
-            catch (err) {
-                showToast('Failed to send: ' + err.message, 'error');
-            }
-        });
+        (_f = el.querySelector('#security-send-ai-btn')) === null || _f === void 0
+            ? void 0
+            : _f.addEventListener('click', async () => {
+                  var _a, _b;
+                  const report = this.getReport();
+                  const findings = this.getFindings();
+                  if (!findings.length) {
+                      showToast('No security findings to send', 'error');
+                      return;
+                  }
+                  const summary = this.getSummary();
+                  const payload = {
+                      projectPath:
+                          (report === null || report === void 0 ? void 0 : report.projectRoot) ||
+                          (report === null || report === void 0 ? void 0 : report.projectPath) ||
+                          window.location.origin,
+                      reportType: 'security-scan',
+                      reportSummary: {
+                          totalFindings: summary.totalFindings,
+                          credentialCount: summary.credentialCount,
+                          productionLeakCount: summary.productionLeakCount,
+                          complianceScore:
+                              (_b = (_a = this.compliance) === null || _a === void 0 ? void 0 : _a.securityScore) !==
+                                  null && _b !== void 0
+                                  ? _b
+                                  : 'N/A'
+                      },
+                      notes: 'Security Scanner findings — credential patterns and production leaks'
+                  };
+                  const vscode = getVsCodeApi();
+                  if (vscode) {
+                      try {
+                          vscode.postMessage({ command: 'sendToAI', data: payload });
+                          showToast('Security findings sent to AI agent', 'success');
+                          return;
+                      } catch (err) {
+                          window['console']['warn']('[Security-AI] vscode.postMessage failed:', err);
+                      } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+                  }
+                  try {
+                      const res = await fetch('/api/ai-context', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(payload)
+                      });
+                      const json = await res.json();
+                      if (json.success && json.content) {
+                          await navigator.clipboard.writeText(json.content);
+                          showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                      } else {
+                          showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                      }
+                  } catch (err) {
+                      showToast('Failed to send: ' + err.message, 'error');
+                  }
+              });
         // Key management button listeners
         const _kmRefresh = el.querySelector('#key-status-refresh');
         const _kmRetry = el.querySelector('#key-status-retry');
@@ -1470,20 +1573,22 @@ export class SecurityView {
         if (_cCsv) _cCsv.addEventListener('click', () => this.handleDownloadComplianceCsv());
         // Control mappings toggle
         const _toggleMappings = el.querySelector('#toggle-mappings-trigger');
-        if (_toggleMappings) _toggleMappings.addEventListener('click', () => {
-          this.showControlMappings = !this.showControlMappings;
-          if (this._container) this.app.render(this._container);
-        });
+        if (_toggleMappings)
+            _toggleMappings.addEventListener('click', () => {
+                this.showControlMappings = !this.showControlMappings;
+                if (this._container) this.app.render(this._container);
+            });
         // Quarantine inspector button listeners
         const _qRefresh = el.querySelector('#quarantine-refresh');
         const _qRetry = el.querySelector('#quarantine-retry');
         const _qAllOrgs = el.querySelector('#quarantine-all-orgs');
         if (_qRefresh) _qRefresh.addEventListener('click', () => this.loadQuarantine());
         if (_qRetry) _qRetry.addEventListener('click', () => this.loadQuarantine());
-        if (_qAllOrgs) _qAllOrgs.addEventListener('change', (e) => {
-            this.quarantineAllOrgs = e.target.checked;
-            this.loadQuarantine();
-        });
+        if (_qAllOrgs)
+            _qAllOrgs.addEventListener('change', e => {
+                this.quarantineAllOrgs = e.target.checked;
+                this.loadQuarantine();
+            });
         // Wire up per-entry toggle and verify buttons
         if (this.quarantine && this.quarantine.entries) {
             for (const entry of this.quarantine.entries) {
@@ -1507,27 +1612,23 @@ export class SecurityView {
         showToast('Security scan JSON downloaded', 'success');
     }
     paint(container = this._container) {
-        if (!container)
-            return;
+        if (!container) return;
         this._container = container;
         window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
     async runScan(container) {
-        if (this.scanning)
-            return;
+        if (this.scanning) return;
         this.scanning = true;
         this.error = null;
         this.paint(container);
         try {
             await this.app.runScan();
             showToast('Security scan complete', 'success');
-        }
-        catch (err) {
+        } catch (err) {
             this.error = err.message;
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.scanning = false;
             this.loading = false;
             this.paint(container);
@@ -1543,11 +1644,9 @@ export class SecurityView {
                 await this.app.scanService.fetchReport();
                 this.app.state.report = this.app.scanService.report;
             }
-        }
-        catch (err) {
+        } catch (err) {
             this.error = err.message;
-        }
-        finally {
+        } finally {
             this.loading = false;
             this.paint(container);
         }
@@ -1555,8 +1654,7 @@ export class SecurityView {
     async loadCompliance() {
         try {
             this.compliance = await fetchComplianceHeadline();
-        }
-        catch (_a) {
+        } catch (_a) {
             this.compliance = null;
         }
         if (this._container && this.app.currentView === this) {

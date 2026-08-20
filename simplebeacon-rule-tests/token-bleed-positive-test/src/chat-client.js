@@ -6,16 +6,16 @@
  */
 
 export async function generateResponse(messages) {
-    return openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages,
-        temperature: 0.7
-    });
+  return openai.chat.completions.create({
+    model: "gpt-4o",
+    messages,
+    temperature: 0.7,
+  });
 }
 
 export async function summarizeText(text) {
-    return openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: `Summarize: ${text}` }]
-    });
+  return openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: `Summarize: ${text}` }],
+  });
 }

@@ -4,20 +4,20 @@ These environment variables power the zero-fail post-payment pipeline.
 
 ## Required
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `STRIPE_SECRET_KEY` | Stripe secret key (sk_live_* or sk_test_*) | `sk_test_51Hx...` |
-| `STRIPE_WEBHOOK_SECRET` | Webhook endpoint secret from Stripe Dashboard | `whsec_...` |
-| `STRIPE_PRICE_PRO` | Stripe Price ID for the Pro tier | `price_1ABC...` |
-| `STRIPE_PRICE_ENTERPRISE` | Stripe Price ID for the Enterprise tier | `price_1DEF...` |
-| `STRIPE_PRICE_TEAM` | Stripe Price ID for the Team tier | `price_1GHI...` |
+| Variable                  | Description                                   | Example           |
+| ------------------------- | --------------------------------------------- | ----------------- |
+| `STRIPE_SECRET_KEY`       | Stripe secret key (sk_live_* or sk_test_*)    | `sk_test_51Hx...` |
+| `STRIPE_WEBHOOK_SECRET`   | Webhook endpoint secret from Stripe Dashboard | `whsec_...`       |
+| `STRIPE_PRICE_PRO`        | Stripe Price ID for the Pro tier              | `price_1ABC...`   |
+| `STRIPE_PRICE_ENTERPRISE` | Stripe Price ID for the Enterprise tier       | `price_1DEF...`   |
+| `STRIPE_PRICE_TEAM`       | Stripe Price ID for the Team tier             | `price_1GHI...`   |
 
 ## Optional
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DASHBOARD_ORIGIN` | Origin URL used in checkout redirect URLs | `http://localhost:3456` |
-| `NODE_ENV` | When set to `development`, checkout errors include stack traces | — |
+| Variable           | Description                                                     | Default                 |
+| ------------------ | --------------------------------------------------------------- | ----------------------- |
+| `DASHBOARD_ORIGIN` | Origin URL used in checkout redirect URLs                       | `http://localhost:3456` |
+| `NODE_ENV`         | When set to `development`, checkout errors include stack traces | —                       |
 
 ## Webhook Endpoint Setup
 
@@ -34,6 +34,7 @@ These environment variables power the zero-fail post-payment pipeline.
 ## Checkout Session Metadata Pinning
 
 When creating a checkout session, the backend passes:
+
 ```js
 metadata: {
   userId: String(userId),
@@ -58,31 +59,31 @@ stripe trigger checkout.session.completed \
 ## Route Mount Examples
 
 ### Express
+
 ```js
 const express = require('express');
 const app = express();
 const { handleStripeWebhook } = require('./server/api/billing/webhook.js');
 const { createCheckoutSession } = require('./server/api/billing/checkout.js');
 
-app.post('/api/billing/stripe-webhook',
-  express.raw({ type: 'application/json' }),
-  handleStripeWebhook
-);
+app.post('/api/billing/stripe-webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
-app.post('/api/billing/checkout-session',
-  express.json(),
-  createCheckoutSession
-);
+app.post('/api/billing/checkout-session', express.json(), createCheckoutSession);
 ```
 
 ### Fastify
+
 ```js
 const { handleStripeWebhook } = require('./server/api/billing/webhook.js');
 const { createCheckoutSession } = require('./server/api/billing/checkout.js');
 
-fastify.post('/api/billing/stripe-webhook', {
-  config: { rawBody: true }
-}, handleStripeWebhook);
+fastify.post(
+  '/api/billing/stripe-webhook',
+  {
+    config: { rawBody: true },
+  },
+  handleStripeWebhook
+);
 
 fastify.post('/api/billing/checkout-session', createCheckoutSession);
 ```

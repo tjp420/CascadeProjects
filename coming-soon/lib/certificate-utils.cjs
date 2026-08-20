@@ -45,10 +45,21 @@ function normalizeReport(reportJson) {
         const nested = sub.results?.simplebeacon;
         if (nested && typeof nested === 'object') {
             const issues = nested.detectedIssues || sub.detectedIssues || reportJson.detectedIssues || [];
-            return { ...safeMerge(reportJson), ...safeMerge(sub), ...safeMerge(nested), detectedIssues: issues, issueCount: nested.issueCount ?? sub.issueCount ?? reportJson.issueCount ?? issues.length };
+            return {
+                ...safeMerge(reportJson),
+                ...safeMerge(sub),
+                ...safeMerge(nested),
+                detectedIssues: issues,
+                issueCount: nested.issueCount ?? sub.issueCount ?? reportJson.issueCount ?? issues.length
+            };
         }
         const issues = sub.detectedIssues || reportJson.detectedIssues || [];
-        return { ...safeMerge(reportJson), ...safeMerge(sub), detectedIssues: issues, issueCount: sub.issueCount ?? reportJson.issueCount ?? issues.length };
+        return {
+            ...safeMerge(reportJson),
+            ...safeMerge(sub),
+            detectedIssues: issues,
+            issueCount: sub.issueCount ?? reportJson.issueCount ?? issues.length
+        };
     }
 
     // 2. Public-summary: synthesize gate and detectedIssues from summary/severityCounts
@@ -59,12 +70,22 @@ function normalizeReport(reportJson) {
         ['critical', 'high', 'medium', 'low'].forEach(sev => {
             const count = sc[sev] || 0;
             for (let i = 0; i < Math.min(count, 5); i++) {
-                detectedIssues.push({ severity: sev, filePath: '—', rule: 'Aggregated from summary', impact: 'See detailed report for file-level findings.', fix: 'Run complete scan for remediation steps.' });
+                detectedIssues.push({
+                    severity: sev,
+                    filePath: '—',
+                    rule: 'Aggregated from summary',
+                    impact: 'See detailed report for file-level findings.',
+                    fix: 'Run complete scan for remediation steps.'
+                });
             }
         });
         return {
             ...reportJson,
-            gate: { pass: s.gatePass ?? true, blockingCount: (sc.critical || 0) + (sc.high || 0), warningCount: (sc.medium || 0) + (sc.low || 0) },
+            gate: {
+                pass: s.gatePass ?? true,
+                blockingCount: (sc.critical || 0) + (sc.high || 0),
+                warningCount: (sc.medium || 0) + (sc.low || 0)
+            },
             qualityScore: s.qualityScore ?? 100,
             totalFiles: s.filesScanned || s.gateRepositoryFilesTotal || 0,
             issueCount: detectedIssues.length,
@@ -89,7 +110,8 @@ function normalizeReport(reportJson) {
                 blockingCount: critical + high,
                 warningCount: moderate + low
             },
-            qualityScore: h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
+            qualityScore:
+                h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
             totalFiles: pkgCount,
             issueCount: critical + high + moderate + low,
             detectedIssues: [],
@@ -119,7 +141,8 @@ function normalizeReport(reportJson) {
                     blockingCount: critical + high,
                     warningCount: moderate + low
                 },
-                qualityScore: h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
+                qualityScore:
+                    h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
                 totalFiles: pkgCount,
                 issueCount: critical + high + moderate + low,
                 detectedIssues: [],
@@ -156,12 +179,49 @@ function normalizeReport(reportJson) {
 
 function getTierConfig(tier) {
     const configs = {
-        euai: { label: 'EU AI Act Sprint', kicker: 'SimpleBeacon · EU AI Act Readiness', subtitle: 'EU AI Act compliance deliverable — Article 52, 10, and 13 readiness assessment.', badge: 'EU AI ACT', badgeClass: 'badge-gold' },
-        executive: { label: 'Executive Risk Certificate', kicker: 'SimpleBeacon · Executive Risk Certificate', subtitle: 'Executive clearance — pre-launch security gate attestation.', badge: 'EXECUTIVE', badgeClass: 'badge-gold' },
-        instant: { label: 'Instant Code Hygiene Report', kicker: 'SimpleBeacon · Instant Code Hygiene Report', subtitle: 'Quick-turn security snapshot — lightweight gate scan with credential, mock data, and AI pattern detection.', badge: 'INSTANT', badgeClass: 'badge-pass' },
-        community: { label: 'AI Slop Audit', kicker: 'SimpleBeacon · Community Audit', subtitle: 'Complimentary AI slop and leak detection — open source, unlimited scans.', badge: 'COMMUNITY', badgeClass: 'badge-pass' },
-        agency: { label: 'Agency License', kicker: 'SimpleBeacon · Agency Partner Certificate', subtitle: 'Agency partner deliverable — white-label security attestation.', badge: 'AGENCY', badgeClass: 'badge-gold' },
-        universal: { label: 'Operator License', kicker: 'SimpleBeacon · Operator Vault Certificate', subtitle: 'Operator vault — full platform access with all engines.', badge: 'OPERATOR', badgeClass: 'badge-gold' }
+        euai: {
+            label: 'EU AI Act Sprint',
+            kicker: 'SimpleBeacon · EU AI Act Readiness',
+            subtitle: 'EU AI Act compliance deliverable — Article 52, 10, and 13 readiness assessment.',
+            badge: 'EU AI ACT',
+            badgeClass: 'badge-gold'
+        },
+        executive: {
+            label: 'Executive Risk Certificate',
+            kicker: 'SimpleBeacon · Executive Risk Certificate',
+            subtitle: 'Executive clearance — pre-launch security gate attestation.',
+            badge: 'EXECUTIVE',
+            badgeClass: 'badge-gold'
+        },
+        instant: {
+            label: 'Instant Code Hygiene Report',
+            kicker: 'SimpleBeacon · Instant Code Hygiene Report',
+            subtitle:
+                'Quick-turn security snapshot — lightweight gate scan with credential, mock data, and AI pattern detection.',
+            badge: 'INSTANT',
+            badgeClass: 'badge-pass'
+        },
+        community: {
+            label: 'AI Slop Audit',
+            kicker: 'SimpleBeacon · Community Audit',
+            subtitle: 'Complimentary AI slop and leak detection — open source, unlimited scans.',
+            badge: 'COMMUNITY',
+            badgeClass: 'badge-pass'
+        },
+        agency: {
+            label: 'Agency License',
+            kicker: 'SimpleBeacon · Agency Partner Certificate',
+            subtitle: 'Agency partner deliverable — white-label security attestation.',
+            badge: 'AGENCY',
+            badgeClass: 'badge-gold'
+        },
+        universal: {
+            label: 'Operator License',
+            kicker: 'SimpleBeacon · Operator Vault Certificate',
+            subtitle: 'Operator vault — full platform access with all engines.',
+            badge: 'OPERATOR',
+            badgeClass: 'badge-gold'
+        }
     };
     return configs[tier] || configs.executive;
 }
@@ -170,19 +230,28 @@ function buildModuleHtml(title, icon, data, projectName) {
     const safeTitle = escapeHtml(title);
     const safeIcon = escapeHtml(icon);
     const safeProject = escapeHtml(projectName);
-    const rows = Object.entries(data || {}).map(([key, val]) => {
-        const safeKey = escapeHtml(key);
-        if (Array.isArray(val)) {
-            if (val.length === 0) return `<tr><td>${safeKey}</td><td><em>None found</em></td></tr>`;
-            const items = val.slice(0, 10).map(v => typeof v === 'string' ? `<li>${escapeHtml(v)}</li>` : `<li><code>${escapeHtml(JSON.stringify(v).slice(0, 120))}</code></li>`).join('');
-            return `<tr><td>${safeKey}</td><td><ul style="margin:0;padding-left:18px;">${items}${val.length > 10 ? `<li><em>...and ${val.length - 10} more</em></li>` : ''}</ul></td></tr>`;
-        }
-        if (typeof val === 'object' && val !== null) {
-            const jsonStr = JSON.stringify(val, null, 2);
-            return `<tr><td>${safeKey}</td><td><code style="font-size:0.8rem;">${escapeHtml(jsonStr.slice(0, 300))}${jsonStr.length > 300 ? '...' : ''}</code></td></tr>`;
-        }
-        return `<tr><td>${safeKey}</td><td><strong>${escapeHtml(val)}</strong></td></tr>`;
-    }).join('');
+    const rows = Object.entries(data || {})
+        .map(([key, val]) => {
+            const safeKey = escapeHtml(key);
+            if (Array.isArray(val)) {
+                if (val.length === 0) return `<tr><td>${safeKey}</td><td><em>None found</em></td></tr>`;
+                const items = val
+                    .slice(0, 10)
+                    .map(v =>
+                        typeof v === 'string'
+                            ? `<li>${escapeHtml(v)}</li>`
+                            : `<li><code>${escapeHtml(JSON.stringify(v).slice(0, 120))}</code></li>`
+                    )
+                    .join('');
+                return `<tr><td>${safeKey}</td><td><ul style="margin:0;padding-left:18px;">${items}${val.length > 10 ? `<li><em>...and ${val.length - 10} more</em></li>` : ''}</ul></td></tr>`;
+            }
+            if (typeof val === 'object' && val !== null) {
+                const jsonStr = JSON.stringify(val, null, 2);
+                return `<tr><td>${safeKey}</td><td><code style="font-size:0.8rem;">${escapeHtml(jsonStr.slice(0, 300))}${jsonStr.length > 300 ? '...' : ''}</code></td></tr>`;
+            }
+            return `<tr><td>${safeKey}</td><td><strong>${escapeHtml(val)}</strong></td></tr>`;
+        })
+        .join('');
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -218,12 +287,20 @@ ${rows || '<tr><td colspan="2"><em>No data available for this module.</em></td><
 
 function buildEuComplianceCertificateHtml(reportJson, payload) {
     const eu = reportJson.euAiActSummary || {};
-    const projectName = escapeHtml(reportJson.projectRoot || reportJson.projectPath || reportJson.projectName || payload.projectName || 'Project');
+    const projectName = escapeHtml(
+        reportJson.projectRoot || reportJson.projectPath || reportJson.projectName || payload.projectName || 'Project'
+    );
     const clientName = escapeHtml(payload.clientName || payload.email || 'Client');
     const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const isoDate = new Date().toISOString();
-    const reportId = 'SB-EUAI-' + isoDate.slice(0, 10).replace(/-/g, '') + '-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-    const seal = crypto.createHash('sha256').update(reportId + projectName + isoDate).digest('hex').toUpperCase().slice(0, 32);
+    const reportId =
+        'SB-EUAI-' + isoDate.slice(0, 10).replace(/-/g, '') + '-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const seal = crypto
+        .createHash('sha256')
+        .update(reportId + projectName + isoDate)
+        .digest('hex')
+        .toUpperCase()
+        .slice(0, 32);
 
     const aiCount = eu.aiSystemIndicators || 0;
     const hrCount = eu.highRiskIndicators || 0;
@@ -235,10 +312,14 @@ function buildEuComplianceCertificateHtml(reportJson, payload) {
     const warnCount = controls.filter(c => c.status !== 'PASS' && c.status !== 'FAIL').length;
     const overallPass = failCount === 0 && aiCount === 0;
 
-    const controlRows = controls.map(c => {
-        const icon = c.status === 'PASS' ? '✅' : c.status === 'FAIL' ? '❌' : '⚠️';
-        return `<tr><td>${icon} ${escapeHtml(c.controlId || '—')}</td><td>${escapeHtml(c.title || '—')}</td><td>${escapeHtml(c.status || 'N/A')}</td><td>${escapeHtml(c.article || 'N/A')}</td></tr>`;
-    }).join('') || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;"><em>No control assessments recorded.</em></td></tr>';
+    const controlRows =
+        controls
+            .map(c => {
+                const icon = c.status === 'PASS' ? '✅' : c.status === 'FAIL' ? '❌' : '⚠️';
+                return `<tr><td>${icon} ${escapeHtml(c.controlId || '—')}</td><td>${escapeHtml(c.title || '—')}</td><td>${escapeHtml(c.status || 'N/A')}</td><td>${escapeHtml(c.article || 'N/A')}</td></tr>`;
+            })
+            .join('') ||
+        '<tr><td colspan="4" style="text-align:center;color:#94a3b8;"><em>No control assessments recorded.</em></td></tr>';
 
     const docsFound = (eu.documentationFound || []).slice(0, 8);
     const docList = docsFound.length
@@ -340,20 +421,38 @@ function buildCertificateHtml(reportJson, payload) {
     const projectName = data.projectRoot || data.projectPath || data.projectName || payload.projectName || 'Project';
     const clientName = payload.clientName || 'Demo Client';
     const gatePass = data.gate?.pass ? 'PASS' : 'REVIEW';
-    const reportId = 'SB-AUD-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-    const nowStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const reportId =
+        'SB-AUD-' +
+        new Date().toISOString().slice(0, 10).replace(/-/g, '') +
+        '-' +
+        crypto.randomBytes(4).toString('hex').toUpperCase();
+    const nowStr = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
     // Normalize issues from various report shapes (detectedIssues, issues, rawIssues)
-    const normalizeIssue = (issue) => ({
+    const normalizeIssue = issue => ({
         severity: issue.severity || 'low',
-        filePath: issue.filePath || (Array.isArray(issue.filePaths) && issue.filePaths[0]) || (Array.isArray(issue.affectedFiles) && issue.affectedFiles[0]) || issue.file || '—',
+        filePath:
+            issue.filePath ||
+            (Array.isArray(issue.filePaths) && issue.filePaths[0]) ||
+            (Array.isArray(issue.affectedFiles) && issue.affectedFiles[0]) ||
+            issue.file ||
+            '—',
         rule: issue.rule || issue.type || '—',
         impact: issue.impact || issue.recommendation || 'Review and remediate before next release.',
         fix: issue.fix || issue.recommendation || 'Review file manually and apply safe remediation.',
         ...issue
     });
-    const detectedIssues = (data.detectedIssues?.length ? data.detectedIssues : data.issues?.length ? data.issues : data.rawIssues || []).map(normalizeIssue);
+    const detectedIssues = (
+        data.detectedIssues?.length ? data.detectedIssues : data.issues?.length ? data.issues : data.rawIssues || []
+    ).map(normalizeIssue);
     const credentialHits = data.gate?.blockingCount || 0;
-    const totalFiles = data.totalFiles || data.filesAnalyzed || data.repositoryFilesTotal || data.summary?.repositoryFiles || 0;
+    const totalFiles =
+        data.totalFiles || data.filesAnalyzed || data.repositoryFilesTotal || data.summary?.repositoryFiles || 0;
     const qualityScore = data.qualityScore ?? data.summary?.qualityScore ?? 0;
 
     // Extract all 15 analysis sections
@@ -384,49 +483,169 @@ function buildCertificateHtml(reportJson, payload) {
         const todoMarkers = data.todoMarkerCount ?? data.roadmap?.todoCount ?? null;
         const phases = [];
         if ((credFindings != null && credFindings > 0) || (data.gate?.blockingIssues || []).length > 0) {
-            phases.push({ id: 'security', title: 'Phase 1: Security Hardening', severity: 'critical', effort: '1–2 days', description: `Address ${credFindings || 0} credential and production leak finding(s).`, tasks: [`Rotate ${credFindings || 0} exposed credential(s)`, 'Add .env to .gitignore', 'Re-run gate scan'], progress: 0, status: 'pending' });
+            phases.push({
+                id: 'security',
+                title: 'Phase 1: Security Hardening',
+                severity: 'critical',
+                effort: '1–2 days',
+                description: `Address ${credFindings || 0} credential and production leak finding(s).`,
+                tasks: [
+                    `Rotate ${credFindings || 0} exposed credential(s)`,
+                    'Add .env to .gitignore',
+                    'Re-run gate scan'
+                ],
+                progress: 0,
+                status: 'pending'
+            });
         }
         const hasIntegrityMetrics = invalidJson != null || emptyFiles != null;
         if (hasIntegrityMetrics) {
             const allClean = (invalidJson === 0 || invalidJson == null) && (emptyFiles === 0 || emptyFiles == null);
-            phases.push({ id: 'integrity', title: `Phase ${phases.length + 1}: Data Integrity`, severity: (invalidJson > 0 || emptyFiles > 0) ? 'high' : 'medium', effort: '2–4 days', description: allClean ? 'Data integrity verified — no structural issues detected.' : `Resolve structural issues${invalidJson > 0 ? ': ' + invalidJson + ' invalid JSON' : ''}${emptyFiles > 0 ? ': ' + emptyFiles + ' empty files' : ''}.`, tasks: [...(invalidJson > 0 ? [`Fix ${invalidJson} invalid JSON file(s)`] : []), ...(emptyFiles > 0 ? [`Remove ${emptyFiles} empty file(s)`] : []), 'Validate all JSON', 'Re-run scan'], progress: allClean ? 100 : 0, status: allClean ? 'completed' : 'pending' });
+            phases.push({
+                id: 'integrity',
+                title: `Phase ${phases.length + 1}: Data Integrity`,
+                severity: invalidJson > 0 || emptyFiles > 0 ? 'high' : 'medium',
+                effort: '2–4 days',
+                description: allClean
+                    ? 'Data integrity verified — no structural issues detected.'
+                    : `Resolve structural issues${invalidJson > 0 ? ': ' + invalidJson + ' invalid JSON' : ''}${emptyFiles > 0 ? ': ' + emptyFiles + ' empty files' : ''}.`,
+                tasks: [
+                    ...(invalidJson > 0 ? [`Fix ${invalidJson} invalid JSON file(s)`] : []),
+                    ...(emptyFiles > 0 ? [`Remove ${emptyFiles} empty file(s)`] : []),
+                    'Validate all JSON',
+                    'Re-run scan'
+                ],
+                progress: allClean ? 100 : 0,
+                status: allClean ? 'completed' : 'pending'
+            });
         }
         const hasConsistencyMetrics = dupes != null;
         if (hasConsistencyMetrics) {
             const allClean = dupes === 0 || dupes == null;
-            phases.push({ id: 'consistency', title: `Phase ${phases.length + 1}: Consistency & Deduplication`, severity: dupes > 5 ? 'high' : 'medium', effort: '3–5 days', description: allClean ? 'Consistency verified — no duplicates or naming drift.' : `Eliminate redundancy${dupes > 0 ? ': ' + dupes + ' duplicate group(s)' : ''}.`, tasks: [...(dupes > 0 ? [`Consolidate ${dupes} duplicate group(s)`] : []), 'Standardize naming conventions', 'Document canonical file locations'], progress: allClean ? 100 : 0, status: allClean ? 'completed' : 'pending' });
+            phases.push({
+                id: 'consistency',
+                title: `Phase ${phases.length + 1}: Consistency & Deduplication`,
+                severity: dupes > 5 ? 'high' : 'medium',
+                effort: '3–5 days',
+                description: allClean
+                    ? 'Consistency verified — no duplicates or naming drift.'
+                    : `Eliminate redundancy${dupes > 0 ? ': ' + dupes + ' duplicate group(s)' : ''}.`,
+                tasks: [
+                    ...(dupes > 0 ? [`Consolidate ${dupes} duplicate group(s)`] : []),
+                    'Standardize naming conventions',
+                    'Document canonical file locations'
+                ],
+                progress: allClean ? 100 : 0,
+                status: allClean ? 'completed' : 'pending'
+            });
         }
         const comp = data.compliance || {};
         const licenseCount = comp.licenseCount != null ? Number(comp.licenseCount) : null;
         const securityCount = comp.securityCount != null ? Number(comp.securityCount) : null;
         const totalFiles = data.totalFiles ?? data.repositoryFilesTotal ?? data.summary?.repositoryFiles ?? 0;
         const hasGovFindings = (comp.govFindings || []).length > 0;
-        if (((licenseCount != null && licenseCount > 0) || (securityCount != null && securityCount > 0)) && (totalFiles >= 20 || hasGovFindings)) {
-            phases.push({ id: 'compliance', title: `Phase ${phases.length + 1}: Governance & Compliance`, severity: 'medium', effort: '2–3 days', description: `${licenseCount || 0} license file(s), ${securityCount || 0} security file(s).`, tasks: [...(licenseCount > 0 ? [`Audit ${licenseCount} open-source license file(s)`] : []), ...(securityCount > 0 ? [`Review ${securityCount} security/governance file(s)`] : []), 'Verify license compatibility', 'Document governance policies'], progress: 0, status: 'pending' });
+        if (
+            ((licenseCount != null && licenseCount > 0) || (securityCount != null && securityCount > 0)) &&
+            (totalFiles >= 20 || hasGovFindings)
+        ) {
+            phases.push({
+                id: 'compliance',
+                title: `Phase ${phases.length + 1}: Governance & Compliance`,
+                severity: 'medium',
+                effort: '2–3 days',
+                description: `${licenseCount || 0} license file(s), ${securityCount || 0} security file(s).`,
+                tasks: [
+                    ...(licenseCount > 0 ? [`Audit ${licenseCount} open-source license file(s)`] : []),
+                    ...(securityCount > 0 ? [`Review ${securityCount} security/governance file(s)`] : []),
+                    'Verify license compatibility',
+                    'Document governance policies'
+                ],
+                progress: 0,
+                status: 'pending'
+            });
         }
         if ((euAiAct != null && euAiAct > 0) || data.euAiActSummary) {
-            const s = data.euAiActSummary || {}, hr = Number(s.highRiskIndicators) || 0, tg = Number(s.transparencyGaps) || 0, ai = Number(s.aiSystemIndicators) || 0;
+            const s = data.euAiActSummary || {},
+                hr = Number(s.highRiskIndicators) || 0,
+                tg = Number(s.transparencyGaps) || 0,
+                ai = Number(s.aiSystemIndicators) || 0;
             const allClean = hr === 0 && tg === 0 && ai === 0;
-            phases.push({ id: 'euaiact', title: `Phase ${phases.length + 1}: EU AI Act Compliance`, severity: hr > 0 ? 'critical' : (ai > 0 ? 'high' : 'medium'), effort: '5–10 days', description: `Regulatory readiness: ${ai} AI indicators, ${hr} high-risk, ${tg} transparency gaps, ${s.documentationArtifacts || 0} artifacts.`, tasks: [...(hr > 0 ? [`Address ${hr} high-risk indicator(s)`] : []), ...(tg > 0 ? [`Close ${tg} transparency gap(s)`] : []), ...(ai > 0 ? [`Review ${ai} AI system indicator(s) (Art. 6)`] : []), 'Generate documentation artifacts', 'Review AI system classification (Art. 6)', 'Schedule legal review'], progress: allClean ? 100 : 0, status: allClean ? 'completed' : 'pending' });
+            phases.push({
+                id: 'euaiact',
+                title: `Phase ${phases.length + 1}: EU AI Act Compliance`,
+                severity: hr > 0 ? 'critical' : ai > 0 ? 'high' : 'medium',
+                effort: '5–10 days',
+                description: `Regulatory readiness: ${ai} AI indicators, ${hr} high-risk, ${tg} transparency gaps, ${s.documentationArtifacts || 0} artifacts.`,
+                tasks: [
+                    ...(hr > 0 ? [`Address ${hr} high-risk indicator(s)`] : []),
+                    ...(tg > 0 ? [`Close ${tg} transparency gap(s)`] : []),
+                    ...(ai > 0 ? [`Review ${ai} AI system indicator(s) (Art. 6)`] : []),
+                    'Generate documentation artifacts',
+                    'Review AI system classification (Art. 6)',
+                    'Schedule legal review'
+                ],
+                progress: allClean ? 100 : 0,
+                status: allClean ? 'completed' : 'pending'
+            });
         }
         if (qs != null && (qs < 95 || (todoMarkers != null && todoMarkers > 0))) {
-            phases.push({ id: 'optimization', title: `Phase ${phases.length + 1}: Quality Optimization`, severity: qs < 70 ? 'high' : 'low', effort: 'Ongoing', description: `Drive quality score from ${qs}/100 toward 95+.`, tasks: [...(todoMarkers != null && todoMarkers > 0 ? [`Address ${todoMarkers} TODO or FIXME marker(s) in source code`] : []), ...(qs < 85 ? ['Refactor low-quality modules (quality score < 85)'] : []), 'Add test coverage for uncovered modules', 'Install pre-commit hooks for automated scanning', 'Schedule monthly quality gate reviews'], progress: Math.min(100, Math.round(qs)), status: qs >= 95 ? 'completed' : 'in-progress' });
+            phases.push({
+                id: 'optimization',
+                title: `Phase ${phases.length + 1}: Quality Optimization`,
+                severity: qs < 70 ? 'high' : 'low',
+                effort: 'Ongoing',
+                description: `Drive quality score from ${qs}/100 toward 95+.`,
+                tasks: [
+                    ...(todoMarkers != null && todoMarkers > 0
+                        ? [`Address ${todoMarkers} TODO or FIXME marker(s) in source code`]
+                        : []),
+                    ...(qs < 85 ? ['Refactor low-quality modules (quality score < 85)'] : []),
+                    'Add test coverage for uncovered modules',
+                    'Install pre-commit hooks for automated scanning',
+                    'Schedule monthly quality gate reviews'
+                ],
+                progress: Math.min(100, Math.round(qs)),
+                status: qs >= 95 ? 'completed' : 'in-progress'
+            });
         }
         if (phases.length === 0) {
-            phases.push({ id: 'perfect', title: 'All Systems Green', severity: 'low', effort: 'None', description: 'Excellent data quality — no actionable findings in any measured category.', tasks: ['Schedule next scan in 30 days', 'Document quality maintenance procedures'], progress: 100, status: 'completed' });
+            phases.push({
+                id: 'perfect',
+                title: 'All Systems Green',
+                severity: 'low',
+                effort: 'None',
+                description: 'Excellent data quality — no actionable findings in any measured category.',
+                tasks: ['Schedule next scan in 30 days', 'Document quality maintenance procedures'],
+                progress: 100,
+                status: 'completed'
+            });
         }
         remediationPhases = phases;
     }
     const completedPhases = remediationPhases.filter(p => p.status === 'completed' || p.progress === 100).length;
     const pendingPhases = remediationPhases.filter(p => p.status === 'pending').length;
     const criticalPhases = remediationPhases.filter(p => p.severity === 'critical' && p.status !== 'completed').length;
-    const phaseRows = remediationPhases.map(p => {
-        const statusLabel = p.status === 'completed' ? '✅ Complete' : p.status === 'in-progress' ? '🔄 In Progress' : '⏳ Pending';
-        const severityClass = p.severity === 'critical' ? 'sev-critical' : p.severity === 'high' ? 'sev-high' : p.severity === 'medium' ? 'sev-medium' : 'sev-low';
-        const tasks = (p.tasks || []).slice(0, 4).map(t => `<li>${escapeHtml(t)}</li>`).join('');
-        return `<tr><td><span class="sev ${severityClass}">${(p.severity || 'low').toUpperCase()}</span></td><td><strong>${escapeHtml(p.title)}</strong><br><span style="color:#8b949e;font-size:0.8em;">${escapeHtml(p.description || '')}</span></td><td>${statusLabel}<br><span style="color:#8b949e;font-size:0.8em;">${p.progress || 0}%</span></td><td><ul style="margin:0;padding-left:16px;">${tasks}</ul></td><td>${escapeHtml(p.effort || 'Unknown')}</td></tr>`;
-    }).join('');
-    const remediationHtml = remediationPhases.length ? `
+    const phaseRows = remediationPhases
+        .map(p => {
+            const statusLabel =
+                p.status === 'completed' ? '✅ Complete' : p.status === 'in-progress' ? '🔄 In Progress' : '⏳ Pending';
+            const severityClass =
+                p.severity === 'critical'
+                    ? 'sev-critical'
+                    : p.severity === 'high'
+                      ? 'sev-high'
+                      : p.severity === 'medium'
+                        ? 'sev-medium'
+                        : 'sev-low';
+            const tasks = (p.tasks || [])
+                .slice(0, 4)
+                .map(t => `<li>${escapeHtml(t)}</li>`)
+                .join('');
+            return `<tr><td><span class="sev ${severityClass}">${(p.severity || 'low').toUpperCase()}</span></td><td><strong>${escapeHtml(p.title)}</strong><br><span style="color:#8b949e;font-size:0.8em;">${escapeHtml(p.description || '')}</span></td><td>${statusLabel}<br><span style="color:#8b949e;font-size:0.8em;">${p.progress || 0}%</span></td><td><ul style="margin:0;padding-left:16px;">${tasks}</ul></td><td>${escapeHtml(p.effort || 'Unknown')}</td></tr>`;
+        })
+        .join('');
+    const remediationHtml = remediationPhases.length
+        ? `
     <section class="section">
       <div class="section-num">Section 04-A</div>
       <h2>Remediation Roadmap</h2>
@@ -441,17 +660,26 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><th>Severity</th><th>Phase</th><th>Status</th><th>Tasks</th><th>Effort</th></tr>
         ${phaseRows}
       </table>
-    </section>` : '';
+    </section>`
+        : '';
 
     // Build mock data rows
-    const mockRows = (mockDataCategories || []).map(cat => {
-        const files = (cat.affectedFiles || []).slice(0, 3).join(', ');
-        return `<tr><td>${escapeHtml(cat.category || 'Mock Data')}</td><td>${cat.fileCount || 0}</td><td>${escapeHtml(cat.confidence || 'medium')}</td><td>${escapeHtml(cat.description || '')}</td><td>${escapeHtml(files)}</td></tr>`;
-    }).join('');
+    const mockRows = (mockDataCategories || [])
+        .map(cat => {
+            const files = (cat.affectedFiles || []).slice(0, 3).join(', ');
+            return `<tr><td>${escapeHtml(cat.category || 'Mock Data')}</td><td>${cat.fileCount || 0}</td><td>${escapeHtml(cat.confidence || 'medium')}</td><td>${escapeHtml(cat.description || '')}</td><td>${escapeHtml(files)}</td></tr>`;
+        })
+        .join('');
 
     // Build EU AI Act section
-    const hasEuAiFindings = (euAiActSummary.highRiskIndicators || 0) > 0 || (euAiActSummary.aiSystemIndicators || 0) > 0 || (euAiActSummary.transparencyGaps || 0) > 0 || (euAiActSummary.documentationArtifacts || 0) > 0 || ((euAiActSummary.documentationFound || []).length > 0);
-    const euAiaHtml = hasEuAiFindings ? `
+    const hasEuAiFindings =
+        (euAiActSummary.highRiskIndicators || 0) > 0 ||
+        (euAiActSummary.aiSystemIndicators || 0) > 0 ||
+        (euAiActSummary.transparencyGaps || 0) > 0 ||
+        (euAiActSummary.documentationArtifacts || 0) > 0 ||
+        (euAiActSummary.documentationFound || []).length > 0;
+    const euAiaHtml = hasEuAiFindings
+        ? `
     <section class="section">
       <div class="section-num">Section 02-A</div>
       <h2>EU AI Act Readiness Assessment</h2>
@@ -460,11 +688,12 @@ function buildCertificateHtml(reportJson, payload) {
         <div class="kpi"><strong>${euAiActSummary.highRiskIndicators || 0}</strong><span>High-risk indicators</span></div>
         <div class="kpi"><strong>${euAiActSummary.aiSystemIndicators || 0}</strong><span>AI system indicators</span></div>
         <div class="kpi"><strong>${euAiActSummary.transparencyGaps || 0}</strong><span>Transparency gaps</span></div>
-        <div class="kpi"><strong>${(euAiActSummary.documentationArtifacts || 0)}</strong><span>Doc artifacts</span></div>
+        <div class="kpi"><strong>${euAiActSummary.documentationArtifacts || 0}</strong><span>Doc artifacts</span></div>
         <div class="kpi"><strong>${(euAiActSummary.documentationFound || []).length}</strong><span>Governance files</span></div>
       </div>
       <p class="meta">${escapeHtml(euAiActSummary.deadlineNote || 'Review EU AI Act compliance requirements.')}</p>
-    </section>` : '';
+    </section>`
+        : '';
 
     // Build conditional analysis module subsections
     const secGate = `<h3>&#128737; 1. SimpleBeacon Gate</h3>
@@ -476,24 +705,30 @@ function buildCertificateHtml(reportJson, payload) {
       </table>`;
 
     const hasConsolidation = (consolidation.monorepoMarkers || 0) > 0 || (consolidation.duplicateGroups || 0) > 0;
-    const secConsolidation = hasConsolidation ? `<h3>&#128260; 2. Consolidation</h3>
+    const secConsolidation = hasConsolidation
+        ? `<h3>&#128260; 2. Consolidation</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Monorepo markers</td><td>${consolidation.monorepoMarkers || 0}</td></tr>
         <tr><td>Duplicate groups</td><td>${consolidation.duplicateGroups || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(consolidation.summary || 'No consolidation issues detected.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
-    const secMockData = mockRows ? `<h3>&#128269; 3. Mock Data Detection</h3>
-      <table class="data-table"><tr><th>Category</th><th>Files</th><th>Confidence</th><th>Description</th><th>Sample files</th></tr>${mockRows}</table>` : '';
+    const secMockData = mockRows
+        ? `<h3>&#128269; 3. Mock Data Detection</h3>
+      <table class="data-table"><tr><th>Category</th><th>Files</th><th>Confidence</th><th>Description</th><th>Sample files</th></tr>${mockRows}</table>`
+        : '';
 
     const hasRoadmap = (roadmap.todoCount || 0) > 0;
-    const secRoadmap = hasRoadmap ? `<h3>&#128506; 4. Roadmap Markers</h3>
+    const secRoadmap = hasRoadmap
+        ? `<h3>&#128506; 4. Roadmap Markers</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>TODO or FIXME files</td><td>${roadmap.todoCount || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(roadmap.summary || 'No roadmap markers found.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
     const secCodebase = `<h3>&#128187; 5. Codebase Analysis</h3>
       <table class="data-table">
@@ -503,49 +738,61 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><td>Summary</td><td>${escapeHtml(codebase.summary || `${totalFiles} files analyzed.`)}</td></tr>
       </table>`;
 
-    const hasFileReduction = ((fileReduction.unusedAssetCandidates || []).length > 0) || (fileReduction.duplicateGroups || 0) > 0;
-    const secFileReduction = hasFileReduction ? `<h3>&#128230; 6. File Reduction</h3>
+    const hasFileReduction =
+        (fileReduction.unusedAssetCandidates || []).length > 0 || (fileReduction.duplicateGroups || 0) > 0;
+    const secFileReduction = hasFileReduction
+        ? `<h3>&#128230; 6. File Reduction</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Asset candidates</td><td>${(fileReduction.unusedAssetCandidates || []).length}</td></tr>
         <tr><td>Duplicate groups</td><td>${fileReduction.duplicateGroups || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(fileReduction.summary || 'No file reduction opportunities detected.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
     const hasDataQuality = (dataQuality.emptyJsonCount || 0) > 0;
-    const secDataQuality = hasDataQuality ? `<h3>&#129516; 7. Data Quality</h3>
+    const secDataQuality = hasDataQuality
+        ? `<h3>&#129516; 7. Data Quality</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Empty/trivial JSON</td><td>${dataQuality.emptyJsonCount || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(dataQuality.summary || 'No data quality issues detected.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
     const hasCleanup = (cleanup.debugArtifactCount || 0) > 0;
-    const secCleanup = hasCleanup ? `<h3>&#129529; 8. Cleanup Assistant</h3>
+    const secCleanup = hasCleanup
+        ? `<h3>&#129529; 8. Cleanup Assistant</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Debug artifacts</td><td>${cleanup.debugArtifactCount || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(cleanup.summary || 'No cleanup items found.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
     const hasNpm = (npmAudit.packageJsonCount || 0) > 0;
-    const secNpm = hasNpm ? `<h3>&#128230; 9. npm Audit</h3>
+    const secNpm = hasNpm
+        ? `<h3>&#128230; 9. npm Audit</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>package.json files</td><td>${npmAudit.packageJsonCount || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(npmAudit.summary || 'No package.json files detected.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
     const hasCompliance = (compliance.licenseCount || 0) > 0 || (compliance.securityCount || 0) > 0;
-    const secCompliance = hasCompliance ? `<h3>&#9989; 10. Compliance</h3>
+    const secCompliance = hasCompliance
+        ? `<h3>&#9989; 10. Compliance</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>License files</td><td>${compliance.licenseCount || 0}</td></tr>
         <tr><td>Security/governance files</td><td>${compliance.securityCount || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(compliance.summary || 'No governance files detected.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
-    const secEuAi = hasEuAiFindings ? `<h3>&#127757; 11. EU AI Act Sprint</h3>
+    const secEuAi = hasEuAiFindings
+        ? `<h3>&#127757; 11. EU AI Act Sprint</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>High-risk indicators</td><td>${euAiActSummary.highRiskIndicators || 0}</td></tr>
@@ -553,47 +800,90 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><td>Transparency gaps</td><td>${euAiActSummary.transparencyGaps || 0}</td></tr>
         <tr><td>Documentation artifacts</td><td>${euAiActSummary.documentationArtifacts || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(euAiActSummary.deadlineNote || 'Review EU AI Act requirements.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
     const depVulnCount = dependencyAudit.vulnerabilityCount || dependencyAudit.critical || dependencyAudit.high || 0;
     const hasDepAudit = depVulnCount > 0 || (dependencyAudit.affectedPackages || []).length > 0;
-    const secDepAudit = hasDepAudit ? `<h3>&#128274; 12. Dependency Vulnerabilities</h3>
+    const secDepAudit = hasDepAudit
+        ? `<h3>&#128274; 12. Dependency Vulnerabilities</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Vulnerabilities</td><td>${dependencyAudit.vulnerabilityCount || 0}</td></tr>
         <tr><td>Critical</td><td>${dependencyAudit.critical || 0}</td></tr>
         <tr><td>High</td><td>${dependencyAudit.high || 0}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(dependencyAudit.summary || 'No dependency vulnerabilities found.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
-    const hasBuildReadiness = buildReadiness.readinessScore !== undefined || (buildReadiness.checklist || []).length > 0;
-    const secBuildReadiness = hasBuildReadiness ? `<h3>&#127959; 13. Build Readiness</h3>
+    const hasBuildReadiness =
+        buildReadiness.readinessScore !== undefined || (buildReadiness.checklist || []).length > 0;
+    const secBuildReadiness = hasBuildReadiness
+        ? `<h3>&#127959; 13. Build Readiness</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Readiness score</td><td>${buildReadiness.readinessScore || 0}%</td></tr>
         <tr><td>Status</td><td>${buildReadiness.readinessStatus || 'UNKNOWN'}</td></tr>
         <tr><td>Critical blockers</td><td>${(buildReadiness.missingCritical || []).length}</td></tr>
         <tr><td>Summary</td><td>${escapeHtml(buildReadiness.summary || 'Build readiness assessment not available.')}</td></tr>
-      </table>` : '';
+      </table>`
+        : '';
 
-    const allSubs = [secGate, secConsolidation, secMockData, secRoadmap, secCodebase, secFileReduction, secDataQuality, secCleanup, secNpm, secCompliance, secEuAi, secDepAudit, secBuildReadiness].filter(Boolean).join('\n      ');
-    const analysisSectionsHtml = allSubs ? `
+    const allSubs = [
+        secGate,
+        secConsolidation,
+        secMockData,
+        secRoadmap,
+        secCodebase,
+        secFileReduction,
+        secDataQuality,
+        secCleanup,
+        secNpm,
+        secCompliance,
+        secEuAi,
+        secDepAudit,
+        secBuildReadiness
+    ]
+        .filter(Boolean)
+        .join('\n      ');
+    const analysisSectionsHtml = allSubs
+        ? `
     <section class="section">
       <div class="section-num">Section 06</div>
       <h2>Analysis Modules — Complete Scan Results</h2>
       <p class="meta">Results from all 15 SimpleBeacon analysis engines run against the repository. Only modules with findings are shown.</p>
       ${allSubs}
-    </section>` : '';
+    </section>`
+        : '';
 
-    const issueRows = detectedIssues.map(issue => {
-        const sev = (issue.severity || 'low').toUpperCase();
-        const sevClass = sev === 'CRITICAL' ? 'sev-critical' : sev === 'HIGH' ? 'sev-high' : sev === 'MEDIUM' ? 'sev-medium' : 'sev-low';
-        const fileSnippet = escapeHtml(issue.filePath || (Array.isArray(issue.filePaths) && issue.filePaths[0]) || (Array.isArray(issue.affectedFiles) && issue.affectedFiles[0]) || issue.file || '—');
-        const rule = escapeHtml(issue.rule || issue.type || '—');
-        const impact = escapeHtml(issue.impact || issue.recommendation || 'Review and remediate before next release.');
-        const fix = escapeHtml(issue.fix || issue.recommendation || 'Review file manually and apply safe remediation.');
-        return `<tr><td><span class="sev ${sevClass}">${sev}</span></td><td><code>${fileSnippet}</code></td><td><code>${rule}</code></td><td class="impact-cell"><span class="impact-badge impact-${sevClass.replace('sev-','')}">${impact}</span></td><td class="recipe-cell">${fix}</td></tr>`;
-    }).join('');
+    const issueRows = detectedIssues
+        .map(issue => {
+            const sev = (issue.severity || 'low').toUpperCase();
+            const sevClass =
+                sev === 'CRITICAL'
+                    ? 'sev-critical'
+                    : sev === 'HIGH'
+                      ? 'sev-high'
+                      : sev === 'MEDIUM'
+                        ? 'sev-medium'
+                        : 'sev-low';
+            const fileSnippet = escapeHtml(
+                issue.filePath ||
+                    (Array.isArray(issue.filePaths) && issue.filePaths[0]) ||
+                    (Array.isArray(issue.affectedFiles) && issue.affectedFiles[0]) ||
+                    issue.file ||
+                    '—'
+            );
+            const rule = escapeHtml(issue.rule || issue.type || '—');
+            const impact = escapeHtml(
+                issue.impact || issue.recommendation || 'Review and remediate before next release.'
+            );
+            const fix = escapeHtml(
+                issue.fix || issue.recommendation || 'Review file manually and apply safe remediation.'
+            );
+            return `<tr><td><span class="sev ${sevClass}">${sev}</span></td><td><code>${fileSnippet}</code></td><td><code>${rule}</code></td><td class="impact-cell"><span class="impact-badge impact-${sevClass.replace('sev-', '')}">${impact}</span></td><td class="recipe-cell">${fix}</td></tr>`;
+        })
+        .join('');
 
     const safeProjectName = escapeHtml(projectName);
     const safeClientName = escapeHtml(clientName);

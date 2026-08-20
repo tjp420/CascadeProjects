@@ -1,22 +1,22 @@
-'use strict';
+"use strict";
 
-const path = require('path');
-const fs = require('fs');
-const { sendError } = require('../lib/response-helpers.cjs');
+const path = require("path");
+const fs = require("fs");
+const { sendError } = require("../lib/response-helpers.cjs");
 
 const {
   buildAssessmentReport,
   buildAuditPayload,
-  buildFictionPatternCatalog
-} = require('../../server/lib/simplebeacon-proxy.cjs');
+  buildFictionPatternCatalog,
+} = require("../../server/lib/simplebeacon-proxy.cjs");
 const {
   buildDashboardPayload,
   buildScanResults,
-  findHistoryEntry
-} = require('../../server/lib/simplebeacon-proxy.cjs');
+  findHistoryEntry,
+} = require("../../server/lib/simplebeacon-proxy.cjs");
 
-const PROJECT_ROOT = path.join(__dirname, '../..');
-const DEMO_DIR = path.join(PROJECT_ROOT, 'data', 'simplebeacon-demo');
+const PROJECT_ROOT = path.join(__dirname, "../..");
+const DEMO_DIR = path.join(PROJECT_ROOT, "data", "simplebeacon-demo");
 
 /**
  * Read JSON from file with optional fallback.
@@ -26,7 +26,7 @@ const DEMO_DIR = path.join(PROJECT_ROOT, 'data', 'simplebeacon-demo');
  */
 async function readJson(filePath, fallback = null) {
   try {
-    const content = await fs.promises.readFile(filePath, 'utf8');
+    const content = await fs.promises.readFile(filePath, "utf8");
     return JSON.parse(content);
   } catch (err) {
     if (fallback !== null) return fallback;
@@ -40,9 +40,9 @@ async function readJson(filePath, fallback = null) {
  */
 async function loadDemoContext() {
   const [report, baseline, history] = await Promise.all([
-    readJson(path.join(DEMO_DIR, 'report.json')),
-    readJson(path.join(DEMO_DIR, 'baseline.json')),
-    readJson(path.join(DEMO_DIR, 'history.json'), [])
+    readJson(path.join(DEMO_DIR, "report.json")),
+    readJson(path.join(DEMO_DIR, "baseline.json")),
+    readJson(path.join(DEMO_DIR, "history.json"), []),
   ]);
   const fictionCatalog = buildFictionPatternCatalog(baseline);
   return { report, baseline, history, fictionCatalog };
@@ -55,7 +55,10 @@ async function loadDemoContext() {
  * @returns {any}
  */
 function demoReadonly(_req, res) {
-  return sendError(res, 403, 'demo_readonly', { message: 'Demo dashboard is read-only. Run npx simplebeacon locally or sign in at /app for your workspace.' });
+  return sendError(res, 403, "demo_readonly", {
+    message:
+      "Demo dashboard is read-only. Run npx simplebeacon locally or sign in at /app for your workspace.",
+  });
 }
 
 /**
@@ -64,106 +67,114 @@ function demoReadonly(_req, res) {
  * @returns {void}
  */
 function setupSimplebeaconDemoAPI(app) {
-  app.get('/api/simplebeacon/demo/report', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/report", async (_req, res) => {
     try {
-      const report = await readJson(path.join(DEMO_DIR, 'report.json'));
+      const report = await readJson(path.join(DEMO_DIR, "report.json"));
       res.json(report);
     } catch (err) {
-      sendError(res, 404, 'Demo report not found', { message: err.message });
+      sendError(res, 404, "Demo report not found", { message: err.message });
     }
   });
 
-  app.get('/api/simplebeacon/demo/baseline', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/baseline", async (_req, res) => {
     try {
-      res.json(await readJson(path.join(DEMO_DIR, 'baseline.json')));
+      res.json(await readJson(path.join(DEMO_DIR, "baseline.json")));
     } catch (err) {
-      sendError(res, 404, 'Demo baseline not found', { message: err.message });
+      sendError(res, 404, "Demo baseline not found", { message: err.message });
     }
   });
 
-  app.get('/api/simplebeacon/demo/config', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/config", async (_req, res) => {
     try {
-      res.json(await readJson(path.join(DEMO_DIR, 'config.json')));
+      res.json(await readJson(path.join(DEMO_DIR, "config.json")));
     } catch (err) {
-      sendError(res, 404, 'Demo config not found', { message: err.message });
+      sendError(res, 404, "Demo config not found", { message: err.message });
     }
   });
 
-  app.get('/api/simplebeacon/demo/history', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/history", async (_req, res) => {
     try {
-      res.json(await readJson(path.join(DEMO_DIR, 'history.json'), []));
+      res.json(await readJson(path.join(DEMO_DIR, "history.json"), []));
     } catch {
       res.json([]);
     }
   });
 
-  app.get('/api/simplebeacon/demo/dashboard', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/dashboard", async (_req, res) => {
     try {
       const context = await loadDemoContext();
       res.json(buildDashboardPayload(context));
     } catch (err) {
-      sendError(res, 404, 'Demo dashboard not found', { message: err.message });
+      sendError(res, 404, "Demo dashboard not found", { message: err.message });
     }
   });
 
-  app.get('/api/simplebeacon/demo/results/:scanId', async (req, res) => {
+  app.get("/api/simplebeacon/demo/results/:scanId", async (req, res) => {
     try {
       const context = await loadDemoContext();
       const entry = findHistoryEntry(context.history, req.params.scanId);
       if (!entry) {
-        return sendError(res, 404, 'Scan not found', { scanId: req.params.scanId });
+        return sendError(res, 404, "Scan not found", {
+          scanId: req.params.scanId,
+        });
       }
       res.json(buildScanResults(context.report, entry, context.baseline));
     } catch (err) {
-      sendError(res, 404, 'Demo results not found', { message: err.message });
+      sendError(res, 404, "Demo results not found", { message: err.message });
     }
   });
 
-  app.get('/api/simplebeacon/demo/assessment', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/assessment", async (_req, res) => {
     try {
       const context = await loadDemoContext();
       const assessment = buildAssessmentReport(context.report, {
-        company: 'Acme Corp (demo honey-pot)',
-        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot'
+        company: "Acme Corp (demo honey-pot)",
+        projectRoot: context.report.projectRoot || "/demo/toxic-honeypot",
       });
       res.json(assessment);
     } catch (err) {
-      sendError(res, 404, 'Demo assessment not found', { message: err.message });
+      sendError(res, 404, "Demo assessment not found", {
+        message: err.message,
+      });
     }
   });
 
-  app.get('/api/simplebeacon/demo/audit', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/audit", async (_req, res) => {
     try {
       const context = await loadDemoContext();
       const assessment = buildAssessmentReport(context.report, {
-        company: 'Acme Corp (demo honey-pot)',
-        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot'
+        company: "Acme Corp (demo honey-pot)",
+        projectRoot: context.report.projectRoot || "/demo/toxic-honeypot",
       });
-      res.json(buildAuditPayload(
-        { ...context, assessment, pageSamples: {}, npmAudit: null },
-        { assessment, npmAudit: null, pageSamples: {} }
-      ));
+      res.json(
+        buildAuditPayload(
+          { ...context, assessment, pageSamples: {}, npmAudit: null },
+          { assessment, npmAudit: null, pageSamples: {} },
+        ),
+      );
     } catch (err) {
-      sendError(res, 404, 'Demo audit not found', { message: err.message });
+      sendError(res, 404, "Demo audit not found", { message: err.message });
     }
   });
 
-  app.get('/api/simplebeacon/demo/config/presets', async (_req, res) => {
+  app.get("/api/simplebeacon/demo/config/presets", async (_req, res) => {
     res.json({ success: true, presets: {} });
   });
 
-  const block = ['scan', 'assess', 'npm-audit', 'cloud-scan'];
+  const block = ["scan", "assess", "npm-audit", "cloud-scan"];
   for (const action of block) {
     app.post(`/api/simplebeacon/demo/${action}`, demoReadonly);
   }
-  app.put('/api/simplebeacon/demo/config', demoReadonly);
-  app.post('/api/simplebeacon/demo/tools/baseline-sync', demoReadonly);
+  app.put("/api/simplebeacon/demo/config", demoReadonly);
+  app.post("/api/simplebeacon/demo/tools/baseline-sync", demoReadonly);
 
-  const { registerOutreachRoutes } = require('../../server/lib/outreach-route.cjs');
+  const {
+    registerOutreachRoutes,
+  } = require("../../server/lib/outreach-route.cjs");
 
   registerOutreachRoutes(app, {
-    dataDir: path.join(PROJECT_ROOT, 'data'),
-    prefixes: ['/api/simplebeacon/outreach']
+    dataDir: path.join(PROJECT_ROOT, "data"),
+    prefixes: ["/api/simplebeacon/outreach"],
   });
 }
 

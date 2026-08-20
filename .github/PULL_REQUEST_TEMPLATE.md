@@ -43,6 +43,7 @@
    - **VS Code**: packages VSIX, publishes to Marketplace, signs with GPG, uploads artifact
 
 > **Tip:** You can dry-run the bump resolution locally:
+>
 > ```bash
 > node scripts/resolve-bump-type.cjs --labels '["release:minor"]' --commits 'feat: add thing'
 > ```
@@ -71,12 +72,14 @@
 ---
 
 > **Pre-PR hygiene gate:**
+>
 > ```bash
 > cd ai-platform
 > npm run simplebeacon:hygiene-gate
 > ```
 >
 > **Install git hooks for automatic pre-commit checks:**
+>
 > ```bash
 > npx simplebeacon hook install
 > ```

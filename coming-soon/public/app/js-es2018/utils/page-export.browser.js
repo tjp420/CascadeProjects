@@ -3,8 +3,18 @@
  */
 import { downloadJson, showToast } from '../utils.js';
 import { FEATURE_CATALOG } from '../services/platformService.js?v=20260716cachefix1';
-import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary } from '../services/analyzeService.js?v=20260726sevfix1';
-import { pipelineStats, prospectsWithSentLog, OUTREACH_PROSPECTS } from '../data/outreach-prospects.js?v=20260716cachefix1';
+import {
+    getScanFileMetrics,
+    resolveDisplayScore,
+    resolveJestTestsLabel,
+    resolvePageSpecsLabel,
+    formatScanScopeSummary
+} from '../services/analyzeService.js?v=20260726sevfix1';
+import {
+    pipelineStats,
+    prospectsWithSentLog,
+    OUTREACH_PROSPECTS
+} from '../data/outreach-prospects.js?v=20260716cachefix1';
 /**
  * Page export filename.
  * @param {string} pageId
@@ -50,20 +60,21 @@ export function renderPageExportButton(pageId, { disabled = false, label = 'Expo
  */
 export function bindPageExportButton(root, pageId, buildPayload, options = {}) {
     var _a;
-    (_a = root.querySelector(`[data-page-export="${pageId}"]`)) === null || _a === void 0 ? void 0 : _a.addEventListener('click', async () => {
-        try {
-            const payload = typeof buildPayload === 'function' ? await buildPayload() : buildPayload;
-            if (!payload) {
-                showToast(options.emptyMessage || 'Nothing to export yet', 'info');
-                return;
-            }
-            downloadPageExport(pageId, payload);
-            showToast(options.successMessage || 'Reports exported', 'success');
-        }
-        catch (err) {
-            showToast(err.message, 'error');
-        }
-    });
+    (_a = root.querySelector(`[data-page-export="${pageId}"]`)) === null || _a === void 0
+        ? void 0
+        : _a.addEventListener('click', async () => {
+              try {
+                  const payload = typeof buildPayload === 'function' ? await buildPayload() : buildPayload;
+                  if (!payload) {
+                      showToast(options.emptyMessage || 'Nothing to export yet', 'info');
+                      return;
+                  }
+                  downloadPageExport(pageId, payload);
+                  showToast(options.successMessage || 'Reports exported', 'success');
+              } catch (err) {
+                  showToast(err.message, 'error');
+              }
+          });
 }
 /**
  * Summarize gate report.
@@ -72,11 +83,13 @@ export function bindPageExportButton(root, pageId, buildPayload, options = {}) {
  */
 function summarizeGateReport(report) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
-    if (!report)
-        return null;
+    if (!report) return null;
     return {
         generatedAt: report.generatedAt || null,
-        gatePass: (_b = (_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) !== null && _b !== void 0 ? _b : null,
+        gatePass:
+            (_b = (_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) !== null && _b !== void 0
+                ? _b
+                : null,
         issueCount: (_c = report.issueCount) !== null && _c !== void 0 ? _c : null,
         qualityScore: (_d = report.qualityScore) !== null && _d !== void 0 ? _d : null,
         schemaCompliance: (_e = report.schemaCompliance) !== null && _e !== void 0 ? _e : null,
@@ -92,8 +105,7 @@ function summarizeGateReport(report) {
  */
 function summarizeBaseline(baseline) {
     var _a;
-    if (!baseline)
-        return null;
+    if (!baseline) return null;
     return {
         syncedAt: baseline.syncedAt || null,
         jestTestsLabel: baseline.jestTestsLabel || null,
@@ -110,15 +122,18 @@ function summarizeBaseline(baseline) {
  */
 function buildScanSnapshot(report, baseline, dashboardHome) {
     var _a, _b, _c;
-    if (!report)
-        return null;
+    if (!report) return null;
     const metrics = getScanFileMetrics(report);
     return {
         ...summarizeGateReport(report),
         consistency: resolveDisplayScore(report),
         jestTests: resolveJestTestsLabel(baseline, dashboardHome),
         pageSpecs: resolvePageSpecsLabel(report, baseline),
-        mockSampleFiles: (_b = (_a = metrics.mockSampleFiles) !== null && _a !== void 0 ? _a : report.totalFiles) !== null && _b !== void 0 ? _b : null,
+        mockSampleFiles:
+            (_b = (_a = metrics.mockSampleFiles) !== null && _a !== void 0 ? _a : report.totalFiles) !== null &&
+            _b !== void 0
+                ? _b
+                : null,
         repositoryFiles: (_c = metrics.repositoryFiles) !== null && _c !== void 0 ? _c : null,
         scopeSummary: formatScanScopeSummary(report)
     };
@@ -184,14 +199,18 @@ export function buildHelpPageExport(app) {
  * @returns {any}
  */
 export function buildFeaturesPageExport(filter = '') {
-    const q = String(filter || '').trim().toLowerCase();
+    const q = String(filter || '')
+        .trim()
+        .toLowerCase();
     const catalog = !q
         ? FEATURE_CATALOG
-        : FEATURE_CATALOG.map((group) => ({
-            ...group,
-            items: group.items.filter((item) => `${item.label} ${item.description} ${item.route} ${group.group}`.toLowerCase().includes(q))
-        })).filter((group) => group.items.length);
-    const items = catalog.flatMap((group) => group.items.map((item) => ({ ...item, group: group.group })));
+        : FEATURE_CATALOG.map(group => ({
+              ...group,
+              items: group.items.filter(item =>
+                  `${item.label} ${item.description} ${item.route} ${group.group}`.toLowerCase().includes(q)
+              )
+          })).filter(group => group.items.length);
+    const items = catalog.flatMap(group => group.items.map(item => ({ ...item, group: group.group })));
     return {
         type: 'simplebeacon-features-export',
         version: '1.0.0',
@@ -199,7 +218,7 @@ export function buildFeaturesPageExport(filter = '') {
         filter: q || null,
         groupCount: catalog.length,
         featureCount: items.length,
-        routeCount: new Set(items.map((item) => item.route)).size,
+        routeCount: new Set(items.map(item => item.route)).size,
         catalog,
         features: items
     };

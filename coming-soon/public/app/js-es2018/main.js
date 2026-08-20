@@ -37,10 +37,22 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
-import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260726embedfix1';
-import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260728agentfix2';
+import {
+    isEmbeddedDashboardFrame,
+    isIdeDashboardSurface,
+    canUseDirectoryPicker,
+    getVsCodeApi
+} from './utils-lib/dom.js?v=20260726embedfix1';
+import {
+    hasExtensionBridgeConfigured,
+    getExtensionBridgeOrigin
+} from './services/localAgentService.js?v=20260728agentfix2';
 import { LocalScanService } from './services/localScanService.js?v=20260728dropfix2';
-import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260728dropfix2';
+import {
+    fetchAnalyzeProviders,
+    isClientScanReport,
+    shouldClearHostedServerDefaultPath
+} from './services/analyzeService.js?v=20260728dropfix2';
 // Embed shim fallback: when loaded inside an IDE/webview that marks the document
 // as embedded, ensure a top padding is applied so host chrome doesn't clip content.
 (function applyEmbedShim() {
@@ -54,24 +66,31 @@ import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefau
                     if (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface()) {
                         root.setAttribute('data-ide-embed', '1');
                     }
+                } catch (e) {
+                    /* ignore */
                 }
-                catch (e) { /* ignore */ }
                 // Propagate any parent urlbar/session flags so CSS rules apply
                 try {
                     const params = new URLSearchParams(window.location.search || '');
-                    if (params.get('sb_parent_urlbar') === '1' || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sb_parent_urlbar') === '1')) {
+                    if (
+                        params.get('sb_parent_urlbar') === '1' ||
+                        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sb_parent_urlbar') === '1')
+                    ) {
                         root.setAttribute('data-parent-urlbar', '1');
                     }
+                } catch (e) {
+                    /* ignore */
                 }
-                catch (e) { /* ignore */ }
                 // Embed-mode attributes and CSS already set the correct padding via
                 // --embed-top-shim; do not hard-code an inline padding here so the
                 // dashboard can scroll to the very top of its content.
             }
         };
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+        else run();
+    } catch (e) {
+        /* no-op */
     }
-    catch (e) { /* no-op */ }
 })();
 /**
  * Vault unlock url.
@@ -92,16 +111,23 @@ function vaultUnlockUrl(returnPath = '/app') {
     return `/private-dashboard-vault?returnTo=${returnTo}`;
 }
 const CLOUD_TEAMS_VIEWS = new Set([
-    'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
+    'dashboard',
+    'audit',
+    'results',
+    'analyze',
+    'security',
+    'tools',
+    'platform',
+    'quality',
+    'settings',
+    'assessments'
 ]);
 /**
  * Views that trigger scans, mutate settings, or perform billing actions.
  * Read-only views (audit, roadmap, results, trust, security, platform, quality)
  * are intentionally excluded; they only need isAuthenticated()/isFreeTier().
  */
-const WRITE_HEAVY_VIEWS = new Set([
-    'dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot'
-]);
+const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 /** Protected views that can load in IDE mode via the extension bridge without cloud sign-in. */
 const IDE_BRIDGE_ONLY_VIEWS = new Set(['chatbot']);
 /**
@@ -117,7 +143,10 @@ function requiresAuthGate() {
  */
 function isLocalSelfHosted() {
     var _a;
-    return isLocalDevHost() || Boolean((_a = billingService.plan) === null || _a === void 0 ? void 0 : _a.internalDashboard);
+    return (
+        isLocalDevHost() ||
+        Boolean((_a = billingService.plan) === null || _a === void 0 ? void 0 : _a.internalDashboard)
+    );
 }
 /**
  * Handle subscription gate.
@@ -133,23 +162,26 @@ function handleSubscriptionGate() {
     if (isLocalSelfHosted() || requiresAuthGate()) {
         if (!authService.isAuthenticated()) {
             this.navigate('signin');
-        }
-        else {
-            showToast('Local dev: restart with npm run dashboard:v1-internal (sets internal dashboard bypass).', 'info');
+        } else {
+            showToast(
+                'Local dev: restart with npm run dashboard:v1-internal (sets internal dashboard bypass).',
+                'info'
+            );
         }
         return;
     }
-    showUpgradeModal({ onDismiss: (action) => {
+    showUpgradeModal({
+        onDismiss: action => {
             if (isAuthEntryView(this._currentViewName)) {
                 return;
             }
             if (action === 'signin' || isLocalSelfHosted()) {
                 this.navigate('signin');
-            }
-            else {
+            } else {
                 window.location.href = '/pricing';
             }
-        } });
+        }
+    });
 }
 /**
  * Simplebeacon dashboard.
@@ -232,11 +264,9 @@ class SimplebeaconDashboard {
         }
         try {
             const params = new URLSearchParams(window.location.search || '');
-            if (params.get('sb_website_mode') === '1')
-                return true;
+            if (params.get('sb_website_mode') === '1') return true;
             return sessionStorage.getItem('sb_website_mode') === '1';
-        }
-        catch (_a) {
+        } catch (_a) {
             return false;
         }
     }
@@ -247,17 +277,39 @@ class SimplebeaconDashboard {
             let relative = pathname;
             if (base && relative.startsWith(base + '/')) {
                 relative = relative.slice(base.length + 1);
-            }
-            else if (relative === base) {
+            } else if (relative === base) {
                 relative = '';
             }
             const view = relative.split('/').filter(Boolean)[0] || 'dashboard';
-            const known = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'roadmap',
-                'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health',
-                'settings', 'pricing', 'about', 'signin', 'register', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'admin'];
+            const known = [
+                'dashboard',
+                'audit',
+                'assessments',
+                'analyze',
+                'results',
+                'remediation',
+                'roadmap',
+                'security',
+                'tools',
+                'platform',
+                'quality',
+                'help',
+                'features',
+                'trust',
+                'repository-health',
+                'settings',
+                'pricing',
+                'about',
+                'signin',
+                'register',
+                'chatbot',
+                'upload',
+                'eu-ai-act',
+                'profile',
+                'admin'
+            ];
             return known.includes(view) ? view : 'dashboard';
-        }
-        catch (_a) {
+        } catch (_a) {
             return 'dashboard';
         }
     }
@@ -282,14 +334,21 @@ class SimplebeaconDashboard {
             ['audit', 'Audit'],
             ['remediation', 'Roadmap']
         ];
-        setHtml(bar, items.map(([view, label]) => `<button type="button" class="embed-quick-nav-btn" data-view="${view}">${label}</button>`).join(''));
-        bar.querySelectorAll('[data-view]').forEach((btn) => {
+        setHtml(
+            bar,
+            items
+                .map(
+                    ([view, label]) =>
+                        `<button type="button" class="embed-quick-nav-btn" data-view="${view}">${label}</button>`
+                )
+                .join('')
+        );
+        bar.querySelectorAll('[data-view]').forEach(btn => {
             btn.addEventListener('click', () => {
                 try {
                     this.navigate(btn.dataset.view);
-                }
-                catch (err) {
-                    window["console"]["error"]('Embed quick nav error:', err);
+                } catch (err) {
+                    window['console']['error']('Embed quick nav error:', err);
                 }
             });
         });
@@ -297,8 +356,7 @@ class SimplebeaconDashboard {
         return bar;
     }
     setupEmbedQuickNav() {
-        if (!isEmbeddedDashboardFrame())
-            return;
+        if (!isEmbeddedDashboardFrame()) return;
         document.documentElement.setAttribute('data-embed-mode', '1');
         const initialView = this.parseInitialView();
         this._currentViewName = initialView;
@@ -309,8 +367,11 @@ class SimplebeaconDashboard {
             let _websiteMode = false;
             try {
                 let _params = new URLSearchParams(window.location.search || '');
-                _websiteMode = _params.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
-            } catch (_) { /* ignore */ }
+                _websiteMode =
+                    _params.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
+            } catch (_) {
+                /* ignore */
+            }
             if (_websiteMode) {
                 document.documentElement.setAttribute('data-embed-full-nav', '1');
             } else {
@@ -325,8 +386,11 @@ class SimplebeaconDashboard {
             let _websiteMode2 = false;
             try {
                 let _params2 = new URLSearchParams(window.location.search || '');
-                _websiteMode2 = _params2.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
-            } catch (_) { /* ignore */ }
+                _websiteMode2 =
+                    _params2.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
+            } catch (_) {
+                /* ignore */
+            }
             if (_websiteMode2) {
                 document.documentElement.setAttribute('data-embed-full-nav', '1');
             } else {
@@ -337,13 +401,11 @@ class SimplebeaconDashboard {
             }
             return;
         }
-        if (document.documentElement.hasAttribute('data-embed-full-nav')
-            || this.isEmbedWebsiteMode()) {
+        if (document.documentElement.hasAttribute('data-embed-full-nav') || this.isEmbedWebsiteMode()) {
             document.documentElement.setAttribute('data-embed-full-nav', '1');
             return;
         }
-        if (initialView === 'signin' || initialView === 'register')
-            return;
+        if (initialView === 'signin' || initialView === 'register') return;
         this._createEmbedQuickNavBar();
         this.updateEmbedQuickNav(initialView);
     }
@@ -351,8 +413,7 @@ class SimplebeaconDashboard {
         const authPage = view === 'signin' || view === 'register';
         if (authPage) {
             document.documentElement.setAttribute('data-auth-page', '1');
-        }
-        else {
+        } else {
             document.documentElement.removeAttribute('data-auth-page');
             const main = document.getElementById('app-main');
             if (main) {
@@ -367,74 +428,102 @@ class SimplebeaconDashboard {
         const embedded = isEmbeddedDashboardFrame() || isIdeDashboardSurface();
         // In embed/IDE mode the CSS makes #app-main the scroll container;
         // in standalone mode the document scrolling element is the container.
-        let container = (embedded && root) || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body)) || root;
-        if (!container)
-            return;
+        let container =
+            (embedded && root) ||
+            (typeof document !== 'undefined' &&
+                (document.scrollingElement || document.documentElement || document.body)) ||
+            root;
+        if (!container) return;
         try {
             if (embedded && container.style) {
                 container.style.overflowY = container.style.overflowY || 'auto';
             }
+        } catch (_b) {
+            /* ignore */
         }
-        catch (_b) { /* ignore */ }
         try {
             if (typeof container.scrollTo === 'function') {
                 container.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-            }
-            else {
+            } else {
                 container.scrollTop = 0;
             }
-        }
-        catch (_c) {
-            try { container.scrollTop = 0; } catch (_d) { /* swallow */ }
+        } catch (_c) {
+            try {
+                container.scrollTop = 0;
+            } catch (_d) {
+                /* swallow */
+            }
         }
         // Some embed hosts or subsequent layout changes may nudge the root scroll.
         // Ensure we clear any residual document scroll after the frame settles.
         try {
             requestAnimationFrame(() => {
-                try { requestAnimationFrame(() => {
-                    try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { }
-                    try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_) { }
-                }); } catch (_) { }
+                try {
+                    requestAnimationFrame(() => {
+                        try {
+                            if (typeof document !== 'undefined' && document.scrollingElement)
+                                document.scrollingElement.scrollTop = 0;
+                        } catch (_) {}
+                        try {
+                            if (typeof window !== 'undefined' && typeof window.scrollTo === 'function')
+                                window.scrollTo(0, 0);
+                        } catch (_) {}
+                    });
+                } catch (_) {}
             });
+        } catch (_e) {
+            /* ignore */
         }
-        catch (_e) { /* ignore */ }
         try {
-            if (typeof window.scrollTo === 'function')
-                window.scrollTo(0, 0);
+            if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+        } catch (_d) {
+            /* ignore */
         }
-        catch (_d) { /* ignore */ }
         try {
             if (typeof document !== 'undefined') {
-                if (document.documentElement)
-                    document.documentElement.scrollTop = 0;
-                if (document.body)
-                    document.body.scrollTop = 0;
+                if (document.documentElement) document.documentElement.scrollTop = 0;
+                if (document.body) document.body.scrollTop = 0;
             }
+        } catch (_e) {
+            /* ignore */
         }
-        catch (_e) { /* ignore */ }
     }
     _setupIdeScrollBridge() {
-        if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface())
-            return;
+        if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface()) return;
         const main = document.getElementById('app-main');
-        if (!main)
-            return;
+        if (!main) return;
         const originalScrollTo = window.scrollTo.bind(window);
         const originalScrollBy = window.scrollBy.bind(window);
         window.scrollTo = (...args) => {
             if (args.length === 2) {
-                try { main.scrollTo({ top: args[1], left: args[0], behavior: 'auto' }); } catch (_) { originalScrollTo(...args); }
+                try {
+                    main.scrollTo({ top: args[1], left: args[0], behavior: 'auto' });
+                } catch (_) {
+                    originalScrollTo(...args);
+                }
             } else if (args.length === 1 && typeof args[0] === 'object') {
-                try { main.scrollTo(args[0]); } catch (_) { originalScrollTo(...args); }
+                try {
+                    main.scrollTo(args[0]);
+                } catch (_) {
+                    originalScrollTo(...args);
+                }
             } else {
                 originalScrollTo(...args);
             }
         };
         window.scrollBy = (...args) => {
             if (args.length === 2) {
-                try { main.scrollBy({ top: args[1], left: args[0], behavior: 'auto' }); } catch (_) { originalScrollBy(...args); }
+                try {
+                    main.scrollBy({ top: args[1], left: args[0], behavior: 'auto' });
+                } catch (_) {
+                    originalScrollBy(...args);
+                }
             } else if (args.length === 1 && typeof args[0] === 'object') {
-                try { main.scrollBy(args[0]); } catch (_) { originalScrollBy(...args); }
+                try {
+                    main.scrollBy(args[0]);
+                } catch (_) {
+                    originalScrollBy(...args);
+                }
             } else {
                 originalScrollBy(...args);
             }
@@ -443,33 +532,47 @@ class SimplebeaconDashboard {
     _scrollMainToTop() {
         const main = document.getElementById('app-main');
         if (main) {
-            try { main.scrollTo({ top: 0, behavior: 'smooth' }); }
-            catch (_) { try { main.scrollTop = 0; } catch (_) { /* ignore */ } }
+            try {
+                main.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (_) {
+                try {
+                    main.scrollTop = 0;
+                } catch (_) {
+                    /* ignore */
+                }
+            }
         }
-        try { window.scrollTo(0, 0); } catch (_) { /* ignore */ }
+        try {
+            window.scrollTo(0, 0);
+        } catch (_) {
+            /* ignore */
+        }
     }
     _setupScrollToTopButton() {
-        if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface())
-            return;
+        if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface()) return;
         const main = document.getElementById('app-main');
-        if (!main)
-            return;
-        if (document.getElementById('sb-scroll-top-btn'))
-            return;
+        if (!main) return;
+        if (document.getElementById('sb-scroll-top-btn')) return;
         const btn = document.createElement('button');
         btn.id = 'sb-scroll-top-btn';
         btn.type = 'button';
         btn.setAttribute('aria-label', 'Scroll to top');
         btn.title = 'Scroll to top';
-        const svgHtml = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16V4"/><path d="M4 10l6-6 6 6"/></svg>';
+        const svgHtml =
+            '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16V4"/><path d="M4 10l6-6 6 6"/></svg>';
         if (typeof window !== 'undefined' && typeof window.setSafeHTML === 'function') {
             window.setSafeHTML(btn, svgHtml);
         } else {
             btn.innerHTML = svgHtml;
         }
-        btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--border,#333);background:var(--surface,#1e1e1e);color:var(--text-primary,#ccc);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:opacity 0.2s,transform 0.2s;padding:0;';
-        btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.1)'; });
-        btn.addEventListener('mouseleave', () => { btn.style.transform = 'scale(1)'; });
+        btn.style.cssText =
+            'position:fixed;bottom:24px;right:24px;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--border,#333);background:var(--surface,#1e1e1e);color:var(--text-primary,#ccc);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:opacity 0.2s,transform 0.2s;padding:0;';
+        btn.addEventListener('mouseenter', () => {
+            btn.style.transform = 'scale(1.1)';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.transform = 'scale(1)';
+        });
         btn.addEventListener('click', () => this._scrollMainToTop());
         document.body.appendChild(btn);
         const onScroll = () => {
@@ -481,15 +584,13 @@ class SimplebeaconDashboard {
     }
     cleanupOrphanViewRoots(main) {
         const keep = main || document.getElementById('app-main');
-        document.querySelectorAll('body > .fade-in, .app-shell > .fade-in, .app-body > .fade-in').forEach((el) => {
-            if (keep && (keep === el || keep.contains(el)))
-                return;
+        document.querySelectorAll('body > .fade-in, .app-shell > .fade-in, .app-body > .fade-in').forEach(el => {
+            if (keep && (keep === el || keep.contains(el))) return;
             el.remove();
         });
     }
     updateEmbedQuickNav(view) {
-        if (!isEmbeddedDashboardFrame() || this.isEmbedWebsiteMode())
-            return;
+        if (!isEmbeddedDashboardFrame() || this.isEmbedWebsiteMode()) return;
         const authPage = view === 'signin' || view === 'register';
         if (authPage) {
             const bar = this._embedQuickNavBar || document.getElementById('embed-quick-nav');
@@ -499,10 +600,9 @@ class SimplebeaconDashboard {
             }
             return;
         }
-        if (!this._embedQuickNavBar)
-            this._createEmbedQuickNavBar();
+        if (!this._embedQuickNavBar) this._createEmbedQuickNavBar();
         this._embedQuickNavBar.hidden = false;
-        this._embedQuickNavBar.querySelectorAll('[data-view]').forEach((btn) => {
+        this._embedQuickNavBar.querySelectorAll('[data-view]').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.view === view);
         });
     }
@@ -510,15 +610,17 @@ class SimplebeaconDashboard {
         // Remove any stale full-page drag overlay that may have leaked from a previous session.
         document.querySelectorAll('.sb-global-drag-overlay').forEach(el => el.remove());
         try {
-            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad, discoverAndApplyExtensionBridge } = await import('./services/localAgentService.js?v=20260728agentfix2');
+            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad, discoverAndApplyExtensionBridge } =
+                await import('./services/localAgentService.js?v=20260728agentfix2');
             clearStaleIntegratedBridgeParams();
             if (isHostedDashboard()) {
                 await validateExtensionBridgeOnLoad();
             } else if (isLocalDevHost() && !hasExtensionBridgeConfigured() && !window.__SIMPLEBEACON_ENV__) {
                 await discoverAndApplyExtensionBridge();
             }
+        } catch (_bridgeInit) {
+            /* non-fatal */
         }
-        catch (_bridgeInit) { /* non-fatal */ }
         themeService.init();
         this.setupShell();
         this.setupEmbedQuickNav();
@@ -541,7 +643,7 @@ class SimplebeaconDashboard {
                 this.router.navigate('signin');
             }
         });
-        window.addEventListener('message', (event) => {
+        window.addEventListener('message', event => {
             if (event.data && event.data.command === 'setWorkspacePath' && event.data.path) {
                 this.state.defaultProjectPath = String(event.data.path);
                 if (!this.state.lastProjectPath) {
@@ -566,7 +668,9 @@ class SimplebeaconDashboard {
         if (!vaultReady) {
             this.router.init();
             const _m = document.getElementById('app-main');
-            if (_m) { for (const d of [0, 50, 150, 300, 600]) setTimeout(() => this.resetMainScroll(_m), d); }
+            if (_m) {
+                for (const d of [0, 50, 150, 300, 600]) setTimeout(() => this.resetMainScroll(_m), d);
+            }
             this.updateAuthUi();
             return;
         }
@@ -581,7 +685,9 @@ class SimplebeaconDashboard {
             }
             this.router.init();
             const _m2 = document.getElementById('app-main');
-            if (_m2) { for (const d of [0, 50, 150, 300, 600]) setTimeout(() => this.resetMainScroll(_m2), d); }
+            if (_m2) {
+                for (const d of [0, 50, 150, 300, 600]) setTimeout(() => this.resetMainScroll(_m2), d);
+            }
             const authEntry = this.parseInitialView();
             if (!isAuthEntryView(authEntry)) {
                 this.router.navigate('signin');
@@ -592,28 +698,23 @@ class SimplebeaconDashboard {
         this.bootstrapAfterAuth();
     }
     showBridgeNotice() {
-        if (isIdeDashboardSurface())
-            return;
-        if (typeof document !== 'undefined' && document.documentElement.hasAttribute('data-embed-full-nav'))
-            return;
-        if (typeof window !== 'undefined' && window.self !== window.top)
-            return;
-        if (document.documentElement.hasAttribute('data-ide-embed'))
-            return;
-        if (document.getElementById('bridge-notice-banner'))
-            return;
-        if (!this._isExtensionBridgeContext())
-            return;
+        if (isIdeDashboardSurface()) return;
+        if (typeof document !== 'undefined' && document.documentElement.hasAttribute('data-embed-full-nav')) return;
+        if (typeof window !== 'undefined' && window.self !== window.top) return;
+        if (document.documentElement.hasAttribute('data-ide-embed')) return;
+        if (document.getElementById('bridge-notice-banner')) return;
+        if (!this._isExtensionBridgeContext()) return;
         try {
-            if (sessionStorage.getItem('sb_bridge_notice_dismissed') === '1')
-                return;
+            if (sessionStorage.getItem('sb_bridge_notice_dismissed') === '1') return;
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
         const bar = document.createElement('div');
         bar.id = 'bridge-notice-banner';
         bar.className = 'bridge-notice-banner';
         const span = document.createElement('span');
-        span.textContent = 'Local extension connection: your browser may ask to let SimpleBeacon access apps on this device. This is only to connect to your VS Code: extension. No source code or credentials are sent.';
+        span.textContent =
+            'Local extension connection: your browser may ask to let SimpleBeacon access apps on this device. This is only to connect to your VS Code: extension. No source code or credentials are sent.';
         const close = document.createElement('button');
         close.className = 'bridge-notice-close';
         close.setAttribute('aria-label', 'Dismiss');
@@ -622,8 +723,9 @@ class SimplebeaconDashboard {
             bar.remove();
             try {
                 sessionStorage.setItem('sb_bridge_notice_dismissed', '1');
+            } catch (_b) {
+                /* ignore */
             }
-            catch (_b) { /* ignore */ }
         });
         bar.appendChild(span);
         bar.appendChild(close);
@@ -634,16 +736,15 @@ class SimplebeaconDashboard {
             const params = new URLSearchParams(window.location.search);
             const keys = ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'];
             for (const key of keys) {
-                if (params.get(key) || sessionStorage.getItem(key))
-                    return true;
+                if (params.get(key) || sessionStorage.getItem(key)) return true;
             }
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
         return false;
     }
     showDemoBanner() {
-        if (document.getElementById('demo-banner'))
-            return;
+        if (document.getElementById('demo-banner')) return;
         const bar = document.createElement('div');
         bar.id = 'demo-banner';
         bar.className = 'demo-banner';
@@ -660,15 +761,17 @@ class SimplebeaconDashboard {
         this.bindPricingCta(a);
     }
     showReadOnlyBanner() {
-        if (document.getElementById('readonly-banner'))
-            return;
+        if (document.getElementById('readonly-banner')) return;
         const bar = document.createElement('div');
         bar.id = 'readonly-banner';
         bar.className = 'demo-banner';
         bar.style.background = 'linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))';
         bar.style.borderBottom = '1px solid rgba(99,102,241,0.3)';
         const span = document.createElement('span');
-        setHtml(span, '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.');
+        setHtml(
+            span,
+            '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.'
+        );
         const a = document.createElement('a');
         a.className = 'demo-banner-link';
         a.dataset.pricingCta = '1';
@@ -680,8 +783,7 @@ class SimplebeaconDashboard {
         this.bindPricingCta(a);
     }
     showVaultBanner() {
-        if (document.getElementById('vault-banner'))
-            return;
+        if (document.getElementById('vault-banner')) return;
         const returnPath = `${window.location.pathname}${window.location.hash || '#/dashboard'}`;
         const bar = document.createElement('div');
         bar.id = 'vault-banner';
@@ -697,13 +799,14 @@ class SimplebeaconDashboard {
         document.body.prepend(bar);
     }
     showTokenPrompt() {
-        if (document.getElementById('token-prompt-modal'))
-            return;
+        if (document.getElementById('token-prompt-modal')) return;
         const overlay = document.createElement('div');
         overlay.id = 'token-prompt-modal';
         overlay.className = 'modal-overlay';
         overlay.style.zIndex = '300';
-        setHtml(overlay, `
+        setHtml(
+            overlay,
+            `
       <div class="modal-card" role="dialog" aria-labelledby="token-prompt-title" style="max-width:420px;">
         <div class="modal-header" style="text-align:center;">
           <h2 id="token-prompt-title" style="font-size:1.25rem;margin-bottom:var(--space-1);">🔐 Unlock Dashboard</h2>
@@ -745,7 +848,8 @@ class SimplebeaconDashboard {
           </div>
         </div>
       </div>
-    `);
+    `
+        );
         document.body.appendChild(overlay);
         // Tab switching
         const tabs = overlay.querySelectorAll('.signin-tab');
@@ -753,24 +857,26 @@ class SimplebeaconDashboard {
             email: overlay.querySelector('#prompt-panel-email'),
             token: overlay.querySelector('#prompt-panel-token')
         };
-        tabs.forEach((tab) => {
+        tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const key = tab.dataset.tab;
-                tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === key));
+                tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === key));
                 Object.entries(panels).forEach(([k, el]) => {
-                    if (el)
-                        el.classList.toggle('active', k === key);
+                    if (el) el.classList.toggle('active', k === key);
                 });
             });
         });
         const tokenForm = overlay.querySelector('#token-prompt-form');
         const tokenSubmitBtn = overlay.querySelector('#token-prompt-submit');
         const tokenErrorEl = overlay.querySelector('#token-prompt-error');
-        tokenForm.addEventListener('submit', async (e) => {
+        tokenForm.addEventListener('submit', async e => {
             var _a;
             e.preventDefault();
             const token = overlay.querySelector('#token-prompt-input').value.trim();
-            const password = ((_a = overlay.querySelector('#token-prompt-password')) === null || _a === void 0 ? void 0 : _a.value) || '';
+            const password =
+                ((_a = overlay.querySelector('#token-prompt-password')) === null || _a === void 0
+                    ? void 0
+                    : _a.value) || '';
             tokenSubmitBtn.disabled = true;
             tokenSubmitBtn.textContent = 'Validating…';
             if (tokenErrorEl) {
@@ -782,24 +888,21 @@ class SimplebeaconDashboard {
                 const tokenTab = overlay.querySelector('#prompt-tab-token');
                 const emailPanel = overlay.querySelector('#prompt-panel-email');
                 const tokenPanel = overlay.querySelector('#prompt-panel-token');
-                if (emailTab)
-                    emailTab.classList.add('active');
-                if (tokenTab)
-                    tokenTab.classList.remove('active');
-                if (emailPanel)
-                    emailPanel.classList.add('active');
-                if (tokenPanel)
-                    tokenPanel.classList.remove('active');
+                if (emailTab) emailTab.classList.add('active');
+                if (tokenTab) tokenTab.classList.remove('active');
+                if (emailPanel) emailPanel.classList.add('active');
+                if (tokenPanel) tokenPanel.classList.remove('active');
                 const emailErrorEl = overlay.querySelector('#token-email-error');
                 if (emailErrorEl) {
                     const binding = authService.getTokenBinding(token);
-                    const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email) ? ` (${binding.email})` : '';
+                    const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email)
+                        ? ` (${binding.email})`
+                        : '';
                     emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
                     emailErrorEl.hidden = false;
                     if (binding === null || binding === void 0 ? void 0 : binding.email) {
                         const emailInput = overlay.querySelector('#token-email-input');
-                        if (emailInput)
-                            emailInput.value = binding.email;
+                        if (emailInput) emailInput.value = binding.email;
                     }
                 }
                 tokenSubmitBtn.disabled = false;
@@ -809,14 +912,12 @@ class SimplebeaconDashboard {
             try {
                 authService.setSession(token, { token, source: 'modal', password });
                 const valid = await authService.validateSession(password ? { password } : undefined);
-                if (!valid)
-                    throw new Error('Invalid or expired token. Check your license token and try again.');
+                if (!valid) throw new Error('Invalid or expired token. Check your license token and try again.');
                 overlay.remove();
                 showToast('Dashboard unlocked', 'success');
                 this.updateNavVisibility(true);
                 this.bootstrapAfterAuth();
-            }
-            catch (err) {
+            } catch (err) {
                 authService.clearSession();
                 const message = err.message || 'Token validation failed';
                 if (tokenErrorEl) {
@@ -832,7 +933,7 @@ class SimplebeaconDashboard {
         const emailSubmitBtn = overlay.querySelector('#token-email-submit');
         const emailErrorEl = overlay.querySelector('#token-email-error');
         if (emailForm) {
-            emailForm.addEventListener('submit', async (e) => {
+            emailForm.addEventListener('submit', async e => {
                 e.preventDefault();
                 const email = overlay.querySelector('#token-email-input').value.trim();
                 const password = overlay.querySelector('#token-password-input').value;
@@ -848,8 +949,7 @@ class SimplebeaconDashboard {
                     showToast('Signed in successfully', 'success');
                     this.updateAuthUi();
                     this.bootstrapAfterAuth();
-                }
-                catch (err) {
+                } catch (err) {
                     const message = err.message || 'Sign in failed';
                     if (emailErrorEl) {
                         emailErrorEl.textContent = message;
@@ -868,8 +968,7 @@ class SimplebeaconDashboard {
             return;
         }
         const main = document.getElementById('app-main');
-        if (!main)
-            return;
+        if (!main) return;
         const titles = {
             dashboard: 'Dashboard',
             analyze: 'Analyze',
@@ -886,7 +985,9 @@ class SimplebeaconDashboard {
             chatbot: 'Chatbot'
         };
         const title = titles[view] || view;
-        setHtml(main, `
+        setHtml(
+            main,
+            `
       <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;padding:var(--space-8);">
         <div class="lock-screen-content" style="text-align:center;max-width:420px;">
           <div style="font-size:3rem;margin-bottom:var(--space-4);">🔒</div>
@@ -933,24 +1034,24 @@ class SimplebeaconDashboard {
           <p style="margin-top:var(--space-4);"><a href="/dashboard/#/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
         </div>
       </div>
-    `);
+    `
+        );
         // Tab switching
         const tabs = main.querySelectorAll('.lock-tab');
         const panels = {
             email: main.querySelector('#lock-panel-email'),
             token: main.querySelector('#lock-panel-token')
         };
-        tabs.forEach((tab) => {
+        tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const key = tab.dataset.tab;
-                tabs.forEach((t) => {
+                tabs.forEach(t => {
                     t.classList.toggle('active', t.dataset.tab === key);
                     t.style.borderBottomColor = t.dataset.tab === key ? 'var(--primary)' : 'transparent';
                     t.style.color = t.dataset.tab === key ? 'var(--text-primary)' : 'var(--text-muted)';
                 });
                 Object.entries(panels).forEach(([k, el]) => {
-                    if (el)
-                        el.style.display = k === key ? '' : 'none';
+                    if (el) el.style.display = k === key ? '' : 'none';
                 });
             });
         });
@@ -963,11 +1064,13 @@ class SimplebeaconDashboard {
         // Token form
         const tokenForm = main.querySelector('#lock-token-form');
         if (tokenForm) {
-            tokenForm.addEventListener('submit', async (e) => {
+            tokenForm.addEventListener('submit', async e => {
                 var _a;
                 e.preventDefault();
                 const token = main.querySelector('#lock-token').value.trim();
-                const password = ((_a = main.querySelector('#lock-token-password')) === null || _a === void 0 ? void 0 : _a.value) || '';
+                const password =
+                    ((_a = main.querySelector('#lock-token-password')) === null || _a === void 0 ? void 0 : _a.value) ||
+                    '';
                 const submitBtn = main.querySelector('#lock-token-submit');
                 const errorEl = main.querySelector('#lock-token-error');
                 submitBtn.disabled = true;
@@ -980,25 +1083,24 @@ class SimplebeaconDashboard {
                     const tabs = main.querySelectorAll('.lock-tab');
                     const emailPanel = main.querySelector('#lock-panel-email');
                     const tokenPanel = main.querySelector('#lock-panel-token');
-                    tabs.forEach((t) => {
+                    tabs.forEach(t => {
                         t.classList.toggle('active', t.dataset.tab === 'email');
                         t.style.borderBottomColor = t.dataset.tab === 'email' ? 'var(--primary)' : 'transparent';
                         t.style.color = t.dataset.tab === 'email' ? 'var(--text-primary)' : 'var(--text-muted)';
                     });
-                    if (emailPanel)
-                        emailPanel.style.display = '';
-                    if (tokenPanel)
-                        tokenPanel.style.display = 'none';
+                    if (emailPanel) emailPanel.style.display = '';
+                    if (tokenPanel) tokenPanel.style.display = 'none';
                     const emailErrorEl = main.querySelector('#lock-email-error');
                     if (emailErrorEl) {
                         const binding = authService.getTokenBinding(token);
-                        const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email) ? ` (${binding.email})` : '';
+                        const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email)
+                            ? ` (${binding.email})`
+                            : '';
                         emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
                         emailErrorEl.hidden = false;
                         if (binding === null || binding === void 0 ? void 0 : binding.email) {
                             const emailInput = main.querySelector('#lock-email');
-                            if (emailInput)
-                                emailInput.value = binding.email;
+                            if (emailInput) emailInput.value = binding.email;
                         }
                     }
                     submitBtn.disabled = false;
@@ -1016,8 +1118,7 @@ class SimplebeaconDashboard {
                     this.updateAuthUi();
                     this.bootstrapAfterAuth();
                     this.router.navigate(view);
-                }
-                catch (err) {
+                } catch (err) {
                     authService.clearSession();
                     const message = err.message || 'Token validation failed';
                     if (errorEl) {
@@ -1039,7 +1140,7 @@ class SimplebeaconDashboard {
             });
         }
         if (emailForm) {
-            emailForm.addEventListener('submit', async (e) => {
+            emailForm.addEventListener('submit', async e => {
                 e.preventDefault();
                 const email = main.querySelector('#lock-email').value.trim();
                 const password = main.querySelector('#lock-password').value;
@@ -1057,8 +1158,7 @@ class SimplebeaconDashboard {
                     this.updateAuthUi();
                     this.bootstrapAfterAuth();
                     this.router.navigate(view);
-                }
-                catch (err) {
+                } catch (err) {
                     const message = err.message || 'Sign in failed';
                     if (errorEl) {
                         errorEl.textContent = message;
@@ -1073,9 +1173,10 @@ class SimplebeaconDashboard {
     }
     showIdeAuthPending(view) {
         const main = document.getElementById('app-main');
-        if (!main)
-            return;
-        setHtml(main, `
+        if (!main) return;
+        setHtml(
+            main,
+            `
       <div class="ide-auth-pending" style="display:flex;align-items:center;justify-content:center;padding:var(--space-8);">
         <div style="text-align:center;max-width:420px;">
           <p class="text-muted" style="margin-bottom:var(--space-3);">Connecting to VS Code extension…</p>
@@ -1083,7 +1184,8 @@ class SimplebeaconDashboard {
           <button type="button" class="btn btn-primary" id="ide-auth-signin-btn" style="margin-top:var(--space-4);">Sign in on simplebeacon.ai</button>
           <button type="button" class="btn btn-secondary" id="ide-auth-register-btn" style="margin-top:var(--space-2);">Create an account</button>
         </div>
-      </div>`);
+      </div>`
+        );
         const btn = main.querySelector('#ide-auth-signin-btn');
         if (btn) {
             btn.addEventListener('click', () => {
@@ -1096,42 +1198,37 @@ class SimplebeaconDashboard {
                 this.router.navigate('register');
             });
         }
-        void this.waitForIdeAuthSync(5000).then((ok) => {
+        void this.waitForIdeAuthSync(5000).then(ok => {
             if (ok && this._currentViewName === view) {
                 void this.onRoute(view, this.state.routeParams || {});
             }
         });
     }
     async waitForIdeAuthSync(timeoutMs = 2500) {
-        if (!isIdeDashboardSurface())
-            return authService.isAuthenticated();
-        if (authService.isAuthenticated())
-            return true;
+        if (!isIdeDashboardSurface()) return authService.isAuthenticated();
+        if (authService.isAuthenticated()) return true;
         try {
             if (typeof authService.syncFromExtensionBridge === 'function') {
                 const synced = await authService.syncFromExtensionBridge();
-                if (synced)
-                    return true;
+                if (synced) return true;
             }
+        } catch (_sync) {
+            /* non-fatal */
         }
-        catch (_sync) { /* non-fatal */ }
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             let settled = false;
-            const finish = (value) => {
-                if (settled)
-                    return;
+            const finish = value => {
+                if (settled) return;
                 settled = true;
                 cleanup();
                 resolve(!!value);
             };
             const timer = setTimeout(() => finish(authService.isAuthenticated()), timeoutMs);
             const pollTimer = setInterval(() => {
-                if (authService.isAuthenticated())
-                    finish(true);
+                if (authService.isAuthenticated()) finish(true);
             }, 250);
-            const onMsg = (event) => {
-                if (!(event === null || event === void 0 ? void 0 : event.data))
-                    return;
+            const onMsg = event => {
+                if (!(event === null || event === void 0 ? void 0 : event.data)) return;
                 if (event.data.command === 'setAuthState' && event.data.signedIn === true && event.data.token) {
                     finish(true);
                 }
@@ -1148,8 +1245,9 @@ class SimplebeaconDashboard {
             const ping = () => {
                 try {
                     window.parent.postMessage({ command: 'getAuthState' }, '*');
+                } catch (_a) {
+                    /* ignore */
                 }
-                catch (_a) { /* ignore */ }
             };
             ping();
             let pings = 0;
@@ -1167,10 +1265,9 @@ class SimplebeaconDashboard {
         // Nav links are always visible; route gating in onRoute() shows lock screen
         // for protected views when not authenticated. This keeps the menu visible
         // after sign-out so users know what features exist.
-        document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
+        document.querySelectorAll('.nav-link[data-view]').forEach(link => {
             const view = link.dataset.view;
-            if (view === 'settings')
-                return;
+            if (view === 'settings') return;
             if (view === 'admin') {
                 const showAdmin = authed && this.isCurrentUserAdmin();
                 link.hidden = !showAdmin;
@@ -1179,18 +1276,19 @@ class SimplebeaconDashboard {
             }
             link.style.display = '';
         });
-        document.querySelectorAll('.nav-group-toggle').forEach((toggle) => {
+        document.querySelectorAll('.nav-group-toggle').forEach(toggle => {
             var _a;
             toggle.style.display = '';
-            const itemsContainer = (_a = toggle.closest('.nav-group')) === null || _a === void 0 ? void 0 : _a.querySelector('.nav-group-items');
-            if (itemsContainer)
-                itemsContainer.style.display = '';
+            const itemsContainer =
+                (_a = toggle.closest('.nav-group')) === null || _a === void 0
+                    ? void 0
+                    : _a.querySelector('.nav-group-items');
+            if (itemsContainer) itemsContainer.style.display = '';
         });
     }
     async ensureVaultSession() {
         var _a;
-        if (isDemoMode() || !isLocalSelfHosted())
-            return true;
+        if (isDemoMode() || !isLocalSelfHosted()) return true;
         try {
             const res = await fetch(`${apiBase()}/api/auth/me`, { credentials: 'same-origin' });
             const data = await res.json().catch(() => ({}));
@@ -1200,8 +1298,7 @@ class SimplebeaconDashboard {
             }
             (_a = document.getElementById('vault-banner')) === null || _a === void 0 ? void 0 : _a.remove();
             return true;
-        }
-        catch (_b) {
+        } catch (_b) {
             return true;
         }
     }
@@ -1213,8 +1310,7 @@ class SimplebeaconDashboard {
         this.router.init();
         const mainEl = document.getElementById('app-main');
         if (mainEl) {
-            for (const delay of [0, 50, 150, 300, 600])
-                setTimeout(() => this.resetMainScroll(mainEl), delay);
+            for (const delay of [0, 50, 150, 300, 600]) setTimeout(() => this.resetMainScroll(mainEl), delay);
         }
         const readOnlyPreview = isDemoMode();
         this.updateNavVisibility(authService.isAuthenticated());
@@ -1235,15 +1331,11 @@ class SimplebeaconDashboard {
         const signinBtn = document.getElementById('signin-btn');
         const signoutBtn = document.getElementById('signout-btn');
         const profileBtn = document.getElementById('profile-btn');
-        if (signinBtn)
-            signinBtn.hidden = authed;
-        if (signoutBtn)
-            signoutBtn.hidden = !authed;
-        if (profileBtn)
-            profileBtn.hidden = !authed;
+        if (signinBtn) signinBtn.hidden = authed;
+        if (signoutBtn) signoutBtn.hidden = !authed;
+        if (profileBtn) profileBtn.hidden = !authed;
         const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
-        if (sidebarSigninBtn)
-            sidebarSigninBtn.hidden = authed;
+        if (sidebarSigninBtn) sidebarSigninBtn.hidden = authed;
         const adminLink = document.getElementById('nav-admin-link');
         const showAdmin = authed && this.isCurrentUserAdmin();
         if (adminLink) {
@@ -1257,40 +1349,34 @@ class SimplebeaconDashboard {
             assessmentsLink.style.display = showAssessments ? '' : 'none';
         }
         const profileAdminItem = document.getElementById('profile-dropdown-admin');
-        if (profileAdminItem)
-            profileAdminItem.hidden = !showAdmin;
+        if (profileAdminItem) profileAdminItem.hidden = !showAdmin;
         this.updateNavVisibility(authed);
         const pricingLink = document.getElementById('header-pricing-link');
-        if (pricingLink)
-            pricingLink.hidden = authed;
+        if (pricingLink) pricingLink.hidden = authed;
         const token = authService.getToken();
         const sandboxBanner = document.getElementById('sandbox-banner');
         if (sandboxBanner) {
             if (isEmbeddedDashboardFrame()) {
                 sandboxBanner.hidden = true;
-            }
-            else {
-            /**
-             * Is sandbox.
-             * @param {any} (
-             * @returns {any}
-             */
-            const isSandbox = (() => {
-                if (!token)
-                    return false;
-                try {
-                    const payload = token.split('.')[1];
-                    if (!payload)
+            } else {
+                /**
+                 * Is sandbox.
+                 * @param {any} (
+                 * @returns {any}
+                 */
+                const isSandbox = (() => {
+                    if (!token) return false;
+                    try {
+                        const payload = token.split('.')[1];
+                        if (!payload) return false;
+                        const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+                        const data = JSON.parse(json);
+                        const tier = data.tier || data.plan || '';
+                        return tier === 'sandbox' || tier === 'developer';
+                    } catch (_a) {
                         return false;
-                    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-                    const data = JSON.parse(json);
-                    const tier = data.tier || data.plan || '';
-                    return tier === 'sandbox' || tier === 'developer';
-                }
-                catch (_a) {
-                    return false;
-                }
-            })();
+                    }
+                })();
                 sandboxBanner.hidden = !isSandbox;
             }
         }
@@ -1298,9 +1384,10 @@ class SimplebeaconDashboard {
     async loadBillingContext() {
         var _a;
         try {
-            const email = ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) || billingService.getEmail();
-            if (email)
-                billingService.setEmail(email);
+            const email =
+                ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) ||
+                billingService.getEmail();
+            if (email) billingService.setEmail(email);
             const entitlement = email
                 ? await billingService.resolveEntitlement(email)
                 : { plan: await billingService.fetchPlan(), status: { subscriptionActive: false }, allowed: false };
@@ -1308,9 +1395,8 @@ class SimplebeaconDashboard {
             this.state.billingStatus = entitlement.status;
             this.state.entitlements = entitlement.status;
             await this.handleCheckoutReturn();
-        }
-        catch (err) {
-            window["console"]["warn"]('Billing context unavailable:', err.message);
+        } catch (err) {
+            window['console']['warn']('Billing context unavailable:', err.message);
         }
     }
     async handleCheckoutReturn() {
@@ -1322,8 +1408,7 @@ class SimplebeaconDashboard {
                 await billingService.confirmSession(params.get('session_id'));
                 this.state.billingStatus = billingService.status;
                 showToast('Subscription active — welcome to SimpleBeacon Cloud Teams', 'success');
-            }
-            catch (err) {
+            } catch (err) {
                 showToast(err.message, 'error');
             }
         }
@@ -1340,19 +1425,15 @@ class SimplebeaconDashboard {
         if (this.state.scanning) {
             try {
                 await this.loadData();
-            }
-            catch (err) {
+            } catch (err) {
                 if (err.code === 'vault_required') {
                     this.showVaultBanner();
                     showToast('Unlock the internal vault, then sign in and retry.', 'info');
-                }
-                else if (err.code === 'subscription_required') {
+                } else if (err.code === 'subscription_required') {
                     handleSubscriptionGate.call(this);
-                }
-                else if (err.code === 'auth_required') {
+                } else if (err.code === 'auth_required') {
                     showLoginModal({ onSuccess: () => this.loadDataInBackground() });
-                }
-                else {
+                } else {
                     showToast(`Scan data unavailable: ${err.message}`, 'error');
                 }
             }
@@ -1362,7 +1443,7 @@ class SimplebeaconDashboard {
         this.refreshCurrentView();
         const safetyTimer = setTimeout(() => {
             if (this.state.dataLoading) {
-                window["console"]["warn"](
+                window['console']['warn'](
                     '[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false'
                 );
                 this.state.dataLoading = false;
@@ -1374,23 +1455,18 @@ class SimplebeaconDashboard {
             if (this._currentViewName === 'dashboard') {
                 this.startBackgroundScanWatcher();
             }
-        }
-        catch (err) {
+        } catch (err) {
             if (err.code === 'vault_required') {
                 this.showVaultBanner();
                 showToast('Unlock the internal vault, then sign in and retry.', 'info');
-            }
-            else if (err.code === 'subscription_required') {
+            } else if (err.code === 'subscription_required') {
                 handleSubscriptionGate.call(this);
-            }
-            else if (err.code === 'auth_required') {
+            } else if (err.code === 'auth_required') {
                 showLoginModal({ onSuccess: () => this.loadDataInBackground() });
-            }
-            else {
+            } else {
                 showToast(`Scan data unavailable: ${err.message}`, 'error');
             }
-        }
-        finally {
+        } finally {
             clearTimeout(safetyTimer);
             this.state.dataLoading = false;
             this.refreshCurrentView();
@@ -1400,95 +1476,107 @@ class SimplebeaconDashboard {
         var _a, _b, _c, _d;
         this.setupAuthNavCapture();
         this.setupPricingCtas();
-        (_a = document.getElementById('theme-toggle')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
-            themeService.toggle();
-        });
-        (_b = document.getElementById('signin-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
-            this.router.navigate('signin');
-        });
-        (_c = document.getElementById('signout-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', async () => {
-            try {
-                await authService.logout();
-                showToast('Signed out', 'info');
-                this.updateAuthUi();
-                this.router.navigate('signin');
-            }
-            catch (err) {
-                showToast('Sign out failed', 'error');
-            }
-        });
-        (_d = document.getElementById('sidebar-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
-            this.router.navigate('signin');
-        });
-        document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
-            link.addEventListener('click', (e) => {
+        (_a = document.getElementById('theme-toggle')) === null || _a === void 0
+            ? void 0
+            : _a.addEventListener('click', () => {
+                  themeService.toggle();
+              });
+        (_b = document.getElementById('signin-btn')) === null || _b === void 0
+            ? void 0
+            : _b.addEventListener('click', () => {
+                  this.router.navigate('signin');
+              });
+        (_c = document.getElementById('signout-btn')) === null || _c === void 0
+            ? void 0
+            : _c.addEventListener('click', async () => {
+                  try {
+                      await authService.logout();
+                      showToast('Signed out', 'info');
+                      this.updateAuthUi();
+                      this.router.navigate('signin');
+                  } catch (err) {
+                      showToast('Sign out failed', 'error');
+                  }
+              });
+        (_d = document.getElementById('sidebar-signin-btn')) === null || _d === void 0
+            ? void 0
+            : _d.addEventListener('click', () => {
+                  this.router.navigate('signin');
+              });
+        document.querySelectorAll('.nav-link[data-view]').forEach(link => {
+            link.addEventListener('click', e => {
                 e.preventDefault();
                 try {
                     this.navigate(link.dataset.view);
                     this.closeMobileNav();
-                }
-                catch (navErr) {
-                    window["console"]["error"]('Sidebar navigate error:', navErr);
+                } catch (navErr) {
+                    window['console']['error']('Sidebar navigate error:', navErr);
                 }
             });
         });
         const appNav = document.getElementById('app-nav');
-        appNav === null || appNav === void 0 ? void 0 : appNav.addEventListener('click', (e) => {
-            const link = e.target.closest('.nav-link[data-view]');
-            if (!link)
-                return;
-            e.preventDefault();
-            try {
-                this.navigate(link.dataset.view);
-                this.closeMobileNav();
-            }
-            catch (navErr) {
-                window["console"]["error"]('Sidebar delegation navigate error:', navErr);
-            }
-        });
+        appNav === null || appNav === void 0
+            ? void 0
+            : appNav.addEventListener('click', e => {
+                  const link = e.target.closest('.nav-link[data-view]');
+                  if (!link) return;
+                  e.preventDefault();
+                  try {
+                      this.navigate(link.dataset.view);
+                      this.closeMobileNav();
+                  } catch (navErr) {
+                      window['console']['error']('Sidebar delegation navigate error:', navErr);
+                  }
+              });
         const searchInput = document.getElementById('global-search');
-        searchInput === null || searchInput === void 0 ? void 0 : searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && searchInput.value.trim()) {
-                this.navigate('results', { q: searchInput.value.trim() });
-            }
-        });
+        searchInput === null || searchInput === void 0
+            ? void 0
+            : searchInput.addEventListener('keydown', e => {
+                  if (e.key === 'Enter' && searchInput.value.trim()) {
+                      this.navigate('results', { q: searchInput.value.trim() });
+                  }
+              });
         this.setupProfileDropdown();
     }
     /** Capture-phase guard so Create Account never falls through to pricing CTAs. */
     setupAuthNavCapture() {
-        const registerSelector = '[data-auth-action="register"], #subtab-register, #goto-register-btn, #note-goto-register, #pricing-goto-register, #lock-goto-register, #ide-auth-register-btn';
+        const registerSelector =
+            '[data-auth-action="register"], #subtab-register, #goto-register-btn, #note-goto-register, #pricing-goto-register, #lock-goto-register, #ide-auth-register-btn';
         const signinSelector = '[data-auth-action="signin"], #subtab-login, #note-goto-signin';
-        document.addEventListener('click', (event) => {
-            const registerTarget = event.target.closest(registerSelector);
-            if (registerTarget) {
-                event.preventDefault();
-                event.stopPropagation();
-                this.router.navigate('register');
-                return;
-            }
-            const signinTarget = event.target.closest(signinSelector);
-            if (signinTarget) {
-                event.preventDefault();
-                event.stopPropagation();
-                this.router.navigate('signin');
-            }
-        }, true);
+        document.addEventListener(
+            'click',
+            event => {
+                const registerTarget = event.target.closest(registerSelector);
+                if (registerTarget) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.router.navigate('register');
+                    return;
+                }
+                const signinTarget = event.target.closest(signinSelector);
+                if (signinTarget) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.router.navigate('signin');
+                }
+            },
+            true
+        );
     }
     /** Redirect pricing CTAs to the marketing pricing page. */
     bindPricingCta(anchor) {
-        if (!anchor || anchor.dataset.pricingBound === '1')
-            return;
+        if (!anchor || anchor.dataset.pricingBound === '1') return;
         anchor.dataset.pricingBound = '1';
         anchor.href = '/pricing';
         anchor.removeAttribute('target');
-        anchor.addEventListener('click', (event) => {
+        anchor.addEventListener('click', event => {
             event.preventDefault();
             window.location.href = '/pricing';
         });
     }
     setupPricingCtas() {
         this.bindPricingCta(document.querySelector('#sandbox-banner a'));
-        document.addEventListener('click', (event) => {
+        document.addEventListener('click', event => {
             if (isAuthEntryView(this._currentViewName)) {
                 return;
             }
@@ -1496,8 +1584,7 @@ class SimplebeaconDashboard {
                 return;
             }
             const link = event.target.closest('[data-pricing-cta]');
-            if (!link || link.dataset.pricingBound === '1')
-                return;
+            if (!link || link.dataset.pricingBound === '1') return;
             event.preventDefault();
             window.location.href = '/pricing';
         });
@@ -1508,47 +1595,51 @@ class SimplebeaconDashboard {
         const viewBtn = document.getElementById('profile-dropdown-view');
         const adminBtn = document.getElementById('profile-dropdown-admin');
         const signoutBtn = document.getElementById('profile-dropdown-signout');
-        if (!profileBtn || !menu)
-            return;
-        profileBtn.addEventListener('click', (e) => {
+        if (!profileBtn || !menu) return;
+        profileBtn.addEventListener('click', e => {
             e.stopPropagation();
             const willShow = menu.classList.contains('hidden');
             menu.classList.toggle('hidden', !willShow);
             profileBtn.setAttribute('aria-expanded', String(willShow));
         });
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', e => {
             const target = e.target;
             if (!menu.contains(target) && target !== profileBtn && !profileBtn.contains(target)) {
                 menu.classList.add('hidden');
                 profileBtn.setAttribute('aria-expanded', 'false');
             }
         });
-        viewBtn === null || viewBtn === void 0 ? void 0 : viewBtn.addEventListener('click', () => {
-            menu.classList.add('hidden');
-            profileBtn.setAttribute('aria-expanded', 'false');
-            this.navigate('profile');
-        });
-        adminBtn === null || adminBtn === void 0 ? void 0 : adminBtn.addEventListener('click', () => {
-            menu.classList.add('hidden');
-            profileBtn.setAttribute('aria-expanded', 'false');
-            this.navigate('admin');
-        });
-        signoutBtn === null || signoutBtn === void 0 ? void 0 : signoutBtn.addEventListener('click', async () => {
-            menu.classList.add('hidden');
-            profileBtn.setAttribute('aria-expanded', 'false');
-            try {
-                await authService.logout();
-                showToast('Signed out', 'info');
-                this.updateAuthUi();
-                this.router.navigate('signin');
-            }
-            catch (err) {
-                showToast('Sign out failed', 'error');
-            }
-        });
+        viewBtn === null || viewBtn === void 0
+            ? void 0
+            : viewBtn.addEventListener('click', () => {
+                  menu.classList.add('hidden');
+                  profileBtn.setAttribute('aria-expanded', 'false');
+                  this.navigate('profile');
+              });
+        adminBtn === null || adminBtn === void 0
+            ? void 0
+            : adminBtn.addEventListener('click', () => {
+                  menu.classList.add('hidden');
+                  profileBtn.setAttribute('aria-expanded', 'false');
+                  this.navigate('admin');
+              });
+        signoutBtn === null || signoutBtn === void 0
+            ? void 0
+            : signoutBtn.addEventListener('click', async () => {
+                  menu.classList.add('hidden');
+                  profileBtn.setAttribute('aria-expanded', 'false');
+                  try {
+                      await authService.logout();
+                      showToast('Signed out', 'info');
+                      this.updateAuthUi();
+                      this.router.navigate('signin');
+                  } catch (err) {
+                      showToast('Sign out failed', 'error');
+                  }
+              });
     }
     setupKeyboard() {
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', e => {
             var _a, _b;
             const mod = e.ctrlKey || e.metaKey;
             if (mod && e.key === 'k') {
@@ -1569,14 +1660,12 @@ class SimplebeaconDashboard {
                         history: this.state.history,
                         dashboardHome: this.state.dashboardHome
                     });
-                }
-                else {
+                } else {
                     this.scanService.exportReport();
                 }
             }
             if (e.key === 'Escape') {
-                if (document.getElementById('token-prompt-modal'))
-                    return;
+                if (document.getElementById('token-prompt-modal')) return;
                 (_b = document.getElementById('onboarding-modal')) === null || _b === void 0 ? void 0 : _b.remove();
                 this.closeMobileNav();
             }
@@ -1586,16 +1675,22 @@ class SimplebeaconDashboard {
         const toggle = document.getElementById('mobile-nav-toggle');
         const nav = document.getElementById('app-nav');
         const overlay = document.getElementById('mobile-nav-overlay');
-        toggle === null || toggle === void 0 ? void 0 : toggle.addEventListener('click', () => {
-            nav === null || nav === void 0 ? void 0 : nav.classList.toggle('open');
-            overlay === null || overlay === void 0 ? void 0 : overlay.classList.toggle('open');
-        });
-        overlay === null || overlay === void 0 ? void 0 : overlay.addEventListener('click', () => this.closeMobileNav());
+        toggle === null || toggle === void 0
+            ? void 0
+            : toggle.addEventListener('click', () => {
+                  nav === null || nav === void 0 ? void 0 : nav.classList.toggle('open');
+                  overlay === null || overlay === void 0 ? void 0 : overlay.classList.toggle('open');
+              });
+        overlay === null || overlay === void 0
+            ? void 0
+            : overlay.addEventListener('click', () => this.closeMobileNav());
     }
     closeMobileNav() {
         var _a, _b;
         (_a = document.getElementById('app-nav')) === null || _a === void 0 ? void 0 : _a.classList.remove('open');
-        (_b = document.getElementById('mobile-nav-overlay')) === null || _b === void 0 ? void 0 : _b.classList.remove('open');
+        (_b = document.getElementById('mobile-nav-overlay')) === null || _b === void 0
+            ? void 0
+            : _b.classList.remove('open');
     }
     cleanupDisabledElements() {
         const selectors = [
@@ -1606,8 +1701,8 @@ class SimplebeaconDashboard {
             '.analyze-deliverable-table-wrap',
             '.analyze-deliverable-picker'
         ];
-        selectors.forEach((sel) => {
-            document.querySelectorAll(sel).forEach((el) => {
+        selectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
                 el.remove();
             });
         });
@@ -1620,7 +1715,8 @@ class SimplebeaconDashboard {
         // scanned by the remote server and will trigger Firefox Privacy mode warnings. Clear it and
         // fall back to the loaded report's projectRoot or the server default.
         const normalizedLast = String(this.state.lastProjectPath || '').replace(/\\/g, '/');
-        const badPathPattern = /ai-platform\/CascadeProjects$|google-earthenterprise|^[a-zA-Z]:\/Users\/CascadeProjects$/i;
+        const badPathPattern =
+            /ai-platform\/CascadeProjects$|google-earthenterprise|^[a-zA-Z]:\/Users\/CascadeProjects$/i;
         const isRemote = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
         const isLocalWindowsPath = /^[a-zA-Z]:\//i.test(normalizedLast);
         if (badPathPattern.test(normalizedLast) || (isRemote && isLocalWindowsPath)) {
@@ -1630,13 +1726,11 @@ class SimplebeaconDashboard {
         let data = { report: null, baseline: null, config: null, history: null };
         try {
             data = await this.scanService.fetchAll(this.state.lastProjectPath || null);
-        }
-        catch (_e) {
+        } catch (_e) {
             // Path-specific report failed — try default platform report
             try {
                 data = await this.scanService.fetchAll();
-            }
-            catch (_f) {
+            } catch (_f) {
                 // Silent fallback — try local saved scan below
             }
         }
@@ -1648,8 +1742,7 @@ class SimplebeaconDashboard {
             if (res.ok) {
                 reAttestation = await res.json();
             }
-        }
-        catch (_g) {
+        } catch (_g) {
             // No re-attestation metadata available
         }
         Object.assign(this.state, {
@@ -1657,8 +1750,11 @@ class SimplebeaconDashboard {
                 const serverReport = data.report;
                 const localReport = this.state.report;
                 const analyzeReport = this.state.analyzeResult && this.state.analyzeResult.report;
-                const clientReport = isClientScanReport(localReport) ? localReport
-                    : (isClientScanReport(analyzeReport) ? analyzeReport : null);
+                const clientReport = isClientScanReport(localReport)
+                    ? localReport
+                    : isClientScanReport(analyzeReport)
+                      ? analyzeReport
+                      : null;
                 if (clientReport && (clientReport.rawIssues || clientReport.detectedIssues || []).length) {
                     return clientReport;
                 }
@@ -1684,11 +1780,17 @@ class SimplebeaconDashboard {
                         }
                     }
                 }
-            } catch { /* ignore — non-critical fallback */ }
+            } catch {
+                /* ignore — non-critical fallback */
+            }
         }
         if (!this.state.lastProjectPath && !this.state.defaultProjectPath) {
             const reportRoot = data.report && data.report.projectRoot;
-            if (reportRoot && (!isRemote || hasExtensionBridgeConfigured()) && !shouldClearHostedServerDefaultPath(reportRoot)) {
+            if (
+                reportRoot &&
+                (!isRemote || hasExtensionBridgeConfigured()) &&
+                !shouldClearHostedServerDefaultPath(reportRoot)
+            ) {
                 this.state.defaultProjectPath = reportRoot;
             }
         }
@@ -1698,15 +1800,13 @@ class SimplebeaconDashboard {
         }
     }
     async ensureDefaultProjectPath() {
-        if (this.state.defaultProjectPath)
-            return;
+        if (this.state.defaultProjectPath) return;
         try {
             const info = await fetchAnalyzeProviders();
             if (info.defaultProjectPath && !shouldClearHostedServerDefaultPath(info.defaultProjectPath)) {
                 this.state.defaultProjectPath = info.defaultProjectPath;
             }
-        }
-        catch (_a) {
+        } catch (_a) {
             /* optional — Analyze page loads this too */
         }
     }
@@ -1733,8 +1833,7 @@ class SimplebeaconDashboard {
         this.updateAuthPageShell(view);
         this.updateEmbedQuickNav(view);
         const main = document.getElementById('app-main');
-        if (!main)
-            return;
+        if (!main) return;
         // Preserve scroll position across routes leaves a black void above short pages
         // (e.g. Settings after Chatbot). Reset the scroll container on every navigation.
         this.resetMainScroll(main);
@@ -1751,8 +1850,7 @@ class SimplebeaconDashboard {
             if (!authService.isAuthenticated()) {
                 await authService.ensureAuthenticated();
             }
-            if (this._currentViewName !== view)
-                return;
+            if (this._currentViewName !== view) return;
             this.updateAuthUi();
         }
         if (!readOnlyPreview && !PUBLIC_VIEWS.has(view) && !authService.isAuthenticated()) {
@@ -1760,9 +1858,8 @@ class SimplebeaconDashboard {
                 await this.waitForIdeAuthSync(3000);
             }
             if (!authService.isAuthenticated()) {
-                const bridgeBypass = isIdeDashboardSurface()
-                    && hasExtensionBridgeConfigured()
-                    && IDE_BRIDGE_ONLY_VIEWS.has(view);
+                const bridgeBypass =
+                    isIdeDashboardSurface() && hasExtensionBridgeConfigured() && IDE_BRIDGE_ONLY_VIEWS.has(view);
                 if (!bridgeBypass) {
                     this.showLockScreen(view);
                     return;
@@ -1774,8 +1871,7 @@ class SimplebeaconDashboard {
         this.state.readOnly = isFreeTier;
         if (isFreeTier) {
             this.showReadOnlyBanner();
-        }
-        else {
+        } else {
             (_a = document.getElementById('readonly-banner')) === null || _a === void 0 ? void 0 : _a.remove();
         }
         if (!readOnlyPreview && view === 'admin' && !this.isCurrentUserAdmin()) {
@@ -1799,8 +1895,7 @@ class SimplebeaconDashboard {
                     if (isLocalSelfHosted() || requiresAuthGate()) {
                         showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
                         this.navigate('signin');
-                    }
-                    else {
+                    } else {
                         showToast('Use the free CLI — see About for install', 'info');
                         this.navigate('about');
                     }
@@ -1811,14 +1906,12 @@ class SimplebeaconDashboard {
         if ((_b = this.currentView) === null || _b === void 0 ? void 0 : _b.destroy) {
             try {
                 this.currentView.destroy();
-            }
-            catch (destroyErr) {
-                window["console"]["error"]('View destroy error:', destroyErr);
+            } catch (destroyErr) {
+                window['console']['error']('View destroy error:', destroyErr);
             }
         }
-        document.querySelectorAll('body > .fade-in, .app-shell > .fade-in').forEach((el) => {
-            if (el.querySelector('#settings-section-scan, .settings-nav, .page-header, .page-title'))
-                el.remove();
+        document.querySelectorAll('body > .fade-in, .app-shell > .fade-in').forEach(el => {
+            if (el.querySelector('#settings-section-scan, .settings-nav, .page-header, .page-title')) el.remove();
         });
         this.cleanupOrphanViewRoots(main);
         const viewInstance = this.views[view];
@@ -1833,25 +1926,26 @@ class SimplebeaconDashboard {
                         try {
                             if (typeof document !== 'undefined' && document.scrollingElement)
                                 document.scrollingElement.scrollTop = 0;
-                        }
-                        catch (_a) { }
-                        try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_b) { }
+                        } catch (_a) {}
+                        try {
+                            if (typeof window !== 'undefined' && typeof window.scrollTo === 'function')
+                                window.scrollTo(0, 0);
+                        } catch (_b) {}
                     });
                 });
+            } catch (_err) {
+                /* ignore */
             }
-            catch (_err) { /* ignore */ }
         }
         if (view === 'dashboard') {
             this.startBackgroundScanWatcher();
-        }
-        else {
+        } else {
             this.stopBackgroundScanWatcher();
         }
     }
     async runScan(projectPath) {
         var _a, _b, _c, _d, _e;
-        if (this.state.scanning)
-            return;
+        if (this.state.scanning) return;
         if (this.state.readOnly) {
             showToast('Scanning requires a paid license. View pricing to upgrade.', 'info');
             return;
@@ -1860,10 +1954,11 @@ class SimplebeaconDashboard {
             showToast(demoReadOnlyMessage(), 'info');
             return;
         }
-        const resolvedPath = resolveDashboardProjectPath(
-            String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim(),
-            this.state.defaultProjectPath
-        ) || undefined;
+        const resolvedPath =
+            resolveDashboardProjectPath(
+                String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim(),
+                this.state.defaultProjectPath
+            ) || undefined;
         if (!resolvedPath) {
             showToast('No project path selected. Open a folder or set a project path before scanning.', 'error');
             return;
@@ -1872,7 +1967,10 @@ class SimplebeaconDashboard {
         const isWindowsLocalPath = /^[a-zA-Z]:[\\/]/.test(resolvedPath);
         if (isWindowsLocalPath && isHostedDashboard() && !hasExtensionBridgeConfigured()) {
             if (!canUseDirectoryPicker()) {
-                showToast('Local paths can\'t be scanned from the deployed site. Use Chrome/Edge with Privacy mode, or run the dashboard locally.', 'error');
+                showToast(
+                    "Local paths can't be scanned from the deployed site. Use Chrome/Edge with Privacy mode, or run the dashboard locally.",
+                    'error'
+                );
                 return;
             }
             showToast('Scanning local folder in your browser — no upload to server', 'info');
@@ -1932,11 +2030,13 @@ class SimplebeaconDashboard {
                 scanning: false,
                 audit: null
             });
-            (_b = (_a = this.views.audit) === null || _a === void 0 ? void 0 : _a.invalidateCache) === null || _b === void 0 ? void 0 : _b.call(_a);
+            (_b = (_a = this.views.audit) === null || _a === void 0 ? void 0 : _a.invalidateCache) === null ||
+            _b === void 0
+                ? void 0
+                : _b.call(_a);
             showToast('Scan complete', 'success');
             this._notifyExtensionReport(this.scanService.report);
-        }
-        catch (err) {
+        } catch (err) {
             this.state.scanning = false;
             showToast(err.message, 'error');
         }
@@ -1944,18 +2044,15 @@ class SimplebeaconDashboard {
         this.startBackgroundScanWatcher();
     }
     _notifyExtensionReport(report) {
-        if (!report)
-            return;
+        if (!report) return;
         const vscode = getVsCodeApi();
-        if (!vscode)
-            return;
+        if (!vscode) return;
         try {
             const allIssues = report.rawIssues || report.detectedIssues || [];
             const sevCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
             for (const issue of allIssues) {
                 const band = String(issue.severity || 'low').toLowerCase();
-                if (sevCounts[band] !== undefined)
-                    sevCounts[band]++;
+                if (sevCounts[band] !== undefined) sevCounts[band]++;
             }
             vscode.postMessage({ command: 'updateReport', report });
             vscode.postMessage({
@@ -1969,21 +2066,18 @@ class SimplebeaconDashboard {
                     score: report.qualityScore || (report.gate && report.gate.score) || 0
                 }
             });
-        }
-        catch (err) {
-            window["console"]["warn"]('[VSCodeBridge] Failed to post report to extension:', err);
+        } catch (err) {
+            window['console']['warn']('[VSCodeBridge] Failed to post report to extension:', err);
         }
     }
     refreshCurrentView() {
-        if (this._refreshScheduled)
-            return;
+        if (this._refreshScheduled) return;
         this._refreshScheduled = true;
         requestAnimationFrame(() => {
             var _a, _b;
             this._refreshScheduled = false;
             const main = document.getElementById('app-main');
-            if (!this.currentView || !main)
-                return;
+            if (!this.currentView || !main) return;
             // Surgical update on dashboard to avoid flicker.
             // If a report already exists and we had one before, refresh the scan slot in-place
             // instead of re-rendering the entire view (which would flash the
@@ -1993,7 +2087,10 @@ class SimplebeaconDashboard {
             const hadReport = this._hadReport;
             this._hadReport = Boolean(this.state.report);
             if (this._currentViewName === 'dashboard' && this.state.report && hadReport) {
-                (_b = (_a = this.views.dashboard) === null || _a === void 0 ? void 0 : _a.refreshScanStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
+                (_b = (_a = this.views.dashboard) === null || _a === void 0 ? void 0 : _a.refreshScanStatus) === null ||
+                _b === void 0
+                    ? void 0
+                    : _b.call(_a);
                 return;
             }
             this.currentView.mount(main);
@@ -2012,15 +2109,20 @@ class SimplebeaconDashboard {
         var _a, _b;
         this.stopBackgroundScanWatcher();
         // Only poll when a scan is active or just finished; otherwise there's nothing new to detect.
-        if (!this.state.scanning && !(this.state.report && (this.state.report.scanId || this.state.report.generatedAt))) {
+        if (
+            !this.state.scanning &&
+            !(this.state.report && (this.state.report.scanId || this.state.report.generatedAt))
+        ) {
             return;
         }
-        const currentScanId = ((_a = this.state.report) === null || _a === void 0 ? void 0 : _a.scanId) || ((_b = this.state.report) === null || _b === void 0 ? void 0 : _b.generatedAt) || null;
+        const currentScanId =
+            ((_a = this.state.report) === null || _a === void 0 ? void 0 : _a.scanId) ||
+            ((_b = this.state.report) === null || _b === void 0 ? void 0 : _b.generatedAt) ||
+            null;
         this._lastKnownScanId = currentScanId;
         this._bgScanPollStart = Date.now();
         const poll = async () => {
-            if (this._bgScanPollInProgress || (typeof document !== 'undefined' && document.hidden))
-                return;
+            if (this._bgScanPollInProgress || (typeof document !== 'undefined' && document.hidden)) return;
             this._bgScanPollInProgress = true;
             if (Date.now() - this._bgScanPollStart > 60000) {
                 this.stopBackgroundScanWatcher();
@@ -2029,33 +2131,32 @@ class SimplebeaconDashboard {
             }
             try {
                 const report = await this.scanService.fetchReport(this.state.lastProjectPath || null);
-                const newScanId = (report === null || report === void 0 ? void 0 : report.scanId) || (report === null || report === void 0 ? void 0 : report.generatedAt) || null;
+                const newScanId =
+                    (report === null || report === void 0 ? void 0 : report.scanId) ||
+                    (report === null || report === void 0 ? void 0 : report.generatedAt) ||
+                    null;
                 if (newScanId && newScanId !== this._lastKnownScanId) {
                     this.stopBackgroundScanWatcher();
                     await this.loadDataInBackground();
                     showToast('New scan results available', 'success');
                 }
-            }
-            catch (_a) {
+            } catch (_a) {
                 // Silently ignore transient fetch errors
-            }
-            finally {
+            } finally {
                 this._bgScanPollInProgress = false;
             }
         };
         this._bgScanPollTimer = setInterval(poll, 30000);
     }
     maybeShowOnboarding() {
-        if (!shouldShowOnboarding())
-            return;
-        if (this._currentViewName === 'chatbot')
-            return;
+        if (!shouldShowOnboarding()) return;
+        if (this._currentViewName === 'chatbot') return;
         const overlay = renderOnboarding();
         document.body.appendChild(overlay);
         bindOnboarding(overlay, {
             onStart: () => this.runScan(),
             onTour: () => this.guidedTour.start(0),
-            onDismiss: () => { }
+            onDismiss: () => {}
         });
     }
 }
@@ -2064,13 +2165,12 @@ document.addEventListener('DOMContentLoaded', () => {
         window.__SB_DASHBOARD_APP__ = true;
         const app = new SimplebeaconDashboard();
         window.simplebeaconApp = app;
-        app.init().catch((err) => {
-            window["console"]["error"](err);
+        app.init().catch(err => {
+            window['console']['error'](err);
             showToast(err.message || 'Dashboard failed to start', 'error');
         });
-    }
-    catch (err) {
-        window["console"]["error"](err);
+    } catch (err) {
+        window['console']['error'](err);
         const main = document.getElementById('app-main');
         if (main) {
             main.textContent = '';

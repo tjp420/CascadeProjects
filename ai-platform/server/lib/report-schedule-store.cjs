@@ -1,14 +1,18 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'report-schedules.json');
+const STORE_PATH = path.join(
+  process.cwd(),
+  ".simplebeacon",
+  "report-schedules.json",
+);
 
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { schedules: {} };
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
     return JSON.parse(raw);
   } catch {
     return { schedules: {} };
@@ -49,16 +53,16 @@ function setSchedule(id, config, orgId) {
   const key = makeScheduleKey(orgId, id);
   const existing = store.schedules[key];
   store.schedules[key] = {
-    orgId: orgId || 'default',
+    orgId: orgId || "default",
     id,
     name: config.name || id,
     enabled: config.enabled !== false,
-    frequency: config.frequency || 'weekly',
+    frequency: config.frequency || "weekly",
     dayOfWeek: config.dayOfWeek !== undefined ? config.dayOfWeek : 1,
     dayOfMonth: config.dayOfMonth !== undefined ? config.dayOfMonth : 1,
     hour: config.hour !== undefined ? config.hour : 8,
     minute: config.minute !== undefined ? config.minute : 0,
-    format: config.format || 'csv',
+    format: config.format || "csv",
     recipients: Array.isArray(config.recipients) ? config.recipients : [],
     filters: config.filters || {},
     lastRunAt: existing?.lastRunAt || null,

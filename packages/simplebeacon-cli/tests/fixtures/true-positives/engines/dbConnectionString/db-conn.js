@@ -9,14 +9,15 @@
  */
 
 const config = {
-    database: {
-        primary: 'postgresql://admin:SuperSecretPass123!@prod-db.myapp.io:5432/appdb',
-        replica: 'mysql://root:password123@replica.myapp.io:3306/appdb'
-    }
+  database: {
+    primary:
+      "postgresql://admin:SuperSecretPass123!@prod-db.myapp.io:5432/appdb",
+    replica: "mysql://root:password123@replica.myapp.io:3306/appdb",
+  },
 };
 
 function getConnection() {
-    return config.database.primary;
+  return config.database.primary;
 }
 
 module.exports = { config, getConnection };

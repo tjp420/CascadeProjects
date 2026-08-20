@@ -9,7 +9,7 @@ export class PricingView {
   }
 
   mount(container) {
-container.innerHTML = `
+    container.innerHTML = `
       <div class="page-header">
         <h1>Install</h1>
         <p class="page-subtitle">
@@ -72,4 +72,3 @@ container.innerHTML = `
 
   destroy() {}
 }
-

@@ -1,15 +1,19 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { MigrationWAL } = require('./wal.cjs');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const { MigrationWAL } = require("./wal.cjs");
 
 class EnclaveStateManager {
   constructor(options = {}) {
     this._hsm = options.hsm; // required: { wrapKey(Buffer)->Buffer, unwrapKey(Buffer)->Buffer }
-    this._storageDir = options.storageDir || path.join(__dirname, '..', '..', '..', 'tmp', 'enclave-state');
+    this._storageDir =
+      options.storageDir ||
+      path.join(__dirname, "..", "..", "..", "tmp", "enclave-state");
     fs.mkdirSync(this._storageDir, { recursive: true });
     // initialize WAL for resumable migrations
-    this.wal = new MigrationWAL(options.walDir || path.join(this._storageDir, '..', '.enclave-wal'));
+    this.wal = new MigrationWAL(
+      options.walDir || path.join(this._storageDir, "..", ".enclave-wal"),
+    );
   }
 
   _statePath(id) {
@@ -18,23 +22,28 @@ class EnclaveStateManager {
   }
 
   async persistState(id, plaintextBuf, opts = {}) {
-    if (!Buffer.isBuffer(plaintextBuf)) plaintextBuf = Buffer.from(plaintextBuf);
+    if (!Buffer.isBuffer(plaintextBuf))
+      plaintextBuf = Buffer.from(plaintextBuf);
     const dataKey = crypto.randomBytes(32); // AES-256 key
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', dataKey, iv);
-    const ciphertext = Buffer.concat([cipher.update(plaintextBuf), cipher.final()]);
+    const cipher = crypto.createCipheriv("aes-256-gcm", dataKey, iv);
+    const ciphertext = Buffer.concat([
+      cipher.update(plaintextBuf),
+      cipher.final(),
+    ]);
     const tag = cipher.getAuthTag();
 
     // wrap the dataKey via HSM
-    if (!this._hsm || typeof this._hsm.wrapKey !== 'function') throw new Error('HSM wrapper not available');
+    if (!this._hsm || typeof this._hsm.wrapKey !== "function")
+      throw new Error("HSM wrapper not available");
     const wrappedKey = await this._hsm.wrapKey(dataKey);
 
     const payload = {
       v: 1,
-      wrappedKey: wrappedKey.toString('base64'),
-      iv: iv.toString('base64'),
-      tag: tag.toString('base64'),
-      ct: ciphertext.toString('base64'),
+      wrappedKey: wrappedKey.toString("base64"),
+      iv: iv.toString("base64"),
+      tag: tag.toString("base64"),
+      ct: ciphertext.toString("base64"),
       meta: opts.meta || {},
     };
 
@@ -54,18 +63,19 @@ class EnclaveStateManager {
 
   async loadState(id) {
     const p = this._statePath(id);
-    if (!fs.existsSync(p)) throw new Error('state-not-found');
-    const raw = fs.readFileSync(p, 'utf8');
+    if (!fs.existsSync(p)) throw new Error("state-not-found");
+    const raw = fs.readFileSync(p, "utf8");
     const payload = JSON.parse(raw);
-    const wrappedKey = Buffer.from(payload.wrappedKey, 'base64');
-    const iv = Buffer.from(payload.iv, 'base64');
-    const tag = Buffer.from(payload.tag, 'base64');
-    const ct = Buffer.from(payload.ct, 'base64');
+    const wrappedKey = Buffer.from(payload.wrappedKey, "base64");
+    const iv = Buffer.from(payload.iv, "base64");
+    const tag = Buffer.from(payload.tag, "base64");
+    const ct = Buffer.from(payload.ct, "base64");
 
-    if (!this._hsm || typeof this._hsm.unwrapKey !== 'function') throw new Error('HSM unwrap not available');
+    if (!this._hsm || typeof this._hsm.unwrapKey !== "function")
+      throw new Error("HSM unwrap not available");
     const dataKey = await this._hsm.unwrapKey(wrappedKey);
 
-    const decipher = crypto.createDecipheriv('aes-256-gcm', dataKey, iv);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", dataKey, iv);
     decipher.setAuthTag(tag);
     const plain = Buffer.concat([decipher.update(ct), decipher.final()]);
 
@@ -85,7 +95,7 @@ class EnclaveStateManager {
       try {
         const stats = fs.statSync(p);
         const z = Buffer.alloc(Math.min(4096, Math.max(1, stats.size)), 0);
-        const fd = fs.openSync(p, 'r+');
+        const fd = fs.openSync(p, "r+");
         let written = 0;
         while (written < stats.size) {
           const toWrite = Math.min(z.length, stats.size - written);
@@ -105,7 +115,10 @@ class EnclaveStateManager {
 
   async rotateKek(newWrapFn) {
     // newWrapFn: async (dataKey: Buffer) => Buffer (newWrappedKey)
-    const files = fs.readdirSync(this._storageDir).filter(f => f.endsWith('.state')).sort();
+    const files = fs
+      .readdirSync(this._storageDir)
+      .filter((f) => f.endsWith(".state"))
+      .sort();
 
     for (const f of files) {
       const p = path.join(this._storageDir, f);
@@ -113,27 +126,42 @@ class EnclaveStateManager {
       const entryId = f; // filename as unique entry id
 
       // WAL append prior to modifications (pending)
-      try { this.wal.append({ id: entryId, path: p, status: 'pending' }); } catch (e) { /* best-effort */ }
+      try {
+        this.wal.append({ id: entryId, path: p, status: "pending" });
+      } catch (e) {
+        /* best-effort */
+      }
 
       try {
         await this._reencryptStateFileByPath(p, newWrapFn);
-        try { this.wal.markApplied(entryId); } catch (e) { /* best-effort */ }
+        try {
+          this.wal.markApplied(entryId);
+        } catch (e) {
+          /* best-effort */
+        }
       } catch (err) {
         // leave WAL entry as pending so recovery can resume
-        console.error(`[MIGRATION ERROR] Failed on chunk ${entryId}:`, err && err.message ? err.message : err);
+        console.error(
+          `[MIGRATION ERROR] Failed on chunk ${entryId}:`,
+          err && err.message ? err.message : err,
+        );
         throw err;
       }
     }
 
     // compact WAL after successful rotation
-    try { this.wal.checkpoint(); } catch (e) { /* best-effort */ }
+    try {
+      this.wal.checkpoint();
+    } catch (e) {
+      /* best-effort */
+    }
     return { rotated: true };
   }
 
   async _reencryptStateFileByPath(p, newWrapFn) {
-    const raw = fs.readFileSync(p, 'utf8');
+    const raw = fs.readFileSync(p, "utf8");
     const payload = JSON.parse(raw);
-    const wrappedKey = Buffer.from(payload.wrappedKey, 'base64');
+    const wrappedKey = Buffer.from(payload.wrappedKey, "base64");
 
     // unwrap using current HSM
     const dataKey = await this._hsm.unwrapKey(wrappedKey);
@@ -141,7 +169,7 @@ class EnclaveStateManager {
     // create new wrapped key using provided function
     const newWrapped = await newWrapFn(dataKey);
 
-    payload.wrappedKey = newWrapped.toString('base64');
+    payload.wrappedKey = newWrapped.toString("base64");
     payload.meta = payload.meta || {};
     payload.meta.kekRotatedAt = Date.now();
 
@@ -150,7 +178,9 @@ class EnclaveStateManager {
     fs.renameSync(tmp, p);
 
     // zeroize plaintext dataKey
-    try { dataKey.fill(0); } catch (e) {}
+    try {
+      dataKey.fill(0);
+    } catch (e) {}
   }
 
   /**
@@ -160,21 +190,28 @@ class EnclaveStateManager {
     const pending = this.wal.getPending();
     if (!pending || pending.length === 0) return;
 
-    console.warn(`[WAL RECOVERY] Found ${pending.length} unapplied migrations. Resuming cursor...`);
+    console.warn(
+      `[WAL RECOVERY] Found ${pending.length} unapplied migrations. Resuming cursor...`,
+    );
     for (const chunk of pending) {
       try {
         await this._reencryptStateFileByPath(chunk.path, resumeWrapFn);
         // mark as applied and record as recovered migration
         this.wal.markApplied(chunk.id, { recovered: true });
       } catch (err) {
-        console.error('WAL recovery failed for', chunk.id, err && err.message ? err.message : err);
+        console.error(
+          "WAL recovery failed for",
+          chunk.id,
+          err && err.message ? err.message : err,
+        );
         throw err;
       }
     }
 
-    try { this.wal.checkpoint(); } catch (e) {}
+    try {
+      this.wal.checkpoint();
+    } catch (e) {}
   }
-
 }
 
 module.exports = { EnclaveStateManager };

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 113: Compatibility shim for classical-only peers.
@@ -10,19 +10,19 @@
  * @module crypto/ratchet/compatibility-shim
  */
 
-const crypto = require('node:crypto');
-const bootstrap = require('./hybrid-bootstrap.cjs');
-const { initializeFromShared } = require('./index.cjs');
-const { RatchetMetrics, reasonFromError } = require('./ratchet-metrics.cjs');
+const crypto = require("node:crypto");
+const bootstrap = require("./hybrid-bootstrap.cjs");
+const { initializeFromShared } = require("./index.cjs");
+const { RatchetMetrics, reasonFromError } = require("./ratchet-metrics.cjs");
 
-const CLASSICAL_LABEL = Buffer.from('track113-classical-fallback');
+const CLASSICAL_LABEL = Buffer.from("track113-classical-fallback");
 const HANDSHAKE_VERSION_CLASSICAL = 0x00;
 const HANDSHAKE_VERSION_HYBRID = 0x01;
 
 class CompatibilityError extends Error {
   constructor(code, message) {
     super(message);
-    this.name = 'CompatibilityError';
+    this.name = "CompatibilityError";
     this.code = code;
   }
 }
@@ -34,16 +34,26 @@ class CompatibilityError extends Error {
  */
 function detectMode(publicKey) {
   if (!Buffer.isBuffer(publicKey) || publicKey.length === 0) {
-    throw new CompatibilityError('INVALID_PUBLIC_KEY', 'public key is required');
+    throw new CompatibilityError(
+      "INVALID_PUBLIC_KEY",
+      "public key is required",
+    );
   }
   if (publicKey[0] === bootstrap.HYBRID_VERSION && publicKey.length >= 2) {
     const components = bootstrap.deserializePublicKey(publicKey);
-    if (components[bootstrap.COMP_MLKEM768]) return { mode: 'HYBRID' };
-    if (components[bootstrap.COMP_X25519] && components[bootstrap.COMP_ED25519]) return { mode: 'CLASSICAL' };
-    throw new CompatibilityError('INVALID_HYBRID_KEY_LAYOUT', 'peer key missing x25519 or ed25519 component');
+    if (components[bootstrap.COMP_MLKEM768]) return { mode: "HYBRID" };
+    if (components[bootstrap.COMP_X25519] && components[bootstrap.COMP_ED25519])
+      return { mode: "CLASSICAL" };
+    throw new CompatibilityError(
+      "INVALID_HYBRID_KEY_LAYOUT",
+      "peer key missing x25519 or ed25519 component",
+    );
   }
   // SPKI DER or raw; for this shim we require the versioned layout.
-  throw new CompatibilityError('INVALID_PUBLIC_KEY', 'unrecognized peer public key format');
+  throw new CompatibilityError(
+    "INVALID_PUBLIC_KEY",
+    "unrecognized peer public key format",
+  );
 }
 
 function _classicalPeerComponents(publicKey) {
@@ -54,32 +64,52 @@ function _classicalPeerComponents(publicKey) {
       ed25519: components[bootstrap.COMP_ED25519],
     };
   } catch (e) {
-    throw new CompatibilityError('INVALID_HYBRID_KEY_LAYOUT', `failed to parse peer key: ${e.message}`);
+    throw new CompatibilityError(
+      "INVALID_HYBRID_KEY_LAYOUT",
+      `failed to parse peer key: ${e.message}`,
+    );
   }
 }
 
 function _deriveClassicalShared(localX25519Private, peerX25519PublicDer) {
-  const peer = crypto.createPublicKey({ key: peerX25519PublicDer, type: 'spki', format: 'der' });
-  const local = crypto.createPrivateKey({ key: localX25519Private, type: 'pkcs8', format: 'der' });
+  const peer = crypto.createPublicKey({
+    key: peerX25519PublicDer,
+    type: "spki",
+    format: "der",
+  });
+  const local = crypto.createPrivateKey({
+    key: localX25519Private,
+    type: "pkcs8",
+    format: "der",
+  });
   const dh = crypto.diffieHellman({ privateKey: local, publicKey: peer });
-  return Buffer.from(crypto.hkdfSync('sha384', Buffer.alloc(0), dh, CLASSICAL_LABEL, 32));
+  return Buffer.from(
+    crypto.hkdfSync("sha384", Buffer.alloc(0), dh, CLASSICAL_LABEL, 32),
+  );
 }
 
 function _makeTranscript(localPublic, peerPublic) {
   return Buffer.concat([
-    Buffer.from('track113-handshake-v1'),
-    crypto.createHash('sha256').update(localPublic).digest(),
-    crypto.createHash('sha256').update(peerPublic).digest(),
+    Buffer.from("track113-handshake-v1"),
+    crypto.createHash("sha256").update(localPublic).digest(),
+    crypto.createHash("sha256").update(peerPublic).digest(),
   ]);
 }
 
 function _checkDeprecation(opts, telemetry) {
   const now = opts.now || Date.now();
   const deadline = opts.deprecationDeadline;
-  if (typeof deadline === 'number' && now >= deadline) {
-    throw new CompatibilityError('CLASSICAL_DEPRECATION_DEADLINE', 'classical-only handshake past deprecation deadline');
+  if (typeof deadline === "number" && now >= deadline) {
+    throw new CompatibilityError(
+      "CLASSICAL_DEPRECATION_DEADLINE",
+      "classical-only handshake past deprecation deadline",
+    );
   }
-  if (telemetry) telemetry('IDENTITY_COMPAT_CLASSICAL_FALLBACK', { now, deprecationDeadline: deadline });
+  if (telemetry)
+    telemetry("IDENTITY_COMPAT_CLASSICAL_FALLBACK", {
+      now,
+      deprecationDeadline: deadline,
+    });
 }
 
 /**
@@ -99,7 +129,7 @@ async function initiateHandshake(localRatchet, peerPublicKey, opts = {}) {
   try {
     ({ mode } = detectMode(peerPublicKey));
 
-    if (mode === 'HYBRID') {
+    if (mode === "HYBRID") {
       const enc = await localRatchet.encapsulateFor(peerPublicKey);
       const transcript = _makeTranscript(localRatchet.publicKey, peerPublicKey);
       const signature = localRatchet.signHandshake(transcript);
@@ -115,17 +145,39 @@ async function initiateHandshake(localRatchet, peerPublicKey, opts = {}) {
     // Classical mode
     _checkDeprecation(opts, opts.telemetry);
     const peer = _classicalPeerComponents(peerPublicKey);
-    const sharedSecret = _deriveClassicalShared(localRatchet.secretKey.x25519, peer.x25519);
+    const sharedSecret = _deriveClassicalShared(
+      localRatchet.secretKey.x25519,
+      peer.x25519,
+    );
 
-    const ephemeral = crypto.generateKeyPairSync('x25519', {
-      publicKeyEncoding: { type: 'spki', format: 'der' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'der' },
+    const ephemeral = crypto.generateKeyPairSync("x25519", {
+      publicKeyEncoding: { type: "spki", format: "der" },
+      privateKeyEncoding: { type: "pkcs8", format: "der" },
     });
     const ephemeralPublic = ephemeral.publicKey;
-    const peerPub = crypto.createPublicKey({ key: peer.x25519, type: 'spki', format: 'der' });
-    const ephemeralPrivate = crypto.createPrivateKey({ key: ephemeral.privateKey, type: 'pkcs8', format: 'der' });
-    const dh = crypto.diffieHellman({ privateKey: ephemeralPrivate, publicKey: peerPub });
-    const finalShared = Buffer.from(crypto.hkdfSync('sha384', Buffer.alloc(0), Buffer.concat([sharedSecret, dh]), CLASSICAL_LABEL, 32));
+    const peerPub = crypto.createPublicKey({
+      key: peer.x25519,
+      type: "spki",
+      format: "der",
+    });
+    const ephemeralPrivate = crypto.createPrivateKey({
+      key: ephemeral.privateKey,
+      type: "pkcs8",
+      format: "der",
+    });
+    const dh = crypto.diffieHellman({
+      privateKey: ephemeralPrivate,
+      publicKey: peerPub,
+    });
+    const finalShared = Buffer.from(
+      crypto.hkdfSync(
+        "sha384",
+        Buffer.alloc(0),
+        Buffer.concat([sharedSecret, dh]),
+        CLASSICAL_LABEL,
+        32,
+      ),
+    );
 
     const { ck } = initializeFromShared(finalShared);
     localRatchet._initChain(finalShared);
@@ -139,7 +191,7 @@ async function initiateHandshake(localRatchet, peerPublicKey, opts = {}) {
       signature,
     ]);
 
-    return { mode, handshake, chainKey: ck.toString('hex') };
+    return { mode, handshake, chainKey: ck.toString("hex") };
   } catch (err) {
     metrics.incrementHandshakeFailed(reasonFromError(err));
     throw err;
@@ -160,27 +212,38 @@ async function initiateHandshake(localRatchet, peerPublicKey, opts = {}) {
  * @param {Function} [opts.telemetry]
  * @returns {Promise<{mode: 'HYBRID'|'CLASSICAL', chainKey: string}>}
  */
-async function acceptHandshake(localRatchet, handshake, peerPublicKey, opts = {}) {
+async function acceptHandshake(
+  localRatchet,
+  handshake,
+  peerPublicKey,
+  opts = {},
+) {
   const metrics = opts.metrics || new RatchetMetrics();
   const start = process.hrtime.bigint();
   let mode;
   try {
     if (!Buffer.isBuffer(handshake) || handshake.length < 1) {
-      throw new CompatibilityError('INVALID_HANDSHAKE', 'handshake is required');
+      throw new CompatibilityError(
+        "INVALID_HANDSHAKE",
+        "handshake is required",
+      );
     }
     const version = handshake[0];
 
     if (version === HANDSHAKE_VERSION_HYBRID) {
-      mode = 'HYBRID';
+      mode = "HYBRID";
       const cipherText = handshake.subarray(1);
       const { chainKey } = await localRatchet.decapsulateFrom(cipherText);
       return { mode, chainKey };
     }
 
     if (version !== HANDSHAKE_VERSION_CLASSICAL) {
-      throw new CompatibilityError('INVALID_HANDSHAKE_VERSION', `handshake version ${version} not supported`);
+      throw new CompatibilityError(
+        "INVALID_HANDSHAKE_VERSION",
+        `handshake version ${version} not supported`,
+      );
     }
-    mode = 'CLASSICAL';
+    mode = "CLASSICAL";
 
     _checkDeprecation(opts, opts.telemetry);
 
@@ -190,26 +253,55 @@ async function acceptHandshake(localRatchet, handshake, peerPublicKey, opts = {}
     const EPHEMERAL_DER_LEN = 44;
     const SIG_LEN = 64;
     if (handshake.length !== 1 + EPHEMERAL_DER_LEN + 1 + SIG_LEN) {
-      throw new CompatibilityError('INVALID_HANDSHAKE', 'handshake too short');
+      throw new CompatibilityError("INVALID_HANDSHAKE", "handshake too short");
     }
     const sigLen = handshake[handshake.length - 1 - SIG_LEN];
-    if (sigLen !== SIG_LEN) throw new CompatibilityError('INVALID_HANDSHAKE', 'unexpected signature length');
+    if (sigLen !== SIG_LEN)
+      throw new CompatibilityError(
+        "INVALID_HANDSHAKE",
+        "unexpected signature length",
+      );
     const signature = handshake.subarray(handshake.length - SIG_LEN);
     const ephemeralPublicDer = handshake.subarray(1, 1 + EPHEMERAL_DER_LEN);
-    const localX25519Private = crypto.createPrivateKey({ key: localRatchet.secretKey.x25519, type: 'pkcs8', format: 'der' });
-    const ephemeralPub = crypto.createPublicKey({ key: ephemeralPublicDer, type: 'spki', format: 'der' });
-    const dh = crypto.diffieHellman({ privateKey: localX25519Private, publicKey: ephemeralPub });
-    const sharedSecret = _deriveClassicalShared(localRatchet.secretKey.x25519, peer.x25519);
-    const finalShared = Buffer.from(crypto.hkdfSync('sha384', Buffer.alloc(0), Buffer.concat([sharedSecret, dh]), CLASSICAL_LABEL, 32));
+    const localX25519Private = crypto.createPrivateKey({
+      key: localRatchet.secretKey.x25519,
+      type: "pkcs8",
+      format: "der",
+    });
+    const ephemeralPub = crypto.createPublicKey({
+      key: ephemeralPublicDer,
+      type: "spki",
+      format: "der",
+    });
+    const dh = crypto.diffieHellman({
+      privateKey: localX25519Private,
+      publicKey: ephemeralPub,
+    });
+    const sharedSecret = _deriveClassicalShared(
+      localRatchet.secretKey.x25519,
+      peer.x25519,
+    );
+    const finalShared = Buffer.from(
+      crypto.hkdfSync(
+        "sha384",
+        Buffer.alloc(0),
+        Buffer.concat([sharedSecret, dh]),
+        CLASSICAL_LABEL,
+        32,
+      ),
+    );
 
     const transcript = _makeTranscript(peerPublicKey, localRatchet.publicKey);
     if (!bootstrap.verify(signature, transcript, peerPublicKey)) {
-      throw new CompatibilityError('SIGNATURE_INVALID', 'classical handshake signature verification failed');
+      throw new CompatibilityError(
+        "SIGNATURE_INVALID",
+        "classical handshake signature verification failed",
+      );
     }
 
     const { ck } = initializeFromShared(finalShared);
     localRatchet._initChain(finalShared);
-    return { mode, chainKey: ck.toString('hex') };
+    return { mode, chainKey: ck.toString("hex") };
   } catch (err) {
     metrics.incrementHandshakeFailed(reasonFromError(err));
     throw err;

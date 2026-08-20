@@ -11,10 +11,12 @@ assignees: []
 Please complete this evaluation at the end of the initial telemetry trial week. The feedback helps the team triage alert noise, UX friction, and performance regressions.
 
 ## 👤 Contributor Context
-- **Name / Handle**: 
-- **Engineering Discipline**: [ ] Automation  [ ] Infra/SRE  [ ] Security  [ ] QA  [ ] Product
+
+- **Name / Handle**:
+- **Engineering Discipline**: [ ] Automation [ ] Infra/SRE [ ] Security [ ] QA [ ] Product
 
 ## 💾 Storage Layer & Performance Evaluation
+
 1. Have you encountered any browser crashes or "Out of Memory" freezes when loading large scan reports?
    - [ ] Yes
    - [ ] No
@@ -24,6 +26,7 @@ Please complete this evaluation at the end of the initial telemetry trial week. 
 3. Rate the perceived dashboard loading speed when switching between findings views (1-5, 5 being instantaneous): ______
 
 ## 🌀 Local Jitter Harness Usage
+
 1. Did you run the `npm run dev:jitter` harness during local development tasks this week?
    - [ ] Yes
    - [ ] No
@@ -32,6 +35,7 @@ Please complete this evaluation at the end of the initial telemetry trial week. 
    - [ ] No / False Positive
 
 ## 🚨 Alert Fidelity & Noise Tracking
+
 1. Did you receive any automated failure alerts from the `verify-vite-build` or `web-e2e-tests` CI pipelines in Slack/Teams?
    - [ ] Yes
    - [ ] No
@@ -40,6 +44,7 @@ Please complete this evaluation at the end of the initial telemetry trial week. 
    - [ ] No (Please specify missing context below)
 
 ## 💬 General Observations & Friction Points
+
 Please detail any layout anomalies, loading state flakiness, or documentation gaps experienced during the pilot phase:
 
 ---

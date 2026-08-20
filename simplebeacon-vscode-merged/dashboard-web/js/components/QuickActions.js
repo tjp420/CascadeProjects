@@ -44,4 +44,3 @@ export function bindQuickActions(container, handlers) {
   container.querySelector('#action-send-ai')?.addEventListener('click', handlers.onSendAi || (() => {}));
   container.querySelector('#action-legacy')?.addEventListener('click', handlers.onLegacy);
 }
-

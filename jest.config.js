@@ -1,34 +1,30 @@
 /** @type {import('jest').Config} */
 module.exports = {
   // 1. Core Runtime Targets
-  testEnvironment: 'node',
+  testEnvironment: "node",
   verbose: false,
   testMatch: [
-    '<rootDir>/simplebeacon-vscode-merged/dashboard-web/js/**/__tests__/**/*.js?(x)'
+    "<rootDir>/simplebeacon-vscode-merged/dashboard-web/js/**/__tests__/**/*.js?(x)",
   ],
 
   // 2. Strict Workspace Isolation Paths
-  roots: ['<rootDir>/simplebeacon-vscode-merged/dashboard-web/js'],
+  roots: ["<rootDir>/simplebeacon-vscode-merged/dashboard-web/js"],
   modulePathIgnorePatterns: [
-    '<rootDir>/.simplebeacon/',
-    '<rootDir>/dist/',
-    '<rootDir>/node_modules/'
+    "<rootDir>/.simplebeacon/",
+    "<rootDir>/dist/",
+    "<rootDir>/node_modules/",
   ],
 
   // 3. High-Density Coverage Harvesting (Istanbul)
   collectCoverage: true,
-  coverageDirectory: '<rootDir>/.simplebeacon/coverage',
-  coverageReporters: [
-    'json',
-    'text-summary',
-    'lcov'
-  ],
+  coverageDirectory: "<rootDir>/.simplebeacon/coverage",
+  coverageReporters: ["json", "text-summary", "lcov"],
   collectCoverageFrom: [
-    'simplebeacon-vscode-merged/dashboard-web/js/**/*.js',
-    '!simplebeacon-vscode-merged/dashboard-web/js/**/*.test.js',
-    '!simplebeacon-vscode-merged/dashboard-web/js/__tests__/**',
-    '!simplebeacon-vscode-merged/dashboard-web/js/fixtures/**', // simplebeacon-ignore production-leak — Jest coverage exclusion, not a prod path
-    '!simplebeacon-vscode-merged/dashboard-web/js/mocks/**'
+    "simplebeacon-vscode-merged/dashboard-web/js/**/*.js",
+    "!simplebeacon-vscode-merged/dashboard-web/js/**/*.test.js",
+    "!simplebeacon-vscode-merged/dashboard-web/js/__tests__/**",
+    "!simplebeacon-vscode-merged/dashboard-web/js/fixtures/**", // simplebeacon-ignore production-leak — Jest coverage exclusion, not a prod path
+    "!simplebeacon-vscode-merged/dashboard-web/js/mocks/**",
   ],
 
   // 4. Automation Quality Gate Thresholds
@@ -38,9 +34,9 @@ module.exports = {
       statements: 0,
       branches: 0,
       functions: 0,
-      lines: 0
-    }
+      lines: 0,
+    },
   },
 
-  passWithNoTests: true
+  passWithNoTests: true,
 };

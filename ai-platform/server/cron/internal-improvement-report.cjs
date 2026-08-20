@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * SimpleBeacon Internal Program Improvement Report Generator
@@ -18,13 +18,13 @@
  *   executeImprovementReportJob(options) — generates + emails the report
  */
 
-const { summarizeAllTelemetry } = require('../lib/ci-telemetry-store.cjs');
+const { summarizeAllTelemetry } = require("../lib/ci-telemetry-store.cjs");
 
 let _emailService = null;
 
 function getEmailService() {
   if (_emailService) return _emailService;
-  _emailService = require('../lib/email-service.cjs');
+  _emailService = require("../lib/email-service.cjs");
   return _emailService;
 }
 
@@ -38,7 +38,7 @@ function setEmailServiceForTests(es) {
  * @returns {Array<[string, number]>}
  */
 function sortSeverityTotals(severityTotals) {
-  const order = ['critical', 'high', 'medium', 'low'];
+  const order = ["critical", "high", "medium", "low"];
   return order
     .map((sev) => [sev, Number(severityTotals[sev] || 0)])
     .filter(([, count]) => count > 0);
@@ -63,16 +63,16 @@ function sortCategoryTotals(categoryTotals) {
  */
 function formatQualityDistribution(dist) {
   if (!dist || !dist.sampleSize || dist.sampleSize === 0) {
-    return 'No quality score data available.';
+    return "No quality score data available.";
   }
   return [
-    `p10: ${dist.p10 != null ? dist.p10 : 'N/A'}`,
-    `p25: ${dist.p25 != null ? dist.p25 : 'N/A'}`,
-    `p50: ${dist.p50 != null ? dist.p50 : 'N/A'}`,
-    `p75: ${dist.p75 != null ? dist.p75 : 'N/A'}`,
-    `p90: ${dist.p90 != null ? dist.p90 : 'N/A'}`,
-    `sample size: ${dist.sampleSize}`
-  ].join(' · ');
+    `p10: ${dist.p10 != null ? dist.p10 : "N/A"}`,
+    `p25: ${dist.p25 != null ? dist.p25 : "N/A"}`,
+    `p50: ${dist.p50 != null ? dist.p50 : "N/A"}`,
+    `p75: ${dist.p75 != null ? dist.p75 : "N/A"}`,
+    `p90: ${dist.p90 != null ? dist.p90 : "N/A"}`,
+    `sample size: ${dist.sampleSize}`,
+  ].join(" · ");
 }
 
 /**
@@ -81,8 +81,8 @@ function formatQualityDistribution(dist) {
  * @returns {string} Markdown report
  */
 function generateImprovementReportMarkdown(summary) {
-  if (!summary || typeof summary !== 'object') {
-    return '# SimpleBeacon Internal Improvement Report\n\nNo telemetry data available.\n';
+  if (!summary || typeof summary !== "object") {
+    return "# SimpleBeacon Internal Improvement Report\n\nNo telemetry data available.\n";
   }
 
   const generatedAt = new Date().toISOString();
@@ -92,31 +92,36 @@ function generateImprovementReportMarkdown(summary) {
     : `NOT MET (need ${summary.k_anonymity_min} workspaces, only ${summary.distinct_workspaces} contributing — breakdowns suppressed)`;
 
   const severityLines = sortSeverityTotals(summary.severity_totals || {});
-  const severitySection = severityLines.length > 0
-    ? severityLines.map(([sev, count]) => `- **${sev}**: ${count}`).join('\n')
-    : '- No severity data available.';
+  const severitySection =
+    severityLines.length > 0
+      ? severityLines.map(([sev, count]) => `- **${sev}**: ${count}`).join("\n")
+      : "- No severity data available.";
 
   const categoryLines = sortCategoryTotals(summary.category_totals || {});
-  const categorySection = categoryLines.length > 0
-    ? categoryLines.map(([cat, count]) => `- **${cat}**: ${count}`).join('\n')
-    : '- No category data available.';
+  const categorySection =
+    categoryLines.length > 0
+      ? categoryLines.map(([cat, count]) => `- **${cat}**: ${count}`).join("\n")
+      : "- No category data available.";
 
   const scanSources = summary.scan_sources || { ci: 0, ide: 0, dashboard: 0 };
   const sourcesSection = [
     `- **CI**: ${scanSources.ci || 0}`,
     `- **IDE**: ${scanSources.ide || 0}`,
-    `- **Dashboard**: ${scanSources.dashboard || 0}`
-  ].join('\n');
+    `- **Dashboard**: ${scanSources.dashboard || 0}`,
+  ].join("\n");
 
-  const workspaceSection = summary.k_anonymity_met && summary.workspace_breakdown
-    ? summary.workspace_breakdown.map((ws) =>
-        `- ${ws.workspace_fingerprint.substring(0, 8)}...: ${ws.scan_count} scans`
-      ).join('\n')
-    : '_Suppressed — k-anonymity floor not met._';
+  const workspaceSection =
+    summary.k_anonymity_met && summary.workspace_breakdown
+      ? summary.workspace_breakdown
+          .map(
+            (ws) =>
+              `- ${ws.workspace_fingerprint.substring(0, 8)}...: ${ws.scan_count} scans`,
+          )
+          .join("\n")
+      : "_Suppressed — k-anonymity floor not met._";
 
-  const gatePassPct = summary.total_scans > 0
-    ? Math.round(summary.gate_pass_rate * 100)
-    : 0;
+  const gatePassPct =
+    summary.total_scans > 0 ? Math.round(summary.gate_pass_rate * 100) : 0;
 
   return [
     `# SimpleBeacon Internal Program Improvement Report`,
@@ -158,11 +163,11 @@ function generateImprovementReportMarkdown(summary) {
     ``,
     `- k-anonymity floor: ${summary.k_anonymity_min} workspaces minimum`,
     `- Current contributing workspaces: ${summary.distinct_workspaces}`,
-    `- Status: ${summary.k_anonymity_met ? 'AGGREGATE STATS VISIBLE' : 'BREAKDOWNS SUPPRESSED'}`,
+    `- Status: ${summary.k_anonymity_met ? "AGGREGATE STATS VISIBLE" : "BREAKDOWNS SUPPRESSED"}`,
     `- No emails, file paths, source code, or issue descriptions in this report.`,
     `- All workspace identifiers are SHA-256 hashed fingerprints.`,
-    ``
-  ].join('\n');
+    ``,
+  ].join("\n");
 }
 
 /**
@@ -173,15 +178,25 @@ function generateImprovementReportMarkdown(summary) {
 async function executeImprovementReportJob(options = {}) {
   const days = Number(options.days) || 30;
   const dryRun = options.dryRun === true;
-  const notifyEmail = String(options.notifyEmail || process.env.ADMIN_NOTIFY_EMAIL || 'admin@simplebeacon.ai').trim();
+  const notifyEmail = String(
+    options.notifyEmail ||
+      process.env.ADMIN_NOTIFY_EMAIL ||
+      "admin@simplebeacon.ai",
+  ).trim();
 
   const summary = summarizeAllTelemetry({ days });
   const markdown = generateImprovementReportMarkdown(summary);
 
-  console.log('[ImprovementReport] Generated report for last ' + days + ' days:');
-  console.log('[ImprovementReport]   Total scans: ' + summary.total_scans);
-  console.log('[ImprovementReport]   Distinct workspaces: ' + summary.distinct_workspaces);
-  console.log('[ImprovementReport]   k-anonymity met: ' + summary.k_anonymity_met);
+  console.log(
+    "[ImprovementReport] Generated report for last " + days + " days:",
+  );
+  console.log("[ImprovementReport]   Total scans: " + summary.total_scans);
+  console.log(
+    "[ImprovementReport]   Distinct workspaces: " + summary.distinct_workspaces,
+  );
+  console.log(
+    "[ImprovementReport]   k-anonymity met: " + summary.k_anonymity_met,
+  );
 
   let emailed = false;
   if (!dryRun && summary.total_scans > 0) {
@@ -191,17 +206,20 @@ async function executeImprovementReportJob(options = {}) {
         to: notifyEmail,
         subject: `SimpleBeacon Internal Improvement Report (${summary.total_scans} scans, ${summary.distinct_workspaces} workspaces)`,
         text: markdown,
-        html: `<pre style="font-family: monospace; white-space: pre-wrap; padding: 16px;">${markdown.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`
+        html: `<pre style="font-family: monospace; white-space: pre-wrap; padding: 16px;">${markdown.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`,
       });
       emailed = true;
-      console.log('[ImprovementReport] Report emailed to ' + notifyEmail);
+      console.log("[ImprovementReport] Report emailed to " + notifyEmail);
     } catch (err) {
-      console.error('[ImprovementReport] Failed to email report: ' + (err && err.message ? err.message : err));
+      console.error(
+        "[ImprovementReport] Failed to email report: " +
+          (err && err.message ? err.message : err),
+      );
     }
   } else if (dryRun) {
-    console.log('[ImprovementReport] Dry run — report not emailed.');
+    console.log("[ImprovementReport] Dry run — report not emailed.");
   } else {
-    console.log('[ImprovementReport] No telemetry data — report not emailed.');
+    console.log("[ImprovementReport] No telemetry data — report not emailed.");
   }
 
   return { markdown, summary, emailed };
@@ -213,5 +231,5 @@ module.exports = {
   setEmailServiceForTests,
   sortSeverityTotals,
   sortCategoryTotals,
-  formatQualityDistribution
+  formatQualityDistribution,
 };

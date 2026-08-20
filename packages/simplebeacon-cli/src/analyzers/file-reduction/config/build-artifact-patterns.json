@@ -35,8 +35,5 @@
     ".dll",
     ".exe"
   ],
-  "ignorePaths": [
-    ".git",
-    ".simplebeacon"
-  ]
+  "ignorePaths": [".git", ".simplebeacon"]
 }

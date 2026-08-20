@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 81: ZK Manifest Claim Validator.
@@ -14,8 +14,8 @@
  * @module hsm-adapter/zk-manifest-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkManifestClaimValidator {
   /**
@@ -42,62 +42,119 @@ class ZkManifestClaimValidator {
   verifyManifestClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('LOGICLAIM_HUB_MISSING', 'cross-border logistics gating hub is required');
+      throw new HsmAdapterError(
+        "LOGICLAIM_HUB_MISSING",
+        "cross-border logistics gating hub is required",
+      );
     }
-    if (this.policy.requireTradeCorridorCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireTradeCorridorCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.tradeCorridorCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.tradeCorridorCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('LOGICLAIM_COMMITTEE_UNATTESTED', 'trade corridor committee attestation invalid');
+          throw new HsmAdapterError(
+            "LOGICLAIM_COMMITTEE_UNATTESTED",
+            "trade corridor committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('LOGICLAIM_COMMITTEE_UNATTESTED', 'trade corridor committee attestation invalid');
+        throw new HsmAdapterError(
+          "LOGICLAIM_COMMITTEE_UNATTESTED",
+          "trade corridor committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('LOGICLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "LOGICLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('LOGICLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "LOGICLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkManifestRangeProofHash || typeof request.zkManifestRangeProofHash !== 'string') {
+    if (
+      !request.zkManifestRangeProofHash ||
+      typeof request.zkManifestRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('LOGICLAIM_ZK_PROOF_MISSING', 'zero-knowledge manifest range proof hash is required');
+      throw new HsmAdapterError(
+        "LOGICLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge manifest range proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('LOGICLAIM_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "LOGICLAIM_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('LOGICLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "LOGICLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.transitWindowSeconds === 'number' && request.transitWindowSeconds > (this.policy.maxTransitWindowSeconds || 7776000)) {
+    if (
+      typeof request.transitWindowSeconds === "number" &&
+      request.transitWindowSeconds >
+        (this.policy.maxTransitWindowSeconds || 7776000)
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('LOGICLAIM_TRANSIT_WINDOW_OUT_OF_BOUNDS', `transit window seconds ${request.transitWindowSeconds} exceeds maximum ${this.policy.maxTransitWindowSeconds}`);
+      throw new HsmAdapterError(
+        "LOGICLAIM_TRANSIT_WINDOW_OUT_OF_BOUNDS",
+        `transit window seconds ${request.transitWindowSeconds} exceeds maximum ${this.policy.maxTransitWindowSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('LOGICLAIM_DUPLICATE', `manifest claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "LOGICLAIM_DUPLICATE",
+        `manifest claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedTransitLogCommitment: request.blindedTransitLogCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedTransitLogCommitment:
+        request.blindedTransitLogCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkManifestRangeProofHash: request.zkManifestRangeProofHash,
-      tradeCorridorCommitteeAttestationHash: request.tradeCorridorCommitteeAttestationHash || 'unspecified',
+      tradeCorridorCommitteeAttestationHash:
+        request.tradeCorridorCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
     };
     this._verifiedClaims.set(claimKey, claim);
     this._hub.markManifestClaimVerified(request.poolId);
     if (this._audit) {
-      this._audit('ZK_MANIFEST_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_MANIFEST_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -125,7 +182,10 @@ class ZkManifestClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderManifestClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderManifestClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -133,10 +193,16 @@ class ZkManifestClaimValidator {
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('LOGICLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError("LOGICLAIM_FIELDS_MISSING", "poolId is required");
   }
-  if (policy.requireTradeCorridorCommitteeAttestation && !request.tradeCorridorCommitteeAttestation) {
-    throw new HsmAdapterError('LOGICLAIM_ATTESTATION_MISSING', 'trade corridor committee attestation is required');
+  if (
+    policy.requireTradeCorridorCommitteeAttestation &&
+    !request.tradeCorridorCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "LOGICLAIM_ATTESTATION_MISSING",
+      "trade corridor committee attestation is required",
+    );
   }
 }
 

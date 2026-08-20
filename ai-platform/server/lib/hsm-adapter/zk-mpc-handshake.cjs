@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 46: Zero-Knowledge Inter-Enclave MPC Handshakes.
@@ -18,34 +18,34 @@
  * @module hsm-adapter/zk-mpc-handshake
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   minParticipants: 2,
   maxParticipants: 16,
   handshakeTimeoutMs: 60000,
-  proofAlgorithm: 'sigma', // Sigma-protocol style ZK proof
-  hashAlgorithm: 'sha256',
+  proofAlgorithm: "sigma", // Sigma-protocol style ZK proof
+  hashAlgorithm: "sha256",
   nonceBytes: 32,
   requireDistinctEnclaves: true,
   maxConcurrentHandshakes: 100,
 };
 
 const HANDSHAKE_PHASE = {
-  INITIATED: 'initiated',
-  COMMITTED: 'committed',
-  PROVEN: 'proven',
-  VERIFIED: 'verified',
-  FINALIZED: 'finalized',
-  EXPIRED: 'expired',
-  ABORTED: 'aborted',
+  INITIATED: "initiated",
+  COMMITTED: "committed",
+  PROVEN: "proven",
+  VERIFIED: "verified",
+  FINALIZED: "finalized",
+  EXPIRED: "expired",
+  ABORTED: "aborted",
 };
 
 const PROOF_STATUS = {
-  PENDING: 'pending',
-  VALID: 'valid',
-  INVALID: 'invalid',
+  PENDING: "pending",
+  VALID: "valid",
+  INVALID: "invalid",
 };
 
 /**
@@ -81,36 +81,54 @@ class ZkMpcHandshake {
    * @returns {object} Handshake initiation result
    */
   initiate(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'handshake config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError(
+        "INVALID_CONFIG",
+        "handshake config is required",
+      );
     }
-    if (!Array.isArray(config.participantIds) || config.participantIds.length < this.minParticipants) {
-      throw new HsmAdapterError('INSUFFICIENT_PARTICIPANTS',
-        `need at least ${this.minParticipants} participants, got ${config.participantIds ? config.participantIds.length : 0}`);
+    if (
+      !Array.isArray(config.participantIds) ||
+      config.participantIds.length < this.minParticipants
+    ) {
+      throw new HsmAdapterError(
+        "INSUFFICIENT_PARTICIPANTS",
+        `need at least ${this.minParticipants} participants, got ${config.participantIds ? config.participantIds.length : 0}`,
+      );
     }
     if (config.participantIds.length > this.maxParticipants) {
-      throw new HsmAdapterError('TOO_MANY_PARTICIPANTS',
-        `maximum ${this.maxParticipants} participants, got ${config.participantIds.length}`);
+      throw new HsmAdapterError(
+        "TOO_MANY_PARTICIPANTS",
+        `maximum ${this.maxParticipants} participants, got ${config.participantIds.length}`,
+      );
     }
     if (this.requireDistinctEnclaves) {
       const unique = new Set(config.participantIds);
       if (unique.size !== config.participantIds.length) {
-        throw new HsmAdapterError('DUPLICATE_PARTICIPANTS',
-          'participant enclave IDs must be distinct');
+        throw new HsmAdapterError(
+          "DUPLICATE_PARTICIPANTS",
+          "participant enclave IDs must be distinct",
+        );
       }
     }
     if (this._handshakes.size >= this.maxConcurrentHandshakes) {
-      throw new HsmAdapterError('MAX_CONCURRENT_REACHED',
-        `maximum ${this.maxConcurrentHandshakes} concurrent handshakes reached`);
+      throw new HsmAdapterError(
+        "MAX_CONCURRENT_REACHED",
+        `maximum ${this.maxConcurrentHandshakes} concurrent handshakes reached`,
+      );
     }
-    const handshakeId = _generateId(this.hashAlgorithm, 'handshake', Date.now());
+    const handshakeId = _generateId(
+      this.hashAlgorithm,
+      "handshake",
+      Date.now(),
+    );
     const now = Date.now();
     const handshake = {
       id: handshakeId,
       phase: HANDSHAKE_PHASE.INITIATED,
       participantIds: config.participantIds.slice(),
       coordinatorId: config.coordinatorId || config.participantIds[0],
-      purpose: config.purpose || 'key-generation',
+      purpose: config.purpose || "key-generation",
       initiatedAt: now,
       expiresAt: now + this.handshakeTimeoutMs,
       commitments: new Map(), // participantId -> commitment hash
@@ -120,14 +138,18 @@ class ZkMpcHandshake {
       finalizedAt: null,
     };
     this._handshakes.set(handshakeId, handshake);
-    if (typeof this._audit === 'function') {
-      this._audit('MPC_HANDSHAKE_INITIATED', {
+    if (typeof this._audit === "function") {
+      this._audit("MPC_HANDSHAKE_INITIATED", {
         handshakeId,
         participantIds: handshake.participantIds,
         purpose: handshake.purpose,
       });
     }
-    return { handshakeId, phase: handshake.phase, participantIds: handshake.participantIds };
+    return {
+      handshakeId,
+      phase: handshake.phase,
+      participantIds: handshake.participantIds,
+    };
   }
 
   /**
@@ -139,26 +161,41 @@ class ZkMpcHandshake {
   commit(handshakeId, participantId, commitment) {
     const handshake = this._getHandshake(handshakeId);
     this._validateParticipant(handshake, participantId);
-    if (handshake.phase !== HANDSHAKE_PHASE.INITIATED && handshake.phase !== HANDSHAKE_PHASE.COMMITTED) {
-      throw new HsmAdapterError('INVALID_PHASE',
-        `handshake is in phase ${handshake.phase}, expected initiated or committed`);
+    if (
+      handshake.phase !== HANDSHAKE_PHASE.INITIATED &&
+      handshake.phase !== HANDSHAKE_PHASE.COMMITTED
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_PHASE",
+        `handshake is in phase ${handshake.phase}, expected initiated or committed`,
+      );
     }
     if (handshake.commitments.has(participantId)) {
-      throw new HsmAdapterError('DUPLICATE_COMMITMENT',
-        `participant ${participantId} has already committed`);
+      throw new HsmAdapterError(
+        "DUPLICATE_COMMITMENT",
+        `participant ${participantId} has already committed`,
+      );
     }
-    if (typeof commitment !== 'string' || commitment.length === 0) {
-      throw new HsmAdapterError('INVALID_COMMITMENT', 'commitment must be a non-empty string');
+    if (typeof commitment !== "string" || commitment.length === 0) {
+      throw new HsmAdapterError(
+        "INVALID_COMMITMENT",
+        "commitment must be a non-empty string",
+      );
     }
     handshake.commitments.set(participantId, commitment);
     // Advance phase if all participants have committed
     if (handshake.commitments.size === handshake.participantIds.length) {
       handshake.phase = HANDSHAKE_PHASE.COMMITTED;
-      if (typeof this._audit === 'function') {
-        this._audit('MPC_HANDSHAKE_ALL_COMMITTED', { handshakeId });
+      if (typeof this._audit === "function") {
+        this._audit("MPC_HANDSHAKE_ALL_COMMITTED", { handshakeId });
       }
     }
-    return { handshakeId, participantId, committed: true, phase: handshake.phase };
+    return {
+      handshakeId,
+      participantId,
+      committed: true,
+      phase: handshake.phase,
+    };
   }
 
   /**
@@ -173,27 +210,47 @@ class ZkMpcHandshake {
   prove(handshakeId, participantId, proof) {
     const handshake = this._getHandshake(handshakeId);
     this._validateParticipant(handshake, participantId);
-    if (handshake.phase !== HANDSHAKE_PHASE.COMMITTED && handshake.phase !== HANDSHAKE_PHASE.PROVEN) {
-      throw new HsmAdapterError('INVALID_PHASE',
-        `handshake is in phase ${handshake.phase}, expected committed or proven`);
+    if (
+      handshake.phase !== HANDSHAKE_PHASE.COMMITTED &&
+      handshake.phase !== HANDSHAKE_PHASE.PROVEN
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_PHASE",
+        `handshake is in phase ${handshake.phase}, expected committed or proven`,
+      );
     }
     if (!handshake.commitments.has(participantId)) {
-      throw new HsmAdapterError('NO_COMMITMENT',
-        `participant ${participantId} must commit before proving`);
+      throw new HsmAdapterError(
+        "NO_COMMITMENT",
+        `participant ${participantId} must commit before proving`,
+      );
     }
     if (handshake.proofs.has(participantId)) {
-      throw new HsmAdapterError('DUPLICATE_PROOF',
-        `participant ${participantId} has already submitted a proof`);
+      throw new HsmAdapterError(
+        "DUPLICATE_PROOF",
+        `participant ${participantId} has already submitted a proof`,
+      );
     }
-    if (!proof || typeof proof !== 'object' || !proof.challenge || !proof.response) {
-      throw new HsmAdapterError('INVALID_PROOF', 'proof must have challenge and response fields');
+    if (
+      !proof ||
+      typeof proof !== "object" ||
+      !proof.challenge ||
+      !proof.response
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_PROOF",
+        "proof must have challenge and response fields",
+      );
     }
-    handshake.proofs.set(participantId, { proof, status: PROOF_STATUS.PENDING });
+    handshake.proofs.set(participantId, {
+      proof,
+      status: PROOF_STATUS.PENDING,
+    });
     // Advance phase if all participants have submitted proofs
     if (handshake.proofs.size === handshake.participantIds.length) {
       handshake.phase = HANDSHAKE_PHASE.PROVEN;
-      if (typeof this._audit === 'function') {
-        this._audit('MPC_HANDSHAKE_ALL_PROVEN', { handshakeId });
+      if (typeof this._audit === "function") {
+        this._audit("MPC_HANDSHAKE_ALL_PROVEN", { handshakeId });
       }
     }
     return { handshakeId, participantId, proven: true, phase: handshake.phase };
@@ -207,8 +264,10 @@ class ZkMpcHandshake {
   verifyProofs(handshakeId) {
     const handshake = this._getHandshake(handshakeId);
     if (handshake.phase !== HANDSHAKE_PHASE.PROVEN) {
-      throw new HsmAdapterError('INVALID_PHASE',
-        `handshake is in phase ${handshake.phase}, expected proven`);
+      throw new HsmAdapterError(
+        "INVALID_PHASE",
+        `handshake is in phase ${handshake.phase}, expected proven`,
+      );
     }
     let validCount = 0;
     const results = {};
@@ -225,13 +284,20 @@ class ZkMpcHandshake {
     handshake.verifiedCount = validCount;
     if (validCount === handshake.participantIds.length) {
       handshake.phase = HANDSHAKE_PHASE.VERIFIED;
-      if (typeof this._audit === 'function') {
-        this._audit('MPC_HANDSHAKE_VERIFIED', { handshakeId, verifiedCount: validCount });
+      if (typeof this._audit === "function") {
+        this._audit("MPC_HANDSHAKE_VERIFIED", {
+          handshakeId,
+          verifiedCount: validCount,
+        });
       }
     } else {
       handshake.phase = HANDSHAKE_PHASE.ABORTED;
-      if (typeof this._audit === 'function') {
-        this._audit('MPC_HANDSHAKE_ABORTED', { handshakeId, validCount, invalidCount: handshake.participantIds.length - validCount });
+      if (typeof this._audit === "function") {
+        this._audit("MPC_HANDSHAKE_ABORTED", {
+          handshakeId,
+          validCount,
+          invalidCount: handshake.participantIds.length - validCount,
+        });
       }
     }
     return {
@@ -252,26 +318,37 @@ class ZkMpcHandshake {
   finalize(handshakeId, combinedPublicKey) {
     const handshake = this._getHandshake(handshakeId);
     if (handshake.phase !== HANDSHAKE_PHASE.VERIFIED) {
-      throw new HsmAdapterError('INVALID_PHASE',
-        `handshake is in phase ${handshake.phase}, expected verified`);
+      throw new HsmAdapterError(
+        "INVALID_PHASE",
+        `handshake is in phase ${handshake.phase}, expected verified`,
+      );
     }
-    if (typeof combinedPublicKey !== 'string' || combinedPublicKey.length === 0) {
-      throw new HsmAdapterError('INVALID_PUBLIC_KEY', 'combinedPublicKey must be a non-empty string');
+    if (
+      typeof combinedPublicKey !== "string" ||
+      combinedPublicKey.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_PUBLIC_KEY",
+        "combinedPublicKey must be a non-empty string",
+      );
     }
     handshake.combinedPublicKey = combinedPublicKey;
     handshake.phase = HANDSHAKE_PHASE.FINALIZED;
     handshake.finalizedAt = Date.now();
     // Move to completed history
     this._handshakes.delete(handshakeId);
-    this._completed.push({ ...handshake, commitments: Object.fromEntries(handshake.commitments) });
+    this._completed.push({
+      ...handshake,
+      commitments: Object.fromEntries(handshake.commitments),
+    });
     if (this._completed.length > this._maxHistory) {
       this._completed.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('MPC_HANDSHAKE_FINALIZED', {
+    if (typeof this._audit === "function") {
+      this._audit("MPC_HANDSHAKE_FINALIZED", {
         handshakeId,
         participantIds: handshake.participantIds,
-        combinedPublicKey: combinedPublicKey.substring(0, 16) + '...',
+        combinedPublicKey: combinedPublicKey.substring(0, 16) + "...",
       });
     }
     return {
@@ -292,7 +369,7 @@ class ZkMpcHandshake {
     const handshake = this._handshakes.get(handshakeId);
     if (!handshake) {
       // Check completed history
-      const completed = this._completed.find(h => h.id === handshakeId);
+      const completed = this._completed.find((h) => h.id === handshakeId);
       return completed || null;
     }
     return {
@@ -316,7 +393,7 @@ class ZkMpcHandshake {
    * @returns {object[]}
    */
   getActiveHandshakes() {
-    return Array.from(this._handshakes.values()).map(h => ({
+    return Array.from(this._handshakes.values()).map((h) => ({
       id: h.id,
       phase: h.phase,
       participantIds: h.participantIds,
@@ -331,8 +408,8 @@ class ZkMpcHandshake {
    * @returns {object[]}
    */
   getCompletedHandshakes(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
-    return this._completed.slice(-n).map(h => ({
+    const n = typeof limit === "number" ? limit : 20;
+    return this._completed.slice(-n).map((h) => ({
       id: h.id,
       phase: h.phase,
       participantIds: h.participantIds,
@@ -350,12 +427,15 @@ class ZkMpcHandshake {
     const now = Date.now();
     const expired = [];
     for (const [id, handshake] of this._handshakes) {
-      if (now > handshake.expiresAt && handshake.phase !== HANDSHAKE_PHASE.FINALIZED) {
+      if (
+        now > handshake.expiresAt &&
+        handshake.phase !== HANDSHAKE_PHASE.FINALIZED
+      ) {
         handshake.phase = HANDSHAKE_PHASE.EXPIRED;
         this._handshakes.delete(id);
         expired.push(id);
-        if (typeof this._audit === 'function') {
-          this._audit('MPC_HANDSHAKE_EXPIRED', { handshakeId: id });
+        if (typeof this._audit === "function") {
+          this._audit("MPC_HANDSHAKE_EXPIRED", { handshakeId: id });
         }
       }
     }
@@ -371,10 +451,13 @@ class ZkMpcHandshake {
     const handshake = this._getHandshake(handshakeId);
     handshake.phase = HANDSHAKE_PHASE.ABORTED;
     this._handshakes.delete(handshakeId);
-    if (typeof this._audit === 'function') {
-      this._audit('MPC_HANDSHAKE_ABORTED', { handshakeId, reason: reason || 'manual' });
+    if (typeof this._audit === "function") {
+      this._audit("MPC_HANDSHAKE_ABORTED", {
+        handshakeId,
+        reason: reason || "manual",
+      });
     }
-    return { handshakeId, aborted: true, reason: reason || 'manual' };
+    return { handshakeId, aborted: true, reason: reason || "manual" };
   }
 
   /**
@@ -412,7 +495,10 @@ class ZkMpcHandshake {
   _getHandshake(handshakeId) {
     const handshake = this._handshakes.get(handshakeId);
     if (!handshake) {
-      throw new HsmAdapterError('HANDSHAKE_NOT_FOUND', `handshake ${handshakeId} not found`);
+      throw new HsmAdapterError(
+        "HANDSHAKE_NOT_FOUND",
+        `handshake ${handshakeId} not found`,
+      );
     }
     return handshake;
   }
@@ -425,8 +511,10 @@ class ZkMpcHandshake {
    */
   _validateParticipant(handshake, participantId) {
     if (!handshake.participantIds.includes(participantId)) {
-      throw new HsmAdapterError('PARTICIPANT_NOT_AUTHORIZED',
-        `participant ${participantId} is not part of handshake ${handshake.id}`);
+      throw new HsmAdapterError(
+        "PARTICIPANT_NOT_AUTHORIZED",
+        `participant ${participantId} is not part of handshake ${handshake.id}`,
+      );
     }
   }
 }
@@ -440,10 +528,10 @@ class ZkMpcHandshake {
  * @returns {object} The ZK proof { challenge, response, publicCommitment }
  */
 function generateZkProof(hashAlgorithm, secret, commitment) {
-  const nonce = crypto.randomBytes(32).toString('hex');
-  const publicCommitment = _hash(hashAlgorithm, nonce + ':' + commitment);
-  const challenge = _hash(hashAlgorithm, publicCommitment + ':' + commitment);
-  const response = _hash(hashAlgorithm, nonce + ':' + secret + ':' + challenge);
+  const nonce = crypto.randomBytes(32).toString("hex");
+  const publicCommitment = _hash(hashAlgorithm, nonce + ":" + commitment);
+  const challenge = _hash(hashAlgorithm, publicCommitment + ":" + commitment);
+  const response = _hash(hashAlgorithm, nonce + ":" + secret + ":" + challenge);
   return { challenge, response, publicCommitment, _nonce: nonce };
 }
 
@@ -456,30 +544,50 @@ function generateZkProof(hashAlgorithm, secret, commitment) {
  * @private
  */
 function _verifyZkProof(hashAlgorithm, proof, commitment) {
-  if (!proof || !proof.challenge || !proof.response || !proof.publicCommitment) {
+  if (
+    !proof ||
+    !proof.challenge ||
+    !proof.response ||
+    !proof.publicCommitment
+  ) {
     return false;
   }
   // Recompute the challenge from the public commitment
-  const expectedChallenge = _hash(hashAlgorithm, proof.publicCommitment + ':' + commitment);
+  const expectedChallenge = _hash(
+    hashAlgorithm,
+    proof.publicCommitment + ":" + commitment,
+  );
   if (proof.challenge !== expectedChallenge) {
     return false;
   }
   // The response is valid if it's a non-empty hash that matches the expected format
   // In a real implementation, this would verify the mathematical relationship
-  if (typeof proof.response !== 'string' || proof.response.length !== 64) {
+  if (typeof proof.response !== "string" || proof.response.length !== 64) {
     return false;
   }
   return true;
 }
 
 function _generateId(algo, prefix, timestamp) {
-  return prefix + '-' + crypto.createHash(algo)
-    .update(prefix + ':' + timestamp + ':' + Math.random())
-    .digest('hex').substring(0, 24);
+  return (
+    prefix +
+    "-" +
+    crypto
+      .createHash(algo)
+      .update(prefix + ":" + timestamp + ":" + Math.random())
+      .digest("hex")
+      .substring(0, 24)
+  );
 }
 
 function _hash(algo, data) {
-  return crypto.createHash(algo).update(data).digest('hex');
+  return crypto.createHash(algo).update(data).digest("hex");
 }
 
-module.exports = { ZkMpcHandshake, DEFAULT_OPTIONS, HANDSHAKE_PHASE, PROOF_STATUS, generateZkProof };
+module.exports = {
+  ZkMpcHandshake,
+  DEFAULT_OPTIONS,
+  HANDSHAKE_PHASE,
+  PROOF_STATUS,
+  generateZkProof,
+};

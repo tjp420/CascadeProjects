@@ -129,8 +129,8 @@ export async function ensureDashboardApiReady() {
     healthRes = await fetchWithTimeout('/api/health', {}, 8000);
   } catch (error) {
     throw new Error(
-      `Dashboard API is not reachable at ${origin}. `
-      + 'Start it from ai-platform with: npm run dashboard:kill-ports && npm run dashboard:v1-internal'
+      `Dashboard API is not reachable at ${origin}. ` +
+        'Start it from ai-platform with: npm run dashboard:kill-ports && npm run dashboard:v1-internal'
     );
   }
   if (!healthRes.ok) {
@@ -139,17 +139,21 @@ export async function ensureDashboardApiReady() {
 
   let probeRes;
   try {
-    probeRes = await fetchWithTimeout('/api/simplebeacon/config', {
-      headers: authService.getAuthHeaders()
-    }, 8000);
+    probeRes = await fetchWithTimeout(
+      '/api/simplebeacon/config',
+      {
+        headers: authService.getAuthHeaders(),
+      },
+      8000
+    );
   } catch (error) {
     throw new Error(buildNetworkErrorMessage('/api/simplebeacon/config', error));
   }
   const probeData = await parseJsonSafe(probeRes);
   if (probeRes.status === 403 && probeData.error === 'vault_required') {
     throw new Error(
-      'Vault session required for internal dashboard. '
-      + 'Open /private-dashboard-vault?password=<DASHBOARD_VAULT_PASSWORD> in this browser, then retry.'
+      'Vault session required for internal dashboard. ' +
+        'Open /private-dashboard-vault?password=<DASHBOARD_VAULT_PASSWORD> in this browser, then retry.'
     );
   }
 }
@@ -169,9 +173,7 @@ async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
     attempt += 1;
     let res;
     try {
-      res = timeoutMs > 0
-        ? await fetchWithTimeout(target, options, timeoutMs)
-        : await fetch(target, options);
+      res = timeoutMs > 0 ? await fetchWithTimeout(target, options, timeoutMs) : await fetch(target, options);
     } catch (error) {
       lastErr = error;
       // Network-level error: retry a few times
@@ -272,7 +274,7 @@ export async function fetchAnalyzeProviders(options = {}) {
 
   const params = options.refresh ? `?${new URLSearchParams({ _: String(Date.now()) })}` : '';
   providersPromise = fetchJsonWithGuidance(`/api/analyze/providers${params}`, {
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   })
     .then(async (data) => patchProvidersFromSavedAiKeys(data))
     .catch((error) => {
@@ -291,24 +293,28 @@ export async function fetchAnalyzeProviders(options = {}) {
  */
 export async function analyzePath(projectPath, options = {}) {
   const timeoutMs = options.timeoutMs ?? 0;
-  const data = await fetchJsonWithGuidance('/api/analyze/flexible', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const data = await fetchJsonWithGuidance(
+    '/api/analyze/flexible',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        projectPath,
+        aiProvider: options.aiProvider || 'active',
+        analysisType: options.analysisType || 'auto',
+        roadmapInsightsMode: options.roadmapInsightsMode || 'off',
+        understandingMode: options.understandingMode || 'deterministic',
+        scanProfile: options.scanProfile || 'universal',
+        includePaths: options.includePaths || [],
+        excludePatterns: options.excludePatterns || [],
+        requestedScanRoot: options.requestedScanRoot || options.scanTargetRoot || undefined,
+      }),
     },
-    body: JSON.stringify({
-      projectPath,
-      aiProvider: options.aiProvider || 'active',
-      analysisType: options.analysisType || 'auto',
-      roadmapInsightsMode: options.roadmapInsightsMode || 'off',
-      understandingMode: options.understandingMode || 'deterministic',
-      scanProfile: options.scanProfile || 'universal',
-      includePaths: options.includePaths || [],
-      excludePatterns: options.excludePatterns || [],
-      requestedScanRoot: options.requestedScanRoot || options.scanTargetRoot || undefined
-    })
-  }, timeoutMs);
+    timeoutMs
+  );
   if (!data.success) {
     throw new Error(data.message || data.error || 'Analysis failed');
   }
@@ -317,20 +323,24 @@ export async function analyzePath(projectPath, options = {}) {
 
 /** Analyze pasted or dropped file text without requiring a server project path. */
 export async function fetchUnderstandSnippet(code, options = {}) {
-  const understandResponse = await fetchJsonWithGuidance('/api/analyze/understand', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const understandResponse = await fetchJsonWithGuidance(
+    '/api/analyze/understand',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        code: String(code || ''),
+        filePath: options.filePath || 'snippet.txt',
+        projectPath: options.projectPath || undefined,
+        understandingMode: options.understandingMode || 'deterministic',
+        aiProvider: options.aiProvider || 'demo',
+      }),
     },
-    body: JSON.stringify({
-      code: String(code || ''),
-      filePath: options.filePath || 'snippet.txt',
-      projectPath: options.projectPath || undefined,
-      understandingMode: options.understandingMode || 'deterministic',
-      aiProvider: options.aiProvider || 'demo'
-    })
-  }, options.timeoutMs ?? 90000);
+    options.timeoutMs ?? 90000
+  );
   if (!understandResponse.success) {
     throw new Error(understandResponse.error || understandResponse.message || 'Code understanding failed');
   }
@@ -360,7 +370,7 @@ export function slimReportForSummary(report) {
         category: f.category,
         severity: f.severity,
         description: f.description,
-        filePath: f.filePath
+        filePath: f.filePath,
       })),
       scanScope: report.scanScope,
       repositoryInventory: report.repositoryInventory,
@@ -380,7 +390,7 @@ export function slimReportForSummary(report) {
       handoffEligible: report.handoffEligible,
       benchmarkScan: report.benchmarkScan,
       rawIssues: (report.rawIssues || report.detectedIssues || []).slice(0, 24),
-      detectedIssues: (report.detectedIssues || []).slice(0, 12)
+      detectedIssues: (report.detectedIssues || []).slice(0, 12),
     };
   }
   if (type === 'file-merger-reduction-report') {
@@ -390,7 +400,7 @@ export function slimReportForSummary(report) {
       repositoryInventory: report.repositoryInventory,
       scanScope: report.scanScope,
       mergeCandidates: (report.mergeCandidates || []).slice(0, 8),
-      reductionOpportunities: (report.reductionOpportunities || []).slice(0, 8)
+      reductionOpportunities: (report.reductionOpportunities || []).slice(0, 8),
     };
   }
   if (type === 'data-cleanup-report') {
@@ -403,11 +413,11 @@ export function slimReportForSummary(report) {
         ? {
             totals: report.fileReductionPlan.totals,
             safeToDelete: {
-              topDirectories: (report.fileReductionPlan.safeToDelete?.topDirectories || []).slice(0, 8)
+              topDirectories: (report.fileReductionPlan.safeToDelete?.topDirectories || []).slice(0, 8),
             },
             unusedFiles: {
-              candidates: report.fileReductionPlan.unusedFiles?.candidates ?? null
-            }
+              candidates: report.fileReductionPlan.unusedFiles?.candidates ?? null,
+            },
           }
         : null,
       executiveSummary: report.executiveSummary
@@ -416,16 +426,16 @@ export function slimReportForSummary(report) {
             workspace: report.executiveSummary.workspace,
             security: {
               piiNeedingReview: report.executiveSummary.security?.piiNeedingReview ?? null,
-              credentialsNeedingReview: report.executiveSummary.security?.credentialsNeedingReview ?? null
-            }
+              credentialsNeedingReview: report.executiveSummary.security?.credentialsNeedingReview ?? null,
+            },
           }
         : null,
       allFindings: (report.allFindings || []).slice(0, 12).map((f) => ({
         type: f.type,
         severity: f.severity,
         path: f.path,
-        reason: f.reason
-      }))
+        reason: f.reason,
+      })),
     };
   }
   return { ...report };
@@ -443,22 +453,22 @@ export async function summarizeReport(report, options = {}) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+      ...authService.getAuthHeaders(),
     },
     body: JSON.stringify({
       report: slim,
       reportType: options.reportType || report?.type,
       projectPath: options.projectPath || '',
       aiProvider: options.aiProvider || 'demo',
-      summaryFocus: options.summaryFocus || 'all'
-    })
+      summaryFocus: options.summaryFocus || 'all',
+    }),
   });
   const data = await parseJsonSafe(res);
   if (res.status === 413) {
     return {
       success: true,
       enhanced: false,
-      message: 'Report too large for AI summary — deterministic results unchanged.'
+      message: 'Report too large for AI summary — deterministic results unchanged.',
     };
   }
   if (!res.ok || !data.success) {
@@ -477,22 +487,23 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
   if (!exportPayload || typeof exportPayload !== 'object') return null;
   const findingsLimit = options.findingsLimit ?? 5000;
   const results = exportPayload.results || {};
-/**
- * Slim findings.
- * @param {Array} findings
- * @param {number} limit
- * @returns {any}
- */
-  const slimFindings = (findings, limit = findingsLimit) => (findings || []).slice(0, limit).map((f) => ({
-    category: f.category,
-    type: f.type,
-    severity: f.severity,
-    filePath: f.filePath,
-    line: f.line,
-    description: f.description,
-    match: f.match,
-    recommendedAction: f.recommendedAction
-  }));
+  /**
+   * Slim findings.
+   * @param {Array} findings
+   * @param {number} limit
+   * @returns {any}
+   */
+  const slimFindings = (findings, limit = findingsLimit) =>
+    (findings || []).slice(0, limit).map((f) => ({
+      category: f.category,
+      type: f.type,
+      severity: f.severity,
+      filePath: f.filePath,
+      line: f.line,
+      description: f.description,
+      match: f.match,
+      recommendedAction: f.recommendedAction,
+    }));
   const slimSimplebeacon = results.simplebeacon
     ? {
         type: results.simplebeacon.type,
@@ -519,7 +530,7 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
         consistencyPassed: results.simplebeacon.consistencyPassed,
         consistencyScore: results.simplebeacon.consistencyScore,
         scanScope: results.simplebeacon.scanScope,
-        rawIssues: (results.simplebeacon.rawIssues || results.simplebeacon.detectedIssues || []).slice(0, 80)
+        rawIssues: (results.simplebeacon.rawIssues || results.simplebeacon.detectedIssues || []).slice(0, 80),
       }
     : null;
   const slimCodebase = results.codebase
@@ -530,13 +541,13 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
         summary: results.codebase.summary,
         categories: (results.codebase.categories || []).slice(0, 12),
         scanScope: results.codebase.scanScope,
-        findings: slimFindings(results.codebase.findings, findingsLimit)
+        findings: slimFindings(results.codebase.findings, findingsLimit),
       }
     : null;
   const slimConsolidation = results.consolidation
     ? {
         summary: results.consolidation.summary,
-        scanScope: results.consolidation.scanScope
+        scanScope: results.consolidation.scanScope,
       }
     : null;
   const slimFileReduction = results.fileReduction
@@ -547,7 +558,7 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
           : null,
         executiveSummary: results.fileReduction.executiveSummary
           ? { priorityActions: (results.fileReduction.executiveSummary.priorityActions || []).slice(0, 6) }
-          : null
+          : null,
       }
     : null;
   const slimDataQuality = results.dataQuality
@@ -557,9 +568,9 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
           ? {
               workspace: results.dataQuality.executiveSummary.workspace,
               security: results.dataQuality.executiveSummary.security,
-              priorityActions: (results.dataQuality.executiveSummary.priorityActions || []).slice(0, 6)
+              priorityActions: (results.dataQuality.executiveSummary.priorityActions || []).slice(0, 6),
             }
-          : null
+          : null,
       }
     : null;
   const slimCleanupAssistant = results.cleanupAssistant
@@ -571,12 +582,12 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
             ? {
                 files: results.cleanupAssistant.tiers.safeNow.files,
                 bytes: results.cleanupAssistant.tiers.safeNow.bytes,
-                directories: (results.cleanupAssistant.tiers.safeNow.directories || []).slice(0, 8)
+                directories: (results.cleanupAssistant.tiers.safeNow.directories || []).slice(0, 8),
               }
             : null,
-          investigate: results.cleanupAssistant.tiers?.investigate || null
+          investigate: results.cleanupAssistant.tiers?.investigate || null,
         },
-        dataQualityActions: (results.cleanupAssistant.dataQualityActions || []).slice(0, 6)
+        dataQualityActions: (results.cleanupAssistant.dataQualityActions || []).slice(0, 6),
       }
     : null;
   return {
@@ -593,7 +604,7 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
       mockScan: results.mockScan
         ? {
             fictionIssues: results.mockScan.fictionIssues,
-            conclusion: results.mockScan.conclusion
+            conclusion: results.mockScan.conclusion,
           }
         : null,
       roadmap: results.roadmap
@@ -608,8 +619,8 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
               ? {
                   structure: {
                     totalFiles: results.roadmap.codeAnalysis.structure?.totalFiles ?? null,
-                    languages: results.roadmap.codeAnalysis.structure?.languages ?? null
-                  }
+                    languages: results.roadmap.codeAnalysis.structure?.languages ?? null,
+                  },
                 }
               : null,
             resourceEstimate: results.roadmap.resourceEstimate || null,
@@ -621,17 +632,17 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
                   immediate: (results.roadmap.recommendations.immediate || []).slice(0, 6),
                   shortTerm: (results.roadmap.recommendations.shortTerm || []).slice(0, 6),
                   longTerm: (results.roadmap.recommendations.longTerm || []).slice(0, 6),
-                  priorities: results.roadmap.recommendations.priorities || null
+                  priorities: results.roadmap.recommendations.priorities || null,
                 }
               : null,
-            risks: (results.roadmap.risks || []).slice(0, 10)
+            risks: (results.roadmap.risks || []).slice(0, 10),
           }
         : null,
       codebase: slimCodebase,
       fileReduction: slimFileReduction,
       dataQuality: slimDataQuality,
-      cleanupAssistant: slimCleanupAssistant
-    }
+      cleanupAssistant: slimCleanupAssistant,
+    },
   };
 }
 
@@ -657,11 +668,11 @@ export function normalizeAuditExportPayload(exportPayload) {
       summary: {
         scanKind: profile,
         dataQualityFindings: exportPayload.summary?.totalFindings ?? null,
-        fileReductionFindings: exportPayload.summary?.totalFindings ?? null
+        fileReductionFindings: exportPayload.summary?.totalFindings ?? null,
       },
       results: {
-        [resultKey]: exportPayload
-      }
+        [resultKey]: exportPayload,
+      },
     };
   }
   return exportPayload;
@@ -676,7 +687,7 @@ const SUPPLEMENTARY_STEP_LABELS = {
   'mock-scan': 'Fiction and KPI digest',
   'simplebeacon-report': 'Simplebeacon scan',
   'eu-ai-act': 'EU AI Act sprint',
-  complete: 'Partial complete scan'
+  complete: 'Partial complete scan',
 };
 
 /**
@@ -717,10 +728,12 @@ function detectSupplementaryExportStep(normalized) {
   if (results.dataQuality) return { key: 'data-quality', label: SUPPLEMENTARY_STEP_LABELS['data-quality'] };
   if (results.fileReduction) return { key: 'file-reduction', label: SUPPLEMENTARY_STEP_LABELS['file-reduction'] };
   if (results.consolidation) return { key: 'consolidation', label: SUPPLEMENTARY_STEP_LABELS.consolidation };
-  if (results.cleanupAssistant) return { key: 'cleanup-assistant', label: SUPPLEMENTARY_STEP_LABELS['cleanup-assistant'] };
+  if (results.cleanupAssistant)
+    return { key: 'cleanup-assistant', label: SUPPLEMENTARY_STEP_LABELS['cleanup-assistant'] };
   if (results.roadmap) return { key: 'roadmap', label: SUPPLEMENTARY_STEP_LABELS.roadmap };
   if (results.mockScan) return { key: 'mock-scan', label: SUPPLEMENTARY_STEP_LABELS['mock-scan'] };
-  if (results.simplebeacon) return { key: 'simplebeacon-report', label: SUPPLEMENTARY_STEP_LABELS['simplebeacon-report'] };
+  if (results.simplebeacon)
+    return { key: 'simplebeacon-report', label: SUPPLEMENTARY_STEP_LABELS['simplebeacon-report'] };
   return { key: 'complete', label: SUPPLEMENTARY_STEP_LABELS.complete };
 }
 
@@ -736,7 +749,7 @@ export function previewAuditExportTier(exportPayload) {
       tier: 'insufficient',
       label: 'Insufficient scan data',
       exportBlocked: true,
-      blockReason: 'No scan data available for audit PDF export.'
+      blockReason: 'No scan data available for audit PDF export.',
     };
   }
   const results = normalized.results || {};
@@ -746,7 +759,7 @@ export function previewAuditExportTier(exportPayload) {
       tier: 'insufficient',
       label: 'Insufficient scan data',
       exportBlocked: true,
-      blockReason: 'Export payload has no scan steps — run Complete scan or an individual analysis first.'
+      blockReason: 'Export payload has no scan steps — run Complete scan or an individual analysis first.',
     };
   }
 
@@ -796,9 +809,10 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
   if (!normalized || typeof normalized !== 'object') {
     throw new Error('No scan data available for audit PDF export.');
   }
-  const payload = slimCompleteScanForAudit(normalized, {
-    findingsLimit: options.findingsLimit ?? 5000
-  }) || normalized;
+  const payload =
+    slimCompleteScanForAudit(normalized, {
+      findingsLimit: options.findingsLimit ?? 5000,
+    }) || normalized;
   if (!payload || typeof payload !== 'object') {
     throw new Error('Audit export payload could not be prepared.');
   }
@@ -807,21 +821,25 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
     throw new Error(tierPreview.blockReason);
   }
   const timeoutMs = options.timeoutMs ?? 300000;
-  const res = await fetchWithTimeout('/api/analyze/complete-audit-report', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const res = await fetchWithTimeout(
+    '/api/analyze/complete-audit-report',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        completeScan: payload,
+        aiProvider: options.aiProvider || 'demo',
+        client: options.client,
+        company: options.company,
+        assessor: options.assessor,
+        credentials: options.credentials,
+      }),
     },
-    body: JSON.stringify({
-      completeScan: payload,
-      aiProvider: options.aiProvider || 'demo',
-      client: options.client,
-      company: options.company,
-      assessor: options.assessor,
-      credentials: options.credentials
-    })
-  }, timeoutMs);
+    timeoutMs
+  );
   const data = await parseJsonSafe(res);
   if (res.status === 402) {
     const err = new Error(data.error || 'Pre-Launch Audit PDF requires purchase');
@@ -845,21 +863,25 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
  */
 export async function fetchEuAiActAuditReport(options = {}) {
   const timeoutMs = options.timeoutMs ?? 120000;
-  const res = await fetchWithTimeout('/api/analyze/eu-ai-act-audit-report', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const res = await fetchWithTimeout(
+    '/api/analyze/eu-ai-act-audit-report',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        projectPath: options.projectPath,
+        client: options.client,
+        company: options.company,
+        assessor: options.assessor,
+        sprintArtifacts: options.sprintArtifacts || undefined,
+        credentials: options.credentials,
+      }),
     },
-    body: JSON.stringify({
-      projectPath: options.projectPath,
-      client: options.client,
-      company: options.company,
-      assessor: options.assessor,
-      sprintArtifacts: options.sprintArtifacts || undefined,
-      credentials: options.credentials
-    })
-  }, timeoutMs);
+    timeoutMs
+  );
   const data = await parseJsonSafe(res);
   if (res.status === 402) {
     const err = new Error(data.error || 'EU AI Act audit PDF requires purchase');
@@ -900,33 +922,38 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
   if (!normalized || typeof normalized !== 'object') {
     throw new Error('No complete scan data available for ZIP export.');
   }
-  const payload = slimCompleteScanForAudit(normalized, {
-    findingsLimit: options.findingsLimit ?? 5000
-  }) || normalized;
+  const payload =
+    slimCompleteScanForAudit(normalized, {
+      findingsLimit: options.findingsLimit ?? 5000,
+    }) || normalized;
   const timeoutMs = options.timeoutMs ?? 300000;
-  const res = await fetchWithTimeout('/api/analyze/export-bundle', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const res = await fetchWithTimeout(
+    '/api/analyze/export-bundle',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        completeScan: payload,
+        internalDashboard: options.internalDashboard === true,
+        deliverableSku: options.deliverableSku || options.tier || undefined,
+        client: options.client,
+        company: options.company,
+        assessor: options.assessor,
+        milestone: options.milestone,
+        projectName: options.projectName,
+        agencyName: options.agencyName,
+        aiProvider: options.aiProvider || 'demo',
+        cloudTeamsActive: options.cloudTeamsActive === true,
+        selectedEngines: options.selectedEngines,
+        enginesRun: options.enginesRun,
+        credentials: options.credentials,
+      }),
     },
-    body: JSON.stringify({
-      completeScan: payload,
-      internalDashboard: options.internalDashboard === true,
-      deliverableSku: options.deliverableSku || options.tier || undefined,
-      client: options.client,
-      company: options.company,
-      assessor: options.assessor,
-      milestone: options.milestone,
-      projectName: options.projectName,
-      agencyName: options.agencyName,
-      aiProvider: options.aiProvider || 'demo',
-      cloudTeamsActive: options.cloudTeamsActive === true,
-      selectedEngines: options.selectedEngines,
-      enginesRun: options.enginesRun,
-      credentials: options.credentials
-    })
-  }, timeoutMs);
+    timeoutMs
+  );
 
   if (res.status === 402) {
     const data = await parseJsonSafe(res);
@@ -948,13 +975,17 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
   }
 
   const blob = await res.blob();
-  const filename = parseContentDispositionFilename(res.headers.get('Content-Disposition'))
-    || options.filename
-    || `simplebeacon-export-${new Date().toISOString().slice(0, 10)}.zip`;
+  const filename =
+    parseContentDispositionFilename(res.headers.get('Content-Disposition')) ||
+    options.filename ||
+    `simplebeacon-export-${new Date().toISOString().slice(0, 10)}.zip`;
   const tierId = res.headers.get('X-Simplebeacon-Export-Tier') || options.deliverableSku || null;
   const warningsHeader = res.headers.get('X-Simplebeacon-Export-Warnings');
   const warnings = warningsHeader
-    ? warningsHeader.split('|').map((part) => part.trim()).filter(Boolean)
+    ? warningsHeader
+        .split('|')
+        .map((part) => part.trim())
+        .filter(Boolean)
     : [];
 
   return { blob, filename, tierId, warnings };
@@ -996,11 +1027,11 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
 export async function fetchComplianceTrailExportJson(windowDays = 90) {
   const params = new URLSearchParams({
     window: `${windowDays}d`,
-    _: String(Date.now())
+    _: String(Date.now()),
   });
   const res = await fetch(`/api/compliance-trail/export/json?${params}`, {
     cache: 'no-store',
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   });
   if (!res.ok) {
     const data = await parseJsonSafe(res);
@@ -1022,11 +1053,11 @@ export async function fetchComplianceTrailExportHtml(windowDays = 90) {
   const params = new URLSearchParams({
     window: `${windowDays}d`,
     disposition: 'inline',
-    _: String(Date.now())
+    _: String(Date.now()),
   });
   const res = await fetch(`/api/compliance-trail/export/pdf?${params}`, {
     cache: 'no-store',
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   });
   if (!res.ok) {
     const data = await parseJsonSafe(res);
@@ -1058,20 +1089,24 @@ export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       previewWindow.location.href = url;
-      previewWindow.addEventListener('load', () => {
-        try { URL.revokeObjectURL(url); } catch (e) { }
-      }, { once: true });
+      previewWindow.addEventListener(
+        'load',
+        () => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (e) {}
+        },
+        { once: true }
+      );
       previewWindow.focus();
       return { mode: 'html-download', filename: savedAs, preview: true };
-    }
-    catch (e) {
+    } catch (e) {
       try {
         const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
         previewWindow.location.href = dataUrl;
         previewWindow.focus();
         return { mode: 'html-download', filename: savedAs, preview: true };
-      }
-      catch (err) {
+      } catch (err) {
         return { mode: 'html-download', filename: savedAs, preview: false };
       }
     }
@@ -1109,9 +1144,13 @@ export async function fetchCodebaseAnalysis(projectPath, options = {}) {
     params.set('requestedScanRoot', options.requestedScanRoot || options.scanTargetRoot);
   }
   const timeoutMs = options.timeoutMs ?? (options.context === 'complete' ? 900000 : 600000);
-  const data = await fetchJsonWithGuidance(`/api/analyze/codebase?${params}`, {
-    headers: authService.getAuthHeaders()
-  }, timeoutMs);
+  const data = await fetchJsonWithGuidance(
+    `/api/analyze/codebase?${params}`,
+    {
+      headers: authService.getAuthHeaders(),
+    },
+    timeoutMs
+  );
   if (!data.success) {
     throw new Error(data.error || 'Codebase analysis failed');
   }
@@ -1141,37 +1180,41 @@ export async function fetchDataCleanupScan(projectPath, options = {}) {
   const target = `/api/analyze/data-cleanup?${params}`;
 
   try {
-    const data = await fetchJsonWithGuidance(target, {
-        headers: authService.getAuthHeaders()
-      }, timeoutMs);
-      if (!data.success) {
-        throw new Error(data.error || 'Data cleanup analysis failed');
+    const data = await fetchJsonWithGuidance(
+      target,
+      {
+        headers: authService.getAuthHeaders(),
+      },
+      timeoutMs
+    );
+    if (!data.success) {
+      throw new Error(data.error || 'Data cleanup analysis failed');
+    }
+    const scan = data.data;
+    if (!scan || typeof scan !== 'object') {
+      throw new Error(`Data cleanup scan returned no payload (${profile})`);
+    }
+    if (profile === 'file-reduction') {
+      const hasSignal =
+        scan.fileReductionPlan?.totals?.safeToDeleteBytes != null ||
+        scan.fileReductionPlan?.safeToDelete?.topDirectories?.length ||
+        scan.scanners?.['build-artifacts']?.safeToDeleteBytes != null ||
+        scan.summary?.totalFindings > 0;
+      if (!hasSignal) {
+        throw new Error('File reduction scan returned no findings — restart the SimpleBeacon server and retry.');
       }
-      const scan = data.data;
-      if (!scan || typeof scan !== 'object') {
-        throw new Error(`Data cleanup scan returned no payload (${profile})`);
+    }
+    if (profile === 'data-quality') {
+      const hasSignal =
+        scan.executiveSummary || scan.summary?.totalFindings > 0 || Object.keys(scan.scanners || {}).length > 0;
+      if (!hasSignal) {
+        throw new Error('Data quality scan returned no findings — restart the SimpleBeacon server and retry.');
       }
-      if (profile === 'file-reduction') {
-        const hasSignal = scan.fileReductionPlan?.totals?.safeToDeleteBytes != null
-          || scan.fileReductionPlan?.safeToDelete?.topDirectories?.length
-          || scan.scanners?.['build-artifacts']?.safeToDeleteBytes != null
-          || scan.summary?.totalFindings > 0;
-        if (!hasSignal) {
-          throw new Error('File reduction scan returned no findings — restart the SimpleBeacon server and retry.');
-        }
-      }
-      if (profile === 'data-quality') {
-        const hasSignal = scan.executiveSummary
-          || scan.summary?.totalFindings > 0
-          || Object.keys(scan.scanners || {}).length > 0;
-        if (!hasSignal) {
-          throw new Error('Data quality scan returned no findings — restart the SimpleBeacon server and retry.');
-        }
-      }
-      if (scan && !scan.scanProfile) {
-        scan.scanProfile = profile;
-      }
-      return scan;
+    }
+    if (scan && !scan.scanProfile) {
+      scan.scanProfile = profile;
+    }
+    return scan;
   } catch (error) {
     throw new Error(
       error.message
@@ -1187,7 +1230,9 @@ export async function fetchDataCleanupScan(projectPath, options = {}) {
  * @returns {any}
  */
 export function looksLikeGameModPath(projectPath) {
-  const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
+  const normalized = String(projectPath || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
   if (!normalized) return false;
   return new RegExp('(?:^|/)games/|doom|gzdoom|zscript|\\.pk3|r3d|lighting|_mod(?:/|$)', 'i').test(normalized);
 }
@@ -1204,9 +1249,10 @@ export function scanHintsGameMod(scan) {
   }
   const insights = scan.codeUnderstanding?.fileInsights || [];
   return insights.some((item) => {
-    const domains = item.understanding?.layers?.semantic?.businessLogic?.domains
-      || item.understanding?.layers?.semantic?.domains
-      || [];
+    const domains =
+      item.understanding?.layers?.semantic?.businessLogic?.domains ||
+      item.understanding?.layers?.semantic?.domains ||
+      [];
     return Array.isArray(domains) && domains.includes('game-modding');
   });
 }
@@ -1231,10 +1277,10 @@ export async function fetchZscriptModReport(projectPath, options = {}) {
   const params = new URLSearchParams({
     projectPath: projectPath || '',
     focus: options.focus || 'lighting-intensity',
-    _: String(Date.now())
+    _: String(Date.now()),
   });
   const data = await fetchJsonWithGuidance(`/api/analyze/zscript-report?${params}`, {
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   });
   if (!data.success) {
     throw new Error(data.error || 'ZScript report failed');
@@ -1267,13 +1313,13 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
 
   const params = new URLSearchParams({
     projectPath: path,
-    profile: options.profile || 'all'
+    profile: options.profile || 'all',
   });
   if (options.fullDirectoryScan) {
     params.set('fullDirectoryScan', 'true');
   }
   const data = await fetchJsonWithGuidance(`/api/analyze/inventory?${params}`, {
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   });
   if (!data.success) {
     if (data.pathMissing) return null;
@@ -1302,14 +1348,17 @@ export async function refreshPathInventory(app, projectPath, options = {}) {
   if (_inventoryInflight && _inventoryInflight.path === path) {
     return _inventoryInflight.promise;
   }
-/**
- * Promise.
- * @param {any} async (
- * @returns {any}
- */
+  /**
+   * Promise.
+   * @param {any} async (
+   * @returns {any}
+   */
   const promise = (async () => {
     try {
-      const inventory = await fetchRepositoryInventory(path, { profile: options.profile || 'all', fullDirectoryScan: options.fullDirectoryScan });
+      const inventory = await fetchRepositoryInventory(path, {
+        profile: options.profile || 'all',
+        fullDirectoryScan: options.fullDirectoryScan,
+      });
       const root = inventory?.projectRoot || path;
       if (inventory?.totalFiles != null && isInventoryRootAligned(path, root)) {
         const entry = { path, inventory, fetchedAt: Date.now() };
@@ -1360,7 +1409,7 @@ export function buildPathInventoryProvenance(app, projectPath, report = null) {
   const live = liveInventoryForPath(app, projectPath);
   return buildInventoryProvenance(resolvedReport, projectPath, {
     liveInventory: live?.inventory || null,
-    inventoryFetchedAt: live?.fetchedAt ?? null
+    inventoryFetchedAt: live?.fetchedAt ?? null,
   });
 }
 
@@ -1375,12 +1424,10 @@ export function mergeReportInventory(report, inventory) {
   if (!inventory?.totalFiles) return report;
   return {
     ...report,
-    repositoryInventory: report.repositoryInventory?.totalFiles != null
-      ? report.repositoryInventory
-      : inventory,
+    repositoryInventory: report.repositoryInventory?.totalFiles != null ? report.repositoryInventory : inventory,
     repositoryFilesTotal: report.repositoryFilesTotal ?? inventory.totalFiles,
     repositoryFoldersTotal: report.repositoryFoldersTotal ?? inventory.totalFolders,
-    filesAnalyzed: report.repositoryFilesTotal ?? report.filesAnalyzed ?? inventory.totalFiles
+    filesAnalyzed: report.repositoryFilesTotal ?? report.filesAnalyzed ?? inventory.totalFiles,
   };
 }
 
@@ -1414,9 +1461,13 @@ export async function fetchScanReport(projectPath) {
   const params = `?projectPath=${encodeURIComponent(path)}`;
   let res;
   try {
-    res = await fetchWithTimeout(`/api/simplebeacon/report${params}`, {
-      headers: authService.getAuthHeaders()
-    }, 30000);
+    res = await fetchWithTimeout(
+      `/api/simplebeacon/report${params}`,
+      {
+        headers: authService.getAuthHeaders(),
+      },
+      30000
+    );
   } catch {
     return null;
   }
@@ -1432,7 +1483,10 @@ export async function fetchScanReport(projectPath) {
  * @returns {any}
  */
 export function normalizeProjectPath(value) {
-  return String(value || '').replace(/\\/g, '/').toLowerCase().replace(/\/$/, '');
+  return String(value || '')
+    .replace(/\\/g, '/')
+    .toLowerCase()
+    .replace(/\/$/, '');
 }
 
 /**
@@ -1474,12 +1528,9 @@ function partitionPlatformScanIssues(issues = []) {
   const platformIssues = [];
   const benchmarkCacheIssues = [];
   for (const issue of issues) {
-    const paths = [
-      issue?.filePath,
-      issue?.file,
-      ...(issue?.affectedFiles || []),
-      ...(issue?.filePaths || [])
-    ].filter(Boolean);
+    const paths = [issue?.filePath, issue?.file, ...(issue?.affectedFiles || []), ...(issue?.filePaths || [])].filter(
+      Boolean
+    );
     if (paths.some(isBenchmarkCachePath)) {
       benchmarkCacheIssues.push(issue);
     } else {
@@ -1496,7 +1547,7 @@ function partitionPlatformScanIssues(issues = []) {
  */
 export function preparePlatformResultsReport(report) {
   if (!report || report.type !== 'simplebeacon-report') return report;
-  const sourceIssues = report.rawIssues?.length ? report.rawIssues : (report.detectedIssues || []);
+  const sourceIssues = report.rawIssues?.length ? report.rawIssues : report.detectedIssues || [];
   const { platformIssues, benchmarkCacheIssues } = partitionPlatformScanIssues(sourceIssues);
   const gateConfig = report.gate || report.scanScope?.gatePolicy || { failOn: ['high'], warnOn: ['medium', 'low'] };
   const blockingCount = platformIssues
@@ -1520,19 +1571,16 @@ export function preparePlatformResultsReport(report) {
       ...gateConfig,
       pass: blockingCount === 0,
       blockingCount,
-      warningCount
+      warningCount,
     },
     scanScope: {
       ...(report.scanScope || {}),
       resultsViewScope: 'platform-only',
       benchmarkCacheIssuesExcluded: benchmarkCacheIssues.length,
-      reportHealth: staleFullTreeScan
-        ? 'stale-full-tree-scan'
-        : (report.scanScope?.reportHealth || 'platform-scoped'),
-      rescanRecommended: staleFullTreeScan
-        || benchmarkCacheIssues.length > 0
-        || Boolean(report.scanScope?.rescanRecommended)
-    }
+      reportHealth: staleFullTreeScan ? 'stale-full-tree-scan' : report.scanScope?.reportHealth || 'platform-scoped',
+      rescanRecommended:
+        staleFullTreeScan || benchmarkCacheIssues.length > 0 || Boolean(report.scanScope?.rescanRecommended),
+    },
   };
 }
 
@@ -1545,23 +1593,21 @@ export function sanitizeFictionDigestExport(digest) {
   if (!digest || typeof digest !== 'object') return digest;
   if (digest.type !== 'simplebeacon-fiction-digest') return digest;
 
-  const sourceReport = digest.sourceReport
-    ? preparePlatformResultsReport(digest.sourceReport)
-    : null;
-/**
- * Fiction issues.
- * @param {any} digest.fictionIssues || []
- * @returns {any}
- */
+  const sourceReport = digest.sourceReport ? preparePlatformResultsReport(digest.sourceReport) : null;
+  /**
+   * Fiction issues.
+   * @param {any} digest.fictionIssues || []
+   * @returns {any}
+   */
   const fictionIssues = (digest.fictionIssues || []).filter((issue) => {
     const filePath = issue.filePath || issue.file || '';
     return !filePath || !isBenchmarkCachePath(filePath);
   });
-/**
- * Non fiction issues.
- * @param {any} digest.nonFictionIssues || []
- * @returns {any}
- */
+  /**
+   * Non fiction issues.
+   * @param {any} digest.nonFictionIssues || []
+   * @returns {any}
+   */
   const nonFictionIssues = (digest.nonFictionIssues || []).filter((issue) => {
     const filePath = issue.filePath || issue.file || '';
     return !filePath || !isBenchmarkCachePath(filePath);
@@ -1571,13 +1617,11 @@ export function sanitizeFictionDigestExport(digest) {
   return {
     type: 'simplebeacon-fiction-digest',
     generatedAt: digest.generatedAt || new Date().toISOString(),
-    conclusion: digest.conclusion || (sourceReport
-      ? buildScanConclusion(sourceReport, { focus: 'fiction' })
-      : ''),
+    conclusion: digest.conclusion || (sourceReport ? buildScanConclusion(sourceReport, { focus: 'fiction' }) : ''),
     fictionIssues,
     nonFictionIssues,
     digestTrust: fictionCount === 0 ? 'trustworthy' : 'review',
-    sourceReport: sourceReport ? slimReportForSummary(sourceReport) : null
+    sourceReport: sourceReport ? slimReportForSummary(sourceReport) : null,
   };
 }
 
@@ -1603,17 +1647,17 @@ export function resolveCompleteScanTargetPath(projectPath, priorSteps = []) {
 export async function enrichScanReport(report, projectPath) {
   if (!report) return report;
   let merged = { ...report };
-  if (projectPath && merged.projectRoot
-    && normalizeProjectPath(merged.projectRoot) !== normalizeProjectPath(projectPath)) {
+  if (
+    projectPath &&
+    merged.projectRoot &&
+    normalizeProjectPath(merged.projectRoot) !== normalizeProjectPath(projectPath)
+  ) {
     const fetched = await fetchScanReport(projectPath).catch(() => null);
-    if (fetched?.projectRoot
-      && normalizeProjectPath(fetched.projectRoot) === normalizeProjectPath(projectPath)) {
+    if (fetched?.projectRoot && normalizeProjectPath(fetched.projectRoot) === normalizeProjectPath(projectPath)) {
       merged = fetched;
     }
   }
-  let inventory = merged.repositoryInventory?.totalFiles != null
-    ? merged.repositoryInventory
-    : null;
+  let inventory = merged.repositoryInventory?.totalFiles != null ? merged.repositoryInventory : null;
   if (!inventory && projectPath) {
     try {
       inventory = await fetchRepositoryInventory(projectPath, { profile: 'all' });
@@ -1636,50 +1680,39 @@ export function buildInventoryProvenance(report, requestedPath, options = {}) {
   const liveInventory = options.liveInventory || null;
   if (!report?.generatedAt && !requested && !liveInventory?.totalFiles) return null;
 
-  const reportInventory = report?.repositoryInventory?.totalFiles != null
-    ? report.repositoryInventory
-    : null;
-  const reportRoot = reportInventory?.projectRoot
-    ?? report?.scanTargetRoot
-    ?? report?.platformRoot
-    ?? report?.projectRoot
-    ?? null;
+  const reportInventory = report?.repositoryInventory?.totalFiles != null ? report.repositoryInventory : null;
+  const reportRoot =
+    reportInventory?.projectRoot ?? report?.scanTargetRoot ?? report?.platformRoot ?? report?.projectRoot ?? null;
   const reportStale = report && requested ? isLegacyScanReport(report, requested) : false;
   const reportAligned = Boolean(
-    report?.generatedAt
-    && requested
-    && reportRoot
-    && isInventoryRootAligned(requested, reportRoot)
-    && !reportStale
+    report?.generatedAt && requested && reportRoot && isInventoryRootAligned(requested, reportRoot) && !reportStale
   );
   const liveRoot = liveInventory?.projectRoot || requested || null;
   const liveAligned = Boolean(
-    liveInventory?.totalFiles != null
-    && (!requested || isInventoryRootAligned(requested, liveRoot))
+    liveInventory?.totalFiles != null && (!requested || isInventoryRootAligned(requested, liveRoot))
   );
 
   // Prefer live inventory when both are available — it reflects the actual
   // folder contents. Report inventory reflects the scan scope which may skip
   // dirs (node_modules, .git, build artifacts) and differ significantly.
-  const inventory = liveAligned && liveInventory
-    ? liveInventory
-    : (reportAligned && reportInventory ? reportInventory : (reportInventory || liveInventory));
-  const inventoryRoot = inventory?.projectRoot
-    ?? (reportAligned ? reportRoot : null)
-    ?? requested
-    ?? null;
+  const inventory =
+    liveAligned && liveInventory
+      ? liveInventory
+      : reportAligned && reportInventory
+        ? reportInventory
+        : reportInventory || liveInventory;
+  const inventoryRoot = inventory?.projectRoot ?? (reportAligned ? reportRoot : null) ?? requested ?? null;
   const profile = inventory?.profile || 'explorer';
-  const files = inventory?.totalFiles
-    ?? (reportAligned ? (report?.repositoryFilesTotal ?? reportInventory?.totalFiles) : null);
-  const folders = inventory?.totalFolders
-    ?? (reportAligned ? (report?.repositoryFoldersTotal ?? reportInventory?.totalFolders) : null);
+  const files =
+    inventory?.totalFiles ?? (reportAligned ? (report?.repositoryFilesTotal ?? reportInventory?.totalFiles) : null);
+  const folders =
+    inventory?.totalFolders ??
+    (reportAligned ? (report?.repositoryFoldersTotal ?? reportInventory?.totalFolders) : null);
   const ruleScoped = reportAligned
     ? (report?.ruleScopedFilesAnalyzed ?? report?.scanScope?.ruleScopedFilesAnalyzed ?? null)
     : null;
   const generatedAt = reportAligned ? (report?.generatedAt ?? null) : null;
-  const pathAligned = requested && inventoryRoot
-    ? isInventoryRootAligned(requested, inventoryRoot)
-    : null;
+  const pathAligned = requested && inventoryRoot ? isInventoryRootAligned(requested, inventoryRoot) : null;
 
   return {
     requestedPath: requested,
@@ -1694,7 +1727,7 @@ export function buildInventoryProvenance(report, requestedPath, options = {}) {
     hasReport: reportAligned,
     liveInventory: liveAligned && Boolean(liveInventory?.totalFiles != null),
     inventoryFetchedAt: options.inventoryFetchedAt ?? null,
-    reportMisaligned: Boolean(report?.generatedAt && requested && reportRoot && !reportAligned)
+    reportMisaligned: Boolean(report?.generatedAt && requested && reportRoot && !reportAligned),
   };
 }
 
@@ -1709,9 +1742,10 @@ export function renderInventoryProvenanceHtml(provenance, options = {}) {
   const redactPath = options.redactPath || ((value) => String(value || ''));
   const selectedLabel = provenance.requestedPath ? redactPath(provenance.requestedPath) : '—';
   const walkedLabel = provenance.inventoryRoot ? redactPath(provenance.inventoryRoot) : selectedLabel;
-  const countLine = provenance.files != null
-    ? `${formatNumber(provenance.files)} files · ${formatNumber(provenance.folders ?? 0)} folders indexed (${provenance.profile} profile)`
-    : 'Inventory pending';
+  const countLine =
+    provenance.files != null
+      ? `${formatNumber(provenance.files)} files · ${formatNumber(provenance.folders ?? 0)} folders indexed (${provenance.profile} profile)`
+      : 'Inventory pending';
 
   if (!provenance.hasReport) {
     if (provenance.liveInventory && provenance.files != null) {
@@ -1744,20 +1778,18 @@ export function renderInventoryProvenanceHtml(provenance, options = {}) {
     `;
   }
 
-  const scannedAt = provenance.generatedAt
-    ? new Date(provenance.generatedAt).toLocaleString()
-    : '—';
-  const ruleLine = provenance.ruleScoped != null
-    ? `${formatNumber(provenance.ruleScoped)} gate rules checked`
-    : '';
+  const scannedAt = provenance.generatedAt ? new Date(provenance.generatedAt).toLocaleString() : '—';
+  const ruleLine = provenance.ruleScoped != null ? `${formatNumber(provenance.ruleScoped)} gate rules checked` : '';
 
   if (provenance.stale || provenance.pathAligned === false) {
     return `
       <div class="analyze-inventory-provenance analyze-inventory-provenance--mismatch" data-inventory-provenance role="alert">
         <strong>Path mismatch</strong> — selected <code>${escapeHtml(selectedLabel)}</code> does not match loaded inventory root <code>${escapeHtml(walkedLabel)}</code>.
-        ${provenance.files != null
-    ? `Showing <strong>${escapeHtml(formatNumber(provenance.files))}</strong> files from the loaded report (${escapeHtml(provenance.profile)} profile), not from your selected folder.`
-    : ''}
+        ${
+          provenance.files != null
+            ? `Showing <strong>${escapeHtml(formatNumber(provenance.files))}</strong> files from the loaded report (${escapeHtml(provenance.profile)} profile), not from your selected folder.`
+            : ''
+        }
         Re-run <strong>Run analysis</strong> on the exact path you want.
       </div>
     `;
@@ -1795,7 +1827,7 @@ export function buildMonorepoScopeNote(report) {
     jsonFiction != null
       ? `Fiction/KPI patterns scan ${Number(jsonFiction).toLocaleString()} JSON files under the requested path`
       : null,
-    'Source code (.js, .py, etc.) is not semantically reviewed — pattern matching on JSON and configured rules only'
+    'Source code (.js, .py, etc.) is not semantically reviewed — pattern matching on JSON and configured rules only',
   ].filter(Boolean);
   return parts.join('. ') + '.';
 }
@@ -1859,9 +1891,7 @@ export function isLegacyScanReport(report, projectPath = '') {
  * @returns {any}
  */
 export function getScanFileMetrics(report, options = {}) {
-  const inventory = options.repositoryInventory
-    || report?.repositoryInventory
-    || null;
+  const inventory = options.repositoryInventory || report?.repositoryInventory || null;
   if (!report || typeof report !== 'object') {
     return {
       filesAnalyzed: null,
@@ -1869,18 +1899,17 @@ export function getScanFileMetrics(report, options = {}) {
       credentialScanned: null,
       repositoryFiles: inventory?.totalFiles ?? null,
       repositoryFolders: inventory?.totalFolders ?? null,
-      repositoryRoot: inventory?.projectRoot ?? null
+      repositoryRoot: inventory?.projectRoot ?? null,
     };
   }
 
   if (report.type === 'file-merger-reduction-report') {
-    const sampleDataFiles = report.summary?.sampleDataFilesAnalyzed
-      ?? report.summary?.filesAnalyzed
-      ?? 0;
-    const repoFiles = report.summary?.repositoryFilesTotal
-      ?? report.repositoryInventory?.totalFiles
-      ?? report.summary?.filesAnalyzed
-      ?? null;
+    const sampleDataFiles = report.summary?.sampleDataFilesAnalyzed ?? report.summary?.filesAnalyzed ?? 0;
+    const repoFiles =
+      report.summary?.repositoryFilesTotal ??
+      report.repositoryInventory?.totalFiles ??
+      report.summary?.filesAnalyzed ??
+      null;
     return {
       filesAnalyzed: repoFiles ?? sampleDataFiles,
       mockSampleFiles: sampleDataFiles,
@@ -1888,18 +1917,14 @@ export function getScanFileMetrics(report, options = {}) {
       credentialScanned: null,
       productionLeakScanned: null,
       repositoryFiles: repoFiles,
-      repositoryFolders: report.summary?.repositoryFoldersTotal
-        ?? report.repositoryInventory?.totalFolders
-        ?? null,
-      repositoryRoot: report.repositoryInventory?.projectRoot ?? null
+      repositoryFolders: report.summary?.repositoryFoldersTotal ?? report.repositoryInventory?.totalFolders ?? null,
+      repositoryRoot: report.repositoryInventory?.projectRoot ?? null,
     };
   }
 
   const mockSampleFiles = report.mockSampleFiles ?? 0;
   const ruleScopedFilesAnalyzed = report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? 0;
-  const repositoryFiles = report.repositoryFilesTotal
-    ?? inventory?.totalFiles
-    ?? null;
+  const repositoryFiles = report.repositoryFilesTotal ?? inventory?.totalFiles ?? null;
   return {
     filesAnalyzed: ruleScopedFilesAnalyzed,
     ruleScopedFilesAnalyzed,
@@ -1909,7 +1934,7 @@ export function getScanFileMetrics(report, options = {}) {
     productionLeakScanned: report.productionLeakScanned ?? 0,
     repositoryFiles,
     repositoryFolders: report.repositoryFoldersTotal ?? inventory?.totalFolders ?? null,
-    repositoryRoot: inventory?.projectRoot ?? report.repositoryInventory?.projectRoot ?? null
+    repositoryRoot: inventory?.projectRoot ?? report.repositoryInventory?.projectRoot ?? null,
   };
 }
 
@@ -1994,7 +2019,10 @@ function replaceJestMentions(text, jestLabel, suites) {
   return String(text)
     .replace(/\d+\/\d+ tests pass(?:ing)?(?: across \d+ suites)?/gi, `${jestLabel} tests passing${suiteSuffix}`)
     .replace(/\d+\/\d+ Jest tests passing(?: across \d+ suites)?/gi, `${jestLabel} Jest tests passing${suiteSuffix}`)
-    .replace(/\d+\/\d+ Jest(?: tests)?(?: \(?\d+ suites?\)?)?/gi, `${jestLabel} Jest${suites != null ? ` (${suites} suites)` : ''}`);
+    .replace(
+      /\d+\/\d+ Jest(?: tests)?(?: \(?\d+ suites?\)?)?/gi,
+      `${jestLabel} Jest${suites != null ? ` (${suites} suites)` : ''}`
+    );
 }
 
 /** Overlay live baseline Jest counts onto dashboard-home insights (API snapshots may lag). */
@@ -2006,37 +2034,38 @@ export function hydrateDashboardHome(home, baseline) {
   const suites = baseline?.jestSuites ?? home?.overview?.testSuites;
   if (!jestLabel) return home;
 
-/**
- * Comparative analysis.
- * @param {any} home.comparativeAnalysis || []
- * @returns {any}
- */
+  /**
+   * Comparative analysis.
+   * @param {any} home.comparativeAnalysis || []
+   * @returns {any}
+   */
   const comparativeAnalysis = (home.comparativeAnalysis || []).map((row) => {
     if (String(row.metric || '').toLowerCase() !== 'jest tests') return row;
     const prevNum = Number(String(row.previous).replace(/[^\d.-]/g, ''));
-    const change = Number.isFinite(prevNum) && jestPassing != null && prevNum !== jestPassing
-      ? `${jestPassing > prevNum ? '+' : ''}${jestPassing - prevNum} tests`
-      : row.change;
+    const change =
+      Number.isFinite(prevNum) && jestPassing != null && prevNum !== jestPassing
+        ? `${jestPassing > prevNum ? '+' : ''}${jestPassing - prevNum} tests`
+        : row.change;
     return { ...row, current: jestPassing ?? row.current, change };
   });
 
-/**
- * Kpis.
- * @param {any} home.kpis || []
- * @returns {any}
- */
-  const kpis = (home.kpis || []).map((item) => (
-    String(item.name || '').toLowerCase().includes('jest')
+  /**
+   * Kpis.
+   * @param {any} home.kpis || []
+   * @returns {any}
+   */
+  const kpis = (home.kpis || []).map((item) =>
+    String(item.name || '')
+      .toLowerCase()
+      .includes('jest')
       ? { ...item, current: jestLabel, target: jestLabel }
       : item
-  ));
+  );
 
   const healthSummary = home.healthSummary
     ? {
         ...home.healthSummary,
-        highlights: (home.healthSummary.highlights || []).map((line) =>
-          replaceJestMentions(line, jestLabel, suites)
-        )
+        highlights: (home.healthSummary.highlights || []).map((line) => replaceJestMentions(line, jestLabel, suites)),
       }
     : home.healthSummary;
 
@@ -2048,16 +2077,16 @@ export function hydrateDashboardHome(home, baseline) {
           totalTests: jestPassing ?? home.overview.totalTests,
           passedTests: jestPassing ?? home.overview.passedTests,
           testSuites: suites ?? home.overview.testSuites,
-          notes: replaceJestMentions(home.overview.notes, jestLabel, suites)
+          notes: replaceJestMentions(home.overview.notes, jestLabel, suites),
         }
       : home.overview,
     comparativeAnalysis,
     insights: (home.insights || []).map((item) => ({
       ...item,
-      description: replaceJestMentions(item.description, jestLabel, suites)
+      description: replaceJestMentions(item.description, jestLabel, suites),
     })),
     kpis,
-    healthSummary
+    healthSummary,
   };
 }
 
@@ -2114,7 +2143,7 @@ export function buildScanScopeLines(report) {
   if (!scope) {
     return [
       'Legacy report — re-run Scan to attach scanScope metadata.',
-      'PASS applies to configured scanPaths and production rules only, not the full repo tree.'
+      'PASS applies to configured scanPaths and production rules only, not the full repo tree.',
     ];
   }
 
@@ -2135,7 +2164,7 @@ export function buildScanScopeLines(report) {
     scope.jestExecutedDuringScan
       ? 'Jest executed during this scan.'
       : 'Jest not executed during scan — baseline from .simplebeacon/baseline.json / npm test separately.',
-    ...(scope.limitations || [])
+    ...(scope.limitations || []),
   ].filter(Boolean);
   return lines;
 }
@@ -2200,13 +2229,15 @@ export function isDeterministicAnalysisMode(analysisType) {
  * @returns {any}
  */
 export function resolveAutoAnalysisMode(projectPath) {
-  const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
+  const normalized = String(projectPath || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
   if (
-    normalized.includes('web\/data')
-    || normalized.endsWith('/ai-platform')
-    || normalized.endsWith('ai-platform')
-    || normalized.includes('/data/mock')
-    || normalized.includes('simplebeacon')
+    normalized.includes('web\/data') ||
+    normalized.endsWith('/ai-platform') ||
+    normalized.endsWith('ai-platform') ||
+    normalized.includes('/data/mock') ||
+    normalized.includes('simplebeacon')
   ) {
     return 'simplebeacon';
   }
@@ -2263,7 +2294,7 @@ export function buildConsolidationConclusion(scan) {
         : `${scan.summary.sampleDataFilesAnalyzed} sample JSON under configured paths`,
       repoFiles != null ? `Clone inventory: ${Number(repoFiles).toLocaleString()} files` : null,
       scan.summary.potentialSavingsLabel ? `Potential savings: ${scan.summary.potentialSavingsLabel}` : null,
-      'Re-run on ai-platform root for product handoff evidence'
+      'Re-run on ai-platform root for product handoff evidence',
     ].filter(Boolean);
     return `${parts.join('. ')}.`;
   }
@@ -2271,9 +2302,12 @@ export function buildConsolidationConclusion(scan) {
   const candidates = (s.mergeCandidates || 0) + (s.reductionOpportunities || 0);
   const repoFiles = s.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles;
   const jsonScanned = s.jsonFilesAnalyzed;
-  const repoNote = repoFiles != null
-    ? ` Repository inventory: ${repoFiles.toLocaleString()} files${jsonScanned != null ? `; ${jsonScanned.toLocaleString()} JSON hashed for duplicates (${(s.exactDuplicateGroups ?? 0).toLocaleString()} duplicate groups)` : ''}.`
-    : (jsonScanned != null ? ` ${jsonScanned.toLocaleString()} JSON files hashed for duplicates (${(s.exactDuplicateGroups ?? 0).toLocaleString()} duplicate groups).` : '');
+  const repoNote =
+    repoFiles != null
+      ? ` Repository inventory: ${repoFiles.toLocaleString()} files${jsonScanned != null ? `; ${jsonScanned.toLocaleString()} JSON hashed for duplicates (${(s.exactDuplicateGroups ?? 0).toLocaleString()} duplicate groups)` : ''}.`
+      : jsonScanned != null
+        ? ` ${jsonScanned.toLocaleString()} JSON files hashed for duplicates (${(s.exactDuplicateGroups ?? 0).toLocaleString()} duplicate groups).`
+        : '';
   if (!candidates) {
     return `No merge or reduction candidates — ${s.sampleDataFilesAnalyzed ?? s.filesAnalyzed ?? 0} sample JSON under configured paths (${s.totalSizeLabel || '—'}).${repoNote} Structure similarity is limited to sample paths; duplicate detection covers all repo JSON.`;
   }
@@ -2299,24 +2333,22 @@ export function buildScanConclusion(report, options = {}) {
     const fictionN = fiction.reduce((sum, i) => sum + (i.count || 1), 0);
     const parts = [
       'OSS benchmark clone under github-cache/ — not Simplebeacon product handoff',
-      fictionN
-        ? `${fictionN} fiction/KPI pattern(s) in clone JSON`
-        : 'No fiction KPI hits in product sample paths',
+      fictionN ? `${fictionN} fiction/KPI pattern(s) in clone JSON` : 'No fiction KPI hits in product sample paths',
       repoFiles != null ? `Repository: ${Number(repoFiles).toLocaleString()} files` : null,
       `Product gate paths checked ${Number(ruleScoped).toLocaleString()}`,
       jsonFiction != null ? `${Number(jsonFiction).toLocaleString()} JSON scanned for fiction rules` : null,
-      'Agency-handoff and EU AI Act matches excluded from vendor gate'
+      'Agency-handoff and EU AI Act matches excluded from vendor gate',
     ].filter(Boolean);
     return `${parts.join('. ')}.`;
   }
 
   const focus = options.focus || 'all';
   const _raw = focus === 'fiction' ? filterIssuesByKind(report, 'fiction') : issueList(report);
-/**
- * Count issues.
- * @param {Array} items
- * @returns {any}
- */
+  /**
+   * Count issues.
+   * @param {Array} items
+   * @returns {any}
+   */
   const countIssues = (items) => items.reduce((sum, i) => sum + (i.count || 1), 0);
 
   const fiction = filterIssuesByKind(report, 'fiction');
@@ -2336,7 +2368,9 @@ export function buildScanConclusion(report, options = {}) {
       const jsonScanned = report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned;
       const sampleScanned = report.fictionSampleFilesScanned ?? report.mockSampleFiles;
       if (jsonScanned != null) {
-        parts.push(`No fiction KPI hits in ${Number(jsonScanned).toLocaleString()} JSON files scanned (${sampleScanned ?? '—'} sample files among them)`);
+        parts.push(
+          `No fiction KPI hits in ${Number(jsonScanned).toLocaleString()} JSON files scanned (${sampleScanned ?? '—'} sample files among them)`
+        );
       } else {
         parts.push('No known fictional KPI patterns in configured sample files');
       }
@@ -2351,32 +2385,37 @@ export function buildScanConclusion(report, options = {}) {
   const repoFiles = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles;
   const ruleScoped = report.ruleScopedFilesAnalyzed;
   const jsonFiction = report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned;
-  const jestNote = report.jestBaselineChecked === false && report.scanScope?.jestExecutedDuringScan === false
-    ? 'Jest was not run as part of this scan.'
-    : '';
+  const jestNote =
+    report.jestBaselineChecked === false && report.scanScope?.jestExecutedDuringScan === false
+      ? 'Jest was not run as part of this scan.'
+      : '';
 
   if (focus === 'fiction') {
     const gateNote = report.gate?.pass
-      ? (nonFictionCount > 0
+      ? nonFictionCount > 0
         ? `Gate passes on configured severities (${(report.gate.failOn || ['high']).join(', ')}); ${nonFictionCount} non-fiction finding(s) in Simplebeacon scan.`
-        : 'Gate passes on configured severities.')
+        : 'Gate passes on configured severities.'
       : report.gate
         ? 'Gate would fail on configured severities — review before merge.'
         : '';
-    const inventoryBrief = repoFiles != null && ruleScoped != null
-      ? `Repository: ${Number(repoFiles).toLocaleString()} files; gate rules checked ${Number(ruleScoped).toLocaleString()}.`
-      : '';
-    const fictionScope = report.scanScope?.limitations?.find((line) => /fiction|KPI|source code/i.test(line))
-      || 'Fiction/KPI rules scan repository JSON — pattern matching only, not semantic source review.';
+    const inventoryBrief =
+      repoFiles != null && ruleScoped != null
+        ? `Repository: ${Number(repoFiles).toLocaleString()} files; gate rules checked ${Number(ruleScoped).toLocaleString()}.`
+        : '';
+    const fictionScope =
+      report.scanScope?.limitations?.find((line) => /fiction|KPI|source code/i.test(line)) ||
+      'Fiction/KPI rules scan repository JSON — pattern matching only, not semantic source review.';
     const lead = parts.length ? `${parts.join('; ')}.` : 'No fiction KPI hits in mock samples.';
     return `${lead} ${[gateNote, inventoryBrief, jestNote, fictionScope].filter(Boolean).join(' ')}`.trim();
   }
 
-  const scope = report.scanScope?.limitations?.[0]
-    || 'Scoped to configured scanPaths and production directories — pattern matching only, not semantic code review.';
-  const inventoryNote = repoFiles != null
-    ? `Repository inventory: ${Number(repoFiles).toLocaleString()} files indexed${ruleScoped != null ? `; gate rules checked ${Number(ruleScoped).toLocaleString()} files` : ''}${jsonFiction != null ? `; ${Number(jsonFiction).toLocaleString()} JSON scanned for fiction/KPI patterns` : ''}. Source files (.js, .py, etc.) are not semantically reviewed.`
-    : '';
+  const scope =
+    report.scanScope?.limitations?.[0] ||
+    'Scoped to configured scanPaths and production directories — pattern matching only, not semantic code review.';
+  const inventoryNote =
+    repoFiles != null
+      ? `Repository inventory: ${Number(repoFiles).toLocaleString()} files indexed${ruleScoped != null ? `; gate rules checked ${Number(ruleScoped).toLocaleString()} files` : ''}${jsonFiction != null ? `; ${Number(jsonFiction).toLocaleString()} JSON scanned for fiction/KPI patterns` : ''}. Source files (.js, .py, etc.) are not semantically reviewed.`
+      : '';
   const gateNote = report.gate?.pass
     ? 'Gate passes on configured severities.'
     : report.gate
@@ -2405,16 +2444,19 @@ export function buildFictionDigestPayload(report, options = {}) {
   const nonFictionIssues = issueList(prepared).filter(
     (item) => !/fiction|fictional|consistency|kpi/i.test(String(item.type || ''))
   );
-  return sanitizeFictionDigestExport({
-    type: 'simplebeacon-fiction-digest',
-    generatedAt: options.generatedAt || new Date().toISOString(),
-    conclusion: buildScanConclusion(prepared, { focus: 'fiction', benchmarkScan: isBenchmarkCachePath(projectPath) }),
-    fictionIssues,
-    nonFictionIssues,
-    projectPath,
-    sourceProjectPath: projectPath,
-    sourceReport: prepared
-  }, { projectPath });
+  return sanitizeFictionDigestExport(
+    {
+      type: 'simplebeacon-fiction-digest',
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      conclusion: buildScanConclusion(prepared, { focus: 'fiction', benchmarkScan: isBenchmarkCachePath(projectPath) }),
+      fictionIssues,
+      nonFictionIssues,
+      projectPath,
+      sourceProjectPath: projectPath,
+      sourceReport: prepared,
+    },
+    { projectPath }
+  );
 }
 
 /**
@@ -2434,7 +2476,7 @@ export function normalizeImportedReport(payload) {
       detectedIssues: payload.detectedIssues || payload.rawIssues,
       issueCount: payload.issueCount ?? payload.rawIssues.length,
       qualityScore: payload.qualityScore,
-      gate: payload.gate || { pass: true }
+      gate: payload.gate || { pass: true },
     };
   }
   return null;
@@ -2488,19 +2530,23 @@ export async function readDroppedFiles(fileList) {
  * @returns {any}
  */
 export async function fetchComplianceChecklist(report, projectPath, options = {}) {
-  const checklistHttpResponse = await fetchWithTimeout('/api/analyze/compliance-checklist', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const checklistHttpResponse = await fetchWithTimeout(
+    '/api/analyze/compliance-checklist',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        report,
+        projectPath: projectPath || undefined,
+        npmAudit: options.npmAudit || undefined,
+        forceNpmAudit: options.forceNpmAudit === true,
+      }),
     },
-    body: JSON.stringify({
-      report,
-      projectPath: projectPath || undefined,
-      npmAudit: options.npmAudit || undefined,
-      forceNpmAudit: options.forceNpmAudit === true
-    })
-  }, options.timeoutMs ?? 120000);
+    options.timeoutMs ?? 120000
+  );
   const checklistResponse = await parseJsonSafe(checklistHttpResponse);
   if (!checklistHttpResponse.ok || !checklistResponse.success) {
     throw new Error(checklistResponse.error || checklistResponse.message || 'Compliance checklist failed');
@@ -2518,9 +2564,13 @@ export async function fetchProjectNpmAudit(projectPath, options = {}) {
   const params = new URLSearchParams({ _: String(Date.now()) });
   if (projectPath) params.set('projectPath', projectPath);
   if (options.force) params.set('force', '1');
-  const data = await fetchJsonWithGuidance(`/api/analyze/npm-audit?${params}`, {
-    headers: authService.getAuthHeaders()
-  }, options.timeoutMs ?? 180000);
+  const data = await fetchJsonWithGuidance(
+    `/api/analyze/npm-audit?${params}`,
+    {
+      headers: authService.getAuthHeaders(),
+    },
+    options.timeoutMs ?? 180000
+  );
   if (!data.success) {
     throw new Error(data.error || 'npm audit failed');
   }
@@ -2534,7 +2584,7 @@ export async function fetchProjectNpmAudit(projectPath, options = {}) {
 export async function fetchAnalyzeTestSources() {
   const params = new URLSearchParams({ _: String(Date.now()) });
   const data = await fetchJsonWithGuidance(`/api/analyze/test-sources?${params}`, {
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   });
   if (!data.success) {
     throw new Error(data.error || 'Failed to load test sources');
@@ -2549,17 +2599,21 @@ export async function fetchAnalyzeTestSources() {
  * @returns {any}
  */
 export async function prepareGithubRepo(repoUrl, options = {}) {
-  const data = await fetchJsonWithGuidance('/api/analyze/github-clone', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const data = await fetchJsonWithGuidance(
+    '/api/analyze/github-clone',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        repoUrl,
+        refresh: options.refresh === true,
+      }),
     },
-    body: JSON.stringify({
-      repoUrl,
-      refresh: options.refresh === true
-    })
-  }, options.timeoutMs ?? 180000);
+    options.timeoutMs ?? 180000
+  );
   if (!data.success) {
     throw new Error(data.error || 'GitHub clone failed');
   }
@@ -2575,7 +2629,7 @@ export async function fetchAgencyBranding(orgId = 'default') {
   const params = new URLSearchParams({ org_id: orgId, _: String(Date.now()) });
   try {
     const data = await fetchJsonWithGuidance(`/api/simplebeacon/agency/branding?${params}`, {
-      headers: authService.getAuthHeaders()
+      headers: authService.getAuthHeaders(),
     });
     return data.branding || data;
   } catch {
@@ -2589,14 +2643,18 @@ export async function fetchAgencyBranding(orgId = 'default') {
  * @returns {any}
  */
 export async function exportAgencyCertificate(certificateRequest = {}) {
-  const certificateExport = await fetchJsonWithGuidance('/api/simplebeacon/export/certificate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+  const certificateExport = await fetchJsonWithGuidance(
+    '/api/simplebeacon/export/certificate',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders(),
+      },
+      body: JSON.stringify(certificateRequest),
     },
-    body: JSON.stringify(certificateRequest)
-  }, certificateRequest.timeoutMs ?? 120000);
+    certificateRequest.timeoutMs ?? 120000
+  );
   if (!certificateExport.success) {
     throw new Error(certificateExport.message || certificateExport.error || 'Certificate export failed');
   }
@@ -2627,10 +2685,11 @@ export function assertCompleteScanFileReductionFresh(scan) {
   if (!scan || typeof scan !== 'object') {
     throw new Error('File reduction scan returned no payload');
   }
-  const hasSignal = scan.fileReductionPlan?.totals?.safeToDeleteBytes != null
-    || scan.fileReductionPlan?.safeToDelete?.topDirectories?.length
-    || scan.scanners?.['build-artifacts']?.safeToDeleteBytes != null
-    || scan.summary?.totalFindings > 0;
+  const hasSignal =
+    scan.fileReductionPlan?.totals?.safeToDeleteBytes != null ||
+    scan.fileReductionPlan?.safeToDelete?.topDirectories?.length ||
+    scan.scanners?.['build-artifacts']?.safeToDeleteBytes != null ||
+    scan.summary?.totalFindings > 0;
   if (!hasSignal) {
     throw new Error('File reduction scan returned no findings — restart the SimpleBeacon server and retry.');
   }
@@ -2659,11 +2718,15 @@ export async function uploadDirectoryAndAnalyze(files, options = {}) {
   formData.append('filePaths', JSON.stringify(filePaths));
   formData.append('analysisType', options.analysisType || 'simplebeacon');
 
-  const data = await fetchJsonWithGuidance('/api/analyze/upload-directory', {
-    method: 'POST',
-    headers: authService.getAuthHeaders(),
-    body: formData
-  }, options.timeoutMs ?? 600000);
+  const data = await fetchJsonWithGuidance(
+    '/api/analyze/upload-directory',
+    {
+      method: 'POST',
+      headers: authService.getAuthHeaders(),
+      body: formData,
+    },
+    options.timeoutMs ?? 600000
+  );
 
   if (!data.success) {
     throw new Error(data.error || 'Directory upload scan failed');

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Proration Calculator — computes prorated billing adjustments when
@@ -13,7 +13,7 @@
  * @license MIT
  */
 
-const { STRIPE_TIER_MAP } = require('../config/stripe.cjs');
+const { STRIPE_TIER_MAP } = require("../config/stripe.cjs");
 
 /**
  * Get the monthly price (in cents) for a given tier.
@@ -22,7 +22,11 @@ const { STRIPE_TIER_MAP } = require('../config/stripe.cjs');
  */
 function getTierMonthlyPrice(tier) {
   const entry = Object.values(STRIPE_TIER_MAP).find(
-    (cfg) => cfg.tier === tier && !cfg.legacy && cfg.product && !cfg.product.includes('annual')
+    (cfg) =>
+      cfg.tier === tier &&
+      !cfg.legacy &&
+      cfg.product &&
+      !cfg.product.includes("annual"),
   );
   return entry?.basePrice ?? null;
 }
@@ -34,7 +38,11 @@ function getTierMonthlyPrice(tier) {
  */
 function getTierAnnualPrice(tier) {
   const entry = Object.values(STRIPE_TIER_MAP).find(
-    (cfg) => cfg.tier === tier && !cfg.legacy && cfg.product && cfg.product.includes('annual')
+    (cfg) =>
+      cfg.tier === tier &&
+      !cfg.legacy &&
+      cfg.product &&
+      cfg.product.includes("annual"),
   );
   return entry?.basePrice ?? null;
 }
@@ -46,10 +54,10 @@ function getTierAnnualPrice(tier) {
  */
 function tierDisplayName(tier) {
   const names = {
-    developer: 'Developer',
-    team_pro: 'Team Pro',
-    enterprise: 'Enterprise',
-    pro: 'Pro (Legacy)',
+    developer: "Developer",
+    team_pro: "Team Pro",
+    enterprise: "Enterprise",
+    pro: "Pro (Legacy)",
   };
   return names[tier] || tier;
 }
@@ -69,20 +77,26 @@ function calculateProration(opts = {}) {
   const { fromTier, toTier, periodStart, periodEnd, isAnnual = false } = opts;
 
   if (!fromTier || !toTier) {
-    throw new Error('fromTier and toTier are required');
+    throw new Error("fromTier and toTier are required");
   }
 
   const now = Date.now();
   const periodStartMs = periodStart ? periodStart * 1000 : now;
-  const periodEndMs = periodEnd ? periodEnd * 1000 : now + 30 * 24 * 60 * 60 * 1000;
+  const periodEndMs = periodEnd
+    ? periodEnd * 1000
+    : now + 30 * 24 * 60 * 60 * 1000;
 
   const totalMs = periodEndMs - periodStartMs;
   const remainingMs = Math.max(0, periodEndMs - now);
   const daysTotal = Math.round(totalMs / (24 * 60 * 60 * 1000));
   const daysRemaining = Math.round(remainingMs / (24 * 60 * 60 * 1000));
 
-  const oldPriceCents = isAnnual ? getTierAnnualPrice(fromTier) : getTierMonthlyPrice(fromTier);
-  const newPriceCents = isAnnual ? getTierAnnualPrice(toTier) : getTierMonthlyPrice(toTier);
+  const oldPriceCents = isAnnual
+    ? getTierAnnualPrice(fromTier)
+    : getTierMonthlyPrice(fromTier);
+  const newPriceCents = isAnnual
+    ? getTierAnnualPrice(toTier)
+    : getTierMonthlyPrice(toTier);
 
   // If we can't resolve prices (e.g. enterprise custom), return what we can
   if (oldPriceCents == null || newPriceCents == null) {
@@ -97,7 +111,7 @@ function calculateProration(opts = {}) {
       creditCents: 0,
       chargeCents: 0,
       netAdjustmentCents: 0,
-      netAdjustmentDisplay: 'custom',
+      netAdjustmentDisplay: "custom",
       isAnnual,
     };
   }
@@ -113,7 +127,7 @@ function calculateProration(opts = {}) {
   const isUpgrade = newPriceCents > oldPriceCents;
 
   const absAmount = Math.abs(netAdjustmentCents);
-  const display = `$${(absAmount / 100).toFixed(2)} ${netAdjustmentCents > 0 ? 'charge' : 'credit'}`;
+  const display = `$${(absAmount / 100).toFixed(2)} ${netAdjustmentCents > 0 ? "charge" : "credit"}`;
 
   return {
     fromTier,

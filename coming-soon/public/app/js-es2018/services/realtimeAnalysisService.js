@@ -99,11 +99,17 @@ class RealtimeAnalysisService {
         this._intentionalStop = true;
         this._clearTimers();
         if (this._ws) {
-            try { this._ws.close(1000, 'Client closed'); } catch (_a) { /* ignore */ }
+            try {
+                this._ws.close(1000, 'Client closed');
+            } catch (_a) {
+                /* ignore */
+            }
             this._ws = null;
         }
         if (this._sessionId) {
-            this._deleteSession(this._sessionId).catch(() => { /* best effort */ });
+            this._deleteSession(this._sessionId).catch(() => {
+                /* best effort */
+            });
             this._sessionId = null;
         }
         this._setState('disconnected');
@@ -133,7 +139,9 @@ class RealtimeAnalysisService {
             this._listeners.set(event, new Set());
         }
         this._listeners.get(event).add(callback);
-        return () => { this._listeners.get(event)?.delete(callback); };
+        return () => {
+            this._listeners.get(event)?.delete(callback);
+        };
     }
 
     /**
@@ -180,7 +188,9 @@ class RealtimeAnalysisService {
     async _deleteSession(sessionId) {
         const base = apiBase();
         const url = base ? `${base}/api/realtime/session/${sessionId}` : `/api/realtime/session/${sessionId}`;
-        await fetch(url, { method: 'DELETE' }).catch(() => { /* best effort */ });
+        await fetch(url, { method: 'DELETE' }).catch(() => {
+            /* best effort */
+        });
     }
 
     /**
@@ -204,7 +214,7 @@ class RealtimeAnalysisService {
             this._startPing();
         };
 
-        this._ws.onmessage = (event) => {
+        this._ws.onmessage = event => {
             try {
                 const msg = JSON.parse(event.data);
                 this._handleMessage(msg);
@@ -217,7 +227,7 @@ class RealtimeAnalysisService {
             this._emit('error', { message: 'WebSocket error' });
         };
 
-        this._ws.onclose = (event) => {
+        this._ws.onclose = event => {
             this._clearPing();
             this._ws = null;
             if (this._intentionalStop) {
@@ -267,16 +277,15 @@ class RealtimeAnalysisService {
             return;
         }
         this._setState('reconnecting');
-        const delay = Math.min(
-            RECONNECT_BASE_MS * Math.pow(2, this._reconnectAttempts),
-            RECONNECT_MAX_MS
-        );
+        const delay = Math.min(RECONNECT_BASE_MS * Math.pow(2, this._reconnectAttempts), RECONNECT_MAX_MS);
         this._reconnectAttempts++;
         this._reconnectTimer = setTimeout(() => {
             if (this._intentionalStop) return;
             // Recreate session if needed, then reconnect
             if (!this._sessionId) {
-                this.start(this._sessionOptions || {}).catch(() => { /* will reschedule */ });
+                this.start(this._sessionOptions || {}).catch(() => {
+                    /* will reschedule */
+                });
             } else {
                 this._connect(this._sessionId);
             }
@@ -334,7 +343,11 @@ class RealtimeAnalysisService {
         const listeners = this._listeners.get(event);
         if (listeners) {
             for (const cb of listeners) {
-                try { cb(data); } catch (_a) { /* ignore listener errors */ }
+                try {
+                    cb(data);
+                } catch (_a) {
+                    /* ignore listener errors */
+                }
             }
         }
     }

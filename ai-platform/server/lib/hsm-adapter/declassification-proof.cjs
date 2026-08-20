@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 23: Provable multiparty declassification token.
@@ -11,11 +11,11 @@
  * @module hsm-adapter/declassification-proof
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 function _stringToBuffer(value) {
-  return Buffer.from(String(value), 'utf8');
+  return Buffer.from(String(value), "utf8");
 }
 
 class DeclassificationProof {
@@ -32,13 +32,15 @@ class DeclassificationProof {
    */
   constructor(fields = {}) {
     this.version = 1;
-    this.escrowId = fields.escrowId || '';
-    this.sourceTenantId = fields.sourceTenantId || '';
-    this.destTenantId = fields.destTenantId || '';
-    this.keyRef = fields.keyRef || '';
+    this.escrowId = fields.escrowId || "";
+    this.sourceTenantId = fields.sourceTenantId || "";
+    this.destTenantId = fields.destTenantId || "";
+    this.keyRef = fields.keyRef || "";
     this.consensusTimestamp = fields.consensusTimestamp || 0;
     this.expiry = fields.expiry || 0;
-    this.consentSignatures = Array.isArray(fields.consentSignatures) ? fields.consentSignatures : [];
+    this.consentSignatures = Array.isArray(fields.consentSignatures)
+      ? fields.consentSignatures
+      : [];
     this.brokerSignature = fields.brokerSignature || null;
   }
 
@@ -47,8 +49,11 @@ class DeclassificationProof {
       .slice()
       .sort((a, b) => a.tenantId.localeCompare(b.tenantId))
       .map((s) => `${s.tenantId}:${s.payload}:${s.signature}`)
-      .join('|');
-    return crypto.createHash('sha256').update(_stringToBuffer(canonical)).digest();
+      .join("|");
+    return crypto
+      .createHash("sha256")
+      .update(_stringToBuffer(canonical))
+      .digest();
   }
 
   _canonical() {
@@ -71,9 +76,9 @@ class DeclassificationProof {
    * @returns {DeclassificationProof}
    */
   sign(brokerPrivateKey) {
-    const signer = crypto.createSign('sha256');
+    const signer = crypto.createSign("sha256");
     signer.update(this._canonical());
-    this.brokerSignature = signer.sign(brokerPrivateKey, 'base64');
+    this.brokerSignature = signer.sign(brokerPrivateKey, "base64");
     return this;
   }
 
@@ -86,27 +91,45 @@ class DeclassificationProof {
    */
   verify(publicKeys, brokerPublicKey, currentTimestamp) {
     if (!this.brokerSignature) {
-      throw new HsmAdapterError('EPOCH_SIGNATURE_INVALID', 'declassification proof has no broker signature');
+      throw new HsmAdapterError(
+        "EPOCH_SIGNATURE_INVALID",
+        "declassification proof has no broker signature",
+      );
     }
-    if (typeof currentTimestamp === 'number' && currentTimestamp > this.expiry) {
-      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', 'declassification token has expired');
+    if (
+      typeof currentTimestamp === "number" &&
+      currentTimestamp > this.expiry
+    ) {
+      throw new HsmAdapterError(
+        "ESCROW_CONSENT_MISSING",
+        "declassification token has expired",
+      );
     }
 
-    const verifier = crypto.createVerify('sha256');
+    const verifier = crypto.createVerify("sha256");
     verifier.update(this._canonical());
-    if (!verifier.verify(brokerPublicKey, this.brokerSignature, 'base64')) {
-      throw new HsmAdapterError('INVALID_ESCROW_SIGNATURE', 'broker attestation signature is invalid');
+    if (!verifier.verify(brokerPublicKey, this.brokerSignature, "base64")) {
+      throw new HsmAdapterError(
+        "INVALID_ESCROW_SIGNATURE",
+        "broker attestation signature is invalid",
+      );
     }
 
     for (const consent of this.consentSignatures) {
       const publicKey = publicKeys && publicKeys[consent.tenantId];
       if (!publicKey) {
-        throw new HsmAdapterError('INVALID_ESCROW_SIGNATURE', `no public key for tenant ${consent.tenantId}`);
+        throw new HsmAdapterError(
+          "INVALID_ESCROW_SIGNATURE",
+          `no public key for tenant ${consent.tenantId}`,
+        );
       }
-      const cv = crypto.createVerify('sha256');
+      const cv = crypto.createVerify("sha256");
       cv.update(_stringToBuffer(consent.payload));
-      if (!cv.verify(publicKey, consent.signature, 'base64')) {
-        throw new HsmAdapterError('INVALID_ESCROW_SIGNATURE', `consent signature from ${consent.tenantId} is invalid`);
+      if (!cv.verify(publicKey, consent.signature, "base64")) {
+        throw new HsmAdapterError(
+          "INVALID_ESCROW_SIGNATURE",
+          `consent signature from ${consent.tenantId} is invalid`,
+        );
       }
     }
 

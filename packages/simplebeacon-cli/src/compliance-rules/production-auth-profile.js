@@ -1,23 +1,45 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-module.exports = function evaluateProductionAuthProfile(rule, { productionProfile, report }) {
-    if (!productionProfile) {
-        return { id: rule.id, title: rule.title, category: rule.category, severity: rule.severity, remediation: rule.remediation || null, status: 'skip', evidence: 'Production profile not evaluated' };
-    }
-    const envPath = path.join(path.resolve(report.projectRoot || ''), '.env.production');
-    const hasEnvFile = fs.existsSync(envPath);
-    // Only skip as a local/dev repo when neither .env.production nor env vars configure auth.
-    if (!productionProfile.configured && !hasEnvFile) {
-        return { id: rule.id, title: rule.title, category: rule.category, severity: rule.severity, remediation: rule.remediation || null, status: 'skip', evidence: '.env.production not present (local/dev repo)' };
-    }
+module.exports = function evaluateProductionAuthProfile(
+  rule,
+  { productionProfile, report },
+) {
+  if (!productionProfile) {
     return {
-        id: rule.id,
-        title: rule.title,
-        category: rule.category,
-        severity: rule.severity,
-        remediation: rule.remediation || null,
-        status: productionProfile.configured ? 'pass' : 'fail',
-        evidence: productionProfile.reason
+      id: rule.id,
+      title: rule.title,
+      category: rule.category,
+      severity: rule.severity,
+      remediation: rule.remediation || null,
+      status: "skip",
+      evidence: "Production profile not evaluated",
     };
+  }
+  const envPath = path.join(
+    path.resolve(report.projectRoot || ""),
+    ".env.production",
+  );
+  const hasEnvFile = fs.existsSync(envPath);
+  // Only skip as a local/dev repo when neither .env.production nor env vars configure auth.
+  if (!productionProfile.configured && !hasEnvFile) {
+    return {
+      id: rule.id,
+      title: rule.title,
+      category: rule.category,
+      severity: rule.severity,
+      remediation: rule.remediation || null,
+      status: "skip",
+      evidence: ".env.production not present (local/dev repo)",
+    };
+  }
+  return {
+    id: rule.id,
+    title: rule.title,
+    category: rule.category,
+    severity: rule.severity,
+    remediation: rule.remediation || null,
+    status: productionProfile.configured ? "pass" : "fail",
+    evidence: productionProfile.reason,
+  };
 };

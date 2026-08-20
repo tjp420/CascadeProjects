@@ -50,6 +50,7 @@ Ensure the extension has the same license secret:
 ### Step 1: Install Extension
 
 1. **Install from local source:**
+
    ```bash
    cd vscode-extension
    npm install
@@ -78,6 +79,7 @@ Ensure the extension has the same license secret:
 3. This should redirect to the Stripe checkout page
 
 **Expected behavior:**
+
 - Stripe checkout page opens in browser
 - Product name and price are correct
 - Payment form loads successfully
@@ -85,6 +87,7 @@ Ensure the extension has the same license secret:
 ### Step 4: Complete Test Purchase
 
 **For Stripe Test Mode:**
+
 1. Use Stripe test card: `4242 4242 4242 4242`
 2. Use any future expiry date (e.g., 12/34)
 3. Use any 3-digit CVC (e.g., 123)
@@ -92,6 +95,7 @@ Ensure the extension has the same license secret:
 5. Complete the payment
 
 **For Stripe Live Mode:**
+
 1. Use a real payment method
 2. Complete the payment
 3. **Note:** Use a small amount or refundable test first
@@ -107,6 +111,7 @@ Ensure the extension has the same license secret:
    - Session ID
 
 **Expected log output:**
+
 ```
 Webhook received: checkout.session.completed
 Customer email: test@example.com
@@ -121,6 +126,7 @@ Payment status: paid
 3. Verify the token is a valid JWT
 
 **Expected log output:**
+
 ```
 License token generated for test@example.com
 Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -137,6 +143,7 @@ Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    - Support contact
 
 **Expected email content:**
+
 ```
 Subject: Payment Confirmed - Simplebeacon Teams Monthly
 
@@ -164,6 +171,7 @@ Your license token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 4. Run a scan to confirm Pro features work
 
 **Expected behavior:**
+
 - Tier status shows "teams" or "pro"
 - Pro features are accessible (full scan, advanced rules, etc.)
 - No license validation errors
@@ -187,6 +195,7 @@ For subscription products (Teams Monthly, Continuous Shield, etc.):
 3. Verify the token is being validated correctly
 
 **Expected console output:**
+
 ```
 License token validated successfully
 Tier: teams
@@ -200,6 +209,7 @@ Expires: 2025-07-09T12:00:00Z
 **Problem:** No webhook events in backend logs
 
 **Solutions:**
+
 - Verify webhook endpoint URL is correct
 - Check Stripe webhook delivery logs
 - Ensure webhook secret matches
@@ -210,6 +220,7 @@ Expires: 2025-07-09T12:00:00Z
 **Problem:** No email with license token
 
 **Solutions:**
+
 - Check email service credentials
 - Verify email address is correct
 - Check spam folder
@@ -221,6 +232,7 @@ Expires: 2025-07-09T12:00:00Z
 **Problem:** Extension shows "Invalid license token"
 
 **Solutions:**
+
 - Verify `SIMPLEBEACON_LICENSE_SECRET` matches between backend and extension
 - Check token is not expired
 - Ensure token is copied correctly (no extra spaces)
@@ -231,6 +243,7 @@ Expires: 2025-07-09T12:00:00Z
 **Problem:** Tier still shows "free" after entering token
 
 **Solutions:**
+
 - Verify token is saved in VSCode settings
 - Check extension logs for validation errors
 - Ensure license secret is configured
@@ -241,6 +254,7 @@ Expires: 2025-07-09T12:00:00Z
 **Problem:** Checkout page doesn't load or payment fails
 
 **Solutions:**
+
 - Verify Price ID is correct
 - Check Stripe account is active
 - Ensure product is active in Stripe Dashboard
@@ -285,6 +299,7 @@ Before going live:
 ## Next Steps
 
 After successful test:
+
 1. Complete the extension README update
 2. Finalize the launch plan
 3. Set up domain and hosting

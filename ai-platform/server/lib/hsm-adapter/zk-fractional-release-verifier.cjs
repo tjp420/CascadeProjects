@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 65: ZK Fractional Release Verifier.
@@ -17,30 +17,30 @@
  * @module hsm-adapter/zk-fractional-release-verifier
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const RELEASE_STATUS = {
-  PENDING: 'pending',
-  RECORDED: 'recorded',
-  INVALID: 'invalid',
-  SLASHED: 'slashed',
+  PENDING: "pending",
+  RECORDED: "recorded",
+  INVALID: "invalid",
+  SLASHED: "slashed",
 };
 
 const SLASH_REASON = {
-  MALFORMED: 'malformed_release',
-  DUPLICATE: 'duplicate_release',
-  VAULT_NOT_OPEN: 'vault_not_open',
-  BANNED_PEER: 'banned_peer',
-  OUT_OF_ORDER: 'out_of_order',
+  MALFORMED: "malformed_release",
+  DUPLICATE: "duplicate_release",
+  VAULT_NOT_OPEN: "vault_not_open",
+  BANNED_PEER: "banned_peer",
+  OUT_OF_ORDER: "out_of_order",
 };
 
 const HW_ACCEL_TYPES = {
-  NONE: 'none',
-  GPU_CUDA: 'gpu_cuda',
-  FPGA: 'fpga',
-  ASIC: 'asic',
-  SIMULATED: 'simulated',
+  NONE: "none",
+  GPU_CUDA: "gpu_cuda",
+  FPGA: "fpga",
+  ASIC: "asic",
+  SIMULATED: "simulated",
 };
 
 class ZkFractionalReleaseVerifier {
@@ -78,68 +78,121 @@ class ZkFractionalReleaseVerifier {
   verifyFractionalRelease(request) {
     _validateReleaseRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('FRACRELEASE_HUB_MISSING', 'fractional custody hub is required');
+      throw new HsmAdapterError(
+        "FRACRELEASE_HUB_MISSING",
+        "fractional custody hub is required",
+      );
     }
-    if (this.policy.requireCustodianRelayAttestation && this._attestationClient) {
+    if (
+      this.policy.requireCustodianRelayAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.custodianRelayAttestation);
+        const result = this._attestationClient.verify(
+          request.custodianRelayAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('FRACRELEASE_CUSTODIAN_UNATTESTED', 'custodian relay attestation invalid');
+          throw new HsmAdapterError(
+            "FRACRELEASE_CUSTODIAN_UNATTESTED",
+            "custodian relay attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('FRACRELEASE_CUSTODIAN_UNATTESTED', 'custodian relay attestation invalid');
+        throw new HsmAdapterError(
+          "FRACRELEASE_CUSTODIAN_UNATTESTED",
+          "custodian relay attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('FRACRELEASE_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "FRACRELEASE_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.BANNED_PEER);
-      throw new HsmAdapterError('FRACRELEASE_PEER_BANNED', `peer ${request.peerId} is banned`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkPartitionProofHash || typeof request.zkPartitionProofHash !== 'string') {
+    if (
+      !request.zkPartitionProofHash ||
+      typeof request.zkPartitionProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('FRACRELEASE_ZK_PROOF_MISSING', 'zero-knowledge partition proof hash is required');
+      throw new HsmAdapterError(
+        "FRACRELEASE_ZK_PROOF_MISSING",
+        "zero-knowledge partition proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('FRACRELEASE_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "FRACRELEASE_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const vault = this._hub.getVault(request.vaultId);
     if (!vault) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('FRACRELEASE_VAULT_NOT_FOUND', `vault ${request.vaultId} not found`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_VAULT_NOT_FOUND",
+        `vault ${request.vaultId} not found`,
+      );
     }
-    if (vault.status !== 'open' && vault.status !== 'escrowed') {
+    if (vault.status !== "open" && vault.status !== "escrowed") {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.VAULT_NOT_OPEN);
-      throw new HsmAdapterError('FRACRELEASE_VAULT_NOT_OPEN', `vault ${request.vaultId} is not open (status: ${vault.status})`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_VAULT_NOT_OPEN",
+        `vault ${request.vaultId} is not open (status: ${vault.status})`,
+      );
     }
-    const releaseKey = `${request.vaultId}:${request.peerId || 'anonymous'}`;
+    const releaseKey = `${request.vaultId}:${request.peerId || "anonymous"}`;
     if (this._recordedReleases.has(releaseKey)) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request, SLASH_REASON.DUPLICATE);
-      throw new HsmAdapterError('FRACRELEASE_DUPLICATE', `release for vault ${request.vaultId} from peer ${request.peerId || 'anonymous'} already recorded`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_DUPLICATE",
+        `release for vault ${request.vaultId} from peer ${request.peerId || "anonymous"} already recorded`,
+      );
     }
-    const releaseId = request.releaseId || `release-${crypto.randomBytes(4).toString('hex')}`;
+    const releaseId =
+      request.releaseId || `release-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
-    const fractionValue = typeof request.fractionValue === 'number' ? request.fractionValue : 0;
+    const fractionValue =
+      typeof request.fractionValue === "number" ? request.fractionValue : 0;
     const hwAccelUsed = request.hwAccelType || this._hwAccelType;
     const release = {
       releaseId,
       vaultId: request.vaultId,
-      blindedFractionCommitment: request.blindedFractionCommitment || 'unspecified',
+      blindedFractionCommitment:
+        request.blindedFractionCommitment || "unspecified",
       zkPartitionProofHash: request.zkPartitionProofHash,
-      custodianRelayAttestationHash: request.custodianRelayAttestationHash || 'unspecified',
+      custodianRelayAttestationHash:
+        request.custodianRelayAttestationHash || "unspecified",
       fractionValue,
       recordedAt: now,
       status: RELEASE_STATUS.RECORDED,
-      peerId: request.peerId || 'anonymous',
+      peerId: request.peerId || "anonymous",
       hwAccelType: hwAccelUsed,
     };
     this._recordedReleases.set(releaseKey, release);
@@ -149,7 +202,7 @@ class ZkFractionalReleaseVerifier {
       this._hwProofCount++;
     }
     if (this._audit) {
-      this._audit('FRACTIONAL_RELEASE_SIGNED', { ...release });
+      this._audit("FRACTIONAL_RELEASE_SIGNED", { ...release });
     }
     return release;
   }
@@ -161,11 +214,16 @@ class ZkFractionalReleaseVerifier {
    */
   batchVerifyReleases(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('FRACRELEASE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "FRACRELEASE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('FRACRELEASE_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let recordedCount = 0;
@@ -173,13 +231,17 @@ class ZkFractionalReleaseVerifier {
     for (const req of requests) {
       try {
         const release = this.verifyFractionalRelease(req);
-        results.push({ releaseId: release.releaseId, vaultId: release.vaultId, recorded: true });
+        results.push({
+          releaseId: release.releaseId,
+          vaultId: release.vaultId,
+          recorded: true,
+        });
         recordedCount++;
       } catch (err) {
         results.push({
-          vaultId: req.vaultId || 'unknown',
+          vaultId: req.vaultId || "unknown",
           recorded: false,
-          error: err.code || 'FRACRELEASE_BATCH_ERROR',
+          error: err.code || "FRACRELEASE_BATCH_ERROR",
         });
         failedCount++;
       }
@@ -195,9 +257,18 @@ class ZkFractionalReleaseVerifier {
       this._batchResults.shift();
     }
     if (this._audit) {
-      this._audit('FRACRELEASE_BATCH_RECORDED', { recordedCount, failedCount, batchSize: requests.length });
+      this._audit("FRACRELEASE_BATCH_RECORDED", {
+        recordedCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, recordedCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      recordedCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -207,36 +278,50 @@ class ZkFractionalReleaseVerifier {
    */
   generateHwSnarkProof(request) {
     if (!request || !request.vaultId) {
-      throw new HsmAdapterError('FRACRELEASE_GEN_FIELDS_MISSING', 'vaultId is required');
+      throw new HsmAdapterError(
+        "FRACRELEASE_GEN_FIELDS_MISSING",
+        "vaultId is required",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('FRACRELEASE_HUB_MISSING', 'fractional custody hub is required');
+      throw new HsmAdapterError(
+        "FRACRELEASE_HUB_MISSING",
+        "fractional custody hub is required",
+      );
     }
     const vault = this._hub.getVault(request.vaultId);
     if (!vault) {
-      throw new HsmAdapterError('FRACRELEASE_VAULT_NOT_FOUND', `vault ${request.vaultId} not found`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_VAULT_NOT_FOUND",
+        `vault ${request.vaultId} not found`,
+      );
     }
-    if (typeof request.fractionValue !== 'number') {
-      throw new HsmAdapterError('FRACRELEASE_GEN_FRACTION_MISSING',
-        'fractionValue is required for proof generation');
+    if (typeof request.fractionValue !== "number") {
+      throw new HsmAdapterError(
+        "FRACRELEASE_GEN_FRACTION_MISSING",
+        "fractionValue is required for proof generation",
+      );
     }
     const hwAccelType = request.hwAccelType || this._hwAccelType;
     const now = Math.floor(Date.now() / 1000);
     const proofSeed = crypto.randomBytes(32);
-    const zkPartitionProofHash = crypto.createHash('sha256')
-      .update(`snark:${proofSeed.toString('hex')}:${request.vaultId}:${request.fractionValue}`)
-      .digest('hex');
+    const zkPartitionProofHash = crypto
+      .createHash("sha256")
+      .update(
+        `snark:${proofSeed.toString("hex")}:${request.vaultId}:${request.fractionValue}`,
+      )
+      .digest("hex");
     const proof = {
       vaultId: request.vaultId,
       zkPartitionProofHash,
       hwAccelType,
       fractionValue: request.fractionValue,
       generatedAt: now,
-      proofSystem: 'groth16',
+      proofSystem: "groth16",
       circuitId: `fractional_release_${vault.fractionalBits}bit`,
     };
     if (this._audit) {
-      this._audit('FRACRELEASE_HW_SNARK_GENERATED', { ...proof });
+      this._audit("FRACRELEASE_HW_SNARK_GENERATED", { ...proof });
     }
     return proof;
   }
@@ -248,34 +333,48 @@ class ZkFractionalReleaseVerifier {
    * @returns {object}
    */
   aggregatePartialSignatures(vaultId, partialSignatures) {
-    if (!vaultId || typeof vaultId !== 'string') {
-      throw new HsmAdapterError('FRACRELEASE_VAULT_ID_REQUIRED', 'vaultId is required');
+    if (!vaultId || typeof vaultId !== "string") {
+      throw new HsmAdapterError(
+        "FRACRELEASE_VAULT_ID_REQUIRED",
+        "vaultId is required",
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('FRACRELEASE_NO_PARTIAL_SIGS', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "FRACRELEASE_NO_PARTIAL_SIGS",
+        "partialSignatures array is required",
+      );
     }
     if (partialSignatures.length < (this.policy.minCustodianQuorum || 3)) {
-      throw new HsmAdapterError('FRACRELEASE_QUORUM_INSUFFICIENT',
-        `${partialSignatures.length} partial signatures below minimum ${this.policy.minCustodianQuorum || 3}`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_QUORUM_INSUFFICIENT",
+        `${partialSignatures.length} partial signatures below minimum ${this.policy.minCustodianQuorum || 3}`,
+      );
     }
     for (const sig of partialSignatures) {
       if (sig.peerId && this._bannedPeers.has(sig.peerId)) {
-        throw new HsmAdapterError('FRACRELEASE_PEER_BANNED',
-          `peer ${sig.peerId} is banned and cannot participate in signature aggregation`);
+        throw new HsmAdapterError(
+          "FRACRELEASE_PEER_BANNED",
+          `peer ${sig.peerId} is banned and cannot participate in signature aggregation`,
+        );
       }
     }
-    const sigHash = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const sigHash = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const aggregated = {
       vaultId,
       signatureCount: partialSignatures.length,
       aggregatedSignature: sigHash,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('FRACRELEASE_SIGNATURES_AGGREGATED', { vaultId, count: partialSignatures.length });
+      this._audit("FRACRELEASE_SIGNATURES_AGGREGATED", {
+        vaultId,
+        count: partialSignatures.length,
+      });
     }
     return aggregated;
   }
@@ -289,14 +388,22 @@ class ZkFractionalReleaseVerifier {
   validateSlashingWindow(vaultId, releaseTimestamp) {
     const vault = this._hub ? this._hub.getVault(vaultId) : null;
     if (!vault) {
-      throw new HsmAdapterError('FRACRELEASE_VAULT_NOT_FOUND', `vault ${vaultId} not found`);
+      throw new HsmAdapterError(
+        "FRACRELEASE_VAULT_NOT_FOUND",
+        `vault ${vaultId} not found`,
+      );
     }
-    if (typeof releaseTimestamp !== 'number') {
-      throw new HsmAdapterError('FRACRELEASE_TIMESTAMP_INVALID', 'releaseTimestamp must be a number');
+    if (typeof releaseTimestamp !== "number") {
+      throw new HsmAdapterError(
+        "FRACRELEASE_TIMESTAMP_INVALID",
+        "releaseTimestamp must be a number",
+      );
     }
     const windowStart = vault.initializedAt;
-    const windowEnd = Math.floor(Date.now() / 1000) + this._slashingWindowSeconds;
-    const withinWindow = releaseTimestamp >= windowStart && releaseTimestamp <= windowEnd;
+    const windowEnd =
+      Math.floor(Date.now() / 1000) + this._slashingWindowSeconds;
+    const withinWindow =
+      releaseTimestamp >= windowStart && releaseTimestamp <= windowEnd;
     const result = {
       vaultId,
       releaseTimestamp,
@@ -306,8 +413,12 @@ class ZkFractionalReleaseVerifier {
       slashingWindowSeconds: this._slashingWindowSeconds,
     };
     if (!withinWindow && this._audit) {
-      this._audit('FRACRELEASE_SLASHING_WINDOW_VIOLATION',
-        { vaultId, releaseTimestamp, windowStart, windowEnd });
+      this._audit("FRACRELEASE_SLASHING_WINDOW_VIOLATION", {
+        vaultId,
+        releaseTimestamp,
+        windowStart,
+        windowEnd,
+      });
     }
     return result;
   }
@@ -334,7 +445,7 @@ class ZkFractionalReleaseVerifier {
    * @returns {object[]}
    */
   getBatchHistory(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._batchResults.slice(-n);
   }
 
@@ -386,7 +497,10 @@ class ZkFractionalReleaseVerifier {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderCustodyClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderCustodyClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -398,26 +512,39 @@ class ZkFractionalReleaseVerifier {
    * @private
    */
   _recordSlash(request, reason) {
-    const releaseKey = `${request.vaultId || 'unknown'}:${request.peerId || 'anonymous'}`;
+    const releaseKey = `${request.vaultId || "unknown"}:${request.peerId || "anonymous"}`;
     this._slashedReleases.set(releaseKey, {
-      vaultId: request.vaultId || 'unknown',
-      peerId: request.peerId || 'anonymous',
+      vaultId: request.vaultId || "unknown",
+      peerId: request.peerId || "anonymous",
       reason,
       slashedAt: Math.floor(Date.now() / 1000),
     });
     this._slashCount++;
     if (this._audit) {
-      this._audit('FRACRELEASE_SLASHED', { vaultId: request.vaultId, peerId: request.peerId, reason });
+      this._audit("FRACRELEASE_SLASHED", {
+        vaultId: request.vaultId,
+        peerId: request.peerId,
+        reason,
+      });
     }
   }
 }
 
 function _validateReleaseRequest(policy, request) {
   if (!request.vaultId) {
-    throw new HsmAdapterError('FRACRELEASE_FIELDS_MISSING', 'vaultId is required');
+    throw new HsmAdapterError(
+      "FRACRELEASE_FIELDS_MISSING",
+      "vaultId is required",
+    );
   }
-  if (policy.requireCustodianRelayAttestation && !request.custodianRelayAttestation) {
-    throw new HsmAdapterError('FRACRELEASE_ATTESTATION_MISSING', 'custodian relay attestation is required');
+  if (
+    policy.requireCustodianRelayAttestation &&
+    !request.custodianRelayAttestation
+  ) {
+    throw new HsmAdapterError(
+      "FRACRELEASE_ATTESTATION_MISSING",
+      "custodian relay attestation is required",
+    );
   }
 }
 

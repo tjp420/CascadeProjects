@@ -11,15 +11,20 @@ const SMTP_PORT = 587;
 const HTTPS_PORT = 443;
 const HTTP_PORT = 80;
 
-const LOCALHOST = '127.0.0.1';
-const LOCALHOST_V6 = '::1';
+const LOCALHOST = "127.0.0.1";
+const LOCALHOST_V6 = "::1";
 
 // CORS origins: configurable via env; localhost defaults only in non-production
-const envCors = (typeof process !== 'undefined' && process.env && process.env.CORS_ALLOWED_ORIGINS)
-  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
-  : [];
+const envCors =
+  typeof process !== "undefined" &&
+  process.env &&
+  process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 const DEFAULT_DEV_ORIGINS = (() => {
-  const hosts = ['localhost', LOCALHOST];
+  const hosts = ["localhost", LOCALHOST];
   const ports = [DEFAULT_PORT, DASHBOARD_PORT];
   return hosts.flatMap((host) => ports.map((port) => `http://${host}:${port}`));
 })();
@@ -27,9 +32,11 @@ const DEFAULT_DEV_ORIGINS = (() => {
 const CORS_ALLOWED_ORIGINS = Object.freeze(
   envCors.length > 0
     ? envCors
-    : (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production')
+    : typeof process !== "undefined" &&
+        process.env &&
+        process.env.NODE_ENV === "production"
       ? []
-      : DEFAULT_DEV_ORIGINS
+      : DEFAULT_DEV_ORIGINS,
 );
 
 module.exports = Object.freeze({
@@ -45,5 +52,5 @@ module.exports = Object.freeze({
   HTTP_PORT,
   LOCALHOST,
   LOCALHOST_V6,
-  CORS_ALLOWED_ORIGINS
+  CORS_ALLOWED_ORIGINS,
 });

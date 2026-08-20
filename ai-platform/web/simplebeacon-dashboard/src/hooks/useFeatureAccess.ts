@@ -1,13 +1,13 @@
-import { useCallback, useMemo } from 'react';
-import { useAuth } from './useAuth';
+import { useCallback, useMemo } from "react";
+import { useAuth } from "./useAuth";
 
 export type FeatureFlag =
-  | 'canMapEuAiAct'
-  | 'canUseCiGate'
-  | 'canExportBoardPdf'
-  | 'canExportCertificates'
-  | 'canUseAdvancedAnalyzers'
-  | 'canUseSso';
+  | "canMapEuAiAct"
+  | "canUseCiGate"
+  | "canExportBoardPdf"
+  | "canExportCertificates"
+  | "canUseAdvancedAnalyzers"
+  | "canUseSso";
 
 export interface TierCapabilities {
   tier: string;
@@ -22,7 +22,7 @@ export interface TierCapabilities {
 
 const TIER_CAPABILITIES: Record<string, TierCapabilities> = {
   free: {
-    tier: 'free',
+    tier: "free",
     maxScans: 3,
     canExportCertificates: false,
     canUseCiGate: false,
@@ -32,7 +32,7 @@ const TIER_CAPABILITIES: Record<string, TierCapabilities> = {
     canUseSso: false,
   },
   community: {
-    tier: 'community',
+    tier: "community",
     maxScans: 3,
     canExportCertificates: false,
     canUseCiGate: false,
@@ -42,7 +42,7 @@ const TIER_CAPABILITIES: Record<string, TierCapabilities> = {
     canUseSso: false,
   },
   developer: {
-    tier: 'developer',
+    tier: "developer",
     maxScans: Infinity,
     canExportCertificates: true,
     canUseCiGate: true,
@@ -52,7 +52,7 @@ const TIER_CAPABILITIES: Record<string, TierCapabilities> = {
     canUseSso: false,
   },
   team_pro: {
-    tier: 'team_pro',
+    tier: "team_pro",
     maxScans: Infinity,
     canExportCertificates: true,
     canUseCiGate: true,
@@ -62,7 +62,7 @@ const TIER_CAPABILITIES: Record<string, TierCapabilities> = {
     canUseSso: true,
   },
   enterprise: {
-    tier: 'enterprise',
+    tier: "enterprise",
     maxScans: Infinity,
     canExportCertificates: true,
     canUseCiGate: true,
@@ -73,20 +73,24 @@ const TIER_CAPABILITIES: Record<string, TierCapabilities> = {
   },
 };
 
-const FREE_TIERS = new Set(['free', 'community', 'sandbox', '', 'bronze']);
+const FREE_TIERS = new Set(["free", "community", "sandbox", "", "bronze"]);
 
-function resolveTier(user: { role?: string; plan?: string; tier?: string } | null): string {
-  if (!user) return 'free';
-  const role = String(user.role || '').toLowerCase();
-  if (role === 'admin' || role === 'superuser') return 'enterprise';
-  const tier = String(user.plan || user.tier || '').toLowerCase();
+function resolveTier(
+  user: { role?: string; plan?: string; tier?: string } | null,
+): string {
+  if (!user) return "free";
+  const role = String(user.role || "").toLowerCase();
+  if (role === "admin" || role === "superuser") return "enterprise";
+  const tier = String(user.plan || user.tier || "").toLowerCase();
   if (TIER_CAPABILITIES[tier]) return tier;
-  if (FREE_TIERS.has(tier)) return 'free';
-  if (tier) return 'developer';
-  return 'free';
+  if (FREE_TIERS.has(tier)) return "free";
+  if (tier) return "developer";
+  return "free";
 }
 
-function resolveCapabilities(user: { role?: string; plan?: string; tier?: string } | null): TierCapabilities {
+function resolveCapabilities(
+  user: { role?: string; plan?: string; tier?: string } | null,
+): TierCapabilities {
   const tier = resolveTier(user);
   return TIER_CAPABILITIES[tier] || TIER_CAPABILITIES.free;
 }
@@ -100,5 +104,10 @@ export function useFeatureAccess() {
     [capabilities],
   );
 
-  return { hasFeature, capabilities, tier: capabilities.tier, maxScans: capabilities.maxScans };
+  return {
+    hasFeature,
+    capabilities,
+    tier: capabilities.tier,
+    maxScans: capabilities.maxScans,
+  };
 }

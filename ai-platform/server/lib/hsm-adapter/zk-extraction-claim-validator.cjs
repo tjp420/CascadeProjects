@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 95: ZK Extraction Claim Validator.
@@ -18,28 +18,28 @@
  * @module hsm-adapter/zk-extraction-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const CLAIM_STATUS = {
-  VERIFIED: 'verified',
-  SLASHED: 'slashed',
+  VERIFIED: "verified",
+  SLASHED: "slashed",
 };
 
 const SLASH_REASON = {
-  MALFORMED: 'malformed_claim',
-  DUPLICATE: 'duplicate_claim',
-  LEASE_WINDOW_OUT_OF_BOUNDS: 'lease_window_out_of_bounds',
-  POOL_NOT_FOUND: 'pool_not_found',
-  BANNED_PEER: 'banned_peer',
-  OUT_OF_WINDOW: 'out_of_window',
+  MALFORMED: "malformed_claim",
+  DUPLICATE: "duplicate_claim",
+  LEASE_WINDOW_OUT_OF_BOUNDS: "lease_window_out_of_bounds",
+  POOL_NOT_FOUND: "pool_not_found",
+  BANNED_PEER: "banned_peer",
+  OUT_OF_WINDOW: "out_of_window",
 };
 
 const HW_ACCEL_TYPES = {
-  GPU_CUDA: 'gpu_cuda',
-  FPGA: 'fpga',
-  ASIC: 'asic',
-  SIMULATED: 'simulated',
+  GPU_CUDA: "gpu_cuda",
+  FPGA: "fpga",
+  ASIC: "asic",
+  SIMULATED: "simulated",
 };
 
 class ZkExtractionClaimValidator {
@@ -74,62 +74,131 @@ class ZkExtractionClaimValidator {
   verifyExtractionClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('SEABEDCLAIM_HUB_MISSING', 'deep-sea mineral rights gating hub is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_HUB_MISSING",
+        "deep-sea mineral rights gating hub is required",
+      );
     }
-    if (this.policy.requireSeabedOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireSeabedOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.seabedOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.seabedOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SEABEDCLAIM_COMMITTEE_UNATTESTED', 'seabed oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "SEABEDCLAIM_COMMITTEE_UNATTESTED",
+            "seabed oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SEABEDCLAIM_COMMITTEE_UNATTESTED', 'seabed oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "SEABEDCLAIM_COMMITTEE_UNATTESTED",
+          "seabed oversight committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('SEABEDCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.BANNED_PEER);
-      throw new HsmAdapterError('SEABEDCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.BANNED_PEER,
+      );
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkExtractionRangeProofHash || typeof request.zkExtractionRangeProofHash !== 'string') {
+    if (
+      !request.zkExtractionRangeProofHash ||
+      typeof request.zkExtractionRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('SEABEDCLAIM_ZK_PROOF_MISSING', 'zero-knowledge extraction range proof hash is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge extraction range proof hash is required",
+      );
     }
-    if (!request.abeKeyPolicyDigest || typeof request.abeKeyPolicyDigest !== 'string') {
+    if (
+      !request.abeKeyPolicyDigest ||
+      typeof request.abeKeyPolicyDigest !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('SEABEDCLAIM_ABE_POLICY_DIGEST_MISSING', 'attribute-based encryption key policy digest is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_ABE_POLICY_DIGEST_MISSING",
+        "attribute-based encryption key policy digest is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.POOL_NOT_FOUND);
-      throw new HsmAdapterError('SEABEDCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.POOL_NOT_FOUND,
+      );
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.leaseWindowSeconds === 'number' && request.leaseWindowSeconds > (this.policy.maxLeaseWindowSeconds || 31536000)) {
+    if (
+      typeof request.leaseWindowSeconds === "number" &&
+      request.leaseWindowSeconds >
+        (this.policy.maxLeaseWindowSeconds || 31536000)
+    ) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.LEASE_WINDOW_OUT_OF_BOUNDS);
-      throw new HsmAdapterError('SEABEDCLAIM_LEASE_WINDOW_OUT_OF_BOUNDS', `lease window seconds ${request.leaseWindowSeconds} exceeds maximum ${this.policy.maxLeaseWindowSeconds}`);
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.LEASE_WINDOW_OUT_OF_BOUNDS,
+      );
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_LEASE_WINDOW_OUT_OF_BOUNDS",
+        `lease window seconds ${request.leaseWindowSeconds} exceeds maximum ${this.policy.maxLeaseWindowSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.DUPLICATE);
-      throw new HsmAdapterError('SEABEDCLAIM_DUPLICATE', `extraction claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_DUPLICATE",
+        `extraction claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedExtractionVolumeCommitment: request.blindedExtractionVolumeCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedExtractionVolumeCommitment:
+        request.blindedExtractionVolumeCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkExtractionRangeProofHash: request.zkExtractionRangeProofHash,
-      seabedOversightCommitteeAttestationHash: request.seabedOversightCommitteeAttestationHash || 'unspecified',
+      seabedOversightCommitteeAttestationHash:
+        request.seabedOversightCommitteeAttestationHash || "unspecified",
       abeKeyPolicyDigest: request.abeKeyPolicyDigest,
       verifiedAt: now,
       status: CLAIM_STATUS.VERIFIED,
@@ -138,7 +207,7 @@ class ZkExtractionClaimValidator {
     this._hub.markExtractionClaimVerified(request.poolId);
     this._claimCount++;
     if (this._audit) {
-      this._audit('ZK_EXTRACTION_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_EXTRACTION_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -150,34 +219,51 @@ class ZkExtractionClaimValidator {
    */
   generateHwSnarkProof(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('SEABEDCLAIM_HW_PROOF_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_HW_PROOF_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (typeof request.extractionVolume !== 'number' || typeof request.claimValue !== 'number') {
-      throw new HsmAdapterError('SEABEDCLAIM_HW_PROOF_FIELDS_MISSING',
-        'extractionVolume and claimValue numbers are required');
+    if (
+      typeof request.extractionVolume !== "number" ||
+      typeof request.claimValue !== "number"
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_HW_PROOF_FIELDS_MISSING",
+        "extractionVolume and claimValue numbers are required",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('SEABEDCLAIM_HUB_MISSING', 'deep-sea mineral rights gating hub is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_HUB_MISSING",
+        "deep-sea mineral rights gating hub is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    const proofHash = crypto.createHash('sha256')
-      .update(`${request.poolId}:${request.extractionVolume}:${request.claimValue}:${this._hwAccelType}`)
-      .digest('hex');
+    const proofHash = crypto
+      .createHash("sha256")
+      .update(
+        `${request.poolId}:${request.extractionVolume}:${request.claimValue}:${this._hwAccelType}`,
+      )
+      .digest("hex");
     const proof = {
       zkExtractionRangeProofHash: proofHash,
       poolId: request.poolId,
       extractionVolume: request.extractionVolume,
       claimValue: request.claimValue,
       hwAccelType: this._hwAccelType,
-      proofSystem: 'groth16',
+      proofSystem: "groth16",
       generatedAt: Math.floor(Date.now() / 1000),
     };
     this._hwProofCount++;
     if (this._audit) {
-      this._audit('SEABEDCLAIM_HW_SNARK_PROOF_GENERATED', { ...proof });
+      this._audit("SEABEDCLAIM_HW_SNARK_PROOF_GENERATED", { ...proof });
     }
     return proof;
   }
@@ -189,11 +275,16 @@ class ZkExtractionClaimValidator {
    */
   batchVerifyExtractionClaims(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('SEABEDCLAIM_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('SEABEDCLAIM_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let verifiedCount = 0;
@@ -209,9 +300,9 @@ class ZkExtractionClaimValidator {
         verifiedCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'unknown',
+          poolId: req.poolId || "unknown",
           verified: false,
-          error: err.code || 'SEABEDCLAIM_BATCH_ERROR',
+          error: err.code || "SEABEDCLAIM_BATCH_ERROR",
         });
         failedCount++;
       }
@@ -224,9 +315,18 @@ class ZkExtractionClaimValidator {
       verifiedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('SEABEDCLAIM_BATCH_VERIFIED', { verifiedCount, failedCount, batchSize: requests.length });
+      this._audit("SEABEDCLAIM_BATCH_VERIFIED", {
+        verifiedCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, verifiedCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      verifiedCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -237,17 +337,29 @@ class ZkExtractionClaimValidator {
    */
   validateSlashingWindow(poolId, claimTimestamp) {
     if (!poolId) {
-      throw new HsmAdapterError('SEABEDCLAIM_WINDOW_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_WINDOW_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (typeof claimTimestamp !== 'number' || claimTimestamp <= 0) {
-      throw new HsmAdapterError('SEABEDCLAIM_WINDOW_FIELDS_MISSING', 'claimTimestamp must be a positive number');
+    if (typeof claimTimestamp !== "number" || claimTimestamp <= 0) {
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_WINDOW_FIELDS_MISSING",
+        "claimTimestamp must be a positive number",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('SEABEDCLAIM_HUB_MISSING', 'deep-sea mineral rights gating hub is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_HUB_MISSING",
+        "deep-sea mineral rights gating hub is required",
+      );
     }
     const pool = this._hub.getPool(poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDCLAIM_POOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_POOL_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const maxWindow = this.policy.maxLeaseWindowSeconds || 31536000;
@@ -271,33 +383,50 @@ class ZkExtractionClaimValidator {
    */
   aggregateAbeKeyPolicyDigests(poolId, abeKeyPolicyDigests) {
     if (!poolId) {
-      throw new HsmAdapterError('SEABEDCLAIM_AGG_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_AGG_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (!Array.isArray(abeKeyPolicyDigests) || abeKeyPolicyDigests.length === 0) {
-      throw new HsmAdapterError('SEABEDCLAIM_AGG_NO_SIGNATURES', 'abeKeyPolicyDigests array is required');
+    if (
+      !Array.isArray(abeKeyPolicyDigests) ||
+      abeKeyPolicyDigests.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_AGG_NO_SIGNATURES",
+        "abeKeyPolicyDigests array is required",
+      );
     }
     for (const sig of abeKeyPolicyDigests) {
       if (sig.peerId && this._bannedPeers.has(sig.peerId)) {
-        throw new HsmAdapterError('SEABEDCLAIM_PEER_BANNED',
-          `peer ${sig.peerId} is banned and cannot participate in aggregation`);
+        throw new HsmAdapterError(
+          "SEABEDCLAIM_PEER_BANNED",
+          `peer ${sig.peerId} is banned and cannot participate in aggregation`,
+        );
       }
     }
     if (abeKeyPolicyDigests.length < (this.policy.minSovereignQuorum || 6)) {
-      throw new HsmAdapterError('SEABEDCLAIM_AGG_INSUFFICIENT',
-        `${abeKeyPolicyDigests.length} signatures below minimum ${this.policy.minSovereignQuorum || 6}`);
+      throw new HsmAdapterError(
+        "SEABEDCLAIM_AGG_INSUFFICIENT",
+        `${abeKeyPolicyDigests.length} signatures below minimum ${this.policy.minSovereignQuorum || 6}`,
+      );
     }
-    const aggregatedSignature = crypto.createHash('sha256')
-      .update(abeKeyPolicyDigests.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSignature = crypto
+      .createHash("sha256")
+      .update(abeKeyPolicyDigests.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: abeKeyPolicyDigests.length,
       aggregatedSignature,
-      participantIds: abeKeyPolicyDigests.map(s => s.peerId || 'anonymous'),
+      participantIds: abeKeyPolicyDigests.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('SEABEDCLAIM_ABE_POLICY_DIGESTS_AGGREGATED', { poolId, count: abeKeyPolicyDigests.length });
+      this._audit("SEABEDCLAIM_ABE_POLICY_DIGESTS_AGGREGATED", {
+        poolId,
+        count: abeKeyPolicyDigests.length,
+      });
     }
     return result;
   }
@@ -373,7 +502,10 @@ class ZkExtractionClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderExtractionClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderExtractionClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -388,22 +520,31 @@ class ZkExtractionClaimValidator {
   _recordSlash(poolId, peerId, reason) {
     this._slashedClaims.push({
       poolId,
-      peerId: peerId || 'anonymous',
+      peerId: peerId || "anonymous",
       reason,
       slashedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('SEABEDCLAIM_SLASHED', { poolId, peerId, reason });
+      this._audit("SEABEDCLAIM_SLASHED", { poolId, peerId, reason });
     }
   }
 }
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('SEABEDCLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "SEABEDCLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireSeabedOversightCommitteeAttestation && !request.seabedOversightCommitteeAttestation) {
-    throw new HsmAdapterError('SEABEDCLAIM_ATTESTATION_MISSING', 'seabed oversight committee attestation is required');
+  if (
+    policy.requireSeabedOversightCommitteeAttestation &&
+    !request.seabedOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SEABEDCLAIM_ATTESTATION_MISSING",
+      "seabed oversight committee attestation is required",
+    );
   }
 }
 

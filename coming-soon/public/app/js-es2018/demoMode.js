@@ -29,14 +29,12 @@ export function isLocalDevHost() {
 }
 /** Browser can talk directly to Ollama on loopback (HTTP localhost only). */
 export function canUseBrowserOllama() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     return isLocalDevHost() && window.location.protocol === 'http:';
 }
 /** Hosted SaaS dashboard (HTTPS or non-loopback) — local Ollama is not reachable. */
 export function isHostedDashboard() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     return window.location.protocol === 'https:' || !isLocalDevHost();
 }
 /**

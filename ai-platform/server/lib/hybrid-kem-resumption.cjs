@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 9: Post-quantum 0-RTT session resumption.
@@ -11,7 +11,7 @@
  * @module hybrid-kem-resumption
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 const TICKET_VERSION = 0x01;
 const TAG_LENGTH = 16;
@@ -19,7 +19,7 @@ const NONCE_LENGTH = 12;
 const STEK_ID_LENGTH = 16;
 const HEADER_LENGTH = 1 + STEK_ID_LENGTH + NONCE_LENGTH + 4;
 const TTL_DEFAULT_MS = 10 * 60 * 1000;
-const PSK_INFO = 'resumption:psk';
+const PSK_INFO = "resumption:psk";
 const PSK_LENGTH = 32;
 
 /**
@@ -34,11 +34,16 @@ const PSK_LENGTH = 32;
  */
 function deriveResumptionPsk(prevRoot, nodeId, sessionId) {
   if (!Buffer.isBuffer(prevRoot) || prevRoot.length !== 32) {
-    throw new Error('resumption: prevRoot must be a 32-byte Buffer');
+    throw new Error("resumption: prevRoot must be a 32-byte Buffer");
   }
-  const ikm = Buffer.from(PSK_INFO, 'utf8');
-  const info = Buffer.concat([Buffer.from(nodeId, 'utf8'), Buffer.from(sessionId, 'utf8')]);
-  return Buffer.from(crypto.hkdfSync('sha256', ikm, prevRoot, info, PSK_LENGTH));
+  const ikm = Buffer.from(PSK_INFO, "utf8");
+  const info = Buffer.concat([
+    Buffer.from(nodeId, "utf8"),
+    Buffer.from(sessionId, "utf8"),
+  ]);
+  return Buffer.from(
+    crypto.hkdfSync("sha256", ikm, prevRoot, info, PSK_LENGTH),
+  );
 }
 
 /**
@@ -46,7 +51,10 @@ function deriveResumptionPsk(prevRoot, nodeId, sessionId) {
  * @returns {{ stek: Buffer, stekId: Buffer }}
  */
 function generateStek() {
-  return { stek: crypto.randomBytes(32), stekId: crypto.randomBytes(STEK_ID_LENGTH) };
+  return {
+    stek: crypto.randomBytes(32),
+    stekId: crypto.randomBytes(STEK_ID_LENGTH),
+  };
 }
 
 /**
@@ -63,25 +71,28 @@ function generateStek() {
  */
 function createTicket({ sessionId, nodeId, prevRoot }, stek, stekId, ttlMs) {
   if (!Buffer.isBuffer(stek) || stek.length !== 32) {
-    throw new Error('resumption: stek must be a 32-byte Buffer');
+    throw new Error("resumption: stek must be a 32-byte Buffer");
   }
   if (!Buffer.isBuffer(stekId) || stekId.length !== STEK_ID_LENGTH) {
-    throw new Error('resumption: stekId must be a 16-byte Buffer');
+    throw new Error("resumption: stekId must be a 16-byte Buffer");
   }
 
   const psk = deriveResumptionPsk(prevRoot, nodeId, sessionId);
   const issuedAt = Date.now();
   const nonce = crypto.randomBytes(NONCE_LENGTH);
 
-  const plaintext = Buffer.from(JSON.stringify({
-    sessionId,
-    nodeId,
-    issuedAt,
-    ttlMs: ttlMs || TTL_DEFAULT_MS,
-    psk: psk.toString('base64'),
-  }), 'utf8');
+  const plaintext = Buffer.from(
+    JSON.stringify({
+      sessionId,
+      nodeId,
+      issuedAt,
+      ttlMs: ttlMs || TTL_DEFAULT_MS,
+      psk: psk.toString("base64"),
+    }),
+    "utf8",
+  );
 
-  const cipher = crypto.createCipheriv('aes-256-gcm', stek, nonce);
+  const cipher = crypto.createCipheriv("aes-256-gcm", stek, nonce);
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const tag = cipher.getAuthTag();
 
@@ -108,32 +119,35 @@ function createTicket({ sessionId, nodeId, prevRoot }, stek, stekId, ttlMs) {
  */
 async function validateTicket(ticket, stekById, bloomFilter) {
   if (!Buffer.isBuffer(ticket) || ticket.length < HEADER_LENGTH + TAG_LENGTH) {
-    return { valid: false, reason: 'MALFORMED' };
+    return { valid: false, reason: "MALFORMED" };
   }
 
   if (ticket[0] !== TICKET_VERSION) {
-    return { valid: false, reason: 'VERSION' };
+    return { valid: false, reason: "VERSION" };
   }
 
   const stekId = ticket.slice(1, 1 + STEK_ID_LENGTH);
-  const nonce = ticket.slice(1 + STEK_ID_LENGTH, 1 + STEK_ID_LENGTH + NONCE_LENGTH);
+  const nonce = ticket.slice(
+    1 + STEK_ID_LENGTH,
+    1 + STEK_ID_LENGTH + NONCE_LENGTH,
+  );
   const ciphertextLen = ticket.readUInt32BE(1 + STEK_ID_LENGTH + NONCE_LENGTH);
 
   if (ticket.length !== HEADER_LENGTH + ciphertextLen + TAG_LENGTH) {
-    return { valid: false, reason: 'MALFORMED' };
+    return { valid: false, reason: "MALFORMED" };
   }
 
   let stek;
   if (stekById instanceof Map) {
-    stek = stekById.get(stekId.toString('hex'));
-  } else if (typeof stekById === 'function') {
+    stek = stekById.get(stekId.toString("hex"));
+  } else if (typeof stekById === "function") {
     stek = stekById(stekId);
-  } else if (stekById && typeof stekById.get === 'function') {
-    stek = stekById.get(stekId.toString('hex'));
+  } else if (stekById && typeof stekById.get === "function") {
+    stek = stekById.get(stekId.toString("hex"));
   }
 
   if (!Buffer.isBuffer(stek) || stek.length !== 32) {
-    return { valid: false, reason: 'STEK_UNKNOWN' };
+    return { valid: false, reason: "STEK_UNKNOWN" };
   }
 
   const ciphertext = ticket.slice(HEADER_LENGTH, HEADER_LENGTH + ciphertextLen);
@@ -141,30 +155,36 @@ async function validateTicket(ticket, stekById, bloomFilter) {
 
   let payload;
   try {
-    const decipher = crypto.createDecipheriv('aes-256-gcm', stek, nonce);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", stek, nonce);
     decipher.setAuthTag(tag);
-    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    payload = JSON.parse(plaintext.toString('utf8'));
+    const plaintext = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
+    payload = JSON.parse(plaintext.toString("utf8"));
   } catch (err) {
-    return { valid: false, reason: err.message || 'DECRYPT' };
+    return { valid: false, reason: err.message || "DECRYPT" };
   }
 
-  if (typeof payload.issuedAt !== 'number' || typeof payload.ttlMs !== 'number') {
-    return { valid: false, reason: 'MALFORMED' };
+  if (
+    typeof payload.issuedAt !== "number" ||
+    typeof payload.ttlMs !== "number"
+  ) {
+    return { valid: false, reason: "MALFORMED" };
   }
 
   if (Date.now() - payload.issuedAt > payload.ttlMs) {
-    return { valid: false, reason: 'EXPIRED' };
+    return { valid: false, reason: "EXPIRED" };
   }
 
   const nonceUsed = bloomFilter.has ? await bloomFilter.has(nonce) : false;
   if (nonceUsed) {
-    return { valid: false, reason: 'REPLAY' };
+    return { valid: false, reason: "REPLAY" };
   }
 
-  const psk = Buffer.from(payload.psk, 'base64');
+  const psk = Buffer.from(payload.psk, "base64");
   if (psk.length !== PSK_LENGTH) {
-    return { valid: false, reason: 'MALFORMED' };
+    return { valid: false, reason: "MALFORMED" };
   }
 
   if (bloomFilter.add) {
@@ -187,8 +207,8 @@ async function validateTicket(ticket, stekById, bloomFilter) {
 function createInMemoryBloomFilter() {
   const nonces = new Set();
   return {
-    has: (nonce) => nonces.has(nonce.toString('hex')),
-    add: (nonce) => nonces.add(nonce.toString('hex')),
+    has: (nonce) => nonces.has(nonce.toString("hex")),
+    add: (nonce) => nonces.add(nonce.toString("hex")),
   };
 }
 
@@ -198,38 +218,40 @@ function createInMemoryBloomFilter() {
  * @returns {{ has: (Buffer) => Promise<boolean>, add: (Buffer, number) => Promise<void> }}
  */
 async function createRedisBloomFilter(redis) {
-  const key = 'hybrid:ticket-nonces';
+  const key = "hybrid:ticket-nonces";
   // Compatibility wrapper for command invocation across clients
   function sendCmd(parts) {
-    if (typeof redis.sendCommand === 'function') return redis.sendCommand(parts);
-    if (typeof redis.executeCommand === 'function') return redis.executeCommand(parts);
-    if (typeof redis.call === 'function') {
+    if (typeof redis.sendCommand === "function")
+      return redis.sendCommand(parts);
+    if (typeof redis.executeCommand === "function")
+      return redis.executeCommand(parts);
+    if (typeof redis.call === "function") {
       const cmd = parts[0];
       const args = parts.slice(1);
       return redis.call(cmd, ...args);
     }
-    throw new Error('redis client does not support command invocation');
+    throw new Error("redis client does not support command invocation");
   }
 
   // Probe for RedisBloom module using BF.INFO; fallback to set semantics
   try {
-    await sendCmd(['BF.INFO', key]);
+    await sendCmd(["BF.INFO", key]);
     return {
-      type: 'bloom',
+      type: "bloom",
       has: async (nonce) => {
-        const res = await sendCmd(['BF.EXISTS', key, nonce.toString('hex')]);
+        const res = await sendCmd(["BF.EXISTS", key, nonce.toString("hex")]);
         // RedisBloom returns 1/0
         return res === 1 || res === true;
       },
       add: async (nonce, ttlMs) => {
-        await sendCmd(['BF.ADD', key, nonce.toString('hex')]);
+        await sendCmd(["BF.ADD", key, nonce.toString("hex")]);
         if (ttlMs) {
-          if (typeof redis.pExpire === 'function') {
+          if (typeof redis.pExpire === "function") {
             await redis.pExpire(key, ttlMs);
-          } else if (typeof redis.pexpire === 'function') {
+          } else if (typeof redis.pexpire === "function") {
             await redis.pexpire(key, ttlMs);
           } else {
-            await sendCmd(['PEXPIRE', key, String(ttlMs)]);
+            await sendCmd(["PEXPIRE", key, String(ttlMs)]);
           }
         }
       },
@@ -237,58 +259,76 @@ async function createRedisBloomFilter(redis) {
   } catch (err) {
     // Fallback to plain Redis Set semantics
     return {
-      type: 'set',
+      type: "set",
       has: async (nonce) => {
-        const member = nonce.toString('hex');
+        const member = nonce.toString("hex");
         // Support multiple redis client method namings (ioredis, node-redis, redis-mock)
-        if (typeof redis.sIsMember === 'function') {
+        if (typeof redis.sIsMember === "function") {
           const res = await redis.sIsMember(key, member);
           return res === 1 || res === true;
         }
-        if (typeof redis.sismember === 'function') {
+        if (typeof redis.sismember === "function") {
           const res = await redis.sismember(key, member);
           return res === 1 || res === true;
         }
         try {
-          const res = await sendCmd(['SISMEMBER', key, member]);
+          const res = await sendCmd(["SISMEMBER", key, member]);
           return res === 1 || res === true;
         } catch (e) {
           // fall through to raw RESP fallback below
         }
         // Fallback: attempt a raw TCP RESP call to local Redis instance
         try {
-          const host = (redis && redis.options && redis.options.url && redis.options.url.includes('://')) ? null : null;
-          const res = await rawRedisIntegerCommand('127.0.0.1', 6379, ['SISMEMBER', key, member]);
+          const host =
+            redis &&
+            redis.options &&
+            redis.options.url &&
+            redis.options.url.includes("://")
+              ? null
+              : null;
+          const res = await rawRedisIntegerCommand("127.0.0.1", 6379, [
+            "SISMEMBER",
+            key,
+            member,
+          ]);
           return res === 1 || res === true;
         } catch (e) {
-          throw new Error('redis client does not support SISMEMBER');
+          throw new Error("redis client does not support SISMEMBER");
         }
       },
       add: async (nonce, ttlMs) => {
-        const member = nonce.toString('hex');
-        if (typeof redis.sAdd === 'function') {
+        const member = nonce.toString("hex");
+        if (typeof redis.sAdd === "function") {
           await redis.sAdd(key, member);
-        } else if (typeof redis.sadd === 'function') {
+        } else if (typeof redis.sadd === "function") {
           await redis.sadd(key, member);
         } else {
           try {
-            await sendCmd(['SADD', key, member]);
+            await sendCmd(["SADD", key, member]);
           } catch (e) {
             // Fallback to raw TCP RESP SADD
             try {
-              await rawRedisIntegerCommand('127.0.0.1', 6379, ['SADD', key, member]);
+              await rawRedisIntegerCommand("127.0.0.1", 6379, [
+                "SADD",
+                key,
+                member,
+              ]);
             } catch (e2) {
-              throw new Error('redis client does not support SADD');
+              throw new Error("redis client does not support SADD");
             }
           }
         }
         if (ttlMs) {
-          if (typeof redis.pExpire === 'function') {
+          if (typeof redis.pExpire === "function") {
             await redis.pExpire(key, ttlMs);
-          } else if (typeof redis.pexpire === 'function') {
+          } else if (typeof redis.pexpire === "function") {
             await redis.pexpire(key, ttlMs);
           } else {
-            try { await sendCmd(['PEXPIRE', key, String(ttlMs)]); } catch (e) { /* best-effort */ }
+            try {
+              await sendCmd(["PEXPIRE", key, String(ttlMs)]);
+            } catch (e) {
+              /* best-effort */
+            }
           }
         }
       },
@@ -297,7 +337,7 @@ async function createRedisBloomFilter(redis) {
 }
 
 // Minimal RESP client helper for integer-returning commands (SISMEMBER, SADD, PEXPIRE)
-const net = require('net');
+const net = require("net");
 function rawRedisIntegerCommand(host, port, parts, timeout = 2000) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection(port, host, () => {
@@ -309,26 +349,35 @@ function rawRedisIntegerCommand(host, port, parts, timeout = 2000) {
       }
       socket.write(cmd);
     });
-    let data = '';
-    const onData = (chunk) => { data += chunk.toString('utf8'); if (data.includes('\r\n')) finish(); };
+    let data = "";
+    const onData = (chunk) => {
+      data += chunk.toString("utf8");
+      if (data.includes("\r\n")) finish();
+    };
     const finish = () => {
       try {
         // Simple integer reply parsing
-        if (data[0] === ':') {
+        if (data[0] === ":") {
           const m = data.match(/^:(-?\d+)\r\n/);
           if (m) return resolve(Number(m[1]));
         }
         // Simple OK or +OK
-        if (data.startsWith('+')) return resolve(1);
-        reject(new Error('unexpected redis reply: ' + data));
+        if (data.startsWith("+")) return resolve(1);
+        reject(new Error("unexpected redis reply: " + data));
       } finally {
-        socket.removeListener('data', onData);
+        socket.removeListener("data", onData);
         socket.destroy();
       }
     };
-    socket.on('data', onData);
-    socket.on('error', (err) => { socket.destroy(); reject(err); });
-    socket.setTimeout(timeout, () => { socket.destroy(); reject(new Error('redis raw command timeout')); });
+    socket.on("data", onData);
+    socket.on("error", (err) => {
+      socket.destroy();
+      reject(err);
+    });
+    socket.setTimeout(timeout, () => {
+      socket.destroy();
+      reject(new Error("redis raw command timeout"));
+    });
   });
 }
 
@@ -341,7 +390,8 @@ function rawRedisIntegerCommand(host, port, parts, timeout = 2000) {
  * @returns {Promise<object>} result of validateTicket
  */
 async function validateTicketWithRedis(ticket, stekById, redis) {
-  if (!redis) throw new Error('redis client required for validateTicketWithRedis');
+  if (!redis)
+    throw new Error("redis client required for validateTicketWithRedis");
   const bloom = await createRedisBloomFilter(redis);
   return validateTicket(ticket, stekById, bloom);
 }
@@ -358,4 +408,3 @@ module.exports = {
   PSK_INFO,
   PSK_LENGTH,
 };
-

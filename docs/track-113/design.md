@@ -16,11 +16,11 @@ Track 113 implements a post-quantum hybrid identity ratchet for long-lived worke
 
 The hybrid public key is a versioned, length-prefixed serialization of three components:
 
-| Component ID | Algorithm | Purpose | Key Size (DER) |
-|-------------|-----------|---------|----------------|
-| `0x01` | Ed25519 | Signature (handshake authentication) | 44 bytes (SPKI DER) |
-| `0x02` | X25519 | Key exchange (classical ECDH) | 44 bytes (SPKI DER) |
-| `0x03` | ML-KEM-768 | Key encapsulation (post-quantum KEM) | 1184 bytes (raw) |
+| Component ID | Algorithm  | Purpose                              | Key Size (DER)      |
+| ------------ | ---------- | ------------------------------------ | ------------------- |
+| `0x01`       | Ed25519    | Signature (handshake authentication) | 44 bytes (SPKI DER) |
+| `0x02`       | X25519     | Key exchange (classical ECDH)        | 44 bytes (SPKI DER) |
+| `0x03`       | ML-KEM-768 | Key encapsulation (post-quantum KEM) | 1184 bytes (raw)    |
 
 **Version:** `0x01` (current)
 
@@ -28,23 +28,23 @@ The hybrid public key is a versioned, length-prefixed serialization of three com
 
 ### Key Derivation
 
-| Function | Algorithm | Output |
-|----------|-----------|--------|
-| `initializeFromShared` | HKDF-SHA256 | 32-byte root + 32-byte chain key |
-| `kdfRoot` (rotation) | HKDF-SHA256 | 32-byte root + 32-byte chain key |
+| Function                  | Algorithm   | Output                                       |
+| ------------------------- | ----------- | -------------------------------------------- |
+| `initializeFromShared`    | HKDF-SHA256 | 32-byte root + 32-byte chain key             |
+| `kdfRoot` (rotation)      | HKDF-SHA256 | 32-byte root + 32-byte chain key             |
 | `kdfChain` (message step) | HKDF-SHA256 | 32-byte message key + 32-byte next chain key |
-| Hybrid shared secret | HKDF-SHA384 | 32-byte shared secret from PQ + classical |
+| Hybrid shared secret      | HKDF-SHA384 | 32-byte shared secret from PQ + classical    |
 
 **Rationale:** SHA-256 is used for the ratchet chain (sufficient security, faster) while SHA-384 is used for the initial hybrid shared secret derivation (higher security margin for the PQ-classical combination step).
 
 ### Rotation Thresholds
 
-| Parameter | Default | Configurable |
-|-----------|---------|-------------|
-| `maxMessages` | 10,000 | Yes |
-| `maxDurationMs` | 86,400,000 (24h) | Yes |
-| `warningRatio` | 0.8 (80%) | Yes |
-| `checkIntervalMs` | 1,000 | Yes |
+| Parameter         | Default          | Configurable |
+| ----------------- | ---------------- | ------------ |
+| `maxMessages`     | 10,000           | Yes          |
+| `maxDurationMs`   | 86,400,000 (24h) | Yes          |
+| `warningRatio`    | 0.8 (80%)        | Yes          |
+| `checkIntervalMs` | 1,000            | Yes          |
 
 **Rationale:** 10,000 messages provides a reasonable tradeoff between forward secrecy (frequent rotation limits exposure) and performance (rotation requires new key derivation). The 80% warning ratio gives operators time to prepare for rotation before it's forced.
 
@@ -67,9 +67,11 @@ The hybrid public key is a versioned, length-prefixed serialization of three com
 ### `IdentityRatchet`
 
 ```javascript
-const { IdentityRatchet } = require('./lib/crypto/ratchet/identity-ratchet.cjs');
+const {
+  IdentityRatchet,
+} = require("./lib/crypto/ratchet/identity-ratchet.cjs");
 
-const ratchet = await new IdentityRatchet({ deviceId: 'agent-1' }).generate();
+const ratchet = await new IdentityRatchet({ deviceId: "agent-1" }).generate();
 // ratchet.publicKey — Buffer (versioned hybrid key)
 // ratchet.secretKey — { deviceId, ed25519, x25519, mlkem }
 
@@ -93,16 +95,27 @@ const valid = ratchet.verifyHandshake(signature, transcript, peerPublicKey);
 ### `CompatibilityShim`
 
 ```javascript
-const { initiateHandshake, acceptHandshake, detectMode } = require('./lib/crypto/ratchet/compatibility-shim.cjs');
+const {
+  initiateHandshake,
+  acceptHandshake,
+  detectMode,
+} = require("./lib/crypto/ratchet/compatibility-shim.cjs");
 
 // Auto-detect peer mode
 const { mode } = detectMode(peerPublicKey); // 'HYBRID' or 'CLASSICAL'
 
 // Initiate handshake (auto-selects hybrid or classical)
-const { mode, handshake, chainKey } = await initiateHandshake(localRatchet, peerPublicKey);
+const { mode, handshake, chainKey } = await initiateHandshake(
+  localRatchet,
+  peerPublicKey,
+);
 
 // Accept handshake
-const { mode, chainKey } = await acceptHandshake(localRatchet, handshake, peerPublicKey);
+const { mode, chainKey } = await acceptHandshake(
+  localRatchet,
+  handshake,
+  peerPublicKey,
+);
 ```
 
 ## Migration Notes
@@ -145,11 +158,11 @@ server/lib/crypto/ratchet/
 
 ## Test Coverage
 
-| Test File | Tests | Coverage |
-|-----------|-------|----------|
-| identity-ratchet.test.cjs | 9 | Keypair generation, encapsulate/decapsulate, sign/verify, chain step, rotation, audit events |
-| compatibility-shim.test.cjs | 7 | Mode detection, hybrid/classical handshake, deprecation deadline, metrics |
-| handshake-fuzz.test.cjs | 25 | Malformed keys, truncated cipherTexts, version mismatches, corrupted signatures, randomized fuzzing, interop convergence |
-| secret-scanner.test.cjs | 1 | Secret scanning integration |
-| session-purge.test.cjs | 1 | Session purge |
-| **Total** | **43** | |
+| Test File                   | Tests  | Coverage                                                                                                                 |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| identity-ratchet.test.cjs   | 9      | Keypair generation, encapsulate/decapsulate, sign/verify, chain step, rotation, audit events                             |
+| compatibility-shim.test.cjs | 7      | Mode detection, hybrid/classical handshake, deprecation deadline, metrics                                                |
+| handshake-fuzz.test.cjs     | 25     | Malformed keys, truncated cipherTexts, version mismatches, corrupted signatures, randomized fuzzing, interop convergence |
+| secret-scanner.test.cjs     | 1      | Secret scanning integration                                                                                              |
+| session-purge.test.cjs      | 1      | Session purge                                                                                                            |
+| **Total**                   | **43** |                                                                                                                          |

@@ -5,6 +5,7 @@
 Scans mock data directories and production paths for secret patterns.
 
 **Detects:**
+
 - AWS access keys (`AKIA...`)
 - GitHub PATs (`ghp_...`, `gho_...`)
 - OpenAI keys (`sk-...`)
@@ -17,6 +18,7 @@ Scans mock data directories and production paths for secret patterns.
 **Allowlisted:** demo placeholders, `REPLACE_ME`, `AKIAIOSFODNN7EXAMPLE`
 
 **Config:**
+
 ```json
 "credentials": { "enabled": true, "scanProduction": true }
 ```
@@ -34,10 +36,12 @@ Validates `*-sample.json` files against registered page specs.
 Cross-checks sample JSON against `.simplebeacon/baseline.json`.
 
 **Detects:**
+
 - **Fiction KPIs** in **all** `*-sample.json` files under `sampleDir` (v1.0.1+)
 - **Drift** (Jest counts, dataSource, release) in `consistencyAnchorSamples` only
 
 **Fiction patterns** (configurable via `baseline.rejectedFiction`):
+
 - Feature counts (`totalFeatures` key only): `47`, `8`, `9`, `100`, `156`
 - Completion rates: `74.17`, `62`, `87`, `94.3`, `66`
 - AI confidence: `98.5`, `94.3`
@@ -60,6 +64,7 @@ Validates `data/roadmap/*.json` structural specs.
 Scans production code for hardcoded mock/sample paths.
 
 **Detects:**
+
 - `-sample.json` string references
 - `/mock/`, `/fixtures/` paths
 - `web/data` references
@@ -71,6 +76,7 @@ Scans production code for hardcoded mock/sample paths.
 **Skips:** comment lines, webpack/jest config files, simplebeacon allowlisted files
 
 **Config:**
+
 ```json
 "production-leak": {
   "enabled": true,

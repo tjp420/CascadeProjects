@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 10 / 13 / 15 / 16: Software HSM adapter.
@@ -23,12 +23,12 @@
  * @module hsm-adapter/software-adapter
  */
 
-const crypto = require('crypto');
-const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
-const { wrap: aesKwWrap, unwrap: aesKwUnwrap } = require('../aes-kw.cjs');
-const { secureZeroize } = require('./secure-zeroize.cjs');
-const { VolatileEvictionEngine } = require('./volatile-eviction-engine.cjs');
-const { ProvenanceTracker } = require('./provenance-tracker.cjs');
+const crypto = require("crypto");
+const { BaseHsmAdapter, HsmAdapterError } = require("./base-adapter.cjs");
+const { wrap: aesKwWrap, unwrap: aesKwUnwrap } = require("../aes-kw.cjs");
+const { secureZeroize } = require("./secure-zeroize.cjs");
+const { VolatileEvictionEngine } = require("./volatile-eviction-engine.cjs");
+const { ProvenanceTracker } = require("./provenance-tracker.cjs");
 
 const DEFAULT_KEK_BITS = 256; // 256-bit KEK for production-grade wrapping
 
@@ -42,10 +42,13 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
    * @param {string} [options.hardwareRootToken] - root token for provenance
    */
   constructor(options = {}) {
-    super({ providerName: 'software', ...options });
+    super({ providerName: "software", ...options });
     this.kekBits = options.kekBits || DEFAULT_KEK_BITS;
     if (![128, 192, 256].includes(this.kekBits)) {
-      throw new HsmAdapterError('INVALID_KEK_BITS', `kekBits must be 128, 192, or 256; got ${this.kekBits}`);
+      throw new HsmAdapterError(
+        "INVALID_KEK_BITS",
+        `kekBits must be 128, 192, or 256; got ${this.kekBits}`,
+      );
     }
     this._keks = new Map(); // kekId -> { kek, tenantId, meta, createdAt }
     if (this._policyEngine && !this._evictionEngine) {
@@ -68,24 +71,29 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
   _getKek(tenantId, kekId) {
     const info = this._keks.get(kekId);
     if (!info) {
-      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
+      throw new HsmAdapterError("UNKNOWN_KEK", `KEK not found: ${kekId}`);
     }
     if (info.tenantId !== tenantId) {
-      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', `KEK ${kekId} does not belong to tenant ${tenantId}`);
+      throw new HsmAdapterError(
+        "UNAUTHORIZED_KEY_ACCESS",
+        `KEK ${kekId} does not belong to tenant ${tenantId}`,
+      );
     }
     return info;
   }
 
   _zeroizeStrategy(tenantId) {
-    if (!this._policyEngine) return 'random';
+    if (!this._policyEngine) return "random";
     const policy = this._policyEngine.getPolicy(tenantId);
-    return policy && policy.eviction ? policy.eviction.zeroizeStrategy : 'random';
+    return policy && policy.eviction
+      ? policy.eviction.zeroizeStrategy
+      : "random";
   }
 
   _validatePolicy(tenantId, operation, info) {
     if (!this._policyEngine) return;
     this._policyEngine.validate(tenantId, operation, {
-      algorithm: 'aes-kw',
+      algorithm: "aes-kw",
       kekBits: info.kek.length * 8,
       createdAt: info.createdAt,
     });
@@ -95,7 +103,7 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
     if (!this._provenanceTracker) return;
     this._provenanceTracker.validate(kekId, {
       tenantId,
-      algorithm: 'aes-kw',
+      algorithm: "aes-kw",
       kekBits: info.kek.length * 8,
       createdAt: info.createdAt,
     });
@@ -103,17 +111,17 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
 
   async _createKEK(tenantId, meta = {}) {
     if (this._policyEngine) {
-      this._policyEngine.validate(tenantId, 'createKEK', {
-        algorithm: 'aes-kw',
+      this._policyEngine.validate(tenantId, "createKEK", {
+        algorithm: "aes-kw",
         kekBits: this.kekBits,
       });
     }
     const kek = crypto.randomBytes(this.kekBits / 8);
-    const kekId = crypto.randomBytes(8).toString('hex');
+    const kekId = crypto.randomBytes(8).toString("hex");
     const createdAt = Date.now();
     this._keks.set(kekId, { kek, tenantId, meta, createdAt });
     this._provenanceTracker.register(tenantId, kekId, {
-      algorithm: 'aes-kw',
+      algorithm: "aes-kw",
       kekBits: this.kekBits,
       createdAt,
     });
@@ -122,28 +130,31 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
 
   async _wrap(tenantId, kekId, plaintext) {
     const info = this._getKek(tenantId, kekId);
-    this._validatePolicy(tenantId, 'wrap', info);
+    this._validatePolicy(tenantId, "wrap", info);
     this._validateProvenance(tenantId, kekId, info);
     return aesKwWrap(info.kek, plaintext);
   }
 
   async _unwrap(tenantId, kekId, wrapped) {
     const info = this._getKek(tenantId, kekId);
-    this._validatePolicy(tenantId, 'unwrap', info);
+    this._validatePolicy(tenantId, "unwrap", info);
     this._validateProvenance(tenantId, kekId, info);
     try {
       return aesKwUnwrap(info.kek, wrapped);
     } catch (err) {
       // Map AES-KW integrity failures to HsmAdapterError
-      throw new HsmAdapterError('UNWRAP_FAILED', err.message);
+      throw new HsmAdapterError("UNWRAP_FAILED", err.message);
     }
   }
 
   async _rotateKEK(tenantId, oldKekId) {
     const info = this._getKek(tenantId, oldKekId);
-    this._validatePolicy(tenantId, 'rotateKEK', info);
+    this._validatePolicy(tenantId, "rotateKEK", info);
     this._validateProvenance(tenantId, oldKekId, info);
-    const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
+    const newKekId = await this._createKEK(tenantId, {
+      rotatedFrom: oldKekId,
+      ...info.meta,
+    });
     return newKekId;
   }
 
@@ -152,7 +163,7 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
     const strategy = this._zeroizeStrategy(tenantId);
     secureZeroize(info.kek, { strategy });
     this._keks.delete(kekId);
-    return { algorithm: 'aes-kw', kekBits: info.kek.length * 8, strategy };
+    return { algorithm: "aes-kw", kekBits: info.kek.length * 8, strategy };
   }
 
   async _listKEKs(tenantId) {

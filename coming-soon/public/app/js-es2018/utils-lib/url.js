@@ -6,8 +6,7 @@ const SB_API_BASE_KEY = 'sb_api_base';
 const SB_NOTIFY_BASE_KEY = 'sb_notify_base';
 
 function _normalizeApiBase(value) {
-    if (!value)
-        return '';
+    if (!value) return '';
     return String(value).replace(/\/api\/?$/, '');
 }
 
@@ -45,17 +44,20 @@ function _isAllowedApiBase(value) {
         if (!_isLocalDevHost() && isLoopback) {
             try {
                 const params = new URLSearchParams(location.search || '');
-                if (params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY))
-                    return true;
+                if (params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY)) return true;
+            } catch (_b) {
+                /* ignore */
             }
-            catch (_b) { /* ignore */ }
             try {
-                if (typeof sessionStorage !== 'undefined'
-                    && (sessionStorage.getItem(SB_API_BASE_KEY) || sessionStorage.getItem(SB_NOTIFY_BASE_KEY))) {
+                if (
+                    typeof sessionStorage !== 'undefined' &&
+                    (sessionStorage.getItem(SB_API_BASE_KEY) || sessionStorage.getItem(SB_NOTIFY_BASE_KEY))
+                ) {
                     return true;
                 }
+            } catch (_c) {
+                /* ignore */
             }
-            catch (_c) { /* ignore */ }
             return false;
         }
         // HTTPS pages cannot call an HTTP data server — including loopback — because
@@ -63,26 +65,25 @@ function _isAllowedApiBase(value) {
         if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         if (_isStaleLoopbackApiBase(value)) return false;
         return true;
+    } catch (_a) {
+        return false;
     }
-    catch (_a) { return false; }
 }
 
 /** Persist VS Code extension bridge params for hosted dashboard routes (Ollama proxy, notify). */
 export function persistExtensionBridge(apiBase, options = {}) {
-    if (typeof window === 'undefined' || !apiBase)
-        return false;
+    if (typeof window === 'undefined' || !apiBase) return false;
     const raw = String(apiBase).replace(/\/+$/, '');
     // Normalize to host root without trailing `/api`
     const hostRoot = raw.replace(/\/api\/?$/i, '');
     const apiUrl = hostRoot.endsWith('/') ? `${hostRoot}api` : `${hostRoot}/api`;
-    if (!_isAllowedApiBase(apiUrl))
-        return false;
+    if (!_isAllowedApiBase(apiUrl)) return false;
     if (_isLocalDevHost() && typeof location !== 'undefined' && location.protocol === 'http:') {
         try {
-            if (new URL(apiUrl).port === '4000')
-                return false;
+            if (new URL(apiUrl).port === '4000') return false;
+        } catch (_port) {
+            /* ignore */
         }
-        catch (_port) { /* ignore */ }
     }
     // Store canonical host root (no trailing `/api`)
     _storeApiBase(hostRoot);
@@ -91,8 +92,9 @@ export function persistExtensionBridge(apiBase, options = {}) {
     if (options.websiteMode !== false && typeof sessionStorage !== 'undefined') {
         try {
             sessionStorage.setItem('sb_website_mode', '1');
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
     }
     if (options.updateUrl !== false) {
         try {
@@ -101,11 +103,11 @@ export function persistExtensionBridge(apiBase, options = {}) {
             url.searchParams.set(SB_API_BASE_KEY, hostRoot);
             url.searchParams.set(SB_NOTIFY_BASE_KEY, hostRoot);
             url.searchParams.set('sb_website_mode', '1');
-            if (!url.searchParams.has('sb_parent_urlbar'))
-                url.searchParams.set('sb_parent_urlbar', '1');
+            if (!url.searchParams.has('sb_parent_urlbar')) url.searchParams.set('sb_parent_urlbar', '1');
             window.history.replaceState({}, '', url.toString());
+        } catch (_b) {
+            /* ignore */
         }
-        catch (_b) { /* ignore */ }
     }
     return true;
 }
@@ -116,24 +118,27 @@ export function clearExtensionBridge(options = {}) {
         try {
             sessionStorage.removeItem(SB_API_BASE_KEY);
             sessionStorage.removeItem(SB_NOTIFY_BASE_KEY);
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
     }
     if (typeof window !== 'undefined') {
         try {
             delete window.__SB_BRIDGE_HOST__;
+        } catch (_b) {
+            /* ignore */
         }
-        catch (_b) { /* ignore */ }
     }
     if (options.updateUrl !== false && typeof window !== 'undefined') {
         try {
             const url = new URL(window.location.href);
-            [SB_API_BASE_KEY, SB_NOTIFY_BASE_KEY, 'sb_website_mode', 'sb_parent_urlbar'].forEach((key) => {
+            [SB_API_BASE_KEY, SB_NOTIFY_BASE_KEY, 'sb_website_mode', 'sb_parent_urlbar'].forEach(key => {
                 url.searchParams.delete(key);
             });
             window.history.replaceState({}, '', url.toString());
+        } catch (_c) {
+            /* ignore */
         }
-        catch (_c) { /* ignore */ }
     }
 }
 
@@ -142,10 +147,13 @@ function _readStoredApiBase() {
         try {
             const value = sessionStorage.getItem(SB_API_BASE_KEY);
             if (value) {
-                return String(value).replace(/\/api\/?$/, '').replace(/\/+$/, '');
+                return String(value)
+                    .replace(/\/api\/?$/, '')
+                    .replace(/\/+$/, '');
             }
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
     }
     return null;
 }
@@ -154,8 +162,9 @@ function _storeApiBase(value) {
     if (typeof sessionStorage !== 'undefined' && value) {
         try {
             sessionStorage.setItem(SB_API_BASE_KEY, value);
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
     }
 }
 
@@ -163,26 +172,26 @@ function _storeNotifyBase(value) {
     if (typeof sessionStorage !== 'undefined' && value) {
         try {
             sessionStorage.setItem(SB_NOTIFY_BASE_KEY, value);
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
     }
 }
 
 function _isStaleLoopbackApiBase(value) {
-    if (!value || typeof location === 'undefined')
-        return false;
+    if (!value || typeof location === 'undefined') return false;
     try {
         const url = new URL(String(value).startsWith('http') ? value : `http:${value}`, location.href);
         const currentPort = location.port || (location.protocol === 'https:' ? '443' : '80');
         const basePort = url.port || (url.protocol === 'https:' ? '443' : '80');
         return _isLoopbackHost(url.hostname) && _isLoopbackHost(location.hostname) && basePort !== currentPort;
+    } catch (_e) {
+        return false;
     }
-    catch (_e) { return false; }
 }
 
 function _readEmbedApiBaseFromQuery() {
-    if (typeof window === 'undefined')
-        return null;
+    if (typeof window === 'undefined') return null;
     try {
         const params = new URLSearchParams(window.location.search);
         const override = params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
@@ -194,14 +203,17 @@ function _readEmbedApiBaseFromQuery() {
             if (_isAllowedApiBase(apiUrl) && !_isStaleLoopbackApiBase(apiUrl)) {
                 _storeApiBase(hostRoot);
                 if (params.get(SB_NOTIFY_BASE_KEY)) {
-                    _storeNotifyBase(String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, '').replace(/\/api\/?$/i, ''));
+                    _storeNotifyBase(
+                        String(params.get(SB_NOTIFY_BASE_KEY))
+                            .replace(/\/+$/, '')
+                            .replace(/\/api\/?$/i, '')
+                    );
                 }
                 return hostRoot;
             }
             // Stale loopback API base in query; fall through to current origin.
         }
-    }
-    catch (_a) {
+    } catch (_a) {
         return null;
     }
     return null;
@@ -256,8 +268,7 @@ export function apiBaseUrl() {
 export function apiUrl(path) {
     const base = apiBaseUrl().replace(/\/+$/, '');
     const segment = String(path || '').replace(/^\/+/, '');
-    if (!segment)
-        return base || '/';
+    if (!segment) return base || '/';
     return `${base}/${segment}`;
 }
 /**
@@ -269,12 +280,22 @@ export function apiUrl(path) {
  * @param {{count?:number,delay?:number,maxDelay?:number}} [retry] Retry config.
  * @returns {Promise<Response>}
  */
-export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
+export async function fetchWithTimeout(
+    url,
+    options = {},
+    ms = 10000,
+    retry = { count: 0, delay: 1000, maxDelay: 30000 }
+) {
     const target = String(url || '');
-    let opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+    let opts = options && typeof options === 'object' && !Array.isArray(options) ? options : {};
     const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
-    const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}) };
-    const attempt = async (attemptNum) => {
+    const retryCfg = {
+        count: 0,
+        delay: 1000,
+        maxDelay: 30000,
+        ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {})
+    };
+    const attempt = async attemptNum => {
         var _a;
         const controller = new AbortController();
         let timer;
@@ -294,11 +315,17 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
             // is incompatible with credentialed requests and causes a CORS failure in browsers.
             try {
                 const targetUrl = new URL(target, typeof location !== 'undefined' ? location.href : undefined);
-                if (typeof location !== 'undefined' && opts && opts.credentials === 'include' && targetUrl.origin !== location.origin) {
+                if (
+                    typeof location !== 'undefined' &&
+                    opts &&
+                    opts.credentials === 'include' &&
+                    targetUrl.origin !== location.origin
+                ) {
                     opts = { ...opts, credentials: 'omit' };
                 }
+            } catch (_c) {
+                /* ignore if URL parsing fails */
             }
-            catch (_c) { /* ignore if URL parsing fails */ }
             const res = await fetch(target, { ...opts, signal: controller.signal });
             if (!res.ok) {
                 const shouldRetry = retryCfg.count > 0 && attemptNum < retryCfg.count && res.status >= 500;
@@ -312,8 +339,7 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
                 }
             }
             return res;
-        }
-        catch (err) {
+        } catch (err) {
             if (err.name === 'AbortError') {
                 if ((_a = opts.signal) === null || _a === void 0 ? void 0 : _a.aborted) {
                     throw new Error('Request aborted by caller');
@@ -326,11 +352,9 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
                 return attempt(attemptNum + 1);
             }
             throw err;
-        }
-        finally {
+        } finally {
             clearTimeout(timer);
-            if (cleanup)
-                cleanup();
+            if (cleanup) cleanup();
         }
     };
     return attempt(0);
@@ -341,34 +365,27 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
  * @returns {Record<string, string | string[]>} Parsed key-value pairs.
  */
 export function parseQueryString(queryString) {
-    if (typeof queryString !== 'string')
-        return {};
+    if (typeof queryString !== 'string') return {};
     const qs = queryString.startsWith('?') ? queryString.slice(1) : queryString;
     const result = {};
-    if (!qs)
-        return result;
+    if (!qs) return result;
     for (const pair of qs.split('&')) {
         const eqIdx = pair.indexOf('=');
         const rawKey = eqIdx >= 0 ? pair.slice(0, eqIdx) : pair;
         const rawValue = eqIdx >= 0 ? pair.slice(eqIdx + 1) : '';
-        if (!rawKey)
-            continue;
+        if (!rawKey) continue;
         let key, value;
         try {
             key = decodeURIComponent(rawKey.replace(/\+/g, ' '));
             value = decodeURIComponent(rawValue.replace(/\+/g, ' '));
-        }
-        catch (_a) {
+        } catch (_a) {
             key = rawKey;
             value = rawValue;
         }
         if (Object.hasOwn(result, key)) {
-            if (Array.isArray(result[key]))
-                result[key].push(value);
-            else
-                result[key] = [result[key], value];
-        }
-        else {
+            if (Array.isArray(result[key])) result[key].push(value);
+            else result[key] = [result[key], value];
+        } else {
             result[key] = value;
         }
     }
@@ -380,19 +397,15 @@ export function parseQueryString(queryString) {
  * @returns {string} Query string without leading `?`.
  */
 export function stringifyQueryString(params) {
-    if (!params || typeof params !== 'object')
-        return '';
+    if (!params || typeof params !== 'object') return '';
     const pairs = [];
     for (const [key, value] of Object.entries(params)) {
-        if (value == null || value === '')
-            continue;
+        if (value == null || value === '') continue;
         if (Array.isArray(value)) {
             for (const v of value) {
-                if (v != null && v !== '')
-                    pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`);
+                if (v != null && v !== '') pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`);
             }
-        }
-        else {
+        } else {
             pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
         }
     }
@@ -404,8 +417,7 @@ export function stringifyQueryString(params) {
  * @returns {string|null}
  */
 export function getQueryParam(key) {
-    if (typeof window === 'undefined' || !window.location || !key)
-        return null;
+    if (typeof window === 'undefined' || !window.location || !key) return null;
     const params = new URLSearchParams(window.location.search);
     return params.has(key) ? params.get(key) : null;
 }
@@ -418,13 +430,14 @@ export function getQueryParam(key) {
 export function setQueryParam(key, value) {
     var _a;
     if (typeof window === 'undefined' || !window.location || !key) {
-        return typeof window !== 'undefined' ? ((_a = window.location) === null || _a === void 0 ? void 0 : _a.href) || '' : '';
+        return typeof window !== 'undefined'
+            ? ((_a = window.location) === null || _a === void 0 ? void 0 : _a.href) || ''
+            : '';
     }
     const url = new URL(window.location.href);
     if (value == null || value === '') {
         url.searchParams.delete(key);
-    }
-    else {
+    } else {
         url.searchParams.set(key, String(value));
     }
     return url.toString();
@@ -437,8 +450,7 @@ export function setQueryParam(key, value) {
  */
 export function buildUrl(base, params) {
     const qs = stringifyQueryString(params);
-    if (!qs)
-        return base;
+    if (!qs) return base;
     const sep = base.includes('?') ? '&' : '?';
     return `${base}${sep}${qs}`;
 }
@@ -448,13 +460,11 @@ export function buildUrl(base, params) {
  * @returns {boolean}
  */
 export function isValidUrl(str) {
-    if (typeof str !== 'string' || !str)
-        return false;
+    if (typeof str !== 'string' || !str) return false;
     try {
         const url = new URL(str);
         return url.protocol === 'http:' || url.protocol === 'https:';
-    }
-    catch (_a) {
+    } catch (_a) {
         return false;
     }
 }
@@ -463,13 +473,11 @@ export function isValidUrl(str) {
  * @returns {boolean}
  */
 export function isUrl(str) {
-    if (typeof str !== 'string')
-        return false;
+    if (typeof str !== 'string') return false;
     try {
         const url = new URL(str);
         return url.protocol === 'http:' || url.protocol === 'https:';
-    }
-    catch (_a) {
+    } catch (_a) {
         return false;
     }
 }

@@ -12,7 +12,11 @@ function getRemediationPlan(issue) {
     const ruleId = (issue.ruleId || issue.id || '').toLowerCase();
     const description = (issue.description || '').toLowerCase();
     if (ruleId.includes('deploy') || type.includes('deploy leak') || type.includes('deploy-leak')) {
-        return { action: 'Move URLs to environment config or dynamic injection', effort: '10 min', category: 'Security' };
+        return {
+            action: 'Move URLs to environment config or dynamic injection',
+            effort: '10 min',
+            category: 'Security'
+        };
     }
     if (ruleId.includes('debug-artifact') || type.includes('debug')) {
         return { action: 'Remove debug statements', effort: '5 min', category: 'Cleanup' };
@@ -20,7 +24,12 @@ function getRemediationPlan(issue) {
     if (ruleId.includes('config-drift') || type.includes('config')) {
         return { action: 'Move to environment variables', effort: '15 min', category: 'Security' };
     }
-    if (ruleId.includes('sample-json-ref') || ruleId.includes('production-leak') || type.includes('sample') || type.includes('mock')) {
+    if (
+        ruleId.includes('sample-json-ref') ||
+        ruleId.includes('production-leak') ||
+        type.includes('sample') ||
+        type.includes('mock')
+    ) {
         return { action: 'Replace with runtime data sources', effort: '30 min', category: 'Data' };
     }
     if (ruleId.includes('missing-security-header') || type.includes('security header')) {
@@ -68,8 +77,7 @@ function groupIssuesByCategory(issues) {
     for (const issue of issues) {
         const plan = getRemediationPlan(issue);
         const cat = plan.category;
-        if (!groups[cat])
-            groups[cat] = [];
+        if (!groups[cat]) groups[cat] = [];
         groups[cat].push({ ...issue, plan });
     }
     return groups;
@@ -84,8 +92,7 @@ function sortBySeverity(issues) {
         var _a, _b;
         const sa = (_a = SEVERITY_ORDER[a.severity]) !== null && _a !== void 0 ? _a : 99;
         const sb = (_b = SEVERITY_ORDER[b.severity]) !== null && _b !== void 0 ? _b : 99;
-        if (sa !== sb)
-            return sa - sb;
+        if (sa !== sb) return sa - sb;
         return (a.filePath || '').localeCompare(b.filePath || '');
     });
 }
@@ -104,12 +111,23 @@ function convertPhasesToIssues(phases, summary) {
             for (const task of phase.tasks) {
                 issues.push({
                     id: 'roadmap-' + (phase.id || idx) + '-' + idx++,
-                    severity: ['critical', 'high', 'medium', 'low', 'info'].includes(phase.severity) ? phase.severity : 'medium',
+                    severity: ['critical', 'high', 'medium', 'low', 'info'].includes(phase.severity)
+                        ? phase.severity
+                        : 'medium',
                     type: phase.id || phase.phase || 'phase',
                     category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.id || phase.phase || 'Phase',
                     description: task.description,
                     filePath: task.location || '-',
-                    action: task.type === 'fix' ? 'Fix required' : task.type === 'verify' ? 'Verify' : task.type === 'audit' ? 'Audit' : task.type === 'doc' ? 'Document' : 'Review',
+                    action:
+                        task.type === 'fix'
+                            ? 'Fix required'
+                            : task.type === 'verify'
+                              ? 'Verify'
+                              : task.type === 'audit'
+                                ? 'Audit'
+                                : task.type === 'doc'
+                                  ? 'Document'
+                                  : 'Review',
                     _phaseId: phase.id,
                     _phaseTitle: phase.title,
                     _phaseDependsOn: phase.dependsOn,
@@ -125,9 +143,14 @@ function convertPhasesToIssues(phases, summary) {
         }
         // Sprint-model developmentPhases (code-roadmap-generator output)
         const phaseLabel = phase.phase || phase.name || phase.title || 'Phase';
-        const severity = phase.status === 'completed' ? 'info'
-            : phase.status === 'in-progress' ? 'medium'
-                : phase.progress >= 50 ? 'medium' : 'low';
+        const severity =
+            phase.status === 'completed'
+                ? 'info'
+                : phase.status === 'in-progress'
+                  ? 'medium'
+                  : phase.progress >= 50
+                    ? 'medium'
+                    : 'low';
         const descriptionParts = [phase.description].filter(Boolean);
         if (Array.isArray(phase.features) && phase.features.length) {
             descriptionParts.push('Features: ' + phase.features.join('; '));
@@ -135,9 +158,8 @@ function convertPhasesToIssues(phases, summary) {
         if (Array.isArray(phase.milestones) && phase.milestones.length) {
             descriptionParts.push('Milestones: ' + phase.milestones.join('; '));
         }
-        const action = phase.status === 'completed' ? 'Completed'
-            : phase.status === 'in-progress' ? 'In progress'
-                : 'Planned';
+        const action =
+            phase.status === 'completed' ? 'Completed' : phase.status === 'in-progress' ? 'In progress' : 'Planned';
         issues.push({
             id: 'roadmap-' + (phase.id || slugify(phaseLabel)) + '-' + idx++,
             severity,
@@ -188,10 +210,19 @@ export class RemediationRoadmapView {
     }
     refreshPaginationState() {
         const issues = this.getIssues();
-        let filtered = this.selectedCategory === 'all' ? issues : issues.filter(i => (i.category || '').toLowerCase() === (this.selectedCategory || '').toLowerCase());
+        let filtered =
+            this.selectedCategory === 'all'
+                ? issues
+                : issues.filter(i => (i.category || '').toLowerCase() === (this.selectedCategory || '').toLowerCase());
         if (this.searchQuery) {
             const q = this.searchQuery.toLowerCase();
-            filtered = filtered.filter(i => (i.type || '').toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q) || (i.filePath || '').toLowerCase().includes(q) || (i.category || '').toLowerCase().includes(q));
+            filtered = filtered.filter(
+                i =>
+                    (i.type || '').toLowerCase().includes(q) ||
+                    (i.description || '').toLowerCase().includes(q) ||
+                    (i.filePath || '').toLowerCase().includes(q) ||
+                    (i.category || '').toLowerCase().includes(q)
+            );
         }
         if (!this.showCompleted) {
             filtered = filtered.filter(i => !this.completed.has(i.id));
@@ -207,23 +238,33 @@ export class RemediationRoadmapView {
         if (remediationPayload && Array.isArray(remediationPayload.issues) && remediationPayload.issues.length) {
             return remediationPayload.issues.map((issue, index) => ({
                 ...issue,
-                id: issue.id || `${issue.severity || 'info'}|${issue.type || 'Issue'}|${issue.description || ''}|${index}`,
-                filePath: issue.filePath || issue.file || (issue.filePaths && issue.filePaths[0]) || (issue.affectedFiles && issue.affectedFiles[0]) || '—'
+                id:
+                    issue.id ||
+                    `${issue.severity || 'info'}|${issue.type || 'Issue'}|${issue.description || ''}|${index}`,
+                filePath:
+                    issue.filePath ||
+                    issue.file ||
+                    (issue.filePaths && issue.filePaths[0]) ||
+                    (issue.affectedFiles && issue.affectedFiles[0]) ||
+                    '—'
             }));
         }
         const report = this.app.state.report;
         const raw = report === null || report === void 0 ? void 0 : report.rawIssues;
         const detected = report === null || report === void 0 ? void 0 : report.detectedIssues;
-        const source = (Array.isArray(raw) && raw.length) ? raw
-            : (Array.isArray(detected) && detected.length) ? detected
-                : [];
+        const source =
+            Array.isArray(raw) && raw.length ? raw : Array.isArray(detected) && detected.length ? detected : [];
         const liveIssues = source.map((issue, index) => {
             var _a, _b;
-            return ({
+            return {
                 ...issue,
                 id: issue.id || `${issue.severity}|${issue.type}|${issue.description}|${index}`,
-                filePath: issue.filePath || ((_a = issue.filePaths) === null || _a === void 0 ? void 0 : _a[0]) || ((_b = issue.affectedFiles) === null || _b === void 0 ? void 0 : _b[0]) || '—'
-            });
+                filePath:
+                    issue.filePath ||
+                    ((_a = issue.filePaths) === null || _a === void 0 ? void 0 : _a[0]) ||
+                    ((_b = issue.affectedFiles) === null || _b === void 0 ? void 0 : _b[0]) ||
+                    '—'
+            };
         });
         // Merge imported issues that no longer appear in live scan
         const liveIds = new Set(liveIssues.map(i => i.id));
@@ -242,17 +283,22 @@ export class RemediationRoadmapView {
     async ensureReportFresh() {
         var _a, _b;
         const report = this.app.state.report;
-        const hasLive = (Array.isArray(report === null || report === void 0 ? void 0 : report.rawIssues) && report.rawIssues.length > 0)
-            || (Array.isArray(report === null || report === void 0 ? void 0 : report.detectedIssues) && report.detectedIssues.length > 0);
-        if (hasLive)
-            return;
+        const hasLive =
+            (Array.isArray(report === null || report === void 0 ? void 0 : report.rawIssues) &&
+                report.rawIssues.length > 0) ||
+            (Array.isArray(report === null || report === void 0 ? void 0 : report.detectedIssues) &&
+                report.detectedIssues.length > 0);
+        if (hasLive) return;
         try {
             const fresh = await this.app.scanService.fetchReport();
-            if (fresh && (((_a = fresh.rawIssues) === null || _a === void 0 ? void 0 : _a.length) || ((_b = fresh.detectedIssues) === null || _b === void 0 ? void 0 : _b.length))) {
+            if (
+                fresh &&
+                (((_a = fresh.rawIssues) === null || _a === void 0 ? void 0 : _a.length) ||
+                    ((_b = fresh.detectedIssues) === null || _b === void 0 ? void 0 : _b.length))
+            ) {
                 this.app.state.report = fresh;
             }
-        }
-        catch (_c) {
+        } catch (_c) {
             // No report on disk yet — keep current state
         }
     }
@@ -267,14 +313,12 @@ export class RemediationRoadmapView {
             const plan = getRemediationPlan(issue);
             byCategory[plan.category] = (byCategory[plan.category] || 0) + 1;
             const mins = parseInt(plan.effort, 10) || 20;
-            if (!this.completed.has(issue.id))
-                totalEffortMin += mins;
+            if (!this.completed.has(issue.id)) totalEffortMin += mins;
         }
         return { total, completed, remaining: total - completed, bySeverity, byCategory, totalEffortMin };
     }
     renderProgressBar(completed, total) {
-        if (!total)
-            return '';
+        if (!total) return '';
         const pct = Math.round((completed / total) * 100);
         return `
       <div class="roadmap-progress" style="margin: 0 0 16px 0;">
@@ -292,11 +336,15 @@ export class RemediationRoadmapView {
         const items = ['all', ...Object.keys(categories).sort()];
         return `
       <div class="roadmap-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-        ${items.map(cat => `
+        ${items
+            .map(
+                cat => `
           <button class="filter-chip ${cat === this.selectedCategory ? 'active' : ''}" data-filter="${escapeHtml(cat)}">
             ${escapeHtml(cat === 'all' ? 'All Categories' : cat)} ${cat !== 'all' ? `(${categories[cat]})` : ''}
           </button>
-        `).join('')}
+        `
+            )
+            .join('')}
         <label for="show-completed" style="display:flex;align-items:center;gap:6px;margin-left:auto;font-size:var(--font-size-sm);cursor:pointer;">
           <input type="checkbox" id="show-completed" aria-label="Show completed" ${this.showCompleted ? 'checked' : ''}>
           Show completed
@@ -305,9 +353,10 @@ export class RemediationRoadmapView {
     `;
     }
     renderPhaseHeader(phaseId, phaseTitle, phaseDescription, phaseDependsOn) {
-        if (!phaseId)
-            return '';
-        const blocked = phaseDependsOn ? `<span class="pill" style="background:rgba(245,158,11,0.15);color:var(--warning);">Blocked by ${escapeHtml(phaseDependsOn)}</span>` : '';
+        if (!phaseId) return '';
+        const blocked = phaseDependsOn
+            ? `<span class="pill" style="background:rgba(245,158,11,0.15);color:var(--warning);">Blocked by ${escapeHtml(phaseDependsOn)}</span>`
+            : '';
         return `
       <div class="roadmap-phase-header" style="
         margin: var(--space-4) 0 var(--space-2);
@@ -381,11 +430,10 @@ export class RemediationRoadmapView {
     }
     importFromJson(file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = e => {
             try {
                 this.importFromText(e.target.result);
-            }
-            catch (err) {
+            } catch (err) {
                 showToast('Failed to parse JSON: ' + err.message, 'error');
             }
         };
@@ -415,8 +463,7 @@ export class RemediationRoadmapView {
                 const bName = b.name.toLowerCase();
                 const aPriority = priorityNames.some(p => aName.includes(p)) ? 1 : 0;
                 const bPriority = priorityNames.some(p => bName.includes(p)) ? 1 : 0;
-                if (aPriority !== bPriority)
-                    return bPriority - aPriority;
+                if (aPriority !== bPriority) return bPriority - aPriority;
                 return (b._data.uncompressedSize || 0) - (a._data.uncompressedSize || 0);
             });
             let importedCount = 0;
@@ -425,22 +472,19 @@ export class RemediationRoadmapView {
                 try {
                     const data = JSON.parse(text.trim());
                     // Skip manifest-only files and tiny metadata JSONs
-                    if (data.manifest && Object.keys(data).length === 1)
-                        continue;
+                    if (data.manifest && Object.keys(data).length === 1) continue;
                     this.importFromText(text);
                     importedCount++;
                     // Only import the first matching report
                     break;
-                }
-                catch (_a) {
+                } catch (_a) {
                     // Continue to next file
                 }
             }
             if (!importedCount) {
                 showToast('Could not import any report from ZIP', 'error');
             }
-        }
-        catch (err) {
+        } catch (err) {
             showToast('Failed to read ZIP: ' + err.message, 'error');
         }
     }
@@ -459,24 +503,26 @@ export class RemediationRoadmapView {
                 data = data.roadmap;
             }
             // Normalize complete-scan wrapper to extract roadmap
-            if (data.type === 'simplebeacon-complete-scan' && ((_b = data.results) === null || _b === void 0 ? void 0 : _b.roadmap)) {
+            if (
+                data.type === 'simplebeacon-complete-scan' &&
+                ((_b = data.results) === null || _b === void 0 ? void 0 : _b.roadmap)
+            ) {
                 const roadmap = data.results.roadmap;
                 if (Array.isArray(roadmap.phases) && roadmap.phases.length) {
                     data = { phases: roadmap.phases, summary: roadmap.summary || data.summary };
-                }
-                else if (Array.isArray(roadmap.developmentPhases) && roadmap.developmentPhases.length) {
+                } else if (Array.isArray(roadmap.developmentPhases) && roadmap.developmentPhases.length) {
                     data = { phases: roadmap.developmentPhases, summary: roadmap.summary || data.summary };
-                }
-                else if (Array.isArray(roadmap.implementationPhases) && roadmap.implementationPhases.length) {
+                } else if (Array.isArray(roadmap.implementationPhases) && roadmap.implementationPhases.length) {
                     data = { phases: roadmap.implementationPhases, summary: roadmap.summary || data.summary };
-                }
-                else if (Array.isArray(roadmap.issues) && roadmap.issues.length) {
+                } else if (Array.isArray(roadmap.issues) && roadmap.issues.length) {
                     data = { issues: roadmap.issues, metadata: { exportedAt: data.generatedAt } };
                 }
             }
             // Normalize raw simplebeacon report with issues
             if (data.type === 'simplebeacon-report') {
-                const sourceIssues = ((_c = data.rawIssues) === null || _c === void 0 ? void 0 : _c.length) ? data.rawIssues : (data.detectedIssues || []);
+                const sourceIssues = ((_c = data.rawIssues) === null || _c === void 0 ? void 0 : _c.length)
+                    ? data.rawIssues
+                    : data.detectedIssues || [];
                 if (sourceIssues.length) {
                     data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt || data.scannedAt } };
                 }
@@ -485,7 +531,9 @@ export class RemediationRoadmapView {
             if (data.type === 'simplebeacon-complete-scan' && !data.issues && !data.phases) {
                 const sb = (_d = data.results) === null || _d === void 0 ? void 0 : _d.simplebeacon;
                 if (sb) {
-                    const sourceIssues = ((_e = sb.rawIssues) === null || _e === void 0 ? void 0 : _e.length) ? sb.rawIssues : (sb.detectedIssues || []);
+                    const sourceIssues = ((_e = sb.rawIssues) === null || _e === void 0 ? void 0 : _e.length)
+                        ? sb.rawIssues
+                        : sb.detectedIssues || [];
                     if (sourceIssues.length) {
                         data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt } };
                     }
@@ -494,23 +542,19 @@ export class RemediationRoadmapView {
             if (Array.isArray(data.issues) && data.issues.length) {
                 issues = data.issues;
                 metaExportedAt = (_f = data.metadata) === null || _f === void 0 ? void 0 : _f.exportedAt;
-            }
-            else if (Array.isArray(data.phases) && data.phases.length) {
+            } else if (Array.isArray(data.phases) && data.phases.length) {
                 const converted = convertPhasesToIssues(data.phases, data.summary);
                 issues = converted.issues;
                 metaExportedAt = converted.exportedAt;
-            }
-            else if (Array.isArray(data.developmentPhases) && data.developmentPhases.length) {
+            } else if (Array.isArray(data.developmentPhases) && data.developmentPhases.length) {
                 const converted = convertPhasesToIssues(data.developmentPhases, data.summary);
                 issues = converted.issues;
                 metaExportedAt = converted.exportedAt;
-            }
-            else if (Array.isArray(data.implementationPhases) && data.implementationPhases.length) {
+            } else if (Array.isArray(data.implementationPhases) && data.implementationPhases.length) {
                 const converted = convertPhasesToIssues(data.implementationPhases, data.summary);
                 issues = converted.issues;
                 metaExportedAt = converted.exportedAt;
-            }
-            else {
+            } else {
                 showToast('Invalid roadmap JSON — missing issues or phases array', 'error');
                 return;
             }
@@ -529,14 +573,12 @@ export class RemediationRoadmapView {
             localStorage.setItem('sb-remediation-imported', JSON.stringify(this.importedIssues));
             localStorage.setItem('sb-remediation-imported-at', this.importedAt);
             for (const issue of this.importedIssues) {
-                if (issue.completed)
-                    this.completed.add(issue.id);
+                if (issue.completed) this.completed.add(issue.id);
             }
             localStorage.setItem('sb-remediation-completed', JSON.stringify([...this.completed]));
             showToast(`Imported ${this.importedIssues.length} issues from JSON text`);
             this.refreshView();
-        }
-        catch (err) {
+        } catch (err) {
             showToast('Failed to parse JSON: ' + err.message, 'error');
         }
     }
@@ -552,8 +594,7 @@ export class RemediationRoadmapView {
     `;
     }
     renderPagination(totalItems, currentPage, totalPages) {
-        if (totalPages <= 1)
-            return '';
+        if (totalPages <= 1) return '';
         const start = (currentPage - 1) * this.pageSize + 1;
         const end = Math.min(currentPage * this.pageSize, totalItems);
         const prevDisabled = currentPage <= 1 ? 'disabled' : '';
@@ -593,18 +634,19 @@ export class RemediationRoadmapView {
     `;
     }
     openImportPopup() {
-        if (document.getElementById('sb-import-modal-overlay'))
-            return;
+        if (document.getElementById('sb-import-modal-overlay')) return;
         const self = this;
         const overlay = document.createElement('div');
         overlay.id = 'sb-import-modal-overlay';
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        overlay.style.cssText =
+            'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;';
         const panel = document.createElement('div');
-        panel.style.cssText = 'width:90%;max-width:840px;max-height:90vh;overflow:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:30px;color:#e6edf3;font-family:sans-serif;font-size:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
+        panel.style.cssText =
+            'width:90%;max-width:840px;max-height:90vh;overflow:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:30px;color:#e6edf3;font-family:sans-serif;font-size:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
         window.setSafeHTML(
             panel,
             '\n      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">\n        <h3 style="margin:0;font-size:1.1rem;color:#e6edf3;">Import Remediation Data</h3>\n        <button id="sb-import-close" style="background:none;border:none;color:#8b949e;cursor:pointer;font-size:1.2rem;line-height:1;">&times;</button>\n      </div>\n      <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8b949e;margin-bottom:8px;display:block;">Paste JSON directly</label>\n      <textarea id="sb-import-json" placeholder=\'{"issues": [{"id":"1","severity":"high","type":"Credential leak","category":"Security","description":"...","filePath":"...","action":"...","effort":"30 min","completed":false}]}\'\n        style="width:100%;min-height:180px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;color:#e6edf3;font-family:monospace;font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>\n      <div id="sb-import-dropzone" style="margin-top:12px;padding:16px;border:2px dashed #30363d;border-radius:8px;text-align:center;cursor:pointer;transition:border-color 0.2s;">\n        <strong>Drag &amp; drop</strong> a JSON or ZIP file here\n        <div style="color:#8b949e;font-size:12px;margin-top:4px;">Supports scan report JSON and export-bundle ZIP files</div>\n      </div>\n      <input type="file" id="sb-import-file" accept=".json,.zip" style="display:none;">\n      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">\n        <button id="sb-import-choose" style="padding:6px 14px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#e6edf3;cursor:pointer;font-size:13px;">Choose File</button>\n        <button id="sb-import-submit" style="padding:6px 14px;border:1px solid #58a6ff;border-radius:8px;background:#58a6ff;color:#fff;cursor:pointer;font-size:13px;">Import from JSON</button>\n      </div>\n      <p style="color:#8b949e;font-size:12px;margin-top:12px;">Tip: Use the <strong>Analyze</strong> page to run a scan, then drag the downloaded file here.</p>\n    '
-        );;
+        );
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
         const closeBtn = panel.querySelector('#sb-import-close');
@@ -613,36 +655,38 @@ export class RemediationRoadmapView {
         const jsonInput = panel.querySelector('#sb-import-json');
         const importBtn = panel.querySelector('#sb-import-submit');
         const chooseBtn = panel.querySelector('#sb-import-choose');
-        function close() { overlay.remove(); }
+        function close() {
+            overlay.remove();
+        }
         closeBtn.addEventListener('click', close);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay)
-            close(); });
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#58a6ff'; });
-        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.borderColor = '#30363d'; });
-        dropZone.addEventListener('drop', (e) => {
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) close();
+        });
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#58a6ff';
+        });
+        dropZone.addEventListener('dragleave', e => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#30363d';
+        });
+        dropZone.addEventListener('drop', e => {
             e.preventDefault();
             dropZone.style.borderColor = '#30363d';
             const file = e.dataTransfer.files[0];
-            if (!file)
-                return;
+            if (!file) return;
             close();
-            if (file.name.toLowerCase().endsWith('.zip'))
-                self.importFromZip(file);
-            else if (file.name.toLowerCase().endsWith('.json'))
-                self.importFromJson(file);
-            else
-                showToast('Please drop a .json or .zip file', 'warning');
+            if (file.name.toLowerCase().endsWith('.zip')) self.importFromZip(file);
+            else if (file.name.toLowerCase().endsWith('.json')) self.importFromJson(file);
+            else showToast('Please drop a .json or .zip file', 'warning');
         });
         dropZone.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', () => {
             const file = fileInput.files[0];
-            if (!file)
-                return;
+            if (!file) return;
             close();
-            if (file.name.toLowerCase().endsWith('.zip'))
-                self.importFromZip(file);
-            else if (file.name.toLowerCase().endsWith('.json'))
-                self.importFromJson(file);
+            if (file.name.toLowerCase().endsWith('.zip')) self.importFromZip(file);
+            else if (file.name.toLowerCase().endsWith('.json')) self.importFromJson(file);
         });
         chooseBtn.addEventListener('click', () => fileInput.click());
         importBtn.addEventListener('click', () => {
@@ -654,7 +698,7 @@ export class RemediationRoadmapView {
             close();
             self.importFromText(text);
         });
-        jsonInput.addEventListener('keydown', (e) => {
+        jsonInput.addEventListener('keydown', e => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 importBtn.click();
@@ -677,31 +721,31 @@ export class RemediationRoadmapView {
         if (!issues.length) {
             return `
         ${renderEmptyState({
-                icon: '🗺️',
-                title: 'No scan report loaded',
-                body: 'Run Simplebeacon Scan to generate a remediation roadmap.',
-                iconWrapper: 'emoji'
-            })}
+            icon: '🗺️',
+            title: 'No scan report loaded',
+            body: 'Run Simplebeacon Scan to generate a remediation roadmap.',
+            iconWrapper: 'emoji'
+        })}
       `;
         }
         const stats = this.getSummaryStats(issues);
         const grouped = groupIssuesByCategory(issues);
-        let filtered = this.selectedCategory === 'all'
-            ? issues
-            : (grouped[this.selectedCategory] || []);
+        let filtered = this.selectedCategory === 'all' ? issues : grouped[this.selectedCategory] || [];
         if (this.searchQuery) {
             const q = this.searchQuery.toLowerCase();
-            filtered = filtered.filter(i => (i.type || '').toLowerCase().includes(q) ||
-                (i.description || '').toLowerCase().includes(q) ||
-                (i.filePath || '').toLowerCase().includes(q) ||
-                (i.category || '').toLowerCase().includes(q));
+            filtered = filtered.filter(
+                i =>
+                    (i.type || '').toLowerCase().includes(q) ||
+                    (i.description || '').toLowerCase().includes(q) ||
+                    (i.filePath || '').toLowerCase().includes(q) ||
+                    (i.category || '').toLowerCase().includes(q)
+            );
         }
         const visible = this.showCompleted ? filtered : filtered.filter(i => !this.completed.has(i.id));
         const sorted = sortBySeverity(visible);
         const totalPages = Math.max(1, Math.ceil(sorted.length / this.pageSize));
         const safePage = Math.min(this.currentPage, totalPages);
-        if (safePage !== this.currentPage)
-            this.currentPage = safePage;
+        if (safePage !== this.currentPage) this.currentPage = safePage;
         const startIndex = (safePage - 1) * this.pageSize;
         const paginated = sorted.slice(startIndex, startIndex + this.pageSize);
         const effortHours = Math.ceil(stats.totalEffortMin / 60);
@@ -740,16 +784,28 @@ export class RemediationRoadmapView {
       ${this.renderCategoryFilter(Object.fromEntries(Object.entries(stats.byCategory).sort((a, b) => b[1] - a[1])))}
 
       <div class="roadmap-list">
-        ${paginated.length ? (() => {
-            let lastPhaseId = null;
-            return paginated.map(i => {
-                const header = i._phaseId && i._phaseId !== lastPhaseId
-                    ? this.renderPhaseHeader(i._phaseId, i._phaseTitle, i._phaseDescription, i._phaseDependsOn)
-                    : '';
-                lastPhaseId = i._phaseId || lastPhaseId;
-                return header + this.renderIssueCard(i);
-            }).join('');
-        })() : '<p class="text-muted card">All issues in this category are completed 🎉</p>'}
+        ${
+            paginated.length
+                ? (() => {
+                      let lastPhaseId = null;
+                      return paginated
+                          .map(i => {
+                              const header =
+                                  i._phaseId && i._phaseId !== lastPhaseId
+                                      ? this.renderPhaseHeader(
+                                            i._phaseId,
+                                            i._phaseTitle,
+                                            i._phaseDescription,
+                                            i._phaseDependsOn
+                                        )
+                                      : '';
+                              lastPhaseId = i._phaseId || lastPhaseId;
+                              return header + this.renderIssueCard(i);
+                          })
+                          .join('');
+                  })()
+                : '<p class="text-muted card">All issues in this category are completed 🎉</p>'
+        }
       </div>
 
       ${this.renderPagination(sorted.length, safePage, totalPages)}
@@ -783,20 +839,21 @@ export class RemediationRoadmapView {
             });
         });
         const showCompletedCheckbox = el.querySelector('#show-completed');
-        showCompletedCheckbox === null || showCompletedCheckbox === void 0 ? void 0 : showCompletedCheckbox.addEventListener('change', (e) => {
-            this.showCompleted = e.target.checked;
-            this.currentPage = 1;
-            this.refreshView();
-        });
+        showCompletedCheckbox === null || showCompletedCheckbox === void 0
+            ? void 0
+            : showCompletedCheckbox.addEventListener('change', e => {
+                  this.showCompleted = e.target.checked;
+                  this.currentPage = 1;
+                  this.refreshView();
+              });
         // Search input: update query, reset to page 1 and refresh (debounced)
-        
+
         el.querySelectorAll('.roadmap-check').forEach(cb => {
-            cb.addEventListener('change', (e) => {
+            cb.addEventListener('change', e => {
                 const id = cb.dataset.id;
                 if (e.target.checked) {
                     this.completed.add(id);
-                }
-                else {
+                } else {
                     this.completed.delete(id);
                 }
                 localStorage.setItem('sb-remediation-completed', JSON.stringify([...this.completed]));
@@ -804,8 +861,8 @@ export class RemediationRoadmapView {
             });
         });
         const projectRoot = resolveProjectRootFromApp(this.app);
-        el.querySelectorAll('.roadmap-open-file').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
+        el.querySelectorAll('.roadmap-open-file').forEach(btn => {
+            btn.addEventListener('click', e => {
                 e.preventDefault();
                 e.stopPropagation();
                 openInIde(btn.dataset.file, Number(btn.dataset.line) || 1, { projectRoot });
@@ -817,7 +874,7 @@ export class RemediationRoadmapView {
         const mount = this._mountRoot || el;
         if (!this._paginationDelegated && mount) {
             this._paginationDelegated = true;
-            mount.addEventListener('click', (event) => {
+            mount.addEventListener('click', event => {
                 const prev = event.target.closest && event.target.closest('#remediation-prev-page');
                 const next = event.target.closest && event.target.closest('#remediation-next-page');
                 if (!prev && !next) return;
@@ -827,8 +884,7 @@ export class RemediationRoadmapView {
                         this.currentPage -= 1;
                         this.refreshView();
                     }
-                }
-                else if (next) {
+                } else if (next) {
                     // compute latest totalPages and clamp
                     const tp = this.refreshPaginationState();
                     if (this.currentPage < tp) {
@@ -839,29 +895,38 @@ export class RemediationRoadmapView {
             });
         }
         const exportBtn = el.querySelector('#export-remediation-json');
-        exportBtn === null || exportBtn === void 0 ? void 0 : exportBtn.addEventListener('click', async () => {
-            await this.ensureReportFresh();
-            this.exportToJson(this.getIssues());
-        });
+        exportBtn === null || exportBtn === void 0
+            ? void 0
+            : exportBtn.addEventListener('click', async () => {
+                  await this.ensureReportFresh();
+                  this.exportToJson(this.getIssues());
+              });
         const importBtn = el.querySelector('#import-remediation-btn');
         const importFile = el.querySelector('#import-remediation-file');
-        importBtn === null || importBtn === void 0 ? void 0 : importBtn.addEventListener('click', () => importFile === null || importFile === void 0 ? void 0 : importFile.click());
-        importFile === null || importFile === void 0 ? void 0 : importFile.addEventListener('change', (e) => {
-            var _a;
-            const file = (_a = e.target.files) === null || _a === void 0 ? void 0 : _a[0];
-            if (file) {
-                if (file.name.toLowerCase().endsWith('.zip')) {
-                    this.importFromZip(file);
-                }
-                else {
-                    this.importFromJson(file);
-                }
-                importFile.value = '';
-            }
-        });
+        importBtn === null || importBtn === void 0
+            ? void 0
+            : importBtn.addEventListener('click', () =>
+                  importFile === null || importFile === void 0 ? void 0 : importFile.click()
+              );
+        importFile === null || importFile === void 0
+            ? void 0
+            : importFile.addEventListener('change', e => {
+                  var _a;
+                  const file = (_a = e.target.files) === null || _a === void 0 ? void 0 : _a[0];
+                  if (file) {
+                      if (file.name.toLowerCase().endsWith('.zip')) {
+                          this.importFromZip(file);
+                      } else {
+                          this.importFromJson(file);
+                      }
+                      importFile.value = '';
+                  }
+              });
         // Import popup
         const openModalBtn = el.querySelector('#open-import-modal-btn');
-        openModalBtn === null || openModalBtn === void 0 ? void 0 : openModalBtn.addEventListener('click', () => this.openImportPopup());
+        openModalBtn === null || openModalBtn === void 0
+            ? void 0
+            : openModalBtn.addEventListener('click', () => this.openImportPopup());
         // Drag-and-drop handlers on main page (fallback)
         const dropZone = el.querySelector('#remediation-drop-zone');
         if (dropZone) {
@@ -870,7 +935,7 @@ export class RemediationRoadmapView {
              * @param {any} e
              * @returns {any}
              */
-            const handleDragOver = (e) => {
+            const handleDragOver = e => {
                 e.preventDefault();
                 e.stopPropagation();
                 dropZone.style.borderColor = 'var(--accent)';
@@ -881,7 +946,7 @@ export class RemediationRoadmapView {
              * @param {any} e
              * @returns {any}
              */
-            const handleDragLeave = (e) => {
+            const handleDragLeave = e => {
                 e.preventDefault();
                 e.stopPropagation();
                 dropZone.style.borderColor = 'var(--border)';
@@ -892,22 +957,22 @@ export class RemediationRoadmapView {
              * @param {any} e
              * @returns {any}
              */
-            const handleDrop = (e) => {
+            const handleDrop = e => {
                 var _a, _b;
                 e.preventDefault();
                 e.stopPropagation();
                 dropZone.style.borderColor = 'var(--border)';
                 dropZone.style.background = '';
-                const file = (_b = (_a = e.dataTransfer) === null || _a === void 0 ? void 0 : _a.files) === null || _b === void 0 ? void 0 : _b[0];
-                if (!file)
-                    return;
+                const file =
+                    (_b = (_a = e.dataTransfer) === null || _a === void 0 ? void 0 : _a.files) === null || _b === void 0
+                        ? void 0
+                        : _b[0];
+                if (!file) return;
                 if (file.name.toLowerCase().endsWith('.zip')) {
                     this.importFromZip(file);
-                }
-                else if (file.name.toLowerCase().endsWith('.json')) {
+                } else if (file.name.toLowerCase().endsWith('.json')) {
                     this.importFromJson(file);
-                }
-                else {
+                } else {
                     showToast('Please drop a .json or .zip file', 'warning');
                 }
             };
@@ -915,53 +980,73 @@ export class RemediationRoadmapView {
             dropZone.addEventListener('dragleave', handleDragLeave);
             dropZone.addEventListener('drop', handleDrop);
             // Also allow clicking the drop zone to open file picker
-            dropZone.addEventListener('click', () => importFile === null || importFile === void 0 ? void 0 : importFile.click());
+            dropZone.addEventListener('click', () =>
+                importFile === null || importFile === void 0 ? void 0 : importFile.click()
+            );
         }
         const generateBtn = el.querySelector('#generate-from-json-btn');
         const jsonInput = el.querySelector('#json-paste-input');
-        generateBtn === null || generateBtn === void 0 ? void 0 : generateBtn.addEventListener('click', () => {
-            const text = (jsonInput === null || jsonInput === void 0 ? void 0 : jsonInput.value) || '';
-            if (!text.trim()) {
-                showToast('Paste JSON data first', 'warning');
-                return;
-            }
-            this.importFromText(text);
-        });
-        jsonInput === null || jsonInput === void 0 ? void 0 : jsonInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                generateBtn === null || generateBtn === void 0 ? void 0 : generateBtn.click();
-            }
-        });
+        generateBtn === null || generateBtn === void 0
+            ? void 0
+            : generateBtn.addEventListener('click', () => {
+                  const text = (jsonInput === null || jsonInput === void 0 ? void 0 : jsonInput.value) || '';
+                  if (!text.trim()) {
+                      showToast('Paste JSON data first', 'warning');
+                      return;
+                  }
+                  this.importFromText(text);
+              });
+        jsonInput === null || jsonInput === void 0
+            ? void 0
+            : jsonInput.addEventListener('keydown', e => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault();
+                      generateBtn === null || generateBtn === void 0 ? void 0 : generateBtn.click();
+                  }
+              });
         const searchInput = el.querySelector('#remediation-search');
-        searchInput === null || searchInput === void 0 ? void 0 : searchInput.addEventListener('input', (e) => {
-            this.searchQuery = e.target.value.trim();
-            this.currentPage = 1;
-            this.refreshView();
-        });
+        searchInput === null || searchInput === void 0
+            ? void 0
+            : searchInput.addEventListener('input', e => {
+                  this.searchQuery = e.target.value.trim();
+                  this.currentPage = 1;
+                  this.refreshView();
+              });
         const markdownBtn = el.querySelector('#export-remediation-markdown');
-        markdownBtn === null || markdownBtn === void 0 ? void 0 : markdownBtn.addEventListener('click', () => {
-            this.copyMarkdown(this.getIssues());
-        });
+        markdownBtn === null || markdownBtn === void 0
+            ? void 0
+            : markdownBtn.addEventListener('click', () => {
+                  this.copyMarkdown(this.getIssues());
+              });
         const summaryBtn = el.querySelector('#export-remediation-summary');
-        summaryBtn === null || summaryBtn === void 0 ? void 0 : summaryBtn.addEventListener('click', () => {
-            this.copySummary(this.getIssues());
-        });
+        summaryBtn === null || summaryBtn === void 0
+            ? void 0
+            : summaryBtn.addEventListener('click', () => {
+                  this.copySummary(this.getIssues());
+              });
     }
     copyMarkdown(issues) {
         const stats = this.getSummaryStats(issues);
-        const lines = ['# Remediation Roadmap', '', `**Total:** ${stats.total} | **Remaining:** ${stats.remaining} | **Completed:** ${stats.completed}`, ''];
+        const lines = [
+            '# Remediation Roadmap',
+            '',
+            `**Total:** ${stats.total} | **Remaining:** ${stats.remaining} | **Completed:** ${stats.completed}`,
+            ''
+        ];
         const grouped = groupIssuesByCategory(issues);
         for (const [cat, items] of Object.entries(grouped)) {
             lines.push(`## ${escapeHtml(cat)}`);
             for (const issue of sortBySeverity(items)) {
                 const plan = getRemediationPlan(issue);
                 const done = this.completed.has(issue.id) ? 'x' : ' ';
-                lines.push(`- [${done}] ${escapeHtml(issue.type || 'Issue')} — ${escapeHtml(plan.action)} (${escapeHtml(plan.effort)})`);
+                lines.push(
+                    `- [${done}] ${escapeHtml(issue.type || 'Issue')} — ${escapeHtml(plan.action)} (${escapeHtml(plan.effort)})`
+                );
             }
             lines.push('');
         }
-        navigator.clipboard.writeText(lines.join('\n'))
+        navigator.clipboard
+            .writeText(lines.join('\n'))
             .then(() => showToast('Markdown copied to clipboard', 'success'))
             .catch(() => showToast('Clipboard unavailable', 'error'));
     }
@@ -978,7 +1063,8 @@ export class RemediationRoadmapView {
             const remaining = items.filter(i => !this.completed.has(i.id)).length;
             lines.push(`${cat}: ${remaining}/${items.length} remaining`);
         }
-        navigator.clipboard.writeText(lines.join('\n'))
+        navigator.clipboard
+            .writeText(lines.join('\n'))
             .then(() => showToast('Summary copied to clipboard', 'success'))
             .catch(() => showToast('Clipboard unavailable', 'error'));
     }
@@ -1001,11 +1087,10 @@ export class RemediationRoadmapView {
              * @param {string} url
              * @returns {any}
              */
-            const tryLoad = async (url) => {
+            const tryLoad = async url => {
                 var _a, _b, _c, _d, _e, _f;
                 const res = await fetch(url, { cache: 'no-store' });
-                if (!res.ok)
-                    return false;
+                if (!res.ok) return false;
                 let data = await res.json();
                 let issues = [];
                 let metaExportedAt = null;
@@ -1018,24 +1103,26 @@ export class RemediationRoadmapView {
                     data = data.roadmap;
                 }
                 // Normalize complete-scan wrapper to extract roadmap
-                if (data.type === 'simplebeacon-complete-scan' && ((_b = data.results) === null || _b === void 0 ? void 0 : _b.roadmap)) {
+                if (
+                    data.type === 'simplebeacon-complete-scan' &&
+                    ((_b = data.results) === null || _b === void 0 ? void 0 : _b.roadmap)
+                ) {
                     const roadmap = data.results.roadmap;
                     if (Array.isArray(roadmap.phases) && roadmap.phases.length) {
                         data = { phases: roadmap.phases, summary: roadmap.summary || data.summary };
-                    }
-                    else if (Array.isArray(roadmap.developmentPhases) && roadmap.developmentPhases.length) {
+                    } else if (Array.isArray(roadmap.developmentPhases) && roadmap.developmentPhases.length) {
                         data = { phases: roadmap.developmentPhases, summary: roadmap.summary || data.summary };
-                    }
-                    else if (Array.isArray(roadmap.implementationPhases) && roadmap.implementationPhases.length) {
+                    } else if (Array.isArray(roadmap.implementationPhases) && roadmap.implementationPhases.length) {
                         data = { phases: roadmap.implementationPhases, summary: roadmap.summary || data.summary };
-                    }
-                    else if (Array.isArray(roadmap.issues) && roadmap.issues.length) {
+                    } else if (Array.isArray(roadmap.issues) && roadmap.issues.length) {
                         data = { issues: roadmap.issues, metadata: { exportedAt: data.generatedAt } };
                     }
                 }
                 // Normalize raw simplebeacon report with issues
                 if (data.type === 'simplebeacon-report') {
-                    const sourceIssues = ((_c = data.rawIssues) === null || _c === void 0 ? void 0 : _c.length) ? data.rawIssues : (data.detectedIssues || []);
+                    const sourceIssues = ((_c = data.rawIssues) === null || _c === void 0 ? void 0 : _c.length)
+                        ? data.rawIssues
+                        : data.detectedIssues || [];
                     if (sourceIssues.length) {
                         data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt || data.scannedAt } };
                     }
@@ -1044,7 +1131,9 @@ export class RemediationRoadmapView {
                 if (data.type === 'simplebeacon-complete-scan' && !data.issues && !data.phases) {
                     const sb = (_d = data.results) === null || _d === void 0 ? void 0 : _d.simplebeacon;
                     if (sb) {
-                        const sourceIssues = ((_e = sb.rawIssues) === null || _e === void 0 ? void 0 : _e.length) ? sb.rawIssues : (sb.detectedIssues || []);
+                        const sourceIssues = ((_e = sb.rawIssues) === null || _e === void 0 ? void 0 : _e.length)
+                            ? sb.rawIssues
+                            : sb.detectedIssues || [];
                         if (sourceIssues.length) {
                             data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt } };
                         }
@@ -1053,24 +1142,20 @@ export class RemediationRoadmapView {
                 if (Array.isArray(data.issues) && data.issues.length) {
                     issues = data.issues;
                     metaExportedAt = (_f = data.metadata) === null || _f === void 0 ? void 0 : _f.exportedAt;
-                }
-                else if (Array.isArray(data.phases) && data.phases.length) {
+                } else if (Array.isArray(data.phases) && data.phases.length) {
                     const converted = convertPhasesToIssues(data.phases, data.summary);
                     issues = converted.issues;
                     metaExportedAt = converted.exportedAt;
-                }
-                else if (Array.isArray(data.developmentPhases) && data.developmentPhases.length) {
+                } else if (Array.isArray(data.developmentPhases) && data.developmentPhases.length) {
                     const converted = convertPhasesToIssues(data.developmentPhases, data.summary);
                     issues = converted.issues;
                     metaExportedAt = converted.exportedAt;
-                }
-                else if (Array.isArray(data.implementationPhases) && data.implementationPhases.length) {
+                } else if (Array.isArray(data.implementationPhases) && data.implementationPhases.length) {
                     const converted = convertPhasesToIssues(data.implementationPhases, data.summary);
                     issues = converted.issues;
                     metaExportedAt = converted.exportedAt;
                 }
-                if (!issues.length)
-                    return false;
+                if (!issues.length) return false;
                 this.importedIssues = issues.map(issue => ({
                     id: issue.id,
                     severity: issue.severity,
@@ -1086,8 +1171,7 @@ export class RemediationRoadmapView {
                 localStorage.setItem('sb-remediation-imported', JSON.stringify(this.importedIssues));
                 localStorage.setItem('sb-remediation-imported-at', this.importedAt);
                 for (const issue of this.importedIssues) {
-                    if (issue.completed)
-                        this.completed.add(issue.id);
+                    if (issue.completed) this.completed.add(issue.id);
                 }
                 localStorage.setItem('sb-remediation-completed', JSON.stringify([...this.completed]));
                 return true;
@@ -1095,28 +1179,27 @@ export class RemediationRoadmapView {
             if (!this._autoLoadAttempted) {
                 this._autoLoadAttempted = true;
                 // Skip auto-load when served from a static file server without /data/
-                if (window.location.protocol === 'file:')
-                    return;
-                const isLikelyDashboardServer = window.location.pathname.startsWith('/simplebeacon-dashboard/')
-                    || window.location.port === '3000'
-                    || window.location.port === '3002'
-                    || window.location.port === '3001';
-                if (!isLikelyDashboardServer)
-                    return;
+                if (window.location.protocol === 'file:') return;
+                const isLikelyDashboardServer =
+                    window.location.pathname.startsWith('/simplebeacon-dashboard/') ||
+                    window.location.port === '3000' ||
+                    window.location.port === '3002' ||
+                    window.location.port === '3001';
+                if (!isLikelyDashboardServer) return;
                 try {
-                    const loaded = (await tryLoad('/data/complete-scan-ai-platform-2026-06-12.json'))
-                        || (await tryLoad('/data/roadmap-from-scan-ai-platform-2026-06-12.json'))
-                        || (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json'))
-                        || (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12.json'))
-                        || (await tryLoad('/data/roadmap-from-scan-ai-agent-2026-06-12.json'))
-                        || (await tryLoad('/data/roadmap-from-scan-2026-06-11.json'))
-                        || (await tryLoad('/data/roadmap-ai-agent-complete-2026-06-11.json'))
-                        || (await tryLoad('/data/roadmap-ai_agent-merged-2026-06-11.json'));
+                    const loaded =
+                        (await tryLoad('/data/complete-scan-ai-platform-2026-06-12.json')) ||
+                        (await tryLoad('/data/roadmap-from-scan-ai-platform-2026-06-12.json')) ||
+                        (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json')) ||
+                        (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12.json')) ||
+                        (await tryLoad('/data/roadmap-from-scan-ai-agent-2026-06-12.json')) ||
+                        (await tryLoad('/data/roadmap-from-scan-2026-06-11.json')) ||
+                        (await tryLoad('/data/roadmap-ai-agent-complete-2026-06-11.json')) ||
+                        (await tryLoad('/data/roadmap-ai_agent-merged-2026-06-11.json'));
                     if (!loaded) {
                         // Silent — user can import manually
                     }
-                }
-                catch (_a) {
+                } catch (_a) {
                     // Silent fail — user can import manually
                 }
             }

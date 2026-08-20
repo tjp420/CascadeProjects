@@ -9,7 +9,10 @@ const API = '/api/operator';
  * @returns {any}
  */
 function operatorError(httpResponse, responsePayload) {
-    if (httpResponse.status === 403 && (responsePayload === null || responsePayload === void 0 ? void 0 : responsePayload.error) === 'vault_required') {
+    if (
+        httpResponse.status === 403 &&
+        (responsePayload === null || responsePayload === void 0 ? void 0 : responsePayload.error) === 'vault_required'
+    ) {
         return 'Vault session required — open /private-dashboard-vault?returnTo=%2Fapp%23%2Fdeliverables first.';
     }
     if (httpResponse.status === 401) {

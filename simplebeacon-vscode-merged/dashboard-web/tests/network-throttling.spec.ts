@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Dashboard Loading Resiliency & Spinner Lifecycle', () => {
-  test('should display loading spinner while processing on Slow 3G profile and complete gracefully', async ({ page }) => {
+  test('should display loading spinner while processing on Slow 3G profile and complete gracefully', async ({
+    page,
+  }) => {
     // Attach to CDP to emulate network conditions
     const client = await page.context().newCDPSession(page);
 

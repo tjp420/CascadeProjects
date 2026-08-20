@@ -9,20 +9,24 @@ Instead of analyzing text or images conceptually, this script reads the **raw nu
 ## The 4 Debugging Methods
 
 ### 1. Attention-Weight Hallucination Mapping
+
 - Computes row-wise entropy of attention probability matrices
 - Measures diagonal dominance (self-attention strength)
 - **Flags**: High entropy (unfocused attention) + low diagonal dominance (not anchoring on source tokens)
 
 ### 2. Activation-Layer Outlier Detection
+
 - Runs Z-score analysis across hidden-layer activation logs
 - Detects saturated neurons (values pinned near max)
 - **Flags**: Anomalous firing patterns, dying ReLUs, bias-induced saturation
 
 ### 3. Vector-Drift Monitoring
+
 - Computes Cosine Similarity and Euclidean Distance between generated embeddings and verified baselines
 - **Flags**: Semantic drift (cosine drops) and magnitude drift (distance spikes)
 
 ### 4. Execution-Trace Audit
+
 - Tracks loss curves, gradient norms, and token probabilities step-by-step
 - **Flags**: Loss spikes, exploding gradients, token probability collapse
 
@@ -87,7 +91,7 @@ The script produces a structured JSON report:
       "type": "high_entropy_attention",
       "severity": "high",
       "detail": "Mean attention entropy 3.12 exceeds threshold 2.5",
-      "metrics": {"mean_entropy": 3.12, "diagonal_dominance": 0.31}
+      "metrics": { "mean_entropy": 3.12, "diagonal_dominance": 0.31 }
     }
   ]
 }
@@ -95,24 +99,24 @@ The script produces a structured JSON report:
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Clean — no issues above medium |
-| 1 | High-severity findings detected |
-| 2 | Critical-severity findings detected |
+| Code | Meaning                             |
+| ---- | ----------------------------------- |
+| 0    | Clean — no issues above medium      |
+| 1    | High-severity findings detected     |
+| 2    | Critical-severity findings detected |
 
 ## Tunable Thresholds
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--entropy-threshold` | 2.5 | Attention entropy ceiling |
-| `--diag-dominance-threshold` | 0.6 | Minimum diagonal dominance ratio |
-| `--z-threshold` | 3.0 | Z-score outlier boundary |
-| `--saturation-threshold` | 0.95 | Activation saturation level |
-| `--cosine-min` | 0.70 | Minimum cosine similarity vs baseline |
-| `--euclidean-max` | 2.5 | Maximum euclidean distance vs baseline |
-| `--loss-spike` | 2.0 | Loss delta that triggers a spike flag |
-| `--grad-norm-max` | 10.0 | Gradient norm explosion threshold |
+| Flag                         | Default | Description                            |
+| ---------------------------- | ------- | -------------------------------------- |
+| `--entropy-threshold`        | 2.5     | Attention entropy ceiling              |
+| `--diag-dominance-threshold` | 0.6     | Minimum diagonal dominance ratio       |
+| `--z-threshold`              | 3.0     | Z-score outlier boundary               |
+| `--saturation-threshold`     | 0.95    | Activation saturation level            |
+| `--cosine-min`               | 0.70    | Minimum cosine similarity vs baseline  |
+| `--euclidean-max`            | 2.5     | Maximum euclidean distance vs baseline |
+| `--loss-spike`               | 2.0     | Loss delta that triggers a spike flag  |
+| `--grad-norm-max`            | 10.0    | Gradient norm explosion threshold      |
 
 ## Integration with SimpleBeacon
 

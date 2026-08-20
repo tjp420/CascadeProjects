@@ -1,8 +1,9 @@
 # SimpleBeacon vs. GitHub Advanced Security
+
 ## Why Enterprises Need a Dedicated AI Code Governance Layer
 
 > **One-pager for technical evaluators, engineering managers, and CISOs**  
-> *Last updated: June 20, 2026*
+> _Last updated: June 20, 2026_
 
 ---
 
@@ -10,30 +11,30 @@
 
 GitHub Advanced Security (GHAS) is excellent at **traditional static analysis**: known CVEs, secret scanning, dependency vulnerabilities, and CodeQL structural analysis. But AI-generated code introduces an entirely new class of risks that GHAS was never designed to detect:
 
-| Risk Category | Example | GHAS Detection | SimpleBeacon Detection |
-|-------------|---------|--------------|------------------------|
-| **Hallucinated imports** | `import { validate } from 'security-utils'` (package doesn't exist) | ❌ No | ✅ Yes — `hallucinatedImport` rule |
-| **AI slop / boilerplate bloat** | Redundant `try/catch` around every function | ❌ No | ✅ Yes — `llmSlop` pattern matching |
-| **Generic error swallowing** | `catch(e){ /* ignore */ }` | ❌ No | ✅ Yes — `aiResidueSwallow` rule |
-| **Placeholder secrets left in prod** | `const API_KEY = 'your-api-key-here'` | ⚠️ Sometimes (secret scanning) | ✅ Yes — `credentials` + context filters |
-| **Copyleft license contamination** | GPL-licensed code pasted from Stack Overflow | ❌ No | ✅ Yes — `governanceMarker` + snippet matching |
-| **Behavioral context** | 200-line paste block at 14:32 with zero keystrokes | ❌ No | ✅ Yes — IDE telemetry engine |
-| **EU AI Act compliance** | Undisclosed AI-generated code in regulated systems | ❌ No | ✅ Yes — `eu-ai-act-patterns` engine |
+| Risk Category                        | Example                                                             | GHAS Detection                 | SimpleBeacon Detection                         |
+| ------------------------------------ | ------------------------------------------------------------------- | ------------------------------ | ---------------------------------------------- |
+| **Hallucinated imports**             | `import { validate } from 'security-utils'` (package doesn't exist) | ❌ No                          | ✅ Yes — `hallucinatedImport` rule             |
+| **AI slop / boilerplate bloat**      | Redundant `try/catch` around every function                         | ❌ No                          | ✅ Yes — `llmSlop` pattern matching            |
+| **Generic error swallowing**         | `catch(e){ /* ignore */ }`                                          | ❌ No                          | ✅ Yes — `aiResidueSwallow` rule               |
+| **Placeholder secrets left in prod** | `const API_KEY = 'your-api-key-here'`                               | ⚠️ Sometimes (secret scanning) | ✅ Yes — `credentials` + context filters       |
+| **Copyleft license contamination**   | GPL-licensed code pasted from Stack Overflow                        | ❌ No                          | ✅ Yes — `governanceMarker` + snippet matching |
+| **Behavioral context**               | 200-line paste block at 14:32 with zero keystrokes                  | ❌ No                          | ✅ Yes — IDE telemetry engine                  |
+| **EU AI Act compliance**             | Undisclosed AI-generated code in regulated systems                  | ❌ No                          | ✅ Yes — `eu-ai-act-patterns` engine           |
 
 ---
 
 ## Side-by-Side Capability Matrix
 
-| Capability | GitHub Advanced Security | SimpleBeacon |
-|-----------|------------------------|--------------|
-| **Scan location** | Cloud (repository) only | Local IDE + CLI + CI/CD |
-| **AI-specific patterns** | None | 20+ specialized rules |
-| **Behavioral telemetry** | None | Keystroke/paste correlation |
-| **EU AI Act indicators** | None | Built-in compliance engine |
+| Capability                | GitHub Advanced Security   | SimpleBeacon                                    |
+| ------------------------- | -------------------------- | ----------------------------------------------- |
+| **Scan location**         | Cloud (repository) only    | Local IDE + CLI + CI/CD                         |
+| **AI-specific patterns**  | None                       | 20+ specialized rules                           |
+| **Behavioral telemetry**  | None                       | Keystroke/paste correlation                     |
+| **EU AI Act indicators**  | None                       | Built-in compliance engine                      |
 | **False positive tuning** | Limited rule customization | Per-rule context filters + `simplebeaconignore` |
-| **Developer friction** | PR gate delays (async) | Real-time IDE feedback (sync) |
-| **Data residency** | Code leaves your perimeter | 100% local — no cloud upload |
-| **Pricing model** | Per-seat SaaS ($$$) | Free / open-core |
+| **Developer friction**    | PR gate delays (async)     | Real-time IDE feedback (sync)                   |
+| **Data residency**        | Code leaves your perimeter | 100% local — no cloud upload                    |
+| **Pricing model**         | Per-seat SaaS ($$$)        | Free / open-core                                |
 
 ---
 
@@ -81,11 +82,11 @@ Developer writes AI-generated code
 
 SimpleBeacon does not replace GHAS. They are **complementary layers**:
 
-| Layer | Tool | Role |
-|-------|------|------|
-| **Pre-commit** | SimpleBeacon | Catch AI slop, hallucinations, placeholders |
-| **Commit/PR** | GitHub Advanced Security | Catch secrets, CVEs, structural vulnerabilities |
-| **CI/CD** | Both | Gate enforcement, compliance certification |
+| Layer          | Tool                     | Role                                            |
+| -------------- | ------------------------ | ----------------------------------------------- |
+| **Pre-commit** | SimpleBeacon             | Catch AI slop, hallucinations, placeholders     |
+| **Commit/PR**  | GitHub Advanced Security | Catch secrets, CVEs, structural vulnerabilities |
+| **CI/CD**      | Both                     | Gate enforcement, compliance certification      |
 
 **Recommended stack:** SimpleBeacon (IDE + pre-commit) → GHAS (PR review) → SimpleBeacon CLI (CI/CD gate)
 
@@ -111,4 +112,4 @@ For teams shipping AI-generated code into production, both are necessary. Simple
 
 ---
 
-*For technical documentation, see `ROADMAP-60day.md` and `TELEMETRY-ENGINE-SPEC.md`.*
+_For technical documentation, see `ROADMAP-60day.md` and `TELEMETRY-ENGINE-SPEC.md`._

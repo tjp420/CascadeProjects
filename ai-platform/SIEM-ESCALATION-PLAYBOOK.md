@@ -9,18 +9,18 @@
 
 ## Alert Severity Matrix
 
-| Event Code | Severity | Source Module | Layer |
-|------------|----------|---------------|-------|
-| `PROOF_HASH_MISMATCH` | CRITICAL | `zk-proof-of-assets-engine.cjs` | ZK proof verification |
-| `audit_log_tampering` | CRITICAL | `middleware/audit.cjs` | Audit chain integrity |
-| `DKG_PERSISTENCE_REJECT` | HIGH | `dkg-snark-engine.cjs` | DKG contribution persistence |
-| `NUMERIC_OVERSIZE` | HIGH | `dkg-snark-engine.cjs` | Polynomial/commitment validation |
-| `KEY_REJECT` | HIGH | `cluster-keyring-sync.cjs` | Cluster keyring commit |
-| `ISOLATION_VIOLATION` | HIGH | `cluster-keyring-sync.cjs` | Cluster peer authentication |
-| `ATTESTATION_EXPIRED` | HIGH | `confidential-sandbox-engine.cjs` | Enclave attestation |
-| `ATTESTATION_REJECTED` | HIGH | `confidential-sandbox-engine.cjs` | Enclave attestation |
-| `SPLIT_BRAIN_DETECTED` | HIGH | `cluster-keyring-sync.cjs` | Cluster quorum |
-| `QUANTUM_DEGRADE_REJECTED` | MEDIUM | `cluster-keyring-sync.cjs` | Hybrid KEM handshake |
+| Event Code                 | Severity | Source Module                     | Layer                            |
+| -------------------------- | -------- | --------------------------------- | -------------------------------- |
+| `PROOF_HASH_MISMATCH`      | CRITICAL | `zk-proof-of-assets-engine.cjs`   | ZK proof verification            |
+| `audit_log_tampering`      | CRITICAL | `middleware/audit.cjs`            | Audit chain integrity            |
+| `DKG_PERSISTENCE_REJECT`   | HIGH     | `dkg-snark-engine.cjs`            | DKG contribution persistence     |
+| `NUMERIC_OVERSIZE`         | HIGH     | `dkg-snark-engine.cjs`            | Polynomial/commitment validation |
+| `KEY_REJECT`               | HIGH     | `cluster-keyring-sync.cjs`        | Cluster keyring commit           |
+| `ISOLATION_VIOLATION`      | HIGH     | `cluster-keyring-sync.cjs`        | Cluster peer authentication      |
+| `ATTESTATION_EXPIRED`      | HIGH     | `confidential-sandbox-engine.cjs` | Enclave attestation              |
+| `ATTESTATION_REJECTED`     | HIGH     | `confidential-sandbox-engine.cjs` | Enclave attestation              |
+| `SPLIT_BRAIN_DETECTED`     | HIGH     | `cluster-keyring-sync.cjs`        | Cluster quorum                   |
+| `QUANTUM_DEGRADE_REJECTED` | MEDIUM   | `cluster-keyring-sync.cjs`        | Hybrid KEM handshake             |
 
 ---
 
@@ -33,6 +33,7 @@
 ### Triage Steps
 
 1. **Identify the submission source.** Query the audit timeline for the `PROOF_HASH_MISMATCH` event to extract the submitting node ID and proof bundle identifier.
+
    ```
    GET /api/audit/events?eventType=PROOF_HASH_MISMATCH
    ```
@@ -40,14 +41,17 @@
 2. **Isolate the submitting node.** If the node is part of the cluster, remove it from `CLUSTER_NODES` and restart the keyring sync service on the leader. This prevents the node from submitting further proof bundles.
 
 3. **Verify proof bundle integrity.** Retrieve the original proof bundle from the submitting node's local storage and recompute the hash:
+
    ```bash
    node -e "const crypto=require('crypto'); const fs=require('fs'); const b=fs.readFileSync('path/to/proof.json'); console.log(crypto.createHash('sha256').update(b).digest('hex'));"
    ```
+
    If the recomputed hash matches `proofHash`, the tampering occurred in transit — investigate network integrity. If it does not match, the node's proof generation pipeline is compromised.
 
 4. **Check for correlated events.** Query for `DKG_PERSISTENCE_REJECT` or `NUMERIC_OVERSIZE` events from the same node within the same time window. Multiple alert types from one node indicate systemic compromise.
 
 5. **Rotate keys if compromise is confirmed.** If the node is confirmed compromised, trigger an emergency key rotation from the leader:
+
    ```
    POST /api/cluster/rotate
    Authorization: Bearer <admin:all token>
@@ -66,12 +70,15 @@
 ### Triage Steps
 
 1. **Run chain verification immediately.**
+
    ```
    GET /api/audit/verify-chain
    ```
+
    Examine `brokenLinks` and `tamperedEntries` in the response. Each entry includes the entry ID and the expected vs actual hash.
 
 2. **Quarantine tampered entries.** The self-healing system (`AUDIT_HEAL_ENABLED=true`) automatically moves tampered entries to `AUDIT_LOG_QUARANTINE_PATH` and re-links the chain. Verify quarantine succeeded:
+
    ```
    GET /api/audit/heal-status
    ```
@@ -104,11 +111,13 @@
 3. **Check node configuration.** Verify the node's `commitmentGroup` and `defaultBitLength` settings match the cluster's configured group. A mismatch (e.g., a 256-bit node joining a 521-bit cluster) will produce oversize coefficients.
 
 4. **Reject the contribution.** The engine already throws and does not store the invalid contribution. Confirm the contribution was not persisted:
+
    ```bash
    node -e "const e=require('./server/lib/hsm-adapter/dkg-snark-engine.cjs'); /* check state */"
    ```
 
 5. **Re-initiate DKG for the affected node.** Once the node's configuration is corrected, trigger a new DKG round:
+
    ```
    POST /api/cluster/dkg/initiate
    { "nodeId": "<affected-node-id>" }
@@ -126,13 +135,13 @@
 
 ### Triage Steps by Reason
 
-| Reason | Cause | Action |
-|--------|-------|--------|
-| `duplicate_commit` | KEY_COMMIT with same `rotatedAt` as already-applied commit | Normal idempotency guard. No action needed. |
-| `stale_commit` | KEY_COMMIT with older `rotatedAt` than current watermark | Check for network partition or lagging leader. Verify leader election with `getStatus()`. |
-| `missing_or_invalid_rotatedAt` | KEY_COMMIT missing timestamp | Bug in leader's `proposeRotate`. Check leader node logs. |
-| `not_leader` | KEY_COMMIT from non-leader node | Possible split-brain or rogue node. Check `CLUSTER_NODES` whitelist and `SPLIT_BRAIN_DETECTED` events. |
-| `invalid_hex_format` | `activeHex` or `previousHex` not strictly lowercase `[0-9a-f]` or wrong length | JCS canonicalization violation. Check key serialization in leader's `proposeRotate`. |
+| Reason                         | Cause                                                                          | Action                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `duplicate_commit`             | KEY_COMMIT with same `rotatedAt` as already-applied commit                     | Normal idempotency guard. No action needed.                                                            |
+| `stale_commit`                 | KEY_COMMIT with older `rotatedAt` than current watermark                       | Check for network partition or lagging leader. Verify leader election with `getStatus()`.              |
+| `missing_or_invalid_rotatedAt` | KEY_COMMIT missing timestamp                                                   | Bug in leader's `proposeRotate`. Check leader node logs.                                               |
+| `not_leader`                   | KEY_COMMIT from non-leader node                                                | Possible split-brain or rogue node. Check `CLUSTER_NODES` whitelist and `SPLIT_BRAIN_DETECTED` events. |
+| `invalid_hex_format`           | `activeHex` or `previousHex` not strictly lowercase `[0-9a-f]` or wrong length | JCS canonicalization violation. Check key serialization in leader's `proposeRotate`.                   |
 
 ### For `not_leader` and `invalid_hex_format` (security-relevant)
 
@@ -176,12 +185,15 @@
 1. **Check the attestation timestamp.** The error message includes `attestationAgeSeconds` and `maxAgeSec` (default 60s). If the attestation is only slightly expired, it may be clock skew.
 
 2. **Verify node clock synchronization.** Check NTP status on the node that generated the attestation:
+
    ```bash
    ntpstat || chronyc tracking
    ```
+
    Clock drift > 5s should be corrected immediately.
 
 3. **Re-attest the enclave.** Trigger a new attestation cycle for the affected enclave:
+
    ```
    POST /api/sandbox/attest
    { "enclaveId": "<enclave-id>" }
@@ -224,6 +236,7 @@
 ### Triage Steps
 
 1. **Check cluster network connectivity.** From each node, verify connectivity to all peers:
+
    ```bash
    nc -zv <peer-host> 7000
    ```
@@ -231,6 +244,7 @@
 2. **Review heartbeat timeout.** If network latency is high, increase `CLUSTER_HEARTBEAT_TIMEOUT_MS` (default 15000ms). It should be ≥ 3× `CLUSTER_HEARTBEAT_MS`.
 
 3. **Check peer status.** Call `getStatus()` on each node to see which peers are marked unreachable:
+
    ```
    GET /api/cluster/status
    ```
@@ -270,11 +284,11 @@
 
 ## Escalation Contacts
 
-| Severity | Response Time | Escalate To |
-|----------|--------------|-------------|
-| CRITICAL | Immediate | On-call security engineer + engineering lead |
-| HIGH | 15 minutes | On-call engineer |
-| MEDIUM | 1 hour | On-call engineer (business hours) |
+| Severity | Response Time | Escalate To                                  |
+| -------- | ------------- | -------------------------------------------- |
+| CRITICAL | Immediate     | On-call security engineer + engineering lead |
+| HIGH     | 15 minutes    | On-call engineer                             |
+| MEDIUM   | 1 hour        | On-call engineer (business hours)            |
 
 ---
 

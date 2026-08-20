@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 58: Vesting Temporal Guard.
@@ -11,7 +11,7 @@
  * @module hsm-adapter/vesting-temporal-guard
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class VestingTemporalGuard {
   /**
@@ -34,21 +34,29 @@ class VestingTemporalGuard {
    * @returns {object}
    */
   verifyEpochWindow(request) {
-    if (!request.lockId || typeof request.epochIndex !== 'number') {
-      throw new HsmAdapterError('VESTING_TEMPORAL_FIELDS_MISSING', 'lockId and epochIndex are required');
+    if (!request.lockId || typeof request.epochIndex !== "number") {
+      throw new HsmAdapterError(
+        "VESTING_TEMPORAL_FIELDS_MISSING",
+        "lockId and epochIndex are required",
+      );
     }
     const minEpochSeconds = this.policy.minVestingEpochSeconds || 3600;
     const initializedAt = request.initializedAt || 0;
     const epochSeconds = request.epochSeconds || minEpochSeconds;
-    const claimTimestamp = request.claimTimestamp || Math.floor(Date.now() / 1000);
-    const expectedMinimumTime = initializedAt + (request.epochIndex * epochSeconds);
+    const claimTimestamp =
+      request.claimTimestamp || Math.floor(Date.now() / 1000);
+    const expectedMinimumTime =
+      initializedAt + request.epochIndex * epochSeconds;
     if (claimTimestamp < expectedMinimumTime) {
       return {
         allowed: false,
         reason: `claim timestamp ${claimTimestamp} before epoch window ${expectedMinimumTime}`,
       };
     }
-    if (this._timeAnchor && typeof this._timeAnchor.getCurrentTime === 'function') {
+    if (
+      this._timeAnchor &&
+      typeof this._timeAnchor.getCurrentTime === "function"
+    ) {
       const anchoredTime = this._timeAnchor.getCurrentTime();
       if (anchoredTime < expectedMinimumTime) {
         return {
@@ -73,8 +81,12 @@ class VestingTemporalGuard {
    */
   isClaimExpired(request) {
     const minEpochSeconds = this.policy.minVestingEpochSeconds || 3600;
-    const claimTimestamp = request.claimTimestamp || Math.floor(Date.now() / 1000);
-    const expiryTime = (request.initializedAt || 0) + (request.totalEpochs || 1) * (request.epochSeconds || minEpochSeconds) + minEpochSeconds;
+    const claimTimestamp =
+      request.claimTimestamp || Math.floor(Date.now() / 1000);
+    const expiryTime =
+      (request.initializedAt || 0) +
+      (request.totalEpochs || 1) * (request.epochSeconds || minEpochSeconds) +
+      minEpochSeconds;
     return claimTimestamp > expiryTime;
   }
 

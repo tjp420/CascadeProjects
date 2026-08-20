@@ -1,28 +1,37 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
-const zlib = require('zlib');
-const readline = require('readline');
-const logger = require('./app-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const zlib = require("zlib");
+const readline = require("readline");
+const logger = require("./app-logger.cjs");
 
-const ARCHIVE_DIR = process.env.COLD_ARCHIVE_DIR || path.resolve(process.cwd(), '.simplebeacon', 'archive');
+const ARCHIVE_DIR =
+  process.env.COLD_ARCHIVE_DIR ||
+  path.resolve(process.cwd(), ".simplebeacon", "archive");
 const MAX_LIMIT = parseInt(process.env.COLD_ARCHIVE_MAX_LIMIT, 10) || 1000;
 
 function _log(level, message, extra = {}) {
   if (!logger || !logger[level]) return;
-  logger[level](message, { sub: 'cold-archive-search', ...extra });
+  logger[level](message, { sub: "cold-archive-search", ...extra });
 }
 
 function _listArchiveFiles() {
   try {
     const entries = fs.readdirSync(ARCHIVE_DIR, { withFileTypes: true });
     return entries
-      .filter((e) => e.isFile() && (e.name.endsWith('.json.gz') || e.name.endsWith('.ndjson.gz')))
+      .filter(
+        (e) =>
+          e.isFile() &&
+          (e.name.endsWith(".json.gz") || e.name.endsWith(".ndjson.gz")),
+      )
       .map((e) => path.join(ARCHIVE_DIR, e.name))
       .sort();
   } catch (err) {
-    _log('warn', 'Cannot read archive directory', { dir: ARCHIVE_DIR, error: err.message });
+    _log("warn", "Cannot read archive directory", {
+      dir: ARCHIVE_DIR,
+      error: err.message,
+    });
     return [];
   }
 }
@@ -35,7 +44,7 @@ function _parseDate(value) {
 }
 
 function _matches(entry, filters) {
-  if (!entry || typeof entry !== 'object') return false;
+  if (!entry || typeof entry !== "object") return false;
 
   if (filters.startDate || filters.endDate) {
     const ts = entry.timestamp ? new Date(entry.timestamp) : null;
@@ -59,12 +68,15 @@ async function _searchFile(filePath, filters, offset, targetCount) {
   let seen = 0;
   let hasMore = false;
 
-  unzip.on('error', (err) => {
-    _log('warn', 'Gzip decode error; skipping file', { file: filePath, error: err.message });
+  unzip.on("error", (err) => {
+    _log("warn", "Gzip decode error; skipping file", {
+      file: filePath,
+      error: err.message,
+    });
     rl.close();
   });
-  stream.on('error', (err) => {
-    _log('warn', 'Archive read error', { file: filePath, error: err.message });
+  stream.on("error", (err) => {
+    _log("warn", "Archive read error", { file: filePath, error: err.message });
     rl.close();
   });
 
@@ -75,7 +87,10 @@ async function _searchFile(filePath, filters, offset, targetCount) {
       try {
         entry = JSON.parse(line);
       } catch (err) {
-        _log('debug', 'Skipping invalid JSON line', { file: filePath, error: err.message });
+        _log("debug", "Skipping invalid JSON line", {
+          file: filePath,
+          error: err.message,
+        });
         continue;
       }
 
@@ -92,7 +107,10 @@ async function _searchFile(filePath, filters, offset, targetCount) {
       }
     }
   } catch (err) {
-    _log('warn', 'Error scanning archive file', { file: filePath, error: err.message });
+    _log("warn", "Error scanning archive file", {
+      file: filePath,
+      error: err.message,
+    });
   }
 
   return { collected, newOffset: offset + seen, hasMore };
@@ -105,13 +123,13 @@ async function search(options = {}) {
   const endDate = _parseDate(options.endDate);
 
   if (options.startDate && !startDate) {
-    throw Object.assign(new Error('invalid_start_date'), { statusCode: 400 });
+    throw Object.assign(new Error("invalid_start_date"), { statusCode: 400 });
   }
   if (options.endDate && !endDate) {
-    throw Object.assign(new Error('invalid_end_date'), { statusCode: 400 });
+    throw Object.assign(new Error("invalid_end_date"), { statusCode: 400 });
   }
   if (startDate && endDate && startDate > endDate) {
-    throw Object.assign(new Error('start_after_end'), { statusCode: 400 });
+    throw Object.assign(new Error("start_after_end"), { statusCode: 400 });
   }
 
   const filters = {
@@ -128,7 +146,12 @@ async function search(options = {}) {
 
   for (const file of files) {
     if (entries.length >= limit) break;
-    const { collected, newOffset, hasMore } = await _searchFile(file, filters, currentOffset, targetCount);
+    const { collected, newOffset, hasMore } = await _searchFile(
+      file,
+      filters,
+      currentOffset,
+      targetCount,
+    );
     currentOffset = newOffset;
     targetCount = limit - entries.length;
     if (collected.length > targetCount) {

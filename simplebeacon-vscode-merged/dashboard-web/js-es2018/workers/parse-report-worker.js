@@ -8,8 +8,7 @@ self.addEventListener('message', (ev) => {
       // Attempt streaming parse fallback by using JSON.parse in try/catch
       const value = JSON.parse(msg.text);
       self.postMessage({ type: 'parsed', value });
-    }
-    else if (msg && msg.type === 'ping') {
+    } else if (msg && msg.type === 'ping') {
       self.postMessage({ type: 'pong' });
     }
   } catch (err) {

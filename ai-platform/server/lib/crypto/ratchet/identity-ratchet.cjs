@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 113: IdentityRatchet service — hybrid PQC + classical ratchet.
@@ -10,10 +10,10 @@
  * @module crypto/ratchet/identity-ratchet
  */
 
-const crypto = require('node:crypto');
-const bootstrap = require('./hybrid-bootstrap.cjs');
-const { initializeFromShared, kdfRoot, kdfChain } = require('./index.cjs');
-const { RotationScheduler } = require('./rotation-scheduler.cjs');
+const crypto = require("node:crypto");
+const bootstrap = require("./hybrid-bootstrap.cjs");
+const { initializeFromShared, kdfRoot, kdfChain } = require("./index.cjs");
+const { RotationScheduler } = require("./rotation-scheduler.cjs");
 
 class IdentityRatchet {
   /**
@@ -26,7 +26,7 @@ class IdentityRatchet {
    */
   constructor(options = {}) {
     this.deviceId = options.deviceId;
-    this.scheme = options.scheme || 'hybrid-mlkem768-x25519-ed25519';
+    this.scheme = options.scheme || "hybrid-mlkem768-x25519-ed25519";
     this.secretKey = options.secretKey || null;
     this.publicKey = options.publicKey || null;
     this._audit = options.audit || null;
@@ -43,24 +43,37 @@ class IdentityRatchet {
    * @returns {Promise<IdentityRatchet>} — returns `this` for chaining
    */
   async generate() {
-    const { secretKey, publicKey } = await bootstrap.generateKeypair(this.deviceId);
+    const { secretKey, publicKey } = await bootstrap.generateKeypair(
+      this.deviceId,
+    );
     this.secretKey = secretKey;
     this.publicKey = publicKey;
-    this._emitAudit('IDENTITY_RATCHET_GENERATED', {
+    this._emitAudit("IDENTITY_RATCHET_GENERATED", {
       deviceId: this.deviceId,
       scheme: this.scheme,
-      publicKeyHash: crypto.createHash('sha256').update(this.publicKey).digest('hex'),
+      publicKeyHash: crypto
+        .createHash("sha256")
+        .update(this.publicKey)
+        .digest("hex"),
     });
     return this;
   }
 
   _wireScheduler() {
-    this._scheduler.on('QUANTUM_ROTATE_PENDING', (info) => {
-      this._emitAudit('QUANTUM_ROTATE_PENDING', { deviceId: this.deviceId, ...info });
+    this._scheduler.on("QUANTUM_ROTATE_PENDING", (info) => {
+      this._emitAudit("QUANTUM_ROTATE_PENDING", {
+        deviceId: this.deviceId,
+        ...info,
+      });
     });
-    this._scheduler.on('QUANTUM_ROTATE_REQUIRED', (info) => {
-      this._emitAudit('QUANTUM_ROTATE_REQUIRED', { deviceId: this.deviceId, ...info });
-      try { this.rotateNow(); } catch {}
+    this._scheduler.on("QUANTUM_ROTATE_REQUIRED", (info) => {
+      this._emitAudit("QUANTUM_ROTATE_REQUIRED", {
+        deviceId: this.deviceId,
+        ...info,
+      });
+      try {
+        this.rotateNow();
+      } catch {}
     });
   }
 
@@ -85,7 +98,7 @@ class IdentityRatchet {
    */
   step() {
     if (!this._ck) {
-      throw new Error('IDENTITY_RATCHET_NOT_INITIALIZED');
+      throw new Error("IDENTITY_RATCHET_NOT_INITIALIZED");
     }
     this._scheduler.recordStep();
     const { messageKey, nextCk } = kdfChain(this._ck);
@@ -100,11 +113,12 @@ class IdentityRatchet {
    */
   rotateNow() {
     if (!this._ck) {
-      throw new Error('IDENTITY_RATCHET_NOT_INITIALIZED');
+      throw new Error("IDENTITY_RATCHET_NOT_INITIALIZED");
     }
     this._rotationEpoch += 1;
-    const dhOut = crypto.createHmac('sha256', this._root)
-      .update(Buffer.from('track113-rotation'))
+    const dhOut = crypto
+      .createHmac("sha256", this._root)
+      .update(Buffer.from("track113-rotation"))
       .update(Buffer.from([this._rotationEpoch]))
       .digest();
     const { root, ck } = kdfRoot(this._root, dhOut);
@@ -112,12 +126,15 @@ class IdentityRatchet {
     this._ck = ck;
     this._mkIndex = 0;
     this._scheduler.reset();
-    this._emitAudit('IDENTITY_RATCHET_ROTATED', {
+    this._emitAudit("IDENTITY_RATCHET_ROTATED", {
       deviceId: this.deviceId,
       rotationEpoch: this._rotationEpoch,
-      chainKeyHash: crypto.createHash('sha256').update(this._ck).digest('hex'),
+      chainKeyHash: crypto.createHash("sha256").update(this._ck).digest("hex"),
     });
-    return { chainKey: this._ck.toString('hex'), rotationEpoch: this._rotationEpoch };
+    return {
+      chainKey: this._ck.toString("hex"),
+      rotationEpoch: this._rotationEpoch,
+    };
   }
 
   /**
@@ -135,13 +152,16 @@ class IdentityRatchet {
   async encapsulateFor(publicKey) {
     const { cipherText, sharedSecret } = await bootstrap.encapsulate(publicKey);
     this._initChain(sharedSecret);
-    const counterpartyPublicHash = crypto.createHash('sha256').update(publicKey).digest('hex');
-    this._emitAudit('IDENTITY_RATCHET_ENCAPSULATED', {
+    const counterpartyPublicHash = crypto
+      .createHash("sha256")
+      .update(publicKey)
+      .digest("hex");
+    this._emitAudit("IDENTITY_RATCHET_ENCAPSULATED", {
       deviceId: this.deviceId,
       counterpartyPublicHash,
-      chainKeyHash: crypto.createHash('sha256').update(this._ck).digest('hex'),
+      chainKeyHash: crypto.createHash("sha256").update(this._ck).digest("hex"),
     });
-    return { cipherText, chainKey: this._ck.toString('hex') };
+    return { cipherText, chainKey: this._ck.toString("hex") };
   }
 
   /**
@@ -151,15 +171,18 @@ class IdentityRatchet {
    */
   async decapsulateFrom(cipherText) {
     if (!this.secretKey) {
-      throw new Error('IDENTITY_RATCHET_NOT_INITIALIZED');
+      throw new Error("IDENTITY_RATCHET_NOT_INITIALIZED");
     }
-    const sharedSecret = await bootstrap.decapsulate(cipherText, this.secretKey);
+    const sharedSecret = await bootstrap.decapsulate(
+      cipherText,
+      this.secretKey,
+    );
     this._initChain(sharedSecret);
-    this._emitAudit('IDENTITY_RATCHET_DECAPSULATED', {
+    this._emitAudit("IDENTITY_RATCHET_DECAPSULATED", {
       deviceId: this.deviceId,
-      chainKeyHash: crypto.createHash('sha256').update(this._ck).digest('hex'),
+      chainKeyHash: crypto.createHash("sha256").update(this._ck).digest("hex"),
     });
-    return { chainKey: this._ck.toString('hex') };
+    return { chainKey: this._ck.toString("hex") };
   }
 
   /**
@@ -169,7 +192,7 @@ class IdentityRatchet {
    */
   signHandshake(transcript) {
     if (!this.secretKey) {
-      throw new Error('IDENTITY_RATCHET_NOT_INITIALIZED');
+      throw new Error("IDENTITY_RATCHET_NOT_INITIALIZED");
     }
     return bootstrap.sign(transcript, this.secretKey);
   }
@@ -191,7 +214,7 @@ class IdentityRatchet {
    */
   getChainKey() {
     if (!this._ck) return null;
-    return this._ck.toString('hex');
+    return this._ck.toString("hex");
   }
 
   _emitAudit(event, info) {

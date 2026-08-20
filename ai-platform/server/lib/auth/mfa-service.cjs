@@ -1,7 +1,7 @@
-'use strict';
+"use strict";
 
-const speakeasy = require('speakeasy');
-const { trustLevels } = require('./trust-levels.cjs');
+const speakeasy = require("speakeasy");
+const { trustLevels } = require("./trust-levels.cjs");
 
 const _mfaSessions = new Map();
 
@@ -9,15 +9,17 @@ const _mfaSessions = new Map();
 function verifyMFA(req, res, next) {
   const user = req.user;
   if (!user) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+    return res
+      .status(401)
+      .json({ error: "Unauthorized", message: "Authentication required" });
   }
-  const trustConfig = trustLevels[user.trustLevel || 'bronze'];
+  const trustConfig = trustLevels[user.trustLevel || "bronze"];
 
   if (trustConfig.mfaRequired && !req.session?.mfaVerified) {
     return res.status(403).json({
-      error: 'MFA Required',
-      message: 'Multi-factor authentication required for this access level',
-      mfaRequired: true
+      error: "MFA Required",
+      message: "Multi-factor authentication required for this access level",
+      mfaRequired: true,
     });
   }
 
@@ -26,13 +28,13 @@ function verifyMFA(req, res, next) {
 
 // Generate MFA secret
 function generateMFASecret(user) {
-  if (!user || typeof user !== 'object' || !user.email) {
-    throw new TypeError('generateMFASecret requires a valid user with email');
+  if (!user || typeof user !== "object" || !user.email) {
+    throw new TypeError("generateMFASecret requires a valid user with email");
   }
   return speakeasy.generateSecret({
     name: `Cascade AI (${user.email})`,
-    issuer: 'Cascade AI Platform',
-    length: 32
+    issuer: "Cascade AI Platform",
+    length: 32,
   });
 }
 
@@ -40,9 +42,9 @@ function generateMFASecret(user) {
 function verifyMFAToken(secret, token) {
   return speakeasy.totp.verify({
     secret: secret,
-    encoding: 'base32',
+    encoding: "base32",
     token: token,
-    window: 2
+    window: 2,
   });
 }
 

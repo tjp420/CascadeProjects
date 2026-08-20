@@ -4,9 +4,9 @@ if (typeof window !== 'undefined' && !window.__SB_SITE_CONFIG__) {
     value: Object.freeze({
       features: Object.freeze({ scan: true, analyze: true, upload: true }),
       version: '1.0.0',
-      env: 'development'
+      env: 'development',
     }),
     writable: false,
-    configurable: false
+    configurable: false,
   });
 }

@@ -31,7 +31,8 @@ export function renderUpgradeModal({ onDismiss } = {}) {
 
   const lead = document.createElement('p');
   lead.className = 'upgrade-modal-lead';
-  lead.textContent = 'Simplebeacon is an open-source, local-first scanner. No subscription required for CI gates or pre-commit hooks.';
+  lead.textContent =
+    'Simplebeacon is an open-source, local-first scanner. No subscription required for CI gates or pre-commit hooks.';
 
   const installBlock = document.createElement('div');
   installBlock.className = 'about-install-block';
@@ -99,4 +100,3 @@ export function showUpgradeModal(options) {
   document.body.appendChild(overlay);
   return overlay;
 }
-

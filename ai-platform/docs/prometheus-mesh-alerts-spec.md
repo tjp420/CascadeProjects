@@ -66,12 +66,12 @@ rate(hsm_zk_mesh_state_reconciled_total[15m]) > 0
 
 ## Severity and routing
 
-| Alert | Severity | Routing | Typical response |
-|-------|----------|---------|------------------|
-| `MeshReconciliationBoundaryDrift` | warning | `#sre-mesh` | Review `maxEpochFinalityWindowSeconds` policy and NTP sync. |
-| `MeshReconciliationHighDropRate` | critical | `#sre-mesh` `#security` | Investigate replay or enclave attestation health. |
-| `MeshStateReconciliationStall` | critical | `#sre-mesh` | Inspect validator and HSM adapter logs. |
-| `MeshEpochFinalityStall` | warning | `#sre-mesh` | Check quorum availability and ethics attestation flow. |
+| Alert                             | Severity | Routing                 | Typical response                                            |
+| --------------------------------- | -------- | ----------------------- | ----------------------------------------------------------- |
+| `MeshReconciliationBoundaryDrift` | warning  | `#sre-mesh`             | Review `maxEpochFinalityWindowSeconds` policy and NTP sync. |
+| `MeshReconciliationHighDropRate`  | critical | `#sre-mesh` `#security` | Investigate replay or enclave attestation health.           |
+| `MeshStateReconciliationStall`    | critical | `#sre-mesh`             | Inspect validator and HSM adapter logs.                     |
+| `MeshEpochFinalityStall`          | warning  | `#sre-mesh`             | Check quorum availability and ethics attestation flow.      |
 
 ## Runbook references
 

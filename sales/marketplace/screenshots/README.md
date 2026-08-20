@@ -17,12 +17,14 @@ Based on `screenshots.md`, we need 5 screenshots:
 Since VSCode screenshots require actual UI interaction, follow these steps:
 
 ### Prerequisites
+
 - Open VSCode with the Simplebeacon extension loaded
 - Open a test project with some findings (use `CascadeProjects` itself)
 - Use a light theme for better visibility
 - Ensure no sensitive data is visible
 
 ### Screenshot 1: Main Sidebar
+
 1. Open VSCode with a project
 2. Open AI Slop Cop sidebar (Ctrl+Shift+P → "Simplebeacon: Show Sidebar")
 3. Run a scan
@@ -31,6 +33,7 @@ Since VSCode screenshots require actual UI interaction, follow these steps:
 6. Save as `01-sidebar.png`
 
 ### Screenshot 2: Findings List
+
 1. Click on an issue count in the sidebar
 2. Expand the findings list
 3. Capture the detailed view
@@ -38,6 +41,7 @@ Since VSCode screenshots require actual UI interaction, follow these steps:
 5. Save as `02-findings.png`
 
 ### Screenshot 3: Settings Configuration
+
 1. Open Settings (Ctrl+,)
 2. Search for "simplebeacon"
 3. Capture the settings panel
@@ -45,6 +49,7 @@ Since VSCode screenshots require actual UI interaction, follow these steps:
 5. Save as `03-settings.png`
 
 ### Screenshot 4: Full Scan Mode
+
 1. Enable full scan checkbox in sidebar
 2. Run a scan
 3. Capture the sidebar with results
@@ -52,6 +57,7 @@ Since VSCode screenshots require actual UI interaction, follow these steps:
 5. Save as `04-full-scan.png`
 
 ### Screenshot 5: Export Report
+
 1. Run a scan
 2. Click "Export Report"
 3. Open the exported file
@@ -62,6 +68,7 @@ Since VSCode screenshots require actual UI interaction, follow these steps:
 ## Quality Checklist
 
 Before uploading:
+
 - [ ] All screenshots are exactly 1280x800px
 - [ ] All images are PNG format
 - [ ] Consistent light theme across all screenshots
@@ -73,6 +80,7 @@ Before uploading:
 ## Automation Option
 
 For future updates, consider using VSCode's extension API to automate screenshot capture. This would require:
+
 - A test extension that opens specific files
 - Runs scans programmatically
 - Uses VSCode's screenshot API
@@ -81,6 +89,7 @@ For future updates, consider using VSCode's extension API to automate screenshot
 ## Next Steps
 
 Once screenshots are captured:
+
 1. Review against checklist
 2. Upload to VSCode Marketplace publisher portal
 3. Add captions in the marketplace listing

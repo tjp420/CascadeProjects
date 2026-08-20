@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Daily Operations Report Generator
@@ -15,19 +15,20 @@
  *   OPS_REPORT_ENABLED — set to 'true' to enable the automatic scheduler
  */
 
-const logger = require('./app-logger.cjs');
-const { getRecentEvents, getStats } = require('./webhook-event-log.cjs');
-const { sendEmail } = require('./email-service.cjs');
+const logger = require("./app-logger.cjs");
+const { getRecentEvents, getStats } = require("./webhook-event-log.cjs");
+const { sendEmail } = require("./email-service.cjs");
 const {
   renderSubscriptionActivated,
   renderSubscriptionCanceled,
   renderSubscriptionReactivated,
   renderPaymentFailed,
   renderTrialEnding,
-  renderDisputeAlert
-} = require('./billing-email-templates.cjs');
+  renderDisputeAlert,
+} = require("./billing-email-templates.cjs");
 
-const REPORT_EMAIL = () => process.env.OPS_REPORT_EMAIL || 'ops@simplebeacon.ai';
+const REPORT_EMAIL = () =>
+  process.env.OPS_REPORT_EMAIL || "ops@simplebeacon.ai";
 const CHECK_INTERVAL_MS = 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -41,7 +42,9 @@ let _lastReportDate = null;
 function gatherDailyData() {
   const allEvents = getRecentEvents({ limit: 500 });
   const cutoff = Date.now() - ONE_DAY_MS;
-  const recentEvents = allEvents.filter(e => new Date(e.timestamp).getTime() > cutoff);
+  const recentEvents = allEvents.filter(
+    (e) => new Date(e.timestamp).getTime() > cutoff,
+  );
 
   const stats = getStats();
 
@@ -54,19 +57,27 @@ function gatherDailyData() {
     trialWarnings: [],
     successfulPayments: [],
     cancellations: [],
-    errors: []
+    errors: [],
   };
 
   for (const evt of recentEvents) {
     summary.byType[evt.eventType] = (summary.byType[evt.eventType] || 0) + 1;
     summary.byStatus[evt.status] = (summary.byStatus[evt.status] || 0) + 1;
 
-    if (evt.eventType === 'invoice.payment_failed') summary.paymentFailures.push(evt);
-    else if (evt.eventType === 'charge.dispute.created') summary.disputes.push(evt);
-    else if (evt.eventType === 'customer.subscription.trial_will_end') summary.trialWarnings.push(evt);
-    else if (evt.eventType === 'invoice.paid' || evt.eventType === 'checkout.session.completed') summary.successfulPayments.push(evt);
-    else if (evt.eventType === 'customer.subscription.deleted') summary.cancellations.push(evt);
-    if (evt.status === 'error') summary.errors.push(evt);
+    if (evt.eventType === "invoice.payment_failed")
+      summary.paymentFailures.push(evt);
+    else if (evt.eventType === "charge.dispute.created")
+      summary.disputes.push(evt);
+    else if (evt.eventType === "customer.subscription.trial_will_end")
+      summary.trialWarnings.push(evt);
+    else if (
+      evt.eventType === "invoice.paid" ||
+      evt.eventType === "checkout.session.completed"
+    )
+      summary.successfulPayments.push(evt);
+    else if (evt.eventType === "customer.subscription.deleted")
+      summary.cancellations.push(evt);
+    if (evt.status === "error") summary.errors.push(evt);
   }
 
   return { events: recentEvents, stats, summary };
@@ -81,74 +92,80 @@ function gatherDailyData() {
 function generateTextReport(summary, reportDate) {
   const lines = [];
   lines.push(`SimpleBeacon Daily Operations Report — ${reportDate}`);
-  lines.push('='.repeat(50));
-  lines.push('');
+  lines.push("=".repeat(50));
+  lines.push("");
   lines.push(`Total webhook events (24h): ${summary.total}`);
-  lines.push('');
+  lines.push("");
 
-  lines.push('Events by Type:');
+  lines.push("Events by Type:");
   for (const [type, count] of Object.entries(summary.byType).sort()) {
     lines.push(`  ${type}: ${count}`);
   }
-  lines.push('');
+  lines.push("");
 
-  lines.push('Events by Status:');
+  lines.push("Events by Status:");
   for (const [status, count] of Object.entries(summary.byStatus).sort()) {
     lines.push(`  ${status}: ${count}`);
   }
-  lines.push('');
+  lines.push("");
 
   if (summary.paymentFailures.length > 0) {
     lines.push(`Payment Failures (${summary.paymentFailures.length}):`);
     for (const f of summary.paymentFailures) {
-      lines.push(`  - ${f.customerEmail || 'unknown'} | ${f.reason || 'N/A'} | ${f.timestamp}`);
+      lines.push(
+        `  - ${f.customerEmail || "unknown"} | ${f.reason || "N/A"} | ${f.timestamp}`,
+      );
     }
-    lines.push('');
+    lines.push("");
   }
 
   if (summary.disputes.length > 0) {
     lines.push(`Disputes (${summary.disputes.length}):`);
     for (const d of summary.disputes) {
-      lines.push(`  - ${d.reason || 'unknown'} | ${d.amount || 'N/A'} | ${d.timestamp}`);
+      lines.push(
+        `  - ${d.reason || "unknown"} | ${d.amount || "N/A"} | ${d.timestamp}`,
+      );
     }
-    lines.push('');
+    lines.push("");
   }
 
   if (summary.trialWarnings.length > 0) {
     lines.push(`Trial Ending Warnings (${summary.trialWarnings.length}):`);
     for (const t of summary.trialWarnings) {
-      lines.push(`  - ${t.customerEmail || 'unknown'} | ${t.timestamp}`);
+      lines.push(`  - ${t.customerEmail || "unknown"} | ${t.timestamp}`);
     }
-    lines.push('');
+    lines.push("");
   }
 
   if (summary.cancellations.length > 0) {
     lines.push(`Cancellations (${summary.cancellations.length}):`);
     for (const c of summary.cancellations) {
-      lines.push(`  - ${c.customerEmail || 'unknown'} | ${c.timestamp}`);
+      lines.push(`  - ${c.customerEmail || "unknown"} | ${c.timestamp}`);
     }
-    lines.push('');
+    lines.push("");
   }
 
   if (summary.errors.length > 0) {
     lines.push(`Processing Errors (${summary.errors.length}):`);
     for (const e of summary.errors) {
-      lines.push(`  - ${e.eventType} | ${e.detail || 'N/A'} | ${e.timestamp}`);
+      lines.push(`  - ${e.eventType} | ${e.detail || "N/A"} | ${e.timestamp}`);
     }
-    lines.push('');
+    lines.push("");
   }
 
   if (summary.successfulPayments.length > 0) {
     lines.push(`Successful Payments (${summary.successfulPayments.length}):`);
     for (const p of summary.successfulPayments) {
-      lines.push(`  - ${p.eventType} | ${p.customerEmail || 'unknown'} | ${p.amount || 'N/A'} | ${p.timestamp}`);
+      lines.push(
+        `  - ${p.eventType} | ${p.customerEmail || "unknown"} | ${p.amount || "N/A"} | ${p.timestamp}`,
+      );
     }
-    lines.push('');
+    lines.push("");
   }
 
-  lines.push('---');
-  lines.push('Generated by SimpleBeacon Operations');
-  return lines.join('\n');
+  lines.push("---");
+  lines.push("Generated by SimpleBeacon Operations");
+  return lines.join("\n");
 }
 
 /**
@@ -158,25 +175,42 @@ function generateTextReport(summary, reportDate) {
  * @returns {string}
  */
 function generateHtmlReport(summary, reportDate) {
-  const typeRows = Object.entries(summary.byType).sort()
-    .map(([type, count]) => `<tr><td style="padding:4px 12px;font-family:monospace;font-size:13px">${type}</td><td style="padding:4px 12px;text-align:right;font-weight:600">${count}</td></tr>`)
-    .join('');
+  const typeRows = Object.entries(summary.byType)
+    .sort()
+    .map(
+      ([type, count]) =>
+        `<tr><td style="padding:4px 12px;font-family:monospace;font-size:13px">${type}</td><td style="padding:4px 12px;text-align:right;font-weight:600">${count}</td></tr>`,
+    )
+    .join("");
 
-  const statusRows = Object.entries(summary.byStatus).sort()
+  const statusRows = Object.entries(summary.byStatus)
+    .sort()
     .map(([status, count]) => {
-      const color = status === 'error' ? '#ef4444' : status === 'processed' ? '#10b981' : status === 'duplicate' ? '#f59e0b' : '#6b7280';
+      const color =
+        status === "error"
+          ? "#ef4444"
+          : status === "processed"
+            ? "#10b981"
+            : status === "duplicate"
+              ? "#f59e0b"
+              : "#6b7280";
       return `<tr><td style="padding:4px 12px;text-transform:capitalize;color:${color}">${status}</td><td style="padding:4px 12px;text-align:right;font-weight:600">${count}</td></tr>`;
     })
-    .join('');
+    .join("");
 
   function eventTable(events, label) {
-    if (events.length === 0) return `<p style="color:#10b981;font-size:13px;margin:8px 0">No ${label} in the last 24h.</p>`;
-    const rows = events.map(e => `<tr>
-      <td style="padding:4px 12px;font-size:13px">${e.customerEmail || '—'}</td>
-      <td style="padding:4px 12px;font-size:13px">${e.reason || e.detail || '—'}</td>
-      <td style="padding:4px 12px;font-size:13px">${e.amount || '—'}</td>
+    if (events.length === 0)
+      return `<p style="color:#10b981;font-size:13px;margin:8px 0">No ${label} in the last 24h.</p>`;
+    const rows = events
+      .map(
+        (e) => `<tr>
+      <td style="padding:4px 12px;font-size:13px">${e.customerEmail || "—"}</td>
+      <td style="padding:4px 12px;font-size:13px">${e.reason || e.detail || "—"}</td>
+      <td style="padding:4px 12px;font-size:13px">${e.amount || "—"}</td>
       <td style="padding:4px 12px;font-size:12px;color:#6b7280">${new Date(e.timestamp).toLocaleString()}</td>
-    </tr>`).join('');
+    </tr>`,
+      )
+      .join("");
     return `<table style="width:100%;border-collapse:collapse;margin:8px 0">
       <thead><tr style="border-bottom:1px solid #e5e7eb">
         <th style="padding:4px 12px;text-align:left;font-size:12px;color:#6b7280">Customer</th>
@@ -230,22 +264,22 @@ function generateHtmlReport(summary, reportDate) {
       <table class="summary"><tbody>${statusRows}</tbody></table>
 
       <div class="section-title">Payment Failures (${summary.paymentFailures.length})</div>
-      ${eventTable(summary.paymentFailures, 'payment failures')}
+      ${eventTable(summary.paymentFailures, "payment failures")}
 
       <div class="section-title">Disputes (${summary.disputes.length})</div>
-      ${eventTable(summary.disputes, 'disputes')}
+      ${eventTable(summary.disputes, "disputes")}
 
       <div class="section-title">Trial Ending Warnings (${summary.trialWarnings.length})</div>
-      ${eventTable(summary.trialWarnings, 'trial warnings')}
+      ${eventTable(summary.trialWarnings, "trial warnings")}
 
       <div class="section-title">Cancellations (${summary.cancellations.length})</div>
-      ${eventTable(summary.cancellations, 'cancellations')}
+      ${eventTable(summary.cancellations, "cancellations")}
 
       <div class="section-title">Processing Errors (${summary.errors.length})</div>
-      ${eventTable(summary.errors, 'processing errors')}
+      ${eventTable(summary.errors, "processing errors")}
 
       <div class="section-title">Successful Payments (${summary.successfulPayments.length})</div>
-      ${eventTable(summary.successfulPayments, 'successful payments')}
+      ${eventTable(summary.successfulPayments, "successful payments")}
     </div>
     <div class="footer">
       <p>Generated by SimpleBeacon Operations &middot; <a href="https://simplebeacon.ai">simplebeacon.ai</a></p>
@@ -262,20 +296,39 @@ function generateHtmlReport(summary, reportDate) {
 async function sendDailyReport(opts = {}) {
   const to = opts.to || REPORT_EMAIL();
   const { summary } = gatherDailyData();
-  const reportDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const reportDate = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  const subject = `SimpleBeacon Daily Ops Report — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const subject = `SimpleBeacon Daily Ops Report — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   const text = generateTextReport(summary, reportDate);
   const html = generateHtmlReport(summary, reportDate);
 
-  logger.info('[DailyOpsReport] Sending report to', to, '— events:', summary.total, 'failures:', summary.paymentFailures.length, 'disputes:', summary.disputes.length);
+  logger.info(
+    "[DailyOpsReport] Sending report to",
+    to,
+    "— events:",
+    summary.total,
+    "failures:",
+    summary.paymentFailures.length,
+    "disputes:",
+    summary.disputes.length,
+  );
 
   try {
     const result = await sendEmail({ to, subject, text, html });
-    logger.info('[DailyOpsReport] Report', result.sent ? 'sent' : 'queued', 'to', to);
+    logger.info(
+      "[DailyOpsReport] Report",
+      result.sent ? "sent" : "queued",
+      "to",
+      to,
+    );
     return result;
   } catch (err) {
-    logger.error('[DailyOpsReport] Failed to send:', err.message);
+    logger.error("[DailyOpsReport] Failed to send:", err.message);
     return { sent: false, queued: false, error: err.message };
   }
 }
@@ -285,7 +338,7 @@ async function sendDailyReport(opts = {}) {
  * @returns {boolean}
  */
 function shouldSendNow() {
-  const targetHour = parseInt(process.env.OPS_REPORT_HOUR || '8', 10);
+  const targetHour = parseInt(process.env.OPS_REPORT_HOUR || "8", 10);
   const now = new Date();
   if (now.getHours() !== targetHour) return false;
   const today = now.toDateString();
@@ -299,19 +352,28 @@ function shouldSendNow() {
  */
 function startScheduler() {
   if (_schedulerInterval) return;
-  if (process.env.OPS_REPORT_ENABLED !== 'true') {
-    logger.info('[DailyOpsReport] Auto-scheduler disabled (set OPS_REPORT_ENABLED=true to enable)');
+  if (process.env.OPS_REPORT_ENABLED !== "true") {
+    logger.info(
+      "[DailyOpsReport] Auto-scheduler disabled (set OPS_REPORT_ENABLED=true to enable)",
+    );
     return;
   }
-  logger.info('[DailyOpsReport] Starting auto-scheduler, target hour:', process.env.OPS_REPORT_HOUR || '8', 'recipient:', REPORT_EMAIL());
+  logger.info(
+    "[DailyOpsReport] Starting auto-scheduler, target hour:",
+    process.env.OPS_REPORT_HOUR || "8",
+    "recipient:",
+    REPORT_EMAIL(),
+  );
   _schedulerInterval = setInterval(async () => {
     try {
       if (shouldSendNow()) {
-        logger.info('[DailyOpsReport] Scheduled time reached — generating report');
+        logger.info(
+          "[DailyOpsReport] Scheduled time reached — generating report",
+        );
         await sendDailyReport();
       }
     } catch (err) {
-      logger.error('[DailyOpsReport] Scheduler error:', err.message);
+      logger.error("[DailyOpsReport] Scheduler error:", err.message);
     }
   }, CHECK_INTERVAL_MS);
 }
@@ -323,7 +385,7 @@ function stopScheduler() {
   if (_schedulerInterval) {
     clearInterval(_schedulerInterval);
     _schedulerInterval = null;
-    logger.info('[DailyOpsReport] Scheduler stopped');
+    logger.info("[DailyOpsReport] Scheduler stopped");
   }
 }
 
@@ -335,5 +397,5 @@ module.exports = {
   startScheduler,
   stopScheduler,
   shouldSendNow,
-  REPORT_EMAIL
+  REPORT_EMAIL,
 };

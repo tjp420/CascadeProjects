@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from '../services/authService.js?v=20260716cachefix1';
-import { billingService } from '../services/billingService.js';
-import { showToast } from '../utils.js';
+import { authService } from "../services/authService.js?v=20260716cachefix1";
+import { billingService } from "../services/billingService.js";
+import { showToast } from "../utils.js";
 
 /**
  * Decode email from token.
@@ -9,15 +9,15 @@ import { showToast } from '../utils.js';
  * @returns {any}
  */
 function decodeEmailFromToken(token) {
-  if (!token) return '';
+  if (!token) return "";
   try {
-    const payload = token.split('.')[1];
-    if (!payload) return '';
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = token.split(".")[1];
+    if (!payload) return "";
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
     const data = JSON.parse(json);
-    return data.email || '';
+    return data.email || "";
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -27,13 +27,13 @@ function decodeEmailFromToken(token) {
  * @returns {any}
  */
 function decodeJwtPayload(token) {
-  if (!token || typeof token !== 'string') return null;
-  const parts = token.split('.');
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
   if (parts.length !== 2 && parts.length !== 3) return null;
   const payloadBase64url = parts.length === 2 ? parts[0] : parts[1];
   try {
-    const base64 = payloadBase64url.replace(/-/g, '+').replace(/_/g, '/');
-    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    const base64 = payloadBase64url.replace(/-/g, "+").replace(/_/g, "/");
+    const padding = "=".repeat((4 - (base64.length % 4)) % 4);
     return JSON.parse(atob(base64 + padding));
   } catch {
     return null;
@@ -48,8 +48,15 @@ function decodeJwtPayload(token) {
 function isPaidToken(token) {
   const payload = decodeJwtPayload(token);
   if (!payload) return false;
-  const tier = payload.tier || payload.product || '';
-  const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
+  const tier = payload.tier || payload.product || "";
+  const freeTiers = [
+    "community",
+    "starter",
+    "instant",
+    "free",
+    "developer",
+    "sandbox",
+  ];
   return !freeTiers.includes(tier);
 }
 
@@ -61,8 +68,8 @@ function isPaidToken(token) {
 function isSandboxToken(token) {
   const payload = decodeJwtPayload(token);
   if (!payload) return false;
-  const tier = payload.tier || payload.product || '';
-  return tier === 'sandbox' || tier === 'developer';
+  const tier = payload.tier || payload.product || "";
+  return tier === "sandbox" || tier === "developer";
 }
 
 /**
@@ -71,15 +78,18 @@ function isSandboxToken(token) {
 export class SignInView {
   constructor(app) {
     this.app = app;
-    this._activeTab = 'email';
-    this._emailMode = 'login';
+    this._activeTab = "email";
+    this._emailMode = "login";
   }
 
   async mount(container) {
-container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
+    container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
 
     const authed = authService.isAuthenticated();
-    const email = authService.getUser()?.email || decodeEmailFromToken(authService.getToken()) || '';
+    const email =
+      authService.getUser()?.email ||
+      decodeEmailFromToken(authService.getToken()) ||
+      "";
     let entitlement = { allowed: false, plan: {}, status: {} };
 
     if (authed && email) {
@@ -94,9 +104,9 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
     // If already signed in and allowed, redirect to dashboard instead of showing "already signed in" card
     // Skip redirect when opened from VS Code extension signin panel (?force=1)
     const urlParams = new URLSearchParams(window.location.search);
-    const forceSignin = urlParams.get('force') === '1';
+    const forceSignin = urlParams.get("force") === "1";
     if (!forceSignin && authed && allowed) {
-      this.app.navigate('dashboard');
+      this.app.navigate("dashboard");
       return;
     }
 
@@ -115,27 +125,37 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
 
     if (!authed) {
       this.bindEmailModeToggle(container);
-      container.querySelector('#signin-email-form')?.addEventListener('submit', (e) => this.handleEmailSubmit(e));
-      container.querySelector('#forgot-password-btn')?.addEventListener('click', () => this._showRecoveryModal());
-      container.querySelector('#webauthn-signin-btn')?.addEventListener('click', () => this._handleWebAuthnSignIn());
+      container
+        .querySelector("#signin-email-form")
+        ?.addEventListener("submit", (e) => this.handleEmailSubmit(e));
+      container
+        .querySelector("#forgot-password-btn")
+        ?.addEventListener("click", () => this._showRecoveryModal());
+      container
+        .querySelector("#webauthn-signin-btn")
+        ?.addEventListener("click", () => this._handleWebAuthnSignIn());
     } else {
-      container.querySelector('#signin-signout-btn')?.addEventListener('click', async () => {
-        try {
-          await authService.logout();
-          showToast('Signed out', 'info');
-          this.app.updateAuthUi();
-          this.mount(container);
-        } catch (err) {
-          showToast('Sign out failed', 'error');
-        }
-      });
+      container
+        .querySelector("#signin-signout-btn")
+        ?.addEventListener("click", async () => {
+          try {
+            await authService.logout();
+            showToast("Signed out", "info");
+            this.app.updateAuthUi();
+            this.mount(container);
+          } catch (err) {
+            showToast("Sign out failed", "error");
+          }
+        });
     }
   }
 
   renderAuthed({ email, allowed, internalDev }) {
-    const actionsStyle = 'display:flex;flex-direction:column;gap:12px;';
-    const primaryStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;text-align:center;text-decoration:none;font-weight:600;border:none;cursor:pointer;';
-    const ghostStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:transparent;color:var(--text-primary);text-align:center;text-decoration:none;font-weight:600;border:1px solid var(--border);cursor:pointer;';
+    const actionsStyle = "display:flex;flex-direction:column;gap:12px;";
+    const primaryStyle =
+      "display:block;width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;text-align:center;text-decoration:none;font-weight:600;border:none;cursor:pointer;";
+    const ghostStyle =
+      "display:block;width:100%;padding:12px 16px;border-radius:8px;background:transparent;color:var(--text-primary);text-align:center;text-decoration:none;font-weight:600;border:1px solid var(--border);cursor:pointer;";
     if (allowed && internalDev) {
       return `
         <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-primary);">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
@@ -165,17 +185,23 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
   }
 
   renderSignInForm() {
-    const inputStyle = 'width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;';
-    const labelStyle = 'display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;';
-    const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-    const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
-    const btnPrimary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
-    const btnSecondary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface);color:var(--text-primary);border:1px solid var(--border);cursor:pointer;text-align:center;';
+    const inputStyle =
+      "width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;";
+    const labelStyle =
+      "display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;";
+    const tabActive =
+      "background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);";
+    const tabBase =
+      "flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;";
+    const btnPrimary =
+      "width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;";
+    const btnSecondary =
+      "width:100%;padding:12px 16px;border-radius:8px;background:var(--surface);color:var(--text-primary);border:1px solid var(--border);cursor:pointer;text-align:center;";
     return `
       <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
-          <button type="button" class="signin-subtab ${this._emailMode === 'login' ? 'active' : ''}" data-mode="login" id="subtab-login" style="${this._emailMode === 'login' ? tabActive : tabBase}">Sign In</button>
-          <button type="button" class="signin-subtab ${this._emailMode === 'register' ? 'active' : ''}" data-mode="register" id="subtab-register" style="${this._emailMode === 'register' ? tabActive : tabBase}">Create Account</button>
+          <button type="button" class="signin-subtab ${this._emailMode === "login" ? "active" : ""}" data-mode="login" id="subtab-login" style="${this._emailMode === "login" ? tabActive : tabBase}">Sign In</button>
+          <button type="button" class="signin-subtab ${this._emailMode === "register" ? "active" : ""}" data-mode="register" id="subtab-register" style="${this._emailMode === "register" ? tabActive : tabBase}">Create Account</button>
         </div>
         <form id="signin-email-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
           <div>
@@ -190,7 +216,7 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
             <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--primary);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
           </div>
           <p id="signin-email-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger,#ef4444);text-align:center;line-height:1.5;"></p>
-          <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${this._emailMode === 'register' ? 'Create Account' : 'Sign In'}</button>
+          <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${this._emailMode === "register" ? "Create Account" : "Sign In"}</button>
         </form>
         <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
           <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or</span>
@@ -199,7 +225,7 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
         <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>&#128274;</span> Sign in with Security Key
         </button>
-        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
+        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${this._emailMode === "register" ? "Already have an account? Switch to <strong>Sign In</strong>." : "New here? Switch to <strong>Create Account</strong> to register."}</p>
       </div>
 
       <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
@@ -213,24 +239,33 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
   }
 
   bindEmailModeToggle(container) {
-    const subtabs = container.querySelectorAll('.signin-subtab');
-    const submitBtn = container.querySelector('#signin-email-submit');
-    const note = container.querySelector('#email-mode-note');
-    const forgotBtn = container.querySelector('#forgot-password-btn');
-    const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-    const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
-    subtabs.forEach(tab => {
-      tab.addEventListener('click', () => {
+    const subtabs = container.querySelectorAll(".signin-subtab");
+    const submitBtn = container.querySelector("#signin-email-submit");
+    const note = container.querySelector("#email-mode-note");
+    const forgotBtn = container.querySelector("#forgot-password-btn");
+    const tabActive =
+      "background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);";
+    const tabBase =
+      "flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;";
+    subtabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
         const mode = tab.dataset.mode;
         this._emailMode = mode;
-        subtabs.forEach(t => {
+        subtabs.forEach((t) => {
           const isActive = t.dataset.mode === mode;
-          t.classList.toggle('active', isActive);
+          t.classList.toggle("active", isActive);
           t.style.cssText = isActive ? tabActive : tabBase;
         });
-        if (submitBtn) submitBtn.textContent = mode === 'login' ? 'Sign In' : 'Create Account';
-if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
-        if (forgotBtn) forgotBtn.style.display = mode === 'login' ? 'block' : 'none';
+        if (submitBtn)
+          submitBtn.textContent =
+            mode === "login" ? "Sign In" : "Create Account";
+        if (note)
+          note.innerHTML =
+            mode === "login"
+              ? "New here? Switch to <strong>Create Account</strong> to register."
+              : "Already have an account? Switch to <strong>Sign In</strong>.";
+        if (forgotBtn)
+          forgotBtn.style.display = mode === "login" ? "block" : "none";
       });
     });
   }
@@ -238,57 +273,75 @@ if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Creat
   async handleEmailSubmit(e) {
     e.preventDefault();
     const form = e.target;
-    const email = form.querySelector('#signin-email-input').value.trim();
-    const password = form.querySelector('#signin-password-input').value;
-    const submitBtn = form.querySelector('#signin-email-submit');
-    const errorEl = form.querySelector('#signin-email-error');
+    const email = form.querySelector("#signin-email-input").value.trim();
+    const password = form.querySelector("#signin-password-input").value;
+    const submitBtn = form.querySelector("#signin-email-submit");
+    const errorEl = form.querySelector("#signin-email-error");
 
     // Client-side validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const identifierValid = this._emailMode === 'register' ? emailRegex.test(email) : /^[^\s]+$/.test(email);
+    const identifierValid =
+      this._emailMode === "register"
+        ? emailRegex.test(email)
+        : /^[^\s]+$/.test(email);
     if (!identifierValid) {
-      if (errorEl) { errorEl.textContent = this._emailMode === 'register' ? 'Please enter a valid email address.' : 'Please enter your email or username.'; errorEl.hidden = false; }
+      if (errorEl) {
+        errorEl.textContent =
+          this._emailMode === "register"
+            ? "Please enter a valid email address."
+            : "Please enter your email or username.";
+        errorEl.hidden = false;
+      }
       return;
     }
     if (!password || password.length < 6) {
-      if (errorEl) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.hidden = false; }
+      if (errorEl) {
+        errorEl.textContent = "Password must be at least 6 characters.";
+        errorEl.hidden = false;
+      }
       return;
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Signing in…';
+    submitBtn.textContent = "Signing in…";
     if (errorEl) {
       errorEl.hidden = true;
-      errorEl.textContent = '';
+      errorEl.textContent = "";
     }
     try {
-      if (this._emailMode === 'register') {
+      if (this._emailMode === "register") {
         await authService.register(email, password);
-        showToast('Account created successfully', 'success');
+        showToast("Account created successfully", "success");
       } else {
         await authService.login(email, password);
-        showToast('Signed in successfully', 'success');
+        showToast("Signed in successfully", "success");
       }
       this.app.updateAuthUi();
       this.app.bootstrapAfterAuth?.();
-      this.app.navigate('dashboard');
+      this.app.navigate("dashboard");
     } catch (err) {
-      const message = err.message || (this._emailMode === 'register' ? 'Registration failed' : 'Sign in failed');
+      const message =
+        err.message ||
+        (this._emailMode === "register"
+          ? "Registration failed"
+          : "Sign in failed");
       if (errorEl) {
         errorEl.textContent = message;
         errorEl.hidden = false;
       }
-      showToast(message, 'error');
+      showToast(message, "error");
       submitBtn.disabled = false;
-      submitBtn.textContent = this._emailMode === 'register' ? 'Create Account' : 'Sign In';
+      submitBtn.textContent =
+        this._emailMode === "register" ? "Create Account" : "Sign In";
     }
   }
 
   _showRecoveryModal() {
-    const overlay = document.createElement('div');
-    overlay.id = 'recovery-modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
-overlay.innerHTML = `
+    const overlay = document.createElement("div");
+    overlay.id = "recovery-modal-overlay";
+    overlay.style.cssText =
+      "position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;";
+    overlay.innerHTML = `
       <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
         <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>
         <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
@@ -303,52 +356,61 @@ overlay.innerHTML = `
       </div>
     `;
     document.body.appendChild(overlay);
-    const emailInput = overlay.querySelector('#recovery-email-input');
-    const errorEl = overlay.querySelector('#recovery-error');
-    const successEl = overlay.querySelector('#recovery-success');
-    const cancelBtn = overlay.querySelector('#recovery-cancel');
-    const submitBtn = overlay.querySelector('#recovery-submit');
+    const emailInput = overlay.querySelector("#recovery-email-input");
+    const errorEl = overlay.querySelector("#recovery-error");
+    const successEl = overlay.querySelector("#recovery-success");
+    const cancelBtn = overlay.querySelector("#recovery-cancel");
+    const submitBtn = overlay.querySelector("#recovery-submit");
     const closeModal = () => overlay.remove();
-    cancelBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-    submitBtn.addEventListener('click', async () => {
+    cancelBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeModal();
+    });
+    submitBtn.addEventListener("click", async () => {
       const email = emailInput.value.trim();
-      errorEl.style.display = 'none';
-      successEl.style.display = 'none';
+      errorEl.style.display = "none";
+      successEl.style.display = "none";
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errorEl.textContent = 'Please enter a valid email address.';
-        errorEl.style.display = 'block';
+        errorEl.textContent = "Please enter a valid email address.";
+        errorEl.style.display = "block";
         return;
       }
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Sending…';
+      submitBtn.textContent = "Sending…";
       try {
-        const res = await fetch('/api/auth/recover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+        const res = await fetch("/api/auth/recover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
         const data = await res.json();
         if (data.success) {
-          successEl.textContent = 'Check your email for recovery instructions.';
-          successEl.style.display = 'block';
+          successEl.textContent = "Check your email for recovery instructions.";
+          successEl.style.display = "block";
           setTimeout(closeModal, 3000);
         } else {
-          errorEl.textContent = data.error || 'Failed to send recovery email.';
-          errorEl.style.display = 'block';
+          errorEl.textContent = data.error || "Failed to send recovery email.";
+          errorEl.style.display = "block";
         }
       } catch (err) {
-        errorEl.textContent = 'Network error. Please try again.';
-        errorEl.style.display = 'block';
+        errorEl.textContent = "Network error. Please try again.";
+        errorEl.style.display = "block";
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Send Instructions';
+        submitBtn.textContent = "Send Instructions";
       }
     });
     emailInput.focus();
   }
   async _handleWebAuthnSignIn() {
     if (!window.PublicKeyCredential) {
-      showToast('Security key login is not supported in this browser.', 'error');
+      showToast(
+        "Security key login is not supported in this browser.",
+        "error",
+      );
       return;
     }
-    showToast('Security key authentication started (demo).', 'info');
+    showToast("Security key authentication started (demo).", "info");
   }
   destroy() {}
 }
@@ -359,11 +421,10 @@ overlay.innerHTML = `
  * @returns {any}
  */
 function escapeHtml(str) {
-  if (!str) return '';
+  if (!str) return "";
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
-

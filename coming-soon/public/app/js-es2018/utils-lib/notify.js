@@ -88,24 +88,20 @@ function _isLocalhost() {
 }
 function _notifyUrlFromBase(notifyBase) {
     const base = String(notifyBase || '').replace(/\/+$/, '');
-    if (!base)
-        return null;
+    if (!base) return null;
     const hostRoot = base.replace(/\/api\/?$/, '');
     return `${hostRoot}/api/notify`;
 }
 function _isHostedHttps() {
-    if (typeof window === 'undefined' || !window.location)
-        return false;
-    if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname))
-        return false;
+    if (typeof window === 'undefined' || !window.location) return false;
+    if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) return false;
     return window.location.protocol === 'https:';
 }
 function _isLoopbackNotifyUrl(url) {
     try {
         const parsed = new URL(String(url || ''), window.location.href);
         return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(parsed.hostname);
-    }
-    catch (_a) {
+    } catch (_a) {
         return false;
     }
 }
@@ -115,10 +111,15 @@ function _redactPayload(obj) {
     const out = {};
     for (const key of Object.keys(obj)) {
         const lower = key.toLowerCase();
-        if (lower === 'token' || lower === 'password' || lower === 'apikey' || lower === 'api_key' || lower === 'secret') {
+        if (
+            lower === 'token' ||
+            lower === 'password' ||
+            lower === 'apikey' ||
+            lower === 'api_key' ||
+            lower === 'secret'
+        ) {
             out[key] = '[REDACTED]';
-        }
-        else {
+        } else {
             out[key] = _redactPayload(obj[key]);
         }
     }
@@ -127,50 +128,60 @@ function _redactPayload(obj) {
 function _postNotifyBeacon(url, entry) {
     try {
         const payload = _redactPayload(entry.payload || {});
-        const beaconUrl = String(url).replace(/\/api\/notify\/?$/, '/api/notify/beacon')
-            + '?type=' + encodeURIComponent(entry.type)
-            + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+        const beaconUrl =
+            String(url).replace(/\/api\/notify\/?$/, '/api/notify/beacon') +
+            '?type=' +
+            encodeURIComponent(entry.type) +
+            '&payload=' +
+            encodeURIComponent(JSON.stringify(payload));
         const img = new Image();
         img.src = beaconUrl;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
 }
 function _isIdeIframe() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     return window.self !== window.top;
 }
 function _postNotifyViaParent(entry) {
-    if (!_isIdeIframe() || !window.parent)
-        return false;
+    if (!_isIdeIframe() || !window.parent) return false;
     try {
         if (entry.type === 'setAuthState') {
             const payload = entry.payload || {};
-            window.parent.postMessage({
-                command: 'setAuthState',
-                signedIn: payload.signedIn === true,
-                tier: payload.tier || '',
-                isAdmin: payload.isAdmin === true
-            }, '*');
+            window.parent.postMessage(
+                {
+                    command: 'setAuthState',
+                    signedIn: payload.signedIn === true,
+                    tier: payload.tier || '',
+                    isAdmin: payload.isAdmin === true
+                },
+                '*'
+            );
             return true;
         }
         if (entry.type === 'downloadComplete') {
             const payload = entry.payload || {};
-            window.parent.postMessage({
-                command: 'downloadComplete',
-                filename: payload.filename,
-                filePath: payload.filePath
-            }, '*');
+            window.parent.postMessage(
+                {
+                    command: 'downloadComplete',
+                    filename: payload.filename,
+                    filePath: payload.filePath
+                },
+                '*'
+            );
             return true;
         }
-        window.parent.postMessage({
-            command: 'notifyBridge',
-            type: entry.type,
-            payload: _redactPayload(entry.payload || {})
-        }, '*');
+        window.parent.postMessage(
+            {
+                command: 'notifyBridge',
+                type: entry.type,
+                payload: _redactPayload(entry.payload || {})
+            },
+            '*'
+        );
         return true;
-    }
-    catch (_a) {
+    } catch (_a) {
         return false;
     }
 }
@@ -192,8 +203,9 @@ function _postNotify(entry) {
         if (notifyBase) {
             url = _notifyUrlFromBase(notifyBase) || url;
         }
+    } catch (_a) {
+        /* ignore malformed bridge URL */
     }
-    catch (_a) { /* ignore malformed bridge URL */ }
     if (!notifyBase && apiBaseUrl() === '/') {
         return;
     }
@@ -205,7 +217,11 @@ function _postNotify(entry) {
     if (Date.now() < _notifyDisabledUntil) return;
     (async () => {
         try {
-            const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+            const resp = await fetchApi(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            });
             if (resp === null) {
                 // network failure — mark disabled briefly to avoid tight retry loops
                 _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
@@ -218,8 +234,6 @@ function _postNotify(entry) {
                     _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
                 }
             }
-        }
-        catch (err) {
-        }
+        } catch (err) {}
     })();
 }

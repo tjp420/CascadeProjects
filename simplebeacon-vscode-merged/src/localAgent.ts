@@ -57,7 +57,10 @@ export function getAgentDownloadUrl(): string {
     const base = apiUrl.replace(/\/$/, '');
     return `${base}/downloads/simplebeacon-local-agent-portable.zip`;
   }
-  return process.env.SB_DOWNLOAD_URL || 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon-local-agent-portable.zip';
+  return (
+    process.env.SB_DOWNLOAD_URL ||
+    'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon-local-agent-portable.zip'
+  );
 }
 
 /**
@@ -103,9 +106,7 @@ export function startLocalAgent(installDir?: string, port?: number): void {
   const env = { ...process.env, SIMPLEBEACON_AGENT_PORT: String(agentPort) };
   const agentEntry = path.join(dir, 'agent.cjs');
   if (!fs.existsSync(agentEntry)) {
-    throw new Error(
-      `agent.cjs not found in ${dir}. The portable zip may be incomplete — re-install the local agent.`
-    );
+    throw new Error(`agent.cjs not found in ${dir}. The portable zip may be incomplete — re-install the local agent.`);
   }
   if (process.platform === 'win32') {
     const bat = path.join(dir, 'start-agent.bat');
@@ -273,7 +274,7 @@ export async function scanViaLocalAgent(options: AgentScanOptions, port?: number
             'Content-Length': Buffer.byteLength(payload),
           },
           // include bridge token when available to authenticate to local agent/data-server
-          (typeof getBridgeToken === 'function' ? { 'x-simplebeacon-bridge-token': getBridgeToken() } : {})
+          typeof getBridgeToken === 'function' ? { 'x-simplebeacon-bridge-token': getBridgeToken() } : {}
         ),
         timeout: 600000,
       },

@@ -20,15 +20,15 @@ Generated: 2026-06-09
 
 ### Pre-Launch Checklist Results
 
-| Category | Passed | Failed | Notes |
-|----------|--------|--------|-------|
-| Product Artifacts | 5 | 1 | Missing actual screenshot PNGs (requires manual VS Code capture) |
-| Code Quality | 5 | 0 | All server files syntax-valid |
-| npm Package | 5 | 0 | `simplebeacon` ready to publish |
-| Environment | 8 | 0 | All critical vars documented |
-| Documentation & Legal | 5 | 0 | EULA, Privacy, ToS, guides all present |
-| GitHub Action | 1 | 0 | action.yml ready |
-| **Total** | **29** | **1** | |
+| Category              | Passed | Failed | Notes                                                            |
+| --------------------- | ------ | ------ | ---------------------------------------------------------------- |
+| Product Artifacts     | 5      | 1      | Missing actual screenshot PNGs (requires manual VS Code capture) |
+| Code Quality          | 5      | 0      | All server files syntax-valid                                    |
+| npm Package           | 5      | 0      | `simplebeacon` ready to publish                                  |
+| Environment           | 8      | 0      | All critical vars documented                                     |
+| Documentation & Legal | 5      | 0      | EULA, Privacy, ToS, guides all present                           |
+| GitHub Action         | 1      | 0      | action.yml ready                                                 |
+| **Total**             | **29** | **1**  |                                                                  |
 
 ---
 
@@ -124,17 +124,17 @@ These steps need you to log into external services and configure accounts. All c
 
 ## File Changes Made Today
 
-| File | Change |
-|------|--------|
-| `vscode-extension/resources/icon.svg` | Replaced 16x16 warning triangle with 128x128 shield+scan icon |
-| `vscode-extension/resources/icon.png` | Created PNG version for marketplace |
-| `vscode-extension/package.json` | Changed `icon` field from `.svg` to `.png` |
-| `ai-platform/simplebeacon-server.cjs` | Added `/health` endpoint for Render |
-| `render.yaml` | Fixed server path, added all billing/env vars |
-| `.env.example` | Added all production env vars with documentation |
-| `scripts/deploy-to-render.cjs` | New deploy helper script |
-| `scripts/pre-launch-checklist.cjs` | New validation script |
-| `sales/marketplace/screenshots/README.md` | Already existed with capture instructions |
+| File                                      | Change                                                        |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| `vscode-extension/resources/icon.svg`     | Replaced 16x16 warning triangle with 128x128 shield+scan icon |
+| `vscode-extension/resources/icon.png`     | Created PNG version for marketplace                           |
+| `vscode-extension/package.json`           | Changed `icon` field from `.svg` to `.png`                    |
+| `ai-platform/simplebeacon-server.cjs`     | Added `/health` endpoint for Render                           |
+| `render.yaml`                             | Fixed server path, added all billing/env vars                 |
+| `.env.example`                            | Added all production env vars with documentation              |
+| `scripts/deploy-to-render.cjs`            | New deploy helper script                                      |
+| `scripts/pre-launch-checklist.cjs`        | New validation script                                         |
+| `sales/marketplace/screenshots/README.md` | Already existed with capture instructions                     |
 
 ---
 
@@ -152,13 +152,13 @@ These steps need you to log into external services and configure accounts. All c
 
 ## Risk Assessment
 
-| Risk | Level | Mitigation |
-|------|-------|------------|
-| Stripe live mode setup errors | Medium | Use test mode first, verify webhooks |
-| Email delivery issues | Low | Resend fallback + SMTP fallback + disk queue |
-| Marketplace rejection | Low | Icon is PNG, README is polished, .vsix packages cleanly |
-| npm publish fails | Low | `PUBLISH.md` has detailed troubleshooting |
-| Domain not resolving | Medium | Use Render's default URL for initial testing |
+| Risk                          | Level  | Mitigation                                              |
+| ----------------------------- | ------ | ------------------------------------------------------- |
+| Stripe live mode setup errors | Medium | Use test mode first, verify webhooks                    |
+| Email delivery issues         | Low    | Resend fallback + SMTP fallback + disk queue            |
+| Marketplace rejection         | Low    | Icon is PNG, README is polished, .vsix packages cleanly |
+| npm publish fails             | Low    | `PUBLISH.md` has detailed troubleshooting               |
+| Domain not resolving          | Medium | Use Render's default URL for initial testing            |
 
 ## Bottom Line
 

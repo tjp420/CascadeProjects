@@ -28,12 +28,12 @@
 
 ```javascript
 function getConfig() {
-  return {
-    apiUrl: 'https://api.example.com', // placeholder: update with real endpoint
-    healthCheck: 'Lorem ipsum dolor sit amet',
-    confidence: 0.95,
-    debug: true
-  };
+    return {
+        apiUrl: 'https://api.example.com', // placeholder: update with real endpoint
+        healthCheck: 'Lorem ipsum dolor sit amet',
+        confidence: 0.95,
+        debug: true
+    };
 }
 ```
 
@@ -50,6 +50,7 @@ function getConfig() {
 **Action:** Save the file. Extension diagnostics populate instantly.
 
 **Highlighted lines:**
+
 - `// placeholder: update with real endpoint` → yellow squiggle: "AI Placeholder Comment"
 - `'Lorem ipsum dolor sit amet'` → red squiggle: "AI Default Metric (SB-FICTION-004)"
 - `confidence: 0.95` → yellow squiggle: "Hardcoded Confidence Score"
@@ -102,6 +103,7 @@ The comment disappears. The squiggle vanishes. Gate status bar updates.
 **Visual:** Click the AI Slop Cop icon in the Activity Bar.
 
 **Action:** Sidebar opens showing:
+
 - Tier badge: "Free"
 - Total Issues: 3 (1 fixed)
 - Errors: 0 | Warnings: 2 | Infos: 1
@@ -133,9 +135,9 @@ The comment disappears. The squiggle vanishes. Gate status bar updates.
 
 ## Platform Variants
 
-| Platform | Format | Length | Caption |
-|----------|--------|--------|---------|
-| Twitter/X | MP4 loop, 1080x1080 square | 60s cut | "Your AI assistant just suggested Latin placeholder text. My extension caught it in 0.3s." |
-| LinkedIn | MP4, 1080x1920 vertical | Full 2min | "This is what AI slop looks like in production code — and how we catch it before merge." |
-| Dev.to | GIF embed in blog post | Full 2min | Inline with the case study article |
-| GitHub README | GIF, 800px wide | 30s cut (Scene 3–5 only) | Below the install badge |
+| Platform      | Format                     | Length                   | Caption                                                                                    |
+| ------------- | -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------ |
+| Twitter/X     | MP4 loop, 1080x1080 square | 60s cut                  | "Your AI assistant just suggested Latin placeholder text. My extension caught it in 0.3s." |
+| LinkedIn      | MP4, 1080x1920 vertical    | Full 2min                | "This is what AI slop looks like in production code — and how we catch it before merge."   |
+| Dev.to        | GIF embed in blog post     | Full 2min                | Inline with the case study article                                                         |
+| GitHub README | GIF, 800px wide            | 30s cut (Scene 3–5 only) | Below the install badge                                                                    |

@@ -3,10 +3,6 @@
   "releaseOverview": {
     "totalReleases": "value"
   },
-  "releaseSchedule": [
-    {}
-  ],
-  "recommendations": [
-    {}
-  ]
+  "releaseSchedule": [{}],
+  "recommendations": [{}]
 }

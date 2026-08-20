@@ -3,16 +3,8 @@
   "featureStatistics": {
     "totalFeatures": 4
   },
-  "featureCategories": [
-    {}
-  ],
-  "currentSprintBacklog": [
-    {}
-  ],
-  "upcomingFeatures": [
-    {}
-  ],
-  "recommendations": [
-    {}
-  ]
+  "featureCategories": [{}],
+  "currentSprintBacklog": [{}],
+  "upcomingFeatures": [{}],
+  "recommendations": [{}]
 }

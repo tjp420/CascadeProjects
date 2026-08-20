@@ -1,63 +1,109 @@
-const fs = require('fs');
-const path = require('path');
-const assert = require('node:assert');
-const { describe, it } = require('node:test');
-const express = require('express');
-const supertest = require('supertest');
+const fs = require("fs");
+const path = require("path");
+const assert = require("node:assert");
+const { describe, it } = require("node:test");
+const express = require("express");
+const supertest = require("supertest");
 
-describe('agentic-orchestration routes (static checks)', () => {
-  it('route file exists and is non-empty', () => {
+describe("agentic-orchestration routes (static checks)", () => {
+  it("route file exists and is non-empty", () => {
     // route files live under server/routes in this repo layout
-    const file = path.join(__dirname, '..', '..', 'routes', 'agentic-orchestration-routes.cjs');
+    const file = path.join(
+      __dirname,
+      "..",
+      "..",
+      "routes",
+      "agentic-orchestration-routes.cjs",
+    );
     const exists = fs.existsSync(file);
     assert.ok(exists, `Expected route file to exist: ${file}`);
-    const src = fs.readFileSync(file, 'utf8');
-    assert.ok(src && src.length > 10, 'Route file appears empty');
+    const src = fs.readFileSync(file, "utf8");
+    assert.ok(src && src.length > 10, "Route file appears empty");
   });
 
-  it('route file contains expected exports or route registrations', () => {
-    const file = path.join(__dirname, '..', '..', 'routes', 'agentic-orchestration-routes.cjs');
-    const src = fs.readFileSync(file, 'utf8');
-    const pattern = /module\.exports|express\.Router|router\.(post|get|put|delete|use)|app\.(post|get|put|delete|use)/i;
-    assert.match(src, pattern, 'Route file does not appear to export a router or register routes');
+  it("route file contains expected exports or route registrations", () => {
+    const file = path.join(
+      __dirname,
+      "..",
+      "..",
+      "routes",
+      "agentic-orchestration-routes.cjs",
+    );
+    const src = fs.readFileSync(file, "utf8");
+    const pattern =
+      /module\.exports|express\.Router|router\.(post|get|put|delete|use)|app\.(post|get|put|delete|use)/i;
+    assert.match(
+      src,
+      pattern,
+      "Route file does not appear to export a router or register routes",
+    );
   });
 
   async function mountAppWithMocks() {
     // Install lightweight mocks for authorize middleware and agenticStore
-    const authorizePath = require('path').resolve(process.cwd(), 'server', 'middleware', 'authorize.cjs');
-    const agenticStorePath = require('path').resolve(process.cwd(), 'server', 'lib', 'agentic-orchestration-store.cjs');
+    const authorizePath = require("path").resolve(
+      process.cwd(),
+      "server",
+      "middleware",
+      "authorize.cjs",
+    );
+    const agenticStorePath = require("path").resolve(
+      process.cwd(),
+      "server",
+      "lib",
+      "agentic-orchestration-store.cjs",
+    );
 
     // Mock authorize: enforce RBAC per-required-permission and partition enforcement
     const mockAuthorize = {
       authorize: function (requiredPermission) {
         return function (req, res, next) {
-          if (!req.user) return res.status(401).json({ success: false, error: 'authentication_required' });
-          const role = req.user.role || 'viewer';
+          if (!req.user)
+            return res
+              .status(401)
+              .json({ success: false, error: "authentication_required" });
+          const role = req.user.role || "viewer";
           // admin always allowed
-          if (role === 'admin') return next();
+          if (role === "admin") return next();
           // operator allowed for execute path only
-          if (role === 'operator') {
+          if (role === "operator") {
             // allow execute endpoints even when requiredPermission is admin:all
-            if (req.path && req.path.indexOf('/execute') !== -1) return next();
-            return res.status(403).json({ success: false, error: 'insufficient_permissions' });
+            if (req.path && req.path.indexOf("/execute") !== -1) return next();
+            return res
+              .status(403)
+              .json({ success: false, error: "insufficient_permissions" });
           }
-          return res.status(403).json({ success: false, error: 'insufficient_permissions' });
+          return res
+            .status(403)
+            .json({ success: false, error: "insufficient_permissions" });
         };
       },
       authorizeAny: function () {
-        return function (req, res, next) { if (!req.user) return res.status(401).json({ success: false, error: 'authentication_required' }); return next(); };
+        return function (req, res, next) {
+          if (!req.user)
+            return res
+              .status(401)
+              .json({ success: false, error: "authentication_required" });
+          return next();
+        };
       },
       enforceOrgPartition: function () {
         return function (req, res, next) {
-          if (!req.user) return res.status(401).json({ success: false, error: 'authentication_required' });
-          const callerOrg = req.user.orgId || req.user.org || 'default';
-          const clientOrg = req.body?.orgId || req.query?.orgId || req.params?.orgId || null;
+          if (!req.user)
+            return res
+              .status(401)
+              .json({ success: false, error: "authentication_required" });
+          const callerOrg = req.user.orgId || req.user.org || "default";
+          const clientOrg =
+            req.body?.orgId || req.query?.orgId || req.params?.orgId || null;
           if (!clientOrg || clientOrg === callerOrg) {
             req.resolvedOrgId = callerOrg;
             return next();
           }
-              // For tests, enforce strict partitioning: no cross-org access allowed
-              return res.status(403).json({ success: false, error: 'org_partition_violation' });
+          // For tests, enforce strict partitioning: no cross-org access allowed
+          return res
+            .status(403)
+            .json({ success: false, error: "org_partition_violation" });
         };
       },
     };
@@ -67,21 +113,22 @@ describe('agentic-orchestration routes (static checks)', () => {
       getStats: () => ({ total: 0 }),
       getAllAgents: () => [],
       createAgent: (id, body, orgId) => {
-        if (!body || !body.id) return { success: false, error: 'missing id' };
+        if (!body || !body.id) return { success: false, error: "missing id" };
         return { success: true, id: body.id };
       },
       // return an agent belonging to org-beta for a specific id used in tests
       getAgent: (id, orgId) => {
-        if (id === 'agent-beta-1') return { id, orgId: 'org-beta', config: {} };
-        if (id === 'agent-a1') return { id, orgId: 'org-alpha', config: {} };
+        if (id === "agent-beta-1") return { id, orgId: "org-beta", config: {} };
+        if (id === "agent-a1") return { id, orgId: "org-alpha", config: {} };
         return null;
       },
       deleteAgent: (id, orgId) => {
-        if (id === 'agent-beta-1') return { success: false, error: 'agent_not_found' };
+        if (id === "agent-beta-1")
+          return { success: false, error: "agent_not_found" };
         return { success: true };
       },
       executeAgentLoop: async (id, orgId, input, inferenceFn, options) => {
-        return { success: true, id, output: 'executed' };
+        return { success: true, id, output: "executed" };
       },
       getActiveExecutions: () => [],
       getExecutionHistory: () => [],
@@ -90,26 +137,78 @@ describe('agentic-orchestration routes (static checks)', () => {
 
     // Inject mocks into require cache before loading router
     delete require.cache[authorizePath];
-    require.cache[authorizePath] = { id: authorizePath, filename: authorizePath, loaded: true, exports: mockAuthorize };
+    require.cache[authorizePath] = {
+      id: authorizePath,
+      filename: authorizePath,
+      loaded: true,
+      exports: mockAuthorize,
+    };
 
     delete require.cache[agenticStorePath];
-    require.cache[agenticStorePath] = { id: agenticStorePath, filename: agenticStorePath, loaded: true, exports: mockStore };
+    require.cache[agenticStorePath] = {
+      id: agenticStorePath,
+      filename: agenticStorePath,
+      loaded: true,
+      exports: mockStore,
+    };
 
     // Mock audit logger and expose to tests via global
-    const auditPath = require('path').resolve(process.cwd(), 'server', 'lib', 'audit-logger.cjs');
-    const mockAudit = { events: [], logEvent: function (type, data) { this.events.push({ type, data }); } };
+    const auditPath = require("path").resolve(
+      process.cwd(),
+      "server",
+      "lib",
+      "audit-logger.cjs",
+    );
+    const mockAudit = {
+      events: [],
+      logEvent: function (type, data) {
+        this.events.push({ type, data });
+      },
+    };
     delete require.cache[auditPath];
-    require.cache[auditPath] = { id: auditPath, filename: auditPath, loaded: true, exports: mockAudit };
+    require.cache[auditPath] = {
+      id: auditPath,
+      filename: auditPath,
+      loaded: true,
+      exports: mockAudit,
+    };
     global.__auditMock = mockAudit;
 
     // Mock siem-exporter to avoid network calls during tests and provide metrics
-    const siemPath = require('path').resolve(process.cwd(), 'server', 'lib', 'siem-exporter.cjs');
-    const mockSiem = { events: [], enqueue: function (e) { this.events.push(e); }, flush: async function () {}, _debug: { getMetrics: () => ({ siem_delivery_retries_total: 0, siem_delivery_dropped_total: 0 }) } };
+    const siemPath = require("path").resolve(
+      process.cwd(),
+      "server",
+      "lib",
+      "siem-exporter.cjs",
+    );
+    const mockSiem = {
+      events: [],
+      enqueue: function (e) {
+        this.events.push(e);
+      },
+      flush: async function () {},
+      _debug: {
+        getMetrics: () => ({
+          siem_delivery_retries_total: 0,
+          siem_delivery_dropped_total: 0,
+        }),
+      },
+    };
     delete require.cache[siemPath];
-    require.cache[siemPath] = { id: siemPath, filename: siemPath, loaded: true, exports: mockSiem };
+    require.cache[siemPath] = {
+      id: siemPath,
+      filename: siemPath,
+      loaded: true,
+      exports: mockSiem,
+    };
 
     // Mock redis-rate-limiter to match new async interface used by the router
-    const limiterPath = require('path').resolve(process.cwd(), 'server', 'lib', 'redis-rate-limiter.cjs');
+    const limiterPath = require("path").resolve(
+      process.cwd(),
+      "server",
+      "lib",
+      "redis-rate-limiter.cjs",
+    );
     const WINDOW_MS = 60 * 1000;
     const LIMIT = 3;
     const inMem = {};
@@ -117,8 +216,12 @@ describe('agentic-orchestration routes (static checks)', () => {
     const mockLimiter = {
       checkAndRecordRateLimit: async function (orgId) {
         const now = Date.now();
-        inMem[orgId] = (inMem[orgId] || []).filter(t => t >= now - WINDOW_MS);
-        if (inMem[orgId].length >= LIMIT) return { allowed: false, retryAfterMs: (inMem[orgId][0] + WINDOW_MS) - now };
+        inMem[orgId] = (inMem[orgId] || []).filter((t) => t >= now - WINDOW_MS);
+        if (inMem[orgId].length >= LIMIT)
+          return {
+            allowed: false,
+            retryAfterMs: inMem[orgId][0] + WINDOW_MS - now,
+          };
         inMem[orgId].push(now);
         return { allowed: true };
       },
@@ -132,39 +235,68 @@ describe('agentic-orchestration routes (static checks)', () => {
       },
       getActiveCount: async function (orgId) {
         return activeCounts[orgId] || 0;
-      }
+      },
     };
     delete require.cache[limiterPath];
-    require.cache[limiterPath] = { id: limiterPath, filename: limiterPath, loaded: true, exports: mockLimiter };
+    require.cache[limiterPath] = {
+      id: limiterPath,
+      filename: limiterPath,
+      loaded: true,
+      exports: mockLimiter,
+    };
 
     // Mock crypto-utils to disable replay detection during unit tests
-    const cryptoUtilsPath = require('path').resolve(process.cwd(), 'server', 'lib', 'crypto-utils.cjs');
+    const cryptoUtilsPath = require("path").resolve(
+      process.cwd(),
+      "server",
+      "lib",
+      "crypto-utils.cjs",
+    );
     const mockCryptoUtils = {
       canonicalizeRequest: function (body) {
         // simple canonicalization for tests
         const canonical = (function canonicalize(value) {
-          if (value === null || typeof value !== 'object') return value;
+          if (value === null || typeof value !== "object") return value;
           if (Array.isArray(value)) return value.map(canonicalize);
           const keys = Object.keys(value).sort();
           const out = {};
           for (const k of keys) out[k] = canonicalize(value[k]);
           return out;
         })(body || {});
-        const fingerprint = 'sha256:' + require('crypto').createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+        const fingerprint =
+          "sha256:" +
+          require("crypto")
+            .createHash("sha256")
+            .update(JSON.stringify(canonical))
+            .digest("hex");
         return { fingerprint, canonical };
       },
       createReplayDetector: function () {
         return {
-          checkAndMark: function () { return { isReplay: false, firstSeen: null }; },
-          getStats: function () { return {}; }
+          checkAndMark: function () {
+            return { isReplay: false, firstSeen: null };
+          },
+          getStats: function () {
+            return {};
+          },
         };
-      }
+      },
     };
     delete require.cache[cryptoUtilsPath];
-    require.cache[cryptoUtilsPath] = { id: cryptoUtilsPath, filename: cryptoUtilsPath, loaded: true, exports: mockCryptoUtils };
+    require.cache[cryptoUtilsPath] = {
+      id: cryptoUtilsPath,
+      filename: cryptoUtilsPath,
+      loaded: true,
+      exports: mockCryptoUtils,
+    };
 
     // Ensure router loads our mocks
-    const routerPath = require('path').resolve(process.cwd(), 'server', 'routes', 'agentic-orchestration-routes.cjs');
+    const routerPath = require("path").resolve(
+      process.cwd(),
+      "server",
+      "routes",
+      "agentic-orchestration-routes.cjs",
+    );
     delete require.cache[routerPath];
     const router = require(routerPath);
 
@@ -173,94 +305,178 @@ describe('agentic-orchestration routes (static checks)', () => {
 
     // Test auth injector: read test user from header
     app.use((req, res, next) => {
-      const h = req.headers['x-test-user'];
+      const h = req.headers["x-test-user"];
       if (h) {
-        try { req.user = JSON.parse(h); } catch { req.user = { id: h, role: 'viewer' }; }
+        try {
+          req.user = JSON.parse(h);
+        } catch {
+          req.user = { id: h, role: "viewer" };
+        }
       }
       next();
     });
 
     // Mount partition enforcement before routes
-    app.use('/api/agentic', mockAuthorize.enforceOrgPartition(), router);
+    app.use("/api/agentic", mockAuthorize.enforceOrgPartition(), router);
 
     return supertest(app);
   }
 
-  it('rejects unauthenticated POST /agents with 401', async () => {
+  it("rejects unauthenticated POST /agents with 401", async () => {
     const req = await mountAppWithMocks();
-    await req.post('/api/agentic/agents').send({ id: 'agent-1' }).expect(401).then((res) => {
-      assert.equal(res.body && res.body.error, 'authentication_required');
-    });
+    await req
+      .post("/api/agentic/agents")
+      .send({ id: "agent-1" })
+      .expect(401)
+      .then((res) => {
+        assert.equal(res.body && res.body.error, "authentication_required");
+      });
   });
 
-  it('rejects viewer role POST /agents with 403', async () => {
+  it("rejects viewer role POST /agents with 403", async () => {
     const req = await mountAppWithMocks();
-    await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'u1', role: 'viewer' })).send({ id: 'agent-2' }).expect(403).then((res) => {
-      assert.equal(res.body && res.body.error, 'insufficient_permissions');
-    });
+    await req
+      .post("/api/agentic/agents")
+      .set("x-test-user", JSON.stringify({ id: "u1", role: "viewer" }))
+      .send({ id: "agent-2" })
+      .expect(403)
+      .then((res) => {
+        assert.equal(res.body && res.body.error, "insufficient_permissions");
+      });
   });
 
-  it('returns 400 when admin creates agent without agentId (validation)', async () => {
+  it("returns 400 when admin creates agent without agentId (validation)", async () => {
     const req = await mountAppWithMocks();
-      await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'admin1', role: 'admin' })).send({ name: 'no-id' }).expect(409).then((res) => {
-      // route emits agent_create_failed on validation -> 409 conflict
-      assert.equal(res.body && res.body.error, 'agent_create_failed');
-    });
+    await req
+      .post("/api/agentic/agents")
+      .set("x-test-user", JSON.stringify({ id: "admin1", role: "admin" }))
+      .send({ name: "no-id" })
+      .expect(409)
+      .then((res) => {
+        // route emits agent_create_failed on validation -> 409 conflict
+        assert.equal(res.body && res.body.error, "agent_create_failed");
+      });
   });
 
-  it('allows admin to create agent when id present', async () => {
+  it("allows admin to create agent when id present", async () => {
     const req = await mountAppWithMocks();
-    await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'admin1', role: 'admin' })).send({ id: 'agent-9', name: 'ok' }).expect(200).then((res) => {
-      assert.equal(res.body && res.body.id, 'agent-9');
-    });
+    await req
+      .post("/api/agentic/agents")
+      .set("x-test-user", JSON.stringify({ id: "admin1", role: "admin" }))
+      .send({ id: "agent-9", name: "ok" })
+      .expect(200)
+      .then((res) => {
+        assert.equal(res.body && res.body.id, "agent-9");
+      });
   });
 
-  it('blocks admin from deleting agent in another org (partition enforcement)', async () => {
+  it("blocks admin from deleting agent in another org (partition enforcement)", async () => {
     const req = await mountAppWithMocks();
     // admin from org-alpha attempts to delete agent in org-beta (explicit orgId in query)
-    await req.delete('/api/agentic/agents/agent-beta-1?orgId=org-beta').set('x-test-user', JSON.stringify({ id: 'adminA', role: 'admin', orgId: 'org-alpha' })).expect(403).then((res) => {
-      assert.equal(res.body && res.body.error, 'org_partition_violation');
-    });
+    await req
+      .delete("/api/agentic/agents/agent-beta-1?orgId=org-beta")
+      .set(
+        "x-test-user",
+        JSON.stringify({ id: "adminA", role: "admin", orgId: "org-alpha" }),
+      )
+      .expect(403)
+      .then((res) => {
+        assert.equal(res.body && res.body.error, "org_partition_violation");
+      });
   });
 
-  it('allows operator to execute an agent in same org but not create agents', async () => {
+  it("allows operator to execute an agent in same org but not create agents", async () => {
     const req = await mountAppWithMocks();
     // operator trying to create agent -> forbidden
-    await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' })).send({ id: 'agent-op-1' }).expect(403);
+    await req
+      .post("/api/agentic/agents")
+      .set(
+        "x-test-user",
+        JSON.stringify({ id: "op1", role: "operator", orgId: "org-alpha" }),
+      )
+      .send({ id: "agent-op-1" })
+      .expect(403);
 
     // operator executing an agent in same org -> allowed (mock returns success)
-    await req.post('/api/agentic/agents/agent-a1/execute').set('x-test-user', JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' })).send({ input: 'run' }).expect(200).then((res) => {
-      assert.equal(res.body && res.body.success, true);
-    });
+    await req
+      .post("/api/agentic/agents/agent-a1/execute")
+      .set(
+        "x-test-user",
+        JSON.stringify({ id: "op1", role: "operator", orgId: "org-alpha" }),
+      )
+      .send({ input: "run" })
+      .expect(200)
+      .then((res) => {
+        assert.equal(res.body && res.body.success, true);
+      });
   });
 
-  it('enforces rate limit for repeated execute triggers', async () => {
+  it("enforces rate limit for repeated execute triggers", async () => {
     const req = await mountAppWithMocks();
-    const userHeader = { 'x-test-user': JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' }) };
+    const userHeader = {
+      "x-test-user": JSON.stringify({
+        id: "op1",
+        role: "operator",
+        orgId: "org-alpha",
+      }),
+    };
     // Repeatedly call until we observe a 429, up to 5 attempts
     let got429 = false;
     for (let i = 0; i < 5; i++) {
-      const r = await req.post('/api/agentic/agents/agent-a1/execute').set(userHeader).send({ input: 'run' });
-      if (r.status === 429) { got429 = true; break; }
+      const r = await req
+        .post("/api/agentic/agents/agent-a1/execute")
+        .set(userHeader)
+        .send({ input: "run" });
+      if (r.status === 429) {
+        got429 = true;
+        break;
+      }
     }
-    assert.ok(got429, 'Expected at least one 429 rate_limited response within 5 attempts');
+    assert.ok(
+      got429,
+      "Expected at least one 429 rate_limited response within 5 attempts",
+    );
     // Verify audit event recorded with context
     const audit = global.__auditMock;
-    const ev = audit && audit.events && audit.events.find(e => e.type === 'AGENTIC_RATE_LIMIT_TRIPPED' || e.type === 'AGENTIC_QUOTA_EXHAUSTED');
-    assert.ok(ev, 'Expected audit event for rate limit or quota');
-    assert.ok(ev.data && typeof ev.data.payloadHash === 'string' && ev.data.payloadHash.length === 64, 'Expected sha256 payloadHash');
-    assert.ok('sourceIp' in ev.data, 'Expected sourceIp in audit data');
-    assert.ok(ev.data.headers && ('x-test-user' in ev.data.headers), 'Expected x-test-user header in audit headers');
+    const ev =
+      audit &&
+      audit.events &&
+      audit.events.find(
+        (e) =>
+          e.type === "AGENTIC_RATE_LIMIT_TRIPPED" ||
+          e.type === "AGENTIC_QUOTA_EXHAUSTED",
+      );
+    assert.ok(ev, "Expected audit event for rate limit or quota");
+    assert.ok(
+      ev.data &&
+        typeof ev.data.payloadHash === "string" &&
+        ev.data.payloadHash.length === 64,
+      "Expected sha256 payloadHash",
+    );
+    assert.ok("sourceIp" in ev.data, "Expected sourceIp in audit data");
+    assert.ok(
+      ev.data.headers && "x-test-user" in ev.data.headers,
+      "Expected x-test-user header in audit headers",
+    );
   });
 
-  it('exposes Prometheus metrics at GET /api/agentic/metrics (admin only)', async () => {
+  it("exposes Prometheus metrics at GET /api/agentic/metrics (admin only)", async () => {
     const req = await mountAppWithMocks();
     // admin should be allowed to fetch metrics
-    const r = await req.get('/api/agentic/metrics').set('x-test-user', JSON.stringify({ id: 'admin1', role: 'admin' })).expect(200);
-    const ct = r.headers['content-type'] || '';
-    assert.ok(ct.indexOf('text/plain') !== -1, `expected text/plain content type, got=${ct}`);
-    assert.ok(ct.indexOf('version=0.0.4') !== -1, `expected version=0.0.4 in content type, got=${ct}`);
-    const body = r.text || '';
+    const r = await req
+      .get("/api/agentic/metrics")
+      .set("x-test-user", JSON.stringify({ id: "admin1", role: "admin" }))
+      .expect(200);
+    const ct = r.headers["content-type"] || "";
+    assert.ok(
+      ct.indexOf("text/plain") !== -1,
+      `expected text/plain content type, got=${ct}`,
+    );
+    assert.ok(
+      ct.indexOf("version=0.0.4") !== -1,
+      `expected version=0.0.4 in content type, got=${ct}`,
+    );
+    const body = r.text || "";
     // Expect HELP/TYPE lines and metric names
     assert.match(body, /# HELP siem_delivery_retries_total/);
     assert.match(body, /# TYPE siem_delivery_retries_total counter/);

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 56: MPC search match verifier.
@@ -11,8 +11,8 @@
  * @module hsm-adapter/mpc-search-match-verifier
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class MpcSearchMatchVerifier {
   /**
@@ -35,30 +35,51 @@ class MpcSearchMatchVerifier {
    * @returns {object}
    */
   initiate(request) {
-    if (!request.verificationId || !request.query || !Array.isArray(request.committeeNodes)) {
-      throw new HsmAdapterError('MPC_SEARCH_FIELDS_MISSING', 'verificationId, query, and committeeNodes are required');
+    if (
+      !request.verificationId ||
+      !request.query ||
+      !Array.isArray(request.committeeNodes)
+    ) {
+      throw new HsmAdapterError(
+        "MPC_SEARCH_FIELDS_MISSING",
+        "verificationId, query, and committeeNodes are required",
+      );
     }
-    if (request.committeeNodes.length < (this.policy.minVerificationQuorum || 3)) {
+    if (
+      request.committeeNodes.length < (this.policy.minVerificationQuorum || 3)
+    ) {
       if (this.policy.isolateLowQuorumIndexNodes) {
         for (const node of request.committeeNodes) {
           this._isolatedNodes.add(node.nodeId);
         }
       }
-      throw new HsmAdapterError('MPC_SEARCH_QUORUM_INSUFFICIENT', `committee nodes ${request.committeeNodes.length} below minimum ${this.policy.minVerificationQuorum}`);
+      throw new HsmAdapterError(
+        "MPC_SEARCH_QUORUM_INSUFFICIENT",
+        `committee nodes ${request.committeeNodes.length} below minimum ${this.policy.minVerificationQuorum}`,
+      );
     }
     if (this.policy.requireIndexNodeAttestation && this._attestationClient) {
       for (const node of request.committeeNodes) {
         if (this._isolatedNodes.has(node.nodeId)) {
-          throw new HsmAdapterError('MPC_SEARCH_NODE_ISOLATED', `committee node ${node.nodeId} is isolated`);
+          throw new HsmAdapterError(
+            "MPC_SEARCH_NODE_ISOLATED",
+            `committee node ${node.nodeId} is isolated`,
+          );
         }
         try {
           const result = this._attestationClient.verify(node.attestation);
           if (!result.verified) {
-            throw new HsmAdapterError('MPC_SEARCH_NODE_UNATTESTED', `committee node ${node.nodeId} attestation invalid`);
+            throw new HsmAdapterError(
+              "MPC_SEARCH_NODE_UNATTESTED",
+              `committee node ${node.nodeId} attestation invalid`,
+            );
           }
         } catch (err) {
           if (err instanceof HsmAdapterError) throw err;
-          throw new HsmAdapterError('MPC_SEARCH_NODE_UNATTESTED', `committee node ${node.nodeId} attestation invalid`);
+          throw new HsmAdapterError(
+            "MPC_SEARCH_NODE_UNATTESTED",
+            `committee node ${node.nodeId} attestation invalid`,
+          );
         }
       }
     }
@@ -67,7 +88,7 @@ class MpcSearchMatchVerifier {
       query: request.query,
       committeeNodeIds: request.committeeNodes.map((n) => n.nodeId),
       evaluations: [],
-      status: 'pending',
+      status: "pending",
     };
     this._pending.set(request.verificationId, session);
     return session;
@@ -83,23 +104,40 @@ class MpcSearchMatchVerifier {
   submit(verificationId, nodeId, evaluationShare) {
     const session = this._pending.get(verificationId);
     if (!session) {
-      throw new HsmAdapterError('MPC_SEARCH_SESSION_NOT_FOUND', `no pending verification ${verificationId}`);
+      throw new HsmAdapterError(
+        "MPC_SEARCH_SESSION_NOT_FOUND",
+        `no pending verification ${verificationId}`,
+      );
     }
     if (!session.committeeNodeIds.includes(nodeId)) {
-      throw new HsmAdapterError('MPC_SEARCH_NODE_NOT_AUTHORIZED', `node ${nodeId} not authorized for verification ${verificationId}`);
+      throw new HsmAdapterError(
+        "MPC_SEARCH_NODE_NOT_AUTHORIZED",
+        `node ${nodeId} not authorized for verification ${verificationId}`,
+      );
     }
     if (this._isolatedNodes.has(nodeId)) {
-      throw new HsmAdapterError('MPC_SEARCH_NODE_ISOLATED', `node ${nodeId} is isolated`);
+      throw new HsmAdapterError(
+        "MPC_SEARCH_NODE_ISOLATED",
+        `node ${nodeId} is isolated`,
+      );
     }
-    if (!evaluationShare || typeof evaluationShare !== 'string') {
-      throw new HsmAdapterError('MPC_SEARCH_EVALUATION_MISSING', 'evaluation share is required');
+    if (!evaluationShare || typeof evaluationShare !== "string") {
+      throw new HsmAdapterError(
+        "MPC_SEARCH_EVALUATION_MISSING",
+        "evaluation share is required",
+      );
     }
     session.evaluations.push({ nodeId, evaluationShare });
-    if (session.evaluations.length >= (this.policy.minVerificationQuorum || 3)) {
-      session.status = 'verified';
-      const verifiedHash = crypto.createHash('sha256').update(session.evaluations.map((e) => e.evaluationShare).join(',')).digest('hex');
+    if (
+      session.evaluations.length >= (this.policy.minVerificationQuorum || 3)
+    ) {
+      session.status = "verified";
+      const verifiedHash = crypto
+        .createHash("sha256")
+        .update(session.evaluations.map((e) => e.evaluationShare).join(","))
+        .digest("hex");
       if (this._audit) {
-        this._audit('MPC_INDEX_MATCH_VERIFIED', {
+        this._audit("MPC_INDEX_MATCH_VERIFIED", {
           verificationId,
           queryId: session.query.queryId,
           committeeNodeIds: session.committeeNodeIds,
@@ -109,7 +147,11 @@ class MpcSearchMatchVerifier {
       }
       this._pending.delete(verificationId);
     }
-    return { submitted: true, status: session.status, evaluations: session.evaluations.length };
+    return {
+      submitted: true,
+      status: session.status,
+      evaluations: session.evaluations.length,
+    };
   }
 
   /**

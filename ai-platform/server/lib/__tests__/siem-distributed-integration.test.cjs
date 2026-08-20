@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Integration test: distributed token bucket sync via cluster-keyring-sync IPC.
@@ -9,12 +9,16 @@
  * converges to maxTokens (not N × maxTokens) across N nodes.
  */
 
-const assert = require('node:assert');
-const { describe, it, beforeEach, afterEach } = require('node:test');
-const path = require('path');
+const assert = require("node:assert");
+const { describe, it, beforeEach, afterEach } = require("node:test");
+const path = require("path");
 
-const SiemSecurityBroker = require(path.resolve(process.cwd(), 'server', 'lib', 'siem', 'siem-broker.cjs'));
-const clusterSync = require(path.resolve(process.cwd(), 'server', 'lib', 'cluster-keyring-sync.cjs'));
+const SiemSecurityBroker = require(
+  path.resolve(process.cwd(), "server", "lib", "siem", "siem-broker.cjs"),
+);
+const clusterSync = require(
+  path.resolve(process.cwd(), "server", "lib", "cluster-keyring-sync.cjs"),
+);
 
 function createMockSocket(remoteAddress, remotePort) {
   return {
@@ -23,23 +27,25 @@ function createMockSocket(remoteAddress, remotePort) {
     destroyed: false,
     write: () => {},
     on: () => {},
-    destroy() { this.destroyed = true; },
+    destroy() {
+      this.destroyed = true;
+    },
   };
 }
 
-describe('Distributed token bucket sync via cluster-keyring-sync IPC', () => {
+describe("Distributed token bucket sync via cluster-keyring-sync IPC", () => {
   let broker;
 
   beforeEach(() => {
     broker = new SiemSecurityBroker({
       rateLimitMaxTokens: 60,
       rateLimitRefillRateMs: 999999,
-      transportStrategy: 'STDOUT_ONLY',
+      transportStrategy: "STDOUT_ONLY",
     });
     broker._dispatch = () => {}; // suppress output
     broker.enableDistributedSync({
       nodeCount: 3,
-      nodeId: 'node-1',
+      nodeId: "node-1",
       sendFn: () => {}, // no-op for these tests
       syncIntervalMs: 999999,
     });
@@ -51,8 +57,8 @@ describe('Distributed token bucket sync via cluster-keyring-sync IPC', () => {
     clusterSync.setBroker(null);
   });
 
-  it('routes SIEM_BUCKET_SYNC to broker.handlePeerSync', () => {
-    const socket = createMockSocket('127.0.0.1', 7001);
+  it("routes SIEM_BUCKET_SYNC to broker.handlePeerSync", () => {
+    const socket = createMockSocket("127.0.0.1", 7001);
     // We need to bypass the unknown-peer check. Use _handleMessage directly
     // with a known peer. First, add the peer to the cluster.
     // Since we can't easily set up the full cluster, we'll test the routing
@@ -65,90 +71,119 @@ describe('Distributed token bucket sync via cluster-keyring-sync IPC', () => {
     // Actually, looking at _handleMessage, SIEM_BUCKET_SYNC is handled AFTER
     // the HEARTBEAT/KEY_COMMIT block, in the same section as PING.
     // It does not go through the unknown-peer check.
-    clusterSync._handleMessage({
-      type: 'SIEM_BUCKET_SYNC',
-      from: 'node-2',
-      localTokens: 15,
-      maxLocalTokens: 20,
-    }, socket);
+    clusterSync._handleMessage(
+      {
+        type: "SIEM_BUCKET_SYNC",
+        from: "node-2",
+        localTokens: 15,
+        maxLocalTokens: 20,
+      },
+      socket,
+    );
 
     const state = broker.getDistributedState();
-    assert.strictEqual(state.peerCount, 1, 'peer should be registered');
-    assert.strictEqual(state.peers['node-2'].localTokens, 15);
+    assert.strictEqual(state.peerCount, 1, "peer should be registered");
+    assert.strictEqual(state.peers["node-2"].localTokens, 15);
   });
 
-  it('routes SIEM_TOKEN_REQUEST to broker.handleTokenRequest', () => {
-    const socket = createMockSocket('127.0.0.1', 7001);
+  it("routes SIEM_TOKEN_REQUEST to broker.handleTokenRequest", () => {
+    const socket = createMockSocket("127.0.0.1", 7001);
     // broker has fairShare=20, tokens=20, reserveFloor=4
     // Request 10 tokens from node-2
-    clusterSync._handleMessage({
-      type: 'SIEM_TOKEN_REQUEST',
-      from: 'node-2',
-      to: 'node-1',
-      requested: 10,
-    }, socket);
+    clusterSync._handleMessage(
+      {
+        type: "SIEM_TOKEN_REQUEST",
+        from: "node-2",
+        to: "node-1",
+        requested: 10,
+      },
+      socket,
+    );
 
     // broker should have granted some tokens (surplus = 20 - 4 = 16)
-    assert.ok(broker.tokens < 20, 'broker should have granted tokens from surplus');
-    assert.ok(broker.tokens >= 4, 'broker should not drop below reserve floor');
+    assert.ok(
+      broker.tokens < 20,
+      "broker should have granted tokens from surplus",
+    );
+    assert.ok(broker.tokens >= 4, "broker should not drop below reserve floor");
   });
 
-  it('routes SIEM_TOKEN_GRANT to broker.handleTokenGrant', () => {
-    const socket = createMockSocket('127.0.0.1', 7001);
+  it("routes SIEM_TOKEN_GRANT to broker.handleTokenGrant", () => {
+    const socket = createMockSocket("127.0.0.1", 7001);
     broker.tokens = 0;
-    clusterSync._handleMessage({
-      type: 'SIEM_TOKEN_GRANT',
-      from: 'node-2',
-      to: 'node-1',
-      granted: 10,
-    }, socket);
+    clusterSync._handleMessage(
+      {
+        type: "SIEM_TOKEN_GRANT",
+        from: "node-2",
+        to: "node-1",
+        granted: 10,
+      },
+      socket,
+    );
 
-    assert.strictEqual(broker.tokens, 10, 'broker should have received granted tokens');
+    assert.strictEqual(
+      broker.tokens,
+      10,
+      "broker should have received granted tokens",
+    );
   });
 
-  it('SIEM_TOKEN_GRANT for wrong node is ignored', () => {
-    const socket = createMockSocket('127.0.0.1', 7001);
+  it("SIEM_TOKEN_GRANT for wrong node is ignored", () => {
+    const socket = createMockSocket("127.0.0.1", 7001);
     broker.tokens = 0;
-    clusterSync._handleMessage({
-      type: 'SIEM_TOKEN_GRANT',
-      from: 'node-2',
-      to: 'node-3', // not us
-      granted: 10,
-    }, socket);
+    clusterSync._handleMessage(
+      {
+        type: "SIEM_TOKEN_GRANT",
+        from: "node-2",
+        to: "node-3", // not us
+        granted: 10,
+      },
+      socket,
+    );
 
-    assert.strictEqual(broker.tokens, 0, 'grant for wrong node should be ignored');
+    assert.strictEqual(
+      broker.tokens,
+      0,
+      "grant for wrong node should be ignored",
+    );
   });
 
-  it('does not crash when broker is not set', () => {
+  it("does not crash when broker is not set", () => {
     clusterSync.setBroker(null);
-    const socket = createMockSocket('127.0.0.1', 7001);
+    const socket = createMockSocket("127.0.0.1", 7001);
     // Should not throw
-    clusterSync._handleMessage({
-      type: 'SIEM_BUCKET_SYNC',
-      from: 'node-2',
-      localTokens: 15,
-      maxLocalTokens: 20,
-    }, socket);
-    assert.ok(true, 'did not crash without broker');
+    clusterSync._handleMessage(
+      {
+        type: "SIEM_BUCKET_SYNC",
+        from: "node-2",
+        localTokens: 15,
+        maxLocalTokens: 20,
+      },
+      socket,
+    );
+    assert.ok(true, "did not crash without broker");
   });
 
-  it('does not crash when broker lacks distributed sync methods', () => {
+  it("does not crash when broker lacks distributed sync methods", () => {
     const simpleBroker = { logEvent: () => true };
     clusterSync.setBroker(simpleBroker);
-    const socket = createMockSocket('127.0.0.1', 7001);
+    const socket = createMockSocket("127.0.0.1", 7001);
     // Should not throw — handlePeerSync check should guard
-    clusterSync._handleMessage({
-      type: 'SIEM_BUCKET_SYNC',
-      from: 'node-2',
-      localTokens: 15,
-      maxLocalTokens: 20,
-    }, socket);
-    assert.ok(true, 'did not crash with simple broker');
+    clusterSync._handleMessage(
+      {
+        type: "SIEM_BUCKET_SYNC",
+        from: "node-2",
+        localTokens: 15,
+        maxLocalTokens: 20,
+      },
+      socket,
+    );
+    assert.ok(true, "did not crash with simple broker");
   });
 });
 
-describe('Multi-node cluster rate limit convergence', () => {
-  it('N=3 cluster: total processed events converge to maxTokens', () => {
+describe("Multi-node cluster rate limit convergence", () => {
+  it("N=3 cluster: total processed events converge to maxTokens", () => {
     const maxTokens = 60;
     const nodeCount = 3;
     const fairShare = Math.floor(maxTokens / nodeCount); // 20
@@ -159,8 +194,8 @@ describe('Multi-node cluster rate limit convergence', () => {
       send(fromId, msg) {
         for (const b of brokers) {
           if (b._nodeId === fromId) continue;
-          if (msg.type === 'SIEM_BUCKET_SYNC') b.handlePeerSync(msg);
-          else if (msg.type === 'SIEM_TOKEN_REQUEST') {
+          if (msg.type === "SIEM_BUCKET_SYNC") b.handlePeerSync(msg);
+          else if (msg.type === "SIEM_TOKEN_REQUEST") {
             // Peer processes request and may grant
             const granted = b.handleTokenRequest(msg);
             if (granted > 0) {
@@ -168,8 +203,7 @@ describe('Multi-node cluster rate limit convergence', () => {
               // In our bus, handleTokenRequest already sends SIEM_TOKEN_GRANT
               // via the broker's own sendFn, which goes through bus.send
             }
-          }
-          else if (msg.type === 'SIEM_TOKEN_GRANT') b.handleTokenGrant(msg);
+          } else if (msg.type === "SIEM_TOKEN_GRANT") b.handleTokenGrant(msg);
         }
       },
     };
@@ -178,9 +212,11 @@ describe('Multi-node cluster rate limit convergence', () => {
       const b = new SiemSecurityBroker({
         rateLimitMaxTokens: maxTokens,
         rateLimitRefillRateMs: 999999,
-        transportStrategy: 'STDOUT_ONLY',
+        transportStrategy: "STDOUT_ONLY",
       });
-      b._dispatch = function (event) { this.emit('test_event_dispatched', event); };
+      b._dispatch = function (event) {
+        this.emit("test_event_dispatched", event);
+      };
       brokers.push(b);
     }
 
@@ -201,29 +237,40 @@ describe('Multi-node cluster rate limit convergence', () => {
 
     // Each broker should have fairShare tokens
     for (const b of brokers) {
-      assert.strictEqual(b.tokens, fairShare, `each node should start with fair share (${fairShare})`);
+      assert.strictEqual(
+        b.tokens,
+        fairShare,
+        `each node should start with fair share (${fairShare})`,
+      );
     }
 
     // Fire events round-robin
     let totalProcessed = 0;
     for (const b of brokers) {
-      b.on('test_event_dispatched', () => totalProcessed++);
+      b.on("test_event_dispatched", () => totalProcessed++);
     }
 
     for (let i = 0; i < 300; i++) {
-      brokers[i % nodeCount].logEvent({ siemSeverity: 'LOW', siemCategory: `E${i}` });
+      brokers[i % nodeCount].logEvent({
+        siemSeverity: "LOW",
+        siemCategory: `E${i}`,
+      });
     }
 
     // Total processed should not exceed maxTokens (cluster-wide limit)
-    assert.ok(totalProcessed <= maxTokens,
-      `total processed (${totalProcessed}) should not exceed maxTokens (${maxTokens})`);
-    assert.ok(totalProcessed >= fairShare,
-      `at least one fair share (${totalProcessed}) should be processed`);
+    assert.ok(
+      totalProcessed <= maxTokens,
+      `total processed (${totalProcessed}) should not exceed maxTokens (${maxTokens})`,
+    );
+    assert.ok(
+      totalProcessed >= fairShare,
+      `at least one fair share (${totalProcessed}) should be processed`,
+    );
 
     for (const b of brokers) b.close();
   });
 
-  it('N=5 cluster: fair share = maxTokens / 5, total converges', () => {
+  it("N=5 cluster: fair share = maxTokens / 5, total converges", () => {
     const maxTokens = 100;
     const nodeCount = 5;
     const fairShare = Math.floor(maxTokens / nodeCount); // 20
@@ -233,9 +280,9 @@ describe('Multi-node cluster rate limit convergence', () => {
       send(fromId, msg) {
         for (const b of brokers) {
           if (b._nodeId === fromId) continue;
-          if (msg.type === 'SIEM_BUCKET_SYNC') b.handlePeerSync(msg);
-          else if (msg.type === 'SIEM_TOKEN_REQUEST') b.handleTokenRequest(msg);
-          else if (msg.type === 'SIEM_TOKEN_GRANT') b.handleTokenGrant(msg);
+          if (msg.type === "SIEM_BUCKET_SYNC") b.handlePeerSync(msg);
+          else if (msg.type === "SIEM_TOKEN_REQUEST") b.handleTokenRequest(msg);
+          else if (msg.type === "SIEM_TOKEN_GRANT") b.handleTokenGrant(msg);
         }
       },
     };
@@ -244,9 +291,11 @@ describe('Multi-node cluster rate limit convergence', () => {
       const b = new SiemSecurityBroker({
         rateLimitMaxTokens: maxTokens,
         rateLimitRefillRateMs: 999999,
-        transportStrategy: 'STDOUT_ONLY',
+        transportStrategy: "STDOUT_ONLY",
       });
-      b._dispatch = function (event) { this.emit('test_event_dispatched', event); };
+      b._dispatch = function (event) {
+        this.emit("test_event_dispatched", event);
+      };
       brokers.push(b);
     }
 
@@ -263,20 +312,25 @@ describe('Multi-node cluster rate limit convergence', () => {
 
     let totalProcessed = 0;
     for (const b of brokers) {
-      b.on('test_event_dispatched', () => totalProcessed++);
+      b.on("test_event_dispatched", () => totalProcessed++);
     }
 
     for (let i = 0; i < 500; i++) {
-      brokers[i % nodeCount].logEvent({ siemSeverity: 'LOW', siemCategory: `E${i}` });
+      brokers[i % nodeCount].logEvent({
+        siemSeverity: "LOW",
+        siemCategory: `E${i}`,
+      });
     }
 
-    assert.ok(totalProcessed <= maxTokens,
-      `total processed (${totalProcessed}) should not exceed maxTokens (${maxTokens})`);
+    assert.ok(
+      totalProcessed <= maxTokens,
+      `total processed (${totalProcessed}) should not exceed maxTokens (${maxTokens})`,
+    );
 
     for (const b of brokers) b.close();
   });
 
-  it('network partition: node falls back to fair share when peers unreachable', () => {
+  it("network partition: node falls back to fair share when peers unreachable", () => {
     const maxTokens = 60;
     const nodeCount = 3;
     const fairShare = 20;
@@ -285,26 +339,31 @@ describe('Multi-node cluster rate limit convergence', () => {
     const broker = new SiemSecurityBroker({
       rateLimitMaxTokens: maxTokens,
       rateLimitRefillRateMs: 999999,
-      transportStrategy: 'STDOUT_ONLY',
+      transportStrategy: "STDOUT_ONLY",
     });
-    broker._dispatch = function (event) { this.emit('test_event_dispatched', event); };
+    broker._dispatch = function (event) {
+      this.emit("test_event_dispatched", event);
+    };
     broker.enableDistributedSync({
       nodeCount,
-      nodeId: 'node-1',
+      nodeId: "node-1",
       sendFn: () => {}, // messages go nowhere (partition)
       syncIntervalMs: 999999,
     });
 
     let processed = 0;
-    broker.on('test_event_dispatched', () => processed++);
+    broker.on("test_event_dispatched", () => processed++);
 
     // Fire events — should only process fairShare (can't borrow from peers)
     for (let i = 0; i < 100; i++) {
-      broker.logEvent({ siemSeverity: 'LOW', siemCategory: `E${i}` });
+      broker.logEvent({ siemSeverity: "LOW", siemCategory: `E${i}` });
     }
 
-    assert.strictEqual(processed, fairShare,
-      `partitioned node should process exactly fairShare (${fairShare}) events`);
+    assert.strictEqual(
+      processed,
+      fairShare,
+      `partitioned node should process exactly fairShare (${fairShare}) events`,
+    );
     broker.close();
   });
 });

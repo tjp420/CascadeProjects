@@ -20,33 +20,36 @@
  *   - organizations table (or workspaces) for domain → org lookup
  */
 
-const crypto = require('crypto');
-const { URLSearchParams } = require('url');
-const logger = require('./app-logger.cjs');
-const { issueAccessToken, issueRefreshToken } = require('./token-service.cjs');
-const ssoConfigStore = require('./sso-config-store.cjs');
+const crypto = require("crypto");
+const { URLSearchParams } = require("url");
+const logger = require("./app-logger.cjs");
+const { issueAccessToken, issueRefreshToken } = require("./token-service.cjs");
+const ssoConfigStore = require("./sso-config-store.cjs");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function envKey(provider, suffix) {
-  const clean = String(provider).replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
+  const clean = String(provider)
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .toUpperCase();
   return process.env[`${clean}_${suffix}`] || process.env[`${suffix}_${clean}`];
 }
 
 function getSamlConfig(provider) {
   // First, try persistent config store
   const stored = ssoConfigStore.getConfigDecrypted(provider);
-  if (stored && stored.method === 'saml' && stored.enabled) {
+  if (stored && stored.method === "saml" && stored.enabled) {
     return {
-      cert: stored.saml?.cert || '',
-      entryPoint: stored.saml?.entryPoint || '',
-      issuer: stored.saml?.issuer || process.env.SAML_ISSUER || 'simplebeacon-ai',
+      cert: stored.saml?.cert || "",
+      entryPoint: stored.saml?.entryPoint || "",
+      issuer:
+        stored.saml?.issuer || process.env.SAML_ISSUER || "simplebeacon-ai",
     };
   }
   // Fall back to environment variables
-  const cert = envKey(provider, 'SAML_CERT');
-  const entryPoint = envKey(provider, 'SAML_ENTRYPOINT');
-  const issuer = process.env.SAML_ISSUER || 'simplebeacon-ai';
+  const cert = envKey(provider, "SAML_CERT");
+  const entryPoint = envKey(provider, "SAML_ENTRYPOINT");
+  const issuer = process.env.SAML_ISSUER || "simplebeacon-ai";
   if (!cert || !entryPoint) {
     throw new Error(`SAML not configured for provider: ${provider}`);
   }
@@ -56,19 +59,28 @@ function getSamlConfig(provider) {
 function getOidcConfig(provider) {
   // First, try persistent config store
   const stored = ssoConfigStore.getConfigDecrypted(provider);
-  if (stored && stored.method === 'oidc' && stored.enabled) {
+  if (stored && stored.method === "oidc" && stored.enabled) {
     return {
-      clientId: stored.oidc?.clientId || '',
-      clientSecret: stored.oidc?._decryptedSecret || '',
-      redirectUri: stored.oidc?.redirectUri || process.env.OIDC_REDIRECT_URI || 'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback',
-      issuer: stored.oidc?.issuer || '',
+      clientId: stored.oidc?.clientId || "",
+      clientSecret: stored.oidc?._decryptedSecret || "",
+      redirectUri:
+        stored.oidc?.redirectUri ||
+        process.env.OIDC_REDIRECT_URI ||
+        "https://simplebeacon.ai/api/v2/auth/sso/oidc/callback",
+      issuer: stored.oidc?.issuer || "",
     };
   }
   // Fall back to environment variables
-  const clientId = envKey(provider, 'OIDC_CLIENT_ID') || process.env[`OIDC_CLIENT_ID_${provider.toUpperCase()}`];
-  const clientSecret = envKey(provider, 'OIDC_CLIENT_SECRET') || process.env[`OIDC_CLIENT_SECRET_${provider.toUpperCase()}`];
-  const redirectUri = process.env.OIDC_REDIRECT_URI || 'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback';
-  const issuer = envKey(provider, 'OIDC_ISSUER');
+  const clientId =
+    envKey(provider, "OIDC_CLIENT_ID") ||
+    process.env[`OIDC_CLIENT_ID_${provider.toUpperCase()}`];
+  const clientSecret =
+    envKey(provider, "OIDC_CLIENT_SECRET") ||
+    process.env[`OIDC_CLIENT_SECRET_${provider.toUpperCase()}`];
+  const redirectUri =
+    process.env.OIDC_REDIRECT_URI ||
+    "https://simplebeacon.ai/api/v2/auth/sso/oidc/callback";
+  const issuer = envKey(provider, "OIDC_ISSUER");
   if (!clientId || !clientSecret || !issuer) {
     throw new Error(`OIDC not configured for provider: ${provider}`);
   }
@@ -78,20 +90,27 @@ function getOidcConfig(provider) {
 function generateState(provider, nonce) {
   const payload = JSON.stringify({ provider, nonce, ts: Date.now() });
   const secret = process.env.SSO_STATE_SECRET || process.env.JWT_SECRET;
-  const hmac = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
-  return Buffer.from(`${payload}.${hmac}`).toString('base64url');
+  const hmac = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("base64url");
+  return Buffer.from(`${payload}.${hmac}`).toString("base64url");
 }
 
 function verifyState(state) {
   try {
-    const raw = Buffer.from(state, 'base64url').toString('utf8');
-    const lastDot = raw.lastIndexOf('.');
+    const raw = Buffer.from(state, "base64url").toString("utf8");
+    const lastDot = raw.lastIndexOf(".");
     if (lastDot < 0) return null;
     const payload = raw.slice(0, lastDot);
     const hmac = raw.slice(lastDot + 1);
     const secret = process.env.SSO_STATE_SECRET || process.env.JWT_SECRET;
-    const expected = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
-    if (!crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expected))) return null;
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(payload)
+      .digest("base64url");
+    if (!crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expected)))
+      return null;
     const obj = JSON.parse(payload);
     // 15-minute state expiry
     if (Date.now() - obj.ts > 15 * 60 * 1000) return null;
@@ -103,7 +122,7 @@ function verifyState(state) {
 
 function extractDomain(email) {
   const m = String(email).match(/@([^@]+)$/);
-  return m ? m[1].toLowerCase() : '';
+  return m ? m[1].toLowerCase() : "";
 }
 
 // ── Organization Lookup (placeholder for DB wiring) ────────────────────────
@@ -115,11 +134,17 @@ async function resolveOrganizationByDomain(email, db) {
   // First, check persistent SSO config store for domain-matched config
   const ssoConfig = ssoConfigStore.resolveConfigByDomain(email);
   if (ssoConfig) {
-    return { id: ssoConfig.orgId, domain, ssoEnabled: true, providerId: ssoConfig.providerId };
+    return {
+      id: ssoConfig.orgId,
+      domain,
+      ssoEnabled: true,
+      providerId: ssoConfig.providerId,
+    };
   }
 
   // Fall back to environment variable mapping
-  const orgId = process.env[`SSO_ORG_${domain.replace(/\./g, '_').toUpperCase()}`];
+  const orgId =
+    process.env[`SSO_ORG_${domain.replace(/\./g, "_").toUpperCase()}`];
   if (orgId) {
     return { id: orgId, domain, ssoEnabled: true };
   }
@@ -132,25 +157,31 @@ function parseSamlAssertion(samlResponseBody) {
   // Production: use a proper SAML library (e.g., saml2-js, passport-saml, xml-crypto)
   // This stub parses a Base64-encoded NameID and attributes from a minimal assertion
   try {
-    const decoded = Buffer.from(samlResponseBody, 'base64').toString('utf8');
+    const decoded = Buffer.from(samlResponseBody, "base64").toString("utf8");
     // Very naive extraction for scaffolding; replace with real SAML parser
-    const nameIdMatch = decoded.match(/<saml2?:NameID[^>]*>([^<]+)<\/saml2?:NameID>/i);
-    const nameId = nameIdMatch ? nameIdMatch[1].trim() : '';
+    const nameIdMatch = decoded.match(
+      /<saml2?:NameID[^>]*>([^<]+)<\/saml2?:NameID>/i,
+    );
+    const nameId = nameIdMatch ? nameIdMatch[1].trim() : "";
 
-    const emailMatch = decoded.match(/<saml2?:AttributeValue[^>]*>([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})<\/saml2?:AttributeValue>/i);
+    const emailMatch = decoded.match(
+      /<saml2?:AttributeValue[^>]*>([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})<\/saml2?:AttributeValue>/i,
+    );
     const email = emailMatch ? emailMatch[1].trim() : nameId;
 
     return { nameId, email, rawAssertion: decoded };
   } catch (error) {
-    throw new Error('SAML assertion parse failed: ' + error.message);
+    throw new Error("SAML assertion parse failed: " + error.message);
   }
 }
 
 function verifySamlSignature(samlResponseBody, certPem) {
   // Production: use xml-crypto to validate XML signature against IdP cert
   // Stub: accept if cert is present (fail open only in dev)
-  if (!certPem) throw new Error('SAML certificate not configured');
-  logger.info('[SSO] SAML signature verification stub — replace with xml-crypto in production');
+  if (!certPem) throw new Error("SAML certificate not configured");
+  logger.info(
+    "[SSO] SAML signature verification stub — replace with xml-crypto in production",
+  );
   return true;
 }
 
@@ -160,10 +191,10 @@ function buildOidcAuthorizeUrl(provider, state) {
   const cfg = getOidcConfig(provider);
   const params = new URLSearchParams({
     client_id: cfg.clientId,
-    response_type: 'code',
-    scope: 'openid email profile',
+    response_type: "code",
+    scope: "openid email profile",
     redirect_uri: cfg.redirectUri,
-    state
+    state,
   });
   return `${cfg.issuer}/authorize?${params.toString()}`;
 }
@@ -171,36 +202,56 @@ function buildOidcAuthorizeUrl(provider, state) {
 async function exchangeOidcCode(provider, code) {
   // Production: use openid-client or direct POST to token endpoint
   const cfg = getOidcConfig(provider);
-  logger.info('[SSO] OIDC code exchange stub — replace with openid-client in production');
+  logger.info(
+    "[SSO] OIDC code exchange stub — replace with openid-client in production",
+  );
   // Stub response: return a mock identity for scaffolding
   // simplebeacon-ignore sensitive-data — stub placeholder tokens, not real secrets
   return {
-    idToken: 'placeholder',
-    accessToken: 'placeholder',
-    email: 'user@' + provider + '.com',
-    externalId: 'ext-' + provider + '-123',
-    provider
+    idToken: "placeholder",
+    accessToken: "placeholder",
+    email: "user@" + provider + ".com",
+    externalId: "ext-" + provider + "-123",
+    provider,
   };
 }
 
 // ── Token Issuance ─────────────────────────────────────────────────────────
 
-async function issueTokensForSsoUser(email, externalId, provider, organizationId, db) {
-  const user = await findOrCreateSsoUser(email, externalId, provider, organizationId, db);
+async function issueTokensForSsoUser(
+  email,
+  externalId,
+  provider,
+  organizationId,
+  db,
+) {
+  const user = await findOrCreateSsoUser(
+    email,
+    externalId,
+    provider,
+    organizationId,
+    db,
+  );
   const accessToken = issueAccessToken({
     id: user.id,
     email: user.email,
     trustLevel: user.trustLevel || 1,
     workspaceId: user.organizationId || organizationId,
-    permissions: user.permissions || ['user:read']
+    permissions: user.permissions || ["user:read"],
   });
   const refreshToken = await issueRefreshToken(user.id, {
-    workspaceId: user.organizationId || organizationId
+    workspaceId: user.organizationId || organizationId,
   });
   return { user, accessToken, refreshToken };
 }
 
-async function findOrCreateSsoUser(email, externalId, provider, organizationId, db) {
+async function findOrCreateSsoUser(
+  email,
+  externalId,
+  provider,
+  organizationId,
+  db,
+) {
   // Stub: return a synthetic user object for scaffolding until DB adapter is wired
   return {
     id: `sso-${provider}-${externalId}`,
@@ -209,7 +260,7 @@ async function findOrCreateSsoUser(email, externalId, provider, organizationId, 
     externalId,
     organizationId,
     trustLevel: 2,
-    permissions: ['user:read', 'workspace:read']
+    permissions: ["user:read", "workspace:read"],
   };
 }
 
@@ -227,5 +278,5 @@ module.exports = {
   resolveOrganizationByDomain,
   issueTokensForSsoUser,
   findOrCreateSsoUser,
-  extractDomain
+  extractDomain,
 };

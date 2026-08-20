@@ -7,22 +7,20 @@
 const VAULT_KEY = 'sb-token-vault';
 export function BUY_TIME_TOKENS_URL() {
     const env = (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__) || {};
-    const base = env.DASHBOARD_BASE_URL || (typeof location !== 'undefined' && location.origin) || 'https://simplebeacon.ai';
+    const base =
+        env.DASHBOARD_BASE_URL || (typeof location !== 'undefined' && location.origin) || 'https://simplebeacon.ai';
     return `${base.replace(/\/$/, '')}/checkout/tokens?ref=dashboard`;
 }
 
 function decodeJwtPayload(token) {
-    if (!token || typeof token !== 'string')
-        return null;
+    if (!token || typeof token !== 'string') return null;
     const parts = token.split('.');
-    if (parts.length !== 3)
-        return null;
+    if (parts.length !== 3) return null;
     try {
         const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padding = '='.repeat((4 - base64.length % 4) % 4);
+        const padding = '='.repeat((4 - (base64.length % 4)) % 4);
         return JSON.parse(atob(base64 + padding));
-    }
-    catch (_a) {
+    } catch (_a) {
         return null;
     }
 }
@@ -43,11 +41,13 @@ export function decodeTokenMeta(token) {
     let expiresLabel = 'No expiry';
     if (expMs) {
         const diff = expMs - Date.now();
-        if (diff <= 0)
-            expiresLabel = 'Expired';
+        if (diff <= 0) expiresLabel = 'Expired';
         else {
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            expiresLabel = days > 0 ? `${days} day${days !== 1 ? 's' : ''}` : `${Math.max(1, Math.floor(diff / (1000 * 60 * 60)))}h`;
+            expiresLabel =
+                days > 0
+                    ? `${days} day${days !== 1 ? 's' : ''}`
+                    : `${Math.max(1, Math.floor(diff / (1000 * 60 * 60)))}h`;
         }
     }
     return {
@@ -66,8 +66,7 @@ export function loadStockpileEntries() {
         const raw = localStorage.getItem(VAULT_KEY);
         const entries = raw ? JSON.parse(raw) : [];
         return Array.isArray(entries) ? entries : [];
-    }
-    catch (_a) {
+    } catch (_a) {
         return [];
     }
 }
@@ -77,12 +76,9 @@ function saveStockpileEntries(entries) {
 }
 
 export function isStockpiledEntry(entry, activeToken = '') {
-    if (!entry)
-        return false;
-    if (entry.token === activeToken)
-        return false;
-    if (entry.usedAt || entry.activatedAt)
-        return false;
+    if (!entry) return false;
+    if (entry.token === activeToken) return false;
+    if (entry.usedAt || entry.activatedAt) return false;
     return entry.stockpiled !== false;
 }
 
@@ -101,11 +97,10 @@ export function stockpileCount(activeToken = '') {
  */
 export function addToStockpile(token, user = {}, options = {}) {
     const trimmed = String(token || '').trim();
-    if (!trimmed)
-        return { ok: false, error: 'Token is required' };
+    if (!trimmed) return { ok: false, error: 'Token is required' };
     const entries = loadStockpileEntries();
-    if (entries.some((e) => e.token === trimmed)) {
-        return { ok: true, duplicate: true, index: entries.findIndex((e) => e.token === trimmed) };
+    if (entries.some(e => e.token === trimmed)) {
+        return { ok: true, duplicate: true, index: entries.findIndex(e => e.token === trimmed) };
     }
     const meta = decodeTokenMeta(trimmed);
     const record = {
@@ -128,8 +123,7 @@ export function addToStockpile(token, user = {}, options = {}) {
 
 export function removeStockpileEntry(index) {
     const entries = loadStockpileEntries();
-    if (index < 0 || index >= entries.length)
-        return false;
+    if (index < 0 || index >= entries.length) return false;
     entries.splice(index, 1);
     saveStockpileEntries(entries);
     return true;
@@ -142,8 +136,7 @@ export function clearStockpile() {
 export function activateStockpileEntry(index, authService) {
     const entries = loadStockpileEntries();
     const entry = entries[index];
-    if (!entry)
-        return { ok: false, error: 'Token not found' };
+    if (!entry) return { ok: false, error: 'Token not found' };
     const meta = decodeTokenMeta(entry.token);
     if (meta.expiresAt && new Date(meta.expiresAt).getTime() <= Date.now()) {
         return { ok: false, error: 'This time token has expired' };
@@ -158,7 +151,6 @@ export function activateStockpileEntry(index, authService) {
 }
 
 export function tokenHint(token) {
-    if (!token)
-        return '—';
+    if (!token) return '—';
     return token.length > 24 ? `${token.slice(0, 8)}…${token.slice(-8)}` : token;
 }

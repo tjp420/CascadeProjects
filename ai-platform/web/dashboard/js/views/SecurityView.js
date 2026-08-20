@@ -1,11 +1,18 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
+import {
+  escapeHtml,
+  showToast,
+  downloadJson,
+  redactPathForDisplay,
+  formatNumber,
+  renderEmptyState,
+} from "../utils.js";
 import {
   extractSecurityFindings,
   buildSecuritySummary,
   buildSecurityExportPayload,
-  fetchComplianceHeadline
-} from '../services/securityService.js';
+  fetchComplianceHeadline,
+} from "../services/securityService.js";
 
 /**
  * Security view.
@@ -22,7 +29,11 @@ export class SecurityView {
 
   _getVscodeApi() {
     if (this._vscodeApiCached) return this._vscodeApiCached;
-    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
+    if (
+      typeof window === "undefined" ||
+      typeof window.acquireVsCodeApi !== "function"
+    )
+      return null;
     try {
       this._vscodeApiCached = window.acquireVsCodeApi();
       return this._vscodeApiCached;
@@ -55,10 +66,10 @@ export class SecurityView {
   renderFindingsTable(findings) {
     if (!findings.length) {
       return renderEmptyState({
-        icon: '🛡️',
-        title: 'No security findings',
-        body: 'Credential and production-leak rules reported clean on the last scan.',
-        iconWrapper: 'emoji'
+        icon: "🛡️",
+        title: "No security findings",
+        body: "Credential and production-leak rules reported clean on the last scan.",
+        iconWrapper: "emoji",
       });
     }
 
@@ -75,15 +86,19 @@ export class SecurityView {
             </tr>
           </thead>
           <tbody>
-            ${findings.map((finding) => `
+            ${findings
+              .map(
+                (finding) => `
               <tr>
                 <td><span class="severity-pill ${escapeHtml(finding.severity)}">${escapeHtml(finding.severity)}</span></td>
                 <td><span style="font-size:var(--font-size-xs);font-weight:500;">${escapeHtml(finding.type)}</span></td>
-                <td><code style="font-size:var(--font-size-xs);">${escapeHtml(redactPathForDisplay(finding.file) || '—')}</code></td>
-                <td style="font-size:var(--font-size-sm);">${escapeHtml(finding.description || '—')}</td>
+                <td><code style="font-size:var(--font-size-xs);">${escapeHtml(redactPathForDisplay(finding.file) || "—")}</code></td>
+                <td style="font-size:var(--font-size-sm);">${escapeHtml(finding.description || "—")}</td>
                 <td style="font-size:var(--font-size-sm);color:var(--text-secondary);">${escapeHtml(finding.recommendation)}</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -91,45 +106,53 @@ export class SecurityView {
   }
 
   render() {
-    const el = document.createElement('div');
-    el.className = 'fade-in';
+    const el = document.createElement("div");
+    el.className = "fade-in";
 
     if (this.loading && !this.getReport()) {
-el.innerHTML = `
+      el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Loading security findings…</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-          title: 'Loading scan report…',
-          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+          title: "Loading scan report…",
+          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>',
         })}
       `;
       return el;
     }
 
     if (this.error && !this.getReport()) {
-el.innerHTML = `
+      el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Security scan unavailable</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-          title: 'Security scan unavailable',
+          title: "Security scan unavailable",
           body: escapeHtml(this.error),
-          actions: [{ label: 'Retry', id: 'security-retry', className: 'btn-primary' }]
+          actions: [
+            { label: "Retry", id: "security-retry", className: "btn-primary" },
+          ],
         })}
       `;
-      el.querySelector('#security-retry')?.addEventListener('click', () => this.loadReport(this._container));
+      el.querySelector("#security-retry")?.addEventListener("click", () =>
+        this.loadReport(this._container),
+      );
       return el;
     }
 
     const _report = this.getReport();
     const findings = this.getFindings();
     const summary = this.getSummary();
-    const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
-    const gateClass = summary.gatePass ? 'success' : 'danger';
+    const gateLabel = summary.gatePass
+      ? "PASS"
+      : summary.gatePass === false
+        ? "REVIEW"
+        : "—";
+    const gateClass = summary.gatePass ? "success" : "danger";
     const lastScan = summary.generatedAt
       ? new Date(summary.generatedAt).toLocaleString()
-      : 'Never';
+      : "Never";
 
-el.innerHTML = `
+    el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Security Scanner</h1>
         <p class="text-muted analyze-hero-sub">Credential patterns, production leaks, and secret detection.</p>
@@ -140,8 +163,8 @@ el.innerHTML = `
           <span class="text-muted" style="font-size:var(--font-size-sm);">Last scan: ${escapeHtml(lastScan)}</span>
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-primary btn-sm" id="security-run-scan" type="button" ${this.scanning ? 'disabled' : ''}>
-            ${this.scanning ? 'Scanning…' : 'Run security scan'}
+          <button class="btn btn-primary btn-sm" id="security-run-scan" type="button" ${this.scanning ? "disabled" : ""}>
+            ${this.scanning ? "Scanning…" : "Run security scan"}
           </button>
           <button class="btn btn-secondary btn-sm" id="security-export-json" type="button">
             Export JSON
@@ -150,12 +173,16 @@ el.innerHTML = `
         </div>
       </div>
 
-      ${this.scanning ? `
+      ${
+        this.scanning
+          ? `
         <div class="card mb-6" style="padding:var(--space-4)">
           <span class="loading-spinner" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px"></span>
           Running Simplebeacon scan (credential + production-leak rules)…
         </div>
-      ` : ''}
+      `
+          : ""
+      }
 
       <div class="grid-2 mb-6">
         <div class="card" style="padding:0;overflow:hidden;">
@@ -165,7 +192,7 @@ el.innerHTML = `
               <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--${gateClass});">${gateLabel}</div>
             </div>
             <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
-              ${gateLabel === 'PASS' ? '✅' : gateLabel === 'REVIEW' ? '⚠️' : '❌'}
+              ${gateLabel === "PASS" ? "✅" : gateLabel === "REVIEW" ? "⚠️" : "❌"}
             </div>
           </div>
           <div style="padding:var(--space-4);display:flex;gap:var(--space-4);flex-wrap:wrap;">
@@ -179,7 +206,7 @@ el.innerHTML = `
             </div>
             <div>
               <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Compliance</div>
-              <div style="font-size:var(--font-size-lg);font-weight:600;">${this.compliance?.securityScore ?? '—'}/100</div>
+              <div style="font-size:var(--font-size-lg);font-weight:600;">${this.compliance?.securityScore ?? "—"}/100</div>
             </div>
           </div>
         </div>
@@ -244,36 +271,74 @@ el.innerHTML = `
       </div>
     `;
 
-    el.querySelector('#security-run-scan')?.addEventListener('click', () => this.runScan(this._container));
-    el.querySelector('#security-export-json')?.addEventListener('click', () => this.exportResults());
-    el.querySelector('#security-send-ai-btn')?.addEventListener('click', async () => {
-      const report = this.getReport();
-      const findings = this.getFindings();
-      if (!findings.length) { showToast('No security findings to send', 'error'); return; }
-      const summary = this.getSummary();
-      const payload = {
-        projectPath: report?.projectRoot || report?.projectPath || window.location.origin,
-        reportType: 'security-scan',
-        reportSummary: {
-          totalFindings: summary.totalFindings,
-          credentialCount: summary.credentialCount,
-          productionLeakCount: summary.productionLeakCount,
-          complianceScore: this.compliance?.securityScore ?? 'N/A'
-        },
-        notes: 'Security Scanner findings — credential patterns and production leaks'
-      };
-      const vscode = this._getVscodeApi();
-      if (vscode) {
-        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Security findings sent to AI agent', 'success'); return; }
-        catch (err) { window["console"]["warn"]('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
-      }
-      try {
-        const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const json = await res.json();
-        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
-        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
-      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
-    });
+    el.querySelector("#security-run-scan")?.addEventListener("click", () =>
+      this.runScan(this._container),
+    );
+    el.querySelector("#security-export-json")?.addEventListener("click", () =>
+      this.exportResults(),
+    );
+    el.querySelector("#security-send-ai-btn")?.addEventListener(
+      "click",
+      async () => {
+        const report = this.getReport();
+        const findings = this.getFindings();
+        if (!findings.length) {
+          showToast("No security findings to send", "error");
+          return;
+        }
+        const summary = this.getSummary();
+        const payload = {
+          projectPath:
+            report?.projectRoot ||
+            report?.projectPath ||
+            window.location.origin,
+          reportType: "security-scan",
+          reportSummary: {
+            totalFindings: summary.totalFindings,
+            credentialCount: summary.credentialCount,
+            productionLeakCount: summary.productionLeakCount,
+            complianceScore: this.compliance?.securityScore ?? "N/A",
+          },
+          notes:
+            "Security Scanner findings — credential patterns and production leaks",
+        };
+        const vscode = this._getVscodeApi();
+        if (vscode) {
+          try {
+            vscode.postMessage({ command: "sendToAI", data: payload });
+            showToast("Security findings sent to AI agent", "success");
+            return;
+          } catch (err) {
+            window["console"]["warn"](
+              "[Security-AI] vscode.postMessage failed:",
+              err,
+            );
+          } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+        }
+        try {
+          const res = await fetch("/api/ai-context", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (json.success && json.content) {
+            await navigator.clipboard.writeText(json.content);
+            showToast(
+              "Copied to clipboard — paste into your AI coding agent with Ctrl+V",
+              "success",
+            );
+          } else {
+            showToast(
+              "AI context saved. Mention @.simplebeacon/ai-context.md in chat.",
+              "success",
+            );
+          }
+        } catch (err) {
+          showToast("Failed to send: " + err.message, "error");
+        }
+      },
+    );
 
     return el;
   }
@@ -282,18 +347,25 @@ el.innerHTML = `
     const report = this.getReport();
     const findings = this.getFindings();
     if (!findings.length) {
-      showToast('No security findings to export', 'info');
+      showToast("No security findings to export", "info");
       return;
     }
-    const payload = buildSecurityExportPayload(report, findings, this.compliance);
-    downloadJson(payload, `security-scan-${new Date().toISOString().slice(0, 10)}.json`);
-    showToast('Security scan JSON downloaded', 'success');
+    const payload = buildSecurityExportPayload(
+      report,
+      findings,
+      this.compliance,
+    );
+    downloadJson(
+      payload,
+      `security-scan-${new Date().toISOString().slice(0, 10)}.json`,
+    );
+    showToast("Security scan JSON downloaded", "success");
   }
 
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
-container.innerHTML = '';
+    container.innerHTML = "";
     container.appendChild(this.render());
   }
 
@@ -305,10 +377,10 @@ container.innerHTML = '';
 
     try {
       await this.app.runScan();
-      showToast('Security scan complete', 'success');
+      showToast("Security scan complete", "success");
     } catch (err) {
       this.error = err.message;
-      showToast(err.message, 'error');
+      showToast(err.message, "error");
     } finally {
       this.scanning = false;
       this.loading = false;
@@ -358,4 +430,3 @@ container.innerHTML = '';
     void this.loadCompliance();
   }
 }
-

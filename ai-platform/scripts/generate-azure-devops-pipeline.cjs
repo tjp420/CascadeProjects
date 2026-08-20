@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 /**
  * Azure DevOps Pipeline Template Generator
@@ -17,14 +17,14 @@
  *   node generate-azure-devops-pipeline.js --org-id <id> --api-key <key> --mode continuous --output pipeline.yml
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // ── Pipeline Templates ──────────────────────────────────────────────────────
 
 function generateCompliancePipeline(opts) {
-  const { orgId, apiKey, projectPath, failOn = 'high' } = opts;
-  const scanPath = projectPath || '$(Build.SourcesDirectory)';
+  const { orgId, apiKey, projectPath, failOn = "high" } = opts;
+  const scanPath = projectPath || "$(Build.SourcesDirectory)";
   const generated = new Date().toISOString();
 
   return `# SimpleBeacon Enterprise — Azure DevOps Compliance Pipeline
@@ -121,8 +121,8 @@ steps:
 }
 
 function generateContinuousPipeline(opts) {
-  const { orgId, apiKey, projectPath, failOn = 'high' } = opts;
-  const scanPath = projectPath || '$(Build.SourcesDirectory)';
+  const { orgId, apiKey, projectPath, failOn = "high" } = opts;
+  const scanPath = projectPath || "$(Build.SourcesDirectory)";
   const generated = new Date().toISOString();
 
   return `# SimpleBeacon Enterprise — Azure DevOps Continuous Compliance Pipeline
@@ -192,8 +192,14 @@ steps:
 }
 
 function generateScheduledPipeline(opts) {
-  const { orgId, apiKey, projectPath, failOn = 'high', cron = '0 2 * * *' } = opts;
-  const scanPath = projectPath || '$(Build.SourcesDirectory)';
+  const {
+    orgId,
+    apiKey,
+    projectPath,
+    failOn = "high",
+    cron = "0 2 * * *",
+  } = opts;
+  const scanPath = projectPath || "$(Build.SourcesDirectory)";
   const generated = new Date().toISOString();
 
   return `# SimpleBeacon Enterprise — Azure DevOps Scheduled Compliance Audit
@@ -285,7 +291,7 @@ steps:
 
 function generateOnboardingPipeline(opts) {
   const { orgId, apiKey, projectPath } = opts;
-  const scanPath = projectPath || '$(Build.SourcesDirectory)';
+  const scanPath = projectPath || "$(Build.SourcesDirectory)";
   const generated = new Date().toISOString();
 
   return `# SimpleBeacon Enterprise — First-Run Onboarding Pipeline
@@ -390,9 +396,12 @@ const PIPELINE_MODES = {
 function parseArgs(argv) {
   const args = {};
   for (let i = 2; i < argv.length; i++) {
-    if (argv[i].startsWith('--')) {
-      const key = argv[i].slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-      const value = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : 'true';
+    if (argv[i].startsWith("--")) {
+      const key = argv[i]
+        .slice(2)
+        .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      const value =
+        argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : "true";
       args[key] = value;
     }
   }
@@ -425,25 +434,27 @@ Options:
     return;
   }
 
-  const mode = args.mode || 'compliance';
+  const mode = args.mode || "compliance";
   const generator = PIPELINE_MODES[mode];
   if (!generator) {
-    console.error(`Unknown mode: ${mode}. Valid modes: ${Object.keys(PIPELINE_MODES).join(', ')}`);
+    console.error(
+      `Unknown mode: ${mode}. Valid modes: ${Object.keys(PIPELINE_MODES).join(", ")}`,
+    );
     process.exit(1);
   }
 
   const yaml = generator({
     orgId: args.orgId,
-    apiKey: args.apiKey || '<YOUR_API_KEY>',
-    projectPath: args['project-path'],
-    failOn: args['fail-on'] || 'high',
+    apiKey: args.apiKey || "<YOUR_API_KEY>",
+    projectPath: args["project-path"],
+    failOn: args["fail-on"] || "high",
     cron: args.cron,
   });
 
   if (args.output) {
     const dir = path.dirname(args.output);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(args.output, yaml, 'utf8');
+    fs.writeFileSync(args.output, yaml, "utf8");
     console.log(`Pipeline YAML written to: ${args.output}`);
     console.log(`Mode: ${mode}`);
     console.log(`Organization: ${args.orgId}`);

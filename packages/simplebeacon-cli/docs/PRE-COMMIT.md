@@ -35,9 +35,9 @@ npm run simplebeacon:gate
 
 ## What runs
 
-| Hook | Command |
-|------|---------|
-| pre-commit | `simplebeacon scan --gate --fail-on high` |
-| pre-push | `simplebeacon scan --gate --with-jest --fail-on high` |
+| Hook       | Command                                               |
+| ---------- | ----------------------------------------------------- |
+| pre-commit | `simplebeacon scan --gate --fail-on high`             |
+| pre-push   | `simplebeacon scan --gate --with-jest --fail-on high` |
 
 Reports are printed to the terminal (text). Use `--format json --output .simplebeacon/report.json` in CI for artifacts.

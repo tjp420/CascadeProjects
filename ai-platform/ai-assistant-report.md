@@ -3,24 +3,30 @@
 ## How I Use SimpleBeacon to Improve My Work
 
 ### 1. Pre-Edit Scanning
+
 Before making changes to any file, I run a targeted scan:
+
 ```bash
 node ai-platform/scan-helper.cjs <target-dir>
 ```
 
 This catches:
+
 - Credential leaks before they get committed
 - Deploy blockers (localhost URLs in production code)
 - Invalid JSON/config files
 - Duplicate code that could be consolidated
 
 ### 2. Post-Edit Verification
+
 After making changes, I re-scan to ensure:
+
 - No new security issues introduced
 - Gate still passes
 - Quality score hasn't regressed
 
 ### 3. Automated Reports
+
 The `scan-helper.cjs` produces a concise report I can reference:
 
 ```
@@ -35,12 +41,12 @@ The `scan-helper.cjs` produces a concise report I can reference:
 
 ## Current Project Status (coming-soon/)
 
-| Metric | Value |
-|--------|-------|
-| Gate | PASS |
-| Quality Score | 100/100 |
-| Blocking Issues | 0 |
-| Security Risks | 0 (in production code) |
+| Metric          | Value                  |
+| --------------- | ---------------------- |
+| Gate            | PASS                   |
+| Quality Score   | 100/100                |
+| Blocking Issues | 0                      |
+| Security Risks  | 0 (in production code) |
 
 ## Integration Points
 

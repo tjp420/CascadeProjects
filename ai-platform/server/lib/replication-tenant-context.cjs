@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Replication Tenant Context
@@ -16,11 +16,12 @@
  * @module replication-tenant-context
  */
 
-const { incrementCounter } = require('./hsm-adapter/hsm-metrics.cjs');
+const { incrementCounter } = require("./hsm-adapter/hsm-metrics.cjs");
 
-const TENANT_FIELD = 'tenantId';
-const DEFAULT_TENANT = 'default';
-const BACKWARD_COMPAT_MODE = process.env.REPLICATION_TENANT_BACKWARD_COMPAT !== 'false';
+const TENANT_FIELD = "tenantId";
+const DEFAULT_TENANT = "default";
+const BACKWARD_COMPAT_MODE =
+  process.env.REPLICATION_TENANT_BACKWARD_COMPAT !== "false";
 
 // Safe identifier pattern matching existing isSafeId pattern
 const TENANT_ID_PATTERN = /^[a-zA-Z0-9-_]+$/;
@@ -31,7 +32,12 @@ const TENANT_ID_PATTERN = /^[a-zA-Z0-9-_]+$/;
  * @returns {boolean}
  */
 function isValidTenantId(tenantId) {
-  return typeof tenantId === 'string' && TENANT_ID_PATTERN.test(tenantId) && tenantId.length > 0 && tenantId.length <= 128;
+  return (
+    typeof tenantId === "string" &&
+    TENANT_ID_PATTERN.test(tenantId) &&
+    tenantId.length > 0 &&
+    tenantId.length <= 128
+  );
 }
 
 /**
@@ -45,21 +51,21 @@ function isValidTenantId(tenantId) {
 function extractTenantContext(message, options = {}) {
   const strict = options.strict || !BACKWARD_COMPAT_MODE;
 
-  if (!message || typeof message !== 'object') {
-    return { tenantId: null, valid: false, reason: 'invalid_message_object' };
+  if (!message || typeof message !== "object") {
+    return { tenantId: null, valid: false, reason: "invalid_message_object" };
   }
 
   const rawTenantId = message[TENANT_FIELD];
 
   if (rawTenantId === undefined || rawTenantId === null) {
     if (strict) {
-      return { tenantId: null, valid: false, reason: 'missing_tenant_id' };
+      return { tenantId: null, valid: false, reason: "missing_tenant_id" };
     }
     return { tenantId: DEFAULT_TENANT, valid: true, reason: null };
   }
 
   if (!isValidTenantId(rawTenantId)) {
-    return { tenantId: null, valid: false, reason: 'invalid_tenant_id_format' };
+    return { tenantId: null, valid: false, reason: "invalid_tenant_id_format" };
   }
 
   return { tenantId: rawTenantId, valid: true, reason: null };
@@ -76,23 +82,31 @@ function validateTenantContext(message, sourceTenant) {
   const ctx = extractTenantContext(message);
 
   if (!ctx.valid) {
-    incrementCounter('hsm_replication_tenant_isolation_violation_total');
+    incrementCounter("hsm_replication_tenant_isolation_violation_total");
     return { valid: false, tenantId: null, reason: ctx.reason };
   }
 
   // If sourceTenant is provided, verify it matches
   if (sourceTenant !== undefined && sourceTenant !== null) {
     if (!isValidTenantId(sourceTenant)) {
-      incrementCounter('hsm_replication_tenant_isolation_violation_total');
-      return { valid: false, tenantId: null, reason: 'invalid_source_tenant_id' };
+      incrementCounter("hsm_replication_tenant_isolation_violation_total");
+      return {
+        valid: false,
+        tenantId: null,
+        reason: "invalid_source_tenant_id",
+      };
     }
     if (ctx.tenantId !== sourceTenant) {
-      incrementCounter('hsm_replication_cross_tenant_rejected_total');
-      return { valid: false, tenantId: ctx.tenantId, reason: 'cross_tenant_mismatch' };
+      incrementCounter("hsm_replication_cross_tenant_rejected_total");
+      return {
+        valid: false,
+        tenantId: ctx.tenantId,
+        reason: "cross_tenant_mismatch",
+      };
     }
   }
 
-  incrementCounter('hsm_replication_tenant_context_validated_total');
+  incrementCounter("hsm_replication_tenant_context_validated_total");
   return { valid: true, tenantId: ctx.tenantId, reason: null };
 }
 
@@ -104,11 +118,14 @@ function validateTenantContext(message, sourceTenant) {
  * @throws {Error}
  */
 function rejectCrossTenant(sourceTenant, targetTenant) {
-  incrementCounter('hsm_replication_cross_tenant_rejected_total');
+  incrementCounter("hsm_replication_cross_tenant_rejected_total");
   const err = new Error(
-    'CROSS_TENANT_REPLICATION_REJECTED: source=' + sourceTenant + ' target=' + targetTenant
+    "CROSS_TENANT_REPLICATION_REJECTED: source=" +
+      sourceTenant +
+      " target=" +
+      targetTenant,
   );
-  err.code = 'CROSS_TENANT_REPLICATION_REJECTED';
+  err.code = "CROSS_TENANT_REPLICATION_REJECTED";
   err.sourceTenant = sourceTenant;
   err.targetTenant = targetTenant;
   throw err;
@@ -121,7 +138,7 @@ function rejectCrossTenant(sourceTenant, targetTenant) {
  * @returns {object} The tagged event (mutated in place)
  */
 function tagSIEMEvent(event, tenantId) {
-  if (!event || typeof event !== 'object') return event;
+  if (!event || typeof event !== "object") return event;
   if (tenantId && isValidTenantId(tenantId)) {
     event[TENANT_FIELD] = tenantId;
   } else {
@@ -137,7 +154,7 @@ function tagSIEMEvent(event, tenantId) {
  * @returns {object} The tagged message (mutated in place)
  */
 function tagOutboundMessage(message, tenantId) {
-  if (!message || typeof message !== 'object') return message;
+  if (!message || typeof message !== "object") return message;
   if (tenantId && isValidTenantId(tenantId)) {
     message[TENANT_FIELD] = tenantId;
   }
@@ -151,7 +168,7 @@ function tagOutboundMessage(message, tenantId) {
  * @returns {boolean}
  */
 function tenantsMatch(a, b) {
-  return String(a || '') === String(b || '');
+  return String(a || "") === String(b || "");
 }
 
 module.exports = {

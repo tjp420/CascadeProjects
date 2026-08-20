@@ -1,99 +1,99 @@
 {
-  "version": 1,
-  "description": "SimpleBeacon memory-budget profiles for air-gapped enterprise deployments. Each profile tunes quantization, context window, and GPU offload for different hardware tiers. Select a profile based on available RAM and VRAM, or run scripts/detect-hardware-profile.sh for a recommendation.",
-  "profiles": {
-    "minimal": {
-      "description": "CPU-only inference on constrained hardware (8GB RAM, no GPU). Uses Q4_K_M quantization with reduced context window. Slowest inference but lowest memory footprint.",
-      "targetHardware": {
-        "minRamGB": 8,
-        "minVramGB": 0,
-        "gpuRequired": false
-      },
-      "parameters": {
-        "quantization": "q4_K_M",
-        "num_ctx": 2048,
-        "num_predict": 1024,
-        "num_gpu": 0,
-        "num_thread": 4,
-        "f16_kv": true,
-        "use_mmap": true,
-        "use_mlock": false
-      },
-      "memoryEstimate": {
-        "ramGB": 4.4,
-        "vramGB": 0,
-        "totalGB": 4.4
-      },
-      "models": {
-        "unbreakable-oracle": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 2048 },
-        "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 2048 },
-        "simplebeacon-mistral": { "baseModel": "mistral:7b-q4_K_M", "num_ctx": 2048 },
-        "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q4_K_M", "num_ctx": 2048 }
-      }
+    "version": 1,
+    "description": "SimpleBeacon memory-budget profiles for air-gapped enterprise deployments. Each profile tunes quantization, context window, and GPU offload for different hardware tiers. Select a profile based on available RAM and VRAM, or run scripts/detect-hardware-profile.sh for a recommendation.",
+    "profiles": {
+        "minimal": {
+            "description": "CPU-only inference on constrained hardware (8GB RAM, no GPU). Uses Q4_K_M quantization with reduced context window. Slowest inference but lowest memory footprint.",
+            "targetHardware": {
+                "minRamGB": 8,
+                "minVramGB": 0,
+                "gpuRequired": false
+            },
+            "parameters": {
+                "quantization": "q4_K_M",
+                "num_ctx": 2048,
+                "num_predict": 1024,
+                "num_gpu": 0,
+                "num_thread": 4,
+                "f16_kv": true,
+                "use_mmap": true,
+                "use_mlock": false
+            },
+            "memoryEstimate": {
+                "ramGB": 4.4,
+                "vramGB": 0,
+                "totalGB": 4.4
+            },
+            "models": {
+                "unbreakable-oracle": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 2048 },
+                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 2048 },
+                "simplebeacon-mistral": { "baseModel": "mistral:7b-q4_K_M", "num_ctx": 2048 },
+                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q4_K_M", "num_ctx": 2048 }
+            }
+        },
+        "balanced": {
+            "description": "Balanced inference with auto GPU offload on typical enterprise workstations (16GB RAM, 6GB VRAM). Uses Q4_K_M quantization with standard context window. Recommended default for most deployments.",
+            "targetHardware": {
+                "minRamGB": 16,
+                "minVramGB": 6,
+                "gpuRequired": false
+            },
+            "parameters": {
+                "quantization": "q4_K_M",
+                "num_ctx": 4096,
+                "num_predict": 2048,
+                "num_gpu": -1,
+                "num_thread": 8,
+                "f16_kv": true,
+                "use_mmap": true,
+                "use_mlock": false
+            },
+            "memoryEstimate": {
+                "ramGB": 4.4,
+                "vramGB": 4.4,
+                "totalGB": 5.5
+            },
+            "models": {
+                "unbreakable-oracle": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 8192 },
+                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 4096 },
+                "simplebeacon-mistral": { "baseModel": "mistral:7b-q4_K_M", "num_ctx": 8192 },
+                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q4_K_M", "num_ctx": 8192 }
+            }
+        },
+        "maximum": {
+            "description": "Maximum quality inference with full GPU offload on high-end workstations (32GB+ RAM, 12GB+ VRAM). Uses Q5_K_M quantization with large context windows. Best inference quality and speed.",
+            "targetHardware": {
+                "minRamGB": 32,
+                "minVramGB": 12,
+                "gpuRequired": true
+            },
+            "parameters": {
+                "quantization": "q5_K_M",
+                "num_ctx": 8192,
+                "num_predict": 2048,
+                "num_gpu": 999,
+                "num_thread": 8,
+                "f16_kv": true,
+                "use_mmap": true,
+                "use_mlock": true
+            },
+            "memoryEstimate": {
+                "ramGB": 5.1,
+                "vramGB": 5.1,
+                "totalGB": 6.5
+            },
+            "models": {
+                "unbreakable-oracle": { "baseModel": "llama3.2:3b-q5_K_M", "num_ctx": 8192 },
+                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q5_K_M", "num_ctx": 4096 },
+                "simplebeacon-mistral": { "baseModel": "mistral:7b-q5_K_M", "num_ctx": 32768 },
+                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q5_K_M", "num_ctx": 32768 }
+            }
+        }
     },
-    "balanced": {
-      "description": "Balanced inference with auto GPU offload on typical enterprise workstations (16GB RAM, 6GB VRAM). Uses Q4_K_M quantization with standard context window. Recommended default for most deployments.",
-      "targetHardware": {
-        "minRamGB": 16,
-        "minVramGB": 6,
-        "gpuRequired": false
-      },
-      "parameters": {
-        "quantization": "q4_K_M",
-        "num_ctx": 4096,
-        "num_predict": 2048,
-        "num_gpu": -1,
-        "num_thread": 8,
-        "f16_kv": true,
-        "use_mmap": true,
-        "use_mlock": false
-      },
-      "memoryEstimate": {
-        "ramGB": 4.4,
-        "vramGB": 4.4,
-        "totalGB": 5.5
-      },
-      "models": {
-        "unbreakable-oracle": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 8192 },
-        "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 4096 },
-        "simplebeacon-mistral": { "baseModel": "mistral:7b-q4_K_M", "num_ctx": 8192 },
-        "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q4_K_M", "num_ctx": 8192 }
-      }
-    },
-    "maximum": {
-      "description": "Maximum quality inference with full GPU offload on high-end workstations (32GB+ RAM, 12GB+ VRAM). Uses Q5_K_M quantization with large context windows. Best inference quality and speed.",
-      "targetHardware": {
-        "minRamGB": 32,
-        "minVramGB": 12,
-        "gpuRequired": true
-      },
-      "parameters": {
-        "quantization": "q5_K_M",
-        "num_ctx": 8192,
-        "num_predict": 2048,
-        "num_gpu": 999,
-        "num_thread": 8,
-        "f16_kv": true,
-        "use_mmap": true,
-        "use_mlock": true
-      },
-      "memoryEstimate": {
-        "ramGB": 5.1,
-        "vramGB": 5.1,
-        "totalGB": 6.5
-      },
-      "models": {
-        "unbreakable-oracle": { "baseModel": "llama3.2:3b-q5_K_M", "num_ctx": 8192 },
-        "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q5_K_M", "num_ctx": 4096 },
-        "simplebeacon-mistral": { "baseModel": "mistral:7b-q5_K_M", "num_ctx": 32768 },
-        "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q5_K_M", "num_ctx": 32768 }
-      }
+    "defaultProfile": "balanced",
+    "selectionGuide": {
+        "minimal": "Choose if: < 16GB RAM, no dedicated GPU, or running on a laptop/VM. Inference will be slow (5-15 tokens/sec) but functional.",
+        "balanced": "Choose if: 16GB+ RAM with 6GB+ VRAM (e.g., RTX 3060, RTX 4060, A2000). Good balance of speed and quality (20-50 tokens/sec).",
+        "maximum": "Choose if: 32GB+ RAM with 12GB+ VRAM (e.g., RTX 4090, A5000, L40S). Maximum quality and speed (50-100+ tokens/sec)."
     }
-  },
-  "defaultProfile": "balanced",
-  "selectionGuide": {
-    "minimal": "Choose if: < 16GB RAM, no dedicated GPU, or running on a laptop/VM. Inference will be slow (5-15 tokens/sec) but functional.",
-    "balanced": "Choose if: 16GB+ RAM with 6GB+ VRAM (e.g., RTX 3060, RTX 4060, A2000). Good balance of speed and quality (20-50 tokens/sec).",
-    "maximum": "Choose if: 32GB+ RAM with 12GB+ VRAM (e.g., RTX 4090, A5000, L40S). Maximum quality and speed (50-100+ tokens/sec)."
-  }
 }

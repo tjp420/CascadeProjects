@@ -3,17 +3,16 @@
  * Live EU AI Act readiness PDF/HTML from .simplebeacon/eu-ai-act-*.json artifacts.
  */
 
-const fs = require('fs');
+const fs = require("fs");
 const fsp = fs.promises;
-const path = require('path');
-const { readJsonFileCached } = require('./json-file-cache.cjs');
-const { resolvePlatformRoot } = require('./simplebeacon-proxy.cjs');
-
+const path = require("path");
+const { readJsonFileCached } = require("./json-file-cache.cjs");
+const { resolvePlatformRoot } = require("./simplebeacon-proxy.cjs");
 
 const ARTIFACT_NAMES = {
-  report: 'eu-ai-act-report.json',
-  compliance: 'eu-ai-act-compliance.json',
-  assessment: 'eu-ai-act-assessment.json'
+  report: "eu-ai-act-report.json",
+  compliance: "eu-ai-act-compliance.json",
+  assessment: "eu-ai-act-assessment.json",
 };
 
 /**
@@ -22,11 +21,11 @@ const ARTIFACT_NAMES = {
  * @returns {any}
  */
 function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /**
@@ -45,7 +44,7 @@ function readJsonSync(filePath) {
  * @returns {any}
  */
 function resolvePlatformRootForPath(inputPath, fallbackRoot) {
-  const raw = String(inputPath || '').trim();
+  const raw = String(inputPath || "").trim();
   if (!raw) return path.resolve(fallbackRoot || process.cwd());
   try {
     const { platformRoot } = resolvePlatformRoot(path.resolve(raw));
@@ -61,18 +60,27 @@ function resolvePlatformRootForPath(inputPath, fallbackRoot) {
  * @returns {any}
  */
 async function loadEuAiActArtifacts(options = {}) {
-  const platformRoot = resolvePlatformRootForPath(options.projectPath, options.platformRoot);
-  const simplebeaconDir = path.join(platformRoot, '.simplebeacon');
-  const report = readJsonSync(path.join(simplebeaconDir, ARTIFACT_NAMES.report));
-  const compliance = readJsonSync(path.join(simplebeaconDir, ARTIFACT_NAMES.compliance));
-  const assessment = readJsonSync(path.join(simplebeaconDir, ARTIFACT_NAMES.assessment));
+  const platformRoot = resolvePlatformRootForPath(
+    options.projectPath,
+    options.platformRoot,
+  );
+  const simplebeaconDir = path.join(platformRoot, ".simplebeacon");
+  const report = readJsonSync(
+    path.join(simplebeaconDir, ARTIFACT_NAMES.report),
+  );
+  const compliance = readJsonSync(
+    path.join(simplebeaconDir, ARTIFACT_NAMES.compliance),
+  );
+  const assessment = readJsonSync(
+    path.join(simplebeaconDir, ARTIFACT_NAMES.assessment),
+  );
 
   if (!report && !compliance && !assessment) {
     const err = new Error(
-      'No EU AI Act sprint artifacts found. Run Analyze → EU AI Act sprint first '
-      + '(writes .simplebeacon/eu-ai-act-*.json).'
+      "No EU AI Act sprint artifacts found. Run Analyze → EU AI Act sprint first " +
+        "(writes .simplebeacon/eu-ai-act-*.json).",
     );
-    err.code = 'eu_ai_act_artifacts_missing';
+    err.code = "eu_ai_act_artifacts_missing";
     throw err;
   }
 
@@ -112,13 +120,21 @@ function collectEuFindingItems(report, assessment) {
   const raw = report?.rawIssues || report?.detectedIssues || [];
   return uniqueEuItems(
     raw
-      .filter((issue) => /eu ai act|ai system|semantic integration/i.test(String(issue.type || issue.description || '')))
+      .filter((issue) =>
+        /eu ai act|ai system|semantic integration/i.test(
+          String(issue.type || issue.description || ""),
+        ),
+      )
       .map((issue) => ({
-        file: issue.file || issue.filePath || (issue.affectedFiles || [])[0] || '—',
-        description: issue.description || issue.type || 'EU AI Act signal',
-        recommendedAction: issue.recommendedAction || issue.recommendation || 'Review EU AI Act transparency obligations'
+        file:
+          issue.file || issue.filePath || (issue.affectedFiles || [])[0] || "—",
+        description: issue.description || issue.type || "EU AI Act signal",
+        recommendedAction:
+          issue.recommendedAction ||
+          issue.recommendation ||
+          "Review EU AI Act transparency obligations",
       })),
-    8
+    8,
   );
 }
 
@@ -127,7 +143,7 @@ function collectEuFindingItems(report, assessment) {
  * @returns {any}
  */
 function buildReportId() {
-  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `SB-EUAI-${stamp}-${suffix}`;
 }
@@ -141,8 +157,9 @@ function buildReportId() {
  */
 function resolveClientLabel(options = {}, report, assessment) {
   if (options.clientName) return options.clientName;
-  const root = report?.projectRoot || assessment?.projectRoot || options.projectPath || '';
-  const base = path.basename(String(root).replace(/\\/g, '/')) || 'repository';
+  const root =
+    report?.projectRoot || assessment?.projectRoot || options.projectPath || "";
+  const base = path.basename(String(root).replace(/\\/g, "/")) || "repository";
   return base;
 }
 
@@ -153,15 +170,28 @@ function resolveClientLabel(options = {}, report, assessment) {
  */
 function buildEuAiActAuditHtml(input = {}) {
   const { compliance, assessment, report, clientName, reportId } = input;
-  const rawSummary = compliance?.summary || assessment?.complianceChecklist?.summary || null;
+  const rawSummary =
+    compliance?.summary || assessment?.complianceChecklist?.summary || null;
   const euSummary = report?.euAiActSummary || assessment?.euAiActSummary || {};
   const euItems = collectEuFindingItems(report, assessment);
-  const rawRules = compliance?.rules || assessment?.complianceChecklist?.rules || null;
+  const rawRules =
+    compliance?.rules || assessment?.complianceChecklist?.rules || null;
   const generatedAt = new Date(
-    compliance?.evaluatedAt || assessment?.generatedAt || report?.generatedAt || Date.now()
-  ).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    compliance?.evaluatedAt ||
+      assessment?.generatedAt ||
+      report?.generatedAt ||
+      Date.now(),
+  ).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
   const creds = input.credentials || {};
-  const title = resolveClientLabel({ clientName: creds.projectName || clientName }, report, assessment);
+  const title = resolveClientLabel(
+    { clientName: creds.projectName || clientName },
+    report,
+    assessment,
+  );
   const id = reportId || buildReportId();
   const gatePass = report?.gate?.pass === true;
 
@@ -176,40 +206,87 @@ function buildEuAiActAuditHtml(input = {}) {
 
   if (!rawSummary || !rawRules) {
     const syntheticRules = [
-      { id: 'GATE-01', title: 'SimpleBeacon gate pass', status: gatePass ? 'pass' : 'fail', evidence: gatePass ? 'Gate passed with no blocking issues' : `Gate failed — ${gateBlocking} blocking, ${gateWarnings} warnings` },
-      { id: 'EUAI-01', title: 'EU AI Act scan executed', status: (report?.euAiActScanned ?? 0) > 0 ? 'pass' : 'skip', evidence: `${report?.euAiActScanned ?? 0} files scanned for EU AI Act patterns` },
-      { id: 'EUAI-02', title: 'Documentation artifacts present', status: docCount > 0 ? 'pass' : 'warn', evidence: `${docCount} documentation artifact(s) detected` },
-      { id: 'EUAI-03', title: 'No critical/high security findings', status: gateBlocking === 0 ? 'pass' : 'fail', evidence: gateBlocking === 0 ? 'Zero blocking findings in gate' : `${gateBlocking} blocking issue(s) require remediation` }
+      {
+        id: "GATE-01",
+        title: "SimpleBeacon gate pass",
+        status: gatePass ? "pass" : "fail",
+        evidence: gatePass
+          ? "Gate passed with no blocking issues"
+          : `Gate failed — ${gateBlocking} blocking, ${gateWarnings} warnings`,
+      },
+      {
+        id: "EUAI-01",
+        title: "EU AI Act scan executed",
+        status: (report?.euAiActScanned ?? 0) > 0 ? "pass" : "skip",
+        evidence: `${report?.euAiActScanned ?? 0} files scanned for EU AI Act patterns`,
+      },
+      {
+        id: "EUAI-02",
+        title: "Documentation artifacts present",
+        status: docCount > 0 ? "pass" : "warn",
+        evidence: `${docCount} documentation artifact(s) detected`,
+      },
+      {
+        id: "EUAI-03",
+        title: "No critical/high security findings",
+        status: gateBlocking === 0 ? "pass" : "fail",
+        evidence:
+          gateBlocking === 0
+            ? "Zero blocking findings in gate"
+            : `${gateBlocking} blocking issue(s) require remediation`,
+      },
     ];
-    const passed = syntheticRules.filter(r => r.status === 'pass').length;
-    const failed = syntheticRules.filter(r => r.status === 'fail').length;
+    const passed = syntheticRules.filter((r) => r.status === "pass").length;
+    const failed = syntheticRules.filter((r) => r.status === "fail").length;
     const total = syntheticRules.length;
-    summary = { score: qualityScore ?? Math.round((passed / total) * 100), passed, failed, total, headline: `Gate ${gatePass ? 'PASS' : 'FAIL'} · ${gateBlocking} blocking · ${gateWarnings} warning(s)` };
+    summary = {
+      score: qualityScore ?? Math.round((passed / total) * 100),
+      passed,
+      failed,
+      total,
+      headline: `Gate ${gatePass ? "PASS" : "FAIL"} · ${gateBlocking} blocking · ${gateWarnings} warning(s)`,
+    };
     rules = syntheticRules;
   }
 
-  const score = summary.score ?? qualityScore ?? '—';
+  const score = summary.score ?? qualityScore ?? "—";
 
-  const ruleRows = rules.map((rule) => {
-    const statusClass = rule.status === 'pass' ? 'badge-pass' : rule.status === 'fail' ? 'badge-blocked' : 'badge-warn';
-    const statusLabel = rule.status === 'pass' ? 'PASS' : rule.status === 'fail' ? 'FAIL' : 'SKIP';
-    return `<tr>
+  const ruleRows = rules
+    .map((rule) => {
+      const statusClass =
+        rule.status === "pass"
+          ? "badge-pass"
+          : rule.status === "fail"
+            ? "badge-blocked"
+            : "badge-warn";
+      const statusLabel =
+        rule.status === "pass"
+          ? "PASS"
+          : rule.status === "fail"
+            ? "FAIL"
+            : "SKIP";
+      return `<tr>
       <td><code>${escapeHtml(rule.id)}</code> ${escapeHtml(rule.title)}</td>
       <td><span class="badge ${statusClass}">${statusLabel}</span></td>
       <td>${escapeHtml(rule.evidence)}</td>
     </tr>`;
-  }).join('\n');
+    })
+    .join("\n");
 
   const findingRows = euItems.length
-    ? euItems.map((item) => `<tr>
+    ? euItems
+        .map(
+          (item) => `<tr>
       <td><span class="sev sev-medium">MEDIUM</span></td>
       <td><code>${escapeHtml(item.file)}</code></td>
       <td>${escapeHtml(item.description)}</td>
       <td>${escapeHtml(item.recommendedAction)}</td>
-    </tr>`).join('\n')
+    </tr>`,
+        )
+        .join("\n")
     : '<tr><td colspan="4" class="text-muted">No prioritized EU pattern findings in sprint artifacts.</td></tr>';
 
-  const gateBannerClass = Number(summary.failed) > 0 || !gatePass ? 'fail' : '';
+  const gateBannerClass = Number(summary.failed) > 0 || !gatePass ? "fail" : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -243,7 +320,7 @@ function buildEuAiActAuditHtml(input = {}) {
     .data-table th { background: #161b22; }
     .gate-banner { border: 1px solid #30363d; border-radius: 12px; padding: 16px 20px; margin: 16px 0; background: #161b22; }
     .gate-banner.fail { border-color: rgba(248,81,73,.45); }
-    .gate-banner-value { font-size: 24pt; font-weight: 700; color: ${Number(summary.failed) > 0 ? '#f85149' : '#3fb950'}; }
+    .gate-banner-value { font-size: 24pt; font-weight: 700; color: ${Number(summary.failed) > 0 ? "#f85149" : "#3fb950"}; }
     .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 16px 0; }
     .kpi { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px; text-align: center; }
     .kpi strong { display: block; font-size: 18pt; }
@@ -265,13 +342,13 @@ function buildEuAiActAuditHtml(input = {}) {
     <div class="cover-meta">
       <div><strong>Report ID:</strong> ${escapeHtml(id)}</div>
       <div><strong>Executed:</strong> ${escapeHtml(generatedAt)}</div>
-      <div><strong>Assessor:</strong> ${escapeHtml(creds.signatoryName || 'SimpleBeacon (automated + operator template)')}</div>
+      <div><strong>Assessor:</strong> ${escapeHtml(creds.signatoryName || "SimpleBeacon (automated + operator template)")}</div>
       <div><strong>Deadline:</strong> August 2, 2026 (EU AI Act high-risk compliance)</div>
       <div><strong>Repository:</strong> ${escapeHtml(report?.projectRoot || assessment?.projectRoot || title)}</div>
     </div>
     <div style="margin-top:24px">
       <span class="badge badge-gold">REFERENCE ONLY</span>
-      <span class="badge ${gatePass ? 'badge-pass' : 'badge-blocked'}">GATE ${gatePass ? 'PASS' : 'FAIL'}</span>
+      <span class="badge ${gatePass ? "badge-pass" : "badge-blocked"}">GATE ${gatePass ? "PASS" : "FAIL"}</span>
       <span class="badge badge-warn">COMPLIANCE ${escapeHtml(String(score))}%</span>
       <span class="badge badge-warn">${summary.passed ?? 0}/${summary.total ?? 0} RULES PASS</span>
     </div>
@@ -284,16 +361,16 @@ function buildEuAiActAuditHtml(input = {}) {
       <div class="gate-banner ${gateBannerClass}">
         <div>Readiness score</div>
         <div class="gate-banner-value">${escapeHtml(String(score))}%</div>
-        <p class="meta">${escapeHtml(summary.headline || assessment?.executiveSummary?.headline || '')}</p>
+        <p class="meta">${escapeHtml(summary.headline || assessment?.executiveSummary?.headline || "")}</p>
       </div>
       <div class="kpi-strip">
         <div class="kpi"><strong>${euSummary.highRiskIndicators ?? 0}</strong><span>Annex III indicators</span></div>
         <div class="kpi"><strong>${euSummary.aiSystemIndicators ?? 0}</strong><span>AI integrations</span></div>
         <div class="kpi"><strong>${euSummary.transparencyGaps ?? 0}</strong><span>Art. 50 gaps</span></div>
         <div class="kpi"><strong>${euSummary.documentationArtifacts ?? 0}</strong><span>Doc artifacts</span></div>
-        <div class="kpi"><strong>${report?.euAiActScanned ?? report?.ruleScopedFilesAnalyzed ?? '—'}</strong><span>Files scanned</span></div>
+        <div class="kpi"><strong>${report?.euAiActScanned ?? report?.ruleScopedFilesAnalyzed ?? "—"}</strong><span>Files scanned</span></div>
       </div>
-      <p class="meta">Gate ${gatePass ? 'PASS' : 'FAIL'} · ${report?.gate?.blockingCount ?? 0} blocking · ${report?.gate?.warningCount ?? report?.euAiActFindings ?? 0} EU/warning signals.</p>
+      <p class="meta">Gate ${gatePass ? "PASS" : "FAIL"} · ${report?.gate?.blockingCount ?? 0} blocking · ${report?.gate?.warningCount ?? report?.euAiActFindings ?? 0} EU/warning signals.</p>
     </section>
     <section class="section">
       <div class="section-num">Section 02</div>
@@ -326,12 +403,16 @@ npx simplebeacon compliance --checklist eu-ai-act --gate</pre>
 async function buildEuAiActAuditReport(options = {}) {
   let artifacts;
   if (options.artifacts) {
-    const platformRoot = options.artifacts.platformRoot || options.projectPath || process.cwd();
+    const platformRoot =
+      options.artifacts.platformRoot || options.projectPath || process.cwd();
     artifacts = {
       platformRoot,
       report: options.artifacts.report || null,
-      compliance: options.artifacts.complianceChecklist || options.artifacts.compliance || null,
-      assessment: options.artifacts.assessment || null
+      compliance:
+        options.artifacts.complianceChecklist ||
+        options.artifacts.compliance ||
+        null,
+      assessment: options.artifacts.assessment || null,
     };
   } else {
     artifacts = await loadEuAiActArtifacts(options);
@@ -340,15 +421,15 @@ async function buildEuAiActAuditReport(options = {}) {
   const html = buildEuAiActAuditHtml({
     ...artifacts,
     clientName: options.clientName,
-    reportId
+    reportId,
   });
   return {
     html,
     filename: `${reportId}.html`,
     reportId,
-    exportTier: 'eu-ai-act',
-    exportTierLabel: 'EU AI Act readiness (reference)',
-    platformRoot: artifacts.platformRoot
+    exportTier: "eu-ai-act",
+    exportTierLabel: "EU AI Act readiness (reference)",
+    platformRoot: artifacts.platformRoot,
   };
 }
 
@@ -356,5 +437,5 @@ module.exports = {
   ARTIFACT_NAMES,
   loadEuAiActArtifacts,
   buildEuAiActAuditHtml,
-  buildEuAiActAuditReport
+  buildEuAiActAuditReport,
 };

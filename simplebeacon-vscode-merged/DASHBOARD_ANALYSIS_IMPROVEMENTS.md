@@ -9,6 +9,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 1. Build Readiness Module (High Impact)
 
 **What the dashboard does:**
+
 - Computes a `readinessScore` (0-100%) across 17 checklist items
 - Classifies each as **critical** or **recommended**
 - Detects monorepo root files at any path depth (`findAtAnyDepth`)
@@ -24,6 +25,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 2. EU AI Act Compliance Controls (High Impact)
 
 **What the dashboard does:**
+
 - `buildEuAiActControls()` generates article-specific compliance checks:
   - **Art. 5** — Prohibited AI Practices (critical if AI SDKs detected)
   - **Art. 6** — High-risk Classification (Annex III)
@@ -40,6 +42,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 3. Roadmap / Phased Remediation (High Impact)
 
 **What the dashboard does:**
+
 - Generates a **12-phase roadmap** with task completion tracking
 - Phases: buildreadiness → security → integrity → consistency → cleanup → compliance → euaiact → mockdata → npmaudit → optimization → junkfiles → vulns
 - Each phase has: status (completed/blocked/inProgress/pending), progress %, taskSummary (total/done/todo), tasks with `done` flags
@@ -54,6 +57,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 4. Rich Suggested Fixes with Patches (High Impact)
 
 **What the dashboard does:**
+
 - `buildSuggestedFixes()` returns prioritized fixes with:
   - `file`, `line`, `action`, `effort` (e.g., "20 min")
   - `currentCode` / `replacement` (before/after snippets)
@@ -72,6 +76,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 5. Dependency Vulnerability Audit (Medium-High Impact)
 
 **What the dashboard does:**
+
 - Module 12: "Dependency Vulns" showing:
   - Total vulnerability count
   - Critical / high / medium breakdown with colored badges
@@ -87,6 +92,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 6. File Reduction / Cleanup Analysis (Medium Impact)
 
 **What the dashboard does:**
+
 - Detects: junk files, duplicates, empty files, invalid JSON, uncommitted build artifacts
 - Shows: totalRemovable, totalRemovableBytes, categories breakdown
 - Suggests `.simplebeaconignore` patterns
@@ -100,6 +106,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 7. Certificate / Token UI (Medium Impact)
 
 **What the dashboard does:**
+
 - Full token validation with decoded tier badge, expiry, project name
 - Unlocked modules grid showing which analyzers are active
 - Scan command generator (`npx simplebeacon scan --gate --offline`)
@@ -114,6 +121,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 8. Real-time Scan Progress (Medium Impact)
 
 **What the dashboard does:**
+
 - Animated loader with spinner
 - Per-file progress: `ScanProgressNode` shows phase, progress count, current file
 - `setScanning(isScanning, progress)` updates UI in real-time
@@ -127,6 +135,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 9. Data Quality Scoring (Medium Impact)
 
 **What the dashboard does:**
+
 - `schemaCompliance` score (e.g., 100%)
 - `consistencyScore` (e.g., 95%)
 - `duplicateGroups` count
@@ -141,6 +150,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 10. Modular UI Architecture (Medium Impact)
 
 **What the dashboard does:**
+
 - `pushModule(id, icon, title, metrics, summary, color, detailHtml)` dynamically builds modules
 - 13+ modules rendered independently
 - Each module has: metric cards, summary text, expandable detail view
@@ -154,6 +164,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 11. AI Context / Reader Guide (Low-Medium Impact)
 
 **What the dashboard does:**
+
 - `aiContext.readerGuide` explains how to use the report
 - `aiContext.suggestedFixes[]` prioritized actionable tasks
 - `aiContext.moduleDependencies[]` shows fix ordering (security → cleanup → performance → types → tests → docs)
@@ -168,6 +179,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 12. Pattern Documentation Explorer (Low-Medium Impact)
 
 **What the dashboard does:**
+
 - `pattern-documentation.js` provides inline docs for each analyzer pattern
 - Users can learn what each pattern detects and why
 
@@ -180,6 +192,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 13. Server Detection & Mode Switching (Low Impact)
 
 **What the dashboard does:**
+
 - `serverDetectedBanner` appears when `http://127.0.0.1:3000` responds
 - Suggests using server dashboard for "complete results (npm audit, AST analysis, unlimited files)"
 - Mode tabs: Terminal (CLI) vs Browser Sandbox
@@ -193,6 +206,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 14. Gate Status with Blocking Counts (Low Impact)
 
 **What the dashboard does:**
+
 - Shows: `gate.pass`, `gate.blockingCount`, `gate.warningCount`
 - Color-coded: green (pass), red (blocking issues), yellow (warnings only)
 
@@ -205,6 +219,7 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 ## 15. Quick Actions & One-Click Install (Low Impact)
 
 **What the dashboard does:**
+
 - One-click CLI install button
 - Copy-to-clipboard for scan commands
 - Quick actions: Scan, View Dashboard, Clear, Export, Generate Certificate, Settings
@@ -217,35 +232,37 @@ After analyzing `upload.html` (browser sandbox) and the server analyze view (`An
 
 ## Priority Implementation Order
 
-| Priority | Feature | Effort | Impact |
-|----------|---------|--------|--------|
-| P0 | Build Readiness Analyzer | Medium | High |
-| P0 | EU AI Act Controls | Medium | High |
-| P0 | Roadmap / Phased Remediation | Medium | High |
-| P1 | Rich Suggested Fixes (patches) | Medium | High |
-| P1 | Dependency Vulnerability Audit | Low | Medium-High |
-| P1 | Modular Dashboard Refactor | Medium | Medium |
-| P2 | File Reduction / Cleanup | Medium | Medium |
-| P2 | Certificate / Token UI | Medium | Medium |
-| P2 | Real-time Progress in Sidebar | Low | Medium |
-| P2 | Data Quality Scoring | Low | Medium |
-| P3 | AI Context / Reader Guide | Low | Low-Medium |
-| P3 | Pattern Documentation | Low | Low-Medium |
-| P3 | Server Detection | Low | Low |
-| P3 | Gate Counts in Status Bar | Low | Low |
-| P3 | Quick Actions Enhancement | Low | Low |
+| Priority | Feature                        | Effort | Impact      |
+| -------- | ------------------------------ | ------ | ----------- |
+| P0       | Build Readiness Analyzer       | Medium | High        |
+| P0       | EU AI Act Controls             | Medium | High        |
+| P0       | Roadmap / Phased Remediation   | Medium | High        |
+| P1       | Rich Suggested Fixes (patches) | Medium | High        |
+| P1       | Dependency Vulnerability Audit | Low    | Medium-High |
+| P1       | Modular Dashboard Refactor     | Medium | Medium      |
+| P2       | File Reduction / Cleanup       | Medium | Medium      |
+| P2       | Certificate / Token UI         | Medium | Medium      |
+| P2       | Real-time Progress in Sidebar  | Low    | Medium      |
+| P2       | Data Quality Scoring           | Low    | Medium      |
+| P3       | AI Context / Reader Guide      | Low    | Low-Medium  |
+| P3       | Pattern Documentation          | Low    | Low-Medium  |
+| P3       | Server Detection               | Low    | Low         |
+| P3       | Gate Counts in Status Bar      | Low    | Low         |
+| P3       | Quick Actions Enhancement      | Low    | Low         |
 
 ---
 
 ## Key Code References
 
 ### Dashboard (source of truth)
+
 - `coming-soon/js/dashboard/scanner-engine.js` — 52 analyzer engines, `buildSuggestedFixes()`, `findAtAnyDepth()`
 - `coming-soon/js/dashboard/ui-renderer.js` — `pushModule()`, `buildEuAiActControls()`, build readiness scoring
 - `coming-soon/js/dashboard/scanner-patterns.js` — `LANGUAGE_REGISTRY`, `PATTERN_REGISTRY`, `ANALYZER_SCHEMA`
 - `coming-soon/roadmap.html` — Phase generation, `donePredicates`, `scanIsClean` fallback
 
 ### VS Code Extension (target)
+
 - `simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts` — Pattern definitions, `extractMatches()`, `computeDynamicSeverity()`
 - `simplebeacon-vscode/src/enhancedScanProvider.ts` — Sidebar tree view, `extractCategories()`, `extractAllFindings()`
 - `simplebeacon-vscode/src/enhancedDashboard2_0.ts` — Dashboard HTML generation

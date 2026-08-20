@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** 2026-01-15  
 **Status:** Production Ready  
-**Commits:** D `37153d608` → I `4fd3d450b`  
+**Commits:** D `37153d608` → I `4fd3d450b`
 
 ---
 
@@ -17,15 +17,15 @@ This document covers the complete operational lifecycle for QA, Security Operati
 
 ## 2. Sprint Inventory
 
-| Sprint | Commit | Name | Capability |
-|--------|--------|------|------------|
-| D | `37153d608` | Hydration Engine | Zero-network model packaging with Windows path conversion and offline mode |
-| E | `0dfb70c97` | Resource Governor | Hardware detection, memory profiles, Q4_K_M/Q5_K_M quantization, GPU offload |
-| F | `1e645a0ea` | Observability Agent | 14-check post-deployment validation suite with JSON output |
-| G | `d125c87ed` | Self-Healing Loop | Hybrid recovery: safe auto-restart, destructive prompted, manual with OS-specific instructions |
-| H | `89588f028` | Secure Exporter | Encrypted diagnostics bundle with 23-pattern secret sanitization and AES-256-CBC |
-| K | `e43fbf604` | Chaos Verification | 8-scenario fault injection harness with QA evidence output |
-| I | `4fd3d450b` | Throughput Benchmark | tok/s measurement with 4 throttle detection sub-checks against profile expectations |
+| Sprint | Commit      | Name                 | Capability                                                                                     |
+| ------ | ----------- | -------------------- | ---------------------------------------------------------------------------------------------- |
+| D      | `37153d608` | Hydration Engine     | Zero-network model packaging with Windows path conversion and offline mode                     |
+| E      | `0dfb70c97` | Resource Governor    | Hardware detection, memory profiles, Q4_K_M/Q5_K_M quantization, GPU offload                   |
+| F      | `1e645a0ea` | Observability Agent  | 14-check post-deployment validation suite with JSON output                                     |
+| G      | `d125c87ed` | Self-Healing Loop    | Hybrid recovery: safe auto-restart, destructive prompted, manual with OS-specific instructions |
+| H      | `89588f028` | Secure Exporter      | Encrypted diagnostics bundle with 23-pattern secret sanitization and AES-256-CBC               |
+| K      | `e43fbf604` | Chaos Verification   | 8-scenario fault injection harness with QA evidence output                                     |
+| I      | `4fd3d450b` | Throughput Benchmark | tok/s measurement with 4 throttle detection sub-checks against profile expectations            |
 
 ---
 
@@ -33,13 +33,13 @@ This document covers the complete operational lifecycle for QA, Security Operati
 
 All scripts live in `scripts/` and are included in the air-gap package archive.
 
-| Script | Lines | Purpose |
-|--------|-------|---------|
-| `hydrate-airgap.sh` | ~430 | Package, deploy, and verify entry point |
-| `validate-airgap-deploy.sh` | ~1430 | 15-check validation + hybrid recovery + benchmark |
-| `detect-hardware-profile.sh` | ~200 | Hardware detection (RAM, VRAM, CPU) and profile recommendation |
-| `export-diagnostics-bundle.sh` | ~572 | Encrypted diagnostics archive with secret sanitization |
-| `test-airgap-faults.sh` | ~792 | 8-scenario chaos/fault injection QA harness |
+| Script                         | Lines | Purpose                                                        |
+| ------------------------------ | ----- | -------------------------------------------------------------- |
+| `hydrate-airgap.sh`            | ~430  | Package, deploy, and verify entry point                        |
+| `validate-airgap-deploy.sh`    | ~1430 | 15-check validation + hybrid recovery + benchmark              |
+| `detect-hardware-profile.sh`   | ~200  | Hardware detection (RAM, VRAM, CPU) and profile recommendation |
+| `export-diagnostics-bundle.sh` | ~572  | Encrypted diagnostics archive with secret sanitization         |
+| `test-airgap-faults.sh`        | ~792  | 8-scenario chaos/fault injection QA harness                    |
 
 ### Air-gap package archive contents
 
@@ -112,11 +112,11 @@ simplebeacon-airgap-v1.tar.gz
 
 ## 5. Memory Profiles
 
-| Profile | Target Hardware | Quantization | Context | GPU Offload | RAM/VRAM | Expected tok/s |
-|---------|----------------|-------------|---------|-------------|----------|----------------|
-| `minimal` | 8GB RAM, no GPU | Q4_K_M | 2048 | `0` (CPU-only) | ~4.4GB RAM | 5-15 |
-| `balanced` | 16GB RAM, 6GB VRAM | Q4_K_M | 4096-8192 | `-1` (auto) | ~5.5GB combined | 20-50 |
-| `maximum` | 32GB+ RAM, 12GB+ VRAM | Q5_K_M | 8192-32768 | `999` (max) | ~6.5GB combined | 50-100+ |
+| Profile    | Target Hardware       | Quantization | Context    | GPU Offload    | RAM/VRAM        | Expected tok/s |
+| ---------- | --------------------- | ------------ | ---------- | -------------- | --------------- | -------------- |
+| `minimal`  | 8GB RAM, no GPU       | Q4_K_M       | 2048       | `0` (CPU-only) | ~4.4GB RAM      | 5-15           |
+| `balanced` | 16GB RAM, 6GB VRAM    | Q4_K_M       | 4096-8192  | `-1` (auto)    | ~5.5GB combined | 20-50          |
+| `maximum`  | 32GB+ RAM, 12GB+ VRAM | Q5_K_M       | 8192-32768 | `999` (max)    | ~6.5GB combined | 50-100+        |
 
 ### Profile selection
 
@@ -130,77 +130,77 @@ simplebeacon-airgap-v1.tar.gz
 
 ### Required models
 
-| Model Name | Base Model | Purpose |
-|------------|------------|---------|
-| `unbreakable-oracle` | `llama3.2:3b-q4_K_M` | Primary inference (smoke test + benchmark) |
-| `simplebeacon-llama32` | `llama3.2:3b-q4_K_M` | General-purpose LLM |
-| `simplebeacon-mistral` | `mistral:7b-q4_K_M` | Advanced reasoning |
-| `simplebeacon-qwen-coder` | `qwen2.5-coder:7b-q4_K_M` | Code analysis and remediation |
+| Model Name                | Base Model                | Purpose                                    |
+| ------------------------- | ------------------------- | ------------------------------------------ |
+| `unbreakable-oracle`      | `llama3.2:3b-q4_K_M`      | Primary inference (smoke test + benchmark) |
+| `simplebeacon-llama32`    | `llama3.2:3b-q4_K_M`      | General-purpose LLM                        |
+| `simplebeacon-mistral`    | `mistral:7b-q4_K_M`       | Advanced reasoning                         |
+| `simplebeacon-qwen-coder` | `qwen2.5-coder:7b-q4_K_M` | Code analysis and remediation              |
 
 ---
 
 ## 6. Validation Checks (15)
 
-| # | Check | What It Verifies | Recovery Type |
-|---|-------|-----------------|---------------|
-| 1 | Docker daemon | Docker is running | Manual (OS-specific instructions) |
-| 2 | Container status | Engine, Ollama, DB running | **Safe auto**: restart container |
-| 3 | Exposed ports | Port mapping correct | Manual (compose config debugging) |
-| 4 | Ollama API health | `/` and `/api/tags` respond | **Safe auto**: restart Ollama |
-| 5 | Required models | All 4 models present | **Destructive**: re-import from archive |
-| 6 | Model layer integrity | `ollama show` succeeds | **Destructive**: recreate from Modelfile |
-| 7 | Inference smoke test | Model generates output | Manual (5-cause diagnosis steps) |
-| 8 | Engine health | `/health` endpoint responds | **Safe auto**: restart engine |
-| 9 | Engine-to-Ollama DNS | Docker DNS path works | **Safe auto**: restart engine |
-| 10 | PostgreSQL readiness | `pg_isready` passes | **Safe auto**: restart DB |
-| 11 | PostgreSQL schema | 4 key tables exist | **Safe auto**: re-run idempotent migration |
-| 12 | Memory profile | Profile name valid, no contradictions | Manual (config correction) |
-| 13 | Offline mode | `SIMPLEBEACON_OFFLINE=true`, no external conns | Manual (env var correction) |
-| 14 | Disk space | ≥10GB available | Manual (4 cleanup commands) |
-| 15 | Throughput benchmark | tok/s ≥ 80% of profile minimum | Manual (throttle diagnosis) |
+| #   | Check                 | What It Verifies                               | Recovery Type                              |
+| --- | --------------------- | ---------------------------------------------- | ------------------------------------------ |
+| 1   | Docker daemon         | Docker is running                              | Manual (OS-specific instructions)          |
+| 2   | Container status      | Engine, Ollama, DB running                     | **Safe auto**: restart container           |
+| 3   | Exposed ports         | Port mapping correct                           | Manual (compose config debugging)          |
+| 4   | Ollama API health     | `/` and `/api/tags` respond                    | **Safe auto**: restart Ollama              |
+| 5   | Required models       | All 4 models present                           | **Destructive**: re-import from archive    |
+| 6   | Model layer integrity | `ollama show` succeeds                         | **Destructive**: recreate from Modelfile   |
+| 7   | Inference smoke test  | Model generates output                         | Manual (5-cause diagnosis steps)           |
+| 8   | Engine health         | `/health` endpoint responds                    | **Safe auto**: restart engine              |
+| 9   | Engine-to-Ollama DNS  | Docker DNS path works                          | **Safe auto**: restart engine              |
+| 10  | PostgreSQL readiness  | `pg_isready` passes                            | **Safe auto**: restart DB                  |
+| 11  | PostgreSQL schema     | 4 key tables exist                             | **Safe auto**: re-run idempotent migration |
+| 12  | Memory profile        | Profile name valid, no contradictions          | Manual (config correction)                 |
+| 13  | Offline mode          | `SIMPLEBEACON_OFFLINE=true`, no external conns | Manual (env var correction)                |
+| 14  | Disk space            | ≥10GB available                                | Manual (4 cleanup commands)                |
+| 15  | Throughput benchmark  | tok/s ≥ 80% of profile minimum                 | Manual (throttle diagnosis)                |
 
 ### Recovery model (hybrid)
 
-| Recovery Type | When | Actions | Data Loss |
-|---------------|------|---------|-----------|
-| Safe auto | `--recover-safe` or `--recover` | Restart containers, re-run migration | None |
-| Destructive | `--recover` only (prompts) | Purge model volume, recreate models | Possible |
-| Manual | Always on failure | Print OS-specific instructions | N/A |
+| Recovery Type | When                            | Actions                              | Data Loss |
+| ------------- | ------------------------------- | ------------------------------------ | --------- |
+| Safe auto     | `--recover-safe` or `--recover` | Restart containers, re-run migration | None      |
+| Destructive   | `--recover` only (prompts)      | Purge model volume, recreate models  | Possible  |
+| Manual        | Always on failure               | Print OS-specific instructions       | N/A       |
 
 ---
 
 ## 7. Benchmark Thresholds
 
-| Profile | Min tok/s | Max tok/s | Throttle Threshold (80%) | CPU-Only Max |
-|---------|-----------|-----------|--------------------------|--------------|
-| minimal | 5 | 15 | 4.0 | 15 |
-| balanced | 20 | 50 | 16.0 | 15 |
-| maximum | 50 | 100 | 40.0 | 15 |
+| Profile  | Min tok/s | Max tok/s | Throttle Threshold (80%) | CPU-Only Max |
+| -------- | --------- | --------- | ------------------------ | ------------ |
+| minimal  | 5         | 15        | 4.0                      | 15           |
+| balanced | 20        | 50        | 16.0                     | 15           |
+| maximum  | 50        | 100       | 40.0                     | 15           |
 
 ### Throttle detection sub-checks
 
-| Sub-check | Condition | Severity | What It Catches |
-|-----------|-----------|----------|-----------------|
-| 15a: Throughput | tok/s < 80% of profile min | **FAIL** | Thermal throttling, resource contention |
-| 15a: Below min | tok/s < profile min but > 80% | WARN | Suboptimal but functional |
-| 15b: GPU failure | GPU configured but tok/s in CPU range | WARN | GPU driver failure, CUDA unavailable |
-| 15c: Variance | CV > 20% across runs | WARN | Thread contention, thermal instability |
-| 15d: Thermal | CPU temp > 85°C | WARN | Confirmed thermal throttling |
+| Sub-check        | Condition                             | Severity | What It Catches                         |
+| ---------------- | ------------------------------------- | -------- | --------------------------------------- |
+| 15a: Throughput  | tok/s < 80% of profile min            | **FAIL** | Thermal throttling, resource contention |
+| 15a: Below min   | tok/s < profile min but > 80%         | WARN     | Suboptimal but functional               |
+| 15b: GPU failure | GPU configured but tok/s in CPU range | WARN     | GPU driver failure, CUDA unavailable    |
+| 15c: Variance    | CV > 20% across runs                  | WARN     | Thread contention, thermal instability  |
+| 15d: Thermal     | CPU temp > 85°C                       | WARN     | Confirmed thermal throttling            |
 
 ---
 
 ## 8. Chaos Test Scenarios
 
-| # | Scenario | Fault | Recovery | Expected Outcome |
-|---|----------|-------|----------|-----------------|
-| 1 | Stop engine | `docker stop engine` | Safe auto | Container restarts, health passes |
-| 2 | Stop ollama | `docker stop ollama` | Safe auto | Container restarts, API responds |
-| 3 | Stop db | `docker stop db` | Safe auto | Container restarts, pg_isready passes |
-| 4 | Kill Ollama process | `kill $(pgrep ollama)` | Safe auto | Container restarts, API responds |
-| 5 | Drop DB table | `DROP TABLE scan_counts` | Safe auto | Migration recreates table |
-| 6 | Delete model | `ollama rm unbreakable-oracle` | Destructive | Model re-imported from archive |
-| 7 | Corrupt model | `ollama rm simplebeacon-llama32` | Destructive | Model recreated from Modelfile |
-| 8 | Break DNS | `docker restart engine` | Safe auto | Engine DNS cache refreshed |
+| #   | Scenario            | Fault                            | Recovery    | Expected Outcome                      |
+| --- | ------------------- | -------------------------------- | ----------- | ------------------------------------- |
+| 1   | Stop engine         | `docker stop engine`             | Safe auto   | Container restarts, health passes     |
+| 2   | Stop ollama         | `docker stop ollama`             | Safe auto   | Container restarts, API responds      |
+| 3   | Stop db             | `docker stop db`                 | Safe auto   | Container restarts, pg_isready passes |
+| 4   | Kill Ollama process | `kill $(pgrep ollama)`           | Safe auto   | Container restarts, API responds      |
+| 5   | Drop DB table       | `DROP TABLE scan_counts`         | Safe auto   | Migration recreates table             |
+| 6   | Delete model        | `ollama rm unbreakable-oracle`   | Destructive | Model re-imported from archive        |
+| 7   | Corrupt model       | `ollama rm simplebeacon-llama32` | Destructive | Model recreated from Modelfile        |
+| 8   | Break DNS           | `docker restart engine`          | Safe auto   | Engine DNS cache refreshed            |
 
 ### QA evidence format
 
@@ -209,11 +209,17 @@ QA Evidence: 2026-01-15T12:00:00Z — 8/8 scenarios passed on hostname
 ```
 
 JSON:
+
 ```json
 {
   "summary": { "total": 8, "passed": 8, "failed": 0, "skipped": 0 },
   "scenarios": [
-    { "scenario": 1, "name": "Stop engine container", "status": "pass", "detail": "engine restarted successfully" }
+    {
+      "scenario": 1,
+      "name": "Stop engine container",
+      "status": "pass",
+      "detail": "engine restarted successfully"
+    }
   ]
 }
 ```
@@ -270,17 +276,17 @@ openssl enc -d -aes-256-cbc -pbkdf2 -in bundle.enc -out bundle.tar.gz
 
 ## 10. Cross-Platform Compatibility
 
-| Feature | Linux (RHEL/Ubuntu) | Windows + WSL2 | Edge Appliances |
-|---------|---------------------|----------------|-----------------|
-| Docker daemon start | `systemctl start docker` | Docker Desktop | `dockerd &` |
-| RAM detection | `free` | `wmic` | `free` |
-| CPU detection | `nproc` | `wmic` | `nproc` |
-| GPU detection | `nvidia-smi` | `nvidia-smi` | (none expected) |
-| OS detection | `/etc/os-release` | `wmic` | `/etc/os-release` |
-| Disk space | `df` | `df` (Git Bash) | `df` |
-| CPU thermal | `sensors` / `/sys/class/thermal` | (skipped) | `sensors` |
-| Path conversion | Native | `cygpath -m` | Native |
-| Shell | Bash | Git Bash / MSYS2 | Bash |
+| Feature             | Linux (RHEL/Ubuntu)              | Windows + WSL2   | Edge Appliances   |
+| ------------------- | -------------------------------- | ---------------- | ----------------- |
+| Docker daemon start | `systemctl start docker`         | Docker Desktop   | `dockerd &`       |
+| RAM detection       | `free`                           | `wmic`           | `free`            |
+| CPU detection       | `nproc`                          | `wmic`           | `nproc`           |
+| GPU detection       | `nvidia-smi`                     | `nvidia-smi`     | (none expected)   |
+| OS detection        | `/etc/os-release`                | `wmic`           | `/etc/os-release` |
+| Disk space          | `df`                             | `df` (Git Bash)  | `df`              |
+| CPU thermal         | `sensors` / `/sys/class/thermal` | (skipped)        | `sensors`         |
+| Path conversion     | Native                           | `cygpath -m`     | Native            |
+| Shell               | Bash                             | Git Bash / MSYS2 | Bash              |
 
 ---
 
@@ -288,22 +294,22 @@ openssl enc -d -aes-256-cbc -pbkdf2 -in bundle.enc -out bundle.tar.gz
 
 ### Required for deployment
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `SIMPLEBEACON_OFFLINE` | `true` | Disables network pulls in air-gapped mode |
-| `OLLAMA_MEMORY_PROFILE` | `balanced` | Memory profile (minimal/balanced/maximum) |
-| `OLLAMA_NUM_GPU` | `-1` | GPU offload layers (0=CPU, -1=auto, 999=max) |
-| `OLLAMA_NUM_CTX` | `8192` | Context window size |
-| `OLLAMA_NUM_THREAD` | `8` | CPU threads for inference |
-| `OLLAMA_F16_KV` | `true` | Use FP16 for KV cache |
-| `OLLAMA_USE_MMAP` | `true` | Memory-mapped model loading |
-| `OLLAMA_BASE_URL` | `http://simplebeacon-ollama:11434` | Engine-to-Ollama URL |
-| `DATABASE_URL` | (from POSTGRES_PASSWORD) | PostgreSQL connection string |
-| `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
-| `ENGINE_PORT` | `3000` | Engine host port |
-| `OLLAMA_PORT` | `11434` | Ollama host port |
-| `DB_PORT` | `5432` | PostgreSQL host port |
-| `ENABLE_EXTERNAL_APIS` | `false` | Disables external API calls in air-gapped mode |
+| Variable                | Default                            | Purpose                                        |
+| ----------------------- | ---------------------------------- | ---------------------------------------------- |
+| `SIMPLEBEACON_OFFLINE`  | `true`                             | Disables network pulls in air-gapped mode      |
+| `OLLAMA_MEMORY_PROFILE` | `balanced`                         | Memory profile (minimal/balanced/maximum)      |
+| `OLLAMA_NUM_GPU`        | `-1`                               | GPU offload layers (0=CPU, -1=auto, 999=max)   |
+| `OLLAMA_NUM_CTX`        | `8192`                             | Context window size                            |
+| `OLLAMA_NUM_THREAD`     | `8`                                | CPU threads for inference                      |
+| `OLLAMA_F16_KV`         | `true`                             | Use FP16 for KV cache                          |
+| `OLLAMA_USE_MMAP`       | `true`                             | Memory-mapped model loading                    |
+| `OLLAMA_BASE_URL`       | `http://simplebeacon-ollama:11434` | Engine-to-Ollama URL                           |
+| `DATABASE_URL`          | (from POSTGRES_PASSWORD)           | PostgreSQL connection string                   |
+| `POSTGRES_PASSWORD`     | (required)                         | PostgreSQL password                            |
+| `ENGINE_PORT`           | `3000`                             | Engine host port                               |
+| `OLLAMA_PORT`           | `11434`                            | Ollama host port                               |
+| `DB_PORT`               | `5432`                             | PostgreSQL host port                           |
+| `ENABLE_EXTERNAL_APIS`  | `false`                            | Disables external API calls in air-gapped mode |
 
 ---
 
@@ -370,13 +376,13 @@ openssl enc -d -aes-256-cbc -pbkdf2 -in bundle.enc -out bundle.tar.gz
 
 ## 14. Sign-off
 
-| Role | Name | Date | Signature |
-|------|------|------|-----------|
-| Engineering Lead | | | |
-| QA Lead | | | |
-| Security Operations | | | |
-| Field Engineering Lead | | | |
+| Role                   | Name | Date | Signature |
+| ---------------------- | ---- | ---- | --------- |
+| Engineering Lead       |      |      |           |
+| QA Lead                |      |      |           |
+| Security Operations    |      |      |           |
+| Field Engineering Lead |      |      |           |
 
 ---
 
-*This document is maintained alongside the air-gap deployment scripts in the SimpleBeacon repository. For the latest version, see `docs/OPERATIONAL_READINESS_SUMMARY.md`.*
+_This document is maintained alongside the air-gap deployment scripts in the SimpleBeacon repository. For the latest version, see `docs/OPERATIONAL_READINESS_SUMMARY.md`._

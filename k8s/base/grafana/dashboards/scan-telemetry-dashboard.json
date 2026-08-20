@@ -45,17 +45,31 @@
       "title": "Available Memory (%)",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "(node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100", "refId": "A", "legendFormat": "available_percent" }
+        {
+          "expr": "(node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
+          "refId": "A",
+          "legendFormat": "available_percent"
+        }
       ],
       "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
-      "thresholds": { "mode": "percentage", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 5 } ] }
+      "thresholds": {
+        "mode": "percentage",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "red", "value": 5 }
+        ]
+      }
     },
     {
       "type": "stat",
       "title": "Scan Volume (files processed)",
       "gridPos": { "x": 0, "y": 8, "w": 6, "h": 4 },
       "targets": [
-        { "expr": "sum(rate(simplebeacon_scan_files_processed_total[5m]))", "refId": "A", "legendFormat": "files_per_sec" }
+        {
+          "expr": "sum(rate(simplebeacon_scan_files_processed_total[5m]))",
+          "refId": "A",
+          "legendFormat": "files_per_sec"
+        }
       ],
       "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] }
     },
@@ -76,8 +90,16 @@
       "title": "Alert Noise (firing vs suppressed)",
       "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
       "targets": [
-        { "expr": "sum(ALERTS{alertname=~\"SB_.*\", alertstate=\"firing\"})", "refId": "A", "legendFormat": "firing" },
-        { "expr": "sum(ALERTS{alertname=~\"SB_.*\", alertstate=\"suppressed\"})", "refId": "B", "legendFormat": "suppressed" }
+        {
+          "expr": "sum(ALERTS{alertname=~\"SB_.*\", alertstate=\"firing\"})",
+          "refId": "A",
+          "legendFormat": "firing"
+        },
+        {
+          "expr": "sum(ALERTS{alertname=~\"SB_.*\", alertstate=\"suppressed\"})",
+          "refId": "B",
+          "legendFormat": "suppressed"
+        }
       ],
       "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] }
     }

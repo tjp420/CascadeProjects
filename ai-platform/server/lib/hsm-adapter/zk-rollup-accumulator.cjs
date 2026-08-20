@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 29: ZK-Rollup telemetry accumulator.
@@ -10,18 +10,18 @@
  * @module hsm-adapter/zk-rollup-accumulator
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 const ALLOWED_EVENT_TYPES = new Set([
-  'COMMITTEE_RESHARDING_INITIATED',
-  'EPHEMERAL_SHARE_RATCHETED',
-  'ENCLAVE_HARDWARE_BOOTSTRAPPED',
-  'ATTESTATION_CHALLENGE_VERIFIED',
-  'CONSENSUS_LEADER_ELECTED',
-  'CONSENSUS_LOG_COMMITTED',
-  'NODE_RECOVERY_STARTED',
-  'CROSS_TENANT_ACCESS_RECOGNIZED',
-  'AUDIT_RECEIPT_CHAINED',
+  "COMMITTEE_RESHARDING_INITIATED",
+  "EPHEMERAL_SHARE_RATCHETED",
+  "ENCLAVE_HARDWARE_BOOTSTRAPPED",
+  "ATTESTATION_CHALLENGE_VERIFIED",
+  "CONSENSUS_LEADER_ELECTED",
+  "CONSENSUS_LOG_COMMITTED",
+  "NODE_RECOVERY_STARTED",
+  "CROSS_TENANT_ACCESS_RECOGNIZED",
+  "AUDIT_RECEIPT_CHAINED",
 ]);
 
 class ZkRollupAccumulator {
@@ -46,7 +46,9 @@ class ZkRollupAccumulator {
    */
   ingest(type, payload = {}) {
     if (!ALLOWED_EVENT_TYPES.has(type)) {
-      throw new Error(`Event type ${type} is not recognized by the rollup accumulator`);
+      throw new Error(
+        `Event type ${type} is not recognized by the rollup accumulator`,
+      );
     }
     this._sequence += 1;
     const normalized = this._normalize(type, payload);
@@ -72,10 +74,15 @@ class ZkRollupAccumulator {
     }
     const leaves = this._batch.map((e) => e.leaf);
     this._merkleRoot = _computeMerkleRoot(leaves);
-    const result = { finalized: true, root: this._merkleRoot, count: this._batch.length, sequence: this._sequence };
+    const result = {
+      finalized: true,
+      root: this._merkleRoot,
+      count: this._batch.length,
+      sequence: this._sequence,
+    };
     this._batch = [];
     if (this._audit) {
-      this._audit('ZK_ROLLUP_BATCH_FINALIZED', result);
+      this._audit("ZK_ROLLUP_BATCH_FINALIZED", result);
     }
     return result;
   }
@@ -88,7 +95,10 @@ class ZkRollupAccumulator {
    */
   verifyVectorClockSignature(payload, signature) {
     const canonical = JSON.stringify(this._normalize(null, payload));
-    const expected = crypto.createHmac('sha256', 'zk-rollup-vector-clock-key').update(canonical).digest('hex');
+    const expected = crypto
+      .createHmac("sha256", "zk-rollup-vector-clock-key")
+      .update(canonical)
+      .digest("hex");
     return signature === expected;
   }
 
@@ -103,7 +113,10 @@ class ZkRollupAccumulator {
   }
 
   _hashLeaf(payload) {
-    return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    return crypto
+      .createHash("sha256")
+      .update(JSON.stringify(payload))
+      .digest("hex");
   }
 
   /**
@@ -123,7 +136,12 @@ function _computeMerkleRoot(leaves) {
     for (let i = 0; i < level.length; i += 2) {
       const left = level[i];
       const right = level[i + 1] || left;
-      next.push(crypto.createHash('sha256').update(left + right).digest('hex'));
+      next.push(
+        crypto
+          .createHash("sha256")
+          .update(left + right)
+          .digest("hex"),
+      );
     }
     level = next;
   }

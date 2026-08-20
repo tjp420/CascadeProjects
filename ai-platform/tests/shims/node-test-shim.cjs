@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 module.exports = {
   describe: global.describe,
@@ -9,5 +9,5 @@ module.exports = {
   before: global.beforeAll,
   after: global.afterAll,
   beforeAll: global.beforeAll,
-  afterAll: global.afterAll
+  afterAll: global.afterAll,
 };

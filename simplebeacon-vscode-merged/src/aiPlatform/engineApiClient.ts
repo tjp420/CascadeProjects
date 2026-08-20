@@ -120,7 +120,7 @@ export class EngineApiClient {
         port: url.port,
         path: url.pathname + url.search,
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         } as Record<string, string | number>,
         timeout: timeoutMs || this.timeoutMs,
       };
@@ -132,7 +132,9 @@ export class EngineApiClient {
 
       const req = http.request(options, (res) => {
         let data = '';
-        res.on('data', (chunk) => { data += chunk; });
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
         res.on('end', () => {
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {

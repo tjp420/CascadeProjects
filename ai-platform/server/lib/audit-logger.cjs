@@ -1,23 +1,23 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 // Lazy-load crypto-utils to avoid circular dependency at module init
 let _cryptoUtils = null;
 function getCryptoUtils() {
   if (!_cryptoUtils) {
-    _cryptoUtils = require('./crypto-utils.cjs');
+    _cryptoUtils = require("./crypto-utils.cjs");
   }
   return _cryptoUtils;
 }
 
 const STORE_PATH =
   process.env.AUDIT_LOG_PATH ||
-  path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
+  path.join(process.cwd(), ".simplebeacon", "audit-log.json");
 const MAX_ENTRIES_PER_ORG = 1000;
-const GENESIS_HASH = '0'.repeat(64); // 64-char zero hash as chain genesis
+const GENESIS_HASH = "0".repeat(64); // 64-char zero hash as chain genesis
 
 /**
  * Compute the SHA-256 hash of a canonical string representation of an audit
@@ -48,7 +48,7 @@ function computeEntryHash(entry, prevHash) {
   // No replacer array — it strips nested object keys. Insertion order is
   // deterministic since we control the payload construction above.
   const canonical = JSON.stringify(payload);
-  return crypto.createHash('sha256').update(canonical).digest('hex');
+  return crypto.createHash("sha256").update(canonical).digest("hex");
 }
 
 /**
@@ -69,7 +69,7 @@ function getLatestHash(store, orgId) {
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { entries: {} };
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
     return JSON.parse(raw);
   } catch {
     return { entries: {} };
@@ -99,7 +99,7 @@ function makeKey(orgId, id) {
 // through unchanged.
 
 let _piiPolicyStore = null;
-let _scrubEnabled = process.env.AUDIT_LOG_SCRUB_PII !== 'false';
+let _scrubEnabled = process.env.AUDIT_LOG_SCRUB_PII !== "false";
 
 /**
  * Lazily load the PII policy store to avoid circular dependency issues.
@@ -108,7 +108,7 @@ let _scrubEnabled = process.env.AUDIT_LOG_SCRUB_PII !== 'false';
 function _getPiiPolicyStore() {
   if (_piiPolicyStore === null) {
     try {
-      _piiPolicyStore = require('./pii-policy-store.cjs');
+      _piiPolicyStore = require("./pii-policy-store.cjs");
     } catch {
       _piiPolicyStore = false; // Mark as unavailable
     }
@@ -123,7 +123,7 @@ function _getPiiPolicyStore() {
  * @returns {string} Scrubbed text
  */
 function _scrubString(text, orgId) {
-  if (!text || typeof text !== 'string') return text;
+  if (!text || typeof text !== "string") return text;
   const store = _getPiiPolicyStore();
   if (!store) return text;
   const result = store.redactText(text, orgId);
@@ -137,13 +137,13 @@ function _scrubString(text, orgId) {
  * @returns {*} Scrubbed value (same type as input)
  */
 function _scrubValue(value, orgId) {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return _scrubString(value, orgId);
   }
   if (Array.isArray(value)) {
     return value.map((v) => _scrubValue(v, orgId));
   }
-  if (value && typeof value === 'object') {
+  if (value && typeof value === "object") {
     const scrubbed = {};
     for (const key of Object.keys(value)) {
       scrubbed[key] = _scrubValue(value[key], orgId);
@@ -198,14 +198,15 @@ function scrubAuditEntry(entry, orgId) {
  */
 function computeDiff(oldVal, newVal) {
   if (!oldVal && !newVal) return [];
-  if (!oldVal) return [{ field: '_entity', oldValue: null, newValue: newVal }];
-  if (!newVal) return [{ field: '_entity', oldValue: oldVal, newValue: null }];
+  if (!oldVal) return [{ field: "_entity", oldValue: null, newValue: newVal }];
+  if (!newVal) return [{ field: "_entity", oldValue: oldVal, newValue: null }];
 
   const diffs = [];
   const allKeys = new Set([...Object.keys(oldVal), ...Object.keys(newVal)]);
   for (const key of allKeys) {
     // Skip volatile fields that change on every write
-    if (key === 'updatedAt' || key === 'markedAt' || key === 'createdAt') continue;
+    if (key === "updatedAt" || key === "markedAt" || key === "createdAt")
+      continue;
     const ov = oldVal[key];
     const nv = newVal[key];
     if (JSON.stringify(ov) !== JSON.stringify(nv)) {
@@ -231,9 +232,9 @@ function computeDiff(oldVal, newVal) {
  */
 function log(params) {
   const store = readStore();
-  const id = `audit-${crypto.randomBytes(6).toString('hex')}`;
+  const id = `audit-${crypto.randomBytes(6).toString("hex")}`;
   const now = new Date().toISOString();
-  const orgId = params.orgId || 'default';
+  const orgId = params.orgId || "default";
 
   const oldValue = params.oldValue || null;
   const newValue = params.newValue || null;
@@ -243,11 +244,11 @@ function log(params) {
     id,
     orgId,
     timestamp: now,
-    actorId: params.actorId || 'unknown',
-    actorEmail: params.actorEmail || 'unknown',
-    action: params.action || 'UPDATE',
-    entity: params.entity || 'unknown',
-    entityId: params.entityId || '',
+    actorId: params.actorId || "unknown",
+    actorEmail: params.actorEmail || "unknown",
+    action: params.action || "UPDATE",
+    entity: params.entity || "unknown",
+    entityId: params.entityId || "",
     changes,
     metadata: params.metadata || null,
   };
@@ -279,7 +280,7 @@ function log(params) {
   writeStore(store);
   // Fire-and-forget SIEM export for high-priority events
   try {
-    const siem = require('./siem-exporter.cjs');
+    const siem = require("./siem-exporter.cjs");
     // map our entry to a SIEM-friendly event
     const siemEvent = {
       id: entry.id,
@@ -290,10 +291,16 @@ function log(params) {
       entityId: entry.entityId,
       actorId: entry.actorId,
       metadata: entry.metadata,
-      payloadHash: entry.metadata && entry.metadata.payloadHash || null,
+      payloadHash: (entry.metadata && entry.metadata.payloadHash) || null,
     };
     // Only ship quota and rate-limit related events by default
-    if (['AGENTIC_QUOTA_EXHAUSTED', 'AGENTIC_RATE_LIMIT_TRIPPED', 'AGENTIC_EXECUTE_REQUEST'].includes(entry.action)) {
+    if (
+      [
+        "AGENTIC_QUOTA_EXHAUSTED",
+        "AGENTIC_RATE_LIMIT_TRIPPED",
+        "AGENTIC_EXECUTE_REQUEST",
+      ].includes(entry.action)
+    ) {
       siem.enqueue(siemEvent);
     }
   } catch (e) {
@@ -317,14 +324,19 @@ function log(params) {
  */
 function query(filters) {
   const store = readStore();
-  const orgId = filters.orgId || 'default';
-  let entries = Object.values(store.entries).filter(e => e.orgId === orgId);
+  const orgId = filters.orgId || "default";
+  let entries = Object.values(store.entries).filter((e) => e.orgId === orgId);
 
-  if (filters.action) entries = entries.filter(e => e.action === filters.action);
-  if (filters.entity) entries = entries.filter(e => e.entity === filters.entity);
-  if (filters.actorId) entries = entries.filter(e => e.actorId === filters.actorId);
-  if (filters.startDate) entries = entries.filter(e => e.timestamp >= filters.startDate);
-  if (filters.endDate) entries = entries.filter(e => e.timestamp <= filters.endDate);
+  if (filters.action)
+    entries = entries.filter((e) => e.action === filters.action);
+  if (filters.entity)
+    entries = entries.filter((e) => e.entity === filters.entity);
+  if (filters.actorId)
+    entries = entries.filter((e) => e.actorId === filters.actorId);
+  if (filters.startDate)
+    entries = entries.filter((e) => e.timestamp >= filters.startDate);
+  if (filters.endDate)
+    entries = entries.filter((e) => e.timestamp <= filters.endDate);
 
   entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
@@ -343,7 +355,9 @@ function query(filters) {
  */
 function getStats(orgId) {
   const store = readStore();
-  const scoped = Object.values(store.entries).filter(e => e.orgId === (orgId || 'default'));
+  const scoped = Object.values(store.entries).filter(
+    (e) => e.orgId === (orgId || "default"),
+  );
   const byAction = {};
   const byEntity = {};
   const actorSet = new Map();
@@ -351,11 +365,18 @@ function getStats(orgId) {
   for (const e of scoped) {
     byAction[e.action] = (byAction[e.action] || 0) + 1;
     byEntity[e.entity] = (byEntity[e.entity] || 0) + 1;
-    if (!actorSet.has(e.actorId)) actorSet.set(e.actorId, { actorId: e.actorId, actorEmail: e.actorEmail, count: 0 });
+    if (!actorSet.has(e.actorId))
+      actorSet.set(e.actorId, {
+        actorId: e.actorId,
+        actorEmail: e.actorEmail,
+        count: 0,
+      });
     actorSet.get(e.actorId).count++;
   }
 
-  const recentActors = [...actorSet.values()].sort((a, b) => b.count - a.count).slice(0, 10);
+  const recentActors = [...actorSet.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
 
   return {
     total: scoped.length,
@@ -375,7 +396,7 @@ function getStats(orgId) {
 function verifyChain(orgId) {
   const store = readStore();
   const scoped = Object.values(store.entries)
-    .filter((e) => e.orgId === (orgId || 'default'))
+    .filter((e) => e.orgId === (orgId || "default"))
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
   const brokenLinks = [];
@@ -430,7 +451,7 @@ function verifyChain(orgId) {
 //
 // Policy configuration is stored in audit-policy-store.cjs.
 
-const auditPolicyStore = require('./audit-policy-store.cjs');
+const auditPolicyStore = require("./audit-policy-store.cjs");
 
 /**
  * Get retention statistics for a specific org.
@@ -438,7 +459,7 @@ const auditPolicyStore = require('./audit-policy-store.cjs');
  * @returns {{ total: number, oldestTimestamp: string|null, newestTimestamp: string|null, purgeableCount: number, policy: object }}
  */
 function getRetentionStats(orgId) {
-  const orgIdNormalized = orgId || 'default';
+  const orgIdNormalized = orgId || "default";
   const policy = auditPolicyStore.getPolicy(orgIdNormalized);
   const store = readStore();
   const orgEntries = Object.values(store.entries)
@@ -461,9 +482,10 @@ function getRetentionStats(orgId) {
   // Count entries that would be purged: older than retention cutoff AND
   // NOT within the most recent `maxEntries` entries (safety floor).
   // The safety floor only applies when total entries exceed maxEntries.
-  const safetyFloorStart = orgEntries.length > policy.maxEntries
-    ? orgEntries.length - policy.maxEntries
-    : orgEntries.length;
+  const safetyFloorStart =
+    orgEntries.length > policy.maxEntries
+      ? orgEntries.length - policy.maxEntries
+      : orgEntries.length;
   let purgeableCount = 0;
   for (let i = 0; i < orgEntries.length; i++) {
     if (orgEntries[i].timestamp < cutoffIso && i < safetyFloorStart) {
@@ -489,7 +511,7 @@ function getRetentionStats(orgId) {
  * @returns {{ purged: number, remaining: number, archived: number }}
  */
 function purgeOldEntries(orgId) {
-  const orgIdNormalized = orgId || 'default';
+  const orgIdNormalized = orgId || "default";
   const policy = auditPolicyStore.getPolicy(orgIdNormalized);
   const store = readStore();
 
@@ -510,9 +532,10 @@ function purgeOldEntries(orgId) {
   // - NOT within the most recent `maxEntries` entries (safety floor)
   // The safety floor only applies when total entries exceed maxEntries;
   // otherwise, all entries are eligible for age-based purge.
-  const safetyFloorStart = orgEntryPairs.length > policy.maxEntries
-    ? orgEntryPairs.length - policy.maxEntries
-    : orgEntryPairs.length; // no entry is in the safety floor if total <= maxEntries
+  const safetyFloorStart =
+    orgEntryPairs.length > policy.maxEntries
+      ? orgEntryPairs.length - policy.maxEntries
+      : orgEntryPairs.length; // no entry is in the safety floor if total <= maxEntries
   const keysToPurge = [];
   const entriesToArchive = [];
 
@@ -523,7 +546,10 @@ function purgeOldEntries(orgId) {
     if (isOldEnough && !isWithinSafetyFloor) {
       keysToPurge.push(key);
       if (policy.archive) {
-        entriesToArchive.push({ ...entry, archivedAt: new Date().toISOString() });
+        entriesToArchive.push({
+          ...entry,
+          archivedAt: new Date().toISOString(),
+        });
       }
     }
   }
@@ -536,10 +562,13 @@ function purgeOldEntries(orgId) {
   let archived = 0;
   if (policy.archive && entriesToArchive.length > 0) {
     try {
-      const archivePath = path.join(path.dirname(STORE_PATH), `audit-archive-${orgIdNormalized}.json`);
+      const archivePath = path.join(
+        path.dirname(STORE_PATH),
+        `audit-archive-${orgIdNormalized}.json`,
+      );
       let archiveStore = { entries: [] };
       if (fs.existsSync(archivePath)) {
-        archiveStore = JSON.parse(fs.readFileSync(archivePath, 'utf8'));
+        archiveStore = JSON.parse(fs.readFileSync(archivePath, "utf8"));
         if (!archiveStore.entries) archiveStore.entries = [];
       }
       archiveStore.entries.push(...entriesToArchive);
@@ -601,11 +630,11 @@ function purgeOldEntries(orgId) {
 
 const QUARANTINE_PATH =
   process.env.AUDIT_LOG_QUARANTINE_PATH ||
-  (STORE_PATH.replace(/\.json$/, '-quarantine.json'));
+  STORE_PATH.replace(/\.json$/, "-quarantine.json");
 
 const QUARANTINE_DIR =
   process.env.AUDIT_LOG_QUARANTINE_DIR ||
-  path.join(process.cwd(), '.simplebeacon', 'quarantine');
+  path.join(process.cwd(), ".simplebeacon", "quarantine");
 
 const DEFAULT_HEAL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -615,8 +644,12 @@ const DEFAULT_HEAL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
  * @returns {string} Absolute path to the tenant's quarantine file
  */
 function getTenantQuarantinePath(orgId) {
-  const safeOrgId = String(orgId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-  return path.join(QUARANTINE_DIR, `tenant-${safeOrgId}`, 'audit-quarantine.json');
+  const safeOrgId = String(orgId || "default").replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(
+    QUARANTINE_DIR,
+    `tenant-${safeOrgId}`,
+    "audit-quarantine.json",
+  );
 }
 
 /**
@@ -626,22 +659,34 @@ function getTenantQuarantinePath(orgId) {
  * @returns {{ entries: object[], metadata: object }}
  */
 function readTenantQuarantineStore(orgId) {
-  const orgIdNormalized = orgId || 'default';
+  const orgIdNormalized = orgId || "default";
   const tenantPath = getTenantQuarantinePath(orgIdNormalized);
-  const { encryptForDirectory, decryptForDirectory, isDirectoryEncrypted } = getCryptoUtils();
+  const { encryptForDirectory, decryptForDirectory, isDirectoryEncrypted } =
+    getCryptoUtils();
 
   try {
     if (fs.existsSync(tenantPath)) {
-      const raw = fs.readFileSync(tenantPath, 'utf8');
+      const raw = fs.readFileSync(tenantPath, "utf8");
       // If the file is encrypted, decrypt it
       if (isDirectoryEncrypted(raw)) {
-        const decrypted = decryptForDirectory(raw, orgIdNormalized, path.dirname(tenantPath));
+        const decrypted = decryptForDirectory(
+          raw,
+          orgIdNormalized,
+          path.dirname(tenantPath),
+        );
         if (decrypted) {
           const parsed = JSON.parse(decrypted);
           if (parsed.entries && Array.isArray(parsed.entries)) return parsed;
         }
         // Decryption failed — return empty store (data is inaccessible)
-        return { entries: [], metadata: { createdAt: new Date().toISOString(), encrypted: true, decryptionError: true } };
+        return {
+          entries: [],
+          metadata: {
+            createdAt: new Date().toISOString(),
+            encrypted: true,
+            decryptionError: true,
+          },
+        };
       }
       // Unencrypted fallback (for migration or if encryption was disabled)
       const parsed = JSON.parse(raw);
@@ -654,10 +699,12 @@ function readTenantQuarantineStore(orgId) {
   // Legacy: check the global quarantine file for entries belonging to this org
   try {
     if (fs.existsSync(QUARANTINE_PATH)) {
-      const raw = fs.readFileSync(QUARANTINE_PATH, 'utf8');
+      const raw = fs.readFileSync(QUARANTINE_PATH, "utf8");
       const parsed = JSON.parse(raw);
       if (parsed.entries && Array.isArray(parsed.entries)) {
-        const orgEntries = parsed.entries.filter((e) => e.orgId === orgIdNormalized);
+        const orgEntries = parsed.entries.filter(
+          (e) => e.orgId === orgIdNormalized,
+        );
         if (orgEntries.length > 0) {
           return { entries: orgEntries, metadata: parsed.metadata || {} };
         }
@@ -676,7 +723,7 @@ function readTenantQuarantineStore(orgId) {
  * @param {{ entries: array, metadata: object }} store
  */
 function writeTenantQuarantineStore(orgId, store) {
-  const orgIdNormalized = orgId || 'default';
+  const orgIdNormalized = orgId || "default";
   const tenantPath = getTenantQuarantinePath(orgIdNormalized);
   const dir = path.dirname(tenantPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -684,7 +731,7 @@ function writeTenantQuarantineStore(orgId, store) {
   const { encryptForDirectory } = getCryptoUtils();
   const json = JSON.stringify(store, null, 2);
   const ciphertext = encryptForDirectory(json, orgIdNormalized, dir);
-  fs.writeFileSync(tenantPath, ciphertext, 'utf8');
+  fs.writeFileSync(tenantPath, ciphertext, "utf8");
 }
 
 let _healTimer = null;
@@ -735,8 +782,9 @@ function __testInject(hooks) {
  */
 function readQuarantineStore() {
   try {
-    if (!fs.existsSync(QUARANTINE_PATH)) return { entries: [], metadata: { createdAt: new Date().toISOString() } };
-    const raw = fs.readFileSync(QUARANTINE_PATH, 'utf8');
+    if (!fs.existsSync(QUARANTINE_PATH))
+      return { entries: [], metadata: { createdAt: new Date().toISOString() } };
+    const raw = fs.readFileSync(QUARANTINE_PATH, "utf8");
     const parsed = JSON.parse(raw);
     if (!parsed.entries || !Array.isArray(parsed.entries)) {
       return { entries: [], metadata: { createdAt: new Date().toISOString() } };
@@ -779,11 +827,16 @@ function getAllOrgIds() {
  * @returns {{ healed: boolean, quarantined: array, relinked: number, remaining: number }}
  */
 function healChain(orgId) {
-  const orgIdNormalized = orgId || 'default';
+  const orgIdNormalized = orgId || "default";
   const verification = verifyChain(orgIdNormalized);
 
   if (verification.valid) {
-    return { healed: false, quarantined: [], relinked: 0, remaining: verification.totalEntries };
+    return {
+      healed: false,
+      quarantined: [],
+      relinked: 0,
+      remaining: verification.totalEntries,
+    };
   }
 
   // Collect IDs of broken/tampered entries
@@ -812,9 +865,11 @@ function healChain(orgId) {
       quarantined.push({
         ...entry,
         quarantinedAt: new Date().toISOString(),
-        quarantineReason: verification.tamperedEntries.some((t) => t.id === entry.id)
-          ? 'content_tampered'
-          : 'broken_link',
+        quarantineReason: verification.tamperedEntries.some(
+          (t) => t.id === entry.id,
+        )
+          ? "content_tampered"
+          : "broken_link",
       });
       delete store.entries[key];
     }
@@ -904,7 +959,7 @@ function getQuarantine(orgId) {
  * @returns {{ found: boolean, hashMatches: boolean, expectedHash: string, actualHash: string, quarantineReason: string|null, entry: object|null, decryptionStatus: string }}
  */
 function verifyQuarantineEntry(orgId, entryId) {
-  const orgIdNormalized = orgId || 'default';
+  const orgIdNormalized = orgId || "default";
   const store = readTenantQuarantineStore(orgIdNormalized);
   const entry = store.entries.find((e) => e.id === entryId);
 
@@ -912,11 +967,11 @@ function verifyQuarantineEntry(orgId, entryId) {
     return {
       found: false,
       hashMatches: false,
-      expectedHash: '',
-      actualHash: '',
+      expectedHash: "",
+      actualHash: "",
       quarantineReason: null,
       entry: null,
-      decryptionStatus: 'entry_not_found',
+      decryptionStatus: "entry_not_found",
     };
   }
 
@@ -928,9 +983,9 @@ function verifyQuarantineEntry(orgId, entryId) {
   // Check if the quarantine file itself can be decrypted
   // (readTenantQuarantineStore already attempted decryption; if it failed,
   // the metadata will have decryptionError: true)
-  let decryptionStatus = 'decrypted';
+  let decryptionStatus = "decrypted";
   if (store.metadata && store.metadata.decryptionError) {
-    decryptionStatus = 'decryption_failed';
+    decryptionStatus = "decryption_failed";
   }
 
   return {
@@ -986,18 +1041,37 @@ function healAllOrgs() {
 function runAutonomousReKeying() {
   let rotationStatus = null;
   try {
-    const keyRotationStore = require('./key-rotation-store.cjs');
+    const keyRotationStore = require("./key-rotation-store.cjs");
     rotationStatus = keyRotationStore.getRotationStatus();
   } catch {
     // key-rotation-store not available — nothing to do
-    return { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false };
+    return {
+      migrated: 0,
+      skipped: 0,
+      failed: 0,
+      purged: false,
+      rotationActive: false,
+    };
   }
 
   // No previous key means no rotation in progress
   if (!rotationStatus || !rotationStatus.hasPrevious) {
     _reKeyStats.totalSweeps++;
-    _reKeyStats.lastResult = { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false, timestamp: new Date().toISOString() };
-    return { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false };
+    _reKeyStats.lastResult = {
+      migrated: 0,
+      skipped: 0,
+      failed: 0,
+      purged: false,
+      rotationActive: false,
+      timestamp: new Date().toISOString(),
+    };
+    return {
+      migrated: 0,
+      skipped: 0,
+      failed: 0,
+      purged: false,
+      rotationActive: false,
+    };
   }
 
   // If grace window has already expired, just purge and exit
@@ -1006,16 +1080,35 @@ function runAutonomousReKeying() {
       const purged = keyRotationStore.purgeExpiredKeys();
       _reKeyStats.totalSweeps++;
       _reKeyStats.totalPurged += purged ? 1 : 0;
-      _reKeyStats.lastResult = { migrated: 0, skipped: 0, failed: 0, purged, rotationActive: false, timestamp: new Date().toISOString() };
-      return { migrated: 0, skipped: 0, failed: 0, purged, rotationActive: false };
+      _reKeyStats.lastResult = {
+        migrated: 0,
+        skipped: 0,
+        failed: 0,
+        purged,
+        rotationActive: false,
+        timestamp: new Date().toISOString(),
+      };
+      return {
+        migrated: 0,
+        skipped: 0,
+        failed: 0,
+        purged,
+        rotationActive: false,
+      };
     } catch {
-      return { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false };
+      return {
+        migrated: 0,
+        skipped: 0,
+        failed: 0,
+        purged: false,
+        rotationActive: false,
+      };
     }
   }
 
   // Rotation is active — migrate quarantine files
   const { encryptForDirectory, decryptForDirectory } = getCryptoUtils();
-  const keyRotationStore = require('./key-rotation-store.cjs');
+  const keyRotationStore = require("./key-rotation-store.cjs");
 
   let migrated = 0;
   let skipped = 0;
@@ -1027,11 +1120,13 @@ function runAutonomousReKeying() {
     // to quarantine, so getAllOrgIds() alone would miss orgs with only quarantined data.
     const orgIds = new Set(getAllOrgIds());
     try {
-      const quarantineBase = path.dirname(path.dirname(getTenantQuarantinePath('__probe__')));
+      const quarantineBase = path.dirname(
+        path.dirname(getTenantQuarantinePath("__probe__")),
+      );
       if (fs.existsSync(quarantineBase)) {
         for (const entry of fs.readdirSync(quarantineBase)) {
-          if (entry.startsWith('tenant-')) {
-            orgIds.add(entry.slice('tenant-'.length));
+          if (entry.startsWith("tenant-")) {
+            orgIds.add(entry.slice("tenant-".length));
           }
         }
       }
@@ -1048,14 +1143,18 @@ function runAutonomousReKeying() {
         }
 
         // Read the encrypted quarantine file
-        const raw = fs.readFileSync(tenantPath, 'utf8');
+        const raw = fs.readFileSync(tenantPath, "utf8");
         if (!raw) {
           skipped++;
           continue;
         }
 
         // Decrypt with fallback (tries active key first, then previous)
-        const decrypted = decryptForDirectory(raw, orgId, path.dirname(tenantPath));
+        const decrypted = decryptForDirectory(
+          raw,
+          orgId,
+          path.dirname(tenantPath),
+        );
         if (!decrypted) {
           // Cannot decrypt — file may be corrupted or key is outside grace
           failed++;
@@ -1063,14 +1162,18 @@ function runAutonomousReKeying() {
         }
 
         // Re-encrypt with the active key
-        const reEncrypted = encryptForDirectory(decrypted, orgId, path.dirname(tenantPath));
+        const reEncrypted = encryptForDirectory(
+          decrypted,
+          orgId,
+          path.dirname(tenantPath),
+        );
         if (!reEncrypted) {
           failed++;
           continue;
         }
 
         // Write back to disk
-        fs.writeFileSync(tenantPath, reEncrypted, 'utf8');
+        fs.writeFileSync(tenantPath, reEncrypted, "utf8");
         migrated++;
       } catch {
         // Per-org failure — continue to next org
@@ -1096,7 +1199,14 @@ function runAutonomousReKeying() {
   _reKeyStats.totalSkipped += skipped;
   _reKeyStats.totalFailed += failed;
   _reKeyStats.totalPurged += purged ? 1 : 0;
-  _reKeyStats.lastResult = { migrated, skipped, failed, purged, rotationActive: true, timestamp: new Date().toISOString() };
+  _reKeyStats.lastResult = {
+    migrated,
+    skipped,
+    failed,
+    purged,
+    rotationActive: true,
+    timestamp: new Date().toISOString(),
+  };
 
   return { migrated, skipped, failed, purged, rotationActive: true };
 }
@@ -1124,7 +1234,13 @@ function getReKeyStats() {
  */
 async function runAutonomousLifecyclePurge() {
   if (_lifecyclePurgeRunning) {
-    return { totalPurged: 0, totalArchived: 0, orgsProcessed: 0, orgsPurged: 0, errors: [] };
+    return {
+      totalPurged: 0,
+      totalArchived: 0,
+      orgsProcessed: 0,
+      orgsPurged: 0,
+      errors: [],
+    };
   }
   _lifecyclePurgeRunning = true;
   _lifecyclePurgeStats.lastRun = new Date().toISOString();
@@ -1140,14 +1256,17 @@ async function runAutonomousLifecyclePurge() {
     const purgeFn = _testHooks.purgeOldEntries || purgeOldEntries;
     const logFn = _testHooks.log || log;
 
-    const orgIds = typeof getOrgIds === 'function' ? await Promise.resolve(getOrgIds()) : [];
+    const orgIds =
+      typeof getOrgIds === "function" ? await Promise.resolve(getOrgIds()) : [];
 
     for (const orgId of orgIds) {
       orgsProcessed++;
       try {
         // Provide a safety-floor option to purgeOldEntries so implementations
         // can cap purges per-tenant. Tests expect an options.maxEntries value.
-        const result = await Promise.resolve(purgeFn(orgId, { maxEntries: 1000 }));
+        const result = await Promise.resolve(
+          purgeFn(orgId, { maxEntries: 1000 }),
+        );
 
         if (result && result.purged > 0) {
           orgsPurged++;
@@ -1157,28 +1276,33 @@ async function runAutonomousLifecyclePurge() {
           // Record the background cleanup as an audit log entry
           try {
             const policy = auditPolicyStore.getPolicy(orgId);
-            await Promise.resolve(logFn({
-              orgId,
-              actorId: 'system',
-              actorEmail: 'system@internal',
-              action: 'audit_retention_auto_purge',
-              entity: 'audit_log',
-              entityId: orgId,
-              metadata: {
-                purged: result.purged,
-                remaining: result.remaining,
-                archived: result.archived || 0,
-                policy: {
-                  retentionDays: policy.retentionDays,
-                  maxEntries: policy.maxEntries,
-                  archive: policy.archive,
+            await Promise.resolve(
+              logFn({
+                orgId,
+                actorId: "system",
+                actorEmail: "system@internal",
+                action: "audit_retention_auto_purge",
+                entity: "audit_log",
+                entityId: orgId,
+                metadata: {
+                  purged: result.purged,
+                  remaining: result.remaining,
+                  archived: result.archived || 0,
+                  policy: {
+                    retentionDays: policy.retentionDays,
+                    maxEntries: policy.maxEntries,
+                    archive: policy.archive,
+                  },
+                  autoPurge: true,
                 },
-                autoPurge: true,
-              },
-            }));
+              }),
+            );
           } catch (logErr) {
             // Logging failure should not block the sweep
-            errors.push({ orgId, error: `audit-log write failed: ${logErr.message}` });
+            errors.push({
+              orgId,
+              error: `audit-log write failed: ${logErr.message}`,
+            });
           }
         }
       } catch (err) {
@@ -1231,9 +1355,12 @@ function getLifecyclePurgeStats() {
  */
 function startAutoHeal(intervalMs) {
   if (_healTimer) return false; // Already running
-  if (process.env.AUDIT_HEAL_ENABLED === 'false') return false;
+  if (process.env.AUDIT_HEAL_ENABLED === "false") return false;
 
-  const interval = intervalMs || parseInt(process.env.AUDIT_HEAL_INTERVAL_MS, 10) || DEFAULT_HEAL_INTERVAL_MS;
+  const interval =
+    intervalMs ||
+    parseInt(process.env.AUDIT_HEAL_INTERVAL_MS, 10) ||
+    DEFAULT_HEAL_INTERVAL_MS;
 
   _healTimer = setInterval(() => {
     try {
@@ -1295,9 +1422,9 @@ function getHealStats() {
  * @returns {object} Compliance report object
  */
 function generateComplianceReport(callerOrgId, frameworks) {
-  const targetFrameworks = frameworks || ['SOC 2', 'GDPR', 'ISO 27001'];
+  const targetFrameworks = frameworks || ["SOC 2", "GDPR", "ISO 27001"];
   const generatedAt = new Date().toISOString();
-  const reportId = `rep_${crypto.randomBytes(8).toString('hex')}`;
+  const reportId = `rep_${crypto.randomBytes(8).toString("hex")}`;
 
   // 1. Aggregate global engine statistics
   const global = {
@@ -1308,16 +1435,16 @@ function generateComplianceReport(callerOrgId, frameworks) {
   };
 
   try {
-    const keyStore = require('./key-rotation-store.cjs');
+    const keyStore = require("./key-rotation-store.cjs");
     global.keyRotation = keyStore.getRotationStatus();
   } catch {
-    global.keyRotation = { error: 'Key rotation subsystem unavailable' };
+    global.keyRotation = { error: "Key rotation subsystem unavailable" };
   }
 
   // 2. Aggregate per-org compliance profiles
   const orgs = [];
   const knownOrgs = getAllOrgIds();
-  const callerOrg = callerOrgId || 'default';
+  const callerOrg = callerOrgId || "default";
 
   // Ensure caller's org is always evaluated first
   const targetOrgs = knownOrgs.includes(callerOrg)
@@ -1342,19 +1469,21 @@ function generateComplianceReport(callerOrgId, frameworks) {
     try {
       profile.retentionPolicy = auditPolicyStore.getPolicy(orgId);
     } catch {
-      profile.retentionPolicy = { error: 'Retention policy store unavailable' };
+      profile.retentionPolicy = { error: "Retention policy store unavailable" };
     }
 
     try {
       profile.retentionStats = getRetentionStats(orgId);
     } catch {
-      profile.retentionStats = { error: 'Failed to compute retention stats' };
+      profile.retentionStats = { error: "Failed to compute retention stats" };
     }
 
     try {
-      const piiStore = require('./pii-policy-store.cjs');
+      const piiStore = require("./pii-policy-store.cjs");
       const piiPolicies = piiStore.getPolicies(orgId);
-      profile.piiPolicyCount = Array.isArray(piiPolicies) ? piiPolicies.length : 0;
+      profile.piiPolicyCount = Array.isArray(piiPolicies)
+        ? piiPolicies.length
+        : 0;
     } catch {
       profile.piiPolicyCount = 0;
     }
@@ -1374,10 +1503,10 @@ function generateComplianceReport(callerOrgId, frameworks) {
   try {
     log({
       orgId: callerOrg,
-      actorId: 'system',
-      actorEmail: 'compliance@simplebeacon.internal',
-      action: 'compliance_report_generated',
-      entity: 'compliance_report',
+      actorId: "system",
+      actorEmail: "compliance@simplebeacon.internal",
+      action: "compliance_report_generated",
+      entity: "compliance_report",
       entityId: reportId,
       metadata: {
         frameworks: targetFrameworks,
@@ -1398,15 +1527,15 @@ function generateComplianceReport(callerOrgId, frameworks) {
  */
 function complianceReportToCsv(report) {
   let csv = `SimpleBeacon Compliance Proof Bundle,Report ID:,${report.reportId},Generated At:,${report.generatedAt}\n`;
-  csv += `Target Governance Frameworks:,${report.frameworks.join(' | ')}\n\n`;
+  csv += `Target Governance Frameworks:,${report.frameworks.join(" | ")}\n\n`;
 
   // Section 1: Global Security Controls
   csv += `SECTION 1: GLOBAL PLATFORM SECURITY CONTROLS\n`;
   csv += `Control Parameter,Metric Value,Status/Details\n`;
-  csv += `PII Pre-Redaction Shield Engine,${report.global.piiScrubbing.enabled ? 'ENABLED' : 'DISABLED'},Inline sanitization active\n`;
+  csv += `PII Pre-Redaction Shield Engine,${report.global.piiScrubbing.enabled ? "ENABLED" : "DISABLED"},Inline sanitization active\n`;
   if (report.global.keyRotation && !report.global.keyRotation.error) {
-    csv += `Active Master Key Fingerprint,${report.global.keyRotation.activeFingerprint || 'None'},Symmetric AES-256 key block\n`;
-    csv += `Grace Verification Window Active,${report.global.keyRotation.hasPrevious ? 'YES' : 'NO'},Dual-key decryption fence\n`;
+    csv += `Active Master Key Fingerprint,${report.global.keyRotation.activeFingerprint || "None"},Symmetric AES-256 key block\n`;
+    csv += `Grace Verification Window Active,${report.global.keyRotation.hasPrevious ? "YES" : "NO"},Dual-key decryption fence\n`;
   }
   if (report.global.autoPurgeStats) {
     csv += `Automated ILM Purge Sweeps Run,${report.global.autoPurgeStats.totalSweeps || 0},Autonomous maintenance runs\n`;
@@ -1423,7 +1552,9 @@ function complianceReportToCsv(report) {
   csv += `Organization ID,Chain Status,Verified Blocks,Quarantined,Retention Days,Max Entries Floor,PII Rules\n`;
 
   for (const org of report.orgs) {
-    const chainStatus = org.chainIntegrity?.valid ? 'PRISTINE / VERIFIED' : 'DEVIATION DETECTED';
+    const chainStatus = org.chainIntegrity?.valid
+      ? "PRISTINE / VERIFIED"
+      : "DEVIATION DETECTED";
     const totalVerified = org.chainIntegrity?.verifiedEntries || 0;
     const quarantinedCount = org.chainIntegrity?.tamperedEntries?.length || 0;
     const retDays = org.retentionPolicy?.retentionDays || 90;

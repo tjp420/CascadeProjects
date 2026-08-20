@@ -8,13 +8,13 @@ This document defines the token hierarchy, lifecycle, and security model for the
 
 ## 2. Terminology
 
-| Term | Definition |
-|------|------------|
-| **Account Root** | Immutable registry record. Never transmitted. Used only to sign Access Tokens. |
-| **Access Token** | JWT asserting identity choice (account-linked vs. anonymous) and feature entitlements. |
-| **Session Token** | Short-lived bearer token (minutes–hours) scoped to a specific Access Token. |
+| Term                | Definition                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------- |
+| **Account Root**    | Immutable registry record. Never transmitted. Used only to sign Access Tokens.          |
+| **Access Token**    | JWT asserting identity choice (account-linked vs. anonymous) and feature entitlements.  |
+| **Session Token**   | Short-lived bearer token (minutes–hours) scoped to a specific Access Token.             |
 | **Recovery Factor** | Independent credential for account recovery (TOTP, email OTP, or printed recovery key). |
-| **Device Key** | Per-device cryptographic credential. Revocable individually. |
+| **Device Key**      | Per-device cryptographic credential. Revocable individually.                            |
 
 ---
 
@@ -52,13 +52,13 @@ This document defines the token hierarchy, lifecycle, and security model for the
 
 ### 4.1 Account Root
 
-| Attribute | Value |
-|-----------|-------|
-| Type | Ed25519 key pair |
-| Private key | Stored in HSM / cloud KMS. Never leaves secure enclave. |
-| Public key | Published in account registry. |
-| Rotation | Manual admin action only. Requires 2-of-N recovery factors. |
-| Compromise impact | Critical. Rotation invalidates all Access Tokens. |
+| Attribute         | Value                                                       |
+| ----------------- | ----------------------------------------------------------- |
+| Type              | Ed25519 key pair                                            |
+| Private key       | Stored in HSM / cloud KMS. Never leaves secure enclave.     |
+| Public key        | Published in account registry.                              |
+| Rotation          | Manual admin action only. Requires 2-of-N recovery factors. |
+| Compromise impact | Critical. Rotation invalidates all Access Tokens.           |
 
 ### 4.2 Access Token (AT)
 
@@ -78,54 +78,56 @@ This document defines the token hierarchy, lifecycle, and security model for the
 }
 ```
 
-| Attribute | Description |
-|-----------|-------------|
-| `jti` | Unique token ID for revocation lists |
-| `sub` | Account UUID (immutable) |
-| `identity_type` | How the user chose to identify |
-| `features` | Capability array (account-type derived) |
-| `max_devices` | Ceiling for Device Key registrations |
-| TTL | 30–90 days (configurable by account type) |
+| Attribute       | Description                               |
+| --------------- | ----------------------------------------- |
+| `jti`           | Unique token ID for revocation lists      |
+| `sub`           | Account UUID (immutable)                  |
+| `identity_type` | How the user chose to identify            |
+| `features`      | Capability array (account-type derived)   |
+| `max_devices`   | Ceiling for Device Key registrations      |
+| TTL             | 30–90 days (configurable by account type) |
 
 ### 4.3 Session Token (ST)
 
 **Opaque or JWT. Recommended: opaque for server-side revocation agility.**
 
-| Attribute | Description |
-|-----------|-------------|
-| `session_id` | UUID |
-| `access_token_jti` | Parent Access Token |
-| `device_key_id` | Which device originated the session |
-| `scope` | `read`, `write`, `admin` |
-| `ip_binding` | Optional IP/CIDR whitelist |
-| TTL | 15 min sliding window (default) |
-| Refresh | Yes, via `/auth/refresh` with rotating refresh token |
+| Attribute          | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `session_id`       | UUID                                                 |
+| `access_token_jti` | Parent Access Token                                  |
+| `device_key_id`    | Which device originated the session                  |
+| `scope`            | `read`, `write`, `admin`                             |
+| `ip_binding`       | Optional IP/CIDR whitelist                           |
+| TTL                | 15 min sliding window (default)                      |
+| Refresh            | Yes, via `/auth/refresh` with rotating refresh token |
 
 ### 4.4 Recovery Factor (RF)
 
-| Type | Mechanism | Use case |
-|------|-----------|----------|
-| Email OTP | 6-digit code, 10-min TTL | Standard recovery |
-| TOTP | RFC 6238 | Authenticator app backup |
-| Printed Key | 24-word BIP-39 phrase | Offline cold storage |
-| Hardware Key | YubiKey / SoloKeys | High-security accounts |
+| Type         | Mechanism                | Use case                 |
+| ------------ | ------------------------ | ------------------------ |
+| Email OTP    | 6-digit code, 10-min TTL | Standard recovery        |
+| TOTP         | RFC 6238                 | Authenticator app backup |
+| Printed Key  | 24-word BIP-39 phrase    | Offline cold storage     |
+| Hardware Key | YubiKey / SoloKeys       | High-security accounts   |
 
 **Rules:**
+
 - Minimum 2 factors must be registered before account activation.
 - Any single factor can initiate recovery; 2-of-N required to complete.
 - Factors are independent — rotating one does not invalidate others.
 
 ### 4.5 Device Key (DK)
 
-| Attribute | Description |
-|-----------|-------------|
-| `device_key_id` | UUID |
-| `public_key` | Ed25519 or WebAuthn public key |
-| `created_at` | Timestamp |
-| `last_seen` | Timestamp |
-| `trust_level` | `untrusted|trusted|hardware` |
+| Attribute       | Description                    |
+| --------------- | ------------------------------ |
+| `device_key_id` | UUID                           |
+| `public_key`    | Ed25519 or WebAuthn public key |
+| `created_at`    | Timestamp                      |
+| `last_seen`     | Timestamp                      |
+| `trust_level`   | `untrusted                     | trusted | hardware` |
 
 **Enrollment flow:**
+
 1. Authenticate with Access Token + Recovery Factor (one-time).
 2. Generate key pair on device (private key never leaves device).
 3. Register public key with account registry.
@@ -182,13 +184,13 @@ Client                              Server
 
 ## 6. Revocation Strategy
 
-| Token Type | Revocation Method | Cascade Impact |
-|------------|-------------------|--------------|
-| Account Root | Admin action + 2-of-N Recovery Factors | Invalidates ALL tokens. Emergency only. |
-| Access Token | Add `jti` to blocklist | Invalidates child Session Tokens. Device Keys remain valid. |
-| Session Token | Redis TTL expiry or explicit delete | None. Independent. |
-| Recovery Factor | Mark disabled in registry | None. Other factors remain active. |
-| Device Key | Mark revoked in registry | Active sessions from that device are terminated. |
+| Token Type      | Revocation Method                      | Cascade Impact                                              |
+| --------------- | -------------------------------------- | ----------------------------------------------------------- |
+| Account Root    | Admin action + 2-of-N Recovery Factors | Invalidates ALL tokens. Emergency only.                     |
+| Access Token    | Add `jti` to blocklist                 | Invalidates child Session Tokens. Device Keys remain valid. |
+| Session Token   | Redis TTL expiry or explicit delete    | None. Independent.                                          |
+| Recovery Factor | Mark disabled in registry              | None. Other factors remain active.                          |
+| Device Key      | Mark revoked in registry               | Active sessions from that device are terminated.            |
 
 **Blocklist storage:** Redis SET with TTL matching Access Token expiry. Checked on every authenticated request.
 
@@ -220,14 +222,14 @@ Client                              Server
 
 ## 8. Threat Model & Mitigations
 
-| Threat | Mitigation |
-|--------|------------|
-| Stolen Device Key | Revoke single key. Attacker cannot recover account without second factor. |
-| Stolen Access Token | Short TTL + blocklist. Session hijacking limited to token lifetime. |
-| Stolen Session Token | 15-min TTL. Attacker cannot rotate or recover without Device Key. |
-| Database breach | No plaintext secrets stored. Passwords hashed with Argon2id. Keys are public-only in DB. |
-| Phishing (fake login) | WebAuthn / FIDO2 prevents credential replay on phishing domains. |
-| Lost all factors | Printed Recovery Key or hardware backup required at enrollment. |
+| Threat                | Mitigation                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| Stolen Device Key     | Revoke single key. Attacker cannot recover account without second factor.                |
+| Stolen Access Token   | Short TTL + blocklist. Session hijacking limited to token lifetime.                      |
+| Stolen Session Token  | 15-min TTL. Attacker cannot rotate or recover without Device Key.                        |
+| Database breach       | No plaintext secrets stored. Passwords hashed with Argon2id. Keys are public-only in DB. |
+| Phishing (fake login) | WebAuthn / FIDO2 prevents credential replay on phishing domains.                         |
+| Lost all factors      | Printed Recovery Key or hardware backup required at enrollment.                          |
 
 ---
 
@@ -247,13 +249,13 @@ Client                              Server
 
 ## 10. Migration from Legacy 5-Layer Model
 
-| Legacy Token | New Token | Migration Action |
-|--------------|-----------|----------------|
-| Account Token | Account Root | Extract public key. Generate new Ed25519 key pair in KMS. |
-| User Token | Access Token | Issue JWTs with `identity_type` claim. |
-| Time Token | Session Token + Subscription Claims | Split into `exp` (session) and `plan_expiry` (subscription). |
-| Email Token | Recovery Factor | Register email as TOTP/OTP recovery factor. |
-| Tokenkey Token | Device Key | Migrate USB-stored keys to WebAuthn or Ed25519 device keys. |
+| Legacy Token   | New Token                           | Migration Action                                             |
+| -------------- | ----------------------------------- | ------------------------------------------------------------ |
+| Account Token  | Account Root                        | Extract public key. Generate new Ed25519 key pair in KMS.    |
+| User Token     | Access Token                        | Issue JWTs with `identity_type` claim.                       |
+| Time Token     | Session Token + Subscription Claims | Split into `exp` (session) and `plan_expiry` (subscription). |
+| Email Token    | Recovery Factor                     | Register email as TOTP/OTP recovery factor.                  |
+| Tokenkey Token | Device Key                          | Migrate USB-stored keys to WebAuthn or Ed25519 device keys.  |
 
 ---
 
@@ -266,5 +268,5 @@ Client                              Server
 
 ---
 
-*Document version: 1.0.0*
-*Last updated: 2026-06-14*
+_Document version: 1.0.0_
+_Last updated: 2026-06-14_

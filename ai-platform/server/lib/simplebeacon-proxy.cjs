@@ -1,5 +1,5 @@
 // simplebeacon-ignore workspace-health
-'use strict';
+"use strict";
 
 /**
  * SimpleBeacon proxy re-exports.
@@ -13,7 +13,7 @@
  */
 
 // --- Bulk import from CLI package root (re-exports everything) ---
-const cli = require('../../../packages/simplebeacon-cli/src/index.js');
+const cli = require("../../../packages/simplebeacon-cli/src/index.js");
 
 const {
   countRepositoryInventory,
@@ -73,21 +73,52 @@ const {
   buildAssessmentReport,
   initSimplebeacon,
   detectProjectProfile,
-  resolvePlatformRoot
+  resolvePlatformRoot,
 } = cli;
 
 // --- Deep-path imports for modules not re-exported by CLI index ---
-const { syncJestBaseline } = require('../../../packages/simplebeacon-cli/src/baseline-sync.js');
-const { isExternalBenchmarkCachePath } = require('../../../packages/simplebeacon-cli/src/lib/benchmark-cache-paths.js');
-const { resolveScanProgressPath, readScanProgress } = require('../../../packages/simplebeacon-cli/src/lib/scan-progress.js');
-const { verifyLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
-const { sanitizeComplianceBundleExport } = require('../../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js');
-const { consolidationCandidateTouchesExcluded, countIntentionalPairExclusions, isConsolidationExcludedPair } = require('../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions.js');
-const { buildAuditPayload, buildDashboardPayload, buildScanResults, findHistoryEntry } = require('../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js');
-const { generateLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
-const { isPaidTier, getTierCapability } = require('../../../packages/simplebeacon-cli/src/lib/tier-constants');
-const { ERROR_TYPE_CODES, SEVERITY_BANDS } = require('../../../packages/simplebeacon-cli/src/lib/anonymized-export.js');
-const { RULE_CATALOG, LEAK_PATTERNS } = require('../../../packages/simplebeacon-cli/src/mcp/rule-catalog.js');
+const {
+  syncJestBaseline,
+} = require("../../../packages/simplebeacon-cli/src/baseline-sync.js");
+const {
+  isExternalBenchmarkCachePath,
+} = require("../../../packages/simplebeacon-cli/src/lib/benchmark-cache-paths.js");
+const {
+  resolveScanProgressPath,
+  readScanProgress,
+} = require("../../../packages/simplebeacon-cli/src/lib/scan-progress.js");
+const {
+  verifyLicenseToken,
+} = require("../../../packages/simplebeacon-cli/src/lib/license-token.js");
+const {
+  sanitizeComplianceBundleExport,
+} = require("../../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js");
+const {
+  consolidationCandidateTouchesExcluded,
+  countIntentionalPairExclusions,
+  isConsolidationExcludedPair,
+} = require("../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions.js");
+const {
+  buildAuditPayload,
+  buildDashboardPayload,
+  buildScanResults,
+  findHistoryEntry,
+} = require("../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js");
+const {
+  generateLicenseToken,
+} = require("../../../packages/simplebeacon-cli/src/lib/license-token.js");
+const {
+  isPaidTier,
+  getTierCapability,
+} = require("../../../packages/simplebeacon-cli/src/lib/tier-constants");
+const {
+  ERROR_TYPE_CODES,
+  SEVERITY_BANDS,
+} = require("../../../packages/simplebeacon-cli/src/lib/anonymized-export.js");
+const {
+  RULE_CATALOG,
+  LEAK_PATTERNS,
+} = require("../../../packages/simplebeacon-cli/src/mcp/rule-catalog.js");
 
 /**
  * Passthrough to the CLI syncJestBaseline function.
@@ -96,12 +127,17 @@ const { RULE_CATALOG, LEAK_PATTERNS } = require('../../../packages/simplebeacon-
  * @returns {any}
  */
 function syncMeasuredBaseline(baseDir, options) {
-  if (typeof baseDir !== 'string' || !baseDir) {
-    throw new TypeError('baseDir must be a non-empty string');
+  if (typeof baseDir !== "string" || !baseDir) {
+    throw new TypeError("baseDir must be a non-empty string");
   }
-  const safeOptions = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
-  if (typeof syncJestBaseline !== 'function') {
-    throw new Error('baseline-sync module does not export syncJestBaseline function');
+  const safeOptions =
+    options && typeof options === "object" && !Array.isArray(options)
+      ? options
+      : {};
+  if (typeof syncJestBaseline !== "function") {
+    throw new Error(
+      "baseline-sync module does not export syncJestBaseline function",
+    );
   }
   return syncJestBaseline(baseDir, safeOptions);
 }
@@ -113,7 +149,9 @@ function syncMeasuredBaseline(baseDir, options) {
  * @returns {Object}
  */
 function enrichCleanupReport(report) {
-  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
+  return report && typeof report === "object" && !Array.isArray(report)
+    ? report
+    : {};
 }
 
 /**
@@ -123,7 +161,9 @@ function enrichCleanupReport(report) {
  * @returns {Object}
  */
 function compactDataCleanupReportForClient(report) {
-  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
+  return report && typeof report === "object" && !Array.isArray(report)
+    ? report
+    : {};
 }
 
 const proxyExports = {
@@ -221,12 +261,14 @@ const proxyExports = {
   SEVERITY_BANDS,
   // rule catalog
   RULE_CATALOG,
-  LEAK_PATTERNS
+  LEAK_PATTERNS,
 };
 
 for (const [key, value] of Object.entries(proxyExports)) {
   if (value === undefined) {
-    throw new ReferenceError(`simplebeacon-proxy.cjs: export "${key}" is undefined (missing import or typo)`);
+    throw new ReferenceError(
+      `simplebeacon-proxy.cjs: export "${key}" is undefined (missing import or typo)`,
+    );
   }
 }
 

@@ -1,30 +1,40 @@
-const { wrapOnionPayload } = require('../client.cjs');
-const Mixnet = require('../mixnet.cjs');
-const { createDRBG } = require('./../../mixnet/drbg.cjs');
-const crypto = require('crypto');
+const { wrapOnionPayload } = require("../client.cjs");
+const Mixnet = require("../mixnet.cjs");
+const { createDRBG } = require("./../../mixnet/drbg.cjs");
+const crypto = require("crypto");
 
-function highResNs() { return Number(process.hrtime.bigint()); }
+function highResNs() {
+  return Number(process.hrtime.bigint());
+}
 
-describe('mixnet timing fuzz', () => {
+describe("mixnet timing fuzz", () => {
   jest.setTimeout(120000);
 
-  test('rejection vs accept timing distributions', async () => {
+  test("rejection vs accept timing distributions", async () => {
     const ITER = 500; // sample size, adjust as needed
-    const nodes = new Mixnet(3, { seed: 'timing-test-seed', epochMs: 1000, jitterMs: 10 });
+    const nodes = new Mixnet(3, {
+      seed: "timing-test-seed",
+      epochMs: 1000,
+      jitterMs: 10,
+    });
     // create a route of 3 node names matching Mixnet constructor
-    const route = ['node-0', 'node-1', 'node-2'];
+    const route = ["node-0", "node-1", "node-2"];
 
-    const drbg = createDRBG(Buffer.from('timing-fuzz-seed'));
+    const drbg = createDRBG(Buffer.from("timing-fuzz-seed"));
     const acceptTimes = [];
     const rejectTimes = [];
 
     for (let i = 0; i < ITER; i++) {
       // create either a valid payload or a malformed random blob
-      const isGood = (i % 2 === 0);
+      const isGood = i % 2 === 0;
       let packet;
       if (isGood) {
-        const pt = Buffer.from('hello-mixnet-' + i);
-        packet = wrapOnionPayload(pt, route.map((_, idx) => `mixnet-seed-${idx}`), { innerSize: 128, outerSize: 256 });
+        const pt = Buffer.from("hello-mixnet-" + i);
+        packet = wrapOnionPayload(
+          pt,
+          route.map((_, idx) => `mixnet-seed-${idx}`),
+          { innerSize: 128, outerSize: 256 },
+        );
       } else {
         packet = crypto.randomBytes(256);
       }
@@ -34,16 +44,18 @@ describe('mixnet timing fuzz', () => {
       const res = await nodes.submitPacket(packet);
       const end = process.hrtime.bigint();
       const dur = Number(end - start);
-      if (isGood) acceptTimes.push(dur); else rejectTimes.push(dur);
+      if (isGood) acceptTimes.push(dur);
+      else rejectTimes.push(dur);
     }
 
     // compute basic stats
     function stats(arr) {
-      const sorted = arr.slice().sort((a,b)=>a-b);
-      const sum = arr.reduce((s,v)=>s+v,0);
-      const mean = sum/arr.length;
-      const median = sorted[Math.floor(arr.length/2)];
-      const variance = arr.reduce((s,v)=>s+Math.pow(v-mean,2),0)/arr.length;
+      const sorted = arr.slice().sort((a, b) => a - b);
+      const sum = arr.reduce((s, v) => s + v, 0);
+      const mean = sum / arr.length;
+      const median = sorted[Math.floor(arr.length / 2)];
+      const variance =
+        arr.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / arr.length;
       return { mean, median, variance };
     }
 

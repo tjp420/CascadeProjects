@@ -20,7 +20,9 @@ async function simpleHash(str) {
     const data = encoder.encode(str);
     if (typeof crypto !== 'undefined' && crypto.subtle) {
         const buf = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        return Array.from(new Uint8Array(buf))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
     }
     // Fallback FNV-1a for environments without Web Crypto
     let h = 0x811c9dc5;
@@ -95,8 +97,7 @@ function analyzeFolderSize(files) {
         totalSizeBytes += f.size || 0;
         const path = (f.webkitRelativePath || f.name || '').replace(/\\/g, '/');
         const depth = path.split('/').length - 1;
-        if (depth > maxDepth)
-            maxDepth = depth;
+        if (depth > maxDepth) maxDepth = depth;
         if (/[\/](node_modules|\.git|\.next|dist|build|coverage)[\/]/i.test(path)) {
             hasNodeModules = true;
         }
@@ -106,24 +107,44 @@ function analyzeFolderSize(files) {
     let blocked = false;
     if (fileCount >= FOLDER_SIZE_ERROR_DISCOVERY_CAP) {
         severity = 'error';
-        message = 'Browser scan stops at ' + FOLDER_SIZE_ERROR_DISCOVERY_CAP.toLocaleString()
-            + ' files to protect this tab (' + fileCount.toLocaleString() + ' discovered). '
-            + 'Run the CLI instead: ' + BROWSER_SCAN_CLI_HINT;
+        message =
+            'Browser scan stops at ' +
+            FOLDER_SIZE_ERROR_DISCOVERY_CAP.toLocaleString() +
+            ' files to protect this tab (' +
+            fileCount.toLocaleString() +
+            ' discovered). ' +
+            'Run the CLI instead: ' +
+            BROWSER_SCAN_CLI_HINT;
         blocked = true;
-    }
-    else if (fileCount > FOLDER_SIZE_WARN_SERVER_LIMIT) {
+    } else if (fileCount > FOLDER_SIZE_WARN_SERVER_LIMIT) {
         severity = 'warn';
-        message = 'Server upload limit is ' + FOLDER_SIZE_WARN_SERVER_LIMIT.toLocaleString() + ' files. Only browser scan is available for this folder.';
-    }
-    else if (fileCount > FOLDER_SIZE_WARN_LARGE) {
+        message =
+            'Server upload limit is ' +
+            FOLDER_SIZE_WARN_SERVER_LIMIT.toLocaleString() +
+            ' files. Only browser scan is available for this folder.';
+    } else if (fileCount > FOLDER_SIZE_WARN_LARGE) {
         severity = 'warn';
-        message = 'Large folder detected (' + fileCount.toLocaleString() + ' files). Browser scan will process all files but may take several minutes.';
-    }
-    else if (fileCount > FOLDER_SIZE_WARN_CHROME_CAP) {
+        message =
+            'Large folder detected (' +
+            fileCount.toLocaleString() +
+            ' files). Browser scan will process all files but may take several minutes.';
+    } else if (fileCount > FOLDER_SIZE_WARN_CHROME_CAP) {
         severity = 'info';
-        message = 'Chrome may cap the folder picker at ~' + FOLDER_SIZE_WARN_CHROME_CAP.toLocaleString() + ' files. Use drag-and-drop for full coverage.';
+        message =
+            'Chrome may cap the folder picker at ~' +
+            FOLDER_SIZE_WARN_CHROME_CAP.toLocaleString() +
+            ' files. Use drag-and-drop for full coverage.';
     }
-    return { fileCount, totalSizeBytes, maxDepth, hasNodeModules, severity, message, blocked, cliHint: BROWSER_SCAN_CLI_HINT };
+    return {
+        fileCount,
+        totalSizeBytes,
+        maxDepth,
+        hasNodeModules,
+        severity,
+        message,
+        blocked,
+        cliHint: BROWSER_SCAN_CLI_HINT
+    };
 }
 // Browser-compatible export (global) or CommonJS
 if (typeof module !== 'undefined' && module.exports) {
@@ -142,8 +163,7 @@ if (typeof module !== 'undefined' && module.exports) {
         FOLDER_SIZE_ERROR_SAMPLE_LIMIT,
         FOLDER_SIZE_ERROR_DISCOVERY_CAP
     };
-}
-else if (typeof window !== 'undefined') {
+} else if (typeof window !== 'undefined') {
     window.ScanUtils = {
         simpleHash,
         extractMatches,

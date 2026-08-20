@@ -6,11 +6,14 @@ const {
   loadSentLog,
   removeSentLogEntry,
   sentEntryId,
-  sendOutreachEmail
-} = require('./outreach-mail.cjs');
-const logger = require('./app-logger.cjs');
-const { sendClientError, ERROR_CODES } = require('../../shared-utils/index.cjs');
-const { setupOutreachResendWebhook } = require('./outreach-resend-webhook.cjs');
+  sendOutreachEmail,
+} = require("./outreach-mail.cjs");
+const logger = require("./app-logger.cjs");
+const {
+  sendClientError,
+  ERROR_CODES,
+} = require("../../shared-utils/index.cjs");
+const { setupOutreachResendWebhook } = require("./outreach-resend-webhook.cjs");
 
 /**
  * Handle outreach config.
@@ -22,7 +25,7 @@ async function handleOutreachConfig(_req, res) {
   return res.json({
     configured: isOutreachConfigured(),
     from: getOutreachFrom(),
-    replyTo: getOutreachReplyTo()
+    replyTo: getOutreachReplyTo(),
   });
 }
 
@@ -38,7 +41,7 @@ async function handleOutreachSent(req, res, options = {}) {
   const rows = await loadSentLog(options);
   return res.json({
     total: rows.length,
-    items: rows.slice(-limit).reverse()
+    items: rows.slice(-limit).reverse(),
   });
 }
 
@@ -50,29 +53,29 @@ async function handleOutreachSent(req, res, options = {}) {
  * @returns {any}
  */
 async function handleOutreachSentDelete(req, res, options = {}) {
-  const id = String(req.params.id || req.body?.id || '').trim();
+  const id = String(req.params.id || req.body?.id || "").trim();
   try {
     const result = await removeSentLogEntry(id, options);
     return res.json({ ok: true, ...result });
   } catch (err) {
-    if (err.code === 'missing_id') {
+    if (err.code === "missing_id") {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_OUTREACH_MISSING_ID,
-        fallback: 'Missing send log id.',
-        req
+        fallback: "Missing send log id.",
+        req,
       });
     }
-    if (err.code === 'not_found') {
+    if (err.code === "not_found") {
       return sendClientError(res, 404, err, {
         errorLabel: ERROR_CODES.ERR_OUTREACH_LOG_NOT_FOUND,
-        fallback: 'Send log entry not found.',
-        req
+        fallback: "Send log entry not found.",
+        req,
       });
     }
     return sendClientError(res, 500, err, {
       errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
-      fallback: 'Outreach request failed',
-      req
+      fallback: "Outreach request failed",
+      req,
     });
   }
 }
@@ -85,8 +88,8 @@ async function handleOutreachSentDelete(req, res, options = {}) {
  * @returns {any}
  */
 async function handleOutreachSend(req, res, options = {}) {
-  if (String(req.body?.website || '').trim()) {
-    return res.json({ ok: true, sent: false, ignored: 'spam' });
+  if (String(req.body?.website || "").trim()) {
+    return res.json({ ok: true, sent: false, ignored: "spam" });
   }
 
   try {
@@ -96,9 +99,9 @@ async function handleOutreachSend(req, res, options = {}) {
         subject: req.body?.subject,
         text: req.body?.text || req.body?.message,
         company: req.body?.company,
-        prospectId: req.body?.prospectId
+        prospectId: req.body?.prospectId,
       },
-      options
+      options,
     );
 
     return res.json({
@@ -107,58 +110,56 @@ async function handleOutreachSend(req, res, options = {}) {
       to: result.to,
       from: result.from,
       replyTo: getOutreachReplyTo(),
-      sentAt: result.entry.sentAt
+      sentAt: result.entry.sentAt,
     });
   } catch (err) {
-    const code = err.code || 'send_failed';
-    if (code === 'invalid_email') {
+    const code = err.code || "send_failed";
+    if (code === "invalid_email") {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_INVALID_EMAIL,
-        fallback: 'Enter a valid recipient email.',
-        req
+        fallback: "Enter a valid recipient email.",
+        req,
       });
     }
-    if (code === 'subject_too_short') {
+    if (code === "subject_too_short") {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_SUBJECT_TOO_SHORT,
-        fallback: 'Subject must be at least 3 characters.',
-        req
+        fallback: "Subject must be at least 3 characters.",
+        req,
       });
     }
-    if (code === 'message_too_short') {
+    if (code === "message_too_short") {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_MESSAGE_TOO_SHORT,
-        fallback: 'Message must be at least 20 characters.',
-        req
+        fallback: "Message must be at least 20 characters.",
+        req,
       });
     }
-    if (code === 'message_too_long') {
+    if (code === "message_too_long") {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_MESSAGE_TOO_LONG,
-        fallback: 'Message exceeds 12,000 characters.',
-        req
+        fallback: "Message exceeds 12,000 characters.",
+        req,
       });
     }
-    if (code === 'missing_api_key' || code === 'email_not_configured') {
+    if (code === "missing_api_key" || code === "email_not_configured") {
       return sendClientError(res, 503, err, {
         errorLabel: ERROR_CODES.ERR_EMAIL_NOT_CONFIGURED,
-        fallback: 'Set RESEND_API_KEY in .env.v1-internal and restart npm run dashboard:v1-internal.',
-        req
+        fallback:
+          "Set RESEND_API_KEY in .env.v1-internal and restart npm run dashboard:v1-internal.",
+        req,
       });
     }
-    logger.warn('[outreach] send failed:', err.message);
+    logger.warn("[outreach] send failed:", err.message);
     return sendClientError(res, 502, err, {
       errorLabel: ERROR_CODES.ERR_EMAIL_SEND_FAILED,
-      fallback: 'Outreach email send failed',
-      req
+      fallback: "Outreach email send failed",
+      req,
     });
   }
 }
 
-const OUTREACH_ROUTE_PREFIXES = [
-  '/api/outreach',
-  '/api/simplebeacon/outreach'
-];
+const OUTREACH_ROUTE_PREFIXES = ["/api/outreach", "/api/simplebeacon/outreach"];
 
 /**
  * Register outreach routes.
@@ -170,14 +171,14 @@ function registerOutreachRoutes(app, options = {}) {
   const prefixes = options.prefixes || OUTREACH_ROUTE_PREFIXES;
 
   for (const prefix of prefixes) {
-    const base = String(prefix).replace(/\/$/, '');
+    const base = String(prefix).replace(/\/$/, "");
 
     app.get(`${base}/config`, (req, res) => {
       handleOutreachConfig(req, res).catch((err) => {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
-          fallback: 'Outreach request failed',
-          req
+          fallback: "Outreach request failed",
+          req,
         });
       });
     });
@@ -186,8 +187,8 @@ function registerOutreachRoutes(app, options = {}) {
       handleOutreachSent(req, res, options).catch((err) => {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
-          fallback: 'Outreach request failed',
-          req
+          fallback: "Outreach request failed",
+          req,
         });
       });
     });
@@ -196,8 +197,8 @@ function registerOutreachRoutes(app, options = {}) {
       handleOutreachSentDelete(req, res, options).catch((err) => {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
-          fallback: 'Outreach request failed',
-          req
+          fallback: "Outreach request failed",
+          req,
         });
       });
     });
@@ -206,8 +207,8 @@ function registerOutreachRoutes(app, options = {}) {
       handleOutreachSend(req, res, options).catch((err) => {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
-          fallback: 'Outreach request failed',
-          req
+          fallback: "Outreach request failed",
+          req,
         });
       });
     });
@@ -218,15 +219,15 @@ function registerOutreachRoutes(app, options = {}) {
         const sentLog = await loadSentLog(options);
         const prospects = (sentLog || []).map((entry, i) => ({
           id: sentEntryId(entry) || `prospect_${i}`,
-          name: entry.name || entry.toName || '',
-          email: entry.to || entry.email || '',
-          company: entry.company || '',
-          persona: entry.persona || '',
-          ...entry
+          name: entry.name || entry.toName || "",
+          email: entry.to || entry.email || "",
+          company: entry.company || "",
+          persona: entry.persona || "",
+          ...entry,
         }));
         res.json(prospects);
       } catch (err) {
-        logger.warn('[outreach] prospects query failed:', err.message);
+        logger.warn("[outreach] prospects query failed:", err.message);
         res.json([]);
       }
     });
@@ -247,17 +248,22 @@ function registerOutreachRoutes(app, options = {}) {
         for (let i = 0; i < entries.length; i++) {
           const entry = entries[i];
           const id = sentEntryId(entry) || `prospect_${i}`;
-          const emailHistory = Array.isArray(entry.history) ? entry.history.map((h) => ({
-            sequence: h.sequence || 'A',
-            step: h.step || 1,
-            template: h.template || '',
-            subject: h.subject || '',
-            sentAt: h.sentAt || h.date || ''
-          })) : [];
+          const emailHistory = Array.isArray(entry.history)
+            ? entry.history.map((h) => ({
+                sequence: h.sequence || "A",
+                step: h.step || 1,
+                template: h.template || "",
+                subject: h.subject || "",
+                sentAt: h.sentAt || h.date || "",
+              }))
+            : [];
           const firstEmail = emailHistory[0]?.sentAt || null;
-          const lastEmail = emailHistory[emailHistory.length - 1]?.sentAt || null;
+          const lastEmail =
+            emailHistory[emailHistory.length - 1]?.sentAt || null;
           const replied = Boolean(entry.replied || entry.repliedAt);
-          const meetingBooked = Boolean(entry.meetingBooked || entry.meetingDate);
+          const meetingBooked = Boolean(
+            entry.meetingBooked || entry.meetingDate,
+          );
           const pilotStarted = Boolean(entry.pilotStarted || entry.pilotDate);
           const closed = Boolean(entry.closed || entry.closedDate);
 
@@ -268,8 +274,10 @@ function registerOutreachRoutes(app, options = {}) {
           if (closed) totalClosed++;
 
           prospects[id] = {
-            status: entry.status || (emailHistory.length > 0 ? 'contacted' : 'pending'),
-            sequence: entry.sequence || 'A',
+            status:
+              entry.status ||
+              (emailHistory.length > 0 ? "contacted" : "pending"),
+            sequence: entry.sequence || "A",
             currentStep: entry.currentStep || emailHistory.length,
             firstEmailDate: firstEmail,
             lastEmailDate: lastEmail,
@@ -284,7 +292,7 @@ function registerOutreachRoutes(app, options = {}) {
             closedValue: entry.closedValue || 0,
             reactivationStep: entry.reactivationStep || 0,
             sequenceCompleteDate: entry.sequenceCompleteDate || null,
-            emailHistory
+            emailHistory,
           };
         }
 
@@ -297,16 +305,22 @@ function registerOutreachRoutes(app, options = {}) {
             totalReplies,
             totalMeetings,
             totalPilots,
-            totalClosed
-          }
+            totalClosed,
+          },
         });
       } catch (err) {
-        logger.warn('[outreach] campaign-state query failed:', err.message);
+        logger.warn("[outreach] campaign-state query failed:", err.message);
         res.json({
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           prospects: {},
-          stats: { totalContacted: 0, totalReplies: 0, totalMeetings: 0, totalPilots: 0, totalClosed: 0 }
+          stats: {
+            totalContacted: 0,
+            totalReplies: 0,
+            totalMeetings: 0,
+            totalPilots: 0,
+            totalClosed: 0,
+          },
         });
       }
     });
@@ -321,5 +335,5 @@ module.exports = {
   handleOutreachConfig,
   handleOutreachSend,
   handleOutreachSent,
-  handleOutreachSentDelete
+  handleOutreachSentDelete,
 };

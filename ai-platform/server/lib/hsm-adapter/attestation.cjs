@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 12: Mock HSM attestation engine.
@@ -13,16 +13,16 @@
  * @module hsm-adapter/attestation
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_VALIDITY_DAYS = 30;
-const DEFAULT_ISSUER_CN = 'MockHSM-Root';
+const DEFAULT_ISSUER_CN = "MockHSM-Root";
 
 function _canonicalPayload(certPayload) {
   // Deterministic serialization so signature verification is stable.
   const keys = Object.keys(certPayload).sort();
-  return Buffer.from(JSON.stringify(certPayload, keys), 'utf8');
+  return Buffer.from(JSON.stringify(certPayload, keys), "utf8");
 }
 
 /**
@@ -31,7 +31,7 @@ function _canonicalPayload(certPayload) {
  * @returns {crypto.KeyPairKeyObjectResult}
  */
 function generateMockRootKey() {
-  return crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  return crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
 }
 
 class Attestation {
@@ -64,29 +64,37 @@ class Attestation {
    */
   signPublicKey(publicKeyDer, hardwareId, options = {}) {
     if (!Buffer.isBuffer(publicKeyDer)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'publicKeyDer must be a Buffer');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "publicKeyDer must be a Buffer",
+      );
     }
 
     const notBefore = options.notBefore || new Date();
     const notAfter =
-      options.notAfter || new Date(Date.now() + DEFAULT_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
+      options.notAfter ||
+      new Date(Date.now() + DEFAULT_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
 
     const certPayload = {
       subject: { CN: hardwareId },
       issuer: { CN: DEFAULT_ISSUER_CN },
-      subjectPublicKeyInfo: publicKeyDer.toString('base64'),
-      algorithm: options.algorithm || 'unknown',
+      subjectPublicKeyInfo: publicKeyDer.toString("base64"),
+      algorithm: options.algorithm || "unknown",
       keySize: options.keySize || 0,
       notBefore: notBefore.toISOString(),
       notAfter: notAfter.toISOString(),
     };
 
     const canonical = _canonicalPayload(certPayload);
-    const signature = crypto.sign('sha256', canonical, this._rootKeyPair.privateKey);
+    const signature = crypto.sign(
+      "sha256",
+      canonical,
+      this._rootKeyPair.privateKey,
+    );
 
     return {
       ...certPayload,
-      signature: signature.toString('base64'),
+      signature: signature.toString("base64"),
     };
   }
 
@@ -97,17 +105,21 @@ class Attestation {
    * @returns {boolean}
    */
   verifyCertificate(certificate, rootPublicKey) {
-    if (!certificate || typeof certificate !== 'object' || !certificate.signature) {
+    if (
+      !certificate ||
+      typeof certificate !== "object" ||
+      !certificate.signature
+    ) {
       return false;
     }
 
     const publicKey = rootPublicKey || this._rootKeyPair.publicKey;
     const { signature, ...certPayload } = certificate;
     const canonical = _canonicalPayload(certPayload);
-    const sig = Buffer.from(signature, 'base64');
+    const sig = Buffer.from(signature, "base64");
 
     try {
-      return crypto.verify('sha256', canonical, publicKey, sig);
+      return crypto.verify("sha256", canonical, publicKey, sig);
     } catch {
       return false;
     }

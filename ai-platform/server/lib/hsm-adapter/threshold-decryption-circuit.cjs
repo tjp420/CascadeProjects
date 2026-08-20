@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 54: Multi-Party Threshold Cryptography and Distributed Decryption Circuits.
@@ -19,8 +19,8 @@
  * @module hsm-adapter/threshold-decryption-circuit
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   maxParticipants: 16,
@@ -35,27 +35,27 @@ const DEFAULT_OPTIONS = {
 };
 
 const KEYSET_STATUS = {
-  PENDING: 'pending',
-  ACTIVE: 'active',
-  COMPROMISED: 'compromised',
-  ROTATED: 'rotated',
-  DESTROYED: 'destroyed',
+  PENDING: "pending",
+  ACTIVE: "active",
+  COMPROMISED: "compromised",
+  ROTATED: "rotated",
+  DESTROYED: "destroyed",
 };
 
 const CIRCUIT_STATUS = {
-  PENDING: 'pending',
-  DISTRIBUTED: 'distributed',
-  COLLECTING: 'collecting',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  EXPIRED: 'expired',
+  PENDING: "pending",
+  DISTRIBUTED: "distributed",
+  COLLECTING: "collecting",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  EXPIRED: "expired",
 };
 
 const SHARE_STATUS = {
-  PENDING: 'pending',
-  VERIFIED: 'verified',
-  INVALID: 'invalid',
-  EXPIRED: 'expired',
+  PENDING: "pending",
+  VERIFIED: "verified",
+  INVALID: "invalid",
+  EXPIRED: "expired",
 };
 
 /**
@@ -94,43 +94,60 @@ class ThresholdDecryptionCircuit {
    * @returns {object} Key set creation result
    */
   createKeySet(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'key set config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "key set config is required");
     }
-    if (!config.keySetId || typeof config.keySetId !== 'string') {
-      throw new HsmAdapterError('INVALID_KEYSET_ID', 'keySetId must be a non-empty string');
+    if (!config.keySetId || typeof config.keySetId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_KEYSET_ID",
+        "keySetId must be a non-empty string",
+      );
     }
     if (this._keySets.has(config.keySetId)) {
-      throw new HsmAdapterError('KEYSET_ALREADY_EXISTS', `key set ${config.keySetId} already exists`);
+      throw new HsmAdapterError(
+        "KEYSET_ALREADY_EXISTS",
+        `key set ${config.keySetId} already exists`,
+      );
     }
     const threshold = config.threshold;
     const participants = config.participants;
-    if (typeof threshold !== 'number' || threshold < this.minThreshold) {
-      throw new HsmAdapterError('INVALID_THRESHOLD',
-        `threshold must be at least ${this.minThreshold}`);
+    if (typeof threshold !== "number" || threshold < this.minThreshold) {
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        `threshold must be at least ${this.minThreshold}`,
+      );
     }
-    if (typeof participants !== 'number' || participants < threshold) {
-      throw new HsmAdapterError('INVALID_PARTICIPANTS',
-        `participants must be >= threshold (${threshold})`);
+    if (typeof participants !== "number" || participants < threshold) {
+      throw new HsmAdapterError(
+        "INVALID_PARTICIPANTS",
+        `participants must be >= threshold (${threshold})`,
+      );
     }
     if (participants > this.maxParticipants) {
-      throw new HsmAdapterError('TOO_MANY_PARTICIPANTS',
-        `${participants} exceeds max ${this.maxParticipants}`);
+      throw new HsmAdapterError(
+        "TOO_MANY_PARTICIPANTS",
+        `${participants} exceeds max ${this.maxParticipants}`,
+      );
     }
     if (threshold > this.maxThreshold) {
-      throw new HsmAdapterError('THRESHOLD_TOO_HIGH',
-        `${threshold} exceeds max threshold ${this.maxThreshold}`);
+      throw new HsmAdapterError(
+        "THRESHOLD_TOO_HIGH",
+        `${threshold} exceeds max threshold ${this.maxThreshold}`,
+      );
     }
     // Generate master key
     const masterKey = crypto.randomBytes(this.keySizeBits / 8);
     // Split into Shamir shares
     const shares = _shamirSplit(masterKey, threshold, participants);
     // Assign to participants
-    const participantIds = config.participantIds ||
+    const participantIds =
+      config.participantIds ||
       Array.from({ length: participants }, (_, i) => `node-${i + 1}`);
     if (participantIds.length !== participants) {
-      throw new HsmAdapterError('PARTICIPANT_ID_MISMATCH',
-        `expected ${participants} participantIds, got ${participantIds.length}`);
+      throw new HsmAdapterError(
+        "PARTICIPANT_ID_MISMATCH",
+        `expected ${participants} participantIds, got ${participantIds.length}`,
+      );
     }
     const shareMap = new Map();
     for (let i = 0; i < participants; i++) {
@@ -141,7 +158,10 @@ class ThresholdDecryptionCircuit {
       });
     }
     // Compute public key (for encryption)
-    const publicKey = crypto.createHash('sha256').update(masterKey).digest('hex');
+    const publicKey = crypto
+      .createHash("sha256")
+      .update(masterKey)
+      .digest("hex");
     const keySet = {
       keySetId: config.keySetId,
       threshold,
@@ -155,8 +175,8 @@ class ThresholdDecryptionCircuit {
       circuitCount: 0,
     };
     this._keySets.set(config.keySetId, keySet);
-    if (typeof this._audit === 'function') {
-      this._audit('KEYSET_CREATED', {
+    if (typeof this._audit === "function") {
+      this._audit("KEYSET_CREATED", {
         keySetId: config.keySetId,
         threshold,
         participants,
@@ -181,17 +201,27 @@ class ThresholdDecryptionCircuit {
   encrypt(keySetId, message) {
     const keySet = this._keySets.get(keySetId);
     if (!keySet) {
-      throw new HsmAdapterError('KEYSET_NOT_FOUND', `key set ${keySetId} not found`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_FOUND",
+        `key set ${keySetId} not found`,
+      );
     }
     if (keySet.status !== KEYSET_STATUS.ACTIVE) {
-      throw new HsmAdapterError('KEYSET_NOT_ACTIVE', `key set is in status ${keySet.status}`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_ACTIVE",
+        `key set is in status ${keySet.status}`,
+      );
     }
     if (!Buffer.isBuffer(message)) {
-      throw new HsmAdapterError('INVALID_MESSAGE', 'message must be a Buffer');
+      throw new HsmAdapterError("INVALID_MESSAGE", "message must be a Buffer");
     }
     // Use master key for encryption (in production, this would use the public key)
     const nonce = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', keySet.masterKey, nonce);
+    const cipher = crypto.createCipheriv(
+      "aes-256-gcm",
+      keySet.masterKey,
+      nonce,
+    );
     const encrypted = Buffer.concat([cipher.update(message), cipher.final()]);
     const authTag = cipher.getAuthTag();
     return {
@@ -213,27 +243,42 @@ class ThresholdDecryptionCircuit {
    * @returns {object} Circuit initiation result
    */
   initiateCircuit(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'circuit config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "circuit config is required");
     }
-    if (!config.circuitId || typeof config.circuitId !== 'string') {
-      throw new HsmAdapterError('INVALID_CIRCUIT_ID', 'circuitId must be a non-empty string');
+    if (!config.circuitId || typeof config.circuitId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_CIRCUIT_ID",
+        "circuitId must be a non-empty string",
+      );
     }
     if (this._circuits.has(config.circuitId)) {
-      throw new HsmAdapterError('CIRCUIT_ALREADY_EXISTS', `circuit ${config.circuitId} already exists`);
+      throw new HsmAdapterError(
+        "CIRCUIT_ALREADY_EXISTS",
+        `circuit ${config.circuitId} already exists`,
+      );
     }
     const keySet = this._keySets.get(config.keySetId);
     if (!keySet) {
-      throw new HsmAdapterError('KEYSET_NOT_FOUND', `key set ${config.keySetId} not found`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_FOUND",
+        `key set ${config.keySetId} not found`,
+      );
     }
     if (keySet.status !== KEYSET_STATUS.ACTIVE) {
-      throw new HsmAdapterError('KEYSET_NOT_ACTIVE', `key set is in status ${keySet.status}`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_ACTIVE",
+        `key set is in status ${keySet.status}`,
+      );
     }
     if (!Buffer.isBuffer(config.ciphertext)) {
-      throw new HsmAdapterError('INVALID_CIPHERTEXT', 'ciphertext must be a Buffer');
+      throw new HsmAdapterError(
+        "INVALID_CIPHERTEXT",
+        "ciphertext must be a Buffer",
+      );
     }
     if (!Buffer.isBuffer(config.nonce)) {
-      throw new HsmAdapterError('INVALID_NONCE', 'nonce must be a Buffer');
+      throw new HsmAdapterError("INVALID_NONCE", "nonce must be a Buffer");
     }
     const now = Date.now();
     const circuit = {
@@ -255,8 +300,8 @@ class ThresholdDecryptionCircuit {
     };
     this._circuits.set(config.circuitId, circuit);
     keySet.circuitCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('CIRCUIT_INITIATED', {
+    if (typeof this._audit === "function") {
+      this._audit("CIRCUIT_INITIATED", {
         circuitId: config.circuitId,
         keySetId: config.keySetId,
         threshold: keySet.threshold,
@@ -281,11 +326,17 @@ class ThresholdDecryptionCircuit {
   computePartialDecryption(keySetId, nodeId) {
     const keySet = this._keySets.get(keySetId);
     if (!keySet) {
-      throw new HsmAdapterError('KEYSET_NOT_FOUND', `key set ${keySetId} not found`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_FOUND",
+        `key set ${keySetId} not found`,
+      );
     }
     const share = keySet.shares.get(nodeId);
     if (!share) {
-      throw new HsmAdapterError('NODE_NOT_PARTICIPANT', `node ${nodeId} is not a participant`);
+      throw new HsmAdapterError(
+        "NODE_NOT_PARTICIPANT",
+        `node ${nodeId} is not a participant`,
+      );
     }
     // Return a copy of the share buffer
     return Buffer.from(share.share);
@@ -301,30 +352,55 @@ class ThresholdDecryptionCircuit {
   submitPartialDecryption(circuitId, nodeId, partialDecryption) {
     const circuit = this._circuits.get(circuitId);
     if (!circuit) {
-      throw new HsmAdapterError('CIRCUIT_NOT_FOUND', `circuit ${circuitId} not found`);
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_FOUND",
+        `circuit ${circuitId} not found`,
+      );
     }
-    if (circuit.status !== CIRCUIT_STATUS.DISTRIBUTED && circuit.status !== CIRCUIT_STATUS.COLLECTING) {
-      throw new HsmAdapterError('CIRCUIT_NOT_ACCEPTING', `circuit is in status ${circuit.status}`);
+    if (
+      circuit.status !== CIRCUIT_STATUS.DISTRIBUTED &&
+      circuit.status !== CIRCUIT_STATUS.COLLECTING
+    ) {
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_ACCEPTING",
+        `circuit is in status ${circuit.status}`,
+      );
     }
     if (Date.now() > circuit.expiresAt) {
       circuit.status = CIRCUIT_STATUS.EXPIRED;
-      throw new HsmAdapterError('CIRCUIT_EXPIRED', `circuit ${circuitId} has expired`);
+      throw new HsmAdapterError(
+        "CIRCUIT_EXPIRED",
+        `circuit ${circuitId} has expired`,
+      );
     }
     const keySet = this._keySets.get(circuit.keySetId);
     const share = keySet.shares.get(nodeId);
     if (!share) {
-      throw new HsmAdapterError('NODE_NOT_PARTICIPANT', `node ${nodeId} is not a participant`);
+      throw new HsmAdapterError(
+        "NODE_NOT_PARTICIPANT",
+        `node ${nodeId} is not a participant`,
+      );
     }
     if (circuit.partialDecryptions.has(nodeId)) {
-      throw new HsmAdapterError('SHARE_ALREADY_SUBMITTED', `node ${nodeId} already submitted`);
+      throw new HsmAdapterError(
+        "SHARE_ALREADY_SUBMITTED",
+        `node ${nodeId} already submitted`,
+      );
     }
     if (!Buffer.isBuffer(partialDecryption)) {
-      throw new HsmAdapterError('INVALID_PARTIAL', 'partialDecryption must be a Buffer');
+      throw new HsmAdapterError(
+        "INVALID_PARTIAL",
+        "partialDecryption must be a Buffer",
+      );
     }
     // Verify share (if enabled)
     let verified = true;
     if (this.enableShareVerification) {
-      verified = _verifyPartialDecryption(partialDecryption, share, circuit.ciphertext);
+      verified = _verifyPartialDecryption(
+        partialDecryption,
+        share,
+        circuit.ciphertext,
+      );
     }
     circuit.partialDecryptions.set(nodeId, {
       nodeId,
@@ -341,8 +417,8 @@ class ThresholdDecryptionCircuit {
       share.status = SHARE_STATUS.INVALID;
     }
     circuit.status = CIRCUIT_STATUS.COLLECTING;
-    if (typeof this._audit === 'function') {
-      this._audit('PARTIAL_DECRYPTION_SUBMITTED', {
+    if (typeof this._audit === "function") {
+      this._audit("PARTIAL_DECRYPTION_SUBMITTED", {
         circuitId,
         nodeId,
         verified,
@@ -371,7 +447,10 @@ class ThresholdDecryptionCircuit {
   _assembleDecryption(circuitId) {
     const circuit = this._circuits.get(circuitId);
     if (!circuit) {
-      throw new HsmAdapterError('CIRCUIT_NOT_FOUND', `circuit ${circuitId} not found`);
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_FOUND",
+        `circuit ${circuitId} not found`,
+      );
     }
     // Collect verified shares
     const verifiedShares = [];
@@ -381,8 +460,10 @@ class ThresholdDecryptionCircuit {
       }
     }
     if (verifiedShares.length < circuit.threshold) {
-      throw new HsmAdapterError('INSUFFICIENT_SHARES',
-        `need ${circuit.threshold} verified shares, have ${verifiedShares.length}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_SHARES",
+        `need ${circuit.threshold} verified shares, have ${verifiedShares.length}`,
+      );
     }
     // Take exactly threshold shares
     const selectedShares = verifiedShares.slice(0, circuit.threshold);
@@ -391,14 +472,24 @@ class ThresholdDecryptionCircuit {
     // Decrypt the ciphertext
     let plaintext;
     try {
-      const decipher = crypto.createDecipheriv('aes-256-gcm', reconstructedKey, circuit.nonce);
+      const decipher = crypto.createDecipheriv(
+        "aes-256-gcm",
+        reconstructedKey,
+        circuit.nonce,
+      );
       if (circuit.authTag) {
         decipher.setAuthTag(circuit.authTag);
       }
-      plaintext = Buffer.concat([decipher.update(circuit.ciphertext), decipher.final()]);
+      plaintext = Buffer.concat([
+        decipher.update(circuit.ciphertext),
+        decipher.final(),
+      ]);
     } catch (e) {
       circuit.status = CIRCUIT_STATUS.FAILED;
-      throw new HsmAdapterError('DECRYPTION_FAILED', `decryption failed: ${e.message}`);
+      throw new HsmAdapterError(
+        "DECRYPTION_FAILED",
+        `decryption failed: ${e.message}`,
+      );
     }
     circuit.status = CIRCUIT_STATUS.COMPLETED;
     circuit.result = plaintext;
@@ -415,8 +506,8 @@ class ThresholdDecryptionCircuit {
     if (this._completedCircuits.length > this._maxHistory) {
       this._completedCircuits.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('CIRCUIT_COMPLETED', {
+    if (typeof this._audit === "function") {
+      this._audit("CIRCUIT_COMPLETED", {
         circuitId,
         keySetId: circuit.keySetId,
         sharesUsed: selectedShares.length,
@@ -439,11 +530,16 @@ class ThresholdDecryptionCircuit {
   assembleDecryption(circuitId) {
     const circuit = this._circuits.get(circuitId);
     if (!circuit) {
-      throw new HsmAdapterError('CIRCUIT_NOT_FOUND', `circuit ${circuitId} not found`);
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_FOUND",
+        `circuit ${circuitId} not found`,
+      );
     }
     if (circuit.verifiedShares < circuit.threshold) {
-      throw new HsmAdapterError('INSUFFICIENT_SHARES',
-        `need ${circuit.threshold} verified shares, have ${circuit.verifiedShares}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_SHARES",
+        `need ${circuit.threshold} verified shares, have ${circuit.verifiedShares}`,
+      );
     }
     return this._assembleDecryption(circuitId);
   }
@@ -456,15 +552,21 @@ class ThresholdDecryptionCircuit {
   compromiseKeySet(keySetId, reason) {
     const keySet = this._keySets.get(keySetId);
     if (!keySet) {
-      throw new HsmAdapterError('KEYSET_NOT_FOUND', `key set ${keySetId} not found`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_FOUND",
+        `key set ${keySetId} not found`,
+      );
     }
     keySet.status = KEYSET_STATUS.COMPROMISED;
     // Zeroize master key
     keySet.masterKey.fill(0);
-    if (typeof this._audit === 'function') {
-      this._audit('KEYSET_COMPROMISED', { keySetId, reason: reason || 'unspecified' });
+    if (typeof this._audit === "function") {
+      this._audit("KEYSET_COMPROMISED", {
+        keySetId,
+        reason: reason || "unspecified",
+      });
     }
-    return { keySetId, compromised: true, reason: reason || 'unspecified' };
+    return { keySetId, compromised: true, reason: reason || "unspecified" };
   }
 
   /**
@@ -475,12 +577,15 @@ class ThresholdDecryptionCircuit {
   rotateKeySet(keySetId) {
     const keySet = this._keySets.get(keySetId);
     if (!keySet) {
-      throw new HsmAdapterError('KEYSET_NOT_FOUND', `key set ${keySetId} not found`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_FOUND",
+        `key set ${keySetId} not found`,
+      );
     }
     keySet.status = KEYSET_STATUS.ROTATED;
     keySet.masterKey.fill(0);
-    if (typeof this._audit === 'function') {
-      this._audit('KEYSET_ROTATED', { keySetId });
+    if (typeof this._audit === "function") {
+      this._audit("KEYSET_ROTATED", { keySetId });
     }
     return { keySetId, rotated: true };
   }
@@ -492,7 +597,10 @@ class ThresholdDecryptionCircuit {
   destroyKeySet(keySetId) {
     const keySet = this._keySets.get(keySetId);
     if (!keySet) {
-      throw new HsmAdapterError('KEYSET_NOT_FOUND', `key set ${keySetId} not found`);
+      throw new HsmAdapterError(
+        "KEYSET_NOT_FOUND",
+        `key set ${keySetId} not found`,
+      );
     }
     keySet.status = KEYSET_STATUS.DESTROYED;
     keySet.masterKey.fill(0);
@@ -500,8 +608,8 @@ class ThresholdDecryptionCircuit {
       share.share.fill(0);
     }
     this._keySets.delete(keySetId);
-    if (typeof this._audit === 'function') {
-      this._audit('KEYSET_DESTROYED', { keySetId });
+    if (typeof this._audit === "function") {
+      this._audit("KEYSET_DESTROYED", { keySetId });
     }
     return { keySetId, destroyed: true };
   }
@@ -531,7 +639,7 @@ class ThresholdDecryptionCircuit {
    * @returns {object[]}
    */
   getKeySets() {
-    return Array.from(this._keySets.values()).map(ks => ({
+    return Array.from(this._keySets.values()).map((ks) => ({
       keySetId: ks.keySetId,
       threshold: ks.threshold,
       participants: ks.participants,
@@ -584,7 +692,7 @@ class ThresholdDecryptionCircuit {
    * @returns {object[]}
    */
   getCompletedCircuits(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedCircuits.slice(-n);
   }
 
@@ -636,12 +744,12 @@ function _shamirSplit(secret, threshold, n) {
   // P = 2^257 - 93 (a known prime larger than 2^256)
   const P = (1n << 257n) - 93n;
   // Convert secret to BigInt
-  const secretInt = BigInt('0x' + secret.toString('hex'));
+  const secretInt = BigInt("0x" + secret.toString("hex"));
   // Generate random polynomial coefficients: f(x) = secret + a1*x + a2*x^2 + ...
   const coeffs = [secretInt];
   for (let t = 1; t < threshold; t++) {
     const randomBytes = crypto.randomBytes(32);
-    coeffs.push(BigInt('0x' + randomBytes.toString('hex')) % P);
+    coeffs.push(BigInt("0x" + randomBytes.toString("hex")) % P);
   }
   // Evaluate polynomial at x = 1, 2, ..., n
   const shares = [];
@@ -656,8 +764,8 @@ function _shamirSplit(secret, threshold, n) {
     // Convert BigInt share back to Buffer (32 bytes)
     let hexStr = y.toString(16);
     // Pad to 64 hex chars (32 bytes)
-    while (hexStr.length < 66) hexStr = '0' + hexStr;
-    shares.push(Buffer.from(hexStr, 'hex'));
+    while (hexStr.length < 66) hexStr = "0" + hexStr;
+    shares.push(Buffer.from(hexStr, "hex"));
   }
   return shares;
 }
@@ -672,9 +780,9 @@ function _shamirSplit(secret, threshold, n) {
 function _shamirReconstruct(shares) {
   const P = (1n << 257n) - 93n;
   // Convert shares to BigInt
-  const points = shares.map(s => ({
+  const points = shares.map((s) => ({
     x: BigInt(s.shareIndex),
-    y: BigInt('0x' + s.partialDecryption.toString('hex')),
+    y: BigInt("0x" + s.partialDecryption.toString("hex")),
   }));
   // Lagrange interpolation at x = 0
   let secret = 0n;
@@ -684,9 +792,9 @@ function _shamirReconstruct(shares) {
     for (let j = 0; j < points.length; j++) {
       if (i === j) continue;
       // numerator *= (0 - xj) = -xj
-      numerator = (numerator * (-points[j].x % P + P)) % P;
+      numerator = (numerator * ((-points[j].x % P) + P)) % P;
       // denominator *= (xi - xj)
-      denominator = (denominator * ((points[i].x - points[j].x) % P + P)) % P;
+      denominator = (denominator * (((points[i].x - points[j].x) % P) + P)) % P;
     }
     // lagrangeCoeff = numerator / denominator = numerator * denominator^(-1)
     const denomInv = _modInv(denominator, P);
@@ -695,8 +803,8 @@ function _shamirReconstruct(shares) {
   }
   // Convert BigInt back to Buffer (32 bytes)
   let hexStr = secret.toString(16);
-  while (hexStr.length < 64) hexStr = '0' + hexStr;
-  return Buffer.from(hexStr, 'hex');
+  while (hexStr.length < 64) hexStr = "0" + hexStr;
+  return Buffer.from(hexStr, "hex");
 }
 
 /**

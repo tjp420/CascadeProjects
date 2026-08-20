@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Cluster Keyring Sync Load Profile — Test Harness
@@ -14,7 +14,7 @@
  * exercises the exported test helpers from cluster-keyring-sync.cjs.
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 // ── PRNG: SHA-256 hash-chain for deterministic message generation ─────────
 
@@ -26,8 +26,8 @@ const crypto = require('crypto');
 function createPrng(seed) {
   let state = String(seed);
   return function next() {
-    state = crypto.createHash('sha256').update(state).digest('hex');
-    return BigInt('0x' + state);
+    state = crypto.createHash("sha256").update(state).digest("hex");
+    return BigInt("0x" + state);
   };
 }
 
@@ -44,7 +44,7 @@ function prngHex(prng, bytes = 32) {
   if (hex.length > bytes * 2) {
     return hex.slice(0, bytes * 2);
   }
-  return hex.padStart(bytes * 2, '0');
+  return hex.padStart(bytes * 2, "0");
 }
 
 // ── Mock socket pool ──────────────────────────────────────────────────────
@@ -56,15 +56,19 @@ function prngHex(prng, bytes = 32) {
 function createMockSocketPool() {
   const sockets = [];
 
-  function create(remoteAddress = '127.0.0.1', remotePort = 7001) {
+  function create(remoteAddress = "127.0.0.1", remotePort = 7001) {
     const handlers = {};
     const socket = {
       remoteAddress,
       remotePort,
       destroyed: false,
       write: jest.fn(),
-      on: jest.fn((event, handler) => { handlers[event] = handler; }),
-      destroy: jest.fn(function () { this.destroyed = true; }),
+      on: jest.fn((event, handler) => {
+        handlers[event] = handler;
+      }),
+      destroy: jest.fn(function () {
+        this.destroyed = true;
+      }),
       _handlers: handlers,
     };
     sockets.push(socket);
@@ -101,7 +105,11 @@ function createMockSocketPool() {
  * @param {string} [seed] - PRNG seed for deterministic contributions.
  * @returns {object} Mock DKG engine.
  */
-function createMockDkgEngine(nodeIds = ['node-1', 'node-2', 'node-3'], threshold = 2, seed = 'mock-dkg-seed') {
+function createMockDkgEngine(
+  nodeIds = ["node-1", "node-2", "node-3"],
+  threshold = 2,
+  seed = "mock-dkg-seed",
+) {
   const prng = createPrng(seed);
   const contributions = new Map();
   const shares = new Map();
@@ -172,7 +180,8 @@ function createMockDkgEngine(nodeIds = ['node-1', 'node-2', 'node-3'], threshold
 
     // Helper to get serialized commitments
     getSerializedCommitments(nodeId, serializeFn) {
-      const contrib = contributions.get(nodeId) || this.generateContribution(nodeId);
+      const contrib =
+        contributions.get(nodeId) || this.generateContribution(nodeId);
       return contrib.commitments.map((c) => serializeFn(c));
     },
   };
@@ -187,17 +196,21 @@ function createMockDkgEngine(nodeIds = ['node-1', 'node-2', 'node-3'], threshold
  * @param {string[]} nodeIds - Array of valid node IDs.
  * @returns {object} Message factory with commit, share, complaint, malformed methods.
  */
-function createDkgMessageFactory(prng, sessionId, nodeIds = ['node-1', 'node-2', 'node-3']) {
+function createDkgMessageFactory(
+  prng,
+  sessionId,
+  nodeIds = ["node-1", "node-2", "node-3"],
+) {
   const validHexRegex = /^[0-9a-f]+$/;
 
   function commit(nodeId) {
-    const numCommitments = 2 + (Number(prng() % 3n)); // 2-4 commitments
+    const numCommitments = 2 + Number(prng() % 3n); // 2-4 commitments
     const commitments = [];
     for (let i = 0; i < numCommitments; i++) {
       commitments.push(prngHex(prng, 32));
     }
     return {
-      type: 'DKG_COMMIT',
+      type: "DKG_COMMIT",
       from: nodeId,
       sessionId,
       nodeId,
@@ -207,7 +220,7 @@ function createDkgMessageFactory(prng, sessionId, nodeIds = ['node-1', 'node-2',
 
   function share(from, to) {
     return {
-      type: 'DKG_SHARE',
+      type: "DKG_SHARE",
       from,
       sessionId,
       broadcasterId: from,
@@ -218,7 +231,7 @@ function createDkgMessageFactory(prng, sessionId, nodeIds = ['node-1', 'node-2',
 
   function complaint(from, against) {
     return {
-      type: 'DKG_COMPLAINT',
+      type: "DKG_COMPLAINT",
       from,
       sessionId,
       fromNodeId: from,
@@ -227,7 +240,7 @@ function createDkgMessageFactory(prng, sessionId, nodeIds = ['node-1', 'node-2',
   }
 
   function malformed() {
-    const types = ['DKG_COMMIT', 'DKG_SHARE', 'DKG_COMPLAINT'];
+    const types = ["DKG_COMMIT", "DKG_SHARE", "DKG_COMPLAINT"];
     const msgType = types[Number(prng() % BigInt(types.length))];
     const base = {
       type: msgType,
@@ -236,11 +249,21 @@ function createDkgMessageFactory(prng, sessionId, nodeIds = ['node-1', 'node-2',
     };
     // Inject random malformation
     const malformations = [
-      () => { delete base.commitments; }, // missing commitments
-      () => { base.commitments = ['NOT_HEX']; }, // invalid hex
-      () => { base.sessionId = 'dkg-wrong'; }, // wrong session
-      () => { base.nodeId = undefined; }, // missing nodeId
-      () => { base.commitments = [12345]; }, // non-string commitments
+      () => {
+        delete base.commitments;
+      }, // missing commitments
+      () => {
+        base.commitments = ["NOT_HEX"];
+      }, // invalid hex
+      () => {
+        base.sessionId = "dkg-wrong";
+      }, // wrong session
+      () => {
+        base.nodeId = undefined;
+      }, // missing nodeId
+      () => {
+        base.commitments = [12345];
+      }, // non-string commitments
     ];
     malformations[Number(prng() % BigInt(malformations.length))]();
     return base;
@@ -252,7 +275,7 @@ function createDkgMessageFactory(prng, sessionId, nodeIds = ['node-1', 'node-2',
       commitments.push(prngHex(prng, 32));
     }
     return {
-      type: 'DKG_COMMIT',
+      type: "DKG_COMMIT",
       from: nodeId,
       sessionId,
       nodeId,
@@ -272,9 +295,17 @@ function createDkgMessageFactory(prng, sessionId, nodeIds = ['node-1', 'node-2',
  * @param {string} eventType - Event type string.
  * @param {string} node - Node ID for events.
  */
-function saturateEvents(clusterSync, count, eventType = 'test_load_event', node = 'node-load') {
+function saturateEvents(
+  clusterSync,
+  count,
+  eventType = "test_load_event",
+  node = "node-load",
+) {
   for (let i = 0; i < count; i++) {
-    clusterSync._recordEvent(eventType, node, { index: i, batch: 'load-saturation' });
+    clusterSync._recordEvent(eventType, node, {
+      index: i,
+      batch: "load-saturation",
+    });
   }
 }
 

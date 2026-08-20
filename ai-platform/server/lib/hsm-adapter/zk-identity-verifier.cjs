@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 21: Zero-knowledge identity verifier using a Schnorr-style protocol.
@@ -10,8 +10,8 @@
  * @module hsm-adapter/zk-identity-verifier
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_FIELD_BITS = 256;
 
@@ -123,11 +123,11 @@ class ZkIdentityVerifier {
 
   _audit(event, extra = {}) {
     if (!this._logger || !this._logger.info) return;
-    this._logger.info(event, { sub: 'hsm-adapter', provider: 'zkp', ...extra });
+    this._logger.info(event, { sub: "hsm-adapter", provider: "zkp", ...extra });
   }
 
   _hashChallenge(publicKeyBuf, tBuf, contextBuf) {
-    const h = crypto.createHash('sha256');
+    const h = crypto.createHash("sha256");
     h.update(publicKeyBuf);
     h.update(tBuf);
     h.update(contextBuf);
@@ -155,7 +155,7 @@ class ZkIdentityVerifier {
    * @param {bigint|Buffer} [challenge]
    * @returns {{t: Buffer, s: Buffer}}
    */
-  createProof(privateKey, context = '', challenge = null) {
+  createProof(privateKey, context = "", challenge = null) {
     const x = _bytesToBigInt(privateKey);
     const y = _modPow(this._g, x, this._p);
     const publicKey = _bigIntToBytes(y, 32);
@@ -164,13 +164,20 @@ class ZkIdentityVerifier {
     const t = _modPow(this._g, r, this._p);
     const tBuf = _bigIntToBytes(t, 32);
 
-    const contextBuf = Buffer.isBuffer(context) ? context : Buffer.from(context, 'utf8');
-    const c = challenge !== null ? _bytesToBigInt(challenge) % this._q : this._hashChallenge(publicKey, tBuf, contextBuf);
+    const contextBuf = Buffer.isBuffer(context)
+      ? context
+      : Buffer.from(context, "utf8");
+    const c =
+      challenge !== null
+        ? _bytesToBigInt(challenge) % this._q
+        : this._hashChallenge(publicKey, tBuf, contextBuf);
 
     const s = _mod(r + c * x, this._q);
     const sBuf = _bigIntToBytes(s, 32);
 
-    this._audit('IDENTITY_PROOF_GENERATED', { publicKeyPrefix: publicKey.toString('hex').slice(0, 16) });
+    this._audit("IDENTITY_PROOF_GENERATED", {
+      publicKeyPrefix: publicKey.toString("hex").slice(0, 16),
+    });
     return { t: tBuf, s: sBuf };
   }
 
@@ -182,30 +189,46 @@ class ZkIdentityVerifier {
    * @param {bigint|Buffer} [challenge]
    * @returns {boolean}
    */
-  verifyProof(publicKey, proof, context = '', challenge = null) {
+  verifyProof(publicKey, proof, context = "", challenge = null) {
     // Guard against malformed inputs — return false instead of crashing
-    if (!Buffer.isBuffer(publicKey) || !proof || !Buffer.isBuffer(proof.t) || !Buffer.isBuffer(proof.s)) {
+    if (
+      !Buffer.isBuffer(publicKey) ||
+      !proof ||
+      !Buffer.isBuffer(proof.t) ||
+      !Buffer.isBuffer(proof.s)
+    ) {
       return false;
     }
     const y = _bytesToBigInt(publicKey);
     const t = _bytesToBigInt(proof.t);
     const s = _bytesToBigInt(proof.s);
 
-    const contextBuf = Buffer.isBuffer(context) ? context : Buffer.from(context, 'utf8');
-    const c = challenge !== null ? _bytesToBigInt(challenge) % this._q : this._hashChallenge(publicKey, proof.t, contextBuf);
+    const contextBuf = Buffer.isBuffer(context)
+      ? context
+      : Buffer.from(context, "utf8");
+    const c =
+      challenge !== null
+        ? _bytesToBigInt(challenge) % this._q
+        : this._hashChallenge(publicKey, proof.t, contextBuf);
 
     const lhs = _modPow(this._g, s, this._p);
     const rhs = _mod(t * _modPow(y, c, this._p), this._p);
     const ok = _constantTimeBigIntEqual(lhs, rhs, 32);
 
-    this._audit('ZERO_KNOWLEDGE_VERIFIED', { result: ok, publicKeyPrefix: publicKey.toString('hex').slice(0, 16) });
+    this._audit("ZERO_KNOWLEDGE_VERIFIED", {
+      result: ok,
+      publicKeyPrefix: publicKey.toString("hex").slice(0, 16),
+    });
     return ok;
   }
 
-  verifyProofOrThrow(publicKey, proof, context = '', challenge = null) {
+  verifyProofOrThrow(publicKey, proof, context = "", challenge = null) {
     const ok = this.verifyProof(publicKey, proof, context, challenge);
     if (!ok) {
-      throw new HsmAdapterError('ZKP_VERIFICATION_FAILED', 'Zero-knowledge proof verification failed');
+      throw new HsmAdapterError(
+        "ZKP_VERIFICATION_FAILED",
+        "Zero-knowledge proof verification failed",
+      );
     }
   }
 }

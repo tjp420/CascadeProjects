@@ -2,110 +2,134 @@
  * Detect build artifacts, caches, and generated output directories.
  */
 
-const defaultPatterns = require('./config/build-artifact-patterns.json');
-const { walkProjectFiles, matchesGlobPattern } = require('./utils/project-walker');
+const defaultPatterns = require("./config/build-artifact-patterns.json");
 const {
-    isUnderArtifactRoot,
-    selectTopLevelArtifactDirectories
-} = require('./utils/artifact-path-utils');
+  walkProjectFiles,
+  matchesGlobPattern,
+} = require("./utils/project-walker");
+const {
+  isUnderArtifactRoot,
+  selectTopLevelArtifactDirectories,
+} = require("./utils/artifact-path-utils");
 
 const DEFAULT_SKIP_PATH_PATTERNS = [
-    /(?:^|\/)simplebeacon-vscode\//,
-    /(?:^|\/)coming-soon\//,
-    /(?:^|\/)ai-agent\//,
-    /(?:^|\/)ai-tools\//,
-    new RegExp('(?:^|/)New folder/'),
-    /server\.log$/,
-    // Skip vendor libraries in media/ directories — these are third-party assets, not build output
-    /(?:^|\/)media\/.+\.min\.js$/
+  /(?:^|\/)simplebeacon-vscode\//,
+  /(?:^|\/)coming-soon\//,
+  /(?:^|\/)ai-agent\//,
+  /(?:^|\/)ai-tools\//,
+  new RegExp("(?:^|/)New folder/"),
+  /server\.log$/,
+  // Skip vendor libraries in media/ directories — these are third-party assets, not build output
+  /(?:^|\/)media\/.+\.min\.js$/,
 ];
 
 class BuildArtifactScanner {
-    constructor(config = {}) {
-        this.patterns = {
-            directories: config.directories || defaultPatterns.directories,
-            files: config.files || defaultPatterns.files,
-            extensions: config.extensions || defaultPatterns.extensions,
-            ignorePaths: config.ignorePaths || defaultPatterns.ignorePaths
-        };
-        this.skipPathPatterns = config.skipPathPatterns || DEFAULT_SKIP_PATH_PATTERNS;
+  constructor(config = {}) {
+    this.patterns = {
+      directories: config.directories || defaultPatterns.directories,
+      files: config.files || defaultPatterns.files,
+      extensions: config.extensions || defaultPatterns.extensions,
+      ignorePaths: config.ignorePaths || defaultPatterns.ignorePaths,
+    };
+    this.skipPathPatterns =
+      config.skipPathPatterns || DEFAULT_SKIP_PATH_PATTERNS;
+  }
+
+  async scan(projectRoot, options = {}) {
+    const inventory =
+      options.inventory || (await walkProjectFiles(projectRoot, options));
+    const { findings: directoryFindings, artifactRoots } =
+      selectTopLevelArtifactDirectories(
+        inventory.directories,
+        inventory,
+        this.patterns,
+      );
+    const findings = [...directoryFindings];
+
+    for (const file of inventory.files) {
+      if (isUnderArtifactRoot(file.relativePath, artifactRoots)) continue;
+      if (this.skipPathPatterns.some((re) => re.test(file.relativePath)))
+        continue;
+      if (!this.matchesArtifactFile(file)) continue;
+      if (file.ext === ".log" && file.size === 0) continue;
+      findings.push({
+        type: "build-artifact",
+        kind: "file",
+        path: file.relativePath,
+        reason: this.reasonForFile(file),
+        sizeBytes: file.size,
+        fileCount: 1,
+        confidence: file.ext === ".log" ? "medium" : "high",
+        action: "review-before-delete",
+        severity: "low",
+        category: this.categoryForFile(file),
+      });
     }
 
-    async scan(projectRoot, options = {}) {
-        const inventory = options.inventory || await walkProjectFiles(projectRoot, options);
-        const { findings: directoryFindings, artifactRoots } = selectTopLevelArtifactDirectories(
-            inventory.directories,
-            inventory,
-            this.patterns
-        );
-        const findings = [...directoryFindings];
+    const safeFindings = findings.filter(
+      (finding) => finding.action === "safe-to-delete",
+    );
+    const reviewFindings = findings.filter(
+      (finding) => finding.action === "review-before-delete",
+    );
 
-        for (const file of inventory.files) {
-            if (isUnderArtifactRoot(file.relativePath, artifactRoots)) continue;
-            if (this.skipPathPatterns.some((re) => re.test(file.relativePath))) continue;
-            if (!this.matchesArtifactFile(file)) continue;
-            if (file.ext === '.log' && file.size === 0) continue;
-            findings.push({
-                type: 'build-artifact',
-                kind: 'file',
-                path: file.relativePath,
-                reason: this.reasonForFile(file),
-                sizeBytes: file.size,
-                fileCount: 1,
-                confidence: file.ext === '.log' ? 'medium' : 'high',
-                action: 'review-before-delete',
-                severity: 'low',
-                category: this.categoryForFile(file)
-            });
-        }
+    return {
+      scanner: "build-artifacts",
+      findings,
+      summary: {
+        artifactDirectories: directoryFindings.length,
+        artifactFiles: reviewFindings.length,
+        reclaimableBytes: findings.reduce(
+          (sum, finding) => sum + (finding.sizeBytes || 0),
+          0,
+        ),
+        safeToDeleteBytes: safeFindings.reduce(
+          (sum, finding) => sum + (finding.sizeBytes || 0),
+          0,
+        ),
+        reviewBeforeDeleteBytes: reviewFindings.reduce(
+          (sum, finding) => sum + (finding.sizeBytes || 0),
+          0,
+        ),
+      },
+    };
+  }
 
-        const safeFindings = findings.filter((finding) => finding.action === 'safe-to-delete');
-        const reviewFindings = findings.filter((finding) => finding.action === 'review-before-delete');
+  matchesArtifactFile(file) {
+    if (this.patterns.extensions.includes(file.ext)) return true;
+    return this.patterns.files.some((pattern) =>
+      matchesGlobPattern(file.name, pattern),
+    );
+  }
 
-        return {
-            scanner: 'build-artifacts',
-            findings,
-            summary: {
-                artifactDirectories: directoryFindings.length,
-                artifactFiles: reviewFindings.length,
-                reclaimableBytes: findings.reduce((sum, finding) => sum + (finding.sizeBytes || 0), 0),
-                safeToDeleteBytes: safeFindings.reduce((sum, finding) => sum + (finding.sizeBytes || 0), 0),
-                reviewBeforeDeleteBytes: reviewFindings.reduce((sum, finding) => sum + (finding.sizeBytes || 0), 0)
-            }
-        };
+  reasonForFile(file) {
+    if (file.ext === ".log") return "Log file";
+    if (file.ext === ".exe") return "Binary executable";
+    if (this.patterns.extensions.includes(file.ext)) {
+      return `Generated extension ${file.ext}`;
     }
+    return "Build artifact filename pattern";
+  }
 
-    matchesArtifactFile(file) {
-        if (this.patterns.extensions.includes(file.ext)) return true;
-        return this.patterns.files.some((pattern) => matchesGlobPattern(file.name, pattern));
-    }
-
-    reasonForFile(file) {
-        if (file.ext === '.log') return 'Log file';
-        if (file.ext === '.exe') return 'Binary executable';
-        if (this.patterns.extensions.includes(file.ext)) {
-            return `Generated extension ${file.ext}`;
-        }
-        return 'Build artifact filename pattern';
-    }
-
-    categoryForFile(file) {
-        if (file.ext === '.log') return 'logs';
-        if (file.ext === '.exe') return 'binaries';
-        if (file.ext === '.map') return 'source-maps';
-        return 'generated-files';
-    }
+  categoryForFile(file) {
+    if (file.ext === ".log") return "logs";
+    if (file.ext === ".exe") return "binaries";
+    if (file.ext === ".map") return "source-maps";
+    return "generated-files";
+  }
 }
 
 function shouldSkipRuntimeLogFile(filePath) {
-    if (!filePath) return false;
-    const basename = String(filePath).split(/[/\\]/).pop().toLowerCase();
-    return basename.endsWith('.log')
-        || /server-?(out|err)\.log/.test(basename)
-        || /audit\.log/.test(basename);
+  if (!filePath) return false;
+  const basename = String(filePath).split(/[/\\]/).pop().toLowerCase();
+  return (
+    basename.endsWith(".log") ||
+    /server-?(out|err)\.log/.test(basename) ||
+    /audit\.log/.test(basename)
+  );
 }
 
 module.exports = {
-    BuildArtifactScanner,
-    shouldSkipRuntimeLogFile
+  BuildArtifactScanner,
+  shouldSkipRuntimeLogFile,
 };

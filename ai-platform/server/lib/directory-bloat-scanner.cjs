@@ -3,26 +3,26 @@
  * empty directories, and large package-lock.json files.
  */
 
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require("fs").promises;
+const path = require("path");
 
-const constants = require('../config/constants.cjs');
+const constants = require("../config/constants.cjs");
 const BUILD_ARTIFACT_DIRS = new Set([
-  'node_modules',
-  'dist',
-  'build',
-  'coverage',
-  '.next',
-  '.nuxt',
-  'out',
-  '.tmp',
-  'tmp',
-  '.cache',
-  'cache',
-  '__pycache__'
+  "node_modules",
+  "dist",
+  "build",
+  "coverage",
+  ".next",
+  ".nuxt",
+  "out",
+  ".tmp",
+  "tmp",
+  ".cache",
+  "cache",
+  "__pycache__",
 ]);
 
-const LOG_EXTENSIONS = new Set(['.log', '.logs']);
+const LOG_EXTENSIONS = new Set([".log", ".logs"]);
 
 /**
  * Should skip dir.
@@ -30,17 +30,19 @@ const LOG_EXTENSIONS = new Set(['.log', '.logs']);
  * @returns {any}
  */
 function shouldSkipDir(name) {
-  return name === '.git'
-    || name === '.cursor'
-    || name === '.vscode'
-    || name === '.vscode-test'
-    || name === '.simplebeacon'
-    || name === 'github-cache'
-    || name === 'deliverables'
-    || name === 'java-ai-vulnerable'
-    || name === 'data-central'
-    || name === 'security-reports'
-    || name === 'archive';
+  return (
+    name === ".git" ||
+    name === ".cursor" ||
+    name === ".vscode" ||
+    name === ".vscode-test" ||
+    name === ".simplebeacon" ||
+    name === "github-cache" ||
+    name === "deliverables" ||
+    name === "java-ai-vulnerable" ||
+    name === "data-central" ||
+    name === "security-reports" ||
+    name === "archive"
+  );
 }
 
 /**
@@ -87,7 +89,7 @@ async function scanDirectoryBloat(projectPath) {
     largePackageLocks: [],
     largeLogs: [],
     emptyDirs: [],
-    staleDirs: []
+    staleDirs: [],
   };
 
   const now = Date.now();
@@ -95,12 +97,12 @@ async function scanDirectoryBloat(projectPath) {
   const LARGE_PACKAGE_LOCK_BYTES = 100 * constants.BYTES_PER_KB; // 100 KB
   const LARGE_LOG_BYTES = constants.BYTES_PER_KB * constants.BYTES_PER_KB; // 1 MB
 
-/**
- * Walk.
- * @param {string} dirPath
- * @param {string} relativePath
- * @returns {any}
- */
+  /**
+   * Walk.
+   * @param {string} dirPath
+   * @param {string} relativePath
+   * @returns {any}
+   */
   async function walk(dirPath, relativePath) {
     let entries;
     try {
@@ -113,19 +115,23 @@ async function scanDirectoryBloat(projectPath) {
     const files = entries.filter((e) => e.isFile());
 
     // Empty directory check (excluding hidden dirs and root-level skips)
-    if (dirs.length === 0 && files.length === 0 && !shouldSkipDir(path.basename(dirPath))) {
+    if (
+      dirs.length === 0 &&
+      files.length === 0 &&
+      !shouldSkipDir(path.basename(dirPath))
+    ) {
       findings.emptyDirs.push({
         path: relativePath,
-        kind: 'directory',
-        category: 'Empty directory',
-        action: 'safe-to-delete',
-        severity: 'low'
+        kind: "directory",
+        category: "Empty directory",
+        action: "safe-to-delete",
+        severity: "low",
       });
     }
 
     for (const entry of files) {
       const full = path.join(dirPath, entry.name);
-      const rel = path.join(relativePath, entry.name).replace(/\\/g, '/');
+      const rel = path.join(relativePath, entry.name).replace(/\\/g, "/");
       let stat;
       try {
         stat = await fs.stat(full);
@@ -133,15 +139,21 @@ async function scanDirectoryBloat(projectPath) {
         continue;
       }
 
-      if (entry.name === 'package-lock.json' && stat.size > LARGE_PACKAGE_LOCK_BYTES) {
+      if (
+        entry.name === "package-lock.json" &&
+        stat.size > LARGE_PACKAGE_LOCK_BYTES
+      ) {
         findings.largePackageLocks.push({
           path: rel,
-          kind: 'file',
-          category: 'Large package-lock.json',
-          action: 'review-before-delete',
-          severity: stat.size > constants.BYTES_PER_KB * constants.BYTES_PER_KB ? 'high' : 'medium',
+          kind: "file",
+          category: "Large package-lock.json",
+          action: "review-before-delete",
+          severity:
+            stat.size > constants.BYTES_PER_KB * constants.BYTES_PER_KB
+              ? "high"
+              : "medium",
           sizeBytes: stat.size,
-          reason: `Generated lock file (${(stat.size / 1024).toFixed(1)} KB) — safe to regenerate with npm install`
+          reason: `Generated lock file (${(stat.size / 1024).toFixed(1)} KB) — safe to regenerate with npm install`,
         });
       }
 
@@ -149,12 +161,12 @@ async function scanDirectoryBloat(projectPath) {
       if (LOG_EXTENSIONS.has(ext) && stat.size > LARGE_LOG_BYTES) {
         findings.largeLogs.push({
           path: rel,
-          kind: 'file',
-          category: 'Large log file',
-          action: 'safe-to-delete',
-          severity: 'medium',
+          kind: "file",
+          category: "Large log file",
+          action: "safe-to-delete",
+          severity: "medium",
           sizeBytes: stat.size,
-          reason: `Log file (${(stat.size / 1024 / 1024).toFixed(1)} MB) — likely safe to truncate or archive`
+          reason: `Log file (${(stat.size / 1024 / 1024).toFixed(1)} MB) — likely safe to truncate or archive`,
         });
       }
     }
@@ -163,20 +175,25 @@ async function scanDirectoryBloat(projectPath) {
       if (shouldSkipDir(entry.name)) continue;
 
       const full = path.join(dirPath, entry.name);
-      const rel = path.join(relativePath, entry.name).replace(/\\/g, '/');
+      const rel = path.join(relativePath, entry.name).replace(/\\/g, "/");
       const base = entry.name;
 
-      if (base === 'node_modules') {
+      if (base === "node_modules") {
         const { size, fileCount } = await getDirSize(full);
         findings.nodeModules.push({
           path: rel,
-          kind: 'directory',
-          category: 'node_modules',
-          action: 'safe-to-delete',
-          severity: fileCount > constants.TIMEOUT_5S ? 'high' : fileCount > 1000 ? 'medium' : 'low',
+          kind: "directory",
+          category: "node_modules",
+          action: "safe-to-delete",
+          severity:
+            fileCount > constants.TIMEOUT_5S
+              ? "high"
+              : fileCount > 1000
+                ? "medium"
+                : "low",
           sizeBytes: size,
           fileCount,
-          reason: `Dependency directory — regenerate with npm install/ci (${fileCount.toLocaleString()} files)`
+          reason: `Dependency directory — regenerate with npm install/ci (${fileCount.toLocaleString()} files)`,
         });
         // Do NOT recurse into node_modules
         continue;
@@ -186,13 +203,13 @@ async function scanDirectoryBloat(projectPath) {
         const { size, fileCount } = await getDirSize(full);
         findings.buildArtifacts.push({
           path: rel,
-          kind: 'directory',
-          category: 'Build artifact directory',
-          action: 'safe-to-delete',
-          severity: fileCount > constants.DEFAULT_RANDOM_MAX ? 'medium' : 'low',
+          kind: "directory",
+          category: "Build artifact directory",
+          action: "safe-to-delete",
+          severity: fileCount > constants.DEFAULT_RANDOM_MAX ? "medium" : "low",
           sizeBytes: size,
           fileCount,
-          reason: `Build output — rebuilds automatically (${fileCount.toLocaleString()} files)`
+          reason: `Build output — rebuilds automatically (${fileCount.toLocaleString()} files)`,
         });
         // Do NOT recurse into build artifacts
         continue;
@@ -205,17 +222,20 @@ async function scanDirectoryBloat(projectPath) {
       } catch {
         continue;
       }
-      if (!relativePath.includes('/') && now - stat.mtimeMs > STALE_THRESHOLD_MS) {
+      if (
+        !relativePath.includes("/") &&
+        now - stat.mtimeMs > STALE_THRESHOLD_MS
+      ) {
         const { size, fileCount } = await getDirSize(full);
         findings.staleDirs.push({
           path: rel,
-          kind: 'directory',
-          category: 'Potentially stale project directory',
-          action: 'review-before-delete',
-          severity: 'medium',
+          kind: "directory",
+          category: "Potentially stale project directory",
+          action: "review-before-delete",
+          severity: "medium",
           sizeBytes: size,
           fileCount,
-          reason: `No changes in ${Math.round((now - stat.mtimeMs) / (24 * 60 * constants.ONE_MINUTE_MS))} days`
+          reason: `No changes in ${Math.round((now - stat.mtimeMs) / (24 * 60 * constants.ONE_MINUTE_MS))} days`,
         });
       }
 
@@ -223,7 +243,7 @@ async function scanDirectoryBloat(projectPath) {
     }
   }
 
-  await walk(projectPath, '');
+  await walk(projectPath, "");
 
   const allFindings = [
     ...findings.nodeModules,
@@ -231,14 +251,17 @@ async function scanDirectoryBloat(projectPath) {
     ...findings.largePackageLocks,
     ...findings.largeLogs,
     ...findings.emptyDirs,
-    ...findings.staleDirs
+    ...findings.staleDirs,
   ];
 
-  const totalReclaimable = allFindings.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+  const totalReclaimable = allFindings.reduce(
+    (sum, f) => sum + (f.sizeBytes || 0),
+    0,
+  );
 
   return {
     findings: {
-      directoryBloat: allFindings
+      directoryBloat: allFindings,
     },
     summary: {
       directoryBloatFindings: allFindings.length,
@@ -248,8 +271,8 @@ async function scanDirectoryBloat(projectPath) {
       largePackageLockCount: findings.largePackageLocks.length,
       largeLogCount: findings.largeLogs.length,
       emptyDirCount: findings.emptyDirs.length,
-      staleDirCount: findings.staleDirs.length
-    }
+      staleDirCount: findings.staleDirs.length,
+    },
   };
 }
 

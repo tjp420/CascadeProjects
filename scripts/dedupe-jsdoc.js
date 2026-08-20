@@ -3,24 +3,24 @@
 /**
  * Remove duplicate JSDoc blocks from files that got hit by the buggy bulk script.
  */
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const DRY_RUN = process.argv.includes('--dry-run');
-const APPLY = process.argv.includes('--apply');
+const DRY_RUN = process.argv.includes("--dry-run");
+const APPLY = process.argv.includes("--apply");
 
 if (!DRY_RUN && !APPLY) {
-  process.stderr.write('Usage: node dedupe-jsdoc.js --dry-run | --apply\n');
+  process.stderr.write("Usage: node dedupe-jsdoc.js --dry-run | --apply\n");
   process.exit(1);
 }
 
 const TARGET_DIRS = [
-  path.join(__dirname, '..', 'ai-platform', 'server'),
-  path.join(__dirname, '..', 'ai-platform', 'src'),
-  path.join(__dirname, '..', 'ai-platform', 'packages')
+  path.join(__dirname, "..", "ai-platform", "server"),
+  path.join(__dirname, "..", "ai-platform", "src"),
+  path.join(__dirname, "..", "ai-platform", "packages"),
 ];
 
-const EXCLUDED = ['node_modules', '.git', 'dist', 'build'];
+const EXCLUDED = ["node_modules", ".git", "dist", "build"];
 
 function getJsFiles(dir) {
   const results = [];
@@ -41,7 +41,7 @@ function getJsFiles(dir) {
 }
 
 function dedupeJsdoc(content) {
-  const lines = content.split('\n');
+  const lines = content.split("\n");
   const out = [];
   let prevWasJsdocEnd = false;
   let removed = 0;
@@ -50,21 +50,21 @@ function dedupeJsdoc(content) {
     const trimmed = lines[i].trim();
     // If current line starts a JSDoc block and previous line was also a JSDoc end,
     // skip this whole block until we find the next end
-    if (trimmed.startsWith('/**') && prevWasJsdocEnd) {
+    if (trimmed.startsWith("/**") && prevWasJsdocEnd) {
       // Skip lines until we find the end of this duplicate block
       let j = i;
-      while (j < lines.length && !lines[j].trim().endsWith('*/')) {
+      while (j < lines.length && !lines[j].trim().endsWith("*/")) {
         j++;
       }
-      removed += (j - i + 1);
+      removed += j - i + 1;
       i = j; // skip the whole block
       continue;
     }
     out.push(lines[i]);
-    prevWasJsdocEnd = trimmed.endsWith('*/');
+    prevWasJsdocEnd = trimmed.endsWith("*/");
   }
 
-  return { content: out.join('\n'), removed };
+  return { content: out.join("\n"), removed };
 }
 
 function main() {
@@ -77,22 +77,28 @@ function main() {
   let totalRemoved = 0;
 
   for (const file of files) {
-    const content = fs.readFileSync(file, 'utf8');
+    const content = fs.readFileSync(file, "utf8");
     const result = dedupeJsdoc(content);
     if (result.removed > 0) {
       totalFiles++;
       totalRemoved += result.removed;
       if (DRY_RUN) {
-        console.log(`Would dedupe ${path.relative(process.cwd(), file)} (-${result.removed} lines)`);
+        console.log(
+          `Would dedupe ${path.relative(process.cwd(), file)} (-${result.removed} lines)`,
+        );
       }
       if (APPLY) {
-        fs.writeFileSync(file, result.content, 'utf8');
-        console.log(`✓ ${path.relative(process.cwd(), file)} (-${result.removed} lines)`);
+        fs.writeFileSync(file, result.content, "utf8");
+        console.log(
+          `✓ ${path.relative(process.cwd(), file)} (-${result.removed} lines)`,
+        );
       }
     }
   }
 
-  console.log(`\n${DRY_RUN ? 'Would fix' : 'Fixed'} ${totalFiles} files, removed ${totalRemoved} duplicate JSDoc lines.`);
+  console.log(
+    `\n${DRY_RUN ? "Would fix" : "Fixed"} ${totalFiles} files, removed ${totalRemoved} duplicate JSDoc lines.`,
+  );
 }
 
 main();

@@ -23,12 +23,12 @@ Open:
 
 ## Profiles
 
-| Command | Services |
-|---------|----------|
-| `npm run simplebeacon:docker` | Dashboard only |
-| `npm run simplebeacon:docker:dev` | Dashboard + live mounts (`.simplebeacon`, `web/data`) |
-| `npm run simplebeacon:docker:full` | Dashboard + metrics collector + Postgres + Redis |
-| `npm run simplebeacon:docker:down` | Stop full stack |
+| Command                            | Services                                              |
+| ---------------------------------- | ----------------------------------------------------- |
+| `npm run simplebeacon:docker`      | Dashboard only                                        |
+| `npm run simplebeacon:docker:dev`  | Dashboard + live mounts (`.simplebeacon`, `web/data`) |
+| `npm run simplebeacon:docker:full` | Dashboard + metrics collector + Postgres + Redis      |
+| `npm run simplebeacon:docker:down` | Stop full stack                                       |
 
 ### Metrics collector
 
@@ -40,19 +40,19 @@ docker compose -f docker-compose.simplebeacon.yml --profile collector up -d
 
 Environment:
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `SIMPLEBEACON_COLLECT_INTERVAL_SEC` | `600` | Seconds between scans |
-| `SIMPLEBEACON_DASHBOARD_TOKEN` | — | Optional Bearer token |
+| Variable                            | Default | Purpose               |
+| ----------------------------------- | ------- | --------------------- |
+| `SIMPLEBEACON_COLLECT_INTERVAL_SEC` | `600`   | Seconds between scans |
+| `SIMPLEBEACON_DASHBOARD_TOKEN`      | —       | Optional Bearer token |
 
 ## GitHub Actions webhook
 
 Set repository secrets for the [perimeter workflow](../../.github/workflows/simplebeacon-perimeter.yml):
 
-| Secret | Example |
-|--------|---------|
-| `SIMPLEBEACON_DASHBOARD_URL` | `http://host.docker.internal:54355` (local tunnel) or your deployed URL |
-| `SIMPLEBEACON_DASHBOARD_TOKEN` | Optional auth token |
+| Secret                         | Example                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| `SIMPLEBEACON_DASHBOARD_URL`   | `http://host.docker.internal:54355` (local tunnel) or your deployed URL |
+| `SIMPLEBEACON_DASHBOARD_TOKEN` | Optional auth token                                                     |
 
 The workflow POSTs to `/api/simplebeacon/scan` after each CI run.
 
@@ -73,13 +73,13 @@ npm run simplebeacon:docker:config
 
 ## Files
 
-| Path | Purpose |
-|------|---------|
-| `docker-compose.simplebeacon.yml` | Base stack |
-| `docker-compose.simplebeacon.dev.yml` | Dev bind mounts |
-| `docker-compose.simplebeacon.full.yml` | DB/Redis wiring |
-| `docker/Dockerfile.dashboard` | Node 20 dashboard image |
-| `docker/simplebeacon-collector.sh` | Periodic scan trigger |
+| Path                                   | Purpose                 |
+| -------------------------------------- | ----------------------- |
+| `docker-compose.simplebeacon.yml`      | Base stack              |
+| `docker-compose.simplebeacon.dev.yml`  | Dev bind mounts         |
+| `docker-compose.simplebeacon.full.yml` | DB/Redis wiring         |
+| `docker/Dockerfile.dashboard`          | Node 20 dashboard image |
+| `docker/simplebeacon-collector.sh`     | Periodic scan trigger   |
 
 ## Troubleshooting
 

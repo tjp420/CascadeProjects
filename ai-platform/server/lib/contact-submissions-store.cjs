@@ -7,13 +7,14 @@
  * @module contact-submissions-store
  */
 
-const fs = require('fs');
-const path = require('path');
-const logger = require('./app-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const logger = require("./app-logger.cjs");
 
-const PROJECT_ROOT = path.join(__dirname, '..', '..');
-const STORE_PATH = process.env.CONTACT_SUBMISSIONS_STORE
-  || path.join(PROJECT_ROOT, '.simplebeacon', 'contact-submissions.jsonl');
+const PROJECT_ROOT = path.join(__dirname, "..", "..");
+const STORE_PATH =
+  process.env.CONTACT_SUBMISSIONS_STORE ||
+  path.join(PROJECT_ROOT, ".simplebeacon", "contact-submissions.jsonl");
 
 const STORE_DIR = path.dirname(STORE_PATH);
 
@@ -24,7 +25,9 @@ function ensureStoreDir() {
 }
 
 function sanitize(value) {
-  return String(value || '').trim().replace(/[\r\n]+/g, ' ');
+  return String(value || "")
+    .trim()
+    .replace(/[\r\n]+/g, " ");
 }
 
 /**
@@ -43,10 +46,10 @@ function appendContactSubmission({ name, email, message } = {}) {
     name: sanitize(name),
     email: sanitize(email),
     message: sanitize(message),
-    receivedAt: new Date().toISOString()
+    receivedAt: new Date().toISOString(),
   });
-  fs.appendFileSync(STORE_PATH, `${record}\n`, 'utf8');
-  logger.info('[ContactSubmissions] Recorded submission:', id);
+  fs.appendFileSync(STORE_PATH, `${record}\n`, "utf8");
+  logger.info("[ContactSubmissions] Recorded submission:", id);
   return { success: true, id };
 }
 
@@ -57,8 +60,8 @@ function appendContactSubmission({ name, email, message } = {}) {
 function listContactSubmissions() {
   ensureStoreDir();
   if (!fs.existsSync(STORE_PATH)) return [];
-  const raw = fs.readFileSync(STORE_PATH, 'utf8');
-  const lines = raw.split('\n').filter(Boolean);
+  const raw = fs.readFileSync(STORE_PATH, "utf8");
+  const lines = raw.split("\n").filter(Boolean);
   return lines.map((line) => {
     try {
       return JSON.parse(line);
@@ -71,5 +74,5 @@ function listContactSubmissions() {
 module.exports = {
   appendContactSubmission,
   listContactSubmissions,
-  STORE_PATH
+  STORE_PATH,
 };

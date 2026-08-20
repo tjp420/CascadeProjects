@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 45: Access proof receipt.
@@ -9,7 +9,7 @@
  * @module hsm-adapter/access-proof-receipt
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 class AccessProofReceipt {
   /**
@@ -23,10 +23,10 @@ class AccessProofReceipt {
    * @param {number} options.timestamp
    */
   constructor(options = {}) {
-    this.requestingTenant = options.requestingTenant || '';
-    this.resourceOwnerTenant = options.resourceOwnerTenant || '';
-    this.operation = options.operation || '';
-    this.resourceId = options.resourceId || '';
+    this.requestingTenant = options.requestingTenant || "";
+    this.resourceOwnerTenant = options.resourceOwnerTenant || "";
+    this.operation = options.operation || "";
+    this.resourceId = options.resourceId || "";
     this.requesterSignatures = options.requesterSignatures || [];
     this.ownerSignatures = options.ownerSignatures || [];
     this.timestamp = options.timestamp || 0;
@@ -38,8 +38,8 @@ class AccessProofReceipt {
    * @returns {string}
    */
   serialize() {
-    const requesterSig = (this.requesterSignatures || []).join('|');
-    const ownerSig = (this.ownerSignatures || []).join('|');
+    const requesterSig = (this.requesterSignatures || []).join("|");
+    const ownerSig = (this.ownerSignatures || []).join("|");
     return `AUDIT:${this.requestingTenant}:${this.resourceOwnerTenant}:${this.operation}:${this.resourceId}:${this.timestamp}:${requesterSig}:${ownerSig}:${this.leafHash}`;
   }
 
@@ -49,13 +49,23 @@ class AccessProofReceipt {
    * @returns {object}
    */
   static parse(serialized) {
-    const parts = serialized.split(':');
-    if (parts.length !== 9 || parts[0] !== 'AUDIT') {
-      throw new Error('receipt does not follow canonical layout');
+    const parts = serialized.split(":");
+    if (parts.length !== 9 || parts[0] !== "AUDIT") {
+      throw new Error("receipt does not follow canonical layout");
     }
-    const [, requestingTenant, resourceOwnerTenant, operation, resourceId, timestamp, requesterSig, ownerSig, leafHash] = parts;
-    const requesterSignatures = requesterSig ? requesterSig.split('|') : [];
-    const ownerSignatures = ownerSig ? ownerSig.split('|') : [];
+    const [
+      ,
+      requestingTenant,
+      resourceOwnerTenant,
+      operation,
+      resourceId,
+      timestamp,
+      requesterSig,
+      ownerSig,
+      leafHash,
+    ] = parts;
+    const requesterSignatures = requesterSig ? requesterSig.split("|") : [];
+    const ownerSignatures = ownerSig ? ownerSig.split("|") : [];
     const receipt = new AccessProofReceipt({
       requestingTenant,
       resourceOwnerTenant,
@@ -66,14 +76,14 @@ class AccessProofReceipt {
       timestamp: Number(timestamp),
     });
     if (receipt.leafHash !== leafHash) {
-      throw new Error('receipt leaf hash mismatch');
+      throw new Error("receipt leaf hash mismatch");
     }
     return receipt;
   }
 
   _computeLeafHash() {
-    const canonical = `${this.requestingTenant}:${this.resourceOwnerTenant}:${this.operation}:${this.resourceId}:${this.timestamp}:${this.requesterSignatures.join(',')}:${this.ownerSignatures.join(',')}`;
-    return crypto.createHash('sha256').update(canonical).digest('hex');
+    const canonical = `${this.requestingTenant}:${this.resourceOwnerTenant}:${this.operation}:${this.resourceId}:${this.timestamp}:${this.requesterSignatures.join(",")}:${this.ownerSignatures.join(",")}`;
+    return crypto.createHash("sha256").update(canonical).digest("hex");
   }
 }
 

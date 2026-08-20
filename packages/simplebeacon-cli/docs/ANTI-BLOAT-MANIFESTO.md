@@ -16,7 +16,7 @@ AI coding assistants leave realistic-looking placeholders in repos:
 
 The industry response is often **heavy**: SaaS APIs, agent proxies, vendor dashboards, and pricing that starts at team tiers and climbs to **$5,000+ setup** for perimeter deployments.
 
-That stack is justified when you need centralized policy, SSO, and managed DLP. It is **overkill** when your immediate need is: *fail CI if Copilot left fake data in the PR.*
+That stack is justified when you need centralized policy, SSO, and managed DLP. It is **overkill** when your immediate need is: _fail CI if Copilot left fake data in the PR._
 
 ---
 
@@ -24,12 +24,12 @@ That stack is justified when you need centralized policy, SSO, and managed DLP. 
 
 ### Measured on Simplebeacon (May 2026)
 
-| Workload | Time | Notes |
-|----------|------|--------|
-| Credential pattern scan (~7 KB README-sized text) | **~0.022 ms** / call | `scanTextContent`, 500-iteration median |
-| Privacy pattern scan (same size) | **~0.14 ms** / call | `scanEnterprisePatterns` |
-| Full repo gate scan (`ai-platform/`, `--gate`) | **~4.0 s** | Includes file walk, rules, production-leak pass |
-| npm install surface | **0 runtime dependencies** | `package.json` has no `dependencies` |
+| Workload                                          | Time                       | Notes                                           |
+| ------------------------------------------------- | -------------------------- | ----------------------------------------------- |
+| Credential pattern scan (~7 KB README-sized text) | **~0.022 ms** / call       | `scanTextContent`, 500-iteration median         |
+| Privacy pattern scan (same size)                  | **~0.14 ms** / call        | `scanEnterprisePatterns`                        |
+| Full repo gate scan (`ai-platform/`, `--gate`)    | **~4.0 s**                 | Includes file walk, rules, production-leak pass |
+| npm install surface                               | **0 runtime dependencies** | `package.json` has no `dependencies`            |
 
 Reproduce:
 
@@ -71,12 +71,12 @@ CLI (simplebeacon.js)
 
 Rules are plain Node modules — no AST vendor lock-in for the community tier:
 
-| Module | What it catches |
-|--------|-----------------|
-| `fiction-kpi-patterns.js` | Hardcoded metrics vs baseline |
-| `production-leak.js` | Mock/sample paths in prod code |
+| Module                          | What it catches                   |
+| ------------------------------- | --------------------------------- |
+| `fiction-kpi-patterns.js`       | Hardcoded metrics vs baseline     |
+| `production-leak.js`            | Mock/sample paths in prod code    |
 | `credential-pattern-scanner.js` | AWS keys, JWTs, OpenAI keys, etc. |
-| `mock-data-schema-validator.js` | Sample JSON vs page specs |
+| `mock-data-schema-validator.js` | Sample JSON vs page specs         |
 
 ---
 
@@ -119,20 +119,20 @@ See: `packages/simplebeacon-cli/src/lib/path-utils.js`, `path-sanitizer.js`
 
 ## 5. The results
 
-| Claim | Evidence |
-|-------|----------|
+| Claim                         | Evidence                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------- |
 | Catches AI fake data patterns | `tests/fiction.test.js`, `tests/rules.test.js`, `tests/github-action.test.js` |
-| CI gate works | Simulated clean pass + mock-path fail in GitHub Action tests |
-| Zero runtime deps | `packages/simplebeacon-cli/package.json` |
-| Local-only trust | `docs/TRUST.md`, `--offline` mode |
+| CI gate works                 | Simulated clean pass + mock-path fail in GitHub Action tests                  |
+| Zero runtime deps             | `packages/simplebeacon-cli/package.json`                                      |
+| Local-only trust              | `docs/TRUST.md`, `--offline` mode                                             |
 
 **Cost comparison (illustrative):**
 
-| Approach | Marginal cost per scan | Data leaves laptop? |
-|----------|------------------------|---------------------|
-| Simplebeacon community | $0 | No (default) |
-| Cloud Teams tier (this repo's dashboard) | $49/mo | If you opt in |
-| Enterprise perimeter consulting | $5,000+ setup | Engagement-dependent |
+| Approach                                 | Marginal cost per scan | Data leaves laptop?  |
+| ---------------------------------------- | ---------------------- | -------------------- |
+| Simplebeacon community                   | $0                     | No (default)         |
+| Cloud Teams tier (this repo's dashboard) | $49/mo                 | If you opt in        |
+| Enterprise perimeter consulting          | $5,000+ setup          | Engagement-dependent |
 
 The community CLI is the **Robin Hood layer**: the same detection ideas, no invoice required.
 

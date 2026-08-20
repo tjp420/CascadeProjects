@@ -5,9 +5,9 @@
  * that are tracked by git (have an entry in .gitignore is missing).
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+const fs = require("fs");
+const path = require("path");
+const { execSync } = require("child_process");
 
 const ENV_FILE_PATTERNS = [
   /^\.env$/,
@@ -28,14 +28,24 @@ const ENV_FILE_PATTERNS = [
   /secrets\.json$/,
   /secret\.(yaml|yml)$/,
   /aws_credentials$/,
-  /service[_-]?account.*\.json$/
+  /service[_-]?account.*\.json$/,
 ];
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures',
-  'New folder'
+  "node_modules",
+  ".git",
+  "coverage",
+  "dist",
+  "build",
+  "archive",
+  ".simplebeacon",
+  "fixtures",
+  "docs",
+  "coming-soon",
+  "reports",
+  "simplebeacon-rule-tests",
+  "simplebeacon-toxic-fixtures",
+  "New folder",
 ]);
 
 function isEnvFile(basename) {
@@ -46,8 +56,8 @@ function isTrackedByGit(filePath) {
   try {
     execSync(`git check-ignore -q "${filePath}"`, {
       cwd: path.dirname(filePath),
-      stdio: 'pipe',
-      timeout: 5000
+      stdio: "pipe",
+      timeout: 5000,
     });
     return false; // File is ignored
   } catch {
@@ -56,14 +66,14 @@ function isTrackedByGit(filePath) {
 }
 
 function parseGitignore(dirPath) {
-  const gitignorePath = path.join(dirPath, '.gitignore');
+  const gitignorePath = path.join(dirPath, ".gitignore");
   let entries = new Set();
   try {
-    const content = fs.readFileSync(gitignorePath, 'utf8');
-    for (const line of content.split('\n')) {
+    const content = fs.readFileSync(gitignorePath, "utf8");
+    for (const line of content.split("\n")) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      entries.add(trimmed.replace(/^\//, ''));
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      entries.add(trimmed.replace(/^\//, ""));
     }
   } catch {
     // No .gitignore
@@ -73,13 +83,16 @@ function parseGitignore(dirPath) {
 
 function isGitignored(gitignoreEntries, relPath) {
   for (const entry of gitignoreEntries) {
-    const pattern = entry.replace(/\*/g, '.*').replace(/\?/g, '.');
-    const regex = new RegExp(`^${pattern}$|^${pattern}/|/${pattern}$|/${pattern}/`, 'i');
+    const pattern = entry.replace(/\*/g, ".*").replace(/\?/g, ".");
+    const regex = new RegExp(
+      `^${pattern}$|^${pattern}/|/${pattern}$|/${pattern}/`,
+      "i",
+    );
     if (regex.test(relPath)) return true;
     // Handle wildcard patterns like .env*
-    if (entry.includes('*')) {
-      const wildcardPattern = entry.replace(/\*/g, '.*');
-      const wildcardRegex = new RegExp(`^${wildcardPattern}$`, 'i');
+    if (entry.includes("*")) {
+      const wildcardPattern = entry.replace(/\*/g, ".*");
+      const wildcardRegex = new RegExp(`^${wildcardPattern}$`, "i");
       if (wildcardRegex.test(path.basename(relPath))) return true;
     }
   }
@@ -119,7 +132,7 @@ async function scanEnvInGit(rootDir, options = {}) {
       if (!entry.isFile()) continue;
       if (!isEnvFile(entry.name)) continue;
 
-      const relPath = path.relative(rootDir, fullPath).replace(/\\/g, '/');
+      const relPath = path.relative(rootDir, fullPath).replace(/\\/g, "/");
       const isIgnored = isGitignored(gitignoreEntries, relPath);
 
       if (!isIgnored) {
@@ -131,31 +144,33 @@ async function scanEnvInGit(rootDir, options = {}) {
         }
 
         findings.push({
-          ruleId: 'SB-SEC-008',
-          ruleName: tracked ? 'Secret File Tracked by Git' : 'Secret File Not Gitignored',
-          severity: tracked ? 'critical' : 'high',
+          ruleId: "SB-SEC-008",
+          ruleName: tracked
+            ? "Secret File Tracked by Git"
+            : "Secret File Not Gitignored",
+          severity: tracked ? "critical" : "high",
           line: 0,
           match: entry.name,
-          snippet: `${relPath} is ${tracked ? 'tracked by git' : 'not gitignored'} — add to .gitignore and rotate any exposed secrets`,
+          snippet: `${relPath} is ${tracked ? "tracked by git" : "not gitignored"} — add to .gitignore and rotate any exposed secrets`,
           tracked,
-          gitignored: isIgnored
+          gitignored: isIgnored,
         });
       }
     }
   }
 
   return {
-    rule: 'ENV_IN_GIT',
-    severity: findings.length ? 'critical' : 'none',
+    rule: "ENV_IN_GIT",
+    severity: findings.length ? "critical" : "none",
     count: findings.length,
     fileCount: findings.length,
     results: findings.map((f) => ({
-      filePath: path.join(rootDir, f.snippet.split(' ')[0]),
-      findings: [f]
+      filePath: path.join(rootDir, f.snippet.split(" ")[0]),
+      findings: [f],
     })),
     humanReadable: findings.length
-      ? `${findings.length} secret file(s) ${findings.some(f => f.tracked) ? 'tracked by git' : 'not properly gitignored'}. Add to .gitignore immediately and rotate exposed credentials.`
-      : 'No secret files detected outside .gitignore.'
+      ? `${findings.length} secret file(s) ${findings.some((f) => f.tracked) ? "tracked by git" : "not properly gitignored"}. Add to .gitignore immediately and rotate exposed credentials.`
+      : "No secret files detected outside .gitignore.",
   };
 }
 
