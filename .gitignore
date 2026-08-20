@@ -91,6 +91,9 @@ Domain/Backend/sample-report.json
 vscode-extension/token.txt
 *-token.txt
 ai-platform/data/.dev-jwt-secrets.json
+ai-platform/data/.dev-jwt-secrets.*
+**/.simplebeacon/test-*.db
+universal-token.txt
 
 # VS Code extension builds
 *.vsix
@@ -438,6 +441,11 @@ simplebeacon-vscode-merged/dashboard-web/assets/
 
 # Playwright reports
 **/playwright-report/
+
+# Local TLS certs (never commit private keys)
+certs/
+*.pem
+!sales/license/*.pem
 
 # Field engineer scratch docs
 docs/FIELD_ENGINEER_RUNBOOK.md

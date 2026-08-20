@@ -56,15 +56,15 @@
     <li><strong>Contact form submissions:</strong> name, email, message (processed by Formspree for routing)</li>
   </ul>
 
-  <h2>2. Zero-Upload Warranty</h2>
-  <p>SimpleBeacon warrants that:</p>
+  <h2>2. Zero Source-Code Upload</h2>
+  <p>SimpleBeacon is designed so that:</p>
   <ul>
-    <li>The CLI scanner (<code>simplebeacon scan</code>) makes zero network requests during scanning unless the user explicitly passes <code>--upload</code> to generate a certificate.</li>
+    <li>The CLI scanner does not upload source code. Online paid CI workflows may send aggregate scan telemetry; <code>--offline</code> and <code>--air-gapped</code> disable network activity.</li>
     <li>The browser sandbox scanner executes entirely in the client browser's memory. No source code is transmitted to any server. The sandbox is wiped when the browser tab closes.</li>
     <li>The VS Code extension shells out to the local CLI. No cloud API is invoked for scanning.</li>
     <li>The Enterprise Air-Gapped deployment operates with zero internet connectivity after initial Docker image pull. License tokens are validated locally using HMAC-SHA256.</li>
   </ul>
-  <p>This warranty is enforceable as a Service Level Agreement. Any violation constitutes a material breach of contract.</p>
+  <p>This technical description is not a separate service-level guarantee. Any contractual commitments are limited to the executed agreement and its security terms.</p>
 
   <h2>3. Data Custody SLA</h2>
   <p>SimpleBeacon explicitly warrants that it <strong>never acts as a data custodian</strong> for client proprietary IP. Specifically:</p>

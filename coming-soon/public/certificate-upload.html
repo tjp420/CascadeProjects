@@ -316,7 +316,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     },
     {
       q: 'How can I verify that my source code never leaves my machine?',
-      a: 'You can independently audit our zero-upload claim in three ways: (1) Open Chrome/Firefox DevTools (F12), go to the Network tab, and run a scan — you will see zero outbound payloads containing code. (2) Run Wireshark or tcpdump during a CLI scan to confirm zero external packet egress. (3) Enable Airplane Mode and verify both the browser sandbox and CLI scanner operate flawlessly offline. See our <a href="security.html">Security & Trust</a> page for detailed audit steps.'
+    a: 'You can verify that scans do not upload source code in three ways: (1) Open Chrome/Firefox DevTools and inspect requests during a browser scan. (2) Use Wireshark or tcpdump to inspect CLI traffic. (3) Enable Airplane Mode and verify browser and CLI offline modes. See our <a href="security.html">Security & Trust</a> page for details.'
     },
     {
       q: 'Does SimpleBeacon use a Content Security Policy (CSP)?',
@@ -761,7 +761,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Upload Your Scan Report</h1>
-            <p id="pageSubtitle">MCP Mode: Scan runs locally via CLI tools. Zero network activity. Your data never leaves this machine.</p>
+            <p id="pageSubtitle">MCP Mode: Scan runs locally via CLI tools. Use offline or air-gapped mode to disable network activity; source code is not uploaded.</p>
         </header>
 
         <div class="local-note">
