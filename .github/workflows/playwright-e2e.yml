@@ -58,9 +58,10 @@ jobs:
         working-directory: ai-platform/web/simplebeacon-dashboard
 
       - name: Run E2E Test Suite
-        run: npx start-server-and-test "npm run dev" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
-        working-directory: ai-platform/web/simplebeacon-dashboard
-        env:
+              # Wait for the backend health endpoint so the dashboard app has configuration and API ready
+              run: npx start-server-and-test "npm run dev" http://localhost:61455/api/health "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
+              working-directory: ai-platform/web/simplebeacon-dashboard
+              env:
           NODE_ENV: test
           CI: 'true'
           TOKEN_ACCOUNT_SIGNING_KEY: ${{ secrets.TOKEN_ACCOUNT_SIGNING_KEY || 'test-signing-key-placeholder-32-chars-long!' }}
