@@ -9,7 +9,7 @@
 
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { authorize } = require('../middleware/authorize.cjs');
+const { authenticate } = require('../middleware/auth.cjs');
 const { calculateProration, getTierMonthlyPrice, getTierAnnualPrice, tierDisplayName } = require('../lib/proration-calculator.cjs');
 
 const router = express.Router();
@@ -24,7 +24,7 @@ const billingLimiter = rateLimit({
 
 const TIER_ORDER = ['developer', 'team_pro', 'enterprise'];
 
-router.get('/tiers', billingLimiter, authorize('admin:all'), (req, res) => {
+router.get('/tiers', billingLimiter, authenticate, (req, res) => {
   const tiers = TIER_ORDER.map((tier) => ({
     id: tier,
     name: tierDisplayName(tier),
@@ -34,7 +34,7 @@ router.get('/tiers', billingLimiter, authorize('admin:all'), (req, res) => {
   res.json({ success: true, tiers });
 });
 
-router.post('/proration-preview', billingLimiter, authorize('admin:all'), (req, res) => {
+router.post('/proration-preview', billingLimiter, authenticate, (req, res) => {
   const { fromTier, toTier, periodStart, periodEnd, isAnnual } = req.body || {};
 
   if (!fromTier || !toTier) {
