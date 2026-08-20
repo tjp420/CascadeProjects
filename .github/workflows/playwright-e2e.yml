@@ -103,8 +103,8 @@ NODE
       - name: Start dashboard server in background and wait for /api/health
         working-directory: ai-platform/web/simplebeacon-dashboard
         run: |
-          # Start the dev server in the background and capture its PID so we can leave it running for the test steps
-          nohup npm run dev > dev.log 2>&1 &
+          # Start the dev server in the background on a fixed port and capture its PID so we can leave it running for the test steps
+          PORT=61455 nohup npm run dev > dev.log 2>&1 &
           echo $! > server.pid
 
           # Wait up to 120s for the backend health endpoint to respond
