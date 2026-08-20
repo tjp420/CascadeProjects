@@ -4,7 +4,9 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   forbidOnly: false,
-  retries: 0,
+  // Enable retries when running in CI (GitHub Actions) to mitigate transient flakiness.
+  // Use GITHUB_ACTIONS or CI env var so the workflow can control behavior.
+  retries: (process.env.GITHUB_ACTIONS || process.env.CI) ? 2 : 0,
   workers: 1,
   reporter: [["html", { outputFolder: "playwright-report" }]],
   timeout: 30_000,
