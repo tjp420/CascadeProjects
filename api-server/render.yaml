@@ -29,3 +29,29 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: PUBLIC_URL
+        value: https://simplebeacon.ai
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_LINK_INSTANT
+        sync: false
+      - key: STRIPE_LINK_EXECUTIVE
+        sync: false
+      - key: STRIPE_LINK_EU_SPRINT
+        sync: false
+      - key: SIMPLEBEACON_UPGRADE_URL
+        sync: false
+      - key: SIMPLEBEACON_JWT_SECRET
+        sync: false
+      - key: DB_POOL_MAX
+        sync: false
+      - key: DB_IDLE_TIMEOUT_MS
+        sync: false
+      - key: DB_CONNECT_TIMEOUT_MS
+        sync: false
+      - key: PROJECTED_INSTANCE_COUNT
+        sync: false
+      - key: DB_SERVER_MAX_CONNECTIONS
+        sync: false
+      - key: DB_SAFETY_FAIL_ON_EXCEED
+        sync: false
