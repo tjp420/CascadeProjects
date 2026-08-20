@@ -10,7 +10,7 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
     this._view = webviewView;
@@ -55,12 +55,15 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
                 content: data.content,
                 error: data.success ? undefined : data.error,
               });
-            } catch (e) {
+            } catch (err) {
+              // Log the parsing error for diagnostics but don't expose raw data to the webview
+              // eslint-disable-next-line no-console
+              console.error('Failed to parse AI context response:', err);
               this._view?.webview.postMessage({
                 command: 'setContext',
                 context: null,
                 content: '',
-                error: 'Invalid response from data server',
+                error: (err && (err as Error).message) || 'Invalid response from data server',
               });
             }
           });

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import * as os from 'os';
 
 const LOG_FILE_NAME = 'simplebeacon-accounts.jsonl';
 const MAX_LINES = 10000;
@@ -41,7 +42,7 @@ export class AccountTracker {
     } else if (contextOrPath.globalStorageUri) {
       dir = contextOrPath.globalStorageUri.fsPath;
     } else {
-      dir = path.join(require('os').tmpdir(), 'simplebeacon');
+      dir = path.join(os.tmpdir(), 'simplebeacon');
     }
     this.logPath = path.join(dir, LOG_FILE_NAME);
     try {

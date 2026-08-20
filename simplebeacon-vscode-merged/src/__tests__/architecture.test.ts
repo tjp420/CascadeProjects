@@ -13,10 +13,11 @@ describe('Architecture rules', () => {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-    } catch (err: any) {
+    } catch (err) {
       // depcruise exits non-zero when there are errors
-      output = err.stdout || '';
-      const stderr = err.stderr || '';
+      const e = err as any;
+      output = e?.stdout || '';
+      const stderr = e?.stderr || '';
       if (stderr) {
         throw new Error(`dependency-cruiser failed to run: ${stderr}`);
       }
@@ -34,8 +35,9 @@ describe('Architecture rules', () => {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-    } catch (err: any) {
-      output = err.stdout || '';
+    } catch (err) {
+      const e = err as any;
+      output = e?.stdout || '';
     }
 
     const lines = output.split('\n');
