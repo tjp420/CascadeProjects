@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTheme } from '@/hooks/useTheme';
 import { navigate } from '@/router/HashRouter';
+import { OfflineStatusBadge } from '@/components/OfflineStatusBadge';
 
 interface HeaderProps {
   isAuthenticated: boolean;
@@ -32,7 +33,7 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
+        <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="Open menu">
           <Menu className="h-5 w-5" />
         </Button>
         <div className="hidden sm:block">
@@ -73,14 +74,18 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
           </span>
         )}
 
-        <Button variant="ghost" size="icon" onClick={toggleTheme} title="Toggle theme">
+        <div className="hidden sm:block">
+          <OfflineStatusBadge />
+        </div>
+
+        <Button variant="ghost" size="icon" onClick={toggleTheme} title="Toggle theme" aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
           {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         </Button>
 
         {isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full" aria-label="User account menu">
                 <UserIcon className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>

@@ -11,25 +11,137 @@ import {
   Send,
   Trash2,
   Settings2,
+  Settings,
   FileText,
   Copy,
   Check,
   AlertCircle,
   Loader2,
   Sparkles,
+  RefreshCw,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 
+const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+
+type OllamaProbeResult =
+  | { status: 'online'; models: string[] }
+  | { status: 'cors_blocked' }
+  | { status: 'not_running' }
+  | { status: 'network_denied' }
+  | { status: 'unknown_error'; error: string };
+
+/**
+ * Probe Ollama directly from the browser. On the hosted dashboard, the server
+ * cannot reach the user's local Ollama, so we check from the browser instead.
+ * Returns detailed status info for the setup wizard.
+ */
+async function probeBrowserOllamaDetailed(baseUrl: string, timeoutMs = 2500): Promise<OllamaProbeResult> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.models)) {
+        const models = data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim());
+        return { status: 'online', models };
+      }
+      return { status: 'online', models: [] };
+    }
+    if (res.status === 403) return { status: 'cors_blocked' };
+    return { status: 'unknown_error', error: `HTTP ${res.status}` };
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return { status: 'not_running' };
+    // TypeError: Failed to fetch — could be CORS preflight failure or network denied
+    if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+      // Distinguish CORS from not-running: CORS preflight failures also throw TypeError
+      // but the connection was reachable. We can't reliably distinguish, so check
+      // if it's a secure context → localhost issue (Private Network Access).
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:' && window.isSecureContext) {
+        return { status: 'network_denied' };
+      }
+      return { status: 'not_running' };
+    }
+    return { status: 'unknown_error', error: err?.message || String(err) };
+  }
+}
+
+/**
+ * Backwards-compatible probe that returns just the model list (or null).
+ */
+async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<string[] | null> {
+  const result = await probeBrowserOllamaDetailed(baseUrl, timeoutMs);
+  return result.status === 'online' ? result.models : null;
+}
+
+/**
+ * Send a chat message directly to Ollama from the browser.
+ * Used when the server can't reach Ollama (hosted dashboard with local Ollama).
+ */
+async function chatWithBrowserOllama(
+  baseUrl: string,
+  model: string,
+  message: string,
+  history: Message[],
+  systemPrompt: string,
+): Promise<string> {
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/chat`;
+  // Models with built-in system prompts (via Modelfile) should NOT have their
+  // system prompt overridden by the chatbot's personality prompt — it causes
+  // conflicting instructions and incoherent output on small models.
+  const modelsWithBuiltInPrompt = ['unbreakable-oracle', 'unbreakable-oracle-final', 'unbreakable-oracle-single'];
+  const skipSystemPrompt = modelsWithBuiltInPrompt.some((m) => model.startsWith(m));
+  const messages = skipSystemPrompt
+    ? [...history.map((m) => ({ role: m.role, content: m.content })), { role: 'user', content: message }]
+    : [
+        { role: 'system', content: systemPrompt },
+        ...history.map((m) => ({ role: m.role, content: m.content })),
+        { role: 'user', content: message },
+      ];
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, messages, stream: false }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Ollama HTTP ${res.status}: ${errText.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return data.message?.content || data.response || '';
+}
+
 type Message = { role: 'user' | 'assistant'; content: string };
-type Provider = { id: string; label: string; available: boolean; model?: string; models?: string[] };
+type Provider = { id: string; label: string; available: boolean; model?: string; models?: string[]; description?: string };
 type Personality = 'helpful' | 'professional' | 'casual' | 'sarcastic' | 'technical' | 'creative' | 'oracle';
 
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
 const PROVIDER_REFRESH_MIN_INTERVAL_MS = 15000;
+const OLLAMA_REGISTRY_MODELS: string[] = [
+  'llama3.2', 'llama3.1', 'llama3', 'llama2',
+  'mistral', 'mistral-nemo', 'mixtral',
+  'codellama', 'codegemma', 'qwen2.5-coder', 'deepseek-coder-v2',
+  'phi3', 'phi3.5', 'gemma2', 'gemma',
+  'qwen2.5', 'qwen2', 'yi',
+  'llava', 'llava-llama3',
+  'dolphin-llama3', 'dolphin-mistral',
+  'wizardlm2', 'orca2',
+  'command-r', 'command-r-plus',
+  'starcoder2', 'stable-code',
+  'mathstral', 'granite-code',
+  'smollm2', 'llama3.2-vision',
+];
 const PROVIDER_MODEL_OPTIONS: Record<string, string[]> = {
-  ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3', 'qwen2.5-coder'],
+  ollama: OLLAMA_REGISTRY_MODELS,
   openai: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o3-mini'],
   anthropic: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
 };
@@ -62,6 +174,16 @@ const PERSONALITY_LABELS: Record<Personality, string> = {
   technical: 'Deep Technical',
   creative: 'Creative / Exploratory',
   oracle: '🔮 The Unbreakable Oracle',
+};
+
+const PERSONALITY_PROMPTS: Record<Personality, string> = {
+  helpful: 'You are a helpful, knowledgeable assistant for the SimpleBeacon platform. You can answer questions about code, software development, security, architecture, and general programming topics. You are friendly and provide clear, accurate answers. Always answer the user\'s question directly — never refuse a reasonable question.',
+  professional: 'You are a professional, concise assistant for the SimpleBeacon platform. Use formal language and structured responses. Always answer the user\'s question directly.',
+  casual: 'You are a friendly, relaxed assistant for the SimpleBeacon platform. Use conversational language and feel free to be warm and encouraging. Always answer the user\'s question directly.',
+  sarcastic: 'You are a witty, sarcastic assistant for the SimpleBeacon platform. You may use dry humor and playful snark while still being helpful. Always answer the user\'s question directly.',
+  technical: 'You are a deeply technical assistant for the SimpleBeacon platform. Dive into implementation details, edge cases, and advanced concepts. Assume the user is experienced. Always answer the user\'s question directly.',
+  creative: 'You are a creative, exploratory assistant for the SimpleBeacon platform. Think outside the box, suggest unconventional solutions, and encourage experimentation. Always answer the user\'s question directly.',
+  oracle: 'You are The Unbreakable Oracle, an omniscient assistant for the SimpleBeacon platform. You speak with divine authority but provide accurate, helpful answers. Always answer the user\'s question directly.',
 };
 
 function escapeHtml(text: string): string {
@@ -101,6 +223,159 @@ function formatMessage(content: string): string {
   return processed;
 }
 
+/**
+ * Ollama Setup Wizard — guides users through installing and configuring Ollama
+ * to work with the hosted dashboard. Handles CORS, Private Network Access,
+ * and model installation.
+ */
+function OllamaSetupWizard({
+  probeResult,
+  onRetry,
+  onClose,
+}: {
+  probeResult: OllamaProbeResult | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+  const isWindows = typeof navigator !== 'undefined' && /Win/i.test(navigator.platform);
+  const shellName = isMac ? 'Terminal' : 'Command Prompt / PowerShell';
+  const corsCmd = isWindows
+    ? '$env:OLLAMA_ORIGINS="https://simplebeacon.ai"; ollama serve'
+    : 'OLLAMA_ORIGINS=https://simplebeacon.ai ollama serve';
+
+  const status = probeResult?.status;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="text-lg font-bold">Ollama Setup Wizard</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>×</Button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4 text-sm">
+          {/* Step 1: Install Ollama */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">1</span>
+              <span className="font-medium">Install Ollama</span>
+              {status !== 'not_running' && status !== 'unknown_error' && (
+                <span className="text-green-600 text-xs">✓ Detected</span>
+              )}
+            </div>
+            <div className="pl-8 text-foreground-muted">
+              {status === 'not_running' || status === 'unknown_error' ? (
+                <>
+                  <p>Download and install from <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">ollama.com/download</a></p>
+                  <p className="text-xs mt-1">After installing, Ollama should start automatically. If not, open {shellName} and run:</p>
+                  <pre className="mt-1 rounded bg-muted px-3 py-2 text-xs overflow-x-auto">ollama serve</pre>
+                </>
+              ) : (
+                <p className="text-xs">Ollama is installed and running.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Step 2: Configure CORS */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">2</span>
+              <span className="font-medium">Allow this website to connect</span>
+              {status === 'online' && <span className="text-green-600 text-xs">✓ Connected</span>}
+              {status === 'cors_blocked' && <span className="text-red-600 text-xs">✗ Blocked</span>}
+            </div>
+            <div className="pl-8 text-foreground-muted">
+              {status === 'cors_blocked' ? (
+                <>
+                  <p>Ollama blocks requests from websites by default. You need to set the <code className="bg-muted px-1 rounded">OLLAMA_ORIGINS</code> environment variable.</p>
+                  <p className="text-xs mt-1">Open {shellName} and run (stop any running Ollama first with <code className="bg-muted px-1 rounded">Ctrl+C</code>):</p>
+                  <pre className="mt-1 rounded bg-muted px-3 py-2 text-xs overflow-x-auto select-all">{corsCmd}</pre>
+                  <p className="text-xs mt-2">This allows only simplebeacon.ai to connect. To allow all websites, use <code className="bg-muted px-1 rounded">OLLAMA_ORIGINS=*</code> instead.</p>
+                </>
+              ) : status === 'network_denied' ? (
+                <>
+                  <p>Your browser is blocking access to localhost from this website.</p>
+                  <p className="text-xs mt-1">Click the lock icon next to the URL → Site Settings → allow "Local Network Access". Then refresh this page.</p>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => {
+                    window.open('https://support.google.com/chrome/answer/14227606', '_blank', 'noopener');
+                  }}>How to allow in Chrome</Button>
+                </>
+              ) : status === 'online' ? (
+                <p className="text-xs">CORS is configured correctly.</p>
+              ) : (
+                <p className="text-xs">Complete step 1 first, then configure CORS.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Step 3: Install models */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">3</span>
+              <span className="font-medium">Install AI models</span>
+              {status === 'online' && probeResult?.models.length && probeResult.models.length > 0 ? (
+                <span className="text-green-600 text-xs">✓ {probeResult.models.length} model(s) found</span>
+              ) : status === 'online' ? (
+                <span className="text-yellow-600 text-xs">⚠ No models installed</span>
+              ) : null}
+            </div>
+            <div className="pl-8 text-foreground-muted">
+              <p className="text-xs">Install models in {shellName}:</p>
+              <pre className="mt-1 rounded bg-muted px-3 py-2 text-xs overflow-x-auto">ollama pull llama3.2</pre>
+              <p className="text-xs mt-2">Popular models:</p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {['llama3.2', 'mistral', 'phi3', 'codellama', 'gemma2', 'qwen2.5'].map(m => (
+                  <code key={m} className="rounded bg-muted px-2 py-0.5 text-xs select-all">ollama pull {m}</code>
+                ))}
+              </div>
+              {status === 'online' && probeResult?.models.length && probeResult.models.length > 0 && (
+                <>
+                  <p className="text-xs mt-2 font-medium">Your installed models:</p>
+                  <ul className="mt-1 text-xs list-disc list-inside">
+                    {probeResult.models.map(m => <li key={m}>{m}</li>)}
+                  </ul>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Step 4: Verify */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">4</span>
+              <span className="font-medium">Verify connection</span>
+            </div>
+            <div className="pl-8">
+              <p className="text-xs text-foreground-muted mb-2">After completing the steps above, click retry to test the connection.</p>
+              <Button size="sm" onClick={onRetry}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Retry connection
+              </Button>
+            </div>
+          </div>
+
+          {/* Current status summary */}
+          {probeResult && (
+            <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs">
+              <div className="font-medium mb-1">Current status: {
+                status === 'online' ? '🟢 Connected' :
+                status === 'cors_blocked' ? '🔴 CORS blocked' :
+                status === 'network_denied' ? '🟡 Network permission needed' :
+                status === 'not_running' ? '🔴 Ollama not running' :
+                '🔴 Unknown error'
+              }</div>
+              {status === 'unknown_error' && <div className="text-foreground-muted">Error: {probeResult.error}</div>}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChatbotView() {
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
@@ -122,6 +397,16 @@ export function ChatbotView() {
   const [localNetworkDenied, setLocalNetworkDenied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showOracleInstall, setShowOracleInstall] = useState(false);
+  const [ollamaProbeResult, setOllamaProbeResult] = useState<OllamaProbeResult | null>(null);
+  const [showOracleBanner, setShowOracleBanner] = useState(() => {
+    try {
+      return localStorage.getItem('simplebeacon_oracle_banner_dismissed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
   const [personality, setPersonality] = useState<Personality>(() => {
     try {
       const s = JSON.parse(localStorage.getItem('simplebeacon_chatbot_settings') || '{}');
@@ -243,11 +528,11 @@ export function ChatbotView() {
             modelMap[providerId] = models.filter((m): m is string => typeof m === 'string' && m.trim().length > 0);
           }
         }
-        setProviderModels(modelMap);
         const available = all.filter((p) => p.available);
-        setProviders(all);
         providersFetchedAtRef.current = Date.now();
         if (available.length > 0) {
+          setProviderModels(modelMap);
+          setProviders(all);
           const activeProvider = available[0];
           setSelectedProvider(activeProvider.id);
           const activeModel = (activeProvider.model || '').trim();
@@ -262,10 +547,79 @@ export function ChatbotView() {
           setConnectionText(`Ready — ${available.map((p) => p.label).join(', ')}`);
           setError(null);
         } else {
+          // Server reports no providers available. On the hosted dashboard, the server
+          // cannot reach the user's local Ollama. Probe directly from the browser to
+          // check if Ollama is running locally.
+          const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+          if (isHosted) {
+            setConnectionStatus('checking');
+            setConnectionText('Checking for local Ollama…');
+            const probeResult = await probeBrowserOllamaDetailed(BROWSER_OLLAMA_URL);
+            setOllamaProbeResult(probeResult);
+            if (probeResult.status === 'online' && probeResult.models.length > 0) {
+              const browserModels = probeResult.models;
+              const ollamaProvider: Provider = {
+                id: 'ollama',
+                label: 'Ollama (Local)',
+                available: true,
+                description: 'Local models via Ollama (detected from browser)',
+                model: browserModels[0],
+                models: browserModels,
+              };
+              const updatedAll = all.map((p) => p.id === 'ollama' ? ollamaProvider : p);
+              const modelMap2: Record<string, string[]> = { ...modelMap, ollama: browserModels };
+              setProviders(updatedAll);
+              setProviderModels(modelMap2);
+              // Only set provider/model if not already a valid Ollama choice —
+              // avoids clobbering the user's dropdown selection on re-probe.
+              setSelectedProvider((prev) => prev === 'ollama' ? prev : 'ollama');
+              const savedModel = modelPrefs['ollama'] || '';
+              const validModel = browserModels.includes(savedModel) ? savedModel : browserModels[0];
+              setModelPrefs((prev) => {
+                if (prev.ollama && browserModels.includes(prev.ollama)) return prev;
+                const next = { ...prev, ollama: validModel };
+                writeModelPrefs(next);
+                return next;
+              });
+              setSelectedModel((prev) => browserModels.includes(prev) ? prev : validModel);
+              setConnectionStatus('online');
+              setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
+              setError(null);
+              return;
+            } else if (probeResult.status === 'online' && probeResult.models.length === 0) {
+              // Ollama running but no models installed
+              setProviderModels(modelMap);
+              setProviders(all);
+              setSelectedProvider('');
+              setConnectionStatus('offline');
+              setConnectionText('Ollama running — no models installed');
+              setError('Ollama is running but has no models installed. Run `ollama pull llama3.2` in your terminal to install a model.');
+              return;
+            } else if (probeResult.status === 'cors_blocked') {
+              setProviderModels(modelMap);
+              setProviders(all);
+              setSelectedProvider('');
+              setConnectionStatus('offline');
+              setConnectionText('Ollama CORS blocked');
+              setError('Ollama is running but blocking requests from this website. Click "Setup Ollama" for instructions.');
+              return;
+            } else if (probeResult.status === 'network_denied') {
+              setLocalNetworkDenied(true);
+              setProviderModels(modelMap);
+              setProviders(all);
+              setSelectedProvider('');
+              setConnectionStatus('offline');
+              setConnectionText('Local Network Access blocked');
+              return;
+            }
+            // not_running or unknown_error — fall through to offline
+          }
+          setProviderModels(modelMap);
+          setProviders(all);
           setSelectedProvider('');
           setConnectionStatus('offline');
           setConnectionText('No AI provider configured');
-          setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.');
+          setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally with `ollama serve`.');
         }
         return;
       }
@@ -290,30 +644,46 @@ export function ChatbotView() {
     } finally {
       providerFetchInFlightRef.current = null;
     }
-  }, [apiBase, providers.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiBase]);
 
-  useEffect(() => {
-    if (!selectedProvider) {
+  const ORACLE_MODEL_ID = 'unbreakable-oracle';
+  const modelOptions = selectedProvider
+    ? (() => {
+        const discovered = providerModels[selectedProvider] || [];
+        const registry = PROVIDER_MODEL_OPTIONS[selectedProvider] || [];
+        // Discovered (installed) models first, then registry models not already discovered
+        const merged = [...discovered];
+        for (const m of registry) {
+          if (!merged.includes(m)) merged.push(m);
+        }
+        return merged;
+      })()
+    : [];
+  const isCustomModel = Boolean(selectedModel) && !modelOptions.includes(selectedModel);
+  const oracleInstalled = selectedProvider === 'ollama' && modelOptions.includes(ORACLE_MODEL_ID);
+
+  const handleProviderChange = useCallback((nextProvider: string) => {
+    setSelectedProvider(nextProvider);
+    if (!nextProvider) {
       setSelectedModel('');
       return;
     }
-    const providerOptions = providerModels[selectedProvider]?.length
-      ? providerModels[selectedProvider]
-      : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []);
-    const providerModel = providers.find((p) => p.id === selectedProvider)?.model || '';
-    const fromPrefs = modelPrefs[selectedProvider] || '';
-    setSelectedModel(fromPrefs || providerModel || providerOptions[0] || '');
-  }, [selectedProvider, modelPrefs, providerModels, providers]);
-
-  const modelOptions = selectedProvider
-    ? (providerModels[selectedProvider]?.length
-      ? providerModels[selectedProvider]
-      : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []))
-    : [];
-  const isCustomModel = Boolean(selectedModel) && !modelOptions.includes(selectedModel);
+    // Only use discovered models — never hardcoded fallbacks
+    const options = providerModels[nextProvider] || [];
+    const pref = modelPrefs[nextProvider] || '';
+    const providerModel = providers.find((p) => p.id === nextProvider)?.model || '';
+    const validPref = options.includes(pref) ? pref : '';
+    const validProviderModel = options.includes(providerModel) ? providerModel : '';
+    setSelectedModel(validPref || validProviderModel || options[0] || '');
+  }, [providerModels, modelPrefs, providers]);
 
   const handleModelSelectChange = useCallback((nextModel: string) => {
-    if (!selectedProvider || nextModel === '__custom__') return;
+    if (!selectedProvider) return;
+    if (nextModel === '__custom__') {
+      setSelectedModel('');
+      return;
+    }
     const nextPrefs = { ...modelPrefs, [selectedProvider]: nextModel };
     setModelPrefs(nextPrefs);
     writeModelPrefs(nextPrefs);
@@ -389,6 +759,42 @@ export function ChatbotView() {
     setMessages((prev) => [...prev, assistantPlaceholder]);
 
     try {
+      // If using Ollama on the hosted dashboard, send directly from the browser
+      // since the server cannot reach the user's local Ollama instance.
+      const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      if (selectedProvider === 'ollama' && isHosted) {
+        const systemPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.helpful;
+        const discovered = providerModels['ollama'] || [];
+        // Use the user's selection if it's installed, otherwise fall back to first installed.
+        // Allow selecting registry models that aren't installed yet — Ollama will 404 and
+        // we'll show a helpful "ollama pull" error.
+        const chatModel = selectedModel || discovered[0] || '';
+        if (!chatModel) {
+          throw new Error('No Ollama model selected. Please select a model from the dropdown.');
+        }
+        try {
+          const response = await chatWithBrowserOllama(
+            BROWSER_OLLAMA_URL,
+            chatModel,
+            msg,
+            messages,
+            systemPrompt,
+          );
+        setMessages((prev) => {
+          const next = [...prev];
+          next[assistantIndex] = { role: 'assistant', content: `[AI-Generated via Local AI] ${response}` };
+          return next;
+        });
+        return;
+        } catch (ollamaErr: unknown) {
+          const errMsg = ollamaErr instanceof Error ? ollamaErr.message : String(ollamaErr);
+          if (errMsg.includes('404') || errMsg.includes('not found')) {
+            throw new Error(`Model '${chatModel}' is not installed. Run this command in your terminal to install it:\n\nollama pull ${chatModel}\n\nThen refresh this page.`);
+          }
+          throw ollamaErr;
+        }
+      }
+
       const userId = localStorage.getItem('simplebeacon_user_id') || 'anonymous';
       const res = await fetch(apiUrl('/chatbot/message'), {
         method: 'POST',
@@ -615,6 +1021,118 @@ export function ChatbotView() {
         </div>
       )}
 
+      {showOracleBanner && connectionStatus !== 'checking' && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-purple-400/30 bg-purple-50/30 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 shrink-0 text-purple-600" />
+            <div>
+              <div className="font-medium">Try the Unbreakable Oracle</div>
+              <div className="text-xs text-foreground-muted">
+                Our custom local AI model — built on llama3.2 with a unique system prompt. Free to download.
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowOracleInstall(true)}>
+              <Download className="h-3.5 w-3.5 mr-1" /> Install
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => {
+              setShowOracleBanner(false);
+              try { localStorage.setItem('simplebeacon_oracle_banner_dismissed', 'true'); } catch { /* ignore */ }
+            }}>Dismiss</Button>
+          </div>
+        </div>
+      )}
+
+      {connectionStatus === 'offline' && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-400/30 bg-blue-50/30 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Settings className="h-4 w-4 shrink-0 text-blue-600 mt-0.5" />
+            <div>
+              <div className="font-medium">No AI provider connected</div>
+              <div className="text-xs text-foreground-muted">
+                {ollamaProbeResult?.status === 'cors_blocked'
+                  ? 'Ollama detected but CORS is blocking requests.'
+                  : ollamaProbeResult?.status === 'not_running'
+                  ? 'Ollama is not running or not installed.'
+                  : 'Set up Ollama or add an API key to start chatting.'}
+              </div>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setShowSetupWizard(true)}>
+            <Settings className="h-3.5 w-3.5 mr-1" /> Setup Ollama
+          </Button>
+        </div>
+      )}
+
+      {showSetupWizard && (
+        <OllamaSetupWizard
+          probeResult={ollamaProbeResult}
+          onRetry={async () => {
+            setShowSetupWizard(false);
+            setConnectionStatus('checking');
+            setConnectionText('Re-checking for local Ollama…');
+            await refreshProviders(true);
+          }}
+          onClose={() => setShowSetupWizard(false)}
+        />
+      )}
+
+      {showOracleInstall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowOracleInstall(false)}>
+          <div className="mx-4 max-w-lg rounded-lg border bg-background p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Install Unbreakable Oracle</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(false)}>×</Button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              The Unbreakable Oracle is a custom LLM based on llama3.2 (3.2B) with a unique system prompt
+              ("Reality's Immune System"). Install it on your local Ollama to use it in the chatbot.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium mb-1">Step 1: Download the Modelfile</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile`}</pre>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This downloads a small text file (2 KB). The actual 1.88 GB model file is fetched automatically in Step 2.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Step 2: Create the model in Ollama</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`ollama create unbreakable-oracle -f Modelfile`}</pre>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This downloads the 1.88 GB GGUF file from our CDN and registers the model. Takes ~5 min on average broadband.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Step 3: Run it</p>
+                <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`ollama run unbreakable-oracle`}</pre>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Or just select "unbreakable-oracle" from the model dropdown above and start chatting.
+                </p>
+              </div>
+              <div className="border-t pt-3">
+                <p className="text-sm font-medium mb-1">Already have llama3.2 installed?</p>
+                <p className="text-xs text-muted-foreground">
+                  The Oracle is llama3.2 with a custom system prompt. If you already have llama3.2,
+                  just select it from the dropdown — the Oracle personality is applied automatically by the chatbot.
+                  No need to install anything extra.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowOracleInstall(false)}>Close</Button>
+              <Button size="sm" onClick={() => {
+                navigator.clipboard.writeText('curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle');
+                toast.success('Copied all 3 commands to clipboard');
+              }}>
+                <Copy className="h-3.5 w-3.5 mr-1" /> Copy all commands
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2">
@@ -624,7 +1142,7 @@ export function ChatbotView() {
           <div className="flex items-center gap-2">
             <select
               value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
+              onChange={(e) => handleProviderChange(e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Provider"
             >
@@ -637,13 +1155,26 @@ export function ChatbotView() {
             </select>
             <select
               value={isCustomModel ? '__custom__' : selectedModel}
-              onChange={(e) => handleModelSelectChange(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value === '__oracle_install__') {
+                  setShowOracleInstall(true);
+                  return;
+                }
+                handleModelSelectChange(e.target.value);
+              }}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Model"
               disabled={!selectedProvider}
               title="Select AI model"
             >
               {!selectedProvider && <option value="" disabled>Select provider first</option>}
+              {selectedProvider === 'ollama' && (
+                oracleInstalled ? (
+                  <option value={ORACLE_MODEL_ID}>★ unbreakable-oracle (installed)</option>
+                ) : (
+                  <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
+                )
+              )}
               {modelOptions.map((model) => (
                 <option key={model} value={model}>{model}</option>
               ))}
@@ -657,13 +1188,16 @@ export function ChatbotView() {
               placeholder="Custom model"
               disabled={!selectedProvider}
             />
-            <Button variant="ghost" size="sm" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt">
+            <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model" aria-label="Install Unbreakable Oracle model">
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt" aria-label="Custom system prompt">
               <FileText className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} title="Settings">
+            <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} title="Settings" aria-label="Settings">
               <Settings2 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleClear} title="Clear history">
+            <Button variant="ghost" size="sm" onClick={handleClear} title="Clear history" aria-label="Clear history">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -784,6 +1318,7 @@ export function ChatbotView() {
               disabled={isLoading || connectionStatus !== 'online' || !input.trim()}
               size="icon"
               className="h-auto"
+              aria-label="Send message"
             >
               <Send className="h-4 w-4" />
             </Button>

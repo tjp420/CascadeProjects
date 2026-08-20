@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
+import { setLargeItem, removeLargeItem } from '@/utils/dbStorage';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
 import { captureDropEntries, collectFilesFromDrop, type VirtualFile } from '@/services/dropFolderTraversal';
@@ -304,6 +305,33 @@ export function AnalyzeView() {
     }
   }, []);
 
+  // Expose a dev/test-only storage helper on the window for E2E tests.
+  useEffect(() => {
+    try {
+      const isDev = (import.meta as any)?.env?.MODE === 'development';
+      const isE2EParam = typeof window !== 'undefined' && window.location.search.includes('sb_e2e');
+      if (typeof window !== 'undefined' && (isDev || isE2EParam)) {
+        (window as any).SimpleBeaconStorage = {
+          saveReport: async (id: string, report: any) => {
+            try {
+              await setLargeItem('sb_last_scan_report', report);
+            } catch (e) {
+              // best-effort write — fall through
+            }
+            try { localStorage.setItem('sb_last_scan_report_storage', 'indexeddb'); } catch (_e) { /* ignore */ }
+            try { localStorage.setItem('sb_last_scan_id', id); } catch (_e) { /* ignore */ }
+            try { window.dispatchEvent(new Event('storage')); } catch (_e) { /* ignore */ }
+          }
+        };
+      }
+    } catch (_e) {
+      console.debug('[AnalyzeView] Environment detection failed:', _e);
+    }
+    return () => {
+      try { if (typeof window !== 'undefined') delete (window as any).SimpleBeaconStorage; } catch (_e) { }
+    };
+  }, []);
+
   // Auto-open Local Agent modal when Local Network Access is denied
   useEffect(() => {
     if (localNetworkDenied) setShowAgentModal(true);
@@ -488,6 +516,7 @@ export function AnalyzeView() {
       try {
         localStorage.removeItem('sb_last_scan_report');
         localStorage.removeItem('sb_last_scan_full');
+        try { removeLargeItem('sb_last_scan_report'); } catch (_e) { /* ignore */ }
       } catch { /* ignore */ }
     };
 
@@ -520,18 +549,28 @@ export function AnalyzeView() {
         : (Array.isArray(fullReportData?.detectedIssues) ? fullReportData.detectedIssues : []);
       const useCompactFirst = rawIssues.length > 200 || (scanResult.issueCount ?? 0) > 500;
       const payload = useCompactFirst ? buildCompactReport(fullReportData) : fullReportData;
-      try {
-        storeReportPayload(payload);
-      } catch (e) {
-        console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
-        clearBulkyScanKeys();
+      // Try to persist the large payload into IndexedDB first (durable, async). If that fails,
+      // fall back to the existing localStorage strategy (compact payload where necessary).
+      (async () => {
         try {
-          storeReportPayload(buildCompactReport(fullReportData));
-        } catch (compactErr) {
-          console.warn('[SimpleBeacon] Failed to store compact sb_last_scan_report:', compactErr);
-          toast.warning('Findings list not saved to browser storage — use Export on the Results page or re-scan after clearing site data.');
+          await setLargeItem('sb_last_scan_report', payload);
+          try { localStorage.setItem('sb_last_scan_report_storage', 'indexeddb'); } catch { /* ignore */ }
+        } catch (dbErr) {
+          console.warn('[SimpleBeacon] IndexedDB store failed, falling back to localStorage:', dbErr);
+          try {
+            storeReportPayload(payload);
+          } catch (e) {
+            console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
+            clearBulkyScanKeys();
+            try {
+              storeReportPayload(buildCompactReport(fullReportData));
+            } catch (compactErr) {
+              console.warn('[SimpleBeacon] Failed to store compact sb_last_scan_report:', compactErr);
+              toast.warning('Findings list not saved to browser storage — use Export on the Results page or re-scan after clearing site data.');
+            }
+          }
         }
-      }
+      })();
     }
     try {
       localStorage.setItem('sb_last_scan_time', new Date().toISOString());
@@ -579,11 +618,21 @@ export function AnalyzeView() {
     }
     if (scanInFlightRef.current) return;
     scanInFlightRef.current = true;
+    // Clear stale scan data from previous scans so ResultsView doesn't show old findings
+    try {
+      localStorage.removeItem('sb_last_scan_full');
+      localStorage.removeItem('sb_last_scan_report');
+      localStorage.removeItem('sb_last_scan_time');
+      localStorage.removeItem('sb_last_scan_report_storage');
+      removeLargeItem('sb_last_scan_report');
+    } catch { /* ignore */ }
     setScanState('scanning');
     setProgress(2);
     setProgressLabel('Preparing files for scanning...');
     setTerminalOutput([]);
     setRequiresManualTrigger(false);
+    setResult(null);
+    setFullReport(null);
     setPath(options.projectPath);
     appendLog(`[SimpleBeacon] ${options.logLabel || 'Browser local scan'}...`);
     try {
@@ -597,7 +646,7 @@ export function AnalyzeView() {
             setProgress(Math.min(15, Math.round((processed / total) * 15)));
             setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
           } else {
-            setProgress(2);
+            setProgress(Math.min(10, 2 + Math.round(processed / 500)));
             setProgressLabel(label);
           }
         },
@@ -751,6 +800,16 @@ export function AnalyzeView() {
       return;
     }
     scanInFlightRef.current = true;
+    // Clear stale scan data from previous scans so ResultsView doesn't show old findings
+    try {
+      localStorage.removeItem('sb_last_scan_full');
+      localStorage.removeItem('sb_last_scan_report');
+      localStorage.removeItem('sb_last_scan_time');
+      localStorage.removeItem('sb_last_scan_report_storage');
+      removeLargeItem('sb_last_scan_report');
+    } catch { /* ignore */ }
+    setResult(null);
+    setFullReport(null);
     let scanInput = path.trim();
 
     // Reject page URL or fragment as scan path
@@ -835,7 +894,7 @@ export function AnalyzeView() {
               setProgress(pct);
               setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
             } else {
-              setProgress(5);
+              setProgress(Math.min(10, 2 + Math.round(processed / 500)));
               setProgressLabel(label);
             }
           },
@@ -1354,8 +1413,23 @@ export function AnalyzeView() {
     }
 
     if (capturedEntries.length > 0) {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel(`Reading dropped files... (${capturedEntries.length} ${capturedEntries.length === 1 ? 'entry' : 'entries'})`);
+      setTerminalOutput([`[SimpleBeacon] Traversing dropped ${capturedEntries.length === 1 ? 'item' : 'items'}...`]);
+      setRequiresManualTrigger(false);
+      let lastProgressUpdate = 0;
       try {
-        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries);
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries, {
+          onProgress: (count) => {
+            // Throttle progress updates to once per 100ms to avoid flooding React
+            const now = Date.now();
+            if (now - lastProgressUpdate > 100) {
+              lastProgressUpdate = now;
+              setProgressLabel(`Reading dropped files... ${count.toLocaleString()} files found`);
+            }
+          },
+        });
         if (files.length > 0) {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
@@ -1408,6 +1482,11 @@ export function AnalyzeView() {
     }
 
     if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel('Reading dropped folder...');
+      setTerminalOutput(['[SimpleBeacon] Resolving dropped folder via File System Access API...']);
+      setRequiresManualTrigger(false);
       try {
         const handle = await firstItem.getAsFileSystemHandle();
         if (handle && handle.kind === 'directory') {
@@ -1426,6 +1505,11 @@ export function AnalyzeView() {
     }
 
     if (dtFiles.length > 0) {
+      setScanState('scanning');
+      setProgress(1);
+      setProgressLabel(`Reading ${dtFiles.length.toLocaleString()} dropped file${dtFiles.length === 1 ? '' : 's'}...`);
+      setTerminalOutput([`[SimpleBeacon] Processing ${dtFiles.length} dropped file${dtFiles.length === 1 ? '' : 's'}...`]);
+      setRequiresManualTrigger(false);
       const flatFiles: VirtualFile[] = [];
       const hasRelativePath = dtFiles.some((f) => {
         const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
@@ -1585,8 +1669,13 @@ export function AnalyzeView() {
         return;
       }
     }
-    // 2. Try browser-native directory picker
+    // 2. Try browser-native directory picker (Chrome/Edge)
+    // On Firefox (no showDirectoryPicker), click the webkitdirectory input
+    // synchronously to preserve the user gesture chain.
     if (typeof (window as any).showDirectoryPicker !== 'function') {
+      // Must call .click() synchronously — no awaits before this point
+      // or Firefox will break the user gesture chain.
+      // The bridgeBase check above is the only async path, and it returns early.
       folderInputRef.current?.click();
       return;
     }
@@ -1605,12 +1694,18 @@ export function AnalyzeView() {
         setPath(handle.name);
         toast.info(`Folder selected: ${handle.name}`);
         (window as any).__sbDroppedDirHandle = handle;
+        // Auto-start scan using the directory handle (bypasses webkitdirectory ~3000 file cap)
+        await runBrowserLocalScan({
+          dirHandle: handle,
+          projectPath: handle.name,
+          logLabel: `Browser local scan via File System Access API (${handle.name})`,
+        });
       }
     } catch {
-      // User cancelled or permission denied — fall back to input
+      // User cancelled or permission denied — fall back to webkitdirectory input
       folderInputRef.current?.click();
     }
-  }, [bridgeBase, bridgeToken, hosted]);
+  }, [bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
 
   const modeTabs: { key: ScanMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = websiteMode
     ? [
@@ -1672,7 +1767,7 @@ export function AnalyzeView() {
         </div>
       )}
       {/* Hidden file inputs used for folder fallback and upload */}
-      <input ref={uploadInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={async (e) => {
+      <input ref={uploadInputRef} type="file" accept="application/json" aria-label="Upload scan JSON" style={{ display: 'none' }} onChange={async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return; try {
           const txt = await f.text();
@@ -1918,6 +2013,11 @@ export function AnalyzeView() {
               >
                 <Folder className="mx-auto h-10 w-10 text-foreground-muted" />
                 <p className="mt-2 text-sm text-foreground-muted">Drag a folder here to scan immediately, or browse</p>
+                {typeof (window as any).showDirectoryPicker !== 'function' && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    For large folders (3,000+ files), drag-and-drop is recommended — the file picker has a browser-imposed limit.
+                  </p>
+                )}
                 <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
                   Browse Folder
                 </Button>
@@ -2009,7 +2109,7 @@ export function AnalyzeView() {
                   size="sm"
                   onClick={() => {
                     setRequiresManualTrigger(false);
-                    folderInputRef.current?.click();
+                    handleBrowseFolder();
                   }}
                 >
                   Select Folder
@@ -2094,6 +2194,7 @@ export function AnalyzeView() {
         ref={folderInputRef}
         type="file"
         className="hidden"
+        aria-label="Select folder to scan"
         // @ts-ignore
         webkitdirectory=""
         directory=""

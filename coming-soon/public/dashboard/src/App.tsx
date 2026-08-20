@@ -3,6 +3,7 @@ import { getCurrentRoute, navigate } from './router/HashRouter';
 import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
 import { BrandProvider } from './contexts/BrandContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { isTokenExpired } from './config';
@@ -39,10 +40,13 @@ import { EnterpriseView } from './views/EnterpriseView';
 import { OutreachAnalyticsView } from './views/OutreachAnalyticsView';
 import { WorkspaceConfigView } from './views/WorkspaceConfigView';
 import { FineTuningCurationView } from './views/FineTuningCurationView';
-import { AnalyticsView } from './views/AnalyticsView';
+import { WebhookEventsView } from './views/WebhookEventsView';
+import { OpsReportView } from './views/OpsReportView';
+import { LicenseManagerView } from './views/LicenseManagerView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
+const TelemetryView = lazy(() => import('./views/TelemetryView').then(m => ({ default: m.TelemetryView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const AUTH_REQUIRED_VIEWS = new Set(['organization', 'workspace']);
@@ -96,10 +100,13 @@ const VIEW_TITLES: Record<string, string> = {
   organization: 'Organization',
   enterprise: 'Enterprise',
   'team-metrics': 'Team Metrics',
+  'telemetry': 'Advanced Telemetry',
   'outreach-analytics': 'Outreach Analytics',
   workspace: 'Workspace',
   'fine-tuning': 'Fine-Tuning Curation',
-  analytics: 'Analytics',
+  'webhook-events': 'Webhook Events',
+  'ops-report': 'Ops Report',
+  'license-manager': 'License Manager',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -131,10 +138,13 @@ const viewMap: Record<string, React.ComponentType> = {
   organization: OrganizationView,
   enterprise: EnterpriseView,
   'team-metrics': TeamMetricsView,
+  'telemetry': TelemetryView,
   'outreach-analytics': OutreachAnalyticsView,
   workspace: WorkspaceConfigView,
   'fine-tuning': FineTuningCurationView,
-  analytics: AnalyticsView,
+  'webhook-events': WebhookEventsView,
+  'ops-report': OpsReportView,
+  'license-manager': LicenseManagerView,
 };
 
 export default function App() {
@@ -196,9 +206,11 @@ export default function App() {
           isFreeTier={isFreeTier}
           user={user}
         >
+          <ErrorBoundary key={route.view}>
           <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
             <CurrentView />
           </Suspense>
+          </ErrorBoundary>
         </AppShell>
       </ToastProvider>
     </BrandProvider>

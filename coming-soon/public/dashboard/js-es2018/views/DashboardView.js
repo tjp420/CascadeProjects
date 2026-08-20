@@ -8,6 +8,7 @@ import { mountTeamGatePassTrendChart } from '../components/TeamGatePassTrendChar
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { mountPolicyEditor } from '../components/PolicyEditor.js?v=20260807policy1';
+import { CliReportUploadZone } from '../components/CliReportUploadZone.js?v=20260807upload1';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
 const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
@@ -238,6 +239,7 @@ export class DashboardView {
 
         if (!report && !scanning) {
             container.appendChild(this.renderQuickStart());
+            container.appendChild(this.renderCliUploadZone());
             container.appendChild(this.renderFeatureDiscovery());
             return container;
         }
@@ -371,6 +373,47 @@ export class DashboardView {
             view,
             '\n            <h3 class="h5 mb-2">How to run your first scan</h3>\n            <ol class="dashboard-quickstart-steps text-sm text-muted">\n                <li><strong>Drop or browse</strong> a folder in the scan panel above, or paste an absolute server path.</li>\n                <li>Click <strong>Scan</strong> — engines run locally or on your SimpleBeacon server.</li>\n                <li>Review the gate score, findings, and remediation roadmap below when complete.</li>\n            </ol>\n            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">\n                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Open Analyze (full modes)</button>\n                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>\n            </div>\n        '
         );;
+        return view;
+    }
+
+    renderCliUploadZone() {
+        const view = document.createElement('div');
+        view.className = 'dashboard-cli-upload card p-4';
+        view.id = 'dashboard-cli-upload-slot';
+
+        const header = document.createElement('div');
+        header.style.cssText = 'margin-bottom:12px;';
+        header.innerHTML = `
+            <h3 class="h5 mb-1">Import CLI Report</h3>
+            <p class="text-sm text-muted mb-0">
+                Drop a <code>simplebeacon scan --format json</code> output file to instantly visualize
+                gate status, severity counts, alert cards, and rule coverage.
+            </p>
+        `;
+        view.appendChild(header);
+
+        const zoneContainer = document.createElement('div');
+        view.appendChild(zoneContainer);
+
+        // Mount the upload zone after the element is in the DOM
+        requestAnimationFrame(() => {
+            this._cliUploadZone = new CliReportUploadZone(zoneContainer, {
+                onReportLoaded: (adapted, raw) => {
+                    // Store the report in app state and re-render
+                    this.app.state.report = raw;
+                    this.app.state.lastReportSource = 'cli-upload';
+                    if (this.app.scanService) {
+                        try { this.app.scanService.notifyReportListeners(raw); } catch { /* ignore */ }
+                    }
+                    this.render();
+                },
+                onError: (err) => {
+                    showToast(err.message, 'error');
+                }
+            });
+            this._cliUploadZone.mount();
+        });
+
         return view;
     }
 

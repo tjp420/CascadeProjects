@@ -55,7 +55,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
-  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === 'simplebeacon.ai' || location.hostname === 'www.simplebeacon.ai' || location.hostname.endsWith('.onrender.com'))) ? '' : 'https://simplebeacon.ai',
+  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === 'simplebeacon.ai' || location.hostname.endsWith('.simplebeacon.pages.dev') || location.hostname.endsWith('.onrender.com'))) ? '' : 'https://simplebeacon.ai',
   dashboardUrl: '/dashboard/',
   dashboardAppUrl: '/dashboard/',
   stagingMode: false,
@@ -64,24 +64,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
   // Unified product configuration — single source of truth for upload.html + certificate-upload.html
   products: {
-    developer: {
-      label: 'Developer',
-      price: '$49/mo',
-      title: 'Upload Your Scan Report',
-      subtitle: 'Unlimited scans, CI gate, 38 analyzers, PDF certificates, export formats. Developer tier.',
-      showUpload: true,
-      scanCommand: 'npx simplebeacon scan --gate --offline',
-      tokenHelp: 'Paste your Developer license token. Includes all engines, PDF generation, and CI gate.'
-    },
-    team_pro: {
-      label: 'Team Pro',
-      price: '$149/mo',
-      title: 'Upload Your Scan Report',
-      subtitle: 'EU AI Act, SOC 2, board-ready certificates, 5 seats. Team Pro tier.',
-      showUpload: true,
-      scanCommand: 'npx simplebeacon scan --gate --offline',
-      tokenHelp: 'Paste your Team Pro license token. Includes EU AI Act, SOC 2, and board-ready certs.'
-    },
     instant: {
       label: '$19 Instant',
       price: '$19',
@@ -158,19 +140,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
   // Analysis types per tier — certificate-upload.html source of truth
   analysisTypes: {
-    developer: [
-      { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-      { id: 'codebase', label: '🧹 Codebase' },
-      { id: 'mock-scan', label: '🔍 Mock data' },
-      { id: 'complete', label: '🔬 Complete Scan' }
-    ],
-    team_pro: [
-      { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-      { id: 'codebase', label: '🧹 Codebase' },
-      { id: 'mock-scan', label: '🔍 Mock data' },
-      { id: 'compliance', label: '✅ Compliance' },
-      { id: 'complete', label: '🔬 Complete Scan' }
-    ],
     community: [
       { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
       { id: 'complete', label: '🔬 Complete Scan' }
@@ -217,8 +186,6 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   // Tier profiles — upload.html source of truth
   tierProfiles: {
     locked: [],
-    developer: ['gate', 'codebase', 'mock-data', 'complete'],
-    team_pro: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],
     community: ['gate'],
     instant: ['gate', 'instant', 'mock-data'],
     aislopcop: ['gate', 'aislopcop', 'complete'],

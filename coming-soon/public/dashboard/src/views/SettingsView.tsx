@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor } from 'lucide-react';
+import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor, Copy } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { isNotificationsEnabled, setNotificationsEnabled as setNotificationsPref
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { ReferralAnalyticsPanel } from '@/components/ReferralAnalyticsPanel';
+import { ProrationPreview } from '@/components/ProrationPreview';
 
 interface AiKeysState {
   openai: { configured: boolean; hint: string };
@@ -25,11 +26,50 @@ interface AiKeysState {
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
 const PROVIDER_DISCOVERY_CACHE_KEY = 'simplebeacon_provider_discovery_cache';
 const PROVIDER_DISCOVERY_TTL_MS = 15000;
+const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+const OLLAMA_REGISTRY_MODELS: string[] = [
+  'llama3.2', 'llama3.1', 'llama3', 'llama2',
+  'mistral', 'mistral-nemo', 'mixtral',
+  'codellama', 'codegemma', 'qwen2.5-coder', 'deepseek-coder-v2',
+  'phi3', 'phi3.5', 'gemma2', 'gemma',
+  'qwen2.5', 'qwen2', 'yi',
+  'llava', 'llava-llama3',
+  'dolphin-llama3', 'dolphin-mistral',
+  'wizardlm2', 'orca2',
+  'command-r', 'command-r-plus',
+  'starcoder2', 'stable-code',
+  'mathstral', 'granite-code',
+  'smollm2', 'llama3.2-vision',
+];
 const PROVIDER_MODEL_OPTIONS: Record<'ollama' | 'openai' | 'anthropic', string[]> = {
-  ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3', 'qwen2.5-coder'],
+  ollama: OLLAMA_REGISTRY_MODELS,
   openai: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o3-mini'],
   anthropic: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
 };
+
+/**
+ * Probe Ollama directly from the browser (for hosted dashboard where server
+ * can't reach user's local Ollama). Returns discovered model names or null.
+ */
+async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<string[] | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data.models)) {
+      return data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim());
+    }
+    return [];
+  } catch {
+    return null;
+  }
+}
 
 function readModelPrefs(): Record<string, string> {
   if (typeof window === 'undefined') return {};
@@ -82,6 +122,22 @@ function writeProviderDiscoveryCache(ollamaModels: string[]) {
 export function SettingsView() {
   const [enabled, setEnabled] = useState(isNotificationsEnabled());
   const { user } = useAuth();
+  const [defaultProjectPath, setDefaultProjectPath] = useState(() => localStorage.getItem('simplebeacon_default_project_path') || '');
+  const [productionPaths, setProductionPaths] = useState(() => localStorage.getItem('simplebeacon_production_paths') || '');
+  const [savingPaths, setSavingPaths] = useState(false);
+
+  const handleSavePaths = useCallback(() => {
+    setSavingPaths(true);
+    try {
+      localStorage.setItem('simplebeacon_default_project_path', defaultProjectPath);
+      localStorage.setItem('simplebeacon_production_paths', productionPaths);
+      toast.success('Scan paths saved');
+    } catch {
+      toast.error('Failed to save scan paths');
+    } finally {
+      setSavingPaths(false);
+    }
+  }, [defaultProjectPath, productionPaths]);
 
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-6">
@@ -98,6 +154,7 @@ export function SettingsView() {
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="referrals">Referrals</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ai">
@@ -116,14 +173,14 @@ export function SettingsView() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Default Project Path</Label>
-                <Input placeholder="/path/to/project" />
+                <Label htmlFor="default-project-path">Default Project Path</Label>
+                <Input id="default-project-path" placeholder="/path/to/project" value={defaultProjectPath} onChange={(e) => setDefaultProjectPath(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Production Paths</Label>
-                <Input placeholder="server/, src/, web/" />
+                <Label htmlFor="production-paths">Production Paths</Label>
+                <Input id="production-paths" placeholder="server/, src/, web/" value={productionPaths} onChange={(e) => setProductionPaths(e.target.value)} />
               </div>
-              <Button>Save Paths</Button>
+              <Button onClick={handleSavePaths} disabled={savingPaths}>{savingPaths ? 'Saving...' : 'Save Paths'}</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -159,6 +216,10 @@ export function SettingsView() {
 
         <TabsContent value="referrals">
           <ReferralAnalyticsPanel userEmail={user?.email} />
+        </TabsContent>
+
+        <TabsContent value="billing">
+          <ProrationPreview />
         </TabsContent>
       </Tabs>
     </div>
@@ -261,7 +322,7 @@ function ApiKeysTab() {
           <>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>OpenAI API Key</Label>
+                <Label htmlFor="openai-api-key">OpenAI API Key</Label>
                 {openaiHint && (
                   <Badge variant="outline" className="gap-1 text-xs">
                     <Check className="h-3 w-3 text-success" /> {openaiHint}
@@ -269,6 +330,7 @@ function ApiKeysTab() {
                 )}
               </div>
               <Input
+                id="openai-api-key"
                 type="password"
                 placeholder={openaiHint ? 'sk-… (configured — enter new key to replace)' : 'sk-...'}
                 value={openaiKey}
@@ -277,7 +339,7 @@ function ApiKeysTab() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Anthropic API Key</Label>
+                <Label htmlFor="anthropic-api-key">Anthropic API Key</Label>
                 {anthropicHint && (
                   <Badge variant="outline" className="gap-1 text-xs">
                     <Check className="h-3 w-3 text-success" /> {anthropicHint}
@@ -285,6 +347,7 @@ function ApiKeysTab() {
                 )}
               </div>
               <Input
+                id="anthropic-api-key"
                 type="password"
                 placeholder={anthropicHint ? 'sk-ant-… (configured — enter new key to replace)' : 'sk-ant-...'}
                 value={anthropicKey}
@@ -362,8 +425,29 @@ function AiProvidersTab() {
           const discoveredModels = Array.isArray(ollamaMeta?.models)
             ? ollamaMeta.models.filter((m: any) => typeof m === 'string' && m.trim())
             : [];
-          setDynamicOllamaModels(discoveredModels);
-          writeProviderDiscoveryCache(discoveredModels);
+          if (discoveredModels.length > 0) {
+            setDynamicOllamaModels(discoveredModels);
+            writeProviderDiscoveryCache(discoveredModels);
+          }
+        }
+      }
+
+      // On the hosted dashboard, the server can't reach the user's local Ollama.
+      // Probe directly from the browser to discover installed models.
+      const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      if (isHosted) {
+        const browserModels = await probeBrowserOllama(BROWSER_OLLAMA_URL);
+        if (browserModels && browserModels.length > 0) {
+          // Merge discovered (installed) models with registry models — installed first
+          const merged = [...browserModels];
+          for (const m of OLLAMA_REGISTRY_MODELS) {
+            if (!merged.includes(m)) merged.push(m);
+          }
+          setDynamicOllamaModels(merged);
+          writeProviderDiscoveryCache(merged);
+        } else if (browserModels && browserModels.length === 0) {
+          // Ollama running but no models — show registry list
+          setDynamicOllamaModels(OLLAMA_REGISTRY_MODELS);
         }
       }
     } catch {
@@ -389,10 +473,13 @@ function AiProvidersTab() {
     setSelectedModel(fromPrefs || stored || fallback);
   }, [selectedProvider, modelPrefs, ollamaModel, openaiModel, anthropicModel, dynamicOllamaModels]);
 
-  const availableModelOptions = selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
-    ? dynamicOllamaModels
+  const availableModelOptions = selectedProvider === 'ollama'
+    ? (dynamicOllamaModels.length > 0
+      ? dynamicOllamaModels
+      : PROVIDER_MODEL_OPTIONS[selectedProvider])
     : PROVIDER_MODEL_OPTIONS[selectedProvider];
   const isCustomModel = Boolean(selectedModel) && !availableModelOptions.includes(selectedModel);
+  const oracleInstalledSettings = selectedProvider === 'ollama' && availableModelOptions.includes('unbreakable-oracle');
 
   const handleSave = async () => {
     setSaving(true);
@@ -478,11 +565,22 @@ function AiProvidersTab() {
               <select
                 value={isCustomModel ? '__custom__' : selectedModel}
                 onChange={(e) => {
+                  if (e.target.value === '__oracle_install__') {
+                    window.open('/dashboard/#/chatbot', '_blank');
+                    return;
+                  }
                   if (e.target.value === '__custom__') return;
                   setSelectedModel(e.target.value);
                 }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
+                {selectedProvider === 'ollama' && (
+                  oracleInstalledSettings ? (
+                    <option value="unbreakable-oracle">★ unbreakable-oracle (installed)</option>
+                  ) : (
+                    <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
+                  )
+                )}
                 {availableModelOptions.map((model) => (
                   <option key={model} value={model}>{model}</option>
                 ))}
@@ -492,8 +590,9 @@ function AiProvidersTab() {
           </div>
 
           <div className="space-y-2">
-            <Label>Custom / Exact Model ID</Label>
+            <Label htmlFor="custom-model-id">Custom / Exact Model ID</Label>
             <Input
+              id="custom-model-id"
               placeholder="llama3.2"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
@@ -502,8 +601,9 @@ function AiProvidersTab() {
           </div>
 
           <div className="space-y-2">
-            <Label>Ollama Base URL</Label>
+            <Label htmlFor="ollama-base-url">Ollama Base URL</Label>
             <Input
+              id="ollama-base-url"
               placeholder="http://localhost:11434"
               value={ollamaUrl}
               onChange={(e) => setOllamaUrl(e.target.value)}
@@ -516,6 +616,43 @@ function AiProvidersTab() {
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             {selectedProvider === 'ollama' ? 'Save Ollama Settings' : 'Save Model Preference'}
           </Button>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-purple-600" />
+            <h4 className="text-sm font-semibold">Custom Models</h4>
+          </div>
+          <div className="rounded-lg border border-purple-400/30 bg-purple-50/30 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Unbreakable Oracle</p>
+                <p className="text-xs text-foreground-muted mt-1">
+                  Custom LLM based on llama3.2 (3.2B) with a unique system prompt. Free to download, runs locally.
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant={oracleInstalledSettings ? 'default' : 'secondary'} className="text-xs">
+                    {oracleInstalledSettings ? 'Installed' : 'Not installed'}
+                  </Badge>
+                  <span className="text-xs text-foreground-muted">1.88 GB · Q4_K_M · llama3.2 family</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium">Install in your terminal:</p>
+              <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile
+ollama create unbreakable-oracle -f Modelfile
+ollama run unbreakable-oracle`}</pre>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => {
+              navigator.clipboard.writeText('curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle');
+              toast.success('Copied install commands to clipboard');
+            }}>
+              <Copy className="h-3.5 w-3.5 mr-1" /> Copy install commands
+            </Button>
+          </div>
         </div>
 
         <Separator />

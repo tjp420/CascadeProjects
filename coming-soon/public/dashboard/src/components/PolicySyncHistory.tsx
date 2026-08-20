@@ -87,7 +87,7 @@ export function PolicySyncHistory() {
     setLoading(true);
     try {
       const resp = await fetch(
-        apiUrl('/api/audit/pii/sync-history?days=' + days + '&limit=50'),
+        apiUrl('audit/pii/sync-history?days=' + days + '&limit=50'),
         { headers: authHeaders(), credentials: 'include' }
       );
       if (!resp.ok) {
