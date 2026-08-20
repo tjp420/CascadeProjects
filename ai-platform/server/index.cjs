@@ -1078,8 +1078,9 @@ function sanitizeRequestBody(body) {
 app.post('/api/contact', async (req, res) => {
   try {
     req.body = sanitizeRequestBody(req.body);
-    const { name, email, message, topic, company, title, source } = req.body || {};
-    if (!email || typeof email !== 'string' || !email.trim().includes('@')) {
+    const { name, message, topic, company, title, source } = req.body || {};
+    const email = String(req.body?.email || req.body?.contactEmail || '').trim();
+    if (!email || !email.includes('@')) {
       return res.status(400).json({ success: false, error: 'A valid email is required' });
     }
     if (!message || typeof message !== 'string' || !message.trim()) {
