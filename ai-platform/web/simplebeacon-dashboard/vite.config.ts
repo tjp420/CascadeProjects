@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const apiPort = env.VITE_API_PORT || process.env.VITE_API_PORT || '53900';
 
   return {
+    root: path.resolve(__dirname, '.'),
     base: '/dashboard/',
     plugins: [react()],
     resolve: {
