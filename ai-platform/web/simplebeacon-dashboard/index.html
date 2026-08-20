@@ -67,15 +67,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <script>
-    (function(){
-      var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
-      var l = document.createElement('link');
-      l.rel = 'stylesheet';
-      if (devHost) l.href = '/dashboard/assets/main.css?v=20260812register'; else l.href = '/dashboard/assets/main.css?v=20260812register';
-      document.head.appendChild(l);
-    })();
-  </script>
+  <!-- Vite will resolve and inject CSS from the module entry during build -->
 
   <!-- IDE embed mode detection -->
   <script>
@@ -411,8 +403,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     })();
   </script>
 
-  <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-  <script type="module" src="/dashboard/assets/main.js?v=20260813paywall"></script>
+  <!-- React Dashboard Bundle — Vite entry; build will inject hashed assets -->
+  <script type="module" src="/src/main.tsx"></script>
   <script>
     (function(){
       try{
