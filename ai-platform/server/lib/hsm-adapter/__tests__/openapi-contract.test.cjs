@@ -138,13 +138,16 @@ describe("OpenAPI Specification Contract Tests", () => {
   // ── L2-01: All 18 governance endpoints are documented ──────────────
   test("L2-01: all 18 Track 114-121 governance endpoints are documented in OpenAPI spec", () => {
     for (const prefix of GOVERNANCE_PREFIXES) {
-      // Accept either single or double quoted route strings in the source
-      const rePolicy = new RegExp("['\"]/" + prefix + "/policy['\"]");
-      const reValidate = new RegExp("['\"]/" + prefix + "/policy/validate['\"]");
-      const reTelemetry = new RegExp("['\"]/" + prefix + "/telemetry['\"]");
-      expect(rePolicy.test(routesContent)).toBe(true);
-      expect(reValidate.test(routesContent)).toBe(true);
-      expect(reTelemetry.test(routesContent)).toBe(true);
+      const policyPath = "/vault/" + prefix + "/policy";
+      const validatePath = "/vault/" + prefix + "/policy/validate";
+      const telemetryPath = "/vault/" + prefix + "/telemetry";
+      expect(doc.paths).toHaveProperty(policyPath);
+      expect(doc.paths).toHaveProperty(validatePath);
+      expect(doc.paths).toHaveProperty(telemetryPath);
+      // Verify methods
+      expect(doc.paths[policyPath]).toHaveProperty("get");
+      expect(doc.paths[validatePath]).toHaveProperty("post");
+      expect(doc.paths[telemetryPath]).toHaveProperty("get");
     }
   });
 
