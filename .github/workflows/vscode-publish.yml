@@ -1,0 +1,33 @@
+name: Publish VSIX to Visual Studio Marketplace
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install vsce
+        run: npm install -g vsce
+
+      - name: Verify VSIX checksum
+        run: |
+          if [ ! -f simplebeacon-vscode-merged/simplebeacon-vscode-3.0.498.vsix ]; then echo "VSIX not found"; exit 1; fi
+          echo "SHA256:" $(sha256sum simplebeacon-vscode-merged/simplebeacon-vscode-3.0.498.vsix)
+
+      - name: Publish to Marketplace
+        env:
+          VSCODE_MARKETPLACE_PAT: ${{ secrets.VSCODE_MARKETPLACE_PAT }}
+        run: |
+          if [ -z "$VSCODE_MARKETPLACE_PAT" ]; then echo "VSCODE_MARKETPLACE_PAT secret not set. Aborting publish."; exit 1; fi
+          vsce publish --packagePath simplebeacon-vscode-merged/simplebeacon-vscode-3.0.498.vsix
