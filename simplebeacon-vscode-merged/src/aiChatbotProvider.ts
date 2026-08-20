@@ -10,7 +10,7 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
     this._view = webviewView;
@@ -48,20 +48,20 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
           });
           res.on('end', () => {
             try {
-              const data = JSON.parse(body);
-              this._view?.webview.postMessage({
-                command: 'setContext',
-                context: data.context,
-                content: data.content,
-                error: data.success ? undefined : data.error,
-              });
-            } catch (e) {
-              this._view?.webview.postMessage({
-                command: 'setContext',
-                context: null,
-                content: '',
-                error: 'Invalid response from data server',
-              });
+             const data = JSON.parse(body);
+             this._view?.webview.postMessage({
+               command: 'setContext',
+               context: data.context,
+               content: data.content,
+               error: data.success ? undefined : data.error,
+             });
+            } catch (err) {
+             this._view?.webview.postMessage({
+               command: 'setContext',
+               context: null,
+               content: '',
+               error: err instanceof Error ? err.message : 'Invalid response from data server',
+             });
             }
           });
         });
