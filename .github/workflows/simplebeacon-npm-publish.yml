@@ -29,6 +29,22 @@ permissions:
   contents: read
 
 jobs:
+  diagnostic-placeholder:
+    name: Early diagnostics (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create diagnostics placeholder
+        run: |
+          mkdir -p ci-artifacts
+          echo "ci started at $(date -u)" > ci-artifacts/ci-started.txt
+      - name: Upload early diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: early-simplebeacon-npm-publish
+          path: ci-artifacts/ci-started.txt
+
   build-check:
     name: Build & Pack (checks)
     runs-on: ubuntu-latest

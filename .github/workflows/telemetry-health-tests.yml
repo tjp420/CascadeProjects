@@ -16,10 +16,20 @@ jobs:
         with:
           submodules: false
 
+      - name: Create early telemetry diagnostics
+        run: |
+          mkdir -p ai-platform/test-results || true
+          echo "ci started at $(date -u)" > ai-platform/test-results/ci-started.txt
+      - name: Upload early telemetry diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: early-telemetry-report
+          path: ai-platform/test-results/ci-started.txt
+
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: ai-platform/package.json
 
