@@ -9,7 +9,9 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 ## 1. Engineering & Product (Current: ~92% → Target: 100%)
 
 ### 1.1 Commit the VS Code Extension delta
+
 **Current:** 502 modified/untracked files in `simplebeacon-vscode-merged/`.
+
 - [ ] Review `simplebeacon-vscode-merged/` with `git diff --stat`
 - [ ] Stage intentional changes (extension fixes, new providers, dashboard updates)
 - [ ] Discard or move test/experiment files (e.g., `test-welcome-*.cjs`, `ts-prune-report*.txt`, `tmp-*.mjs`) to `~/Desktop/` or a scratch folder
@@ -24,16 +26,19 @@ This plan moves every workstream to 100% and identifies the critical path to pub
   simplebeacon-vscode-merged/test-welcome-*.cjs
   simplebeacon-vscode-merged/tmp-*
   ```
+
 **Effort:** 1–2 hours | **Owner:** You
 
 ### 1.2 Package final `.vsix`
+
 - [ ] Run `npm run compile` (or `npx tsc`) in `simplebeacon-vscode-merged/`
 - [ ] Run `npx vsce package` to produce `simplebeacon-3.0.3.vsix`
 - [ ] Verify the file size is reasonable (~9 MB)
 - [ ] Copy to `sales/marketplace/simplebeacon-latest.vsix`
-**Effort:** 15 min | **Owner:** You
+      **Effort:** 15 min | **Owner:** You
 
 ### 1.3 Resolve remaining TODO/FIXME markers
+
 - [ ] `ai-platform/server/config/constants.cjs:1` — TODO/FIXME
 - [ ] `ai-platform/server/index.cjs:525` — TODO/FIXME
 - [ ] `ai-platform/server/lib/codebase-analyzer.cjs:248` — TODO/FIXME
@@ -48,31 +53,35 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 30 min | **Owner:** You
 
 ### 1.4 Final CLI publish
+
 - [ ] `cd packages/simplebeacon-cli`
 - [ ] `npm run quality:check` (or equivalent pre-publish script)
 - [ ] `npm publish --access public`
 - [ ] Verify: `npm view simplebeacon version`
-**Effort:** 10 min | **Owner:** You
+      **Effort:** 10 min | **Owner:** You
 
 ---
 
 ## 2. DevOps & Infrastructure (Current: ~43% → Target: 100%)
 
 ### 2.1 Security hardening — `express.static` fix
+
 **File:** `coming-soon/server.cjs`
 
 - [ ] Verify `app.use(express.static(__dirname))` is NOT present
 - [ ] If it is, restrict to `public/` subdirectory or add deny-list headers:
   ```javascript
-  app.use(express.static(path.join(__dirname, 'public'), {
-    dotfiles: 'deny',
-    setHeaders: (res, fp) => {
-      const ext = path.extname(fp).toLowerCase();
-      if (['.env', '.cjs', '.js', '.json', '.db'].includes(ext)) {
-        res.status(403).end();
-      }
-    }
-  }));
+  app.use(
+    express.static(path.join(__dirname, "public"), {
+      dotfiles: "deny",
+      setHeaders: (res, fp) => {
+        const ext = path.extname(fp).toLowerCase();
+        if ([".env", ".cjs", ".js", ".json", ".db"].includes(ext)) {
+          res.status(403).end();
+        }
+      },
+    }),
+  );
   ```
 - [ ] Add security headers middleware (see `RELEASE-PLAN.md` Phase 1.2)
 - [ ] Verify no secrets leak with `curl http://localhost:3000/.env` → expect 403
@@ -80,6 +89,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 1–2 hours | **Owner:** You | **Blocker for:** Live deploy
 
 ### 2.2 Deploy to Render
+
 - [ ] Ensure `render.yaml` points to correct server path (`ai-platform/simplebeacon-server.cjs`)
 - [ ] Push `main` to GitHub
 - [ ] In Render dashboard: New + → Blueprint → connect repo
@@ -89,6 +99,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 30 min | **Owner:** You | **Depends on:** 2.1
 
 ### 2.3 Domain & DNS
+
 - [ ] Register or verify ownership of `simplebeacon.ai`
 - [ ] In Cloudflare/Namecheap DNS:
   - A Record: `simplebeacon.ai` → Render load balancer IP (or CNAME to `*.onrender.com`)
@@ -100,6 +111,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 15 min | **Owner:** You | **Depends on:** 2.2
 
 ### 2.4 CI/CD stress test
+
 - [ ] Create a temporary test repo with intentionally bad code
 - [ ] Add the GitHub Action (`github-action/action.yml`) to that repo
 - [ ] Trigger workflow, verify it fails the gate on the dirty repo
@@ -113,6 +125,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 ## 3. Go-to-Market & Distribution (Current: ~79% → Target: 100%)
 
 ### 3.1 VS Code Marketplace
+
 - [ ] Go to https://marketplace.visualstudio.com/manage
 - [ ] Register publisher name `simplebeacon`
 - [ ] Upload `simplebeacon-3.0.3.vsix`
@@ -128,6 +141,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 1 hour | **Owner:** You | **Blocker for:** Public availability
 
 ### 3.2 npm Registry
+
 - [ ] `cd packages/simplebeacon-cli`
 - [ ] `npm publish --access public`
 - [ ] Verify: `npm view simplebeacon version`
@@ -135,6 +149,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 5 min | **Owner:** You | **Depends on:** 1.4
 
 ### 3.3 Marketing final polish
+
 - [ ] Review `marketing/hn-show-post.md` — ensure it links to `simplebeacon.ai`
 - [ ] Review `marketing/product-hunt-launch.md` — ensure screenshots match uploaded ones
 - [ ] Review `marketing/reddit-launch.md` — ensure pricing is current
@@ -147,6 +162,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 ## 4. Operations & Monetization (Current: ~45% → Target: 100%)
 
 ### 4.1 Stripe Live Mode
+
 - [ ] Switch to Live mode in https://dashboard.stripe.com
 - [ ] Create products:
   - AI Slop Cop Pro Monthly — $9.00
@@ -168,6 +184,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 30 min | **Owner:** You | **Blocker for:** Revenue
 
 ### 4.2 Email (Resend)
+
 - [ ] Sign up at https://resend.com
 - [ ] Add domain: `simplebeacon.ai`
 - [ ] Complete TXT/MX verification in Cloudflare DNS
@@ -180,6 +197,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 15 min | **Owner:** You | **Depends on:** 2.3 (domain)
 
 ### 4.3 Monitoring & Alerts
+
 - [ ] Add health-check ping to prevent Render free-tier sleep (e.g., UptimeRobot or Cron-Job.org every 10 min)
 - [ ] Verify `sales/docs/launch-day-runbook.md` alert thresholds match Render/Cloudflare dashboards
 - [ ] (Optional) Set up a `#simplebeacon-alerts` Slack channel or email alias
@@ -187,6 +205,7 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 **Effort:** 30 min | **Owner:** You
 
 ### 4.4 Final pre-launch validation
+
 - [ ] Run `node scripts/pre-launch-checklist.cjs` (currently 29/30)
 - [ ] Manually verify the 1 failing item (screenshots)
 - [ ] Run `npx simplebeacon scan --gate --format json` → expect 0 critical, 0 high
@@ -229,23 +248,23 @@ This plan moves every workstream to 100% and identifies the critical path to pub
 
 ## Quick Wins (do these first for morale)
 
-| Task | Effort | Impact |
-|------|--------|--------|
-| 1.3 Resolve TODO/FIXME markers | 30 min | Clean bill of health |
-| 1.4 CLI publish to npm | 10 min | Public availability |
-| 4.4 Pre-launch validation script | 20 min | Confidence check |
-| 3.3 Marketing copy review | 30 min | Launch-ready messaging |
+| Task                             | Effort | Impact                 |
+| -------------------------------- | ------ | ---------------------- |
+| 1.3 Resolve TODO/FIXME markers   | 30 min | Clean bill of health   |
+| 1.4 CLI publish to npm           | 10 min | Public availability    |
+| 4.4 Pre-launch validation script | 20 min | Confidence check       |
+| 3.3 Marketing copy review        | 30 min | Launch-ready messaging |
 
 ---
 
 ## Estimated Calendar
 
-| Day | Focus | Deliverable |
-|-----|-------|-------------|
-| **Day 1** | Commit extension, fix TODOs, publish CLI, harden static serving | Clean repo, npm published, server secure |
-| **Day 2** | Deploy to Render, configure DNS, set up Resend + Stripe | Live URL, email working, payments live |
-| **Day 3** | Capture screenshots, publish to VS Code Marketplace, CI stress test | Extension public, marketplace live |
-| **Day 4** | Final validation, marketing posts, monitor dashboards | 100% complete, launch day |
+| Day       | Focus                                                               | Deliverable                              |
+| --------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| **Day 1** | Commit extension, fix TODOs, publish CLI, harden static serving     | Clean repo, npm published, server secure |
+| **Day 2** | Deploy to Render, configure DNS, set up Resend + Stripe             | Live URL, email working, payments live   |
+| **Day 3** | Capture screenshots, publish to VS Code Marketplace, CI stress test | Extension public, marketplace live       |
+| **Day 4** | Final validation, marketing posts, monitor dashboards               | 100% complete, launch day                |
 
 ---
 

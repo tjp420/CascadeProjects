@@ -4,7 +4,7 @@
  * @module format
  */
 
-const sizes = require('./sizes.cjs');
+const sizes = require("./sizes.cjs");
 
 /** Additional time constants (milliseconds). */
 const FIVE_SECONDS_MS = 5000;
@@ -21,9 +21,9 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
  * @throws {Error} If the format is invalid.
  */
 function parseSize(sizeStr) {
-  if (typeof sizeStr !== 'string') throw new Error('Invalid size format');
+  if (typeof sizeStr !== "string") throw new Error("Invalid size format");
   const match = sizeStr.trim().match(/^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$/i);
-  if (!match) throw new Error('Invalid size format');
+  if (!match) throw new Error("Invalid size format");
   const value = parseFloat(match[1]);
   const unit = match[2].toUpperCase();
   const multiplier = {
@@ -31,7 +31,7 @@ function parseSize(sizeStr) {
     KB: sizes.BYTES_PER_KB,
     MB: sizes.BYTES_PER_MB,
     GB: sizes.BYTES_PER_GB,
-    TB: sizes.BYTES_PER_TB
+    TB: sizes.BYTES_PER_TB,
   }[unit];
   return value * multiplier;
 }
@@ -43,8 +43,8 @@ function parseSize(sizeStr) {
  * @returns {string}
  */
 function formatSize(bytes, precision = 1) {
-  if (typeof bytes !== 'number' || bytes < 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  if (typeof bytes !== "number" || bytes < 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
   let size = bytes;
   let idx = 0;
   while (size >= sizes.BYTES_PER_KB && idx < units.length - 1) {
@@ -61,12 +61,18 @@ function formatSize(bytes, precision = 1) {
  * @throws {Error} If the format is invalid.
  */
 function parseDuration(str) {
-  if (typeof str !== 'string') throw new Error('Invalid duration format');
+  if (typeof str !== "string") throw new Error("Invalid duration format");
   const match = str.trim().match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)$/i);
-  if (!match) throw new Error('Invalid duration format');
+  if (!match) throw new Error("Invalid duration format");
   const value = parseFloat(match[1]);
   const unit = match[2].toLowerCase();
-  const multipliers = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 };
+  const multipliers = {
+    ms: 1,
+    s: 1000,
+    m: 60_000,
+    h: 3_600_000,
+    d: 86_400_000,
+  };
   return value * multipliers[unit];
 }
 
@@ -76,7 +82,7 @@ function parseDuration(str) {
  * @returns {string}
  */
 function formatDuration(ms) {
-  if (typeof ms !== 'number' || ms < 0) return '0ms';
+  if (typeof ms !== "number" || ms < 0) return "0ms";
   if (ms < 1000) return `${ms}ms`;
   const seconds = Math.floor(ms / 1000) % 60;
   const minutes = Math.floor(ms / 60_000) % 60;
@@ -85,7 +91,7 @@ function formatDuration(ms) {
   if (hours > 0) parts.push(`${hours}h`);
   if (minutes > 0) parts.push(`${minutes}m`);
   if (seconds > 0 && hours === 0) parts.push(`${seconds}s`);
-  return parts.join(' ') || '0ms';
+  return parts.join(" ") || "0ms";
 }
 
 /**
@@ -94,7 +100,7 @@ function formatDuration(ms) {
  * @returns {string}
  */
 function formatNumber(n) {
-  if (n == null || !Number.isFinite(Number(n))) return '—';
+  if (n == null || !Number.isFinite(Number(n))) return "—";
   return Number(n).toLocaleString();
 }
 
@@ -106,8 +112,10 @@ function formatNumber(n) {
  */
 function formatPercent(value, digits = 1) {
   const num = Number(value);
-  if (!Number.isFinite(num)) return '—%';
-  const d = Number.isFinite(digits) ? Math.max(0, Math.min(20, Math.floor(digits))) : 1;
+  if (!Number.isFinite(num)) return "—%";
+  const d = Number.isFinite(digits)
+    ? Math.max(0, Math.min(20, Math.floor(digits)))
+    : 1;
   const pct = num <= 1 ? num * 100 : num;
   return `${pct.toFixed(d)}%`;
 }
@@ -119,9 +127,9 @@ function formatPercent(value, digits = 1) {
  * @throws {Error} If the format is invalid.
  */
 function parseRate(rateStr) {
-  if (typeof rateStr !== 'string') throw new Error('Invalid rate format');
+  if (typeof rateStr !== "string") throw new Error("Invalid rate format");
   const match = rateStr.trim().match(/^(\d+)\/(s|m|h|d)$/i);
-  if (!match) throw new Error('Invalid rate format');
+  if (!match) throw new Error("Invalid rate format");
   const count = parseInt(match[1], 10);
   const unit = match[2].toLowerCase();
   const windowMs = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[unit];
@@ -136,7 +144,7 @@ function parseRate(rateStr) {
  */
 function formatRate(count, windowMs) {
   const c = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
-  if (c === 0) return '0/s';
+  if (c === 0) return "0/s";
   if (windowMs >= 86_400_000) return `${c}/d`;
   if (windowMs >= 3_600_000) return `${c}/h`;
   if (windowMs >= 60_000) return `${c}/m`;
@@ -161,7 +169,7 @@ function checkRateLimit(count, windowMs, timestamps) {
   const allowed = recent.length < limit;
   const remaining = Math.max(0, limit - recent.length);
   const oldest = recent.length > 0 ? recent[0] : now;
-  const resetMs = Math.max(0, (oldest + window) - now);
+  const resetMs = Math.max(0, oldest + window - now);
   return { allowed, remaining, resetMs };
 }
 
@@ -181,10 +189,10 @@ function isWithinRateLimit(count, windowMs, timestamps) {
  * @param {string|number} [raw='10mb']
  * @returns {string}
  */
-function safeJsonLimit(raw = '10mb') {
-  if (typeof raw === 'string' && /^\d+(?:kb|mb|gb)?$/i.test(raw)) return raw;
+function safeJsonLimit(raw = "10mb") {
+  if (typeof raw === "string" && /^\d+(?:kb|mb|gb)?$/i.test(raw)) return raw;
   if (Number.isFinite(Number(raw)) && Number(raw) > 0) return String(raw);
-  return '10mb';
+  return "10mb";
 }
 
 module.exports = Object.freeze({
@@ -203,5 +211,5 @@ module.exports = Object.freeze({
   formatRate,
   checkRateLimit,
   isWithinRateLimit,
-  safeJsonLimit
+  safeJsonLimit,
 });

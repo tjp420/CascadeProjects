@@ -3,18 +3,18 @@
  * Uses scoped metrics only — never conflates gate-pass on sample paths with full-repo cleanliness.
  */
 
-const path = require('path');
-const crypto = require('crypto');
-const fs = require('fs');
-const { readJsonFileCached } = require('./json-file-cache.cjs');
+const path = require("path");
+const crypto = require("crypto");
+const fs = require("fs");
+const { readJsonFileCached } = require("./json-file-cache.cjs");
 
 const {
-    buildRepositoryHealthPayload
-} = require('./repository-health-payload.cjs');
+  buildRepositoryHealthPayload,
+} = require("./repository-health-payload.cjs");
 const {
-    appendTrustSnapshot,
-    resolveTrustHistoryPath
-} = require('./trust-history-store.cjs');
+  appendTrustSnapshot,
+  resolveTrustHistoryPath,
+} = require("./trust-history-store.cjs");
 
 /**
  * Read json if exists.
@@ -22,7 +22,7 @@ const {
  * @returns {any}
  */
 function readJsonIfExists(filePath) {
-    return readJsonFileCached(filePath);
+  return readJsonFileCached(filePath);
 }
 
 /**
@@ -31,13 +31,13 @@ function readJsonIfExists(filePath) {
  * @returns {any}
  */
 function redactPath(value) {
-    const normalized = String(value || '').replace(/\\/g, '/');
-    const parts = normalized.split('/').filter(Boolean);
-    if (/^[A-Za-z]:$/i.test(parts[0]) && parts.length > 1) {
-        parts.shift();
-    }
-    if (parts.length <= 2) return parts.join('/') || 'project';
-    return `…/${parts.slice(-2).join('/')}`;
+  const normalized = String(value || "").replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  if (/^[A-Za-z]:$/i.test(parts[0]) && parts.length > 1) {
+    parts.shift();
+  }
+  if (parts.length <= 2) return parts.join("/") || "project";
+  return `…/${parts.slice(-2).join("/")}`;
 }
 
 /**
@@ -47,42 +47,60 @@ function redactPath(value) {
  * @returns {any}
  */
 function buildReportSnapshot(report, label) {
-    if (!report || report.type !== 'simplebeacon-report') return null;
+  if (!report || report.type !== "simplebeacon-report") return null;
 
-    const gatePass = report.gate?.pass ?? null;
-    const issueCount = report.issueCount
-        ?? (report.rawIssues || report.detectedIssues || []).reduce(
-            (sum, i) => sum + (i.count || 1),
-            0
-        );
+  const gatePass = report.gate?.pass ?? null;
+  const issueCount =
+    report.issueCount ??
+    (report.rawIssues || report.detectedIssues || []).reduce(
+      (sum, i) => sum + (i.count || 1),
+      0,
+    );
 
-    return {
-        label,
-        projectRoot: redactPath(report.projectRoot),
-        platformRoot: report.platformRoot ? redactPath(report.platformRoot) : undefined,
-        generatedAt: report.generatedAt || null,
-        reportVersion: report.reportVersion ?? 1,
-        gatePass,
-        qualityScore: report.qualityScore ?? null,
-        schemaCompliance: report.schemaCompliance ?? null,
-        schemaChecked: report.schemaChecked ?? report.pageSampleSchemaChecked ?? null,
-        schemaPassed: report.schemaPassed ?? report.pageSampleSchemaPassed ?? null,
-        consistencyScore: report.consistencyScore ?? null,
-        consistencyChecked: report.consistencyChecked ?? null,
-        consistencyPassed: report.consistencyPassed ?? null,
-        issueCount,
-        severityCounts: report.severityCounts || { high: 0, medium: 0, low: 0 },
-        repositoryFilesTotal: report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? null,
-        ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? null,
-        mockSampleFiles: report.mockSampleFiles ?? report.totalFiles ?? null,
-        fictionJsonFilesScanned: report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned ?? null,
-        fictionSampleFilesScanned: report.fictionSampleFilesScanned ?? report.scanScope?.fictionSampleFilesScanned ?? null,
-        fictionScope: report.fictionScope ?? report.scanScope?.fictionScope ?? null,
-        rulesEnabled: report.scanScope?.rulesEnabled || [],
-        profile: report.scanScope?.profile || report.configPath ? 'configured' : 'standard',
-        scopeNote: report.scanScope?.limitations?.[0]
-            || 'Gate rules apply to configured scanPaths and production directories — not every file in the repository tree.'
-    };
+  return {
+    label,
+    projectRoot: redactPath(report.projectRoot),
+    platformRoot: report.platformRoot
+      ? redactPath(report.platformRoot)
+      : undefined,
+    generatedAt: report.generatedAt || null,
+    reportVersion: report.reportVersion ?? 1,
+    gatePass,
+    qualityScore: report.qualityScore ?? null,
+    schemaCompliance: report.schemaCompliance ?? null,
+    schemaChecked:
+      report.schemaChecked ?? report.pageSampleSchemaChecked ?? null,
+    schemaPassed: report.schemaPassed ?? report.pageSampleSchemaPassed ?? null,
+    consistencyScore: report.consistencyScore ?? null,
+    consistencyChecked: report.consistencyChecked ?? null,
+    consistencyPassed: report.consistencyPassed ?? null,
+    issueCount,
+    severityCounts: report.severityCounts || { high: 0, medium: 0, low: 0 },
+    repositoryFilesTotal:
+      report.repositoryFilesTotal ??
+      report.repositoryInventory?.totalFiles ??
+      null,
+    ruleScopedFilesAnalyzed:
+      report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? null,
+    mockSampleFiles: report.mockSampleFiles ?? report.totalFiles ?? null,
+    fictionJsonFilesScanned:
+      report.fictionJsonFilesScanned ??
+      report.scanScope?.fictionJsonFilesScanned ??
+      null,
+    fictionSampleFilesScanned:
+      report.fictionSampleFilesScanned ??
+      report.scanScope?.fictionSampleFilesScanned ??
+      null,
+    fictionScope: report.fictionScope ?? report.scanScope?.fictionScope ?? null,
+    rulesEnabled: report.scanScope?.rulesEnabled || [],
+    profile:
+      report.scanScope?.profile || report.configPath
+        ? "configured"
+        : "standard",
+    scopeNote:
+      report.scanScope?.limitations?.[0] ||
+      "Gate rules apply to configured scanPaths and production directories — not every file in the repository tree.",
+  };
 }
 
 /**
@@ -92,19 +110,23 @@ function buildReportSnapshot(report, label) {
  * @returns {any}
  */
 function buildTrustDisclaimers(platformSnap, monorepoSnap) {
-    const disclaimers = [
-        'Quality score and zero-issue counts apply to configured gate rules and sample paths — not semantic review of every source file.',
-        'Repository file totals are explorer-style inventory counts; gate rules checked is a smaller scoped subset.',
-        'Publish both platform and monorepo snapshots when available — a PASS gate on sample JSON does not imply a clean monorepo fiction scan.'
-    ];
+  const disclaimers = [
+    "Quality score and zero-issue counts apply to configured gate rules and sample paths — not semantic review of every source file.",
+    "Repository file totals are explorer-style inventory counts; gate rules checked is a smaller scoped subset.",
+    "Publish both platform and monorepo snapshots when available — a PASS gate on sample JSON does not imply a clean monorepo fiction scan.",
+  ];
 
-    if (platformSnap?.gatePass && monorepoSnap && (monorepoSnap.issueCount ?? 0) > 0) {
-        disclaimers.unshift(
-            `Platform gate PASS (${platformSnap.issueCount ?? 0} issues) differs from monorepo scan (${monorepoSnap.issueCount} issues) — use monorepo metrics for full-tree honesty.`
-        );
-    }
+  if (
+    platformSnap?.gatePass &&
+    monorepoSnap &&
+    (monorepoSnap.issueCount ?? 0) > 0
+  ) {
+    disclaimers.unshift(
+      `Platform gate PASS (${platformSnap.issueCount ?? 0} issues) differs from monorepo scan (${monorepoSnap.issueCount} issues) — use monorepo metrics for full-tree honesty.`,
+    );
+  }
 
-    return disclaimers;
+  return disclaimers;
 }
 
 /**
@@ -113,16 +135,18 @@ function buildTrustDisclaimers(platformSnap, monorepoSnap) {
  * @returns {any}
  */
 function verificationDigest(payload) {
-    return crypto
-        .createHash('sha256')
-        .update(JSON.stringify({
-            platform: payload.platform?.generatedAt,
-            monorepo: payload.monorepo?.generatedAt,
-            issueCount: payload.platform?.issueCount,
-            monorepoIssues: payload.monorepo?.issueCount
-        }))
-        .digest('hex')
-        .slice(0, 16);
+  return crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        platform: payload.platform?.generatedAt,
+        monorepo: payload.monorepo?.generatedAt,
+        issueCount: payload.platform?.issueCount,
+        monorepoIssues: payload.monorepo?.issueCount,
+      }),
+    )
+    .digest("hex")
+    .slice(0, 16);
 }
 
 /**
@@ -131,8 +155,8 @@ function verificationDigest(payload) {
  * @returns {any}
  */
 function parseIsoTime(value) {
-    const ms = Date.parse(String(value || ''));
-    return Number.isFinite(ms) ? ms : 0;
+  const ms = Date.parse(String(value || ""));
+  return Number.isFinite(ms) ? ms : 0;
 }
 
 /**
@@ -142,42 +166,62 @@ function parseIsoTime(value) {
  * @returns {any}
  */
 function pickHeadlineSnapshot(platform, monorepo) {
-    if (!platform && !monorepo) {
-        return { primary: null, source: null, reason: 'No trust snapshots available.' };
-    }
-    if (platform && !monorepo) {
-        return { primary: platform, source: 'platform', reason: 'Only platform snapshot is available.' };
-    }
-    if (!platform && monorepo) {
-        return { primary: monorepo, source: 'monorepo', reason: 'Only monorepo snapshot is available.' };
-    }
+  if (!platform && !monorepo) {
+    return {
+      primary: null,
+      source: null,
+      reason: "No trust snapshots available.",
+    };
+  }
+  if (platform && !monorepo) {
+    return {
+      primary: platform,
+      source: "platform",
+      reason: "Only platform snapshot is available.",
+    };
+  }
+  if (!platform && monorepo) {
+    return {
+      primary: monorepo,
+      source: "monorepo",
+      reason: "Only monorepo snapshot is available.",
+    };
+  }
 
-    const platformIssues = platform.issueCount ?? 0;
-    const monorepoIssues = monorepo.issueCount ?? 0;
+  const platformIssues = platform.issueCount ?? 0;
+  const monorepoIssues = monorepo.issueCount ?? 0;
 
-    if (platformIssues > 0 || monorepoIssues > 0) {
-        if (monorepoIssues > platformIssues) {
-            return {
-                primary: monorepo,
-                source: 'monorepo',
-                reason: `Monorepo scan has higher issue count (${monorepoIssues}) than platform (${platformIssues}).`
-            };
-        }
-        if (platformIssues > monorepoIssues) {
-            return {
-                primary: platform,
-                source: 'platform',
-                reason: `Platform scan has higher issue count (${platformIssues}) than monorepo (${monorepoIssues}).`
-            };
-        }
+  if (platformIssues > 0 || monorepoIssues > 0) {
+    if (monorepoIssues > platformIssues) {
+      return {
+        primary: monorepo,
+        source: "monorepo",
+        reason: `Monorepo scan has higher issue count (${monorepoIssues}) than platform (${platformIssues}).`,
+      };
     }
+    if (platformIssues > monorepoIssues) {
+      return {
+        primary: platform,
+        source: "platform",
+        reason: `Platform scan has higher issue count (${platformIssues}) than monorepo (${monorepoIssues}).`,
+      };
+    }
+  }
 
-    const platformTime = parseIsoTime(platform.generatedAt);
-    const monorepoTime = parseIsoTime(monorepo.generatedAt);
-    if (monorepoTime > platformTime) {
-        return { primary: monorepo, source: 'monorepo', reason: 'Monorepo snapshot is newer.' };
-    }
-    return { primary: platform, source: 'platform', reason: 'Platform snapshot is newer or equally recent.' };
+  const platformTime = parseIsoTime(platform.generatedAt);
+  const monorepoTime = parseIsoTime(monorepo.generatedAt);
+  if (monorepoTime > platformTime) {
+    return {
+      primary: monorepo,
+      source: "monorepo",
+      reason: "Monorepo snapshot is newer.",
+    };
+  }
+  return {
+    primary: platform,
+    source: "platform",
+    reason: "Platform snapshot is newer or equally recent.",
+  };
 }
 
 /**
@@ -186,22 +230,37 @@ function pickHeadlineSnapshot(platform, monorepo) {
  * @returns {any}
  */
 function buildFictionScopeNote(snap) {
-    if (!snap) {
-        return 'Fiction/KPI rules use fictionScope repository-json when enabled — walk root is ai-platform, not the monorepo parent inventory.';
-    }
-    const mode = snap.fictionScope || 'repository-json';
-    const walkRoot = snap.platformRoot || snap.projectRoot || 'ai-platform';
-    const jsonCount = snap.fictionJsonFilesScanned;
-    const sampleCount = snap.fictionSampleFilesScanned ?? snap.mockSampleFiles;
-    if (jsonCount == null) {
-        return 'Fiction/KPI JSON scope (fictionScope ' + mode + '): recursive .json walk from ' + walkRoot + ' with config.ignore — see scan report for file counts.';
-    }
-    const samplePart = sampleCount != null
-        ? ' (' + sampleCount + ' dashboard mock JSON files among them)'
-        : '';
-    return 'Fiction/KPI JSON scope (fictionScope ' + mode + '): recursive walk from ' + walkRoot
-        + ', .json at most 512KB, minus config.ignore — ' + jsonCount + ' JSON pattern-checked'
-        + samplePart + '; explorer inventory totals are separate and much larger.';
+  if (!snap) {
+    return "Fiction/KPI rules use fictionScope repository-json when enabled — walk root is ai-platform, not the monorepo parent inventory.";
+  }
+  const mode = snap.fictionScope || "repository-json";
+  const walkRoot = snap.platformRoot || snap.projectRoot || "ai-platform";
+  const jsonCount = snap.fictionJsonFilesScanned;
+  const sampleCount = snap.fictionSampleFilesScanned ?? snap.mockSampleFiles;
+  if (jsonCount == null) {
+    return (
+      "Fiction/KPI JSON scope (fictionScope " +
+      mode +
+      "): recursive .json walk from " +
+      walkRoot +
+      " with config.ignore — see scan report for file counts."
+    );
+  }
+  const samplePart =
+    sampleCount != null
+      ? " (" + sampleCount + " dashboard mock JSON files among them)"
+      : "";
+  return (
+    "Fiction/KPI JSON scope (fictionScope " +
+    mode +
+    "): recursive walk from " +
+    walkRoot +
+    ", .json at most 512KB, minus config.ignore — " +
+    jsonCount +
+    " JSON pattern-checked" +
+    samplePart +
+    "; explorer inventory totals are separate and much larger."
+  );
 }
 
 /**
@@ -212,28 +271,34 @@ function buildFictionScopeNote(snap) {
  * @returns {any}
  */
 function buildFictionScopeBlock(platformSnap, monorepoSnap, headlineSource) {
-    const primary = headlineSource === 'monorepo' ? monorepoSnap : platformSnap;
-    const walkRoot = platformSnap?.platformRoot || platformSnap?.projectRoot || null;
-    return {
-        mode: primary?.fictionScope || 'repository-json',
-        walkRoot,
-        fictionJsonFilesScanned: primary?.fictionJsonFilesScanned ?? null,
-        fictionSampleFilesScanned: primary?.fictionSampleFilesScanned ?? primary?.mockSampleFiles ?? null,
-        platform: platformSnap
-            ? {
-                fictionJsonFilesScanned: platformSnap.fictionJsonFilesScanned,
-                fictionSampleFilesScanned: platformSnap.fictionSampleFilesScanned ?? platformSnap.mockSampleFiles,
-                fictionScope: platformSnap.fictionScope
-            }
-            : null,
-        monorepo: monorepoSnap
-            ? {
-                fictionJsonFilesScanned: monorepoSnap.fictionJsonFilesScanned,
-                fictionSampleFilesScanned: monorepoSnap.fictionSampleFilesScanned ?? monorepoSnap.mockSampleFiles,
-                fictionScope: monorepoSnap.fictionScope
-            }
-            : null
-    };
+  const primary = headlineSource === "monorepo" ? monorepoSnap : platformSnap;
+  const walkRoot =
+    platformSnap?.platformRoot || platformSnap?.projectRoot || null;
+  return {
+    mode: primary?.fictionScope || "repository-json",
+    walkRoot,
+    fictionJsonFilesScanned: primary?.fictionJsonFilesScanned ?? null,
+    fictionSampleFilesScanned:
+      primary?.fictionSampleFilesScanned ?? primary?.mockSampleFiles ?? null,
+    platform: platformSnap
+      ? {
+          fictionJsonFilesScanned: platformSnap.fictionJsonFilesScanned,
+          fictionSampleFilesScanned:
+            platformSnap.fictionSampleFilesScanned ??
+            platformSnap.mockSampleFiles,
+          fictionScope: platformSnap.fictionScope,
+        }
+      : null,
+    monorepo: monorepoSnap
+      ? {
+          fictionJsonFilesScanned: monorepoSnap.fictionJsonFilesScanned,
+          fictionSampleFilesScanned:
+            monorepoSnap.fictionSampleFilesScanned ??
+            monorepoSnap.mockSampleFiles,
+          fictionScope: monorepoSnap.fictionScope,
+        }
+      : null,
+  };
 }
 
 /**
@@ -244,13 +309,13 @@ function buildFictionScopeBlock(platformSnap, monorepoSnap, headlineSource) {
  * @returns {any}
  */
 function buildTrustMethodology(platformSnap, monorepoSnap, headlineSource) {
-    const primary = headlineSource === 'monorepo' ? monorepoSnap : platformSnap;
-    return [
-        'Simplebeacon runs deterministic pattern matching on configured mock/sample JSON, credentials, and production-path rules.',
-        buildFictionScopeNote(primary || platformSnap),
-        'Codebase analyzer (separate scan) flags TODO/FIXME, broken JSON, debug artifacts, and ESLint violations.',
-        'We publish scoped metrics so buyers can verify what was actually checked — not marketing averages.'
-    ];
+  const primary = headlineSource === "monorepo" ? monorepoSnap : platformSnap;
+  return [
+    "Simplebeacon runs deterministic pattern matching on configured mock/sample JSON, credentials, and production-path rules.",
+    buildFictionScopeNote(primary || platformSnap),
+    "Codebase analyzer (separate scan) flags TODO/FIXME, broken JSON, debug artifacts, and ESLint violations.",
+    "We publish scoped metrics so buyers can verify what was actually checked — not marketing averages.",
+  ];
 }
 
 /**
@@ -259,57 +324,66 @@ function buildTrustMethodology(platformSnap, monorepoSnap, headlineSource) {
  * @returns {any}
  */
 function buildTrustVerificationPayload(options = {}) {
-    const platformRoot = path.resolve(options.platformRoot || options.projectRoot || process.cwd());
-    const monorepoRoot = options.monorepoRoot
-        ? path.resolve(options.monorepoRoot)
-        : path.resolve(platformRoot, '..');
+  const platformRoot = path.resolve(
+    options.platformRoot || options.projectRoot || process.cwd(),
+  );
+  const monorepoRoot = options.monorepoRoot
+    ? path.resolve(options.monorepoRoot)
+    : path.resolve(platformRoot, "..");
 
-    const platformReport = readJsonIfExists(
-        options.platformReportPath || path.join(platformRoot, '.simplebeacon', 'report.json')
-    );
-    const monorepoReport = readJsonIfExists(
-        options.monorepoReportPath || path.join(monorepoRoot, '.simplebeacon', 'report.json')
-    );
+  const platformReport = readJsonIfExists(
+    options.platformReportPath ||
+      path.join(platformRoot, ".simplebeacon", "report.json"),
+  );
+  const monorepoReport = readJsonIfExists(
+    options.monorepoReportPath ||
+      path.join(monorepoRoot, ".simplebeacon", "report.json"),
+  );
 
-    const platform = buildReportSnapshot(platformReport, 'Platform gate (ai-platform)');
-    const monorepo = monorepoReport
-        && monorepoReport.projectRoot
-        && path.resolve(monorepoReport.projectRoot).toLowerCase() !== path.resolve(platformRoot).toLowerCase()
-        ? buildReportSnapshot(monorepoReport, 'Monorepo root')
-        : null;
+  const platform = buildReportSnapshot(
+    platformReport,
+    "Platform gate (ai-platform)",
+  );
+  const monorepo =
+    monorepoReport &&
+    monorepoReport.projectRoot &&
+    path.resolve(monorepoReport.projectRoot).toLowerCase() !==
+      path.resolve(platformRoot).toLowerCase()
+      ? buildReportSnapshot(monorepoReport, "Monorepo root")
+      : null;
 
-    const picked = pickHeadlineSnapshot(platform, monorepo);
-    const primary = picked.primary;
-    const payload = {
-        type: 'simplebeacon-trust-verification',
-        generatedAt: new Date().toISOString(),
-        verificationMethod: 'simplebeacon-deterministic-gate',
-        platform,
-        monorepo,
-        headlineSource: picked.source,
-        headlineReason: picked.reason,
-        headline: primary
-            ? {
-                gatePass: primary.gatePass,
-                qualityScore: primary.qualityScore,
-                issueCount: primary.issueCount,
-                schemaCompliance: primary.schemaCompliance,
-                lastScan: primary.generatedAt,
-                repositoryFilesTotal: primary.repositoryFilesTotal,
-                ruleScopedFilesAnalyzed: primary.ruleScopedFilesAnalyzed
-            }
-            : null,
-        disclaimers: buildTrustDisclaimers(platform, monorepo),
-        methodology: buildTrustMethodology(platform, monorepo, picked.source),
-        fictionScope: buildFictionScopeBlock(platform, monorepo, picked.source)
-    };
+  const picked = pickHeadlineSnapshot(platform, monorepo);
+  const primary = picked.primary;
+  const payload = {
+    type: "simplebeacon-trust-verification",
+    generatedAt: new Date().toISOString(),
+    verificationMethod: "simplebeacon-deterministic-gate",
+    platform,
+    monorepo,
+    headlineSource: picked.source,
+    headlineReason: picked.reason,
+    headline: primary
+      ? {
+          gatePass: primary.gatePass,
+          qualityScore: primary.qualityScore,
+          issueCount: primary.issueCount,
+          schemaCompliance: primary.schemaCompliance,
+          lastScan: primary.generatedAt,
+          repositoryFilesTotal: primary.repositoryFilesTotal,
+          ruleScopedFilesAnalyzed: primary.ruleScopedFilesAnalyzed,
+        }
+      : null,
+    disclaimers: buildTrustDisclaimers(platform, monorepo),
+    methodology: buildTrustMethodology(platform, monorepo, picked.source),
+    fictionScope: buildFictionScopeBlock(platform, monorepo, picked.source),
+  };
 
-    payload.verificationId = verificationDigest(payload);
-    payload.repositoryHealth = buildRepositoryHealthPayload({
-        platformRoot,
-        monorepoRoot
-    });
-    return payload;
+  payload.verificationId = verificationDigest(payload);
+  payload.repositoryHealth = buildRepositoryHealthPayload({
+    platformRoot,
+    monorepoRoot,
+  });
+  return payload;
 }
 
 /**
@@ -318,30 +392,37 @@ function buildTrustVerificationPayload(options = {}) {
  * @returns {any}
  */
 function publishTrustVerification(options = {}) {
-    const platformRoot = path.resolve(options.platformRoot || options.projectRoot || process.cwd());
-    const monorepoRoot = options.monorepoRoot
-        ? path.resolve(options.monorepoRoot)
-        : path.resolve(platformRoot, '..');
-    const publicDir = path.resolve(options.publicDir || path.join(platformRoot, 'public'));
-    const trustHistoryPath = resolveTrustHistoryPath(platformRoot, options.trustHistoryPath);
+  const platformRoot = path.resolve(
+    options.platformRoot || options.projectRoot || process.cwd(),
+  );
+  const monorepoRoot = options.monorepoRoot
+    ? path.resolve(options.monorepoRoot)
+    : path.resolve(platformRoot, "..");
+  const publicDir = path.resolve(
+    options.publicDir || path.join(platformRoot, "public"),
+  );
+  const trustHistoryPath = resolveTrustHistoryPath(
+    platformRoot,
+    options.trustHistoryPath,
+  );
 
-    const payload = buildTrustVerificationPayload({ platformRoot, monorepoRoot });
-    const publishPath = path.join(publicDir, 'trust-verification.json');
+  const payload = buildTrustVerificationPayload({ platformRoot, monorepoRoot });
+  const publishPath = path.join(publicDir, "trust-verification.json");
 
-    fs.mkdirSync(publicDir, { recursive: true });
-    fs.writeFileSync(
-        publishPath,
-        `${JSON.stringify(payload, null, 2)}\n`,
-        'utf8'
-    );
+  fs.mkdirSync(publicDir, { recursive: true });
+  fs.writeFileSync(
+    publishPath,
+    `${JSON.stringify(payload, null, 2)}\n`,
+    "utf8",
+  );
 
-    const history = appendTrustSnapshot({
-        payload,
-        historyPath: trustHistoryPath,
-        source: options.source || 'trust:publish'
-    });
+  const history = appendTrustSnapshot({
+    payload,
+    historyPath: trustHistoryPath,
+    source: options.source || "trust:publish",
+  });
 
-    return { payload, publishPath, history, generatedAt: payload.generatedAt };
+  return { payload, publishPath, history, generatedAt: payload.generatedAt };
 }
 
 /**
@@ -351,15 +432,25 @@ function publishTrustVerification(options = {}) {
  * @returns {any}
  */
 function buildTrustBadgeSvg(payload, options = {}) {
-    const headline = payload.headline || {};
-    const score = headline.qualityScore ?? '—';
-    const gate = headline.gatePass === true ? 'PASS' : headline.gatePass === false ? 'REVIEW' : '—';
-    const issues = headline.issueCount ?? '—';
-    const width = options.width || 320;
-    const height = options.height || 72;
-    const gateColor = headline.gatePass === true ? '#3fb950' : headline.gatePass === false ? '#d29922' : '#8b949e';
+  const headline = payload.headline || {};
+  const score = headline.qualityScore ?? "—";
+  const gate =
+    headline.gatePass === true
+      ? "PASS"
+      : headline.gatePass === false
+        ? "REVIEW"
+        : "—";
+  const issues = headline.issueCount ?? "—";
+  const width = options.width || 320;
+  const height = options.height || 72;
+  const gateColor =
+    headline.gatePass === true
+      ? "#3fb950"
+      : headline.gatePass === false
+        ? "#d29922"
+        : "#8b949e";
 
-    return `<?xml version="1.0" encoding="UTF-8"?>
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Simplebeacon gate ${gate}, ${score}% quality">
   <rect width="${width}" height="${height}" rx="8" fill="#161b22" stroke="${gateColor}" stroke-width="2"/>
   <circle cx="${width - 18}" cy="18" r="6" fill="${gateColor}"/>
@@ -375,13 +466,13 @@ function buildTrustBadgeSvg(payload, options = {}) {
  * @param {any} origin
  * @returns {any}
  */
-function buildTrustBadgeHtml(payload, origin = '') {
-    const headline = payload.headline || {};
-    const base = origin || '';
-    const svgUrl = `${base}/api/trust/badge.svg?raw=1`;
-    const embed = `<img src="${svgUrl}" alt="SimpleBeacon gate verification badge" width="320" height="72" loading="lazy">`;
+function buildTrustBadgeHtml(payload, origin = "") {
+  const headline = payload.headline || {};
+  const base = origin || "";
+  const svgUrl = `${base}/api/trust/badge.svg?raw=1`;
+  const embed = `<img src="${svgUrl}" alt="SimpleBeacon gate verification badge" width="320" height="72" loading="lazy">`;
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -416,7 +507,7 @@ function buildTrustBadgeHtml(payload, origin = '') {
       <div class="preview">${embed}</div>
       <p class="muted" style="margin:16px 0 8px;">Embed on your site:</p>
       <pre>${esc(embed)}</pre>
-      <p class="muted">Headline: Gate ${headline.gatePass ? 'PASS' : 'REVIEW'} · ${esc(headline.qualityScore)}% quality · ${esc(headline.issueCount)} issues (monorepo-scoped when fiction debt exists).</p>
+      <p class="muted">Headline: Gate ${headline.gatePass ? "PASS" : "REVIEW"} · ${esc(headline.qualityScore)}% quality · ${esc(headline.issueCount)} issues (monorepo-scoped when fiction debt exists).</p>
     </div>
     <div class="links">
       <a href="${svgUrl}">Raw SVG</a>
@@ -434,11 +525,11 @@ function buildTrustBadgeHtml(payload, origin = '') {
  * @returns {any}
  */
 function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /**
@@ -448,18 +539,18 @@ function esc(value) {
  * @returns {any}
  */
 function renderSnapshotRow(label, snap) {
-    if (!snap) {
-        return `<section class="card"><h2>${esc(label)}</h2><p class="muted">No report on disk — run <code>npm run trust:refresh</code> first.</p></section>`;
-    }
-    const gate = snap.gatePass ? 'pass' : 'review';
-    const gateLabel = snap.gatePass ? 'GATE PASS' : 'GATE REVIEW';
-    return `
+  if (!snap) {
+    return `<section class="card"><h2>${esc(label)}</h2><p class="muted">No report on disk — run <code>npm run trust:refresh</code> first.</p></section>`;
+  }
+  const gate = snap.gatePass ? "pass" : "review";
+  const gateLabel = snap.gatePass ? "GATE PASS" : "GATE REVIEW";
+  return `
     <section class="card">
       <div class="row">
         <h2>${esc(label)}</h2>
         <span class="pill ${gate}">${gateLabel}</span>
       </div>
-      <p class="muted">${esc(snap.scopeNote || '')}</p>
+      <p class="muted">${esc(snap.scopeNote || "")}</p>
       <dl class="metrics">
         <div><dt>Quality</dt><dd>${esc(snap.qualityScore)}%</dd></div>
         <div><dt>Issues</dt><dd>${esc(snap.issueCount)}</dd></div>
@@ -467,8 +558,8 @@ function renderSnapshotRow(label, snap) {
         <div><dt>Consistency</dt><dd>${esc(snap.consistencyScore)}%</dd></div>
         <div><dt>Repo files</dt><dd>${esc(snap.repositoryFilesTotal)}</dd></div>
         <div><dt>Gate checked</dt><dd>${esc(snap.ruleScopedFilesAnalyzed)}</dd></div>
-        <div><dt>Fiction JSON</dt><dd>${esc(snap.fictionJsonFilesScanned ?? '—')}</dd></div>
-        <div><dt>Last scan</dt><dd>${esc((snap.generatedAt || '').replace('T', ' ').slice(0, 19))}</dd></div>
+        <div><dt>Fiction JSON</dt><dd>${esc(snap.fictionJsonFilesScanned ?? "—")}</dd></div>
+        <div><dt>Last scan</dt><dd>${esc((snap.generatedAt || "").replace("T", " ").slice(0, 19))}</dd></div>
       </dl>
     </section>`;
 }
@@ -479,14 +570,14 @@ function renderSnapshotRow(label, snap) {
  * @returns {any}
  */
 function buildTrustVerifyHtml(payload) {
-    const headline = payload.headline || {};
-    const gate = headline.gatePass ? 'pass' : 'review';
-    const gateLabel = headline.gatePass ? 'GATE PASS' : 'GATE REVIEW';
-    const disclaimers = (payload.disclaimers || [])
-        .map((d) => `<li>${esc(d)}</li>`)
-        .join('');
+  const headline = payload.headline || {};
+  const gate = headline.gatePass ? "pass" : "review";
+  const gateLabel = headline.gatePass ? "GATE PASS" : "GATE REVIEW";
+  const disclaimers = (payload.disclaimers || [])
+    .map((d) => `<li>${esc(d)}</li>`)
+    .join("");
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -534,22 +625,24 @@ function buildTrustVerifyHtml(payload) {
       </div>
       <div class="badge-row">
         <span class="badge">ID <code>${esc(payload.verificationId)}</code></span>
-        <span class="badge">Source <code>${esc(payload.headlineSource || 'n/a')}</code></span>
-        <span class="badge">${esc((headline.lastScan || '').replace('T', ' ').slice(0, 19))}</span>
+        <span class="badge">Source <code>${esc(payload.headlineSource || "n/a")}</code></span>
+        <span class="badge">${esc((headline.lastScan || "").replace("T", " ").slice(0, 19))}</span>
       </div>
-      <p class="muted">${esc(payload.headlineReason || 'Scoped scan results — not marketing claims.')}</p>
+      <p class="muted">${esc(payload.headlineReason || "Scoped scan results — not marketing claims.")}</p>
       <dl class="metrics">
         <div><dt>Quality</dt><dd>${esc(headline.qualityScore)}%</dd></div>
         <div><dt>Issues</dt><dd>${esc(headline.issueCount)}</dd></div>
         <div><dt>Schema</dt><dd>${esc(headline.schemaCompliance)}%</dd></div>
         <div><dt>Repo files</dt><dd>${esc(headline.repositoryFilesTotal)}</dd></div>
         <div><dt>Gate checked</dt><dd>${esc(headline.ruleScopedFilesAnalyzed)}</dd></div>
-        <div><dt>Consistency</dt><dd>${esc(headline.consistencyScore ?? '—')}%</dd></div>
+        <div><dt>Consistency</dt><dd>${esc(headline.consistencyScore ?? "—")}%</dd></div>
       </dl>
     </div>
-    ${renderSnapshotRow('Platform gate (ai-platform)', payload.platform)}
-    ${renderSnapshotRow('Monorepo root', payload.monorepo)}
-    ${payload.fictionScope ? `
+    ${renderSnapshotRow("Platform gate (ai-platform)", payload.platform)}
+    ${renderSnapshotRow("Monorepo root", payload.monorepo)}
+    ${
+      payload.fictionScope
+        ? `
     <section class="card">
       <h2>Fiction / KPI scope</h2>
       <p class="muted">Walk root <code>${esc(payload.fictionScope.walkRoot)}</code> · mode <code>${esc(payload.fictionScope.mode)}</code></p>
@@ -557,12 +650,18 @@ function buildTrustVerifyHtml(payload) {
         <div><dt>JSON scanned</dt><dd>${esc(payload.fictionScope.fictionJsonFilesScanned)}</dd></div>
         <div><dt>Mock JSON</dt><dd>${esc(payload.fictionScope.fictionSampleFilesScanned)}</dd></div>
       </dl>
-    </section>` : ''}
-    ${(payload.methodology || []).length ? `
+    </section>`
+        : ""
+    }
+    ${
+      (payload.methodology || []).length
+        ? `
     <section class="card">
       <h2>Methodology</h2>
-      <ul>${(payload.methodology || []).map((line) => `<li>${esc(line)}</li>`).join('')}</ul>
-    </section>` : ''}
+      <ul>${(payload.methodology || []).map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
+    </section>`
+        : ""
+    }
     <section class="card">
       <h2>Disclaimers</h2>
       <ul>${disclaimers}</ul>
@@ -587,33 +686,33 @@ function buildTrustVerifyHtml(payload) {
  * @returns {any}
  */
 function buildTrustVerifyCompact(payload) {
-    const headline = payload.headline || {};
-    return {
-        verified: Boolean(payload.platform || payload.monorepo),
-        verificationId: payload.verificationId,
-        headlineSource: payload.headlineSource || null,
-        headlineReason: payload.headlineReason || null,
-        qualityScore: headline.qualityScore,
-        lastScan: headline.lastScan,
-        issues: headline.issueCount,
-        schemaCompliance: headline.schemaCompliance,
-        gatePass: headline.gatePass,
-        repositoryFilesTotal: headline.repositoryFilesTotal,
-        ruleScopedFilesAnalyzed: headline.ruleScopedFilesAnalyzed,
-        disclaimers: payload.disclaimers
-    };
+  const headline = payload.headline || {};
+  return {
+    verified: Boolean(payload.platform || payload.monorepo),
+    verificationId: payload.verificationId,
+    headlineSource: payload.headlineSource || null,
+    headlineReason: payload.headlineReason || null,
+    qualityScore: headline.qualityScore,
+    lastScan: headline.lastScan,
+    issues: headline.issueCount,
+    schemaCompliance: headline.schemaCompliance,
+    gatePass: headline.gatePass,
+    repositoryFilesTotal: headline.repositoryFilesTotal,
+    ruleScopedFilesAnalyzed: headline.ruleScopedFilesAnalyzed,
+    disclaimers: payload.disclaimers,
+  };
 }
 
 module.exports = {
-    buildTrustVerificationPayload,
-    publishTrustVerification,
-    buildTrustBadgeSvg,
-    buildReportSnapshot,
-    buildTrustMethodology,
-    buildFictionScopeNote,
-    buildFictionScopeBlock,
-    buildTrustVerifyHtml,
-    buildTrustVerifyCompact,
-    buildTrustBadgeHtml,
-    readJsonIfExists
+  buildTrustVerificationPayload,
+  publishTrustVerification,
+  buildTrustBadgeSvg,
+  buildReportSnapshot,
+  buildTrustMethodology,
+  buildFictionScopeNote,
+  buildFictionScopeBlock,
+  buildTrustVerifyHtml,
+  buildTrustVerifyCompact,
+  buildTrustBadgeHtml,
+  readJsonIfExists,
 };

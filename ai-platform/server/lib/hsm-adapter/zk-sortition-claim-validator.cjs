@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 80: ZK Sortition Claim Validator.
@@ -14,8 +14,8 @@
  * @module hsm-adapter/zk-sortition-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkSortitionClaimValidator {
   /**
@@ -42,62 +42,119 @@ class ZkSortitionClaimValidator {
   verifySortitionClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('SORTCLAIM_HUB_MISSING', 'sortition verification gating hub is required');
+      throw new HsmAdapterError(
+        "SORTCLAIM_HUB_MISSING",
+        "sortition verification gating hub is required",
+      );
     }
-    if (this.policy.requireAuditCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireAuditCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.auditCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.auditCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SORTCLAIM_COMMITTEE_UNATTESTED', 'audit committee attestation invalid');
+          throw new HsmAdapterError(
+            "SORTCLAIM_COMMITTEE_UNATTESTED",
+            "audit committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SORTCLAIM_COMMITTEE_UNATTESTED', 'audit committee attestation invalid');
+        throw new HsmAdapterError(
+          "SORTCLAIM_COMMITTEE_UNATTESTED",
+          "audit committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('SORTCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SORTCLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('SORTCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "SORTCLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkSortitionRangeProofHash || typeof request.zkSortitionRangeProofHash !== 'string') {
+    if (
+      !request.zkSortitionRangeProofHash ||
+      typeof request.zkSortitionRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('SORTCLAIM_ZK_PROOF_MISSING', 'zero-knowledge sortition range proof hash is required');
+      throw new HsmAdapterError(
+        "SORTCLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge sortition range proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('SORTCLAIM_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "SORTCLAIM_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('SORTCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SORTCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.sortitionEpochSeconds === 'number' && request.sortitionEpochSeconds > (this.policy.maxSortitionEpochSeconds || 2592000)) {
+    if (
+      typeof request.sortitionEpochSeconds === "number" &&
+      request.sortitionEpochSeconds >
+        (this.policy.maxSortitionEpochSeconds || 2592000)
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('SORTCLAIM_EPOCH_OUT_OF_BOUNDS', `sortition epoch seconds ${request.sortitionEpochSeconds} exceeds maximum ${this.policy.maxSortitionEpochSeconds}`);
+      throw new HsmAdapterError(
+        "SORTCLAIM_EPOCH_OUT_OF_BOUNDS",
+        `sortition epoch seconds ${request.sortitionEpochSeconds} exceeds maximum ${this.policy.maxSortitionEpochSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('SORTCLAIM_DUPLICATE', `sortition claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "SORTCLAIM_DUPLICATE",
+        `sortition claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedSortitionSeedCommitment: request.blindedSortitionSeedCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedSortitionSeedCommitment:
+        request.blindedSortitionSeedCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkSortitionRangeProofHash: request.zkSortitionRangeProofHash,
-      auditCommitteeAttestationHash: request.auditCommitteeAttestationHash || 'unspecified',
+      auditCommitteeAttestationHash:
+        request.auditCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
     };
     this._verifiedClaims.set(claimKey, claim);
     this._hub.markSortitionClaimVerified(request.poolId);
     if (this._audit) {
-      this._audit('ZK_SORTITION_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_SORTITION_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -125,7 +182,10 @@ class ZkSortitionClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderSortitionClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderSortitionClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -133,10 +193,16 @@ class ZkSortitionClaimValidator {
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('SORTCLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError("SORTCLAIM_FIELDS_MISSING", "poolId is required");
   }
-  if (policy.requireAuditCommitteeAttestation && !request.auditCommitteeAttestation) {
-    throw new HsmAdapterError('SORTCLAIM_ATTESTATION_MISSING', 'audit committee attestation is required');
+  if (
+    policy.requireAuditCommitteeAttestation &&
+    !request.auditCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SORTCLAIM_ATTESTATION_MISSING",
+      "audit committee attestation is required",
+    );
   }
 }
 

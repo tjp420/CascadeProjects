@@ -2,16 +2,32 @@
  * Tree-sitter query helpers — extract function scopes for intent analysis.
  */
 
-import { analyzeFunctionBlock, scanCredentialDictStubs } from './structural-intent-scanner.js';
-import { INTENT_RULE_IDS } from './constants.js';
-import { parseWithTreeSitter, getTreeSitterStatus } from './tree-sitter-loader.js';
-import { scanStructuralIntent } from './structural-intent-scanner.js';
+import {
+  analyzeFunctionBlock,
+  scanCredentialDictStubs,
+} from "./structural-intent-scanner.js";
+import { INTENT_RULE_IDS } from "./constants.js";
+import {
+  parseWithTreeSitter,
+  getTreeSitterStatus,
+} from "./tree-sitter-loader.js";
+import { scanStructuralIntent } from "./structural-intent-scanner.js";
 
 const FUNCTION_NODE_TYPES = {
-    javascript: ['function_declaration', 'arrow_function', 'method_definition', 'generator_function_declaration'],
-    typescript: ['function_declaration', 'arrow_function', 'method_definition', 'generator_function_declaration'],
-    python: ['function_definition'],
-    go: ['function_declaration', 'method_declaration']
+  javascript: [
+    "function_declaration",
+    "arrow_function",
+    "method_definition",
+    "generator_function_declaration",
+  ],
+  typescript: [
+    "function_declaration",
+    "arrow_function",
+    "method_definition",
+    "generator_function_declaration",
+  ],
+  python: ["function_definition"],
+  go: ["function_declaration", "method_declaration"],
 };
 
 /**
@@ -22,13 +38,13 @@ const FUNCTION_NODE_TYPES = {
  * @returns {any}
  */
 function walkNodes(node, typeSet, results) {
-    if (!node) return;
-    if (typeSet.has(node.type)) {
-        results.push(node);
-    }
-    for (let i = 0; i < node.childCount; i += 1) {
-        walkNodes(node.child(i), typeSet, results);
-    }
+  if (!node) return;
+  if (typeSet.has(node.type)) {
+    results.push(node);
+  }
+  for (let i = 0; i < node.childCount; i += 1) {
+    walkNodes(node.child(i), typeSet, results);
+  }
 }
 
 /**
@@ -37,7 +53,7 @@ function walkNodes(node, typeSet, results) {
  * @returns {any}
  */
 function nodeLine(node) {
-    return (node.startPosition?.row ?? 0) + 1;
+  return (node.startPosition?.row ?? 0) + 1;
 }
 
 /**
@@ -47,13 +63,16 @@ function nodeLine(node) {
  * @returns {any}
  */
 function nodeName(node, content) {
-    const nameNode = node.childForFieldName('name')
-        || node.namedChildren?.find((c) => c.type === 'identifier' || c.type === 'property_identifier');
-    if (nameNode?.text) return nameNode.text;
-    if (nameNode) {
-        return content.slice(nameNode.startIndex, nameNode.endIndex);
-    }
-    return 'anonymous';
+  const nameNode =
+    node.childForFieldName("name") ||
+    node.namedChildren?.find(
+      (c) => c.type === "identifier" || c.type === "property_identifier",
+    );
+  if (nameNode?.text) return nameNode.text;
+  if (nameNode) {
+    return content.slice(nameNode.startIndex, nameNode.endIndex);
+  }
+  return "anonymous";
 }
 
 /**
@@ -63,11 +82,13 @@ function nodeName(node, content) {
  * @returns {any}
  */
 function nodeBodyText(node, content) {
-    const bodyNode = node.childForFieldName('body') || node.namedChildren?.find((c) => c.type === 'statement_block');
-    if (bodyNode) {
-        return content.slice(bodyNode.startIndex, bodyNode.endIndex);
-    }
-    return content.slice(node.startIndex, node.endIndex);
+  const bodyNode =
+    node.childForFieldName("body") ||
+    node.namedChildren?.find((c) => c.type === "statement_block");
+  if (bodyNode) {
+    return content.slice(bodyNode.startIndex, bodyNode.endIndex);
+  }
+  return content.slice(node.startIndex, node.endIndex);
 }
 
 /**
@@ -78,16 +99,16 @@ function nodeBodyText(node, content) {
  * @returns {any}
  */
 function extractFunctionsFromTree(rootNode, content, language) {
-    const types = FUNCTION_NODE_TYPES[language] || FUNCTION_NODE_TYPES.javascript;
-    const typeSet = new Set(types);
-    const nodes = [];
-    walkNodes(rootNode, typeSet, nodes);
+  const types = FUNCTION_NODE_TYPES[language] || FUNCTION_NODE_TYPES.javascript;
+  const typeSet = new Set(types);
+  const nodes = [];
+  walkNodes(rootNode, typeSet, nodes);
 
-    return nodes.map((node) => ({
-        name: nodeName(node, content),
-        startLine: nodeLine(node),
-        body: nodeBodyText(node, content)
-    }));
+  return nodes.map((node) => ({
+    name: nodeName(node, content),
+    startLine: nodeLine(node),
+    body: nodeBodyText(node, content),
+  }));
 }
 
 /**
@@ -97,24 +118,28 @@ function extractFunctionsFromTree(rootNode, content, language) {
  * @returns {any}
  */
 function scanStructuralFromTree(content, options = {}) {
-    const filePath = options.filePath || 'snippet.txt';
-    const language = options.language || 'javascript';
-    const findings = [];
-    const functions = options.functions || [];
+  const filePath = options.filePath || "snippet.txt";
+  const language = options.language || "javascript";
+  const findings = [];
+  const functions = options.functions || [];
 
-    for (const fn of functions) {
-        findings.push(...analyzeFunctionBlock(fn, filePath, options).map((f) => ({
-            ...f,
-            metadata: { ...f.metadata, engine: 'tree-sitter' }
-        })));
-    }
-
-    findings.push(...scanCredentialDictStubs(content, filePath, language).map((f) => ({
+  for (const fn of functions) {
+    findings.push(
+      ...analyzeFunctionBlock(fn, filePath, options).map((f) => ({
         ...f,
-        metadata: { ...f.metadata, engine: 'tree-sitter' }
-    })));
+        metadata: { ...f.metadata, engine: "tree-sitter" },
+      })),
+    );
+  }
 
-    return findings;
+  findings.push(
+    ...scanCredentialDictStubs(content, filePath, language).map((f) => ({
+      ...f,
+      metadata: { ...f.metadata, engine: "tree-sitter" },
+    })),
+  );
+
+  return findings;
 }
 
 /**
@@ -124,46 +149,50 @@ function scanStructuralFromTree(content, options = {}) {
  * @returns {any}
  */
 async function scanWithTreeSitter(content, options = {}) {
-    const language = options.language || 'javascript';
+  const language = options.language || "javascript";
 
-    const status = getTreeSitterStatus(options);
-    if (!status.ready) {
-        return {
-            engine: 'structural-fallback',
-            treeSitterUsed: false,
-            reason: status.webTreeSitterInstalled
-                ? 'Grammar WASM files missing'
-                : 'web-tree-sitter not installed',
-            findings: scanStructuralIntent(content, options)
-        };
-    }
-
-    const parsed = await parseWithTreeSitter(content, language, options);
-    if (!parsed.ok) {
-        return {
-            engine: 'structural-fallback',
-            treeSitterUsed: false,
-            reason: parsed.reason,
-            findings: scanStructuralIntent(content, options)
-        };
-    }
-
-    const functions = extractFunctionsFromTree(parsed.tree.rootNode, content, language);
-    const findings = functions.length
-        ? scanStructuralFromTree(content, { ...options, functions })
-        : scanStructuralIntent(content, options);
-
+  const status = getTreeSitterStatus(options);
+  if (!status.ready) {
     return {
-        engine: 'tree-sitter+structural',
-        treeSitterUsed: true,
-        functionNodesExtracted: functions.length,
-        findings
+      engine: "structural-fallback",
+      treeSitterUsed: false,
+      reason: status.webTreeSitterInstalled
+        ? "Grammar WASM files missing"
+        : "web-tree-sitter not installed",
+      findings: scanStructuralIntent(content, options),
     };
+  }
+
+  const parsed = await parseWithTreeSitter(content, language, options);
+  if (!parsed.ok) {
+    return {
+      engine: "structural-fallback",
+      treeSitterUsed: false,
+      reason: parsed.reason,
+      findings: scanStructuralIntent(content, options),
+    };
+  }
+
+  const functions = extractFunctionsFromTree(
+    parsed.tree.rootNode,
+    content,
+    language,
+  );
+  const findings = functions.length
+    ? scanStructuralFromTree(content, { ...options, functions })
+    : scanStructuralIntent(content, options);
+
+  return {
+    engine: "tree-sitter+structural",
+    treeSitterUsed: true,
+    functionNodesExtracted: functions.length,
+    findings,
+  };
 }
 
 export {
-    FUNCTION_NODE_TYPES,
-    extractFunctionsFromTree,
-    scanStructuralFromTree,
-    scanWithTreeSitter
-}
+  FUNCTION_NODE_TYPES,
+  extractFunctionsFromTree,
+  scanStructuralFromTree,
+  scanWithTreeSitter,
+};

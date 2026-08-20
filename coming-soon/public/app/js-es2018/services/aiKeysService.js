@@ -3,7 +3,12 @@ import { DASHBOARD_BASE_URL, OLLAMA_DEFAULT_URL } from '../config.js';
 import { apiBaseUrl } from '../utils-lib/url.js';
 
 import { authService } from './authService.js?v=20260722bridgefix1';
-import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260720ollama4';
+import {
+    hasExtensionBridgeConfigured,
+    getLocalBridgeFetch,
+    getExtensionBridgeOrigin,
+    buildBridgeOllamaProbeUrls
+} from './localAgentService.js?v=20260720ollama4';
 /**
  * Is authenticated.
  * @returns {any}
@@ -71,25 +76,31 @@ export async function fetchUserAiKeys(options = {}) {
         return _aiKeysPromise;
     }
     _aiKeysPromise = fetch(BASE, { headers: authService.getAuthHeaders() })
-        .then(async (keysHttpResponse) => {
-        const keysPayload = await readJsonResponseBody(keysHttpResponse, {});
-        if (!keysHttpResponse.ok || !keysPayload.success) {
-            if (keysHttpResponse.status === 404 && keysPayload.error === 'API route not found') {
-                throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
+        .then(async keysHttpResponse => {
+            const keysPayload = await readJsonResponseBody(keysHttpResponse, {});
+            if (!keysHttpResponse.ok || !keysPayload.success) {
+                if (keysHttpResponse.status === 404 && keysPayload.error === 'API route not found') {
+                    throw new Error(
+                        'AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).'
+                    );
+                }
+                const msg = keysPayload.error || keysPayload.message || '';
+                if (
+                    keysHttpResponse.status === 401 ||
+                    keysHttpResponse.status === 403 ||
+                    /Authentication required/i.test(msg)
+                ) {
+                    _lastAuthFailure = Date.now();
+                    return normalizeAiKeysRecord(null);
+                }
+                throw new Error(msg || 'Failed to load AI keys');
             }
-            const msg = keysPayload.error || keysPayload.message || '';
-            if (keysHttpResponse.status === 401 || keysHttpResponse.status === 403 || /Authentication required/i.test(msg)) {
-                _lastAuthFailure = Date.now();
-                return normalizeAiKeysRecord(null);
-            }
-            throw new Error(msg || 'Failed to load AI keys');
-        }
-        return normalizeAiKeysRecord(keysPayload);
-    })
-        .catch((err) => {
-        _aiKeysPromise = null;
-        throw err;
-    });
+            return normalizeAiKeysRecord(keysPayload);
+        })
+        .catch(err => {
+            _aiKeysPromise = null;
+            throw err;
+        });
     return _aiKeysPromise;
 }
 /**
@@ -154,7 +165,10 @@ export async function clearUserAiKeys() {
  * @returns {any}
  */
 function sanitizeOllamaBaseUrl(url) {
-    return String(url || '').trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, '');
+    return String(url || '')
+        .trim()
+        .replace(/^["']+|["']+$/g, '')
+        .replace(/\/$/, '');
 }
 
 export function isLocalOllamaUrl(url) {
@@ -180,12 +194,10 @@ function isValidOllamaBaseUrl(url) {
     if (!clean) return false;
     try {
         const parsed = new URL(clean);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
-            return false;
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
         if (parsed.port) {
             const portNum = Number(parsed.port);
-            if (!portNum || portNum < 1 || portNum > 65535)
-                return false;
+            if (!portNum || portNum < 1 || portNum > 65535) return false;
         }
         return !!parsed.hostname;
     } catch {
@@ -199,19 +211,26 @@ let _ollamaModelsPromiseUrl = null;
 function getApiBaseUrl() {
     const fromUrl = apiBaseUrl();
     if (fromUrl && fromUrl !== '/') {
-        return String(fromUrl).replace(/\/api\/?$/, '').replace(/\/+$/, '');
+        return String(fromUrl)
+            .replace(/\/api\/?$/, '')
+            .replace(/\/+$/, '');
     }
-    return (DASHBOARD_BASE_URL || (typeof window !== 'undefined' ? window.__SB_API_HOST__ : '') || '').replace(/\/+$/, '');
+    return (DASHBOARD_BASE_URL || (typeof window !== 'undefined' ? window.__SB_API_HOST__ : '') || '').replace(
+        /\/+$/,
+        ''
+    );
 }
 
 function isCorsError(err) {
     const msg = String(err && err.message ? err.message : err).toLowerCase();
-    return msg.includes('cors') ||
-           msg.includes('cross-origin') ||
-           msg.includes('blocked') ||
-           msg.includes('failed to fetch') ||
-           msg.includes('networkerror') ||
-           msg.includes('network error');
+    return (
+        msg.includes('cors') ||
+        msg.includes('cross-origin') ||
+        msg.includes('blocked') ||
+        msg.includes('failed to fetch') ||
+        msg.includes('networkerror') ||
+        msg.includes('network error')
+    );
 }
 
 export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
@@ -229,7 +248,8 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         return {
             ok: false,
             models: [],
-            message: 'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally.',
+            message:
+                'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally.',
             source: 'blocked'
         };
     }
@@ -254,11 +274,13 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
                 throw new Error(`Ollama returned HTTP ${response.status}`);
             }
             const data = await response.json().catch(() => ({}));
-            const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
+            const models = Array.isArray(data.models) ? data.models.map(m => m.name || m.model) : [];
             return {
                 ok: true,
                 models,
-                message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
+                message: models.length
+                    ? `${models.length} model(s) available`
+                    : 'Ollama is running but has no models pulled',
                 source: 'browser'
             };
         } finally {
@@ -295,12 +317,22 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
                 throw new Error(data.error || data.message || `Server proxy returned HTTP ${response.status}`);
             }
             // Support both legacy raw upstream response (array/object) and our proxy wrapper { success, data }
-            const modelsArray = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : (Array.isArray(data?.models) ? data.models : []));
-            const models = Array.isArray(modelsArray) ? modelsArray.map((m) => (typeof m === 'string' ? m : (m.name || m.model))) : [];
+            const modelsArray = Array.isArray(data)
+                ? data
+                : Array.isArray(data?.data)
+                  ? data.data
+                  : Array.isArray(data?.models)
+                    ? data.models
+                    : [];
+            const models = Array.isArray(modelsArray)
+                ? modelsArray.map(m => (typeof m === 'string' ? m : m.name || m.model))
+                : [];
             return {
                 ok: true,
                 models,
-                message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
+                message: models.length
+                    ? `${models.length} model(s) available`
+                    : 'Ollama is running but has no models pulled',
                 source: 'server'
             };
         } finally {
@@ -336,16 +368,17 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
                         continue;
                     }
                     const models = Array.isArray(data.models)
-                        ? data.models.map((m) => (typeof m === 'string' ? m : (m.name || m.model)))
+                        ? data.models.map(m => (typeof m === 'string' ? m : m.name || m.model))
                         : [];
                     return {
                         ok: true,
                         models,
-                        message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
+                        message: models.length
+                            ? `${models.length} model(s) available`
+                            : 'Ollama is running but has no models pulled',
                         source: 'bridge'
                     };
-                }
-                catch (err) {
+                } catch (err) {
                     if (err?.name === 'AbortError') {
                         throw new Error('Ollama connection timed out - is Ollama running?');
                     }
@@ -363,26 +396,29 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
                     if (providersRes.ok) {
                         const providersData = await providersRes.json().catch(() => ({}));
                         const ollama = Array.isArray(providersData.providers)
-                            ? providersData.providers.find((p) => p.id === 'ollama')
+                            ? providersData.providers.find(p => p.id === 'ollama')
                             : null;
                         if (ollama?.available) {
                             return {
                                 ok: true,
                                 models: [],
-                                message: 'Ollama is connected. Install the latest SimpleBeacon VSIX and reload VS Code to list models here, or enter a model name manually.',
+                                message:
+                                    'Ollama is connected. Install the latest SimpleBeacon VSIX and reload VS Code to list models here, or enter a model name manually.',
                                 source: 'bridge-providers'
                             };
                         }
                     }
+                } catch (_providersErr) {
+                    /* ignore */
                 }
-                catch (_providersErr) { /* ignore */ }
             }
             if (lastStatus === 404 || sawNotFound || /not found/i.test(lastMessage)) {
-                throw new Error('Extension data server has no Ollama proxy routes (404). Install the latest SimpleBeacon VSIX from Settings or reload VS Code/Cursor.');
+                throw new Error(
+                    'Extension data server has no Ollama proxy routes (404). Install the latest SimpleBeacon VSIX from Settings or reload VS Code/Cursor.'
+                );
             }
             throw new Error(lastMessage || 'Extension bridge could not reach Ollama');
-        }
-        finally {
+        } finally {
             clearTimeout(timeout);
         }
     }
@@ -395,14 +431,18 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         if (viaBridge) {
             try {
                 return await fetchBridgeProxy();
-            }
-            catch (bridgeErr) {
+            } catch (bridgeErr) {
                 if (bridgeErr.name === 'AbortError') {
-                    return { ok: false, models: [], message: 'Ollama connection timed out - is Ollama running?', source: 'timeout' };
+                    return {
+                        ok: false,
+                        models: [],
+                        message: 'Ollama connection timed out - is Ollama running?',
+                        source: 'timeout'
+                    };
                 }
                 const userMessage = /not found/i.test(bridgeErr.message || '')
                     ? 'Extension data server has no Ollama proxy routes (404). Install the latest SimpleBeacon VSIX from Settings or reload VS Code/Cursor.'
-                    : (bridgeErr.message || 'Extension bridge proxy failed');
+                    : bridgeErr.message || 'Extension bridge proxy failed';
                 return {
                     ok: false,
                     models: [],
@@ -434,7 +474,12 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
             return await fetchProxy();
         } catch (proxyErr) {
             if (proxyErr.name === 'AbortError') {
-                return { ok: false, models: [], message: 'Ollama connection timed out - is Ollama running?', source: 'timeout' };
+                return {
+                    ok: false,
+                    models: [],
+                    message: 'Ollama connection timed out - is Ollama running?',
+                    source: 'timeout'
+                };
             }
             try {
                 return await fetchDirect();
@@ -451,9 +496,10 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
                 return {
                     ok: false,
                     models: [],
-                    message: browserErr.message === proxyErr.message
-                        ? proxyErr.message
-                        : `${browserErr.message} (server proxy: ${proxyErr.message})`,
+                    message:
+                        browserErr.message === proxyErr.message
+                            ? proxyErr.message
+                            : `${browserErr.message} (server proxy: ${proxyErr.message})`,
                     source: 'error'
                 };
             }

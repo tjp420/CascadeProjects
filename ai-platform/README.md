@@ -1,4 +1,3 @@
-
 [![CI Status](https://github.com/tjp420/simplebeacon/workflows/Simplebeacon%20AI%20Hygiene%20Gate/badge.svg)](https://github.com/tjp420/simplebeacon/actions)
 [![Coverage](https://codecov.io/gh/tjp420/simplebeacon/branch/main/graph/badge.svg)](https://codecov.io/gh/tjp420/simplebeacon)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -9,24 +8,28 @@
 ## 🚀 Features
 
 ### 🔍 AI Safety Scanning
+
 - **Multi-Engine Analysis**: Credential detection, production leaks, fiction KPI patterns
 - **EU AI Act Compliance**: Automated compliance checking for AI systems
 - **LLM Content Analysis**: Detect AI-generated content, template text, and conversational debris
 - **Security Audit**: Comprehensive security vulnerability scanning
 
 ### 📊 Dashboard & Analytics
+
 - **Real-time Dashboard**: Interactive web interface for scan results
 - **Audit Trails**: Complete audit logging and compliance reporting
 - **Quality Metrics**: Code quality scores and trend analysis
 - **Team Collaboration**: Multi-user support with role-based access
 
 ### 🔧 Developer Tools
+
 - **CLI Integration**: Command-line tools for CI/CD pipelines
 - **API-First Design**: RESTful APIs for integration with existing workflows
 - **Docker Support**: Containerized deployment with Docker Compose
 - **GitHub Actions**: Automated scanning and quality gates
 
 ### 🏢 Enterprise Features
+
 - **Production Authentication**: JWT-based auth with refresh tokens
 - **Database Integration**: PostgreSQL and Redis for scalable data storage
 - **Audit Logging**: Comprehensive audit trails for compliance
@@ -35,6 +38,7 @@
 ## 📦 Installation
 
 ### Prerequisites
+
 - **Node.js**: >= 16.0.0
 - **npm**: >= 8.0.0
 - **Docker**: >= 20.0.0 (optional, for Phase 2 features)
@@ -43,23 +47,27 @@
 ### Quick Start
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/tjp420/simplebeacon.git
    cd simplebeacon/ai-platform
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment**
+
    ```bash
    cp .env.v1-internal.example .env.v1-internal
    # Edit .env.v1-internal with your configuration
    ```
 
 4. **Start the platform**
+
    ```bash
    npm run dev
    ```
@@ -72,6 +80,7 @@
 ### Docker Installation
 
 1. **Start Phase 2 infrastructure**
+
    ```bash
    npm run phase2:infra
    ```
@@ -247,6 +256,7 @@ curl http://localhost:3002/api/metrics/path-health
 ### Audit Logs
 
 Audit logs are stored in `logs/audit.log` and include:
+
 - Authentication events
 - API access patterns
 - Security incidents
@@ -255,6 +265,7 @@ Audit logs are stored in `logs/audit.log` and include:
 ### Monitoring Dashboard
 
 Access monitoring metrics at:
+
 - **Health Checks**: `/api/health`
 - **Platform Status**: `/api/platform/status`
 - **Metrics**: `/api/metrics/path-health`
@@ -264,6 +275,7 @@ Access monitoring metrics at:
 ### Authentication
 
 Simplebeacon uses JWT-based authentication with:
+
 - **Access Tokens**: 1-hour expiry
 - **Refresh Tokens**: 7-day expiry
 - **Vault Authentication**: Local development bypass
@@ -348,6 +360,7 @@ npm run simplebeacon:hygiene-gate
 ### Professional Support
 
 For enterprise support and custom deployments:
+
 - **Email**: support@simplebeacon.ai
 - **Documentation**: [Enterprise Guide](docs/enterprise.md)
 - **SLA**: [Service Level Agreement](docs/sla.md)
@@ -365,6 +378,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📈 Roadmap
 
 ### v1.0-Internal (Current)
+
 - ✅ Production authentication system
 - ✅ Phase 2 infrastructure (PostgreSQL, Redis)
 - ✅ CI/CD pipeline with GitHub Actions
@@ -372,12 +386,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ Docker deployment support
 
 ### v1.1 (Planned)
+
 - 🔄 Enhanced AI model integration
 - 🔄 Advanced compliance reporting
 - 🔄 Multi-tenant support
 - 🔄 Performance optimizations
 
 ### v2.0 (Future)
+
 - 📋 Cloud-native architecture
 - 📋 Automated inference pipeline integration
 - 📋 Advanced threat detection
@@ -392,15 +408,17 @@ Built with ❤️ by the Simplebeacon Team
 ## 📊 E2E Security Status
 
 <!-- E2E_SECURITY_STATUS_TABLE_START -->
-| Metric | Value |
-|---|---|
-| E2E Security Status | ✅ **Secure** |
-| Routes Tested | 23 |
-| Routes Passed | 23 |
-| Routes Failed | — |
-| UI Interactions | 101 |
-| Console Errors | 4 |
-| Payload Injections | — |
-| XSS Reflected | — |
-| Last Updated | 2026-07-29T22:23:50.542Z |
+
+| Metric              | Value                    |
+| ------------------- | ------------------------ |
+| E2E Security Status | ✅ **Secure**            |
+| Routes Tested       | 23                       |
+| Routes Passed       | 23                       |
+| Routes Failed       | —                        |
+| UI Interactions     | 101                      |
+| Console Errors      | 4                        |
+| Payload Injections  | —                        |
+| XSS Reflected       | —                        |
+| Last Updated        | 2026-07-29T22:23:50.542Z |
+
 <!-- E2E_SECURITY_STATUS_TABLE_END -->

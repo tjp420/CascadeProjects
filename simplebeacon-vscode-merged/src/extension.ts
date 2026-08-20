@@ -932,11 +932,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Register the security quick-fix provider for auto-remediation of
     // workspace analyzer security patterns (evalDanger, innerHtmlXss, etc.)
     context.subscriptions.push(
-      vscode.languages.registerCodeActionsProvider(
-        { scheme: 'file', language: '*' },
-        new SecurityQuickFixProvider(),
-        { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
-      )
+      vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: '*' }, new SecurityQuickFixProvider(), {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+      })
     );
 
     // Register the "Share Clean Badge" viral referral command
@@ -2483,13 +2481,9 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (!result.success) {
-              vscode.window.showErrorMessage(
-                `In-place remediation failed: ${result.error || 'Unknown error'}`
-              );
+              vscode.window.showErrorMessage(`In-place remediation failed: ${result.error || 'Unknown error'}`);
             } else if (result.applied) {
-              vscode.window.showInformationMessage(
-                `Applied Ollama fix for ${diagnosticCode || 'finding'}.`
-              );
+              vscode.window.showInformationMessage(`Applied Ollama fix for ${diagnosticCode || 'finding'}.`);
             } else if (result.replacement === result.originalSnippet.trim()) {
               vscode.window.showInformationMessage(
                 'Ollama determined this finding is a false positive — no changes applied.'
@@ -4516,7 +4510,9 @@ async function runScan(
       const installDir = getLocalAgentInstallDir();
       if (isLocalAgentInstalled(installDir) && config.get<boolean>('localAgent.autoStart', true)) {
         if (!isLocalAgentInstallComplete(installDir)) {
-          outputChannel.appendLine('[SimpleBeacon] Local agent install is incomplete (missing agent.cjs). Re-installing...');
+          outputChannel.appendLine(
+            '[SimpleBeacon] Local agent install is incomplete (missing agent.cjs). Re-installing...'
+          );
         } else {
           outputChannel.appendLine('[SimpleBeacon] Starting installed local agent...');
           startLocalAgent(installDir, agentPort);
@@ -4538,11 +4534,7 @@ async function runScan(
       const promptMsg = incomplete
         ? 'SimpleBeacon Local Agent install is incomplete (missing agent.cjs). Re-install to fix?'
         : 'SimpleBeacon Local Agent is not installed. It enables offline scans without requiring the CLI.';
-      const choice = await vscode.window.showWarningMessage(
-        promptMsg,
-        'Install Now',
-        'Use CLI Instead'
-      );
+      const choice = await vscode.window.showWarningMessage(promptMsg, 'Install Now', 'Use CLI Instead');
       if (choice === 'Install Now') {
         try {
           await installLocalAgent();
@@ -5022,7 +5014,7 @@ async function runScan(
               }
               outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
               void syncReportToCloud(report);
-          handleScanCompleteTeamTelemetry(context, report as any, projectPath, outputChannel);
+              handleScanCompleteTeamTelemetry(context, report as any, projectPath, outputChannel);
               scanInProgress = false;
               _stopSimulatedProgress();
               _reportProgress(100);
@@ -5260,10 +5252,7 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
             const r = path.join(rel, entry.name).replace(/\\/g, '/');
             const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
             try {
-              const [content, stat] = await Promise.all([
-                fs.promises.readFile(full, 'utf8'),
-                fs.promises.stat(full),
-              ]);
+              const [content, stat] = await Promise.all([fs.promises.readFile(full, 'utf8'), fs.promises.stat(full)]);
               const lines = content.split(/\r?\n/).length;
               return { name: entry.name, ext, size: stat.size, lines, path: r, full, content };
             } catch {

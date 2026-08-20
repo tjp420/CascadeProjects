@@ -1,119 +1,119 @@
 {
-  "version": 2,
-  "description": "SimpleBeacon local LLM model registry — maps model IDs to their Modelfile, context window, and optimized parameters. Version 2 adds quantization and memory budget metadata for air-gapped deployment planning.",
-  "defaultModel": "unbreakable-oracle",
-  "quantization": "Q4_K_M (4.84 bits/weight) — recommended balance for production. ~4.4 GB VRAM for 7B models, minimal quality loss vs FP16.",
-  "memoryProfiles": "coming-soon/public/models/memory-profiles.json",
-  "models": {
-    "unbreakable-oracle": {
-      "modelfile": "Modelfile",
-      "ollamaModel": "unbreakable-oracle",
-      "baseModel": "llama3.2:3b-q4_K_M",
-      "contextWindow": 8192,
-      "numPredict": 2048,
-      "temperature": 0.1,
-      "topP": 0.9,
-      "repeatPenalty": 1.1,
-      "numGpu": -1,
-      "f16Kv": true,
-      "quantization": "Q4_K_M",
-      "memoryEstimate": {
-        "modelSizeGB": 2.0,
-        "ramGB": 2.5,
-        "vramGB": 2.0,
-        "kvCacheGB": 1.0,
-        "totalGB": 4.5
-      },
-      "description": "SimpleBeacon's default code analysis model — based on llama3.2 3B with optimized system prompt for security and compliance analysis. Smallest model — fastest inference, lowest memory."
+    "version": 2,
+    "description": "SimpleBeacon local LLM model registry — maps model IDs to their Modelfile, context window, and optimized parameters. Version 2 adds quantization and memory budget metadata for air-gapped deployment planning.",
+    "defaultModel": "unbreakable-oracle",
+    "quantization": "Q4_K_M (4.84 bits/weight) — recommended balance for production. ~4.4 GB VRAM for 7B models, minimal quality loss vs FP16.",
+    "memoryProfiles": "coming-soon/public/models/memory-profiles.json",
+    "models": {
+        "unbreakable-oracle": {
+            "modelfile": "Modelfile",
+            "ollamaModel": "unbreakable-oracle",
+            "baseModel": "llama3.2:3b-q4_K_M",
+            "contextWindow": 8192,
+            "numPredict": 2048,
+            "temperature": 0.1,
+            "topP": 0.9,
+            "repeatPenalty": 1.1,
+            "numGpu": -1,
+            "f16Kv": true,
+            "quantization": "Q4_K_M",
+            "memoryEstimate": {
+                "modelSizeGB": 2.0,
+                "ramGB": 2.5,
+                "vramGB": 2.0,
+                "kvCacheGB": 1.0,
+                "totalGB": 4.5
+            },
+            "description": "SimpleBeacon's default code analysis model — based on llama3.2 3B with optimized system prompt for security and compliance analysis. Smallest model — fastest inference, lowest memory."
+        },
+        "simplebeacon-llama32": {
+            "modelfile": "Modelfile.llama32",
+            "ollamaModel": "simplebeacon-llama32",
+            "baseModel": "llama3.2:3b-q4_K_M",
+            "contextWindow": 4096,
+            "numPredict": 2048,
+            "temperature": 0.1,
+            "topP": 0.9,
+            "repeatPenalty": 1.1,
+            "numGpu": -1,
+            "f16Kv": true,
+            "quantization": "Q4_K_M",
+            "memoryEstimate": {
+                "modelSizeGB": 2.0,
+                "ramGB": 2.5,
+                "vramGB": 2.0,
+                "kvCacheGB": 0.5,
+                "totalGB": 4.0
+            },
+            "description": "Llama 3.2 3B with SimpleBeacon's code analysis system prompt. Smallest context window — best for resource-constrained machines."
+        },
+        "simplebeacon-mistral": {
+            "modelfile": "Modelfile.mistral",
+            "ollamaModel": "simplebeacon-mistral",
+            "baseModel": "mistral:7b-q4_K_M",
+            "contextWindow": 32768,
+            "numPredict": 2048,
+            "temperature": 0.1,
+            "topP": 0.9,
+            "repeatPenalty": 1.1,
+            "numGpu": -1,
+            "f16Kv": true,
+            "quantization": "Q4_K_M",
+            "memoryEstimate": {
+                "modelSizeGB": 4.4,
+                "ramGB": 5.0,
+                "vramGB": 4.4,
+                "kvCacheGB": 4.0,
+                "totalGB": 9.0
+            },
+            "description": "Mistral 7B with SimpleBeacon's code analysis system prompt. 32K context window allows more files per batch in multi-file sweeps. Requires 16GB+ RAM."
+        },
+        "simplebeacon-qwen-coder": {
+            "modelfile": "Modelfile.qwen25-coder",
+            "ollamaModel": "simplebeacon-qwen-coder",
+            "baseModel": "qwen2.5-coder:7b-q4_K_M",
+            "contextWindow": 32768,
+            "numPredict": 2048,
+            "temperature": 0.1,
+            "topP": 0.9,
+            "repeatPenalty": 1.1,
+            "numGpu": -1,
+            "f16Kv": true,
+            "quantization": "Q4_K_M",
+            "memoryEstimate": {
+                "modelSizeGB": 4.4,
+                "ramGB": 5.0,
+                "vramGB": 4.4,
+                "kvCacheGB": 4.0,
+                "totalGB": 9.0
+            },
+            "description": "Qwen 2.5 Coder 7B — specifically tuned for code analysis. 32K context window with code-optimized tokenization. Requires 16GB+ RAM."
+        }
     },
-    "simplebeacon-llama32": {
-      "modelfile": "Modelfile.llama32",
-      "ollamaModel": "simplebeacon-llama32",
-      "baseModel": "llama3.2:3b-q4_K_M",
-      "contextWindow": 4096,
-      "numPredict": 2048,
-      "temperature": 0.1,
-      "topP": 0.9,
-      "repeatPenalty": 1.1,
-      "numGpu": -1,
-      "f16Kv": true,
-      "quantization": "Q4_K_M",
-      "memoryEstimate": {
-        "modelSizeGB": 2.0,
-        "ramGB": 2.5,
-        "vramGB": 2.0,
-        "kvCacheGB": 0.5,
-        "totalGB": 4.0
-      },
-      "description": "Llama 3.2 3B with SimpleBeacon's code analysis system prompt. Smallest context window — best for resource-constrained machines."
-    },
-    "simplebeacon-mistral": {
-      "modelfile": "Modelfile.mistral",
-      "ollamaModel": "simplebeacon-mistral",
-      "baseModel": "mistral:7b-q4_K_M",
-      "contextWindow": 32768,
-      "numPredict": 2048,
-      "temperature": 0.1,
-      "topP": 0.9,
-      "repeatPenalty": 1.1,
-      "numGpu": -1,
-      "f16Kv": true,
-      "quantization": "Q4_K_M",
-      "memoryEstimate": {
-        "modelSizeGB": 4.4,
-        "ramGB": 5.0,
-        "vramGB": 4.4,
-        "kvCacheGB": 4.0,
-        "totalGB": 9.0
-      },
-      "description": "Mistral 7B with SimpleBeacon's code analysis system prompt. 32K context window allows more files per batch in multi-file sweeps. Requires 16GB+ RAM."
-    },
-    "simplebeacon-qwen-coder": {
-      "modelfile": "Modelfile.qwen25-coder",
-      "ollamaModel": "simplebeacon-qwen-coder",
-      "baseModel": "qwen2.5-coder:7b-q4_K_M",
-      "contextWindow": 32768,
-      "numPredict": 2048,
-      "temperature": 0.1,
-      "topP": 0.9,
-      "repeatPenalty": 1.1,
-      "numGpu": -1,
-      "f16Kv": true,
-      "quantization": "Q4_K_M",
-      "memoryEstimate": {
-        "modelSizeGB": 4.4,
-        "ramGB": 5.0,
-        "vramGB": 4.4,
-        "kvCacheGB": 4.0,
-        "totalGB": 9.0
-      },
-      "description": "Qwen 2.5 Coder 7B — specifically tuned for code analysis. 32K context window with code-optimized tokenization. Requires 16GB+ RAM."
+    "envVars": {
+        "OLLAMA_BASE_URL": {
+            "default": "http://127.0.0.1:11434",
+            "description": "Ollama API base URL"
+        },
+        "OLLAMA_MODEL": {
+            "default": "unbreakable-oracle:latest",
+            "description": "Model ID to use for inference"
+        },
+        "OLLAMA_NUM_CTX": {
+            "default": null,
+            "description": "Override context window size (tokens). If set, takes precedence over Modelfile PARAMETER num_ctx."
+        },
+        "OLLAMA_TIMEOUT_MS": {
+            "default": 120000,
+            "description": "Inference request timeout in milliseconds"
+        },
+        "PROCESSOR_MAX_FILE_SIZE_MB": {
+            "default": 50,
+            "description": "Maximum file size (MB) for the automated processor"
+        },
+        "SIMPLEBEACON_OFFLINE": {
+            "default": "true",
+            "description": "Force offline mode (local Ollama only, no cloud providers)"
+        }
     }
-  },
-  "envVars": {
-    "OLLAMA_BASE_URL": {
-      "default": "http://127.0.0.1:11434",
-      "description": "Ollama API base URL"
-    },
-    "OLLAMA_MODEL": {
-      "default": "unbreakable-oracle:latest",
-      "description": "Model ID to use for inference"
-    },
-    "OLLAMA_NUM_CTX": {
-      "default": null,
-      "description": "Override context window size (tokens). If set, takes precedence over Modelfile PARAMETER num_ctx."
-    },
-    "OLLAMA_TIMEOUT_MS": {
-      "default": 120000,
-      "description": "Inference request timeout in milliseconds"
-    },
-    "PROCESSOR_MAX_FILE_SIZE_MB": {
-      "default": 50,
-      "description": "Maximum file size (MB) for the automated processor"
-    },
-    "SIMPLEBEACON_OFFLINE": {
-      "default": "true",
-      "description": "Force offline mode (local Ollama only, no cloud providers)"
-    }
-  }
 }

@@ -1,10 +1,12 @@
-
 /**
  * Check whether the code is running inside a VS Code: webview.
  * @returns {boolean}
  */
 export function isVSCodeWebview() {
-    return typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+  return (
+    typeof window !== "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  );
 }
 
 /**
@@ -12,7 +14,7 @@ export function isVSCodeWebview() {
  * @returns {boolean}
  */
 export function isStandalone() {
-    return !isVSCodeWebview();
+  return !isVSCodeWebview();
 }
 
 /**
@@ -20,12 +22,15 @@ export function isStandalone() {
  * @returns {any|null}
  */
 export function getVSCodeApi() {
-    if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
-        try {
-            return window.acquireVsCodeApi();
-        } catch {
-            return null;
-        }
+  if (
+    typeof window !== "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  ) {
+    try {
+      return window.acquireVsCodeApi();
+    } catch {
+      return null;
     }
-    return null;
+  }
+  return null;
 }

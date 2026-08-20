@@ -15,108 +15,108 @@
 
 const STRIPE_TIER_MAP = {
   // --- Current 3-tier products (live Stripe Price IDs, 2026-08-09) ---
-  'price_1U2flyAQ0e20kzI8Y8CYxUWt': {
-    tier: 'developer',
+  price_1U2flyAQ0e20kzI8Y8CYxUWt: {
+    tier: "developer",
     expiryDays: 30,
-    product: 'developer',
+    product: "developer",
     basePrice: 4900, // cents ($49/mo)
-    metered: false
+    metered: false,
   },
-  'price_1U2fmaAQ0e20kzI8YQImSRpQ': {
-    tier: 'developer',
+  price_1U2fmaAQ0e20kzI8YQImSRpQ: {
+    tier: "developer",
     expiryDays: 365,
-    product: 'developer_annual',
+    product: "developer_annual",
     basePrice: 49000, // cents ($490/yr)
-    metered: false
+    metered: false,
   },
-  'price_1U2fn7AQ0e20kzI8lXYh295F': {
-    tier: 'team_pro',
+  price_1U2fn7AQ0e20kzI8lXYh295F: {
+    tier: "team_pro",
     expiryDays: 30,
-    product: 'team_pro',
+    product: "team_pro",
     basePrice: 14900, // cents ($149/mo)
-    metered: false
+    metered: false,
   },
-  'price_1U2fnYAQ0e20kzI8EI2LjRQC': {
-    tier: 'team_pro',
+  price_1U2fnYAQ0e20kzI8EI2LjRQC: {
+    tier: "team_pro",
     expiryDays: 365,
-    product: 'team_pro_annual',
+    product: "team_pro_annual",
     basePrice: 149000, // cents ($1,490/yr)
-    metered: false
+    metered: false,
   },
-  'price_enterprise_annual': {
-    tier: 'enterprise',
+  price_enterprise_annual: {
+    tier: "enterprise",
     expiryDays: 365,
-    product: 'enterprise',
+    product: "enterprise",
     basePrice: null, // custom negotiated
-    metered: false
+    metered: false,
   },
   // --- Legacy (pre-2026-01) — preserved for migration ---
-  'price_startup_monthly': {
-    tier: 'developer', // migrated to developer tier
+  price_startup_monthly: {
+    tier: "developer", // migrated to developer tier
     expiryDays: 30,
-    product: 'developer',
+    product: "developer",
     basePrice: 4900, // cents
     metered: false,
-    legacy: true
+    legacy: true,
   },
-  'price_growth_monthly': {
-    tier: 'team_pro', // migrated to team_pro tier
+  price_growth_monthly: {
+    tier: "team_pro", // migrated to team_pro tier
     expiryDays: 30,
-    product: 'team_pro',
+    product: "team_pro",
     basePrice: 14900, // cents
     metered: false,
-    legacy: true
+    legacy: true,
   },
-  'price_pro_monthly': {
-    tier: 'developer',
+  price_pro_monthly: {
+    tier: "developer",
     expiryDays: 30,
-    product: 'developer',
+    product: "developer",
     basePrice: 900, // cents
     metered: false,
-    legacy: true
+    legacy: true,
   },
-  'price_pro_annual': {
-    tier: 'developer',
+  price_pro_annual: {
+    tier: "developer",
     expiryDays: 365,
-    product: 'developer_annual',
+    product: "developer_annual",
     basePrice: 7900, // cents ($79/yr)
     metered: false,
-    legacy: true
+    legacy: true,
   },
-  'price_team_monthly': {
-    tier: 'team_pro',
+  price_team_monthly: {
+    tier: "team_pro",
     expiryDays: 30,
-    product: 'team_pro',
+    product: "team_pro",
     basePrice: 1500, // cents per seat
     metered: true,
-    legacy: true
+    legacy: true,
   },
-  'price_team_annual': {
-    tier: 'team_pro',
+  price_team_annual: {
+    tier: "team_pro",
     expiryDays: 365,
-    product: 'team_pro_annual',
+    product: "team_pro_annual",
     basePrice: 15000, // cents per seat ($150/yr)
     metered: false,
-    legacy: true
+    legacy: true,
   },
-  'price_19_instant_id': {
-    tier: 'developer',
+  price_19_instant_id: {
+    tier: "developer",
     expiryDays: 7,
-    product: 'instant_report',
-    legacy: true
+    product: "instant_report",
+    legacy: true,
   },
-  'price_499_executive_id': {
-    tier: 'developer',
+  price_499_executive_id: {
+    tier: "developer",
     expiryDays: 90,
-    product: 'executive_clearance',
-    legacy: true
+    product: "executive_clearance",
+    legacy: true,
   },
-  'price_2499_eusprint_id': {
-    tier: 'team_pro',
+  price_2499_eusprint_id: {
+    tier: "team_pro",
     expiryDays: 30,
-    product: 'eu_ai_act_sprint',
-    legacy: true
-  }
+    product: "eu_ai_act_sprint",
+    legacy: true,
+  },
 };
 
 /**
@@ -133,7 +133,7 @@ const TIER_SEAT_MAP = {
   team: 10,
   startup: 1,
   growth: 5,
-  free: 1
+  free: 1,
 };
 
 /**
@@ -163,7 +163,7 @@ function getTierConfigByPriceId(priceId) {
  */
 function getTierConfigByProduct(product) {
   const entry = Object.values(STRIPE_TIER_MAP).find(
-    (cfg) => cfg.product === product
+    (cfg) => cfg.product === product,
   );
   return entry || null;
 }
@@ -176,16 +176,30 @@ function getTierConfigByProduct(product) {
  * @param {number} scanCount - Number of scans to report.
  * @returns {Promise<Object>} Stripe API response.
  */
-async function reportScanUsageToStripe(stripeSecretKey, subscriptionItemId, scanCount) {
-  if (!stripeSecretKey || !subscriptionItemId || typeof scanCount !== 'number' || !Number.isFinite(scanCount)) {
-    throw new Error('stripeSecretKey, subscriptionItemId, and scanCount are required');
+async function reportScanUsageToStripe(
+  stripeSecretKey,
+  subscriptionItemId,
+  scanCount,
+) {
+  if (
+    !stripeSecretKey ||
+    !subscriptionItemId ||
+    typeof scanCount !== "number" ||
+    !Number.isFinite(scanCount)
+  ) {
+    throw new Error(
+      "stripeSecretKey, subscriptionItemId, and scanCount are required",
+    );
   }
-  const stripe = require('stripe')(stripeSecretKey);
-  const usageRecord = await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
-    quantity: Math.max(0, Math.round(scanCount)),
-    timestamp: Math.floor(Date.now() / 1000),
-    action: 'set'
-  });
+  const stripe = require("stripe")(stripeSecretKey);
+  const usageRecord = await stripe.subscriptionItems.createUsageRecord(
+    subscriptionItemId,
+    {
+      quantity: Math.max(0, Math.round(scanCount)),
+      timestamp: Math.floor(Date.now() / 1000),
+      action: "set",
+    },
+  );
   return usageRecord;
 }
 
@@ -195,5 +209,5 @@ module.exports = {
   getTierSeatLimit,
   getTierConfigByPriceId,
   getTierConfigByProduct,
-  reportScanUsageToStripe
+  reportScanUsageToStripe,
 };

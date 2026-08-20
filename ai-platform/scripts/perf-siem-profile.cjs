@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 /**
  * perf-siem-profile.cjs
@@ -29,22 +29,42 @@
  *   Console summary + JSON report at ai-platform/.perf/siem-benchmark-report.json
  */
 
-const { performance } = require('node:perf_hooks');
-const crypto = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
+const { performance } = require("node:perf_hooks");
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // ── Load modules ────────────────────────────────────────────────────
-const SiemSecurityBroker = require(path.join(__dirname, '..', 'server', 'lib', 'siem', 'siem-broker.cjs'));
-const {
-  HardwareAttestationVerifier,
-} = require(path.join(__dirname, '..', 'server', 'lib', 'hsm-adapter', 'hardware-attestation-verify.cjs'));
+const SiemSecurityBroker = require(
+  path.join(__dirname, "..", "server", "lib", "siem", "siem-broker.cjs"),
+);
+const { HardwareAttestationVerifier } = require(
+  path.join(
+    __dirname,
+    "..",
+    "server",
+    "lib",
+    "hsm-adapter",
+    "hardware-attestation-verify.cjs",
+  ),
+);
 const {
   MockTpmQuoteGenerator,
   DEFAULT_EXPECTED_PCRS,
   DEFAULT_EXPECTED_MRENCLAVE,
-} = require(path.join(__dirname, '..', 'server', 'lib', 'hsm-adapter', 'mock-tpm-quote-generator.cjs'));
-const siemExporter = require(path.join(__dirname, '..', 'server', 'lib', 'siem-exporter.cjs'));
+} = require(
+  path.join(
+    __dirname,
+    "..",
+    "server",
+    "lib",
+    "hsm-adapter",
+    "mock-tpm-quote-generator.cjs",
+  ),
+);
+const siemExporter = require(
+  path.join(__dirname, "..", "server", "lib", "siem-exporter.cjs"),
+);
 
 // ── Suppress stdout for broker events during benchmarking ──────────
 // The broker writes JSON lines to stdout in HYBRID mode. We suppress
@@ -52,23 +72,28 @@ const siemExporter = require(path.join(__dirname, '..', 'server', 'lib', 'siem-e
 const _origStdoutWrite = process.stdout.write.bind(process.stdout);
 let _suppressBrokerStdout = false;
 process.stdout.write = function (chunk, ...args) {
-  if (_suppressBrokerStdout && typeof chunk === 'string' && chunk.startsWith('{')) return true;
+  if (
+    _suppressBrokerStdout &&
+    typeof chunk === "string" &&
+    chunk.startsWith("{")
+  )
+    return true;
   return _origStdoutWrite(chunk, ...args);
 };
 
 // ── Utility functions ───────────────────────────────────────────────
 
 function fmtUs(ns) {
-  return (ns / 1000).toFixed(2) + ' µs';
+  return (ns / 1000).toFixed(2) + " µs";
 }
 
 function fmtMs(ns) {
-  return (ns / 1_000_000).toFixed(3) + ' ms';
+  return (ns / 1_000_000).toFixed(3) + " ms";
 }
 
 function fmtOps(ns, count) {
   const opsPerSec = (count / (ns / 1_000_000_000)).toFixed(0);
-  return opsPerSec + ' ops/s';
+  return opsPerSec + " ops/s";
 }
 
 function percentile(arr, p) {
@@ -82,11 +107,11 @@ function syntheticEvent(severity, category) {
   return {
     siemSeverity: severity,
     siemCategory: category || `bench_${severity.toLowerCase()}`,
-    siemSource: 'perf-benchmark',
+    siemSource: "perf-benchmark",
     context: {
-      sandboxId: 'sbx-bench',
-      nodeId: 'node-bench',
-      reason: 'synthetic_benchmark',
+      sandboxId: "sbx-bench",
+      nodeId: "node-bench",
+      reason: "synthetic_benchmark",
       timestamp: Date.now(),
     },
   };
@@ -106,11 +131,11 @@ const report = {
 // ── Phase 1: Micro-Latency Profile ──────────────────────────────────
 
 function phase1MicroLatency() {
-  console.log('\n[Phase 1] Micro-Latency Profile');
-  console.log('  Isolating logEvent() overhead per severity level...\n');
+  console.log("\n[Phase 1] Micro-Latency Profile");
+  console.log("  Isolating logEvent() overhead per severity level...\n");
 
   const ITERATIONS = 10_000;
-  const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'FATAL'];
+  const severities = ["LOW", "MEDIUM", "HIGH", "CRITICAL", "FATAL"];
   const results = {};
 
   for (const severity of severities) {
@@ -120,7 +145,7 @@ function phase1MicroLatency() {
     const broker = new SiemSecurityBroker({
       rateLimitMaxTokens: ITERATIONS + 1000,
       rateLimitRefillRateMs: 1_000_000,
-      transportStrategy: 'STDOUT_ONLY',
+      transportStrategy: "STDOUT_ONLY",
     });
 
     // Warmup
@@ -155,7 +180,9 @@ function phase1MicroLatency() {
       opsPerSec: Math.round(ITERATIONS / (totalMs / 1000)),
     };
 
-    console.log(`  ${severity.padEnd(10)} avg=${fmtUs(avgNs)}  p50=${fmtUs(p50 * 1000)}  p95=${fmtUs(p95 * 1000)}  p99=${fmtUs(p99 * 1000)}  ${fmtOps(avgNs, ITERATIONS)}`);
+    console.log(
+      `  ${severity.padEnd(10)} avg=${fmtUs(avgNs)}  p50=${fmtUs(p50 * 1000)}  p95=${fmtUs(p95 * 1000)}  p99=${fmtUs(p99 * 1000)}  ${fmtOps(avgNs, ITERATIONS)}`,
+    );
 
     broker.close();
   }
@@ -164,7 +191,9 @@ function phase1MicroLatency() {
   const lowAvg = parseFloat(results.LOW.avgUs);
   const critAvg = parseFloat(results.CRITICAL.avgUs);
   const bypassOverheadUs = critAvg - lowAvg;
-  console.log(`\n  Bypass overhead (CRITICAL vs LOW): ${bypassOverheadUs > 0 ? '+' : ''}${bypassOverheadUs.toFixed(2)} µs`);
+  console.log(
+    `\n  Bypass overhead (CRITICAL vs LOW): ${bypassOverheadUs > 0 ? "+" : ""}${bypassOverheadUs.toFixed(2)} µs`,
+  );
 
   report.phases.phase1_micro_latency = results;
   report.phases.phase1_bypass_overhead_us = bypassOverheadUs.toFixed(2);
@@ -173,15 +202,17 @@ function phase1MicroLatency() {
 // ── Phase 2: Sustained Throughput ───────────────────────────────────
 
 function phase2SustainedThroughput() {
-  console.log('\n[Phase 2] Sustained Throughput Limit');
-  console.log('  Finding token exhaustion crossover at varying refill rates...\n');
+  console.log("\n[Phase 2] Sustained Throughput Limit");
+  console.log(
+    "  Finding token exhaustion crossover at varying refill rates...\n",
+  );
 
   const configs = [
-    { maxTokens: 100, refillMs: 1000, label: '100 tokens / 1s refill' },
-    { maxTokens: 500, refillMs: 1000, label: '500 tokens / 1s refill' },
-    { maxTokens: 1000, refillMs: 1000, label: '1000 tokens / 1s refill' },
-    { maxTokens: 5000, refillMs: 1000, label: '5000 tokens / 1s refill' },
-    { maxTokens: 10000, refillMs: 1000, label: '10000 tokens / 1s refill' },
+    { maxTokens: 100, refillMs: 1000, label: "100 tokens / 1s refill" },
+    { maxTokens: 500, refillMs: 1000, label: "500 tokens / 1s refill" },
+    { maxTokens: 1000, refillMs: 1000, label: "1000 tokens / 1s refill" },
+    { maxTokens: 5000, refillMs: 1000, label: "5000 tokens / 1s refill" },
+    { maxTokens: 10000, refillMs: 1000, label: "10000 tokens / 1s refill" },
   ];
 
   const BURST_SIZE = 50_000;
@@ -191,7 +222,7 @@ function phase2SustainedThroughput() {
     const broker = new SiemSecurityBroker({
       rateLimitMaxTokens: cfg.maxTokens,
       rateLimitRefillRateMs: cfg.refillMs,
-      transportStrategy: 'STDOUT_ONLY',
+      transportStrategy: "STDOUT_ONLY",
     });
 
     _suppressBrokerStdout = true;
@@ -199,7 +230,7 @@ function phase2SustainedThroughput() {
     let dropped = 0;
     const start = performance.now();
     for (let i = 0; i < BURST_SIZE; i++) {
-      const accepted = broker.logEvent(syntheticEvent('LOW', `burst_${i}`));
+      const accepted = broker.logEvent(syntheticEvent("LOW", `burst_${i}`));
       if (accepted) processed++;
       else dropped++;
     }
@@ -207,7 +238,7 @@ function phase2SustainedThroughput() {
     _suppressBrokerStdout = false;
 
     const metrics = broker.getMetrics();
-    const dropRate = (dropped / BURST_SIZE * 100).toFixed(2);
+    const dropRate = ((dropped / BURST_SIZE) * 100).toFixed(2);
     const throughput = Math.round(processed / (elapsedMs / 1000));
 
     results.push({
@@ -223,13 +254,15 @@ function phase2SustainedThroughput() {
       tokensConsumed: metrics.siem_tokens_consumed_total,
     });
 
-    console.log(`  ${cfg.label.padEnd(30)} processed=${processed.toString().padStart(6)}  dropped=${dropped.toString().padStart(6)}  dropRate=${dropRate}%  throughput=${throughput} ops/s`);
+    console.log(
+      `  ${cfg.label.padEnd(30)} processed=${processed.toString().padStart(6)}  dropped=${dropped.toString().padStart(6)}  dropRate=${dropRate}%  throughput=${throughput} ops/s`,
+    );
 
     broker.close();
   }
 
   // Find the config where drop rate first drops below 1%
-  const safeConfig = results.find(r => parseFloat(r.dropRatePct) < 1);
+  const safeConfig = results.find((r) => parseFloat(r.dropRatePct) < 1);
   if (safeConfig) {
     console.log(`\n  First config with <1% drop rate: ${safeConfig.config}`);
   }
@@ -240,8 +273,10 @@ function phase2SustainedThroughput() {
 // ── Phase 3: Queue Drain Profile ────────────────────────────────────
 
 function phase3QueueDrain() {
-  console.log('\n[Phase 3] Queue Drain Profile');
-  console.log('  Measuring exporter batch enqueue + flush latency at scale...\n');
+  console.log("\n[Phase 3] Queue Drain Profile");
+  console.log(
+    "  Measuring exporter batch enqueue + flush latency at scale...\n",
+  );
 
   const batchSizes = [100, 500, 1000];
   const results = [];
@@ -252,13 +287,13 @@ function phase3QueueDrain() {
 
     // Set a large batch size so flush doesn't trigger mid-enqueue
     process.env.SIEM_BATCH_SIZE = String(size + 100);
-    process.env.SIEM_ENDPOINT = 'https://siem.test/ingest';
-    process.env.SIEM_API_KEY = 'bench-key';
+    process.env.SIEM_ENDPOINT = "https://siem.test/ingest";
+    process.env.SIEM_API_KEY = "bench-key";
 
     const broker = new SiemSecurityBroker({
       rateLimitMaxTokens: size + 1000,
       rateLimitRefillRateMs: 1_000_000,
-      transportStrategy: 'HYBRID',
+      transportStrategy: "HYBRID",
     });
 
     // Connect broker to exporter
@@ -268,7 +303,7 @@ function phase3QueueDrain() {
     _suppressBrokerStdout = true;
     const enqueueStart = performance.now();
     for (let i = 0; i < size; i++) {
-      broker.logEvent(syntheticEvent('LOW', `drain_${i}`));
+      broker.logEvent(syntheticEvent("LOW", `drain_${i}`));
     }
     const enqueueMs = performance.now() - enqueueStart;
 
@@ -297,7 +332,9 @@ function phase3QueueDrain() {
       totalEventsProcessed: queueCopy.length,
     });
 
-    console.log(`  ${size.toString().padStart(5)} events  enqueue=${fmtMs(enqueueMs * 1_000_000)}  per-event=${fmtUs(perEventUs * 1000)}  queueDepth=${queueDepth}  drain=${fmtMs(flushMs * 1_000_000)}`);
+    console.log(
+      `  ${size.toString().padStart(5)} events  enqueue=${fmtMs(enqueueMs * 1_000_000)}  per-event=${fmtUs(perEventUs * 1000)}  queueDepth=${queueDepth}  drain=${fmtMs(flushMs * 1_000_000)}`,
+    );
 
     broker.close();
     siemExporter.close();
@@ -308,7 +345,9 @@ function phase3QueueDrain() {
   const per100 = parseFloat(results[0].perEventEnqueueUs);
   const per1000 = parseFloat(results[2].perEventEnqueueUs);
   const scalingFactor = (per1000 / per100).toFixed(2);
-  console.log(`\n  Per-event scaling (100→1000): ${scalingFactor}x  (${scalingFactor < 2 ? 'O(1) — excellent' : scalingFactor < 5 ? 'mild degradation' : 'O(n) — investigate'})`);
+  console.log(
+    `\n  Per-event scaling (100→1000): ${scalingFactor}x  (${scalingFactor < 2 ? "O(1) — excellent" : scalingFactor < 5 ? "mild degradation" : "O(n) — investigate"})`,
+  );
 
   report.phases.phase3_queue_drain = results;
   report.phases.phase3_scaling_factor = scalingFactor;
@@ -317,13 +356,15 @@ function phase3QueueDrain() {
 // ── Phase 4: End-to-End Regression Matrix ──────────────────────────
 
 function phase4EndToEndRegression() {
-  console.log('\n[Phase 4] End-to-End Regression Matrix');
-  console.log('  Comparing attestation verify() with broker vs legacy callback...\n');
+  console.log("\n[Phase 4] End-to-End Regression Matrix");
+  console.log(
+    "  Comparing attestation verify() with broker vs legacy callback...\n",
+  );
 
   const expectedMeasurements = {
     tpm2: { pcrs: DEFAULT_EXPECTED_PCRS },
-    'sev-snp': { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sev-snp'] },
-    sgx: { mrenclave: DEFAULT_EXPECTED_MRENCLAVE['sgx'] },
+    "sev-snp": { mrenclave: DEFAULT_EXPECTED_MRENCLAVE["sev-snp"] },
+    sgx: { mrenclave: DEFAULT_EXPECTED_MRENCLAVE["sgx"] },
   };
 
   const quoteGen = new MockTpmQuoteGenerator();
@@ -334,35 +375,42 @@ function phase4EndToEndRegression() {
   const legacyAuditCalls = [];
   const legacyVerifier = new HardwareAttestationVerifier({
     expectedMeasurements,
-    audit: (event, data) => { legacyAuditCalls.push({ event, data }); },
+    audit: (event, data) => {
+      legacyAuditCalls.push({ event, data });
+    },
   });
 
   _suppressBrokerStdout = true;
   for (let i = 0; i < ITERATIONS; i++) {
     const sandboxId = `sbx-legacy-${i}`;
     legacyVerifier.issueChallenge(sandboxId);
-    const wrongNonce = crypto.randomBytes(32).toString('hex');
+    const wrongNonce = crypto.randomBytes(32).toString("hex");
     const quote = quoteGen.generateQuote(wrongNonce);
 
     const t0 = performance.now();
-    try { legacyVerifier.verify(sandboxId, quote); } catch (e) {}
+    try {
+      legacyVerifier.verify(sandboxId, quote);
+    } catch (e) {}
     legacyTimes[i] = performance.now() - t0;
   }
   _suppressBrokerStdout = false;
 
-  const legacyAvgUs = (legacyTimes.reduce((a, b) => a + b, 0) / ITERATIONS) * 1000;
+  const legacyAvgUs =
+    (legacyTimes.reduce((a, b) => a + b, 0) / ITERATIONS) * 1000;
   const legacyP50 = percentile(legacyTimes, 50) * 1000;
   const legacyP95 = percentile(legacyTimes, 95) * 1000;
   const legacyP99 = percentile(legacyTimes, 99) * 1000;
 
-  console.log(`  Legacy (audit callback)  avg=${fmtUs(legacyAvgUs)}  p50=${fmtUs(legacyP50)}  p95=${fmtUs(legacyP95)}  p99=${fmtUs(legacyP99)}`);
+  console.log(
+    `  Legacy (audit callback)  avg=${fmtUs(legacyAvgUs)}  p50=${fmtUs(legacyP50)}  p95=${fmtUs(legacyP95)}  p99=${fmtUs(legacyP99)}`,
+  );
 
   // ── With broker: HYBRID strategy ─────────────────────────────────
   const brokerTimes = new Array(ITERATIONS);
   const broker = new SiemSecurityBroker({
     rateLimitMaxTokens: ITERATIONS + 1000,
     rateLimitRefillRateMs: 1_000_000,
-    transportStrategy: 'HYBRID',
+    transportStrategy: "HYBRID",
   });
   const brokerVerifier = new HardwareAttestationVerifier({
     expectedMeasurements,
@@ -373,21 +421,26 @@ function phase4EndToEndRegression() {
   for (let i = 0; i < ITERATIONS; i++) {
     const sandboxId = `sbx-broker-${i}`;
     brokerVerifier.issueChallenge(sandboxId);
-    const wrongNonce = crypto.randomBytes(32).toString('hex');
+    const wrongNonce = crypto.randomBytes(32).toString("hex");
     const quote = quoteGen.generateQuote(wrongNonce);
 
     const t0 = performance.now();
-    try { brokerVerifier.verify(sandboxId, quote); } catch (e) {}
+    try {
+      brokerVerifier.verify(sandboxId, quote);
+    } catch (e) {}
     brokerTimes[i] = performance.now() - t0;
   }
   _suppressBrokerStdout = false;
 
-  const brokerAvgUs = (brokerTimes.reduce((a, b) => a + b, 0) / ITERATIONS) * 1000;
+  const brokerAvgUs =
+    (brokerTimes.reduce((a, b) => a + b, 0) / ITERATIONS) * 1000;
   const brokerP50 = percentile(brokerTimes, 50) * 1000;
   const brokerP95 = percentile(brokerTimes, 95) * 1000;
   const brokerP99 = percentile(brokerTimes, 99) * 1000;
 
-  console.log(`  Broker (HYBRID)          avg=${fmtUs(brokerAvgUs)}  p50=${fmtUs(brokerP50)}  p95=${fmtUs(brokerP95)}  p99=${fmtUs(brokerP99)}`);
+  console.log(
+    `  Broker (HYBRID)          avg=${fmtUs(brokerAvgUs)}  p50=${fmtUs(brokerP50)}  p95=${fmtUs(brokerP95)}  p99=${fmtUs(brokerP99)}`,
+  );
 
   // ── Regression analysis ──────────────────────────────────────────
   const avgDeltaUs = brokerAvgUs - legacyAvgUs;
@@ -395,16 +448,21 @@ function phase4EndToEndRegression() {
   const p99DeltaUs = brokerP99 - legacyP99;
   const p99DeltaPct = ((p99DeltaUs / legacyP99) * 100).toFixed(2);
 
-  console.log(`\n  Regression (avg):  ${avgDeltaUs > 0 ? '+' : ''}${avgDeltaUs.toFixed(2)} µs  (${avgDeltaPct}%)`);
-  console.log(`  Regression (p99):  ${p99DeltaUs > 0 ? '+' : ''}${p99DeltaUs.toFixed(2)} µs  (${p99DeltaPct}%)`);
+  console.log(
+    `\n  Regression (avg):  ${avgDeltaUs > 0 ? "+" : ""}${avgDeltaUs.toFixed(2)} µs  (${avgDeltaPct}%)`,
+  );
+  console.log(
+    `  Regression (p99):  ${p99DeltaUs > 0 ? "+" : ""}${p99DeltaUs.toFixed(2)} µs  (${p99DeltaPct}%)`,
+  );
 
-  const verdict = Math.abs(parseFloat(avgDeltaPct)) < 5
-    ? 'ACCEPTABLE — <5% overhead'
-    : Math.abs(avgDeltaUs) < 10
-      ? 'ACCEPTABLE — absolute overhead <10 µs despite percentage'
-      : parseFloat(avgDeltaPct) < 15
-        ? 'MODERATE — 5-15% overhead, monitor in production'
-        : 'SIGNIFICANT — >15% overhead and >10 µs absolute, investigate optimization';
+  const verdict =
+    Math.abs(parseFloat(avgDeltaPct)) < 5
+      ? "ACCEPTABLE — <5% overhead"
+      : Math.abs(avgDeltaUs) < 10
+        ? "ACCEPTABLE — absolute overhead <10 µs despite percentage"
+        : parseFloat(avgDeltaPct) < 15
+          ? "MODERATE — 5-15% overhead, monitor in production"
+          : "SIGNIFICANT — >15% overhead and >10 µs absolute, investigate optimization";
 
   console.log(`  Verdict: ${verdict}`);
 
@@ -437,7 +495,7 @@ function phase4EndToEndRegression() {
 // ── Tuning Recommendations ─────────────────────────────────────────
 
 function generateRecommendations() {
-  console.log('\n=== Production Tuning Recommendations ===\n');
+  console.log("\n=== Production Tuning Recommendations ===\n");
 
   const p1 = report.phases.phase1_micro_latency;
   const p2 = report.phases.phase2_sustained_throughput;
@@ -445,12 +503,13 @@ function generateRecommendations() {
   const p4 = report.phases.phase4_e2e_regression;
 
   // Rate limit: find the config that handles burst without drops
-  const safeConfig = p2.find(r => parseFloat(r.dropRatePct) < 1);
+  const safeConfig = p2.find((r) => parseFloat(r.dropRatePct) < 1);
   const recommendedTokens = safeConfig ? safeConfig.maxTokens : 10000;
 
   // Batch size: based on queue drain performance
-  const drain1000 = p3.find(r => r.batchSize === 1000);
-  const recommendedBatchSize = drain1000 && parseFloat(drain1000.perEventEnqueueUs) < 5 ? 500 : 100;
+  const drain1000 = p3.find((r) => r.batchSize === 1000);
+  const recommendedBatchSize =
+    drain1000 && parseFloat(drain1000.perEventEnqueueUs) < 5 ? 500 : 100;
 
   // Flush interval: shorter for higher throughput
   const recommendedFlushMs = recommendedTokens >= 5000 ? 2000 : 5000;
@@ -483,7 +542,7 @@ function generateRecommendations() {
 
 // ── Main ────────────────────────────────────────────────────────────
 
-console.log('=== SIEM Broker Performance Baseline Profiling ===');
+console.log("=== SIEM Broker Performance Baseline Profiling ===");
 console.log(`  Node ${process.version} on ${process.platform}/${process.arch}`);
 console.log(`  Date: ${report.timestamp}`);
 
@@ -495,9 +554,11 @@ generateRecommendations();
 
 // ── Write JSON report ───────────────────────────────────────────────
 
-const reportDir = path.join(__dirname, '..', '.perf');
-try { fs.mkdirSync(reportDir, { recursive: true }); } catch {}
-const reportPath = path.join(reportDir, 'siem-benchmark-report.json');
+const reportDir = path.join(__dirname, "..", ".perf");
+try {
+  fs.mkdirSync(reportDir, { recursive: true });
+} catch {}
+const reportPath = path.join(reportDir, "siem-benchmark-report.json");
 fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 console.log(`\n  JSON report written to: ${reportPath}`);
-console.log('\n=== Benchmark Complete ===\n');
+console.log("\n=== Benchmark Complete ===\n");

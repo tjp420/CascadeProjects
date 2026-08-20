@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 45: Enclave Key Rotation and Cryptographic Heartbeats.
@@ -16,8 +16,8 @@
  * @module hsm-adapter/enclave-key-rotation-heartbeat
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   rotationIntervalMs: 3600000, // 1 hour
@@ -26,22 +26,22 @@ const DEFAULT_OPTIONS = {
   heartbeatTimeoutMs: 90000, // 3 missed heartbeats
   maxMissedHeartbeats: 3,
   challengeNonceBytes: 32,
-  hashAlgorithm: 'sha256',
+  hashAlgorithm: "sha256",
   maxEpochs: 100000,
   gracePeriodMs: 5000, // grace period after rotation before old key is revoked
 };
 
 const KEY_STATUS = {
-  ACTIVE: 'active',
-  ROTATING: 'rotating',
-  QUARANTINED: 'quarantined',
-  REVOKED: 'revoked',
+  ACTIVE: "active",
+  ROTATING: "rotating",
+  QUARANTINED: "quarantined",
+  REVOKED: "revoked",
 };
 
 const HEARTBEAT_STATUS = {
-  HEALTHY: 'healthy',
-  DEGRADED: 'degraded',
-  UNRESPONSIVE: 'unresponsive',
+  HEALTHY: "healthy",
+  DEGRADED: "degraded",
+  UNRESPONSIVE: "unresponsive",
 };
 
 /**
@@ -82,12 +82,17 @@ class EnclaveKeyRotationEngine {
    * @param {Buffer} [meta.initialKey] - Initial key material (optional)
    */
   registerEnclave(enclaveId, meta) {
-    if (!enclaveId || typeof enclaveId !== 'string') {
-      throw new HsmAdapterError('INVALID_ENCLAVE', 'enclaveId must be a non-empty string');
+    if (!enclaveId || typeof enclaveId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_ENCLAVE",
+        "enclaveId must be a non-empty string",
+      );
     }
     if (this._enclaveKeys.has(enclaveId)) {
-      throw new HsmAdapterError('ENCLAVE_ALREADY_REGISTERED',
-        `enclave ${enclaveId} already registered`);
+      throw new HsmAdapterError(
+        "ENCLAVE_ALREADY_REGISTERED",
+        `enclave ${enclaveId} already registered`,
+      );
     }
     const now = Date.now();
     const keyId = _generateKeyId(enclaveId, 0);
@@ -105,8 +110,8 @@ class EnclaveKeyRotationEngine {
       status: HEARTBEAT_STATUS.HEALTHY,
     });
     this._rotationHistory.set(enclaveId, [{ epoch: 0, keyId, rotatedAt: now }]);
-    if (typeof this._audit === 'function') {
-      this._audit('ENCLAVE_REGISTERED', { enclaveId, epoch: 0, keyId });
+    if (typeof this._audit === "function") {
+      this._audit("ENCLAVE_REGISTERED", { enclaveId, epoch: 0, keyId });
     }
   }
 
@@ -116,7 +121,10 @@ class EnclaveKeyRotationEngine {
    */
   unregisterEnclave(enclaveId) {
     if (!this._enclaveKeys.has(enclaveId)) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
     this._enclaveKeys.delete(enclaveId);
     this._heartbeatState.delete(enclaveId);
@@ -137,14 +145,25 @@ class EnclaveKeyRotationEngine {
   issueHeartbeat(enclaveId) {
     const keyState = this._enclaveKeys.get(enclaveId);
     if (!keyState) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
-    if (keyState.status === KEY_STATUS.QUARANTINED || keyState.status === KEY_STATUS.REVOKED) {
-      throw new HsmAdapterError('ENCLAVE_KEY_NOT_ACTIVE',
-        `enclave ${enclaveId} key status is ${keyState.status}`);
+    if (
+      keyState.status === KEY_STATUS.QUARANTINED ||
+      keyState.status === KEY_STATUS.REVOKED
+    ) {
+      throw new HsmAdapterError(
+        "ENCLAVE_KEY_NOT_ACTIVE",
+        `enclave ${enclaveId} key status is ${keyState.status}`,
+      );
     }
-    const nonce = crypto.randomBytes(this.challengeNonceBytes).toString('hex');
-    const challengeId = _hash(this.hashAlgorithm, enclaveId + ':' + nonce + ':' + Date.now());
+    const nonce = crypto.randomBytes(this.challengeNonceBytes).toString("hex");
+    const challengeId = _hash(
+      this.hashAlgorithm,
+      enclaveId + ":" + nonce + ":" + Date.now(),
+    );
     const now = Date.now();
     const challenge = {
       challengeId,
@@ -156,8 +175,12 @@ class EnclaveKeyRotationEngine {
       expiresAt: now + this.heartbeatTimeoutMs,
     };
     this._pendingChallenges.set(challengeId, challenge);
-    if (typeof this._audit === 'function') {
-      this._audit('HEARTBEAT_ISSUED', { enclaveId, challengeId, epoch: keyState.epoch });
+    if (typeof this._audit === "function") {
+      this._audit("HEARTBEAT_ISSUED", {
+        enclaveId,
+        challengeId,
+        epoch: keyState.epoch,
+      });
     }
     return { challengeId, nonce, epoch: keyState.epoch };
   }
@@ -172,29 +195,45 @@ class EnclaveKeyRotationEngine {
   processHeartbeatResponse(challengeId, enclaveId, response) {
     const challenge = this._pendingChallenges.get(challengeId);
     if (!challenge) {
-      throw new HsmAdapterError('CHALLENGE_NOT_FOUND', `challenge ${challengeId} not found`);
+      throw new HsmAdapterError(
+        "CHALLENGE_NOT_FOUND",
+        `challenge ${challengeId} not found`,
+      );
     }
     if (challenge.enclaveId !== enclaveId) {
-      throw new HsmAdapterError('CHALLENGE_MISMATCH',
-        `challenge was issued to ${challenge.enclaveId}, not ${enclaveId}`);
+      throw new HsmAdapterError(
+        "CHALLENGE_MISMATCH",
+        `challenge was issued to ${challenge.enclaveId}, not ${enclaveId}`,
+      );
     }
     const now = Date.now();
     if (now > challenge.expiresAt) {
       this._pendingChallenges.delete(challengeId);
       this._incrementMissed(enclaveId);
-      throw new HsmAdapterError('CHALLENGE_EXPIRED',
-        `challenge ${challengeId} has expired`);
+      throw new HsmAdapterError(
+        "CHALLENGE_EXPIRED",
+        `challenge ${challengeId} has expired`,
+      );
     }
     const keyState = this._enclaveKeys.get(enclaveId);
     if (!keyState) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
     // Verify response: expected HMAC-SHA256 of nonce using current key material
-    const expectedResponse = _computeHmac(this.hashAlgorithm, keyState.keyMaterial, challenge.nonce);
+    const expectedResponse = _computeHmac(
+      this.hashAlgorithm,
+      keyState.keyMaterial,
+      challenge.nonce,
+    );
     if (response !== expectedResponse) {
       this._incrementMissed(enclaveId);
-      throw new HsmAdapterError('HEARTBEAT_RESPONSE_INVALID',
-        `response does not match expected HMAC`);
+      throw new HsmAdapterError(
+        "HEARTBEAT_RESPONSE_INVALID",
+        `response does not match expected HMAC`,
+      );
     }
     // Success — reset missed count
     this._pendingChallenges.delete(challengeId);
@@ -202,8 +241,12 @@ class EnclaveKeyRotationEngine {
     hbState.lastResponse = now;
     hbState.missedCount = 0;
     hbState.status = HEARTBEAT_STATUS.HEALTHY;
-    if (typeof this._audit === 'function') {
-      this._audit('HEARTBEAT_VERIFIED', { enclaveId, challengeId, epoch: keyState.epoch });
+    if (typeof this._audit === "function") {
+      this._audit("HEARTBEAT_VERIFIED", {
+        enclaveId,
+        challengeId,
+        epoch: keyState.epoch,
+      });
     }
     return { verified: true, enclaveId, epoch: keyState.epoch };
   }
@@ -222,8 +265,12 @@ class EnclaveKeyRotationEngine {
       const keyState = this._enclaveKeys.get(enclaveId);
       if (keyState && keyState.status === KEY_STATUS.ACTIVE) {
         keyState.status = KEY_STATUS.QUARANTINED;
-        if (typeof this._audit === 'function') {
-          this._audit('KEY_QUARANTINED', { enclaveId, epoch: keyState.epoch, missedCount: hbState.missedCount });
+        if (typeof this._audit === "function") {
+          this._audit("KEY_QUARANTINED", {
+            enclaveId,
+            epoch: keyState.epoch,
+            missedCount: hbState.missedCount,
+          });
         }
       }
     } else if (hbState.missedCount >= 1) {
@@ -239,15 +286,22 @@ class EnclaveKeyRotationEngine {
   rotateKey(enclaveId) {
     const keyState = this._enclaveKeys.get(enclaveId);
     if (!keyState) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
     if (keyState.status === KEY_STATUS.QUARANTINED) {
-      throw new HsmAdapterError('KEY_QUARANTINED',
-        `enclave ${enclaveId} key is quarantined, cannot rotate`);
+      throw new HsmAdapterError(
+        "KEY_QUARANTINED",
+        `enclave ${enclaveId} key is quarantined, cannot rotate`,
+      );
     }
     if (keyState.epoch >= this.maxEpochs) {
-      throw new HsmAdapterError('MAX_EPOCHS_REACHED',
-        `enclave ${enclaveId} has reached max epochs ${this.maxEpochs}`);
+      throw new HsmAdapterError(
+        "MAX_EPOCHS_REACHED",
+        `enclave ${enclaveId} has reached max epochs ${this.maxEpochs}`,
+      );
     }
     const oldKeyId = keyState.keyId;
     const oldKeyMaterial = keyState.keyMaterial;
@@ -258,13 +312,23 @@ class EnclaveKeyRotationEngine {
     keyState.status = KEY_STATUS.ACTIVE;
     // Record history
     const history = this._rotationHistory.get(enclaveId);
-    history.push({ epoch: keyState.epoch, keyId: keyState.keyId, rotatedAt: keyState.rotatedAt });
+    history.push({
+      epoch: keyState.epoch,
+      keyId: keyState.keyId,
+      rotatedAt: keyState.rotatedAt,
+    });
     // Zeroize old key material
     if (Buffer.isBuffer(oldKeyMaterial)) {
       oldKeyMaterial.fill(0);
     }
-    if (typeof this._audit === 'function') {
-      this._audit('KEY_ROTATED', { enclaveId, oldEpoch: keyState.epoch - 1, newEpoch: keyState.epoch, oldKeyId, newKeyId: keyState.keyId });
+    if (typeof this._audit === "function") {
+      this._audit("KEY_ROTATED", {
+        enclaveId,
+        oldEpoch: keyState.epoch - 1,
+        newEpoch: keyState.epoch,
+        oldKeyId,
+        newKeyId: keyState.keyId,
+      });
     }
     return {
       enclaveId,
@@ -292,8 +356,8 @@ class EnclaveKeyRotationEngine {
           rotations.push(result);
         } catch (e) {
           // Skip if rotation fails (e.g. quarantined)
-          if (typeof this._audit === 'function') {
-            this._audit('ROTATION_SKIPPED', { enclaveId, reason: e.message });
+          if (typeof this._audit === "function") {
+            this._audit("ROTATION_SKIPPED", { enclaveId, reason: e.message });
           }
         }
       }
@@ -312,7 +376,11 @@ class EnclaveKeyRotationEngine {
       if (now > challenge.expiresAt) {
         this._pendingChallenges.delete(challengeId);
         this._incrementMissed(challenge.enclaveId);
-        expired.push({ challengeId, enclaveId: challenge.enclaveId, expiredAt: now });
+        expired.push({
+          challengeId,
+          enclaveId: challenge.enclaveId,
+          expiredAt: now,
+        });
       }
     }
     return expired;
@@ -326,20 +394,34 @@ class EnclaveKeyRotationEngine {
   revokeKey(enclaveId) {
     const keyState = this._enclaveKeys.get(enclaveId);
     if (!keyState) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
     if (keyState.status !== KEY_STATUS.QUARANTINED) {
-      throw new HsmAdapterError('KEY_NOT_QUARANTINED',
-        `enclave ${enclaveId} key status is ${keyState.status}, must be quarantined to revoke`);
+      throw new HsmAdapterError(
+        "KEY_NOT_QUARANTINED",
+        `enclave ${enclaveId} key status is ${keyState.status}, must be quarantined to revoke`,
+      );
     }
     keyState.status = KEY_STATUS.REVOKED;
     if (Buffer.isBuffer(keyState.keyMaterial)) {
       keyState.keyMaterial.fill(0);
     }
-    if (typeof this._audit === 'function') {
-      this._audit('KEY_REVOKED', { enclaveId, epoch: keyState.epoch, keyId: keyState.keyId });
+    if (typeof this._audit === "function") {
+      this._audit("KEY_REVOKED", {
+        enclaveId,
+        epoch: keyState.epoch,
+        keyId: keyState.keyId,
+      });
     }
-    return { enclaveId, epoch: keyState.epoch, keyId: keyState.keyId, revoked: true };
+    return {
+      enclaveId,
+      epoch: keyState.epoch,
+      keyId: keyState.keyId,
+      revoked: true,
+    };
   }
 
   /**
@@ -350,11 +432,16 @@ class EnclaveKeyRotationEngine {
   recoverEnclave(enclaveId) {
     const keyState = this._enclaveKeys.get(enclaveId);
     if (!keyState) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
     if (keyState.status !== KEY_STATUS.QUARANTINED) {
-      throw new HsmAdapterError('ENCLAVE_NOT_QUARANTINED',
-        `enclave ${enclaveId} is not quarantined (status: ${keyState.status})`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_QUARANTINED",
+        `enclave ${enclaveId} is not quarantined (status: ${keyState.status})`,
+      );
     }
     // Force rotation to recover
     keyState.status = KEY_STATUS.ACTIVE; // Temporarily set to active for rotation
@@ -366,8 +453,11 @@ class EnclaveKeyRotationEngine {
       hbState.status = HEARTBEAT_STATUS.HEALTHY;
       hbState.lastResponse = Date.now();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('ENCLAVE_RECOVERED', { enclaveId, newEpoch: result.newEpoch });
+    if (typeof this._audit === "function") {
+      this._audit("ENCLAVE_RECOVERED", {
+        enclaveId,
+        newEpoch: result.newEpoch,
+      });
     }
     return { ...result, recovered: true };
   }
@@ -422,7 +512,9 @@ class EnclaveKeyRotationEngine {
    * @returns {object[]}
    */
   getEnclaves() {
-    return Array.from(this._enclaveKeys.keys()).map(id => this.getKeyState(id));
+    return Array.from(this._enclaveKeys.keys()).map((id) =>
+      this.getKeyState(id),
+    );
   }
 
   /**
@@ -430,7 +522,7 @@ class EnclaveKeyRotationEngine {
    * @returns {object[]}
    */
   getPendingChallenges() {
-    return Array.from(this._pendingChallenges.values()).map(c => ({
+    return Array.from(this._pendingChallenges.values()).map((c) => ({
       challengeId: c.challengeId,
       enclaveId: c.enclaveId,
       epoch: c.epoch,
@@ -445,8 +537,12 @@ class EnclaveKeyRotationEngine {
    * @returns {object}
    */
   getStats() {
-    let active = 0, quarantined = 0, revoked = 0;
-    let healthy = 0, degraded = 0, unresponsive = 0;
+    let active = 0,
+      quarantined = 0,
+      revoked = 0;
+    let healthy = 0,
+      degraded = 0,
+      unresponsive = 0;
     for (const state of this._enclaveKeys.values()) {
       if (state.status === KEY_STATUS.ACTIVE) active++;
       else if (state.status === KEY_STATUS.QUARANTINED) quarantined++;
@@ -489,18 +585,24 @@ class EnclaveKeyRotationEngine {
 }
 
 function _generateKeyId(enclaveId, epoch) {
-  return crypto.createHash('sha256')
-    .update(enclaveId + ':epoch:' + epoch + ':' + Date.now())
-    .digest('hex')
+  return crypto
+    .createHash("sha256")
+    .update(enclaveId + ":epoch:" + epoch + ":" + Date.now())
+    .digest("hex")
     .substring(0, 32);
 }
 
 function _hash(algo, data) {
-  return crypto.createHash(algo).update(data).digest('hex');
+  return crypto.createHash(algo).update(data).digest("hex");
 }
 
 function _computeHmac(algo, key, message) {
-  return crypto.createHmac(algo, key).update(message).digest('hex');
+  return crypto.createHmac(algo, key).update(message).digest("hex");
 }
 
-module.exports = { EnclaveKeyRotationEngine, DEFAULT_OPTIONS, KEY_STATUS, HEARTBEAT_STATUS };
+module.exports = {
+  EnclaveKeyRotationEngine,
+  DEFAULT_OPTIONS,
+  KEY_STATUS,
+  HEARTBEAT_STATUS,
+};

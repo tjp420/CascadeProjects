@@ -25,9 +25,9 @@
 
     const SEVERITY_COLORS = {
         critical: { bg: [220, 38, 38], text: [255, 255, 255], light: [254, 226, 226] },
-        high:     { bg: [239, 68, 68], text: [255, 255, 255], light: [254, 242, 242] },
-        medium:   { bg: [245, 158, 11], text: [255, 255, 255], light: [254, 249, 195] },
-        low:      { bg: [96, 165, 250], text: [255, 255, 255], light: [219, 234, 254] }
+        high: { bg: [239, 68, 68], text: [255, 255, 255], light: [254, 242, 242] },
+        medium: { bg: [245, 158, 11], text: [255, 255, 255], light: [254, 249, 195] },
+        low: { bg: [96, 165, 250], text: [255, 255, 255], light: [219, 234, 254] }
     };
 
     const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
@@ -41,7 +41,9 @@
      */
     async function generateComplianceReport(scanResult, options = {}) {
         if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
-            throw new Error('jsPDF library not loaded. Include jsPDF from CDN before calling generateComplianceReport.');
+            throw new Error(
+                'jsPDF library not loaded. Include jsPDF from CDN before calling generateComplianceReport.'
+            );
         }
         const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
         const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
@@ -75,8 +77,12 @@
         };
         const totalFindings = findings.length;
         const gatePass = sevCounts.critical === 0 && sevCounts.high === 0;
-        const qualityScore = scanResult.qualityScore !== undefined ? scanResult.qualityScore :
-            totalFindings === 0 ? 100 : Math.max(0, 100 - totalFindings * 2);
+        const qualityScore =
+            scanResult.qualityScore !== undefined
+                ? scanResult.qualityScore
+                : totalFindings === 0
+                  ? 100
+                  : Math.max(0, 100 - totalFindings * 2);
 
         // === Section 1: Header ===
         doc.setFillColor(10, 14, 24);
@@ -119,7 +125,11 @@
         doc.setFontSize(7);
         doc.setTextColor(107, 114, 128);
         doc.text('Prepared for: ' + customerName, margin + 12, y + 46);
-        doc.text('Files scanned: ' + (scanResult.processed || 0) + ' / ' + (scanResult.totalFiles || 0), margin + 180, y + 46);
+        doc.text(
+            'Files scanned: ' + (scanResult.processed || 0) + ' / ' + (scanResult.totalFiles || 0),
+            margin + 180,
+            y + 46
+        );
         if (scanResult.filesSkippedByHashCache > 0) {
             doc.text('Cache hits: ' + scanResult.filesSkippedByHashCache + ' (incremental scan)', margin + 350, y + 46);
         }
@@ -135,7 +145,9 @@
 
         // Gate status box
         const gateColor = gatePass ? [16, 185, 129] : [220, 38, 38];
-        const gateLabel = gatePass ? 'PASS — No blocking findings detected' : 'FAIL — Blocking findings require remediation';
+        const gateLabel = gatePass
+            ? 'PASS — No blocking findings detected'
+            : 'FAIL — Blocking findings require remediation';
         doc.setFillColor(gateColor[0], gateColor[1], gateColor[2]);
         doc.roundedRect(margin, y, contentWidth, 36, 4, 4, 'F');
         doc.setTextColor(255, 255, 255);
@@ -155,10 +167,18 @@
 
         const colW = contentWidth / 4;
         const metrics = [
-            { label: 'QUALITY SCORE', value: qualityScore + '/100', color: qualityScore >= 80 ? [16, 185, 129] : qualityScore >= 60 ? [245, 158, 11] : [220, 38, 38] },
+            {
+                label: 'QUALITY SCORE',
+                value: qualityScore + '/100',
+                color: qualityScore >= 80 ? [16, 185, 129] : qualityScore >= 60 ? [245, 158, 11] : [220, 38, 38]
+            },
             { label: 'TOTAL FINDINGS', value: String(totalFindings), color: [10, 14, 24] },
             { label: 'FILES SCANNED', value: String(scanResult.processed || 0), color: [10, 14, 24] },
-            { label: 'BLOCKING', value: String(sevCounts.critical + sevCounts.high), color: sevCounts.critical + sevCounts.high > 0 ? [220, 38, 38] : [16, 185, 129] }
+            {
+                label: 'BLOCKING',
+                value: String(sevCounts.critical + sevCounts.high),
+                color: sevCounts.critical + sevCounts.high > 0 ? [220, 38, 38] : [16, 185, 129]
+            }
         ];
 
         for (let i = 0; i < metrics.length; i++) {
@@ -242,7 +262,10 @@
                 const colors = SEVERITY_COLORS[sev];
 
                 // Severity group header
-                if (y > pageHeight - 100) { doc.addPage(); y = margin; }
+                if (y > pageHeight - 100) {
+                    doc.addPage();
+                    y = margin;
+                }
                 doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
                 doc.roundedRect(margin, y, contentWidth, 22, 3, 3, 'F');
                 doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
@@ -271,7 +294,10 @@
                 const maxItems = sev === 'critical' || sev === 'high' ? 30 : 15;
                 const visibleItems = items.slice(0, maxItems);
                 for (const item of visibleItems) {
-                    if (y > pageHeight - 60) { doc.addPage(); y = margin; }
+                    if (y > pageHeight - 60) {
+                        doc.addPage();
+                        y = margin;
+                    }
                     const filePath = (item.filePath || item.file || '').split('/').pop() || '—';
                     const fullPath = item.filePath || item.file || '';
                     const rule = item.rule || item.type || '—';
@@ -296,7 +322,15 @@
                     doc.setTextColor(107, 114, 128);
                     doc.setFont('helvetica', 'italic');
                     doc.setFontSize(7);
-                    doc.text('+ ' + (items.length - maxItems) + ' more ' + SEVERITY_LABELS[sev].toLowerCase() + ' findings (see full report)', margin, y + 4);
+                    doc.text(
+                        '+ ' +
+                            (items.length - maxItems) +
+                            ' more ' +
+                            SEVERITY_LABELS[sev].toLowerCase() +
+                            ' findings (see full report)',
+                        margin,
+                        y + 4
+                    );
                     y += 14;
                 }
                 y += 10;
@@ -304,7 +338,10 @@
         }
 
         // === Section 5: Compliance Declaration ===
-        if (y > pageHeight - 120) { doc.addPage(); y = margin; }
+        if (y > pageHeight - 120) {
+            doc.addPage();
+            y = margin;
+        }
         y += 10;
         doc.setFillColor(239, 246, 255);
         doc.setDrawColor(99, 102, 241);
@@ -316,14 +353,18 @@
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(31, 41, 55);
-        const declText = 'This report was generated entirely in the browser. No source code, file contents, or scan results were transmitted to any server. All pattern matching, hash computation, and PDF generation executed locally in the browser sandbox. This report is suitable for internal compliance review, security audits, and executive reporting without requiring data processing agreements (DPA) or non-disclosure agreements (NDA).';
+        const declText =
+            'This report was generated entirely in the browser. No source code, file contents, or scan results were transmitted to any server. All pattern matching, hash computation, and PDF generation executed locally in the browser sandbox. This report is suitable for internal compliance review, security audits, and executive reporting without requiring data processing agreements (DPA) or non-disclosure agreements (NDA).';
         const splitDecl = doc.splitTextToSize(declText, contentWidth - 24);
         doc.text(splitDecl, margin + 12, y + 30, { lineHeight: 11 });
 
         y += 95;
 
         // === Section 6: Footer ===
-        if (y > pageHeight - 50) { doc.addPage(); y = margin; }
+        if (y > pageHeight - 50) {
+            doc.addPage();
+            y = margin;
+        }
         doc.setDrawColor(229, 231, 235);
         doc.line(margin, y, pageWidth - margin, y);
         y += 12;
@@ -331,9 +372,21 @@
         doc.setFontSize(7);
         doc.setTextColor(107, 114, 128);
         doc.text(COMPANY.name + ' · ' + COMPANY.website + ' · ' + COMPANY.email, margin, y);
-        doc.text('Report ID: ' + reportId + ' · Generated: ' + formattedDate + ' ' + formattedTime, pageWidth - margin, y, { align: 'right' });
+        doc.text(
+            'Report ID: ' + reportId + ' · Generated: ' + formattedDate + ' ' + formattedTime,
+            pageWidth - margin,
+            y,
+            { align: 'right' }
+        );
         y += 10;
-        doc.text('This report is generated from a browser-local scan and does not constitute a legal certification. For formal compliance certification, contact ' + COMPANY.email + '.', margin, y, { maxWidth: contentWidth });
+        doc.text(
+            'This report is generated from a browser-local scan and does not constitute a legal certification. For formal compliance certification, contact ' +
+                COMPANY.email +
+                '.',
+            margin,
+            y,
+            { maxWidth: contentWidth }
+        );
 
         // Page numbers
         const pageCount = doc.internal.getNumberOfPages();

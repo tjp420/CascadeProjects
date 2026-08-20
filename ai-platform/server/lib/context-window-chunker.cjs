@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Context Window Chunker — Intelligent token-aware chunking for local LLM
@@ -29,19 +29,19 @@
  * overridden via options or env vars.
  */
 const DEFAULT_CONTEXT_WINDOWS = {
-  'llama3.2': 4096,
-  'llama3.2:1b': 4096,
-  'llama3.1': 128000,
-  'llama3': 8192,
-  'mistral': 32768,
-  'mixtral': 32768,
-  'qwen2.5': 32768,
-  'qwen2.5-coder': 32768,
-  'phi3': 128000,
-  'gemma2': 8192,
-  'unbreakable-oracle': 8192,
-  'unbreakable-oracle:latest': 8192,
-  'default': 4096,
+  "llama3.2": 4096,
+  "llama3.2:1b": 4096,
+  "llama3.1": 128000,
+  llama3: 8192,
+  mistral: 32768,
+  mixtral: 32768,
+  "qwen2.5": 32768,
+  "qwen2.5-coder": 32768,
+  phi3: 128000,
+  gemma2: 8192,
+  "unbreakable-oracle": 8192,
+  "unbreakable-oracle:latest": 8192,
+  default: 4096,
 };
 
 /**
@@ -86,7 +86,7 @@ const DEFAULT_MAX_FILE_CHARS = 500000; // ~143K tokens at 3.5 chars/token
  * @returns {number} Estimated token count (always >= 0).
  */
 function estimateTokens(text) {
-  if (!text || typeof text !== 'string') return 0;
+  if (!text || typeof text !== "string") return 0;
   return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 
@@ -114,17 +114,20 @@ function estimateTotalTokens(systemPrompt, content) {
  * @returns {number} Context window size in tokens.
  */
 function resolveContextWindow(model, override) {
-  if (typeof override === 'number' && override > 0) return override;
+  if (typeof override === "number" && override > 0) return override;
 
   const envCtx = parseInt(process.env.OLLAMA_NUM_CTX, 10);
   if (Number.isFinite(envCtx) && envCtx > 0) return envCtx;
 
-  const modelKey = String(model || '').toLowerCase().trim();
-  if (DEFAULT_CONTEXT_WINDOWS[modelKey]) return DEFAULT_CONTEXT_WINDOWS[modelKey];
+  const modelKey = String(model || "")
+    .toLowerCase()
+    .trim();
+  if (DEFAULT_CONTEXT_WINDOWS[modelKey])
+    return DEFAULT_CONTEXT_WINDOWS[modelKey];
 
   // Try prefix match (e.g. 'llama3.2:latest' matches 'llama3.2')
   for (const key of Object.keys(DEFAULT_CONTEXT_WINDOWS)) {
-    if (key !== 'default' && modelKey.startsWith(key)) {
+    if (key !== "default" && modelKey.startsWith(key)) {
       return DEFAULT_CONTEXT_WINDOWS[key];
     }
   }
@@ -143,7 +146,11 @@ function resolveContextWindow(model, override) {
  * @param {number} responseTokens - Tokens reserved for model response.
  * @returns {number} Available tokens for content.
  */
-function availableContentTokens(contextWindow, systemPromptTokens, responseTokens) {
+function availableContentTokens(
+  contextWindow,
+  systemPromptTokens,
+  responseTokens,
+) {
   const reserved = (systemPromptTokens || 0) + (responseTokens || 0);
   return Math.max(256, contextWindow - reserved);
 }
@@ -175,22 +182,24 @@ function tokensToChars(tokens) {
  * @returns {string[]} Array of content chunks.
  */
 function chunkContent(content, opts = {}) {
-  if (!content || typeof content !== 'string') return [];
+  if (!content || typeof content !== "string") return [];
 
   const contextWindow = resolveContextWindow(opts.model, opts.contextWindow);
-  const availableTokens = opts.maxTokens || availableContentTokens(
-    contextWindow,
-    opts.systemPromptTokens || DEFAULT_SYSTEM_PROMPT_TOKENS,
-    opts.responseTokens || DEFAULT_RESPONSE_TOKENS,
-  );
+  const availableTokens =
+    opts.maxTokens ||
+    availableContentTokens(
+      contextWindow,
+      opts.systemPromptTokens || DEFAULT_SYSTEM_PROMPT_TOKENS,
+      opts.responseTokens || DEFAULT_RESPONSE_TOKENS,
+    );
   const maxChars = tokensToChars(availableTokens);
 
   // If content fits in a single chunk, return it as-is
   if (content.length <= maxChars) return [content];
 
   const chunks = [];
-  const lines = content.split('\n');
-  let currentChunk = '';
+  const lines = content.split("\n");
+  let currentChunk = "";
   let currentLength = 0;
 
   for (let i = 0; i < lines.length; i++) {
@@ -200,7 +209,7 @@ function chunkContent(content, opts = {}) {
     // If adding this line would exceed the chunk size, flush the current chunk
     if (currentLength + lineLength > maxChars && currentLength > 0) {
       chunks.push(currentChunk);
-      currentChunk = '';
+      currentChunk = "";
       currentLength = 0;
     }
 
@@ -209,7 +218,7 @@ function chunkContent(content, opts = {}) {
       for (let j = 0; j < line.length; j += maxChars) {
         if (currentLength > 0) {
           chunks.push(currentChunk);
-          currentChunk = '';
+          currentChunk = "";
           currentLength = 0;
         }
         const segment = line.slice(j, j + maxChars);
@@ -218,7 +227,7 @@ function chunkContent(content, opts = {}) {
     } else {
       // Use explicit length check instead of truthiness to handle empty lines
       if (currentLength > 0) {
-        currentChunk += '\n' + line;
+        currentChunk += "\n" + line;
       } else {
         currentChunk = line;
       }
@@ -251,11 +260,13 @@ function planMultiFileSweep(files, opts = {}) {
   if (!Array.isArray(files)) return [];
 
   const contextWindow = resolveContextWindow(opts.model, opts.contextWindow);
-  const availableTokens = opts.maxTokens || availableContentTokens(
-    contextWindow,
-    opts.systemPromptTokens || DEFAULT_SYSTEM_PROMPT_TOKENS,
-    opts.responseTokens || DEFAULT_RESPONSE_TOKENS,
-  );
+  const availableTokens =
+    opts.maxTokens ||
+    availableContentTokens(
+      contextWindow,
+      opts.systemPromptTokens || DEFAULT_SYSTEM_PROMPT_TOKENS,
+      opts.responseTokens || DEFAULT_RESPONSE_TOKENS,
+    );
 
   const batches = [];
   let currentBatch = [];
@@ -292,7 +303,10 @@ function planMultiFileSweep(files, opts = {}) {
       }
 
       // If adding this chunk would exceed the batch budget, flush and start new
-      if (currentBatchTokens + chunkTokens > availableTokens && currentBatch.length > 0) {
+      if (
+        currentBatchTokens + chunkTokens > availableTokens &&
+        currentBatch.length > 0
+      ) {
         batches.push(currentBatch);
         currentBatch = [];
         currentBatchTokens = 0;
@@ -392,7 +406,7 @@ function createResultAggregator(maxResults = DEFAULT_MAX_CACHED_RESULTS) {
  */
 function buildChunkPrompt(content, context = {}) {
   const { filePath, chunkIndex, totalChunks, analysisType } = context;
-  const language = context.language || 'unknown';
+  const language = context.language || "unknown";
 
   let prompt = `Analyze the following ${language} code`;
   if (filePath) prompt += ` from file "${filePath}"`;
@@ -405,13 +419,13 @@ function buildChunkPrompt(content, context = {}) {
   prompt += `- Complexity and maintainability\n`;
   prompt += `- Security considerations\n`;
 
-  if (analysisType === 'security') {
+  if (analysisType === "security") {
     prompt += `- Vulnerabilities and security risks\n`;
     prompt += `- Input validation and sanitization\n`;
-  } else if (analysisType === 'performance') {
+  } else if (analysisType === "performance") {
     prompt += `- Performance bottlenecks\n`;
     prompt += `- Optimization opportunities\n`;
-  } else if (analysisType === 'architecture') {
+  } else if (analysisType === "architecture") {
     prompt += `- Design patterns\n`;
     prompt += `- Architectural concerns\n`;
   }
@@ -440,12 +454,17 @@ function buildChunkPrompt(content, context = {}) {
  * @returns {Promise<{summary: object, results: Array}>} Sweep results.
  */
 async function executeMultiFileSweep(files, analyzeFn, opts = {}) {
-  if (!Array.isArray(files) || typeof analyzeFn !== 'function') {
-    return { summary: { totalProcessed: 0, totalChunks: 0, totalErrors: 0 }, results: [] };
+  if (!Array.isArray(files) || typeof analyzeFn !== "function") {
+    return {
+      summary: { totalProcessed: 0, totalChunks: 0, totalErrors: 0 },
+      results: [],
+    };
   }
 
   const batches = planMultiFileSweep(files, opts);
-  const aggregator = createResultAggregator(opts.maxResults || DEFAULT_MAX_CACHED_RESULTS);
+  const aggregator = createResultAggregator(
+    opts.maxResults || DEFAULT_MAX_CACHED_RESULTS,
+  );
 
   for (const batch of batches) {
     for (const chunk of batch) {

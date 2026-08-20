@@ -14,7 +14,13 @@ const FINGERPRINT_PROFILES = [
         confidence: 95,
         requiredMatchMode: 'any',
         required: [/^package\.json$/i],
-        optional: [/^node_modules\//i, /^package-lock\.json$/i, /^yarn\.lock$/i, /^pnpm-lock\.yaml$/i, /^tsconfig\.json$/i]
+        optional: [
+            /^node_modules\//i,
+            /^package-lock\.json$/i,
+            /^yarn\.lock$/i,
+            /^pnpm-lock\.yaml$/i,
+            /^tsconfig\.json$/i
+        ]
     },
     {
         id: 'python',
@@ -141,48 +147,40 @@ function pathMatches(path, pattern) {
  * browser on large or symlink-looped directories.
  */
 async function collectPaths(directoryHandle, paths = [], depth = 0, prefix = '') {
-    if (depth > MAX_DEPTH || paths.length >= MAX_DISCOVERED_ENTRIES)
-        return paths;
+    if (depth > MAX_DEPTH || paths.length >= MAX_DISCOVERED_ENTRIES) return paths;
     try {
         if (directoryHandle.entries && typeof directoryHandle.entries === 'function') {
             // Modern FileSystemDirectoryHandle
             for await (const [name, handle] of directoryHandle.entries()) {
-                if (paths.length >= MAX_DISCOVERED_ENTRIES)
-                    break;
+                if (paths.length >= MAX_DISCOVERED_ENTRIES) break;
                 const fullPath = prefix ? `${prefix}/${name}` : name;
                 if (handle.kind === 'directory') {
                     await collectPaths(handle, paths, depth + 1, fullPath);
-                }
-                else if (handle.kind === 'file') {
+                } else if (handle.kind === 'file') {
                     paths.push(fullPath);
                 }
             }
-        }
-        else if (directoryHandle.createReader && typeof directoryHandle.createReader === 'function') {
+        } else if (directoryHandle.createReader && typeof directoryHandle.createReader === 'function') {
             // Legacy webkit FileSystemDirectoryEntry
             const reader = directoryHandle.createReader();
             const entries = [];
-            let batch = await new Promise((resolve) => reader.readEntries(resolve, () => resolve([])));
+            let batch = await new Promise(resolve => reader.readEntries(resolve, () => resolve([])));
             while (batch.length > 0) {
                 entries.push(...batch);
-                batch = await new Promise((resolve) => reader.readEntries(resolve, () => resolve([])));
-                if (entries.length > MAX_DISCOVERED_ENTRIES)
-                    break;
+                batch = await new Promise(resolve => reader.readEntries(resolve, () => resolve([])));
+                if (entries.length > MAX_DISCOVERED_ENTRIES) break;
             }
             for (const entry of entries) {
-                if (paths.length >= MAX_DISCOVERED_ENTRIES)
-                    break;
+                if (paths.length >= MAX_DISCOVERED_ENTRIES) break;
                 const fullPath = prefix ? `${prefix}/${entry.name}` : entry.name;
                 if (entry.isDirectory) {
                     await collectPaths(entry, paths, depth + 1, fullPath);
-                }
-                else if (entry.isFile) {
+                } else if (entry.isFile) {
                     paths.push(fullPath);
                 }
             }
         }
-    }
-    catch (_a) {
+    } catch (_a) {
         // Skip unreadable directories
     }
     return paths;
@@ -198,10 +196,8 @@ export function identifyProgram(rootName, paths) {
     const totalFiles = normalized.length;
     const metadata = { executables: 0, dlls: 0 };
     for (const p of normalized) {
-        if (p.endsWith('.exe'))
-            metadata.executables += 1;
-        if (p.endsWith('.dll'))
-            metadata.dlls += 1;
+        if (p.endsWith('.exe')) metadata.executables += 1;
+        if (p.endsWith('.dll')) metadata.dlls += 1;
     }
     let best = null;
     let bestScore = 0;
@@ -210,19 +206,17 @@ export function identifyProgram(rootName, paths) {
         let requiredHits = 0;
         let optionalHits = 0;
         for (const pattern of profile.required) {
-            if (normalized.some((p) => pathMatches(p, pattern))) {
+            if (normalized.some(p => pathMatches(p, pattern))) {
                 requiredHits += 1;
             }
         }
         const matchMode = profile.requiredMatchMode || 'any';
         if (profile.required.length > 0) {
-            if (matchMode === 'all' && requiredHits !== profile.required.length)
-                continue;
-            if (matchMode === 'any' && requiredHits === 0)
-                continue;
+            if (matchMode === 'all' && requiredHits !== profile.required.length) continue;
+            if (matchMode === 'any' && requiredHits === 0) continue;
         }
         for (const pattern of profile.optional) {
-            if (normalized.some((p) => pathMatches(p, pattern))) {
+            if (normalized.some(p => pathMatches(p, pattern))) {
                 optionalHits += 1;
             }
         }
@@ -244,8 +238,7 @@ export function identifyProgram(rootName, paths) {
             };
         }
     }
-    if (best && best.confidence >= 50)
-        return best;
+    if (best && best.confidence >= 50) return best;
     return {
         id: 'unknown',
         name: 'Unknown Program / Custom Software',
@@ -271,8 +264,7 @@ export async function fingerprintDirectory(directoryHandle, rootName = '') {
  * Format a fingerprint result for display in the UI.
  */
 export function formatFingerprint(result) {
-    if (!result)
-        return '';
+    if (!result) return '';
     const exe = result.metadata.executables || 0;
     const dll = result.metadata.dlls || 0;
     const parts = [

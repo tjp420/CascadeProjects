@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 60: Zero-Knowledge Multi-Asset Sharded Mixnets and Blind
@@ -22,8 +22,8 @@
  * @module hsm-adapter/mixnet-blind-transaction-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   maxNodes: 100,
@@ -33,40 +33,40 @@ const DEFAULT_OPTIONS = {
   minRelayHops: 3,
   maxRelayHops: 7,
   maxTransactionValue: (1n << 64n) - 1n,
-  supportedAssets: ['BTC', 'ETH', 'USDC', 'DAI', 'MATIC', 'AVAX'],
-  shuffleAlgorithm: 'fisher-yates',
+  supportedAssets: ["BTC", "ETH", "USDC", "DAI", "MATIC", "AVAX"],
+  shuffleAlgorithm: "fisher-yates",
   enableZkProofs: true,
   maxPendingTransactions: 5000,
   relayTimeoutMs: 30000,
 };
 
 const NODE_STATUS = {
-  ACTIVE: 'active',
-  OFFLINE: 'offline',
-  COMPROMISED: 'compromised',
-  BANNED: 'banned',
+  ACTIVE: "active",
+  OFFLINE: "offline",
+  COMPROMISED: "compromised",
+  BANNED: "banned",
 };
 
 const TX_STATUS = {
-  PENDING: 'pending',
-  ROUTING: 'routing',
-  MIXED: 'mixed',
-  CONFIRMED: 'confirmed',
-  FAILED: 'failed',
-  EXPIRED: 'expired',
+  PENDING: "pending",
+  ROUTING: "routing",
+  MIXED: "mixed",
+  CONFIRMED: "confirmed",
+  FAILED: "failed",
+  EXPIRED: "expired",
 };
 
 const SHARD_STATUS = {
-  ACTIVE: 'active',
-  PAUSED: 'paused',
-  CLOSED: 'closed',
+  ACTIVE: "active",
+  PAUSED: "paused",
+  CLOSED: "closed",
 };
 
 const POOL_STATUS = {
-  OPEN: 'open',
-  SHUFFLING: 'shuffling',
-  CLOSED: 'closed',
-  FLUSHED: 'flushed',
+  OPEN: "open",
+  SHUFFLING: "shuffling",
+  CLOSED: "closed",
+  FLUSHED: "flushed",
 };
 
 /**
@@ -112,24 +112,35 @@ class MixnetBlindTransactionEngine {
    * @returns {object} Node info
    */
   registerNode(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'node config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "node config is required");
     }
-    if (!config.nodeId || typeof config.nodeId !== 'string') {
-      throw new HsmAdapterError('INVALID_NODE_ID', 'nodeId must be a non-empty string');
+    if (!config.nodeId || typeof config.nodeId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_NODE_ID",
+        "nodeId must be a non-empty string",
+      );
     }
     if (this._nodes.has(config.nodeId)) {
-      throw new HsmAdapterError('NODE_ALREADY_EXISTS', `node ${config.nodeId} already exists`);
+      throw new HsmAdapterError(
+        "NODE_ALREADY_EXISTS",
+        `node ${config.nodeId} already exists`,
+      );
     }
     if (this._nodes.size >= this.maxNodes) {
-      throw new HsmAdapterError('MAX_NODES_REACHED',
-        `maximum ${this.maxNodes} nodes reached`);
+      throw new HsmAdapterError(
+        "MAX_NODES_REACHED",
+        `maximum ${this.maxNodes} nodes reached`,
+      );
     }
-    if (!config.enclaveId || typeof config.enclaveId !== 'string') {
-      throw new HsmAdapterError('INVALID_ENCLAVE_ID', 'enclaveId must be a non-empty string');
+    if (!config.enclaveId || typeof config.enclaveId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_ENCLAVE_ID",
+        "enclaveId must be a non-empty string",
+      );
     }
     // Generate node key pair for onion routing
-    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
       modulusLength: 2048,
       publicExponent: 65537,
     });
@@ -137,7 +148,7 @@ class MixnetBlindTransactionEngine {
       nodeId: config.nodeId,
       enclaveId: config.enclaveId,
       shardId: config.shardId || null,
-      publicKey: publicKey.export({ format: 'pem', type: 'pkcs1' }),
+      publicKey: publicKey.export({ format: "pem", type: "pkcs1" }),
       privateKey,
       status: NODE_STATUS.ACTIVE,
       registeredAt: Date.now(),
@@ -150,8 +161,11 @@ class MixnetBlindTransactionEngine {
       const shard = this._shards.get(config.shardId);
       shard.nodeIds.add(config.nodeId);
     }
-    if (typeof this._audit === 'function') {
-      this._audit('NODE_REGISTERED', { nodeId: config.nodeId, enclaveId: config.enclaveId });
+    if (typeof this._audit === "function") {
+      this._audit("NODE_REGISTERED", {
+        nodeId: config.nodeId,
+        enclaveId: config.enclaveId,
+      });
     }
     return {
       nodeId: node.nodeId,
@@ -174,36 +188,58 @@ class MixnetBlindTransactionEngine {
    * @returns {object} Transaction info
    */
   createTransaction(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'transaction config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError(
+        "INVALID_CONFIG",
+        "transaction config is required",
+      );
     }
-    if (!config.txId || typeof config.txId !== 'string') {
-      throw new HsmAdapterError('INVALID_TX_ID', 'txId must be a non-empty string');
+    if (!config.txId || typeof config.txId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_TX_ID",
+        "txId must be a non-empty string",
+      );
     }
     if (this._transactions.has(config.txId)) {
-      throw new HsmAdapterError('TX_ALREADY_EXISTS', `transaction ${config.txId} already exists`);
+      throw new HsmAdapterError(
+        "TX_ALREADY_EXISTS",
+        `transaction ${config.txId} already exists`,
+      );
     }
     if (this._transactions.size >= this.maxPendingTransactions) {
-      throw new HsmAdapterError('MAX_PENDING_REACHED',
-        `maximum ${this.maxPendingTransactions} pending transactions reached`);
+      throw new HsmAdapterError(
+        "MAX_PENDING_REACHED",
+        `maximum ${this.maxPendingTransactions} pending transactions reached`,
+      );
     }
     if (!this.supportedAssets.includes(config.asset)) {
-      throw new HsmAdapterError('UNSUPPORTED_ASSET',
-        `asset ${config.asset} not supported; supported: ${this.supportedAssets.join(', ')}`);
+      throw new HsmAdapterError(
+        "UNSUPPORTED_ASSET",
+        `asset ${config.asset} not supported; supported: ${this.supportedAssets.join(", ")}`,
+      );
     }
-    const amount = typeof config.amount === 'bigint' ? config.amount : BigInt(config.amount);
+    const amount =
+      typeof config.amount === "bigint" ? config.amount : BigInt(config.amount);
     if (amount <= 0n) {
-      throw new HsmAdapterError('INVALID_AMOUNT', 'amount must be positive');
+      throw new HsmAdapterError("INVALID_AMOUNT", "amount must be positive");
     }
     if (amount > this.maxTransactionValue) {
-      throw new HsmAdapterError('AMOUNT_TOO_LARGE',
-        `amount exceeds maximum ${this.maxTransactionValue}`);
+      throw new HsmAdapterError(
+        "AMOUNT_TOO_LARGE",
+        `amount exceeds maximum ${this.maxTransactionValue}`,
+      );
     }
-    if (!config.senderId || typeof config.senderId !== 'string') {
-      throw new HsmAdapterError('INVALID_SENDER', 'senderId must be a non-empty string');
+    if (!config.senderId || typeof config.senderId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_SENDER",
+        "senderId must be a non-empty string",
+      );
     }
-    if (!config.recipientId || typeof config.recipientId !== 'string') {
-      throw new HsmAdapterError('INVALID_RECIPIENT', 'recipientId must be a non-empty string');
+    if (!config.recipientId || typeof config.recipientId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_RECIPIENT",
+        "recipientId must be a non-empty string",
+      );
     }
     // Create blinded transaction payload
     const blindingFactor = crypto.randomBytes(32);
@@ -215,7 +251,8 @@ class MixnetBlindTransactionEngine {
       timestamp: Date.now(),
     };
     const payloadJson = JSON.stringify(payload, (key, value) =>
-      typeof value === 'bigint' ? value.toString() : value);
+      typeof value === "bigint" ? value.toString() : value,
+    );
     const encryptedPayload = this._encryptPayload(payloadJson, blindingFactor);
     const tx = {
       txId: config.txId,
@@ -236,8 +273,8 @@ class MixnetBlindTransactionEngine {
     };
     this._transactions.set(config.txId, tx);
     this._txCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('TX_CREATED', { txId: config.txId, asset: config.asset });
+    if (typeof this._audit === "function") {
+      this._audit("TX_CREATED", { txId: config.txId, asset: config.asset });
     }
     return {
       txId: tx.txId,
@@ -256,24 +293,36 @@ class MixnetBlindTransactionEngine {
   createOnionPath(txId, hopCount) {
     const tx = this._transactions.get(txId);
     if (!tx) {
-      throw new HsmAdapterError('TX_NOT_FOUND', `transaction ${txId} not found`);
+      throw new HsmAdapterError(
+        "TX_NOT_FOUND",
+        `transaction ${txId} not found`,
+      );
     }
-    const hops = hopCount || (this.minRelayHops + crypto.randomInt(
-      this.maxRelayHops - this.minRelayHops + 1));
+    const hops =
+      hopCount ||
+      this.minRelayHops +
+        crypto.randomInt(this.maxRelayHops - this.minRelayHops + 1);
     if (hops < this.minRelayHops) {
-      throw new HsmAdapterError('HOPS_TOO_FEW',
-        `${hops} hops below minimum ${this.minRelayHops}`);
+      throw new HsmAdapterError(
+        "HOPS_TOO_FEW",
+        `${hops} hops below minimum ${this.minRelayHops}`,
+      );
     }
     if (hops > this.maxRelayHops) {
-      throw new HsmAdapterError('HOPS_TOO_MANY',
-        `${hops} hops exceeds maximum ${this.maxRelayHops}`);
+      throw new HsmAdapterError(
+        "HOPS_TOO_MANY",
+        `${hops} hops exceeds maximum ${this.maxRelayHops}`,
+      );
     }
     // Select active nodes for the path
-    const activeNodes = Array.from(this._nodes.values())
-      .filter(n => n.status === NODE_STATUS.ACTIVE);
+    const activeNodes = Array.from(this._nodes.values()).filter(
+      (n) => n.status === NODE_STATUS.ACTIVE,
+    );
     if (activeNodes.length < hops) {
-      throw new HsmAdapterError('INSUFFICIENT_NODES',
-        `${activeNodes.length} active nodes available, need ${hops}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_NODES",
+        `${activeNodes.length} active nodes available, need ${hops}`,
+      );
     }
     // Shuffle and pick first N nodes
     const shuffled = _fisherYatesShuffle([...activeNodes]);
@@ -287,17 +336,17 @@ class MixnetBlindTransactionEngine {
       const encrypted = this._encryptLayer(innerPayload, layerKey);
       layers.push({
         nodeId: node.nodeId,
-        layerKey: layerKey.toString('hex'),
+        layerKey: layerKey.toString("hex"),
         encryptedData: encrypted,
       });
       innerPayload = encrypted;
     }
     layers.reverse();
-    tx.onionPath = layers.map(l => l.nodeId);
+    tx.onionPath = layers.map((l) => l.nodeId);
     tx.hopCount = hops;
     tx.status = TX_STATUS.ROUTING;
-    if (typeof this._audit === 'function') {
-      this._audit('ONION_PATH_CREATED', { txId, hopCount: hops });
+    if (typeof this._audit === "function") {
+      this._audit("ONION_PATH_CREATED", { txId, hopCount: hops });
     }
     return {
       txId,
@@ -314,22 +363,32 @@ class MixnetBlindTransactionEngine {
   mixTransaction(txId) {
     const tx = this._transactions.get(txId);
     if (!tx) {
-      throw new HsmAdapterError('TX_NOT_FOUND', `transaction ${txId} not found`);
+      throw new HsmAdapterError(
+        "TX_NOT_FOUND",
+        `transaction ${txId} not found`,
+      );
     }
     if (!tx.onionPath || tx.onionPath.length === 0) {
-      throw new HsmAdapterError('NO_ONION_PATH', `transaction ${txId} has no onion path`);
+      throw new HsmAdapterError(
+        "NO_ONION_PATH",
+        `transaction ${txId} has no onion path`,
+      );
     }
     if (tx.status !== TX_STATUS.ROUTING) {
-      throw new HsmAdapterError('TX_NOT_ROUTING',
-        `transaction ${txId} status is ${tx.status}, expected routing`);
+      throw new HsmAdapterError(
+        "TX_NOT_ROUTING",
+        `transaction ${txId} status is ${tx.status}, expected routing`,
+      );
     }
     // Simulate relaying through each node
     for (const nodeId of tx.onionPath) {
       const node = this._nodes.get(nodeId);
       if (!node || node.status !== NODE_STATUS.ACTIVE) {
         tx.status = TX_STATUS.FAILED;
-        throw new HsmAdapterError('NODE_UNAVAILABLE',
-          `node ${nodeId} is not available for relay`);
+        throw new HsmAdapterError(
+          "NODE_UNAVAILABLE",
+          `node ${nodeId} is not available for relay`,
+        );
       }
       node.relayedCount++;
     }
@@ -340,8 +399,8 @@ class MixnetBlindTransactionEngine {
     tx.status = TX_STATUS.MIXED;
     tx.mixedAt = Date.now();
     this._mixCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('TX_MIXED', { txId, hopCount: tx.hopCount });
+    if (typeof this._audit === "function") {
+      this._audit("TX_MIXED", { txId, hopCount: tx.hopCount });
     }
     return {
       txId,
@@ -359,11 +418,16 @@ class MixnetBlindTransactionEngine {
   confirmTransaction(txId) {
     const tx = this._transactions.get(txId);
     if (!tx) {
-      throw new HsmAdapterError('TX_NOT_FOUND', `transaction ${txId} not found`);
+      throw new HsmAdapterError(
+        "TX_NOT_FOUND",
+        `transaction ${txId} not found`,
+      );
     }
     if (tx.status !== TX_STATUS.MIXED) {
-      throw new HsmAdapterError('TX_NOT_MIXED',
-        `transaction ${txId} status is ${tx.status}, expected mixed`);
+      throw new HsmAdapterError(
+        "TX_NOT_MIXED",
+        `transaction ${txId} status is ${tx.status}, expected mixed`,
+      );
     }
     tx.status = TX_STATUS.CONFIRMED;
     tx.confirmedAt = Date.now();
@@ -378,8 +442,8 @@ class MixnetBlindTransactionEngine {
     if (this._completedTransactions.length > this._maxHistory) {
       this._completedTransactions.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('TX_CONFIRMED', { txId });
+    if (typeof this._audit === "function") {
+      this._audit("TX_CONFIRMED", { txId });
     }
     return {
       txId,
@@ -395,11 +459,17 @@ class MixnetBlindTransactionEngine {
    * @returns {object} Pool info
    */
   createPool(poolId, shardId) {
-    if (!poolId || typeof poolId !== 'string') {
-      throw new HsmAdapterError('INVALID_POOL_ID', 'poolId must be a non-empty string');
+    if (!poolId || typeof poolId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_POOL_ID",
+        "poolId must be a non-empty string",
+      );
     }
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('POOL_ALREADY_EXISTS', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "POOL_ALREADY_EXISTS",
+        `pool ${poolId} already exists`,
+      );
     }
     this._ensureShard(shardId);
     const pool = {
@@ -412,8 +482,8 @@ class MixnetBlindTransactionEngine {
       flushedAt: null,
     };
     this._pools.set(poolId, pool);
-    if (typeof this._audit === 'function') {
-      this._audit('POOL_CREATED', { poolId, shardId });
+    if (typeof this._audit === "function") {
+      this._audit("POOL_CREATED", { poolId, shardId });
     }
     return {
       poolId,
@@ -430,22 +500,32 @@ class MixnetBlindTransactionEngine {
   addToPool(poolId, txId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('POOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError("POOL_NOT_FOUND", `pool ${poolId} not found`);
     }
     if (pool.status !== POOL_STATUS.OPEN) {
-      throw new HsmAdapterError('POOL_NOT_OPEN', `pool ${poolId} is ${pool.status}`);
+      throw new HsmAdapterError(
+        "POOL_NOT_OPEN",
+        `pool ${poolId} is ${pool.status}`,
+      );
     }
     const tx = this._transactions.get(txId);
     if (!tx) {
-      throw new HsmAdapterError('TX_NOT_FOUND', `transaction ${txId} not found`);
+      throw new HsmAdapterError(
+        "TX_NOT_FOUND",
+        `transaction ${txId} not found`,
+      );
     }
     if (pool.txIds.length >= this.maxPoolSize) {
-      throw new HsmAdapterError('POOL_FULL',
-        `pool ${poolId} is full (${this.maxPoolSize})`);
+      throw new HsmAdapterError(
+        "POOL_FULL",
+        `pool ${poolId} is full (${this.maxPoolSize})`,
+      );
     }
     if (tx.shardId !== pool.shardId) {
-      throw new HsmAdapterError('SHARD_MISMATCH',
-        `transaction shard ${tx.shardId} does not match pool shard ${pool.shardId}`);
+      throw new HsmAdapterError(
+        "SHARD_MISMATCH",
+        `transaction shard ${tx.shardId} does not match pool shard ${pool.shardId}`,
+      );
     }
     pool.txIds.push(txId);
     return { poolId, txId, poolSize: pool.txIds.length };
@@ -459,14 +539,19 @@ class MixnetBlindTransactionEngine {
   shufflePool(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('POOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError("POOL_NOT_FOUND", `pool ${poolId} not found`);
     }
     if (pool.status !== POOL_STATUS.OPEN) {
-      throw new HsmAdapterError('POOL_NOT_OPEN', `pool ${poolId} is ${pool.status}`);
+      throw new HsmAdapterError(
+        "POOL_NOT_OPEN",
+        `pool ${poolId} is ${pool.status}`,
+      );
     }
     if (pool.txIds.length < 2) {
-      throw new HsmAdapterError('POOL_TOO_SMALL',
-        `pool ${poolId} has ${pool.txIds.length} transactions, need at least 2`);
+      throw new HsmAdapterError(
+        "POOL_TOO_SMALL",
+        `pool ${poolId} has ${pool.txIds.length} transactions, need at least 2`,
+      );
     }
     pool.status = POOL_STATUS.SHUFFLING;
     const shuffled = _fisherYatesShuffle([...pool.txIds]);
@@ -474,8 +559,8 @@ class MixnetBlindTransactionEngine {
     pool.shuffledAt = Date.now();
     pool.status = POOL_STATUS.CLOSED;
     this._shuffleCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('POOL_SHUFFLED', { poolId, txCount: shuffled.length });
+    if (typeof this._audit === "function") {
+      this._audit("POOL_SHUFFLED", { poolId, txCount: shuffled.length });
     }
     return {
       poolId,
@@ -492,10 +577,13 @@ class MixnetBlindTransactionEngine {
   flushPool(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('POOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError("POOL_NOT_FOUND", `pool ${poolId} not found`);
     }
     if (pool.status !== POOL_STATUS.CLOSED) {
-      throw new HsmAdapterError('POOL_NOT_CLOSED', `pool ${poolId} is ${pool.status}`);
+      throw new HsmAdapterError(
+        "POOL_NOT_CLOSED",
+        `pool ${poolId} is ${pool.status}`,
+      );
     }
     const results = [];
     for (const txId of pool.txIds) {
@@ -508,8 +596,8 @@ class MixnetBlindTransactionEngine {
     }
     pool.status = POOL_STATUS.FLUSHED;
     pool.flushedAt = Date.now();
-    if (typeof this._audit === 'function') {
-      this._audit('POOL_FLUSHED', { poolId, txCount: results.length });
+    if (typeof this._audit === "function") {
+      this._audit("POOL_FLUSHED", { poolId, txCount: results.length });
     }
     return {
       poolId,
@@ -525,11 +613,11 @@ class MixnetBlindTransactionEngine {
   banNode(nodeId) {
     const node = this._nodes.get(nodeId);
     if (!node) {
-      throw new HsmAdapterError('NODE_NOT_FOUND', `node ${nodeId} not found`);
+      throw new HsmAdapterError("NODE_NOT_FOUND", `node ${nodeId} not found`);
     }
     node.status = NODE_STATUS.BANNED;
-    if (typeof this._audit === 'function') {
-      this._audit('NODE_BANNED', { nodeId });
+    if (typeof this._audit === "function") {
+      this._audit("NODE_BANNED", { nodeId });
     }
     return { nodeId, banned: true };
   }
@@ -558,7 +646,7 @@ class MixnetBlindTransactionEngine {
    * @returns {object[]}
    */
   getNodes() {
-    return Array.from(this._nodes.values()).map(n => ({
+    return Array.from(this._nodes.values()).map((n) => ({
       nodeId: n.nodeId,
       enclaveId: n.enclaveId,
       shardId: n.shardId,
@@ -627,7 +715,7 @@ class MixnetBlindTransactionEngine {
    * @returns {object[]}
    */
   getShards() {
-    return Array.from(this._shards.values()).map(s => ({
+    return Array.from(this._shards.values()).map((s) => ({
       shardId: s.shardId,
       status: s.status,
       nodeCount: s.nodeIds.size,
@@ -641,7 +729,7 @@ class MixnetBlindTransactionEngine {
    * @returns {object[]}
    */
   getCompletedTransactions(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedTransactions.slice(-n);
   }
 
@@ -694,8 +782,10 @@ class MixnetBlindTransactionEngine {
   _ensureShard(shardId) {
     if (!this._shards.has(shardId)) {
       if (this._shards.size >= this.maxShards) {
-        throw new HsmAdapterError('MAX_SHARDS_REACHED',
-          `maximum ${this.maxShards} shards reached`);
+        throw new HsmAdapterError(
+          "MAX_SHARDS_REACHED",
+          `maximum ${this.maxShards} shards reached`,
+        );
       }
       this._shards.set(shardId, {
         shardId,
@@ -712,7 +802,7 @@ class MixnetBlindTransactionEngine {
    * @private
    */
   _selectShard(asset) {
-    const hash = crypto.createHash('sha256').update(asset).digest();
+    const hash = crypto.createHash("sha256").update(asset).digest();
     const shardIndex = hash[0] % this.maxShards;
     const shardId = `shard-${shardIndex}`;
     this._ensureShard(shardId);
@@ -724,18 +814,18 @@ class MixnetBlindTransactionEngine {
    * @private
    */
   _encryptPayload(payloadJson, blindingFactor) {
-    const key = crypto.createHash('sha256').update(blindingFactor).digest();
+    const key = crypto.createHash("sha256").update(blindingFactor).digest();
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
     const encrypted = Buffer.concat([
-      cipher.update(Buffer.from(payloadJson, 'utf8')),
+      cipher.update(Buffer.from(payloadJson, "utf8")),
       cipher.final(),
     ]);
     const authTag = cipher.getAuthTag();
     return {
-      iv: iv.toString('hex'),
-      ciphertext: encrypted.toString('hex'),
-      authTag: authTag.toString('hex'),
+      iv: iv.toString("hex"),
+      ciphertext: encrypted.toString("hex"),
+      authTag: authTag.toString("hex"),
     };
   }
 
@@ -746,19 +836,20 @@ class MixnetBlindTransactionEngine {
   _encryptLayer(innerPayload, layerKey) {
     const keyBuf = layerKey;
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', keyBuf, iv);
-    const payloadStr = typeof innerPayload === 'string'
-      ? innerPayload
-      : JSON.stringify(innerPayload);
+    const cipher = crypto.createCipheriv("aes-256-gcm", keyBuf, iv);
+    const payloadStr =
+      typeof innerPayload === "string"
+        ? innerPayload
+        : JSON.stringify(innerPayload);
     const encrypted = Buffer.concat([
-      cipher.update(Buffer.from(payloadStr, 'utf8')),
+      cipher.update(Buffer.from(payloadStr, "utf8")),
       cipher.final(),
     ]);
     const authTag = cipher.getAuthTag();
     return JSON.stringify({
-      iv: iv.toString('hex'),
-      ciphertext: encrypted.toString('hex'),
-      authTag: authTag.toString('hex'),
+      iv: iv.toString("hex"),
+      ciphertext: encrypted.toString("hex"),
+      authTag: authTag.toString("hex"),
     });
   }
 
@@ -767,12 +858,15 @@ class MixnetBlindTransactionEngine {
    * @private
    */
   _generateZkProof(tx) {
-    const proofData = crypto.createHash('sha256')
-      .update(`zk-mix:${tx.txId}:${tx.asset}:${tx.amount}:${tx.shardId}:${tx.hopCount}`)
+    const proofData = crypto
+      .createHash("sha256")
+      .update(
+        `zk-mix:${tx.txId}:${tx.asset}:${tx.amount}:${tx.shardId}:${tx.hopCount}`,
+      )
       .digest();
     return {
-      proofHash: proofData.toString('hex'),
-      proofType: 'mix-inclusion',
+      proofHash: proofData.toString("hex"),
+      proofType: "mix-inclusion",
       hopCount: tx.hopCount,
       generatedAt: Date.now(),
     };

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 50: Confidential Federated Learning and Zero-Knowledge Model Aggregation.
@@ -19,15 +19,15 @@
  * @module hsm-adapter/confidential-federated-learning
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   minParticipants: 2,
   maxParticipants: 32,
   roundTimeoutMs: 300000, // 5 minutes per round
   maxGradientSize: 65536, // max gradient vector size
-  aggregationAlgorithm: 'fedavg', // or 'fedprox', 'fedsgd'
+  aggregationAlgorithm: "fedavg", // or 'fedprox', 'fedsgd'
   requireZkProof: true,
   requireAttestation: true,
   maxRounds: 1000,
@@ -37,20 +37,20 @@ const DEFAULT_OPTIONS = {
 };
 
 const ROUND_PHASE = {
-  INITIATED: 'initiated',
-  TRAINING: 'training',
-  SUBMITTING: 'submitting',
-  VERIFYING: 'verifying',
-  AGGREGATING: 'aggregating',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  EXPIRED: 'expired',
+  INITIATED: "initiated",
+  TRAINING: "training",
+  SUBMITTING: "submitting",
+  VERIFYING: "verifying",
+  AGGREGATING: "aggregating",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  EXPIRED: "expired",
 };
 
 const PROOF_STATUS = {
-  PENDING: 'pending',
-  VALID: 'valid',
-  INVALID: 'invalid',
+  PENDING: "pending",
+  VALID: "valid",
+  INVALID: "invalid",
 };
 
 /**
@@ -93,34 +93,45 @@ class ConfidentialFederatedLearning {
    * @returns {object} Round initiation result
    */
   initiateRound(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'round config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "round config is required");
     }
-    if (!Array.isArray(config.participantIds) || config.participantIds.length < this.minParticipants) {
-      throw new HsmAdapterError('INSUFFICIENT_PARTICIPANTS',
-        `need at least ${this.minParticipants} participants, got ${config.participantIds ? config.participantIds.length : 0}`);
+    if (
+      !Array.isArray(config.participantIds) ||
+      config.participantIds.length < this.minParticipants
+    ) {
+      throw new HsmAdapterError(
+        "INSUFFICIENT_PARTICIPANTS",
+        `need at least ${this.minParticipants} participants, got ${config.participantIds ? config.participantIds.length : 0}`,
+      );
     }
     if (config.participantIds.length > this.maxParticipants) {
-      throw new HsmAdapterError('TOO_MANY_PARTICIPANTS',
-        `maximum ${this.maxParticipants} participants, got ${config.participantIds.length}`);
+      throw new HsmAdapterError(
+        "TOO_MANY_PARTICIPANTS",
+        `maximum ${this.maxParticipants} participants, got ${config.participantIds.length}`,
+      );
     }
     // Check for duplicate participants
     const unique = new Set(config.participantIds);
     if (unique.size !== config.participantIds.length) {
-      throw new HsmAdapterError('DUPLICATE_PARTICIPANTS',
-        'participant enclave IDs must be distinct');
+      throw new HsmAdapterError(
+        "DUPLICATE_PARTICIPANTS",
+        "participant enclave IDs must be distinct",
+      );
     }
-    const roundId = _generateId('fl-round', Date.now());
+    const roundId = _generateId("fl-round", Date.now());
     const now = Date.now();
-    const roundNumber = config.roundNumber || (this._lastRoundNumber + 1);
+    const roundNumber = config.roundNumber || this._lastRoundNumber + 1;
     if (roundNumber > this.maxRounds) {
-      throw new HsmAdapterError('MAX_ROUNDS_REACHED',
-        `round ${roundNumber} exceeds maximum ${this.maxRounds}`);
+      throw new HsmAdapterError(
+        "MAX_ROUNDS_REACHED",
+        `round ${roundNumber} exceeds maximum ${this.maxRounds}`,
+      );
     }
     const round = {
       roundId,
       roundNumber,
-      modelId: config.modelId || 'default-model',
+      modelId: config.modelId || "default-model",
       phase: ROUND_PHASE.INITIATED,
       participantIds: config.participantIds.slice(),
       currentWeights: config.currentWeights || this._globalModelWeights,
@@ -134,15 +145,20 @@ class ConfidentialFederatedLearning {
     };
     this._rounds.set(roundId, round);
     this._lastRoundNumber = roundNumber;
-    if (typeof this._audit === 'function') {
-      this._audit('FL_ROUND_INITIATED', {
+    if (typeof this._audit === "function") {
+      this._audit("FL_ROUND_INITIATED", {
         roundId,
         roundNumber,
         participantIds: round.participantIds,
         modelId: round.modelId,
       });
     }
-    return { roundId, roundNumber, phase: round.phase, participantIds: round.participantIds };
+    return {
+      roundId,
+      roundNumber,
+      phase: round.phase,
+      participantIds: round.participantIds,
+    };
   }
 
   /**
@@ -159,45 +175,65 @@ class ConfidentialFederatedLearning {
   submitGradient(roundId, participantId, submission) {
     const round = this._getRound(roundId);
     this._validateParticipant(round, participantId);
-    if (round.phase !== ROUND_PHASE.INITIATED &&
-        round.phase !== ROUND_PHASE.TRAINING &&
-        round.phase !== ROUND_PHASE.SUBMITTING) {
-      throw new HsmAdapterError('INVALID_PHASE',
-        `round is in phase ${round.phase}, expected initiated/training/submitting`);
+    if (
+      round.phase !== ROUND_PHASE.INITIATED &&
+      round.phase !== ROUND_PHASE.TRAINING &&
+      round.phase !== ROUND_PHASE.SUBMITTING
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_PHASE",
+        `round is in phase ${round.phase}, expected initiated/training/submitting`,
+      );
     }
     if (round.gradients.has(participantId)) {
-      throw new HsmAdapterError('DUPLICATE_SUBMISSION',
-        `participant ${participantId} has already submitted a gradient`);
+      throw new HsmAdapterError(
+        "DUPLICATE_SUBMISSION",
+        `participant ${participantId} has already submitted a gradient`,
+      );
     }
-    if (!submission || typeof submission !== 'object') {
-      throw new HsmAdapterError('INVALID_SUBMISSION', 'submission is required');
+    if (!submission || typeof submission !== "object") {
+      throw new HsmAdapterError("INVALID_SUBMISSION", "submission is required");
     }
-    if (!Array.isArray(submission.encryptedGradient) || submission.encryptedGradient.length === 0) {
-      throw new HsmAdapterError('INVALID_GRADIENT', 'encryptedGradient must be a non-empty array');
+    if (
+      !Array.isArray(submission.encryptedGradient) ||
+      submission.encryptedGradient.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_GRADIENT",
+        "encryptedGradient must be a non-empty array",
+      );
     }
     if (submission.encryptedGradient.length > this.maxGradientSize) {
-      throw new HsmAdapterError('GRADIENT_TOO_LARGE',
-        `gradient size ${submission.encryptedGradient.length} exceeds maximum ${this.maxGradientSize}`);
+      throw new HsmAdapterError(
+        "GRADIENT_TOO_LARGE",
+        `gradient size ${submission.encryptedGradient.length} exceeds maximum ${this.maxGradientSize}`,
+      );
     }
     if (this.requireZkProof) {
-      if (!submission.zkProof || typeof submission.zkProof !== 'string') {
-        throw new HsmAdapterError('PROOF_MISSING', 'zkProof is required');
+      if (!submission.zkProof || typeof submission.zkProof !== "string") {
+        throw new HsmAdapterError("PROOF_MISSING", "zkProof is required");
       }
       if (submission.zkProof.length < this.minProofLength) {
-        throw new HsmAdapterError('PROOF_TOO_SHORT',
-          `zkProof length ${submission.zkProof.length} below minimum ${this.minProofLength}`);
+        throw new HsmAdapterError(
+          "PROOF_TOO_SHORT",
+          `zkProof length ${submission.zkProof.length} below minimum ${this.minProofLength}`,
+        );
       }
     }
     if (this.requireAttestation && !submission.attestation) {
-      throw new HsmAdapterError('ATTESTATION_MISSING',
-        `participant ${participantId} attestation is required`);
+      throw new HsmAdapterError(
+        "ATTESTATION_MISSING",
+        `participant ${participantId} attestation is required`,
+      );
     }
     // Transition to submitting phase on first submission
     if (round.phase === ROUND_PHASE.INITIATED) {
       round.phase = ROUND_PHASE.SUBMITTING;
     }
-    const weight = typeof submission.weight === 'number' && submission.weight > 0
-      ? submission.weight : 1;
+    const weight =
+      typeof submission.weight === "number" && submission.weight > 0
+        ? submission.weight
+        : 1;
     round.gradients.set(participantId, {
       encryptedGradient: submission.encryptedGradient,
       zkProof: submission.zkProof || null,
@@ -206,8 +242,8 @@ class ConfidentialFederatedLearning {
       weight,
       submittedAt: Date.now(),
     });
-    if (typeof this._audit === 'function') {
-      this._audit('FL_GRADIENT_SUBMITTED', {
+    if (typeof this._audit === "function") {
+      this._audit("FL_GRADIENT_SUBMITTED", {
         roundId,
         participantId,
         gradientSize: submission.encryptedGradient.length,
@@ -231,13 +267,17 @@ class ConfidentialFederatedLearning {
   verifyGradients(roundId) {
     const round = this._getRound(roundId);
     if (round.phase !== ROUND_PHASE.SUBMITTING) {
-      throw new HsmAdapterError('INVALID_PHASE',
-        `round is in phase ${round.phase}, expected submitting`);
+      throw new HsmAdapterError(
+        "INVALID_PHASE",
+        `round is in phase ${round.phase}, expected submitting`,
+      );
     }
     // Check all participants have submitted
     if (round.gradients.size < round.participantIds.length) {
-      throw new HsmAdapterError('SUBMISSIONS_INCOMPLETE',
-        `${round.gradients.size}/${round.participantIds.length} participants have submitted`);
+      throw new HsmAdapterError(
+        "SUBMISSIONS_INCOMPLETE",
+        `${round.gradients.size}/${round.participantIds.length} participants have submitted`,
+      );
     }
     round.phase = ROUND_PHASE.VERIFYING;
     let validCount = 0;
@@ -252,8 +292,11 @@ class ConfidentialFederatedLearning {
     if (validCount === round.participantIds.length) {
       // All valid — proceed to aggregation
       round.phase = ROUND_PHASE.AGGREGATING;
-      if (typeof this._audit === 'function') {
-        this._audit('FL_GRADIENTS_VERIFIED', { roundId, verifiedCount: validCount });
+      if (typeof this._audit === "function") {
+        this._audit("FL_GRADIENTS_VERIFIED", {
+          roundId,
+          verifiedCount: validCount,
+        });
       }
       return {
         roundId,
@@ -265,9 +308,15 @@ class ConfidentialFederatedLearning {
     }
     // Some proofs invalid — fail the round
     round.phase = ROUND_PHASE.FAILED;
-    round.errors.push(`${round.participantIds.length - validCount} gradient proofs failed verification`);
-    if (typeof this._audit === 'function') {
-      this._audit('FL_ROUND_FAILED', { roundId, validCount, invalidCount: round.participantIds.length - validCount });
+    round.errors.push(
+      `${round.participantIds.length - validCount} gradient proofs failed verification`,
+    );
+    if (typeof this._audit === "function") {
+      this._audit("FL_ROUND_FAILED", {
+        roundId,
+        validCount,
+        invalidCount: round.participantIds.length - validCount,
+      });
     }
     return {
       roundId,
@@ -290,12 +339,14 @@ class ConfidentialFederatedLearning {
     if (!this.requireZkProof) return true;
     if (!gradient.zkProof) return false;
     // Recompute expected proof hash from gradient and round context
-    const gradientHash = crypto.createHash('sha256')
+    const gradientHash = crypto
+      .createHash("sha256")
       .update(JSON.stringify(gradient.encryptedGradient))
-      .digest('hex');
-    const expectedProof = crypto.createHash('sha256')
+      .digest("hex");
+    const expectedProof = crypto
+      .createHash("sha256")
       .update(`${round.roundId}:${gradientHash}:${round.roundNumber}`)
-      .digest('hex');
+      .digest("hex");
     // In a real implementation, this would verify a cryptographic ZK proof
     // Here we check that the proof is a valid hash that matches expected format
     if (gradient.zkProof.length < this.minProofLength) return false;
@@ -312,14 +363,20 @@ class ConfidentialFederatedLearning {
   aggregateGradients(roundId) {
     const round = this._getRound(roundId);
     if (round.phase !== ROUND_PHASE.AGGREGATING) {
-      throw new HsmAdapterError('INVALID_PHASE',
-        `round is in phase ${round.phase}, expected aggregating`);
+      throw new HsmAdapterError(
+        "INVALID_PHASE",
+        `round is in phase ${round.phase}, expected aggregating`,
+      );
     }
     // Perform FedAvg (federated averaging) with differential privacy
-    const gradients = Array.from(round.gradients.values())
-      .filter(g => g.status === PROOF_STATUS.VALID);
+    const gradients = Array.from(round.gradients.values()).filter(
+      (g) => g.status === PROOF_STATUS.VALID,
+    );
     if (gradients.length === 0) {
-      throw new HsmAdapterError('NO_VALID_GRADIENTS', 'no valid gradients to aggregate');
+      throw new HsmAdapterError(
+        "NO_VALID_GRADIENTS",
+        "no valid gradients to aggregate",
+      );
     }
     const totalWeight = gradients.reduce((sum, g) => sum + g.weight, 0);
     const gradientSize = gradients[0].encryptedGradient.length;
@@ -329,7 +386,10 @@ class ConfidentialFederatedLearning {
       const normalizedWeight = g.weight / totalWeight;
       // Apply gradient clipping for DP
       for (let i = 0; i < gradientSize; i++) {
-        const clipped = _clipGradient(g.encryptedGradient[i], this.clippingThreshold);
+        const clipped = _clipGradient(
+          g.encryptedGradient[i],
+          this.clippingThreshold,
+        );
         aggregated[i] += clipped * normalizedWeight;
       }
     }
@@ -340,7 +400,8 @@ class ConfidentialFederatedLearning {
       }
     }
     // Update global model weights
-    const currentWeights = round.currentWeights || new Array(gradientSize).fill(0);
+    const currentWeights =
+      round.currentWeights || new Array(gradientSize).fill(0);
     const newWeights = new Array(gradientSize);
     for (let i = 0; i < gradientSize; i++) {
       newWeights[i] = (currentWeights[i] || 0) + aggregated[i];
@@ -365,8 +426,8 @@ class ConfidentialFederatedLearning {
     if (this._completedRounds.length > this._maxHistory) {
       this._completedRounds.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('FL_ROUND_COMPLETED', {
+    if (typeof this._audit === "function") {
+      this._audit("FL_ROUND_COMPLETED", {
         roundId,
         roundNumber: round.roundNumber,
         participantCount: round.participantIds.length,
@@ -404,7 +465,9 @@ class ConfidentialFederatedLearning {
   getRound(roundId) {
     const round = this._rounds.get(roundId);
     if (!round) {
-      const completed = this._completedRounds.find(r => r.roundId === roundId);
+      const completed = this._completedRounds.find(
+        (r) => r.roundId === roundId,
+      );
       return completed || null;
     }
     return {
@@ -427,7 +490,7 @@ class ConfidentialFederatedLearning {
    * @returns {object[]}
    */
   getActiveRounds() {
-    return Array.from(this._rounds.values()).map(r => ({
+    return Array.from(this._rounds.values()).map((r) => ({
       roundId: r.roundId,
       roundNumber: r.roundNumber,
       phase: r.phase,
@@ -442,8 +505,8 @@ class ConfidentialFederatedLearning {
    * @returns {object[]}
    */
   getCompletedRounds(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
-    return this._completedRounds.slice(-n).map(r => ({
+    const n = typeof limit === "number" ? limit : 20;
+    return this._completedRounds.slice(-n).map((r) => ({
       roundId: r.roundId,
       roundNumber: r.roundNumber,
       modelId: r.modelId,
@@ -465,8 +528,8 @@ class ConfidentialFederatedLearning {
         round.phase = ROUND_PHASE.EXPIRED;
         this._rounds.delete(roundId);
         expired.push(roundId);
-        if (typeof this._audit === 'function') {
-          this._audit('FL_ROUND_EXPIRED', { roundId });
+        if (typeof this._audit === "function") {
+          this._audit("FL_ROUND_EXPIRED", { roundId });
         }
       }
     }
@@ -513,7 +576,10 @@ class ConfidentialFederatedLearning {
   _getRound(roundId) {
     const round = this._rounds.get(roundId);
     if (!round) {
-      throw new HsmAdapterError('ROUND_NOT_FOUND', `round ${roundId} not found`);
+      throw new HsmAdapterError(
+        "ROUND_NOT_FOUND",
+        `round ${roundId} not found`,
+      );
     }
     return round;
   }
@@ -526,8 +592,10 @@ class ConfidentialFederatedLearning {
    */
   _validateParticipant(round, participantId) {
     if (!round.participantIds.includes(participantId)) {
-      throw new HsmAdapterError('PARTICIPANT_NOT_AUTHORIZED',
-        `participant ${participantId} is not part of round ${round.roundId}`);
+      throw new HsmAdapterError(
+        "PARTICIPANT_NOT_AUTHORIZED",
+        `participant ${participantId} is not part of round ${round.roundId}`,
+      );
     }
   }
 }

@@ -1,8 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-const fs = require('fs');
+const fs = require("fs");
 
-const tierFile = 'C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/audit-export-tier.cjs';
-let tier = fs.readFileSync(tierFile, 'utf8');
+const tierFile =
+  "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/audit-export-tier.cjs";
+let tier = fs.readFileSync(tierFile, "utf8");
 
 // 1. Extract buildTierResult helper to reduce duplication in assessAuditExportTier
 const buildTierResultFunc = `
@@ -24,8 +25,8 @@ function buildTierResult(tier, label, overrides = {}) {
 
 // Insert buildTierResult before assessAuditExportTier
 tier = tier.replace(
-  'function assessAuditExportTier(completeScan) {',
-  buildTierResultFunc + 'function assessAuditExportTier(completeScan) {'
+  "function assessAuditExportTier(completeScan) {",
+  buildTierResultFunc + "function assessAuditExportTier(completeScan) {",
 );
 
 // 2. Replace duplicated return blocks with buildTierResult calls
@@ -40,7 +41,7 @@ tier = tier.replace(
             exportBlocked: true,
             blockReason: 'No scan data available for audit PDF export.'
         });
-    }`
+    }`,
 );
 
 // insufficient - no results
@@ -54,7 +55,7 @@ tier = tier.replace(
             exportBlocked: true,
             blockReason: 'Export payload has no scan steps — run Complete scan or an individual analysis first.'
         });
-    }`
+    }`,
 );
 
 // handoff
@@ -65,7 +66,7 @@ tier = tier.replace(
             showSignOffBlock: true,
             showReadinessScore: true
         });
-    }`
+    }`,
 );
 
 // gate-only
@@ -77,7 +78,7 @@ tier = tier.replace(
             readinessDisplay: 'Gate attestation only — run Complete scan for full readiness score',
             handoffHint
         });
-    }`
+    }`,
 );
 
 // codebase-only
@@ -89,7 +90,7 @@ tier = tier.replace(
             readinessDisplay: 'Codebase analysis only — attach gate PASS evidence for sign-off',
             handoffHint
         });
-    }`
+    }`,
 );
 
 // supplementary
@@ -101,10 +102,10 @@ tier = tier.replace(
         readinessDisplay: \`Supplementary — \${step.label}\`,
         handoffHint,
         extra: { stepKey: step.key }
-    });`
+    });`,
 );
 
-fs.writeFileSync(tierFile, tier, 'utf8');
-console.log('✓ audit-export-tier.cjs');
+fs.writeFileSync(tierFile, tier, "utf8");
+console.log("✓ audit-export-tier.cjs");
 
-console.log('\nDone.');
+console.log("\nDone.");

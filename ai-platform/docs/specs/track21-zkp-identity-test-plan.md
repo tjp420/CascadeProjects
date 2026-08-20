@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------- |
 | Feature / change | Track 21: Ephemeral Hardware Tokens & Decentralized Zero-Knowledge Identity Proofs |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track21-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                                              |
+| Date             | 2026-08-01                                                                         |
+| Branch           | `feature/track21-groundwork`                                                       |
+| Packages touched | ai-platform                                                                        |
 
 ## Scope
 
@@ -64,52 +64,52 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | ZKP identity tests pass | `cd ai-platform && npx jest --config jest.config.cjs zkp-identity` | [ ] |
-| L1-03 | Ephemeral token tests pass | `cd ai-platform && npx jest --config jest.config.cjs ephemeral-token` | [ ] |
-| L1-04 | Crypto policy tests still pass | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine` | [ ] |
-| L1-05 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-06 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-07 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                | Command / method                                                           | Pass |
+| ----- | ------------------------------------ | -------------------------------------------------------------------------- | ---- |
+| L1-01 | Syntax on changed `.cjs` files       | `node -c <file>`                                                           | [ ]  |
+| L1-02 | ZKP identity tests pass              | `cd ai-platform && npx jest --config jest.config.cjs zkp-identity`         | [ ]  |
+| L1-03 | Ephemeral token tests pass           | `cd ai-platform && npx jest --config jest.config.cjs ephemeral-token`      | [ ]  |
+| L1-04 | Crypto policy tests still pass       | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine` | [ ]  |
+| L1-05 | Full `ai-platform` test suite passes | `cd ai-platform && npm test`                                               | [ ]  |
+| L1-06 | SimpleBeacon full gate               | `npx simplebeacon scan --full --gate --format json`                        | [ ]  |
+| L1-07 | No secrets in diff                   | `git diff --cached`                                                        | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | Generate and verify a valid ZKP | `createProof` then `verifyProof` with same challenge | Returns `true` | [ ] |
-| L2-02 | Verifying with a different challenge fails | `verifyProof` with altered `c` | Returns `false` | [ ] |
-| L2-03 | Issue and verify an ephemeral hardware token | `issue(tenantId)` then `verify(token, tenantId)` within window | Returns `true` | [ ] |
-| L2-04 | Expired token is rejected | Wait `tokenExpiryMs + 1` and `verify` | Throws `IDENTITY_PROOF_EXPIRED` | [ ] |
-| L2-05 | Token bound to wrong tenant is rejected | `verify(token, 't2')` for `t1` token | Throws `TOKEN_NOT_BOUND` | [ ] |
+| ID    | Scenario                                     | Steps                                                          | Expected                        | Pass |
+| ----- | -------------------------------------------- | -------------------------------------------------------------- | ------------------------------- | ---- |
+| L2-01 | Generate and verify a valid ZKP              | `createProof` then `verifyProof` with same challenge           | Returns `true`                  | [ ]  |
+| L2-02 | Verifying with a different challenge fails   | `verifyProof` with altered `c`                                 | Returns `false`                 | [ ]  |
+| L2-03 | Issue and verify an ephemeral hardware token | `issue(tenantId)` then `verify(token, tenantId)` within window | Returns `true`                  | [ ]  |
+| L2-04 | Expired token is rejected                    | Wait `tokenExpiryMs + 1` and `verify`                          | Throws `IDENTITY_PROOF_EXPIRED` | [ ]  |
+| L2-05 | Token bound to wrong tenant is rejected      | `verify(token, 't2')` for `t1` token                           | Throws `TOKEN_NOT_BOUND`        | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Exceeding `maxProofs` rate limit fails | `createProof` called > `maxProofs` in window | Throws `PROOF_LIMIT_EXCEEDED` | [ ] |
-| L3-02 | `g` and `p` values are well-known safe primes | `allowedPrimes` policy enforced | [ ] |
-| L3-03 | Existing Tracks 10–20 tests still pass | No regressions | [ ] |
+| ID    | Case                                          | Expected                                     | Pass                          |
+| ----- | --------------------------------------------- | -------------------------------------------- | ----------------------------- |
+| L3-01 | Exceeding `maxProofs` rate limit fails        | `createProof` called > `maxProofs` in window | Throws `PROOF_LIMIT_EXCEEDED` | [ ] |
+| L3-02 | `g` and `p` values are well-known safe primes | `allowedPrimes` policy enforced              | [ ]                           |
+| L3-03 | Existing Tracks 10–20 tests still pass        | No regressions                               | [ ]                           |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Private key `x` is never transmitted or logged | [ ] |
-| S-02 | Tokens expire and are not reversible to attestation root without the root | [ ] |
-| S-03 | `challenge` replay across different contexts is prevented by context-bound hash | [ ] |
-| S-04 | `maxProofs` prevents proof-flooding attacks | [ ] |
+| ID   | Requirement                                                                     | Pass |
+| ---- | ------------------------------------------------------------------------------- | ---- |
+| S-01 | Private key `x` is never transmitted or logged                                  | [ ]  |
+| S-02 | Tokens expire and are not reversible to attestation root without the root       | [ ]  |
+| S-03 | `challenge` replay across different contexts is prevented by context-bound hash | [ ]  |
+| S-04 | `maxProofs` prevents proof-flooding attacks                                     | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

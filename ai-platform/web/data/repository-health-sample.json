@@ -4,12 +4,8 @@
     "repositoryHealthScore": 88,
     "duplicateGroups": 7
   },
-  "recommendations": [
-    {}
-  ],
-  "disclaimers": [
-    {}
-  ],
+  "recommendations": [{}],
+  "disclaimers": [{}],
   "platform": {},
   "monorepo": {}
 }

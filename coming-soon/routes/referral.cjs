@@ -19,14 +19,17 @@ const {
     buildReferralCookieValue,
     getCookieExpiresIso
 } = require('../lib/referral-tracking.cjs');
-const {
-    sendReferrerLinkEmail,
-    sendReferralInviteEmail
-} = require('../lib/referral-email.cjs');
+const { sendReferrerLinkEmail, sendReferralInviteEmail } = require('../lib/referral-email.cjs');
 
 const logger = {
-    warn: (...a) => { const c = globalThis.console; c.warn(...a); },
-    info: (...a) => { const c = globalThis.console; c.info(...a); }
+    warn: (...a) => {
+        const c = globalThis.console;
+        c.warn(...a);
+    },
+    info: (...a) => {
+        const c = globalThis.console;
+        c.info(...a);
+    }
 };
 
 const INVITE_RATE_LIMIT_MS = 60 * 60 * 1000;
@@ -34,7 +37,9 @@ const INVITE_RATE_LIMIT_MAX = 10;
 const inviteRateLog = new Map();
 
 function checkInviteRateLimit(referrerEmail) {
-    const key = String(referrerEmail || '').trim().toLowerCase();
+    const key = String(referrerEmail || '')
+        .trim()
+        .toLowerCase();
     const now = Date.now();
     const entry = inviteRateLog.get(key);
     if (entry && now < entry.resetAt) {
@@ -87,7 +92,9 @@ router.post('/api/referral/capture', express.json({ limit: '16kb' }), (req, res)
 });
 
 router.get('/api/referral/link', async (req, res) => {
-    const email = String(req.query?.email || '').trim().toLowerCase();
+    const email = String(req.query?.email || '')
+        .trim()
+        .toLowerCase();
     if (!email || !email.includes('@')) {
         return res.status(400).json({ success: false, error: 'Valid email required' });
     }
@@ -125,9 +132,15 @@ router.get('/api/referral/link', async (req, res) => {
 });
 
 router.post('/api/referral/invite', express.json({ limit: '16kb' }), async (req, res) => {
-    const referrerEmail = String(req.body?.referrerEmail || req.body?.email || '').trim().toLowerCase();
-    const inviteeEmail = String(req.body?.inviteeEmail || req.body?.to || '').trim().toLowerCase();
-    const message = String(req.body?.message || '').trim().slice(0, 500);
+    const referrerEmail = String(req.body?.referrerEmail || req.body?.email || '')
+        .trim()
+        .toLowerCase();
+    const inviteeEmail = String(req.body?.inviteeEmail || req.body?.to || '')
+        .trim()
+        .toLowerCase();
+    const message = String(req.body?.message || '')
+        .trim()
+        .slice(0, 500);
 
     if (!referrerEmail || !referrerEmail.includes('@')) {
         return res.status(400).json({ success: false, error: 'Valid referrer email required' });
@@ -180,7 +193,9 @@ router.post('/api/referral/invite', express.json({ limit: '16kb' }), async (req,
 });
 
 router.get('/api/referral/stats', (req, res) => {
-    const email = String(req.query?.email || '').trim().toLowerCase();
+    const email = String(req.query?.email || '')
+        .trim()
+        .toLowerCase();
     if (!email || !email.includes('@')) {
         return res.status(400).json({ success: false, error: 'Valid email required' });
     }

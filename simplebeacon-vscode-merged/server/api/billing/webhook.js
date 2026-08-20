@@ -27,7 +27,7 @@ async function atomicUpgradeUser(userId, targetTier, stripeCustomerId, stripeSub
     targetTier,
     stripeCustomerId,
     stripeSubscriptionId,
-    ts: new Date().toISOString()
+    ts: new Date().toISOString(),
   });
 }
 
@@ -72,12 +72,7 @@ async function handleStripeWebhook(req, res) {
       }
 
       // Atomic database transaction to upgrade account scope
-      await atomicUpgradeUser(
-        userId,
-        targetTier,
-        session.customer,
-        session.subscription
-      );
+      await atomicUpgradeUser(userId, targetTier, session.customer, session.subscription);
 
       // Regenerate and bind fresh license key metadata
       await regenerateLicense(userId, targetTier);
@@ -86,7 +81,7 @@ async function handleStripeWebhook(req, res) {
         sessionId: session.id,
         userId,
         targetTier,
-        customer: session.customer
+        customer: session.customer,
       });
       break;
     }
@@ -96,7 +91,7 @@ async function handleStripeWebhook(req, res) {
       console.warn('[stripe-webhook] invoice-payment-failed', {
         invoiceId: invoice.id,
         customer: invoice.customer,
-        amountDue: invoice.amount_due
+        amountDue: invoice.amount_due,
       });
       // TODO: emit grace-period alert or downgrade account after retry window
       break;

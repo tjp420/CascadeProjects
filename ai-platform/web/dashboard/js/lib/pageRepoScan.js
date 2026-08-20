@@ -1,9 +1,18 @@
 // simplebeacon-ignore documentation
-import { formatPathLabel, redactPathForDisplay, showToast, escapeHtml } from '../utils.js';
-import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport } from '../services/analyzeService.js';
-import { isDemoMode, demoReadOnlyMessage } from '../demoMode.js';
-import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
-import { isRemoteRepoUrl } from './analyzePathSources.js';
+import {
+  formatPathLabel,
+  redactPathForDisplay,
+  showToast,
+  escapeHtml,
+} from "../utils.js";
+import {
+  refreshLiveReport,
+  normalizeProjectPath,
+  shouldPreferLiveReport,
+} from "../services/analyzeService.js";
+import { isDemoMode, demoReadOnlyMessage } from "../demoMode.js";
+import { isBenchmarkCachePath } from "../utils/complete-scan-artifact-profile.browser.js";
+import { isRemoteRepoUrl } from "./analyzePathSources.js";
 
 /** Known artifact / export directory suffixes that should not be part of a project path. */
 const ARTIFACT_SUFFIXES = [
@@ -25,10 +34,12 @@ const ARTIFACT_SUFFIXES = [
  * @returns {any}
  */
 function stripArtifactSuffixes(path) {
-  const raw = String(path || '').trim().replace(/\\/g, '/');
+  const raw = String(path || "")
+    .trim()
+    .replace(/\\/g, "/");
   for (const pattern of ARTIFACT_SUFFIXES) {
     if (pattern.test(raw)) {
-      return raw.replace(pattern, '');
+      return raw.replace(pattern, "");
     }
   }
   return path;
@@ -40,24 +51,31 @@ function stripArtifactSuffixes(path) {
  * @returns {any}
  */
 function isPlausibleProjectPath(value) {
-  const raw = String(value || '').trim();
+  const raw = String(value || "").trim();
   if (!raw || raw.length > 280) return false;
   if (isRemoteRepoUrl(raw)) return true;
-  if (/outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(raw)) {
+  if (
+    /outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(
+      raw,
+    )
+  ) {
     return false;
   }
   const cleaned = stripArtifactSuffixes(raw);
   if (/^[a-zA-Z]:[\\/]/.test(cleaned)) return true;
-  if (cleaned.startsWith('\\\\') || cleaned.startsWith('/')) return true;
+  if (cleaned.startsWith("\\\\") || cleaned.startsWith("/")) return true;
   if (/^[\w.-]+([\\/]|$)/.test(cleaned)) return true;
   return false;
 }
 
 /** Read typed path from the active page path bar (Analyze bar or Dashboard scan input). */
 export function readProjectPathInput(root) {
-  const scope = root && typeof root.querySelector === 'function' ? root : document;
-  const el = scope.querySelector('#project-path-input') || scope.querySelector('#scan-root-input');
-  return el?.value ?? '';
+  const scope =
+    root && typeof root.querySelector === "function" ? root : document;
+  const el =
+    scope.querySelector("#project-path-input") ||
+    scope.querySelector("#scan-root-input");
+  return el?.value ?? "";
 }
 
 /**
@@ -72,12 +90,21 @@ export function readProjectPathInput(root) {
  * @returns {boolean}
  */
 function isSuspiciousNestedPath(candidate, defaultPath) {
-  const c = String(candidate || '').replace(/\\/g, '/').replace(/\/+$/, '');
-  const d = String(defaultPath || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  const c = String(candidate || "")
+    .replace(/\\/g, "/")
+    .replace(/\/+$/, "");
+  const d = String(defaultPath || "")
+    .replace(/\\/g, "/")
+    .replace(/\/+$/, "");
   if (!c || !d || c === d) return false;
-  const candidateBasename = c.split('/').pop();
-  const defaultBasename = d.split('/').pop();
-  return Boolean(candidateBasename && defaultBasename && candidateBasename === defaultBasename && c.startsWith(d + '/'));
+  const candidateBasename = c.split("/").pop();
+  const defaultBasename = d.split("/").pop();
+  return Boolean(
+    candidateBasename &&
+    defaultBasename &&
+    candidateBasename === defaultBasename &&
+    c.startsWith(d + "/"),
+  );
 }
 
 /**
@@ -89,13 +116,13 @@ function isSuspiciousNestedPath(candidate, defaultPath) {
  * @returns {boolean}
  */
 function isClientServerPathMismatch(candidate, defaultPath) {
-  const c = String(candidate || '').trim();
-  const d = String(defaultPath || '').trim();
+  const c = String(candidate || "").trim();
+  const d = String(defaultPath || "").trim();
   if (!c || !d) return false;
   const cIsWindows = /^[a-zA-Z]:[\\/]/.test(c);
   const dIsWindows = /^[a-zA-Z]:[\\/]/.test(d);
-  const cIsUnix = c.startsWith('/');
-  const dIsUnix = d.startsWith('/');
+  const cIsUnix = c.startsWith("/");
+  const dIsUnix = d.startsWith("/");
   return (cIsWindows && dIsUnix) || (cIsUnix && dIsWindows);
 }
 
@@ -106,37 +133,47 @@ function isClientServerPathMismatch(candidate, defaultPath) {
  * @returns {any}
  */
 export function resolvePageProjectPath(inputValue, app) {
-  const trimmed = stripArtifactSuffixes(String(inputValue || '').trim());
-  const defaultPath = String(app.state.defaultProjectPath || '').trim();
+  const trimmed = stripArtifactSuffixes(String(inputValue || "").trim());
+  const defaultPath = String(app.state.defaultProjectPath || "").trim();
 
   // Resolve bare directory names (no drive letter or slash prefix) against default path
-  if (trimmed && !trimmed.startsWith('…') && isPlausibleProjectPath(trimmed)) {
+  if (trimmed && !trimmed.startsWith("…") && isPlausibleProjectPath(trimmed)) {
     const cleaned = stripArtifactSuffixes(trimmed);
-    const isBareName = cleaned && !/^[a-zA-Z]:[\\/]/.test(cleaned) && !cleaned.startsWith('//') && !cleaned.startsWith('/');
+    const isBareName =
+      cleaned &&
+      !/^[a-zA-Z]:[\\/]/.test(cleaned) &&
+      !cleaned.startsWith("//") &&
+      !cleaned.startsWith("/");
     if (isBareName && defaultPath) {
-      const resolved = defaultPath.replace(/\\/g, '/').replace(/\/$/, '') + '/' + cleaned;
-      if (resolved.startsWith(defaultPath.replace(/\\/g, '/'))) {
+      const resolved =
+        defaultPath.replace(/\\/g, "/").replace(/\/$/, "") + "/" + cleaned;
+      if (resolved.startsWith(defaultPath.replace(/\\/g, "/"))) {
         return resolved;
       }
     }
     return trimmed;
   }
 
-  const cleanedLast = stripArtifactSuffixes(app.state.lastProjectPath || '');
-  if (cleanedLast && isPlausibleProjectPath(cleanedLast) && !isSuspiciousNestedPath(cleanedLast, defaultPath) && !isClientServerPathMismatch(cleanedLast, defaultPath)) {
+  const cleanedLast = stripArtifactSuffixes(app.state.lastProjectPath || "");
+  if (
+    cleanedLast &&
+    isPlausibleProjectPath(cleanedLast) &&
+    !isSuspiciousNestedPath(cleanedLast, defaultPath) &&
+    !isClientServerPathMismatch(cleanedLast, defaultPath)
+  ) {
     return cleanedLast;
   }
-  if (trimmed.startsWith('…')) {
+  if (trimmed.startsWith("…")) {
     return defaultPath;
   }
-  return trimmed || defaultPath || '';
+  return trimmed || defaultPath || "";
 }
 
 /** Value to show in path inputs — returns the current path so re-renders preserve it. */
 export function getPathInputDisplayValue(app) {
-  if (!app || !app.state) return '';
-  const candidate = app.state.pathInputDraft || app.state.lastProjectPath || '';
-  const defaultPath = String(app.state.defaultProjectPath || '').trim();
+  if (!app || !app.state) return "";
+  const candidate = app.state.pathInputDraft || app.state.lastProjectPath || "";
+  const defaultPath = String(app.state.defaultProjectPath || "").trim();
   if (defaultPath && isSuspiciousNestedPath(candidate, defaultPath)) {
     return defaultPath;
   }
@@ -148,14 +185,16 @@ export function getPathInputDisplayValue(app) {
 
 /** Active path for the current page — prefers typed input, then last scan, then default. */
 export function getPageProjectPath(app, root) {
-  const inputValue = root ? readProjectPathInput(root) : readProjectPathInput(document);
+  const inputValue = root
+    ? readProjectPathInput(root)
+    : readProjectPathInput(document);
   return resolvePageProjectPath(inputValue, app);
 }
 
 /** Product platform root when path sits under github-cache/ (e.g. …/ai-platform/github-cache/foo). */
 export function productPlatformRootFromBenchmarkPath(projectPath) {
-  const normalized = String(projectPath || '').replace(/\\/g, '/');
-  const idx = normalized.toLowerCase().indexOf('/github-cache/');
+  const normalized = String(projectPath || "").replace(/\\/g, "/");
+  const idx = normalized.toLowerCase().indexOf("/github-cache/");
   return idx > 0 ? normalized.slice(0, idx) : null;
 }
 
@@ -171,7 +210,7 @@ export function productPlatformRootFromBenchmarkPath(projectPath) {
  */
 export function resolveProductCompliancePath(inputValue, app) {
   const resolved = resolvePageProjectPath(inputValue, app);
-  const defaultPath = String(app.state.defaultProjectPath || '').trim();
+  const defaultPath = String(app.state.defaultProjectPath || "").trim();
   if (resolved && isBenchmarkCachePath(resolved)) {
     if (defaultPath && !isBenchmarkCachePath(defaultPath)) {
       return defaultPath;
@@ -192,7 +231,7 @@ export function resolveProductCompliancePath(inputValue, app) {
  */
 export function ensureProductCompliancePath(app, root) {
   const current = getPageProjectPath(app, root);
-  const defaultPath = String(app.state.defaultProjectPath || '').trim();
+  const defaultPath = String(app.state.defaultProjectPath || "").trim();
   if (current && isBenchmarkCachePath(current)) {
     const productRoot = resolveProductCompliancePath(current, app);
     if (productRoot && productRoot !== current) {
@@ -218,7 +257,7 @@ export function reportMatchesPagePath(report, projectPath) {
 
 /** Report artifact that matches the requested repo path (ignores stale global report). */
 export function reportForProjectPath(app, projectPath) {
-  const path = String(projectPath || '').trim();
+  const path = String(projectPath || "").trim();
   if (!path) return null;
   if (app.state.report && reportMatchesPagePath(app.state.report, path)) {
     return app.state.report;
@@ -243,13 +282,15 @@ export function getPageReport(app, root) {
  */
 export function syncPathChipStates(root, projectPath) {
   if (!root) return;
-  const activeNorm = projectPath ? normalizeProjectPath(projectPath) : '';
-  root.querySelectorAll('.analyze-path-chip-wrap').forEach((wrap) => {
-    const chip = wrap.querySelector('.analyze-path-chip');
-    const chipPath = chip?.dataset.path || '';
-    const active = Boolean(activeNorm && chipPath && normalizeProjectPath(chipPath) === activeNorm);
-    wrap.classList.toggle('active', active);
-    chip?.classList.toggle('active', active);
+  const activeNorm = projectPath ? normalizeProjectPath(projectPath) : "";
+  root.querySelectorAll(".analyze-path-chip-wrap").forEach((wrap) => {
+    const chip = wrap.querySelector(".analyze-path-chip");
+    const chipPath = chip?.dataset.path || "";
+    const active = Boolean(
+      activeNorm && chipPath && normalizeProjectPath(chipPath) === activeNorm,
+    );
+    wrap.classList.toggle("active", active);
+    chip?.classList.toggle("active", active);
   });
 }
 
@@ -260,48 +301,67 @@ export function syncPathChipStates(root, projectPath) {
  * @returns {any}
  */
 export function renderPageScanContext(app, options = {}) {
-  const requested = options.requestedPath
-    || (options.container ? getPageProjectPath(app, options.container) : getPageProjectPath(app));
+  const requested =
+    options.requestedPath ||
+    (options.container
+      ? getPageProjectPath(app, options.container)
+      : getPageProjectPath(app));
   const report = options.report ?? reportForProjectPath(app, requested);
-  const reportRoot = report?.projectRoot || '';
-  const bundleRoot = options.bundleProjectPath || '';
+  const reportRoot = report?.projectRoot || "";
+  const bundleRoot = options.bundleProjectPath || "";
   const scannedRoot = bundleRoot || reportRoot;
 
-  if (!requested && !scannedRoot && !options.force) return '';
+  if (!requested && !scannedRoot && !options.force) return "";
 
-  const requestedLabel = requested ? formatPathLabel(requested) || redactPathForDisplay(requested) : '';
-  const scannedLabel = scannedRoot ? formatPathLabel(scannedRoot) || redactPathForDisplay(scannedRoot) : '';
-  const mismatch = requested && scannedRoot && !reportMatchesPagePath({ projectRoot: scannedRoot }, requested);
+  const requestedLabel = requested
+    ? formatPathLabel(requested) || redactPathForDisplay(requested)
+    : "";
+  const scannedLabel = scannedRoot
+    ? formatPathLabel(scannedRoot) || redactPathForDisplay(scannedRoot)
+    : "";
+  const mismatch =
+    requested &&
+    scannedRoot &&
+    !reportMatchesPagePath({ projectRoot: scannedRoot }, requested);
 
   const gate = report?.gate?.pass;
-  const gateChip = gate === true
-    ? '<span class="gate-badge pass">GATE PASS</span>'
-    : gate === false
-      ? '<span class="gate-badge warn">GATE REVIEW</span>'
-      : '';
+  const gateChip =
+    gate === true
+      ? '<span class="gate-badge pass">GATE PASS</span>'
+      : gate === false
+        ? '<span class="gate-badge warn">GATE REVIEW</span>'
+        : "";
   const scannedAt = report?.generatedAt
     ? new Date(report.generatedAt).toLocaleString()
-    : '';
+    : "";
 
   return `
     <div class="card mb-4 analyze-page-scan-context" data-page-scan-context>
       <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
-        ${requestedLabel
-    ? `Scan target: <code>${escapeHtml(requestedLabel)}</code>`
-    : 'Enter a folder path above, then run scan.'}
-        ${scannedLabel && requestedLabel && mismatch
-    ? ` · Artifacts loaded from <code>${escapeHtml(scannedLabel)}</code>`
-    : scannedLabel && !requestedLabel
-      ? ` · Showing results for <code>${escapeHtml(scannedLabel)}</code>`
-      : ''}
-        ${gateChip ? ` ${gateChip}` : ''}
-        ${scannedAt ? ` · ${escapeHtml(scannedAt)}` : ''}
+        ${
+          requestedLabel
+            ? `Scan target: <code>${escapeHtml(requestedLabel)}</code>`
+            : "Enter a folder path above, then run scan."
+        }
+        ${
+          scannedLabel && requestedLabel && mismatch
+            ? ` · Artifacts loaded from <code>${escapeHtml(scannedLabel)}</code>`
+            : scannedLabel && !requestedLabel
+              ? ` · Showing results for <code>${escapeHtml(scannedLabel)}</code>`
+              : ""
+        }
+        ${gateChip ? ` ${gateChip}` : ""}
+        ${scannedAt ? ` · ${escapeHtml(scannedAt)}` : ""}
       </p>
-      ${mismatch ? `
+      ${
+        mismatch
+          ? `
         <p class="text-warning" style="margin:0.35rem 0 0;font-size:var(--font-size-xs);">
           Requested path differs from loaded artifact root — run scan again on this page or pick the exact repo folder.
         </p>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
   `;
 }
@@ -315,30 +375,30 @@ export function renderPageScanContext(app, options = {}) {
  */
 export function updatePageScanContextDom(container, app, options = {}) {
   if (!container) return;
-  const pathInput = container.querySelector('#project-path-input');
+  const pathInput = container.querySelector("#project-path-input");
   const projectPath = getPageProjectPath(app, container);
   const report = reportForProjectPath(app, projectPath);
-  const slot = container.querySelector('[data-page-scan-context]');
+  const slot = container.querySelector("[data-page-scan-context]");
   const html = renderPageScanContext(app, {
     ...options,
     container,
     requestedPath: projectPath,
-    report
+    report,
   });
   if (slot) {
-    slot.outerHTML = html || '';
+    slot.outerHTML = html || "";
   } else if (html) {
-    const bar = container.querySelector('[data-analyze-path-bar]');
-    bar?.insertAdjacentHTML('afterend', html);
+    const bar = container.querySelector("[data-analyze-path-bar]");
+    bar?.insertAdjacentHTML("afterend", html);
   }
 }
 
 /** Load report.json for the given path into app.state (when available). */
 export async function refreshAppReportForPath(app, projectPath, root) {
   const path = String(
-    projectPath
-    || (root ? getPageProjectPath(app, root) : getPageProjectPath(app))
-    || ''
+    projectPath ||
+      (root ? getPageProjectPath(app, root) : getPageProjectPath(app)) ||
+      "",
   ).trim();
   if (!path) {
     return refreshLiveReport(app.scanService, app.state);
@@ -346,8 +406,13 @@ export async function refreshAppReportForPath(app, projectPath, root) {
   try {
     const live = await app.scanService.fetchReport(path);
     if (live && reportMatchesPagePath(live, path)) {
-      const staleRoot = app.state.report && !reportMatchesPagePath(app.state.report, path);
-      if (!app.state.report || staleRoot || shouldPreferLiveReport(app.state.report, live)) {
+      const staleRoot =
+        app.state.report && !reportMatchesPagePath(app.state.report, path);
+      if (
+        !app.state.report ||
+        staleRoot ||
+        shouldPreferLiveReport(app.state.report, live)
+      ) {
         app.state.report = live;
       }
     }
@@ -360,23 +425,25 @@ export async function refreshAppReportForPath(app, projectPath, root) {
 /** Gate scan via SimpleBeacon API for the path entered on the current page. */
 export async function runPageRepoScan(app, projectPath, options = {}) {
   if (isDemoMode()) {
-    showToast(demoReadOnlyMessage(), 'info');
+    showToast(demoReadOnlyMessage(), "info");
     return null;
   }
   if (app.state.scanning) return null;
   const root = options.container;
   const resolved = String(
-    projectPath
-    || (root ? getPageProjectPath(app, root) : resolvePageProjectPath('', app))
-    || ''
+    projectPath ||
+      (root
+        ? getPageProjectPath(app, root)
+        : resolvePageProjectPath("", app)) ||
+      "",
   ).trim();
   if (!resolved) {
-    showToast('Enter a project path on the dashboard server', 'error');
+    showToast("Enter a project path on the dashboard server", "error");
     return null;
   }
 
   app.state.scanning = true;
-  if (typeof app.refreshCurrentView === 'function') {
+  if (typeof app.refreshCurrentView === "function") {
     app.refreshCurrentView();
   }
 
@@ -388,7 +455,7 @@ export async function runPageRepoScan(app, projectPath, options = {}) {
       baseline: app.scanService.baseline,
       config: app.scanService.config,
       history: app.scanService.history,
-      audit: null
+      audit: null,
     });
     await refreshAppReportForPath(app, resolved, root);
     app.views.audit?.invalidateCache?.();

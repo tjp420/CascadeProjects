@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                               |
+| ---------------- | --------------------------------------------------- |
 | Feature / change | Track 15: Volatile Memory Purging & Key Zeroization |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track15-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                               |
+| Date             | 2026-08-01                                          |
+| Branch           | `feature/track15-groundwork`                        |
+| Packages touched | ai-platform                                         |
 
 ## Scope
 
@@ -74,57 +74,57 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | Secure zeroize tests pass | `cd ai-platform && npx jest --config jest.config.cjs secure-zeroize` | [ ] |
-| L1-03 | Volatile eviction tests pass | `cd ai-platform && npx jest --config jest.config.cjs volatile-eviction-engine` | [ ] |
-| L1-04 | HSM/adapter tests still pass with zeroization hooks | `cd ai-platform && npx jest --config jest.config.cjs hsm-adapter asymmetric-adapter multi-tenant-key-isolation crypto-policy-engine` | [ ] |
-| L1-05 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-06 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-07 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                               | Command / method                                                                                                                     | Pass |
+| ----- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| L1-01 | Syntax on changed `.cjs` files                      | `node -c <file>`                                                                                                                     | [ ]  |
+| L1-02 | Secure zeroize tests pass                           | `cd ai-platform && npx jest --config jest.config.cjs secure-zeroize`                                                                 | [ ]  |
+| L1-03 | Volatile eviction tests pass                        | `cd ai-platform && npx jest --config jest.config.cjs volatile-eviction-engine`                                                       | [ ]  |
+| L1-04 | HSM/adapter tests still pass with zeroization hooks | `cd ai-platform && npx jest --config jest.config.cjs hsm-adapter asymmetric-adapter multi-tenant-key-isolation crypto-policy-engine` | [ ]  |
+| L1-05 | Full `ai-platform` test suite passes                | `cd ai-platform && npm test`                                                                                                         | [ ]  |
+| L1-06 | SimpleBeacon full gate                              | `npx simplebeacon scan --full --gate --format json`                                                                                  | [ ]  |
+| L1-07 | No secrets in diff                                  | `git diff --cached`                                                                                                                  | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | Buffer zeroization overwrites all bytes | Create a `Buffer` with known bytes, call `secureZeroize(buffer)`, inspect contents | All bytes overwritten to non-original (random or zero) | [ ] |
-| L2-02 | `zeros` strategy leaves all zeros | Call `secureZeroize(buffer, { strategy: 'zeros' })` | Buffer is all `0x00` | [ ] |
-| L2-03 | `both` strategy applies random then zeros | Call `secureZeroize(buffer, { strategy: 'both' })` | Buffer is all `0x00` (after random phase) | [ ] |
-| L2-04 | KeyObject reference removal | Create a `KeyObject`, call `secureZeroizeKeyObject(key)`, attempt to use it | Operation fails or throws because reference is gone | [ ] |
-| L2-05 | Inactivity eviction fires | Set `inactivityEvictionSeconds: 1`, register a key, wait, verify zeroize callback invoked | Callback called with `reason: 'inactivity'` | [ ] |
-| L2-06 | Active key not evicted | Register key, call `touch` repeatedly, wait past interval | Zeroize callback not called | [ ] |
-| L2-07 | Policy-driven eviction interval | Load policy with `eviction.inactivityEvictionSeconds: 5`, create adapter, register, wait | Eviction occurs at ~5s | [ ] |
+| ID    | Scenario                                  | Steps                                                                                     | Expected                                               | Pass |
+| ----- | ----------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------ | ---- |
+| L2-01 | Buffer zeroization overwrites all bytes   | Create a `Buffer` with known bytes, call `secureZeroize(buffer)`, inspect contents        | All bytes overwritten to non-original (random or zero) | [ ]  |
+| L2-02 | `zeros` strategy leaves all zeros         | Call `secureZeroize(buffer, { strategy: 'zeros' })`                                       | Buffer is all `0x00`                                   | [ ]  |
+| L2-03 | `both` strategy applies random then zeros | Call `secureZeroize(buffer, { strategy: 'both' })`                                        | Buffer is all `0x00` (after random phase)              | [ ]  |
+| L2-04 | KeyObject reference removal               | Create a `KeyObject`, call `secureZeroizeKeyObject(key)`, attempt to use it               | Operation fails or throws because reference is gone    | [ ]  |
+| L2-05 | Inactivity eviction fires                 | Set `inactivityEvictionSeconds: 1`, register a key, wait, verify zeroize callback invoked | Callback called with `reason: 'inactivity'`            | [ ]  |
+| L2-06 | Active key not evicted                    | Register key, call `touch` repeatedly, wait past interval                                 | Zeroize callback not called                            | [ ]  |
+| L2-07 | Policy-driven eviction interval           | Load policy with `eviction.inactivityEvictionSeconds: 5`, create adapter, register, wait  | Eviction occurs at ~5s                                 | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Zeroize non-Buffer throws | `secureZeroize('not-a-buffer')` throws `INVALID_INPUT` | [ ] |
-| L3-02 | Zeroize already zeroized buffer is a no-op | Returns without error | [ ] |
-| L3-03 | Eviction engine disabled when interval is 0 | No timer created; no callbacks | [ ] |
-| L3-04 | Multiple registrations for same kekId update timestamp | Last `touch` wins; not double-registered | [ ] |
-| L3-05 | `evictInactive` called manually purges all idle keys | All idle keys zeroized; active remain | [ ] |
-| L3-06 | Existing Track 10–14 tests still pass | No regressions | [ ] |
+| ID    | Case                                                   | Expected                                               | Pass |
+| ----- | ------------------------------------------------------ | ------------------------------------------------------ | ---- |
+| L3-01 | Zeroize non-Buffer throws                              | `secureZeroize('not-a-buffer')` throws `INVALID_INPUT` | [ ]  |
+| L3-02 | Zeroize already zeroized buffer is a no-op             | Returns without error                                  | [ ]  |
+| L3-03 | Eviction engine disabled when interval is 0            | No timer created; no callbacks                         | [ ]  |
+| L3-04 | Multiple registrations for same kekId update timestamp | Last `touch` wins; not double-registered               | [ ]  |
+| L3-05 | `evictInactive` called manually purges all idle keys   | All idle keys zeroized; active remain                  | [ ]  |
+| L3-06 | Existing Track 10–14 tests still pass                  | No regressions                                         | [ ]  |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Zeroization overwrites memory before GC, not just drops reference | [ ] |
-| S-02 | Eviction audit payload does not include key material | [ ] |
-| S-03 | `KeyObject` purge cannot be bypassed to recover raw bytes | [ ] |
-| S-04 | Eviction timer does not prevent process exit when no keys are registered | [ ] |
+| ID   | Requirement                                                              | Pass |
+| ---- | ------------------------------------------------------------------------ | ---- |
+| S-01 | Zeroization overwrites memory before GC, not just drops reference        | [ ]  |
+| S-02 | Eviction audit payload does not include key material                     | [ ]  |
+| S-03 | `KeyObject` purge cannot be bypassed to recover raw bytes                | [ ]  |
+| S-04 | Eviction timer does not prevent process exit when no keys are registered | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

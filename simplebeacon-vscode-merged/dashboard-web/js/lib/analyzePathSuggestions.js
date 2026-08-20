@@ -90,13 +90,13 @@ export function collectPathSuggestions(app, testSources = []) {
   const entries = [];
   const seen = new Set();
 
-/**
- * Add.
- * @param {any} value
- * @param {any} label
- * @param {any} kind
- * @returns {any}
- */
+  /**
+   * Add.
+   * @param {any} value
+   * @param {any} label
+   * @param {any} kind
+   * @returns {any}
+   */
   const add = (value, label, kind = 'path') => {
     const full = String(value || '').trim();
     if (!full || !isPlausibleSuggestionPath(full)) return;
@@ -107,7 +107,7 @@ export function collectPathSuggestions(app, testSources = []) {
       full,
       label: label || formatPathLabel(full) || basenamePath(full),
       kind,
-      displayValue: isRemoteRepoUrl(full) ? full : redactPathForDisplay(full)
+      displayValue: isRemoteRepoUrl(full) ? full : redactPathForDisplay(full),
     });
   };
 
@@ -135,11 +135,13 @@ export function collectPathSuggestions(app, testSources = []) {
  */
 export function renderPathSuggestionsDatalistHtml(entries = []) {
   if (!entries.length) return '';
-  return entries.map(({ full, label, displayValue }) => {
-    const value = displayValue || full;
-    const title = full !== value ? full : label;
-    return `<option value="${escapeHtml(value)}" label="${escapeHtml(label)}" title="${escapeHtml(title)}"></option>`;
-  }).join('');
+  return entries
+    .map(({ full, label, displayValue }) => {
+      const value = displayValue || full;
+      const title = full !== value ? full : label;
+      return `<option value="${escapeHtml(value)}" label="${escapeHtml(label)}" title="${escapeHtml(title)}"></option>`;
+    })
+    .join('');
 }
 
 function createDatalistOptions(entries) {

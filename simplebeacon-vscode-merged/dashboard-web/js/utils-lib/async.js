@@ -5,7 +5,7 @@
  */
 export function sleep(ms) {
   const delay = Number.isFinite(ms) && ms > 0 ? ms : 0;
-  return new Promise(resolve => setTimeout(resolve, delay));
+  return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 /**
@@ -84,7 +84,10 @@ export function debounce(fn, wait = 300) {
       }
     }, delay);
   };
-  debounced.cancel = () => { clearTimeout(timeout); timeout = lastArgs = lastThis = null; };
+  debounced.cancel = () => {
+    clearTimeout(timeout);
+    timeout = lastArgs = lastThis = null;
+  };
   debounced.flush = () => {
     if (timeout !== null) {
       clearTimeout(timeout);
@@ -210,10 +213,16 @@ export function debounceLeading(fn, wait = 300) {
     } else {
       clearTimeout(timeout);
     }
-    timeout = setTimeout(() => { timeout = null; lastArgs = lastThis = null; }, delay);
+    timeout = setTimeout(() => {
+      timeout = null;
+      lastArgs = lastThis = null;
+    }, delay);
   };
   debounced.cancel = () => {
-    if (timeout !== null) { clearTimeout(timeout); timeout = null; }
+    if (timeout !== null) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
     lastArgs = lastThis = null;
   };
   debounced.flush = () => {
@@ -253,7 +262,10 @@ export function throttle(fn, limit = 300) {
       fn.apply(self, args2);
     } catch (err) {
       inThrottle = false;
-      if (timer) { clearTimeout(timer); timer = null; }
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
       throw err;
     }
   };
@@ -276,11 +288,17 @@ export function throttle(fn, limit = 300) {
   };
   throttled.cancel = () => {
     inThrottle = false;
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     pendingArgs = pendingThis = null;
   };
   throttled.flush = () => {
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     if (pendingArgs !== null) {
       inThrottle = true;
       const args2 = pendingArgs;
@@ -290,10 +308,16 @@ export function throttle(fn, limit = 300) {
         fn.apply(self, args2);
       } catch (err) {
         inThrottle = false;
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
         throw err;
       }
-      timer = setTimeout(() => { inThrottle = false; timer = null; }, cooldown);
+      timer = setTimeout(() => {
+        inThrottle = false;
+        timer = null;
+      }, cooldown);
     }
   };
   throttled.pending = () => pendingArgs !== null;
@@ -320,7 +344,10 @@ export function throttleAsync(fn, limit = 300) {
         await fn.apply(this, args);
       } catch (err) {
         inThrottle = false;
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
         throw err;
       }
       timer = setTimeout(() => {
@@ -340,11 +367,17 @@ export function throttleAsync(fn, limit = 300) {
   };
   throttled.cancel = () => {
     inThrottle = false;
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     pendingArgs = pendingThis = null;
   };
   throttled.flush = async () => {
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     if (pendingArgs !== null) {
       inThrottle = true;
       const args2 = pendingArgs;
@@ -354,10 +387,16 @@ export function throttleAsync(fn, limit = 300) {
         await fn.apply(self, args2);
       } catch (err) {
         inThrottle = false;
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
         throw err;
       }
-      timer = setTimeout(() => { inThrottle = false; timer = null; }, cooldown);
+      timer = setTimeout(() => {
+        inThrottle = false;
+        timer = null;
+      }, cooldown);
     }
   };
   throttled.pending = () => pendingArgs !== null;
@@ -498,8 +537,16 @@ export function withTimeout(promise, ms, message = 'Operation timed out') {
       if (!settled) reject(new Error(message));
     }, timeoutMs);
     promise.then(
-      (value) => { settled = true; clearTimeout(timer); resolve(value); },
-      (err) => { settled = true; clearTimeout(timer); reject(err); }
+      (value) => {
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
+      }
     );
   });
 }
@@ -532,7 +579,12 @@ export async function poll(fn, intervalMs = 500, timeoutMs = 10000) {
  * @param {string} [message='Timeout waiting for condition'] Error message on timeout.
  * @returns {Promise<void>}
  */
-export async function waitForAsync(predicate, intervalMs = 100, timeoutMs = 5000, message = 'Timeout waiting for condition') {
+export async function waitForAsync(
+  predicate,
+  intervalMs = 100,
+  timeoutMs = 5000,
+  message = 'Timeout waiting for condition'
+) {
   if (typeof predicate !== 'function') throw new TypeError('waitForAsync expects a predicate function');
   const start = Date.now();
   const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 100;

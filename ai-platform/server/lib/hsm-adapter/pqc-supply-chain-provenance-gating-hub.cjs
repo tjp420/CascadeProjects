@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 76: PQC Supply Chain Provenance Gating Hub.
@@ -15,20 +15,20 @@
  * @module hsm-adapter/pqc-supply-chain-provenance-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const POOL_STATUS = {
-  OPEN: 'open',
-  REBALANCING: 'rebalancing',
-  ACCREDITED: 'accredited',
-  SETTLED: 'settled',
-  CANCELLED: 'cancelled',
+  OPEN: "open",
+  REBALANCING: "rebalancing",
+  ACCREDITED: "accredited",
+  SETTLED: "settled",
+  CANCELLED: "cancelled",
 };
 
 const REBALANCE_DIRECTION = {
-  INCREASE: 'increase',
-  DECREASE: 'decrease',
+  INCREASE: "increase",
+  DECREASE: "decrease",
 };
 
 class PqcSupplyChainProvenanceGatingHub {
@@ -60,32 +60,77 @@ class PqcSupplyChainProvenanceGatingHub {
    */
   initializePool(request) {
     _validateInitRequest(this.policy, request);
-    if (this.policy.requireFactoryEndpointInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireFactoryEndpointInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.factoryEndpointInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.factoryEndpointInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SUPPLYGATE_FACTORY_ENDPOINT_INITIALIZER_UNATTESTED', 'factory endpoint initializer attestation invalid');
+          throw new HsmAdapterError(
+            "SUPPLYGATE_FACTORY_ENDPOINT_INITIALIZER_UNATTESTED",
+            "factory endpoint initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SUPPLYGATE_FACTORY_ENDPOINT_INITIALIZER_UNATTESTED', 'factory endpoint initializer attestation invalid');
+        throw new HsmAdapterError(
+          "SUPPLYGATE_FACTORY_ENDPOINT_INITIALIZER_UNATTESTED",
+          "factory endpoint initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('SUPPLYGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SUPPLYGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('SUPPLYGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SUPPLYGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.transitExpirationSeconds === 'number' && request.transitExpirationSeconds > (this.policy.maxTransitExpirationSeconds || 7776000)) {
-      throw new HsmAdapterError('SUPPLYGATE_TRANSIT_EXPIRATION_EXCEEDED', `transit expiration seconds ${request.transitExpirationSeconds} exceeds maximum ${this.policy.maxTransitExpirationSeconds}`);
+    if (
+      typeof request.transitExpirationSeconds === "number" &&
+      request.transitExpirationSeconds >
+        (this.policy.maxTransitExpirationSeconds || 7776000)
+    ) {
+      throw new HsmAdapterError(
+        "SUPPLYGATE_TRANSIT_EXPIRATION_EXCEEDED",
+        `transit expiration seconds ${request.transitExpirationSeconds} exceeds maximum ${this.policy.maxTransitExpirationSeconds}`,
+      );
     }
-    if (typeof request.componentLineageDepth === 'number' && request.componentLineageDepth > (this.policy.maxComponentLineageDepth || 64)) {
-      throw new HsmAdapterError('SUPPLYGATE_LINEAGE_DEPTH_EXCEEDED', `component lineage depth ${request.componentLineageDepth} exceeds maximum ${this.policy.maxComponentLineageDepth}`);
+    if (
+      typeof request.componentLineageDepth === "number" &&
+      request.componentLineageDepth >
+        (this.policy.maxComponentLineageDepth || 64)
+    ) {
+      throw new HsmAdapterError(
+        "SUPPLYGATE_LINEAGE_DEPTH_EXCEEDED",
+        `component lineage depth ${request.componentLineageDepth} exceeds maximum ${this.policy.maxComponentLineageDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('SUPPLYGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -94,7 +139,8 @@ class PqcSupplyChainProvenanceGatingHub {
       targetChainId: request.targetChainId,
       blindedLineageCommitment: request.blindedLineageCommitment,
       blindedSupplierHashCommitment: request.blindedSupplierHashCommitment,
-      blindedManufacturingMetricCommitment: request.blindedManufacturingMetricCommitment,
+      blindedManufacturingMetricCommitment:
+        request.blindedManufacturingMetricCommitment,
       transitExpirationSeconds: request.transitExpirationSeconds,
       componentLineageDepth: request.componentLineageDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
@@ -106,7 +152,7 @@ class PqcSupplyChainProvenanceGatingHub {
     this._pools.set(poolId, pool);
     this._initCount++;
     if (this._audit) {
-      this._audit('SUPPLY_CHAIN_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("SUPPLY_CHAIN_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -128,7 +174,10 @@ class PqcSupplyChainProvenanceGatingHub {
   markProvenanceClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.provenanceClaimVerified = true;
     return pool;
@@ -143,31 +192,53 @@ class PqcSupplyChainProvenanceGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.provenanceClaimVerified) {
-      throw new HsmAdapterError('SUPPLYGATE_PROVENANCE_CLAIM_NOT_VERIFIED', `pool ${request.poolId} provenance claim not verified`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_PROVENANCE_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} provenance claim not verified`,
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SUPPLYGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "SUPPLYGATE_CLEARING_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SUPPLYGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "SUPPLYGATE_CLEARING_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minSupplierCheckpointQuorum || 3)) {
-      throw new HsmAdapterError('SUPPLYGATE_QUORUM_INSUFFICIENT', `supplier checkpoint signatures ${signatures.length} below minimum ${this.policy.minSupplierCheckpointQuorum}`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_QUORUM_INSUFFICIENT",
+        `supplier checkpoint signatures ${signatures.length} below minimum ${this.policy.minSupplierCheckpointQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'accredited';
+    pool.status = "accredited";
     this._accreditCount++;
     pool.lineageAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -175,7 +246,9 @@ class PqcSupplyChainProvenanceGatingHub {
       completedAt: now,
     };
     if (this._audit) {
-      this._audit('COMPONENT_LINEAGE_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("COMPONENT_LINEAGE_ACCREDITATION_COMPLETED", {
+        ...completion,
+      });
     }
     return completion;
   }
@@ -186,18 +259,44 @@ class PqcSupplyChainProvenanceGatingHub {
    * @returns {object}
    */
   settlePool(request) {
-    if (!request || !request.poolId) throw new HsmAdapterError('SUPPLYGATE_SETTLE_FIELDS_MISSING', 'poolId is required');
-    if (!request.targetChainId) throw new HsmAdapterError('SUPPLYGATE_SETTLE_FIELDS_MISSING', 'targetChainId is required');
+    if (!request || !request.poolId)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_SETTLE_FIELDS_MISSING",
+        "poolId is required",
+      );
+    if (!request.targetChainId)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_SETTLE_FIELDS_MISSING",
+        "targetChainId is required",
+      );
     const pool = this._pools.get(request.poolId);
-    if (!pool) throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${request.poolId} not found`);
-    if (pool.status !== POOL_STATUS.ACCREDITED) throw new HsmAdapterError('SUPPLYGATE_NOT_ACCREDITED', `pool ${request.poolId} is not accredited`);
-    if (pool.targetChainId !== request.targetChainId) throw new HsmAdapterError('SUPPLYGATE_TARGET_CHAIN_MISMATCH', `targetChainId mismatch`);
-    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
-    const settlement = { settlementId, poolId: request.poolId, targetChainId: request.targetChainId, settledAt: Math.floor(Date.now()/1000) };
+    if (!pool)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
+    if (pool.status !== POOL_STATUS.ACCREDITED)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_ACCREDITED",
+        `pool ${request.poolId} is not accredited`,
+      );
+    if (pool.targetChainId !== request.targetChainId)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_TARGET_CHAIN_MISMATCH",
+        `targetChainId mismatch`,
+      );
+    const settlementId =
+      request.settlementId || `settle-${crypto.randomBytes(4).toString("hex")}`;
+    const settlement = {
+      settlementId,
+      poolId: request.poolId,
+      targetChainId: request.targetChainId,
+      settledAt: Math.floor(Date.now() / 1000),
+    };
     this._settlements.set(request.poolId, settlement);
     pool.status = POOL_STATUS.SETTLED;
     this._settleCount++;
-    if (this._audit) this._audit('SUPPLYGATE_POOL_SETTLED', { ...settlement });
+    if (this._audit) this._audit("SUPPLYGATE_POOL_SETTLED", { ...settlement });
     return settlement;
   }
 
@@ -209,14 +308,43 @@ class PqcSupplyChainProvenanceGatingHub {
    * Aggregate committee signatures for a pool.
    */
   aggregateCommitteeSignatures(poolId, signatures) {
-    if (!poolId) throw new HsmAdapterError('SUPPLYGATE_AGG_FIELDS_MISSING', 'poolId is required');
-    if (!Array.isArray(signatures) || signatures.length === 0) throw new HsmAdapterError('SUPPLYGATE_AGG_NO_SIGNATURES', 'signatures array is required');
+    if (!poolId)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_AGG_FIELDS_MISSING",
+        "poolId is required",
+      );
+    if (!Array.isArray(signatures) || signatures.length === 0)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_AGG_NO_SIGNATURES",
+        "signatures array is required",
+      );
     const pool = this._pools.get(poolId);
-    if (!pool) throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${poolId} not found`);
-    if (signatures.length < (this.policy.minSupplierCheckpointQuorum || 3)) throw new HsmAdapterError('SUPPLYGATE_AGG_INSUFFICIENT', 'insufficient signatures');
-    const aggregatedSignature = crypto.createHash('sha256').update(signatures.map(s=>s.signature).join(':')).digest('hex');
-    const result = { poolId, signatureCount: signatures.length, aggregatedSignature, participantIds: signatures.map(s=>s.peerId||'anonymous'), aggregatedAt: Math.floor(Date.now()/1000) };
-    if (this._audit) this._audit('SUPPLYGATE_COMMITTEE_SIGS_AGGREGATED', { poolId, count: signatures.length });
+    if (!pool)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
+    if (signatures.length < (this.policy.minSupplierCheckpointQuorum || 3))
+      throw new HsmAdapterError(
+        "SUPPLYGATE_AGG_INSUFFICIENT",
+        "insufficient signatures",
+      );
+    const aggregatedSignature = crypto
+      .createHash("sha256")
+      .update(signatures.map((s) => s.signature).join(":"))
+      .digest("hex");
+    const result = {
+      poolId,
+      signatureCount: signatures.length,
+      aggregatedSignature,
+      participantIds: signatures.map((s) => s.peerId || "anonymous"),
+      aggregatedAt: Math.floor(Date.now() / 1000),
+    };
+    if (this._audit)
+      this._audit("SUPPLYGATE_COMMITTEE_SIGS_AGGREGATED", {
+        poolId,
+        count: signatures.length,
+      });
     return result;
   }
 
@@ -225,12 +353,24 @@ class PqcSupplyChainProvenanceGatingHub {
    */
   cancelPool(poolId) {
     const pool = this._pools.get(poolId);
-    if (!pool) throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${poolId} not found`);
-    if (pool.status === POOL_STATUS.CANCELLED) throw new HsmAdapterError('SUPPLYGATE_ALREADY_CANCELLED', `pool ${poolId} already cancelled`);
-    if (pool.status === POOL_STATUS.ACCREDITED) throw new HsmAdapterError('SUPPLYGATE_CANNOT_CANCEL_ACCREDITED', `pool ${poolId} already accredited`);
+    if (!pool)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
+    if (pool.status === POOL_STATUS.CANCELLED)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_ALREADY_CANCELLED",
+        `pool ${poolId} already cancelled`,
+      );
+    if (pool.status === POOL_STATUS.ACCREDITED)
+      throw new HsmAdapterError(
+        "SUPPLYGATE_CANNOT_CANCEL_ACCREDITED",
+        `pool ${poolId} already accredited`,
+      );
     pool.status = POOL_STATUS.CANCELLED;
     this._cancelCount++;
-    if (this._audit) this._audit('SUPPLYGATE_POOL_CANCELLED', { poolId });
+    if (this._audit) this._audit("SUPPLYGATE_POOL_CANCELLED", { poolId });
     return { cancelled: true, poolId };
   }
 
@@ -246,8 +386,17 @@ class PqcSupplyChainProvenanceGatingHub {
    */
   getStats() {
     const poolsByStatus = {};
-    for (const p of this._pools.values()) poolsByStatus[p.status] = (poolsByStatus[p.status]||0)+1;
-    return { totalPools: this._pools.size, poolsByStatus, initCount: this._initCount, accreditCount: this._accreditCount, settleCount: this._settleCount, rebalanceCount: this._rebalanceCount, cancelCount: this._cancelCount };
+    for (const p of this._pools.values())
+      poolsByStatus[p.status] = (poolsByStatus[p.status] || 0) + 1;
+    return {
+      totalPools: this._pools.size,
+      poolsByStatus,
+      initCount: this._initCount,
+      accreditCount: this._accreditCount,
+      settleCount: this._settleCount,
+      rebalanceCount: this._rebalanceCount,
+      cancelCount: this._cancelCount,
+    };
   }
 
   /**
@@ -265,10 +414,16 @@ class PqcSupplyChainProvenanceGatingHub {
    */
   batchInitializePools(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('SUPPLYGATE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "SUPPLYGATE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('SUPPLYGATE_BATCH_TOO_LARGE', `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let successCount = 0;
@@ -279,12 +434,26 @@ class PqcSupplyChainProvenanceGatingHub {
         results.push({ poolId: pool.poolId, initialized: true });
         successCount++;
       } catch (err) {
-        results.push({ poolId: req.poolId || 'auto', initialized: false, error: err.code || 'SUPPLYGATE_BATCH_ERROR' });
+        results.push({
+          poolId: req.poolId || "auto",
+          initialized: false,
+          error: err.code || "SUPPLYGATE_BATCH_ERROR",
+        });
         failedCount++;
       }
     }
-    if (this._audit) this._audit('SUPPLY_GATE_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
-    return { totalRequests: requests.length, successCount, failedCount, results };
+    if (this._audit)
+      this._audit("SUPPLY_GATE_BATCH_INITIALIZED", {
+        successCount,
+        failedCount,
+        batchSize: requests.length,
+      });
+    return {
+      totalRequests: requests.length,
+      successCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -294,33 +463,56 @@ class PqcSupplyChainProvenanceGatingHub {
    */
   rebalanceComponentLineageDepth(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('SUPPLYGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SUPPLYGATE_REBALANCE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
-      throw new HsmAdapterError('SUPPLYGATE_NOT_REBALANCEABLE', `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    if (
+      pool.status !== POOL_STATUS.OPEN &&
+      pool.status !== POOL_STATUS.REBALANCING
+    ) {
+      throw new HsmAdapterError(
+        "SUPPLYGATE_NOT_REBALANCEABLE",
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`,
+      );
     }
     const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
     if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
-      throw new HsmAdapterError('SUPPLYGATE_REBALANCE_DIRECTION_INVALID', `direction ${direction} is not valid`);
+      throw new HsmAdapterError(
+        "SUPPLYGATE_REBALANCE_DIRECTION_INVALID",
+        `direction ${direction} is not valid`,
+      );
     }
-    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
-      throw new HsmAdapterError('SUPPLYGATE_REBALANCE_AMOUNT_INVALID', 'rebalanceAmount must be a positive number');
+    if (
+      typeof request.rebalanceAmount !== "number" ||
+      request.rebalanceAmount <= 0
+    ) {
+      throw new HsmAdapterError(
+        "SUPPLYGATE_REBALANCE_AMOUNT_INVALID",
+        "rebalanceAmount must be a positive number",
+      );
     }
     const newEpoch = (pool.rebalanceEpoch || 0) + 1;
     pool.rebalanceEpoch = newEpoch;
     pool.status = POOL_STATUS.REBALANCING;
-    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalanceId =
+      request.rebalanceId || `rebal-${crypto.randomBytes(4).toString("hex")}`;
     const rebalance = {
       rebalanceId,
       poolId: request.poolId,
       direction,
       rebalanceAmount: request.rebalanceAmount,
       rebalanceEpoch: newEpoch,
-      newComponentLineageDepth: request.newComponentLineageDepth || pool.componentLineageDepth,
+      newComponentLineageDepth:
+        request.newComponentLineageDepth || pool.componentLineageDepth,
       rebalancedAt: Math.floor(Date.now() / 1000),
     };
     this._rebalances.set(rebalanceId, rebalance);
@@ -328,7 +520,8 @@ class PqcSupplyChainProvenanceGatingHub {
     if (request.newComponentLineageDepth !== undefined) {
       pool.componentLineageDepth = request.newComponentLineageDepth;
     }
-    if (this._audit) this._audit('SUPPLYGATE_LINEAGE_REBALANCED', { ...rebalance });
+    if (this._audit)
+      this._audit("SUPPLYGATE_LINEAGE_REBALANCED", { ...rebalance });
     return rebalance;
   }
 
@@ -344,29 +537,64 @@ class PqcSupplyChainProvenanceGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('SUPPLYGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "SUPPLYGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedLineageCommitment || !request.blindedSupplierHashCommitment || !request.blindedManufacturingMetricCommitment) {
-    throw new HsmAdapterError('SUPPLYGATE_FIELDS_MISSING', 'blindedLineageCommitment, blindedSupplierHashCommitment, and blindedManufacturingMetricCommitment are required');
+  if (
+    !request.blindedLineageCommitment ||
+    !request.blindedSupplierHashCommitment ||
+    !request.blindedManufacturingMetricCommitment
+  ) {
+    throw new HsmAdapterError(
+      "SUPPLYGATE_FIELDS_MISSING",
+      "blindedLineageCommitment, blindedSupplierHashCommitment, and blindedManufacturingMetricCommitment are required",
+    );
   }
-  if (typeof request.transitExpirationSeconds !== 'number') {
-    throw new HsmAdapterError('SUPPLYGATE_FIELDS_MISSING', 'transitExpirationSeconds is required');
+  if (typeof request.transitExpirationSeconds !== "number") {
+    throw new HsmAdapterError(
+      "SUPPLYGATE_FIELDS_MISSING",
+      "transitExpirationSeconds is required",
+    );
   }
-  if (typeof request.componentLineageDepth !== 'number') {
-    throw new HsmAdapterError('SUPPLYGATE_FIELDS_MISSING', 'componentLineageDepth is required');
+  if (typeof request.componentLineageDepth !== "number") {
+    throw new HsmAdapterError(
+      "SUPPLYGATE_FIELDS_MISSING",
+      "componentLineageDepth is required",
+    );
   }
-  if (policy.requireFactoryEndpointInitializerAttestation && !request.factoryEndpointInitializerAttestation) {
-    throw new HsmAdapterError('SUPPLYGATE_FACTORY_ENDPOINT_ATTESTATION_MISSING', 'factory endpoint initializer attestation is required');
+  if (
+    policy.requireFactoryEndpointInitializerAttestation &&
+    !request.factoryEndpointInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SUPPLYGATE_FACTORY_ENDPOINT_ATTESTATION_MISSING",
+      "factory endpoint initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('SUPPLYGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "SUPPLYGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('SUPPLYGATE_CLEARING_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SUPPLYGATE_CLEARING_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 
-module.exports = { PqcSupplyChainProvenanceGatingHub, POOL_STATUS, REBALANCE_DIRECTION };
+module.exports = {
+  PqcSupplyChainProvenanceGatingHub,
+  POOL_STATUS,
+  REBALANCE_DIRECTION,
+};

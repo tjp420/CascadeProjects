@@ -10,8 +10,7 @@ function readRecentAssessmentsFromStorage() {
     try {
         const storedJson = localStorage.getItem(RECENT_KEY);
         return storedJson ? JSON.parse(storedJson) : [];
-    }
-    catch (parseError) {
+    } catch (parseError) {
         logRecoverableDashboardError('assessment recent list parse', parseError);
         return [];
     }
@@ -34,7 +33,7 @@ export class AssessmentService {
     rememberAssessment(entry) {
         const next = [
             entry,
-            ...readRecentAssessmentsFromStorage().filter((item) => item.assessmentId !== entry.assessmentId)
+            ...readRecentAssessmentsFromStorage().filter(item => item.assessmentId !== entry.assessmentId)
         ];
         writeRecentAssessmentsToStorage(next);
         return next;

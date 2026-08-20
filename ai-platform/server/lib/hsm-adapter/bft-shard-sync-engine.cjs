@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 32: BFT Shard Sync.
@@ -16,24 +16,28 @@
  * @module hsm-adapter/bft-shard-sync-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { incrementCounter, counters } = require('./hsm-metrics.cjs');
-const { CryptoPolicyEngine } = require('./crypto-policy-engine.cjs');
-const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const { incrementCounter, counters } = require("./hsm-metrics.cjs");
+const { CryptoPolicyEngine } = require("./crypto-policy-engine.cjs");
+const {
+  validateTenantContext,
+  TENANT_FIELD,
+  DEFAULT_TENANT,
+} = require("../replication-tenant-context.cjs");
 
 // ── Shard entry states ───────────────────────────────────────────
 const ENTRY_STATE = {
-  PENDING: 'pending',
-  REPLICATED: 'replicated',
-  COMMITTED: 'committed',
+  PENDING: "pending",
+  REPLICATED: "replicated",
+  COMMITTED: "committed",
 };
 
 // ── Node sync states ─────────────────────────────────────────────
 const NODE_SYNC_STATE = {
-  SYNCED: 'synced',
-  LAGGING: 'lagging',
-  QUARANTINED: 'quarantined',
+  SYNCED: "synced",
+  LAGGING: "lagging",
+  QUARANTINED: "quarantined",
 };
 
 /**
@@ -63,7 +67,10 @@ class ShardVectorClock {
    */
   get(nodeId) {
     if (!this._sequences.has(nodeId)) {
-      throw new HsmAdapterError('SHARD_NODE_UNKNOWN', `node ${nodeId} not in vector clock for shard ${this.shardId}`);
+      throw new HsmAdapterError(
+        "SHARD_NODE_UNKNOWN",
+        `node ${nodeId} not in vector clock for shard ${this.shardId}`,
+      );
     }
     return this._sequences.get(nodeId);
   }
@@ -77,7 +84,7 @@ class ShardVectorClock {
     const current = this.get(nodeId);
     if (sequence <= current) {
       throw new HsmAdapterError(
-        'SHARD_SEQUENCE_STALE',
+        "SHARD_SEQUENCE_STALE",
         `sequence ${sequence} for node ${nodeId} is stale (current: ${current})`,
       );
     }
@@ -116,7 +123,10 @@ class ShardVectorClock {
   quorumSequence(quorumSize) {
     const sorted = Array.from(this._sequences.values()).sort((a, b) => a - b);
     if (quorumSize < 1 || quorumSize > sorted.length) {
-      throw new HsmAdapterError('SHARD_QUORUM_INVALID', `quorum size ${quorumSize} invalid for ${sorted.length} nodes`);
+      throw new HsmAdapterError(
+        "SHARD_QUORUM_INVALID",
+        `quorum size ${quorumSize} invalid for ${sorted.length} nodes`,
+      );
     }
     // The quorum commit point is the t-th smallest sequence (0-indexed: quorumSize - 1)
     return sorted[quorumSize - 1];
@@ -155,7 +165,7 @@ class ShardEntry {
   constructor(index, data, timestamp) {
     this.index = index;
     this.data = data;
-    this.hash = crypto.createHash('sha256').update(data).digest('hex');
+    this.hash = crypto.createHash("sha256").update(data).digest("hex");
     this.timestamp = timestamp;
     this.state = ENTRY_STATE.PENDING;
     this.acknowledgedBy = new Set();
@@ -180,14 +190,22 @@ class BftShardSyncEngine {
    * @param {Function} [options.streamer] — async (nodeId, shardId, entries) => boolean
    */
   constructor(options = {}) {
-    if (!Array.isArray(options.clusterNodes) || options.clusterNodes.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'clusterNodes must be a non-empty array');
+    if (
+      !Array.isArray(options.clusterNodes) ||
+      options.clusterNodes.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "clusterNodes must be a non-empty array",
+      );
     }
     this.clusterNodes = new Set(options.clusterNodes);
-    this.minQuorumNodes = options.minQuorumNodes || Math.floor(options.clusterNodes.length / 2) + 1;
+    this.minQuorumNodes =
+      options.minQuorumNodes || Math.floor(options.clusterNodes.length / 2) + 1;
     this.maxCatchUpBatchSize = options.maxCatchUpBatchSize || 64;
     this.lagThreshold = options.lagThreshold || 8;
-    this.byzantineDivergenceThreshold = options.byzantineDivergenceThreshold || 100;
+    this.byzantineDivergenceThreshold =
+      options.byzantineDivergenceThreshold || 100;
     this.requireQuorumCommit = options.requireQuorumCommit !== false;
     this.requireAntiReplay = options.requireAntiReplay !== false;
     this.maxShardsPerCluster = options.maxShardsPerCluster || 128;
@@ -195,8 +213,9 @@ class BftShardSyncEngine {
     this._streamer = options.streamer || null;
 
     // Track 117: Validate config against policy at construction time
-    this._policyEngine = options.policyEngine || new CryptoPolicyEngine({ default: {} });
-    this._policyEngine.validate('default', 'bftShardSync', {
+    this._policyEngine =
+      options.policyEngine || new CryptoPolicyEngine({ default: {} });
+    this._policyEngine.validate("default", "bftShardSync", {
       minQuorumNodes: this.minQuorumNodes,
       maxCatchUpBatchSize: this.maxCatchUpBatchSize,
       lagThreshold: this.lagThreshold,
@@ -221,12 +240,17 @@ class BftShardSyncEngine {
    */
   registerShard(shardId) {
     if (this._shards.has(shardId)) {
-      throw new HsmAdapterError('SHARD_ALREADY_REGISTERED', `shard ${shardId} already registered`);
+      throw new HsmAdapterError(
+        "SHARD_ALREADY_REGISTERED",
+        `shard ${shardId} already registered`,
+      );
     }
     if (this._shards.size >= this.maxShardsPerCluster) {
-      incrementCounter('hsm_shard_limit_exceeded_total');
-      throw new HsmAdapterError('SHARD_LIMIT_EXCEEDED',
-        `shard count ${this._shards.size} exceeds max ${this.maxShardsPerCluster}`);
+      incrementCounter("hsm_shard_limit_exceeded_total");
+      throw new HsmAdapterError(
+        "SHARD_LIMIT_EXCEEDED",
+        `shard count ${this._shards.size} exceeds max ${this.maxShardsPerCluster}`,
+      );
     }
     this._shards.set(shardId, {
       log: [],
@@ -234,7 +258,7 @@ class BftShardSyncEngine {
       nextIndex: 1,
     });
     counters.hsm_shard_active = this._shards.size;
-    this._emitAudit('SHARD_REGISTERED', { shardId });
+    this._emitAudit("SHARD_REGISTERED", { shardId });
   }
 
   /**
@@ -248,8 +272,12 @@ class BftShardSyncEngine {
     const entry = new ShardEntry(shard.nextIndex, data, Date.now());
     shard.log.push(entry);
     shard.nextIndex++;
-    incrementCounter('hsm_shard_append_total');
-    this._emitAudit('SHARD_ENTRY_APPENDED', { shardId, index: entry.index, hash: entry.hash });
+    incrementCounter("hsm_shard_append_total");
+    this._emitAudit("SHARD_ENTRY_APPENDED", {
+      shardId,
+      index: entry.index,
+      hash: entry.hash,
+    });
     return entry;
   }
 
@@ -275,8 +303,8 @@ class BftShardSyncEngine {
       this._checkCommit(shardId, entry);
     }
 
-    incrementCounter('hsm_shard_ack_total');
-    this._emitAudit('SHARD_ENTRY_ACKED', { shardId, nodeId, sequence });
+    incrementCounter("hsm_shard_ack_total");
+    this._emitAudit("SHARD_ENTRY_ACKED", { shardId, nodeId, sequence });
   }
 
   /**
@@ -286,10 +314,17 @@ class BftShardSyncEngine {
    */
   _checkCommit(shardId, entry) {
     if (entry.state === ENTRY_STATE.COMMITTED) return;
-    if (this.requireQuorumCommit && entry.acknowledgedBy.size >= this.minQuorumNodes) {
+    if (
+      this.requireQuorumCommit &&
+      entry.acknowledgedBy.size >= this.minQuorumNodes
+    ) {
       entry.state = ENTRY_STATE.COMMITTED;
-      incrementCounter('hsm_shard_commit_total');
-      this._emitAudit('SHARD_ENTRY_COMMITTED', { shardId, index: entry.index, acks: entry.acknowledgedBy.size });
+      incrementCounter("hsm_shard_commit_total");
+      this._emitAudit("SHARD_ENTRY_COMMITTED", {
+        shardId,
+        index: entry.index,
+        acks: entry.acknowledgedBy.size,
+      });
     }
   }
 
@@ -326,7 +361,12 @@ class BftShardSyncEngine {
       if (lag >= this.byzantineDivergenceThreshold) {
         byzantineNodes.push({ nodeId, lag, sequence: nodeSeq });
         this._nodeStates.set(nodeId, NODE_SYNC_STATE.QUARANTINED);
-        this._emitAudit('SHARD_NODE_BYZANTINE', { shardId, nodeId, lag, sequence: nodeSeq });
+        this._emitAudit("SHARD_NODE_BYZANTINE", {
+          shardId,
+          nodeId,
+          lag,
+          sequence: nodeSeq,
+        });
       } else if (lag >= this.lagThreshold) {
         laggingNodes.push({ nodeId, lag, sequence: nodeSeq });
         if (this._nodeStates.get(nodeId) !== NODE_SYNC_STATE.QUARANTINED) {
@@ -340,7 +380,10 @@ class BftShardSyncEngine {
     }
 
     if (byzantineNodes.length > 0) {
-      incrementCounter('hsm_shard_byzantine_detected_total', byzantineNodes.length);
+      incrementCounter(
+        "hsm_shard_byzantine_detected_total",
+        byzantineNodes.length,
+      );
     }
     counters.hsm_shard_lagging_nodes = laggingNodes.length;
     return { shardId, maxSeq, laggingNodes, byzantineNodes };
@@ -359,7 +402,13 @@ class BftShardSyncEngine {
     const maxSeq = shard.vectorClock.maxSequence();
 
     if (nodeSeq >= maxSeq) {
-      return { shardId, nodeId, batchSize: 0, entries: [], message: 'node is up to date' };
+      return {
+        shardId,
+        nodeId,
+        batchSize: 0,
+        entries: [],
+        message: "node is up to date",
+      };
     }
 
     // Gather entries that the node is missing
@@ -374,9 +423,15 @@ class BftShardSyncEngine {
     }
 
     if (batchSize > 0) {
-      incrementCounter('hsm_shard_catchup_batch_total');
+      incrementCounter("hsm_shard_catchup_batch_total");
     }
-    this._emitAudit('SHARD_CATCH_UP_BATCH', { shardId, nodeId, batchSize, fromSeq: nodeSeq, toSeq: nodeSeq + batchSize });
+    this._emitAudit("SHARD_CATCH_UP_BATCH", {
+      shardId,
+      nodeId,
+      batchSize,
+      fromSeq: nodeSeq,
+      toSeq: nodeSeq + batchSize,
+    });
 
     return {
       shardId,
@@ -464,7 +519,10 @@ class BftShardSyncEngine {
   _getShard(shardId) {
     const shard = this._shards.get(shardId);
     if (!shard) {
-      throw new HsmAdapterError('SHARD_NOT_FOUND', `shard ${shardId} not found`);
+      throw new HsmAdapterError(
+        "SHARD_NOT_FOUND",
+        `shard ${shardId} not found`,
+      );
     }
     return shard;
   }
@@ -475,7 +533,10 @@ class BftShardSyncEngine {
    */
   _validateNode(nodeId) {
     if (!this.clusterNodes.has(nodeId)) {
-      throw new HsmAdapterError('SHARD_NODE_UNKNOWN', `node ${nodeId} not in cluster`);
+      throw new HsmAdapterError(
+        "SHARD_NODE_UNKNOWN",
+        `node ${nodeId} not in cluster`,
+      );
     }
   }
 

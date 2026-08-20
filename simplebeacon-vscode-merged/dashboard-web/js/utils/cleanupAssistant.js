@@ -20,14 +20,14 @@ export const DEFAULT_PROTECTED_PATHS = [
   'data-central',
   'data/roadmap',
   'uploads',
-  '.git'
+  '.git',
 ];
 
 const DEFAULT_POLICY = {
   protectedPaths: DEFAULT_PROTECTED_PATHS,
   allowNodeModules: false,
   allowSimplebeaconCache: false,
-  aggressiveness: 'moderate'
+  aggressiveness: 'moderate',
 };
 
 /**
@@ -36,7 +36,10 @@ const DEFAULT_POLICY = {
  * @returns {any}
  */
 function normalizePath(value) {
-  return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
+  return String(value || '')
+    .replace(/\\/g, '/')
+    .replace(/^\.\//, '')
+    .toLowerCase();
 }
 
 /**
@@ -51,9 +54,10 @@ export function loadCleanupPolicy() {
     return {
       ...DEFAULT_POLICY,
       ...parsed,
-      protectedPaths: Array.isArray(parsed.protectedPaths) && parsed.protectedPaths.length
-        ? parsed.protectedPaths
-        : [...DEFAULT_PROTECTED_PATHS]
+      protectedPaths:
+        Array.isArray(parsed.protectedPaths) && parsed.protectedPaths.length
+          ? parsed.protectedPaths
+          : [...DEFAULT_PROTECTED_PATHS],
     };
   } catch {
     return { ...DEFAULT_POLICY, protectedPaths: [...DEFAULT_PROTECTED_PATHS] };
@@ -142,8 +146,10 @@ function classifyDirectory(entry, policy) {
  * @returns {any}
  */
 function isDirectoryArtifact(finding) {
-  return finding?.action === 'safe-to-delete'
-    && (finding.kind === 'directory' || / directory$/i.test(String(finding.reason || '')));
+  return (
+    finding?.action === 'safe-to-delete' &&
+    (finding.kind === 'directory' || / directory$/i.test(String(finding.reason || '')))
+  );
 }
 
 /** Use enriched plan when present; otherwise synthesize from compact scan payload. */
@@ -166,7 +172,7 @@ export function resolveFileReductionPlan(fileReduction) {
 
   const safeDirectories = [
     ...buildArtifacts.filter(isDirectoryArtifact),
-    ...directoryBloat.filter((f) => f.action === 'safe-to-delete')
+    ...directoryBloat.filter((f) => f.action === 'safe-to-delete'),
   ]
     .sort((left, right) => (right.sizeBytes || 0) - (left.sizeBytes || 0))
     .slice(0, 12)
@@ -175,7 +181,7 @@ export function resolveFileReductionPlan(fileReduction) {
       bytes: finding.sizeBytes || 0,
       files: finding.fileCount || 0,
       category: finding.category || finding.reason,
-      skipped: finding.skipped || false
+      skipped: finding.skipped || false,
     }));
 
   const reviewLogs = buildArtifacts
@@ -183,42 +189,43 @@ export function resolveFileReductionPlan(fileReduction) {
     .slice(0, 10)
     .map((finding) => ({
       path: finding.path,
-      bytes: finding.sizeBytes || 0
+      bytes: finding.sizeBytes || 0,
     }));
 
-  const safeBytes = buildSummary.safeToDeleteBytes
-    ?? safeDirectories.reduce((sum, entry) => sum + (entry.bytes || 0), 0);
-  const reviewBytes = buildSummary.reviewBeforeDeleteBytes
-    ?? reviewLogs.reduce((sum, entry) => sum + (entry.bytes || 0), 0);
-  const duplicateBytes = assetSummary.reclaimableBytes
-    ?? assetConsolidation.reduce((sum, group) => sum + (group.reclaimableBytes || 0), 0);
-  const unusedCandidates = unusedSummary.unusedCandidates
-    ?? fileReduction.summary?.unusedFileCandidates
-    ?? 0;
+  const safeBytes =
+    buildSummary.safeToDeleteBytes ?? safeDirectories.reduce((sum, entry) => sum + (entry.bytes || 0), 0);
+  const reviewBytes =
+    buildSummary.reviewBeforeDeleteBytes ?? reviewLogs.reduce((sum, entry) => sum + (entry.bytes || 0), 0);
+  const duplicateBytes =
+    assetSummary.reclaimableBytes ?? assetConsolidation.reduce((sum, group) => sum + (group.reclaimableBytes || 0), 0);
+  const unusedCandidates = unusedSummary.unusedCandidates ?? fileReduction.summary?.unusedFileCandidates ?? 0;
 
   if (!safeDirectories.length && !safeBytes && !unusedCandidates && !duplicateBytes && !reviewLogs.length) {
     return existing || {};
   }
 
   return {
-    scopeNote: existing?.scopeNote || 'Synthesized from scan summaries — re-run file reduction if tiers look incomplete.',
+    scopeNote:
+      existing?.scopeNote || 'Synthesized from scan summaries — re-run file reduction if tiers look incomplete.',
     totals: {
-      reclaimableBytes: fileReduction.summary?.reclaimableBytes ?? buildSummary.reclaimableBytes ?? safeBytes + duplicateBytes,
+      reclaimableBytes:
+        fileReduction.summary?.reclaimableBytes ?? buildSummary.reclaimableBytes ?? safeBytes + duplicateBytes,
       safeToDeleteBytes: safeBytes,
       reviewBeforeDeleteBytes: reviewBytes,
       duplicateAssetBytes: duplicateBytes,
-      estimatedImmediateSavingsBytes: safeBytes + duplicateBytes
+      estimatedImmediateSavingsBytes: safeBytes + duplicateBytes,
     },
     safeToDelete: {
-      topDirectories: safeDirectories
+      topDirectories: safeDirectories,
     },
     reviewBeforeDelete: {
-      logs: reviewLogs
+      logs: reviewLogs,
     },
     unusedFiles: {
       candidates: unusedCandidates,
-      note: existing?.unusedFiles?.note
-        || 'Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting.'
+      note:
+        existing?.unusedFiles?.note ||
+        'Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting.',
     },
     duplicateAssets: {
       topGroups: assetConsolidation
@@ -228,9 +235,9 @@ export function resolveFileReductionPlan(fileReduction) {
         .map((group) => ({
           keeper: group.keeper,
           duplicates: group.duplicates || [],
-          reclaimableBytes: group.reclaimableBytes || 0
-        }))
-    }
+          reclaimableBytes: group.reclaimableBytes || 0,
+        })),
+    },
   };
 }
 
@@ -279,28 +286,29 @@ export function buildCleanupAssistantBrief({
   fileReduction,
   dataQuality,
   repositoryInventory,
-  policy = loadCleanupPolicy()
+  policy = loadCleanupPolicy(),
 } = {}) {
   const plan = resolveFileReductionPlan(fileReduction);
-  const enrichedFileReduction = fileReduction && plan && !fileReduction.fileReductionPlan
-    ? { ...fileReduction, fileReductionPlan: plan }
-    : fileReduction;
+  const enrichedFileReduction =
+    fileReduction && plan && !fileReduction.fileReductionPlan
+      ? { ...fileReduction, fileReductionPlan: plan }
+      : fileReduction;
   const analysis = buildCompleteScanAnalysis({
     fileReduction: enrichedFileReduction,
     dataQuality,
-    projectPath
+    projectPath,
   });
 
   const inventory = {
     totalFiles: repositoryInventory?.totalFiles ?? fileReduction?.inventory?.totalFiles ?? null,
-    totalFolders: repositoryInventory?.totalFolders ?? fileReduction?.inventory?.totalDirectories ?? null
+    totalFolders: repositoryInventory?.totalFolders ?? fileReduction?.inventory?.totalDirectories ?? null,
   };
 
   const tiers = {
     safeNow: { files: 0, bytes: 0, directories: [] },
     reviewFirst: { files: 0, bytes: 0, items: [] },
     protected: { files: 0, bytes: 0, directories: [] },
-    investigate: { files: plan.unusedFiles?.candidates ?? 0, note: plan.unusedFiles?.note || null }
+    investigate: { files: plan.unusedFiles?.candidates ?? 0, note: plan.unusedFiles?.note || null },
   };
   const skippedArtifactDirectories = [];
 
@@ -310,7 +318,7 @@ export function buildCleanupAssistantBrief({
       path: entry.path,
       bytes: entry.bytes || 0,
       files: entry.files || 0,
-      category: entry.category || null
+      category: entry.category || null,
     };
     if (payload.bytes === 0 && payload.files === 0 && !entry.skipped) {
       skippedArtifactDirectories.push(payload);
@@ -323,7 +331,10 @@ export function buildCleanupAssistantBrief({
     } else if (tier === 'review') {
       tiers.reviewFirst.files += payload.files;
       tiers.reviewFirst.bytes += payload.bytes;
-      tiers.reviewFirst.items.push({ ...payload, reason: isNodeModulesPath(entry.path) ? 'node_modules disabled in policy' : 'scan cache disabled in policy' });
+      tiers.reviewFirst.items.push({
+        ...payload,
+        reason: isNodeModulesPath(entry.path) ? 'node_modules disabled in policy' : 'scan cache disabled in policy',
+      });
     } else {
       tiers.safeNow.files += payload.files;
       tiers.safeNow.bytes += payload.bytes;
@@ -338,11 +349,15 @@ export function buildCleanupAssistantBrief({
       path: entry.path,
       bytes: entry.bytes || 0,
       files: 1,
-      reason: 'log file — review before delete'
+      reason: 'log file — review before delete',
     });
   }
 
-  if (analysis.fileReduction && skippedArtifactDirectories.length && !analysis.fileReduction.skippedArtifactDirectories) {
+  if (
+    analysis.fileReduction &&
+    skippedArtifactDirectories.length &&
+    !analysis.fileReduction.skippedArtifactDirectories
+  ) {
     analysis.fileReduction.skippedArtifactDirectories = skippedArtifactDirectories.slice(0, 8);
   }
 
@@ -351,14 +366,12 @@ export function buildCleanupAssistantBrief({
     bytes: tiers.safeNow.bytes,
     percentOfInventory: inventory.totalFiles
       ? Number(((tiers.safeNow.files / inventory.totalFiles) * 100).toFixed(1))
-      : null
+      : null,
   };
 
   const projectedInventory = {
-    totalFiles: inventory.totalFiles != null
-      ? Math.max(0, inventory.totalFiles - tiers.safeNow.files)
-      : null,
-    totalFolders: inventory.totalFolders
+    totalFiles: inventory.totalFiles != null ? Math.max(0, inventory.totalFiles - tiers.safeNow.files) : null,
+    totalFolders: inventory.totalFolders,
   };
 
   const agentInstructions = buildAgentInstructions({
@@ -368,7 +381,7 @@ export function buildCleanupAssistantBrief({
     projectedInventory,
     estimatedReduction,
     tiers,
-    analysis
+    analysis,
   });
 
   return {
@@ -390,8 +403,10 @@ export function buildCleanupAssistantBrief({
       fileReductionPresent: Boolean(fileReduction),
       dataQualityPresent: Boolean(dataQuality),
       fileReductionPlanPresent: Boolean(fileReduction?.fileReductionPlan || plan?.safeToDelete?.topDirectories?.length),
-      synthesizedPlan: Boolean(fileReduction && !fileReduction.fileReductionPlan && plan?.safeToDelete?.topDirectories?.length)
-    }
+      synthesizedPlan: Boolean(
+        fileReduction && !fileReduction.fileReductionPlan && plan?.safeToDelete?.topDirectories?.length
+      ),
+    },
   };
 }
 
@@ -407,7 +422,7 @@ function resolveCleanupScanInputs(lastResult) {
       fileReduction: null,
       dataQuality: null,
       repositoryInventory: null,
-      policy: null
+      policy: null,
     };
   }
 
@@ -420,7 +435,7 @@ function resolveCleanupScanInputs(lastResult) {
       fileReduction: cleanupStep?.fileReduction || fileReductionStep?.scan || null,
       dataQuality: cleanupStep?.dataQuality || dataQualityStep?.scan || null,
       repositoryInventory: cleanupStep?.repositoryInventory || lastResult.repositoryInventory || null,
-      policy: cleanupStep?.policy || lastResult.policy || null
+      policy: cleanupStep?.policy || lastResult.policy || null,
     };
   }
 
@@ -429,7 +444,7 @@ function resolveCleanupScanInputs(lastResult) {
     fileReduction: lastResult.fileReduction || null,
     dataQuality: lastResult.dataQuality || null,
     repositoryInventory: lastResult.repositoryInventory || null,
-    policy: lastResult.policy || null
+    policy: lastResult.policy || null,
   };
 }
 
@@ -447,7 +462,7 @@ export function buildCleanupBriefFromLastResult(lastResult, policy) {
     fileReduction: inputs.fileReduction,
     dataQuality: inputs.dataQuality,
     repositoryInventory: inputs.repositoryInventory,
-    policy: policy || inputs.policy || loadCleanupPolicy()
+    policy: policy || inputs.policy || loadCleanupPolicy(),
   });
 }
 
@@ -467,7 +482,7 @@ function buildAgentInstructions(context) {
     context.policy.allowSimplebeaconCache
       ? '.simplebeacon scan artifacts may be trimmed or archived.'
       : 'Keep .simplebeacon scan artifacts unless the user opts in.',
-    `Target inventory reduction: ~${formatNumber(context.estimatedReduction.files)} files (${formatBytes(context.estimatedReduction.bytes)}).`
+    `Target inventory reduction: ~${formatNumber(context.estimatedReduction.files)} files (${formatBytes(context.estimatedReduction.bytes)}).`,
   ];
   return lines;
 }
@@ -494,7 +509,7 @@ export function buildAgentPrompt({ projectPath, estimatedReduction, inventory, p
     `Inventory: ${formatNumber(inventory.totalFiles)} files / ${formatNumber(inventory.totalFolders)} folders`,
     `Projected after phase 1: ~${formatNumber(projectedInventory.totalFiles)} files`,
     '',
-    'Attach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise.'
+    'Attach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise.',
   ].join('\n');
 }
 
@@ -508,13 +523,18 @@ function renderTierList(items, emptyLabel) {
   if (!items?.length) {
     return `<li class="text-muted">${escapeHtml(emptyLabel)}</li>`;
   }
-  return items.slice(0, 12).map((entry) => `
+  return items
+    .slice(0, 12)
+    .map(
+      (entry) => `
     <li>
       <code>${escapeHtml(entry.path)}</code>
       <span class="text-muted"> · ${formatBytes(entry.bytes)} · ${formatNumber(entry.files)} file(s)</span>
       ${entry.reason ? `<span class="text-muted"> — ${escapeHtml(entry.reason)}</span>` : ''}
     </li>
-  `).join('');
+  `
+    )
+    .join('');
 }
 
 /**
@@ -527,14 +547,20 @@ export function renderCleanupAssistantPanel(brief, { policy = loadCleanupPolicy(
   if (!brief) return '';
 
   const protectedValue = (policy.protectedPaths || DEFAULT_PROTECTED_PATHS).join('\n');
-/**
- * Actions.
- * @param {any} brief.dataQualityActions || []
- * @returns {any}
- */
-  const actions = (brief.dataQualityActions || []).slice(0, 5).map((action) => `
+  /**
+   * Actions.
+   * @param {any} brief.dataQualityActions || []
+   * @returns {any}
+   */
+  const actions =
+    (brief.dataQualityActions || [])
+      .slice(0, 5)
+      .map(
+        (action) => `
     <li><strong>${escapeHtml(action.title)}</strong> <span class="text-muted">— ${escapeHtml(action.detail)}</span></li>
-  `).join('') || '<li class="text-muted">No data-quality actions flagged.</li>';
+  `
+      )
+      .join('') || '<li class="text-muted">No data-quality actions flagged.</li>';
 
   return `
     <div class="cleanup-assistant-panel card mb-4">
@@ -616,6 +642,6 @@ export function readCleanupPolicyFromDom(root) {
     protectedPaths: protectedPaths.length ? protectedPaths : [...DEFAULT_PROTECTED_PATHS],
     allowNodeModules: Boolean(root?.querySelector('#cleanup-allow-node-modules')?.checked),
     allowSimplebeaconCache: Boolean(root?.querySelector('#cleanup-allow-simplebeacon')?.checked),
-    aggressiveness: 'moderate'
+    aggressiveness: 'moderate',
   };
 }

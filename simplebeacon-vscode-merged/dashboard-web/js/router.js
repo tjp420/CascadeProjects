@@ -1,5 +1,29 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'eu-ai-act', 'profile'];
+const ROUTES = [
+  'dashboard',
+  'audit',
+  'assessments',
+  'analyze',
+  'results',
+  'remediation',
+  'security',
+  'tools',
+  'platform',
+  'quality',
+  'help',
+  'features',
+  'trust',
+  'repository-health',
+  'siem-telemetry',
+  'settings',
+  'pricing',
+  'about',
+  'signin',
+  'chatbot',
+  'upload',
+  'eu-ai-act',
+  'profile',
+];
 
 /**
  * P u b l i c  v i e w s.
@@ -28,12 +52,15 @@ export class Router {
     try {
       const path = window.location.pathname || '';
       if (/\/dashboard\/dashboard\/?$/.test(path)) {
-        const canonical = path.replace(/\/dashboard\/dashboard\/?$/, '/dashboard')
-          + (window.location.search || '')
-          + (window.location.hash || '');
+        const canonical =
+          path.replace(/\/dashboard\/dashboard\/?$/, '/dashboard') +
+          (window.location.search || '') +
+          (window.location.hash || '');
         window.history.replaceState({}, '', canonical);
       }
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      /* ignore */
+    }
     const forced = typeof window !== 'undefined' && window.__SB_INITIAL_ROUTE__;
     if (forced && ROUTES.includes(forced)) {
       delete window.__SB_INITIAL_ROUTE__;
@@ -56,7 +83,9 @@ export class Router {
   }
 
   getDashboardBase() {
-    if (window.location.pathname.startsWith('/dashboard')) { return '/dashboard'; }
+    if (window.location.pathname.startsWith('/dashboard')) {
+      return '/dashboard';
+    }
     return '';
   }
   parsePath() {
@@ -74,7 +103,9 @@ export class Router {
     const search = window.location.search;
     if (search && search.startsWith('?')) {
       const searchParams = new URLSearchParams(search);
-      searchParams.forEach((v, k) => { params[k] = v; });
+      searchParams.forEach((v, k) => {
+        params[k] = v;
+      });
     }
     return { view: ROUTES.includes(view) ? view : 'dashboard', params };
   }
@@ -86,7 +117,7 @@ export class Router {
       this.updateNav(view);
     } catch (err) {
       const msg = err?.message || String(err);
-      window["console"]["error"]('Router handlePath error:', msg);
+      window['console']['error']('Router handlePath error:', msg);
     }
   }
 
@@ -97,7 +128,9 @@ export class Router {
     const params = {};
     if (query) {
       const searchParams = new URLSearchParams('?' + query);
-      searchParams.forEach((v, k) => { params[k] = v; });
+      searchParams.forEach((v, k) => {
+        params[k] = v;
+      });
     }
     return { view: ROUTES.includes(view) ? view : 'dashboard', params };
   }
@@ -110,7 +143,7 @@ export class Router {
       this.pushPath(view, params);
     } catch (err) {
       const msg = err?.message || String(err);
-      window["console"]["error"]('Router handleHash error:', msg);
+      window['console']['error']('Router handleHash error:', msg);
     }
   }
 
@@ -131,23 +164,33 @@ export class Router {
             }
           });
         }
-      } catch (e) { /* ignore */ }
-      Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') searchParams.set(k, v); });
+      } catch (e) {
+        /* ignore */
+      }
+      Object.entries(params).forEach(([k, v]) => {
+        if (v != null && v !== '') searchParams.set(k, v);
+      });
       if (window.self !== window.top && !searchParams.has('sb_parent_urlbar')) {
         searchParams.set('sb_parent_urlbar', '1');
       }
       const search = searchParams.toString();
       const base = this.getDashboardBase();
-      const pathSegment = (view === 'dashboard' || !view) ? '' : `/${view}`;
+      const pathSegment = view === 'dashboard' || !view ? '' : `/${view}`;
       const newUrl = `${base}${pathSegment}${search ? '?' + search : ''}`;
       if (window.location.pathname + window.location.search !== newUrl) {
         window.history.pushState({}, '', newUrl);
       }
       // Notify IDE webview parent of the current URL so the URL bar stays in sync.
       if (window.parent && window.parent !== window) {
-        try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); } catch (e) { /* ignore */ }
+        try {
+          window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*');
+        } catch (e) {
+          /* ignore */
+        }
       }
-    } catch (e) { /* webview may restrict this */ }
+    } catch (e) {
+      /* webview may restrict this */
+    }
   }
 
   navigate(view, params = {}) {

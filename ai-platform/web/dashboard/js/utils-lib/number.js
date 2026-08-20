@@ -4,9 +4,9 @@
  * @returns {string}
  */
 export function formatNumber(n) {
-  if (n == null) return '—';
+  if (n == null) return "—";
   const numericCount = Number(n);
-  if (!Number.isFinite(numericCount)) return '—';
+  if (!Number.isFinite(numericCount)) return "—";
   return numericCount.toLocaleString();
 }
 
@@ -17,12 +17,14 @@ export function formatNumber(n) {
  * @returns {string}
  */
 export function formatPercent(value, fractionDigits = 1) {
-  if (value == null || value === '') return '—';
+  if (value == null || value === "") return "—";
   const str = String(value).trim();
-  if (str.endsWith('%')) return str;
+  if (str.endsWith("%")) return str;
   const num = Number(str);
-  if (!Number.isFinite(num)) return '—';
-  const digits = Number.isFinite(fractionDigits) ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0))) : 1;
+  if (!Number.isFinite(num)) return "—";
+  const digits = Number.isFinite(fractionDigits)
+    ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0)))
+    : 1;
   return `${num.toFixed(digits)}%`;
 }
 
@@ -33,13 +35,18 @@ export function formatPercent(value, fractionDigits = 1) {
  * @returns {string}
  */
 export function formatBytes(bytes, decimals = 2) {
-  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '—';
-  if (bytes === 0) return '0 B';
-  const digits = Number.isFinite(decimals) ? Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0))) : 2;
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return "—";
+  if (bytes === 0) return "0 B";
+  const digits = Number.isFinite(decimals)
+    ? Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0)))
+    : 2;
   if (bytes < 1) return `${bytes.toFixed(digits)} B`;
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(k)),
+    sizes.length - 1,
+  );
   return `${(bytes / k ** i).toFixed(digits)} ${sizes[i]}`;
 }
 
@@ -89,7 +96,7 @@ export function toFixedNumber(value, decimals = 0) {
  * @returns {string}
  */
 export function formatDuration(ms) {
-  if (ms == null || !Number.isFinite(ms) || ms < 0) return '—';
+  if (ms == null || !Number.isFinite(ms) || ms < 0) return "—";
   if (ms < 1000) return `${Math.round(ms)}ms`;
   const seconds = Math.floor(ms / 1000);
   if (seconds < 60) return `${seconds}s`;
@@ -123,7 +130,7 @@ export function sum(arr, keyFn) {
   if (!Array.isArray(arr)) return 0;
   let total = 0;
   for (const item of arr) {
-    const val = typeof keyFn === 'function' ? keyFn(item) : item;
+    const val = typeof keyFn === "function" ? keyFn(item) : item;
     const n = Number(val);
     if (Number.isFinite(n)) total += n;
   }
@@ -149,12 +156,16 @@ export function mean(arr, keyFn) {
  * @returns {T | undefined}
  */
 export function maxBy(arr, keyFn) {
-  if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== 'function') return undefined;
+  if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== "function")
+    return undefined;
   let maxItem = arr[0];
   let maxVal = keyFn(maxItem);
   for (let i = 1; i < arr.length; i++) {
     const val = keyFn(arr[i]);
-    if (val > maxVal) { maxVal = val; maxItem = arr[i]; }
+    if (val > maxVal) {
+      maxVal = val;
+      maxItem = arr[i];
+    }
   }
   return maxItem;
 }
@@ -167,16 +178,19 @@ export function maxBy(arr, keyFn) {
  * @returns {T | undefined}
  */
 export function minBy(arr, keyFn) {
-  if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== 'function') return undefined;
+  if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== "function")
+    return undefined;
   let minItem = arr[0];
   let minVal = keyFn(minItem);
   for (let i = 1; i < arr.length; i++) {
     const val = keyFn(arr[i]);
-    if (val < minVal) { minVal = val; minItem = arr[i]; }
+    if (val < minVal) {
+      minVal = val;
+      minItem = arr[i];
+    }
   }
   return minItem;
 }
-
 
 /**
  * Safely parse an integer with a fallback on NaN.
@@ -222,10 +236,11 @@ export function random(min, max, floating) {
  */
 export function randomId(length = 8) {
   const len = Math.max(1, Math.floor(Number(length) || 8));
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const max = chars.length;
-  let id = '';
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+  let id = "";
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
     const arr = new Uint32Array(len);
     crypto.getRandomValues(arr);
     for (let i = 0; i < len; i++) id += chars[arr[i] % max];

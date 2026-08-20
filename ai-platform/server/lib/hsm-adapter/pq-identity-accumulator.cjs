@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 57: Post-Quantum Identity Accumulator.
@@ -11,8 +11,8 @@
  * @module hsm-adapter/pq-identity-accumulator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class PqIdentityAccumulator {
   /**
@@ -43,19 +43,39 @@ class PqIdentityAccumulator {
       try {
         const result = this._attestationClient.verify(request.attestation);
         if (!result.verified) {
-          throw new HsmAdapterError('ACCUM_ROOT_UPDATE_UNATTESTED', 'root update attestation invalid');
+          throw new HsmAdapterError(
+            "ACCUM_ROOT_UPDATE_UNATTESTED",
+            "root update attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('ACCUM_ROOT_UPDATE_UNATTESTED', 'root update attestation invalid');
+        throw new HsmAdapterError(
+          "ACCUM_ROOT_UPDATE_UNATTESTED",
+          "root update attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('ACCUM_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "ACCUM_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    const publicKeyHash = crypto.createHash('sha256').update(request.publicKey).digest('hex');
+    const publicKeyHash = crypto
+      .createHash("sha256")
+      .update(request.publicKey)
+      .digest("hex");
     if (this._members.has(publicKeyHash)) {
-      throw new HsmAdapterError('ACCUM_MEMBER_DUPLICATE', `member ${publicKeyHash} already exists in accumulator`);
+      throw new HsmAdapterError(
+        "ACCUM_MEMBER_DUPLICATE",
+        `member ${publicKeyHash} already exists in accumulator`,
+      );
     }
     this._members.set(publicKeyHash, {
       publicKeyHash,
@@ -76,16 +96,28 @@ class PqIdentityAccumulator {
       try {
         const result = this._attestationClient.verify(request.attestation);
         if (!result.verified) {
-          throw new HsmAdapterError('ACCUM_ROOT_UPDATE_UNATTESTED', 'root update attestation invalid');
+          throw new HsmAdapterError(
+            "ACCUM_ROOT_UPDATE_UNATTESTED",
+            "root update attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('ACCUM_ROOT_UPDATE_UNATTESTED', 'root update attestation invalid');
+        throw new HsmAdapterError(
+          "ACCUM_ROOT_UPDATE_UNATTESTED",
+          "root update attestation invalid",
+        );
       }
     }
-    const publicKeyHash = crypto.createHash('sha256').update(request.publicKey).digest('hex');
+    const publicKeyHash = crypto
+      .createHash("sha256")
+      .update(request.publicKey)
+      .digest("hex");
     if (!this._members.has(publicKeyHash)) {
-      throw new HsmAdapterError('ACCUM_MEMBER_NOT_FOUND', `member ${publicKeyHash} not found in accumulator`);
+      throw new HsmAdapterError(
+        "ACCUM_MEMBER_NOT_FOUND",
+        `member ${publicKeyHash} not found in accumulator`,
+      );
     }
     this._members.delete(publicKeyHash);
     return this._recomputeRoot(request.sourceTenantId);
@@ -110,17 +142,23 @@ class PqIdentityAccumulator {
         treeDepth: 0,
         memberCount: 0,
         epochSeconds: this._lastUpdateEpoch,
-        status: 'updated',
+        status: "updated",
       };
       if (this._audit) {
-        this._audit('IDENTITY_ACCUMULATOR_UPDATED', { ...result, sourceTenantId });
+        this._audit("IDENTITY_ACCUMULATOR_UPDATED", {
+          ...result,
+          sourceTenantId,
+        });
       }
       return result;
     }
     const sortedHashes = Array.from(this._members.keys()).sort();
     const treeDepth = Math.ceil(Math.log2(memberCount));
     if (treeDepth > (this.policy.maxTreeDepth || 20)) {
-      throw new HsmAdapterError('ACCUM_TREE_DEPTH_EXCEEDED', `tree depth ${treeDepth} exceeds maximum ${this.policy.maxTreeDepth}`);
+      throw new HsmAdapterError(
+        "ACCUM_TREE_DEPTH_EXCEEDED",
+        `tree depth ${treeDepth} exceeds maximum ${this.policy.maxTreeDepth}`,
+      );
     }
     this._treeDepth = treeDepth;
     this._rootHash = _computeMerkleRoot(sortedHashes);
@@ -132,10 +170,13 @@ class PqIdentityAccumulator {
       treeDepth,
       memberCount,
       epochSeconds: this._lastUpdateEpoch,
-      status: 'updated',
+      status: "updated",
     };
     if (this._audit) {
-      this._audit('IDENTITY_ACCUMULATOR_UPDATED', { ...result, sourceTenantId });
+      this._audit("IDENTITY_ACCUMULATOR_UPDATED", {
+        ...result,
+        sourceTenantId,
+      });
     }
     return result;
   }
@@ -159,7 +200,10 @@ class PqIdentityAccumulator {
    * @returns {boolean}
    */
   isMember(publicKey) {
-    const publicKeyHash = crypto.createHash('sha256').update(publicKey).digest('hex');
+    const publicKeyHash = crypto
+      .createHash("sha256")
+      .update(publicKey)
+      .digest("hex");
     return this._members.has(publicKeyHash);
   }
 
@@ -169,9 +213,15 @@ class PqIdentityAccumulator {
    * @returns {object}
    */
   getMembershipWitness(publicKey) {
-    const publicKeyHash = crypto.createHash('sha256').update(publicKey).digest('hex');
+    const publicKeyHash = crypto
+      .createHash("sha256")
+      .update(publicKey)
+      .digest("hex");
     if (!this._members.has(publicKeyHash)) {
-      throw new HsmAdapterError('ACCUM_MEMBER_NOT_FOUND', `member ${publicKeyHash} not found in accumulator`);
+      throw new HsmAdapterError(
+        "ACCUM_MEMBER_NOT_FOUND",
+        `member ${publicKeyHash} not found in accumulator`,
+      );
     }
     const sortedHashes = Array.from(this._members.keys()).sort();
     const index = sortedHashes.indexOf(publicKeyHash);
@@ -192,7 +242,9 @@ function _computeMerkleRoot(leaves) {
     for (let i = 0; i < level.length; i += 2) {
       const left = level[i];
       const right = i + 1 < level.length ? level[i + 1] : level[i];
-      next.push(crypto.createHash('sha256').update(`${left}:${right}`).digest('hex'));
+      next.push(
+        crypto.createHash("sha256").update(`${left}:${right}`).digest("hex"),
+      );
     }
     level = next;
   }
@@ -214,7 +266,9 @@ function _computeMerkleSiblings(leaves, index) {
     for (let i = 0; i < level.length; i += 2) {
       const left = level[i];
       const right = i + 1 < level.length ? level[i + 1] : level[i];
-      next.push(crypto.createHash('sha256').update(`${left}:${right}`).digest('hex'));
+      next.push(
+        crypto.createHash("sha256").update(`${left}:${right}`).digest("hex"),
+      );
     }
     level = next;
     idx = Math.floor(idx / 2);
@@ -224,19 +278,31 @@ function _computeMerkleSiblings(leaves, index) {
 
 function _validateAddRequest(policy, request) {
   if (!request.publicKey || !request.sourceTenantId) {
-    throw new HsmAdapterError('ACCUM_FIELDS_MISSING', 'publicKey and sourceTenantId are required');
+    throw new HsmAdapterError(
+      "ACCUM_FIELDS_MISSING",
+      "publicKey and sourceTenantId are required",
+    );
   }
   if (policy.requireRootUpdateAttestation && !request.attestation) {
-    throw new HsmAdapterError('ACCUM_ATTESTATION_MISSING', 'root update attestation is required');
+    throw new HsmAdapterError(
+      "ACCUM_ATTESTATION_MISSING",
+      "root update attestation is required",
+    );
   }
 }
 
 function _validateRemoveRequest(policy, request) {
   if (!request.publicKey || !request.sourceTenantId) {
-    throw new HsmAdapterError('ACCUM_FIELDS_MISSING', 'publicKey and sourceTenantId are required');
+    throw new HsmAdapterError(
+      "ACCUM_FIELDS_MISSING",
+      "publicKey and sourceTenantId are required",
+    );
   }
   if (policy.requireRootUpdateAttestation && !request.attestation) {
-    throw new HsmAdapterError('ACCUM_ATTESTATION_MISSING', 'root update attestation is required');
+    throw new HsmAdapterError(
+      "ACCUM_ATTESTATION_MISSING",
+      "root update attestation is required",
+    );
   }
 }
 

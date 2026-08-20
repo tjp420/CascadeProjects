@@ -19,7 +19,7 @@ const HTTP_STATUS = Object.freeze({
   TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
   BAD_GATEWAY: 502,
-  SERVICE_UNAVAILABLE: 503
+  SERVICE_UNAVAILABLE: 503,
 });
 
 /**
@@ -78,5 +78,5 @@ module.exports = Object.freeze({
   isRedirectCode,
   isClientErrorCode,
   isServerErrorCode,
-  isErrorCode
+  isErrorCode,
 });

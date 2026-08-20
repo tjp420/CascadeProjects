@@ -11,11 +11,11 @@ This is a local code-analysis assistant that helps developers review and improve
 
 ## Identified Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Suggested code changes may introduce bugs | Low | Medium | All changes require human review and approval before application |
-| Model may hallucinate incorrect fixes | Low | Medium | Changes are validated with syntax checks; human-in-the-loop required |
-| Local model inference resource usage | Low | Low | Runs on developer's own hardware; no external resource consumption |
+| Risk                                      | Likelihood | Impact | Mitigation                                                           |
+| ----------------------------------------- | ---------- | ------ | -------------------------------------------------------------------- |
+| Suggested code changes may introduce bugs | Low        | Medium | All changes require human review and approval before application     |
+| Model may hallucinate incorrect fixes     | Low        | Medium | Changes are validated with syntax checks; human-in-the-loop required |
+| Local model inference resource usage      | Low        | Low    | Runs on developer's own hardware; no external resource consumption   |
 
 ## Human Oversight
 

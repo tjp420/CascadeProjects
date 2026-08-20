@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
-const CLI_DOCS = 'https://github.com/tjp420/simplebeacon/blob/main/README.md';
+const GITHUB_REPO = "https://github.com/tjp420/simplebeacon";
+const CLI_DOCS = "https://github.com/tjp420/simplebeacon/blob/main/README.md";
 
 /** Community-first install page — no enterprise tiers or Stripe checkout. */
 export class PricingView {
@@ -9,7 +9,7 @@ export class PricingView {
   }
 
   mount(container) {
-container.innerHTML = `
+    container.innerHTML = `
       <div class="page-header">
         <h1>Install</h1>
         <p class="page-subtitle">
@@ -65,11 +65,10 @@ container.innerHTML = `
       </div>
     `;
 
-    container.querySelector('#goto-about')?.addEventListener('click', () => {
-      this.app.navigate('about');
+    container.querySelector("#goto-about")?.addEventListener("click", () => {
+      this.app.navigate("about");
     });
   }
 
   destroy() {}
 }
-

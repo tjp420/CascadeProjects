@@ -22,12 +22,12 @@ console.log('credential scan per call ms:', ((performance.now()-t0)/500).toFixed
 "
 ```
 
-| Benchmark | Iterations | Per call |
-|-----------|------------|----------|
-| `scanTextContent` (README-sized ~7KB) | 500 | ~0.022 ms |
-| `scanTextContent` (200× README) | 100 | ~3.8 ms |
-| `scanEnterprisePatterns` (README-sized) | 500 | ~0.14 ms |
-| `scanEnterprisePatterns` (200× README) | 100 | ~22 ms |
+| Benchmark                               | Iterations | Per call  |
+| --------------------------------------- | ---------- | --------- |
+| `scanTextContent` (README-sized ~7KB)   | 500        | ~0.022 ms |
+| `scanTextContent` (200× README)         | 100        | ~3.8 ms   |
+| `scanEnterprisePatterns` (README-sized) | 500        | ~0.14 ms  |
+| `scanEnterprisePatterns` (200× README)  | 100        | ~22 ms    |
 
 ## End-to-end CLI
 
@@ -35,9 +35,9 @@ console.log('credential scan per call ms:', ((performance.now()-t0)/500).toFixed
 node packages/simplebeacon-cli/bin/simplebeacon.js scan --path . --gate --no-trust-banner
 ```
 
-| Repo | Time | Exit |
-|------|------|------|
-| `ai-platform/` (cascade profile) | ~4.0 s | 0 |
+| Repo                             | Time   | Exit |
+| -------------------------------- | ------ | ---- |
+| `ai-platform/` (cascade profile) | ~4.0 s | 0    |
 
 Scoped scans are faster; full monorepo universal analyzer runs can take minutes — use subdirectory paths for CI if needed.
 

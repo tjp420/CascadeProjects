@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Semantic Cache Store — Vector-based prompt similarity caching for inference responses
@@ -15,13 +15,13 @@
  * @module semantic-cache-store
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const logger = require('./app-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const logger = require("./app-logger.cjs");
 
-const SIMPLEBEACON_DIR = path.join(process.cwd(), '.simplebeacon');
-const STORE_PATH = path.join(SIMPLEBEACON_DIR, 'semantic-cache-config.json');
+const SIMPLEBEACON_DIR = path.join(process.cwd(), ".simplebeacon");
+const STORE_PATH = path.join(SIMPLEBEACON_DIR, "semantic-cache-config.json");
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -61,7 +61,10 @@ function readConfig() {
   if (!_cacheDirty) return _config;
   try {
     if (fs.existsSync(STORE_PATH)) {
-      _config = { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(STORE_PATH, 'utf8')) };
+      _config = {
+        ...DEFAULT_CONFIG,
+        ...JSON.parse(fs.readFileSync(STORE_PATH, "utf8")),
+      };
     } else {
       _config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     }
@@ -73,9 +76,10 @@ function readConfig() {
 }
 
 function writeConfig() {
-  if (!fs.existsSync(SIMPLEBEACON_DIR)) fs.mkdirSync(SIMPLEBEACON_DIR, { recursive: true });
-  const tmp = STORE_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(_config, null, 2), 'utf8');
+  if (!fs.existsSync(SIMPLEBEACON_DIR))
+    fs.mkdirSync(SIMPLEBEACON_DIR, { recursive: true });
+  const tmp = STORE_PATH + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(_config, null, 2), "utf8");
   fs.renameSync(tmp, STORE_PATH);
   _cacheDirty = false;
 }
@@ -89,16 +93,20 @@ function updateConfig(updates) {
   if (updates.enabled !== undefined) config.enabled = updates.enabled;
   if (updates.similarityThreshold !== undefined) {
     if (updates.similarityThreshold < 0 || updates.similarityThreshold > 1) {
-      throw new Error('similarityThreshold must be between 0 and 1');
+      throw new Error("similarityThreshold must be between 0 and 1");
     }
     config.similarityThreshold = updates.similarityThreshold;
   }
   if (updates.ttlMs !== undefined) config.ttlMs = updates.ttlMs;
   if (updates.maxEntries !== undefined) config.maxEntries = updates.maxEntries;
-  if (updates.minPromptLength !== undefined) config.minPromptLength = updates.minPromptLength;
-  if (updates.skipSystemPrompts !== undefined) config.skipSystemPrompts = updates.skipSystemPrompts;
-  if (updates.perProviderPartition !== undefined) config.perProviderPartition = updates.perProviderPartition;
-  if (updates.excludedPatterns !== undefined) config.excludedPatterns = updates.excludedPatterns;
+  if (updates.minPromptLength !== undefined)
+    config.minPromptLength = updates.minPromptLength;
+  if (updates.skipSystemPrompts !== undefined)
+    config.skipSystemPrompts = updates.skipSystemPrompts;
+  if (updates.perProviderPartition !== undefined)
+    config.perProviderPartition = updates.perProviderPartition;
+  if (updates.excludedPatterns !== undefined)
+    config.excludedPatterns = updates.excludedPatterns;
   writeConfig();
   return { success: true, config: config };
 }
@@ -116,12 +124,14 @@ function resetConfig() {
  * Strips punctuation, splits on whitespace, filters short tokens.
  */
 function tokenize(text) {
-  if (!text || typeof text !== 'string') return [];
+  if (!text || typeof text !== "string") return [];
   return text
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
+    .replace(/[^\w\s]/g, " ")
     .split(/\s+/)
-    .filter(function (t) { return t.length > 1; });
+    .filter(function (t) {
+      return t.length > 1;
+    });
 }
 
 /**
@@ -193,12 +203,16 @@ function cosineSimilarity(vecA, vecB) {
 // ── Cache Key Generation ─────────────────────────────────────────────────────
 
 function makeCacheKey(provider, model, promptText) {
-  var partition = '';
+  var partition = "";
   var config = readConfig();
   if (config.perProviderPartition) {
-    partition = provider + ':' + (model || 'default') + ':';
+    partition = provider + ":" + (model || "default") + ":";
   }
-  var promptHash = crypto.createHash('sha256').update(promptText).digest('hex').slice(0, 16);
+  var promptHash = crypto
+    .createHash("sha256")
+    .update(promptText)
+    .digest("hex")
+    .slice(0, 16);
   return partition + promptHash;
 }
 
@@ -207,18 +221,18 @@ function makeCacheKey(provider, model, promptText) {
  * Concatenates all user messages, skipping system messages if configured.
  */
 function extractPromptText(prompt) {
-  if (typeof prompt === 'string') return prompt;
-  if (!Array.isArray(prompt)) return String(prompt || '');
+  if (typeof prompt === "string") return prompt;
+  if (!Array.isArray(prompt)) return String(prompt || "");
 
   var config = readConfig();
   var parts = [];
   for (var i = 0; i < prompt.length; i++) {
     var msg = prompt[i];
-    if (!msg || typeof msg !== 'object') continue;
-    if (config.skipSystemPrompts && msg.role === 'system') continue;
+    if (!msg || typeof msg !== "object") continue;
+    if (config.skipSystemPrompts && msg.role === "system") continue;
     if (msg.content) parts.push(String(msg.content));
   }
-  return parts.join('\n');
+  return parts.join("\n");
 }
 
 // ── Cache Lookup ─────────────────────────────────────────────────────────────
@@ -228,12 +242,16 @@ function extractPromptText(prompt) {
  */
 function isExcluded(promptText) {
   var config = readConfig();
-  if (!config.excludedPatterns || config.excludedPatterns.length === 0) return false;
+  if (!config.excludedPatterns || config.excludedPatterns.length === 0)
+    return false;
   for (var i = 0; i < config.excludedPatterns.length; i++) {
     try {
       var pattern = config.excludedPatterns[i];
-      if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
-        var regex = new RegExp(pattern.slice(1, pattern.lastIndexOf('/')), pattern.slice(pattern.lastIndexOf('/') + 1));
+      if (pattern.startsWith("/") && pattern.lastIndexOf("/") > 0) {
+        var regex = new RegExp(
+          pattern.slice(1, pattern.lastIndexOf("/")),
+          pattern.slice(pattern.lastIndexOf("/") + 1),
+        );
         if (regex.test(promptText)) return true;
       } else if (promptText.toLowerCase().includes(pattern.toLowerCase())) {
         return true;
@@ -279,8 +297,13 @@ function lookup(provider, model, prompt) {
       exact.lastAccessedAt = now;
       stats.hits++;
       _updateHitRate();
-      logger.debug('[SemanticCache] Exact hit for provider=' + provider);
-      return { response: exact.response, similarity: 1.0, cachedAt: exact.createdAt, savedLatencyMs: exact.latencyMs };
+      logger.debug("[SemanticCache] Exact hit for provider=" + provider);
+      return {
+        response: exact.response,
+        similarity: 1.0,
+        cachedAt: exact.createdAt,
+        savedLatencyMs: exact.latencyMs,
+      };
     }
   }
 
@@ -320,10 +343,20 @@ function lookup(provider, model, prompt) {
     bestMatch.lastAccessedAt = now;
     stats.hits++;
     stats.totalSavedLatencyMs += bestMatch.latencyMs;
-    stats.totalSavedTokens += (bestMatch.tokenCount || 0);
+    stats.totalSavedTokens += bestMatch.tokenCount || 0;
     _updateHitRate();
-    logger.info('[SemanticCache] Semantic hit (score=' + bestScore.toFixed(4) + ') for provider=' + provider);
-    return { response: bestMatch.response, similarity: bestScore, cachedAt: bestMatch.createdAt, savedLatencyMs: bestMatch.latencyMs };
+    logger.info(
+      "[SemanticCache] Semantic hit (score=" +
+        bestScore.toFixed(4) +
+        ") for provider=" +
+        provider,
+    );
+    return {
+      response: bestMatch.response,
+      similarity: bestScore,
+      cachedAt: bestMatch.createdAt,
+      savedLatencyMs: bestMatch.latencyMs,
+    };
   }
 
   stats.misses++;
@@ -355,10 +388,14 @@ function store(provider, model, prompt, response, latencyMs, tokenCount) {
   var entry = {
     key: cacheKey,
     provider: provider,
-    model: model || 'default',
+    model: model || "default",
     vector: vec,
     promptPreview: promptText.slice(0, 200),
-    promptHash: crypto.createHash('sha256').update(promptText).digest('hex').slice(0, 16),
+    promptHash: crypto
+      .createHash("sha256")
+      .update(promptText)
+      .digest("hex")
+      .slice(0, 16),
     response: response,
     latencyMs: latencyMs || 0,
     tokenCount: tokenCount || 0,
@@ -373,7 +410,13 @@ function store(provider, model, prompt, response, latencyMs, tokenCount) {
   }
 
   cache.set(cacheKey, entry);
-  logger.debug('[SemanticCache] Stored entry for provider=' + provider + ' (cache size=' + cache.size + ')');
+  logger.debug(
+    "[SemanticCache] Stored entry for provider=" +
+      provider +
+      " (cache size=" +
+      cache.size +
+      ")",
+  );
 }
 
 function _evictOldest() {
@@ -449,7 +492,9 @@ function invalidateByPattern(pattern) {
     if (regex) {
       matched = regex.test(entry.promptPreview);
     } else {
-      matched = entry.promptPreview.toLowerCase().includes(pattern.toLowerCase());
+      matched = entry.promptPreview
+        .toLowerCase()
+        .includes(pattern.toLowerCase());
     }
     if (matched) {
       toDelete.push(key);
@@ -490,7 +535,8 @@ function getStats() {
     hitRate: stats.hitRate,
     totalSavedLatencyMs: stats.totalSavedLatencyMs,
     totalSavedTokens: stats.totalSavedTokens,
-    avgSavedLatencyMs: stats.hits > 0 ? Math.round(stats.totalSavedLatencyMs / stats.hits) : 0,
+    avgSavedLatencyMs:
+      stats.hits > 0 ? Math.round(stats.totalSavedLatencyMs / stats.hits) : 0,
     totalHitCount: totalHitCount,
     byProvider: byProvider,
     vectorDimensions: VECTOR_DIMENSIONS,
@@ -503,7 +549,9 @@ function getEntries(limit) {
   _evict();
   limit = limit || 50;
   var entries = Array.from(cache.values())
-    .sort(function (a, b) { return b.lastAccessedAt - a.lastAccessedAt; })
+    .sort(function (a, b) {
+      return b.lastAccessedAt - a.lastAccessedAt;
+    })
     .slice(0, limit)
     .map(function (e) {
       return {

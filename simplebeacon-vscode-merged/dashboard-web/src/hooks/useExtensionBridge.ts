@@ -69,10 +69,10 @@ async function probeBridgePort(port: number): Promise<{ base: string; token: str
     clearTimeout(timer);
     if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
+    // Only accept servers that explicitly identify as a SimpleBeacon bridge.
+    // Generic { status: 'ok' } responses are rejected to avoid port collisions
+    // with other local servers (e.g. Devin CLI, VS Code, dev tools).
     if (data?.service === 'simplebeacon-bridge' || data?.platform === 'Simplebeacon') {
-      return { base: origin, token: (data.bridgeToken as string) || null };
-    }
-    if (data?.status === 'ok' || data?.online === true) {
       return { base: origin, token: (data.bridgeToken as string) || null };
     }
   } catch {
@@ -111,9 +111,7 @@ export function useExtensionBridge() {
     if (isHostedHttpsDashboard() && !userInitiated && !canUseParentBridgeFetch()) {
       if (storedBase) {
         setBridgeBase(storedBase);
-        setBridgeToken(
-          typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRIDGE_TOKEN_KEY) : null,
-        );
+        setBridgeToken(typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRIDGE_TOKEN_KEY) : null);
         setStatus('connected');
         return { ok: true as const, base: storedBase, unverified: true as const };
       }
@@ -128,7 +126,16 @@ export function useExtensionBridge() {
     setStatus('discovering');
 
     if (shouldAutoProbeLoopback(userInitiated)) {
-      const probes = await Promise.all(BRIDGE_PORTS.map((port) => probeBridgePort(port)));
+      // On hosted HTTPS, only probe the specific configured bridge origin — not all ports.
+      // Blind-scanning loopback ports from HTTPS causes CORS errors and LNA permission prompts.
+      const portsToProbe =
+        isHostedHttpsDashboard() && canUseParentBridgeFetch()
+          ? BRIDGE_PORTS.filter((port) => {
+              const bridgeOrigin = getExtensionBridgeOrigin();
+              return bridgeOrigin && `http://127.0.0.1:${port}` === bridgeOrigin;
+            })
+          : BRIDGE_PORTS;
+      const probes = await Promise.all(portsToProbe.map((port) => probeBridgePort(port)));
       const match = probes.find(Boolean);
       if (match) {
         persistExtensionBridge(`${match.base}/api`, {

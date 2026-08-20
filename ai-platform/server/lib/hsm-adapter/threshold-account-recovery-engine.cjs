@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 39: Threshold Account Recovery.
@@ -20,25 +20,34 @@
  * @module hsm-adapter/threshold-account-recovery-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 // ── Recovery states ──────────────────────────────────────────────
 const RECOVERY_STATE = {
-  IDLE: 'idle',
-  REQUESTED: 'requested',
-  APPROVING: 'approving',
-  RECOVERING: 'recovering',
-  RESTORED: 'restored',
-  REJECTED: 'rejected',
+  IDLE: "idle",
+  REQUESTED: "requested",
+  APPROVING: "approving",
+  RECOVERING: "recovering",
+  RESTORED: "restored",
+  REJECTED: "rejected",
 };
 
 // ── Valid state transitions ──────────────────────────────────────
 const VALID_TRANSITIONS = {
   [RECOVERY_STATE.IDLE]: [RECOVERY_STATE.REQUESTED],
-  [RECOVERY_STATE.REQUESTED]: [RECOVERY_STATE.APPROVING, RECOVERY_STATE.REJECTED],
-  [RECOVERY_STATE.APPROVING]: [RECOVERY_STATE.RECOVERING, RECOVERY_STATE.REJECTED],
-  [RECOVERY_STATE.RECOVERING]: [RECOVERY_STATE.RESTORED, RECOVERY_STATE.REJECTED],
+  [RECOVERY_STATE.REQUESTED]: [
+    RECOVERY_STATE.APPROVING,
+    RECOVERY_STATE.REJECTED,
+  ],
+  [RECOVERY_STATE.APPROVING]: [
+    RECOVERY_STATE.RECOVERING,
+    RECOVERY_STATE.REJECTED,
+  ],
+  [RECOVERY_STATE.RECOVERING]: [
+    RECOVERY_STATE.RESTORED,
+    RECOVERY_STATE.REJECTED,
+  ],
   [RECOVERY_STATE.RESTORED]: [],
   [RECOVERY_STATE.REJECTED]: [],
 };
@@ -58,12 +67,23 @@ class GuardianRegistry {
    * @param {number} threshold
    */
   registerAccount(accountId, guardians, threshold) {
-    if (!accountId) throw new HsmAdapterError('INVALID_INPUT', 'accountId is required');
+    if (!accountId)
+      throw new HsmAdapterError("INVALID_INPUT", "accountId is required");
     if (!Array.isArray(guardians) || guardians.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'guardians must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "guardians must be a non-empty array",
+      );
     }
-    if (!Number.isInteger(threshold) || threshold < 1 || threshold > guardians.length) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold must be 1 ≤ t ≤ ${guardians.length}`);
+    if (
+      !Number.isInteger(threshold) ||
+      threshold < 1 ||
+      threshold > guardians.length
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        `threshold must be 1 ≤ t ≤ ${guardians.length}`,
+      );
     }
     this._accounts.set(accountId, {
       guardians: new Set(guardians),
@@ -88,7 +108,11 @@ class GuardianRegistry {
    */
   getAccount(accountId) {
     const account = this._accounts.get(accountId);
-    if (!account) throw new HsmAdapterError('ACCOUNT_NOT_FOUND', `account ${accountId} not found`);
+    if (!account)
+      throw new HsmAdapterError(
+        "ACCOUNT_NOT_FOUND",
+        `account ${accountId} not found`,
+      );
     return {
       accountId,
       guardians: Array.from(account.guardians),
@@ -117,9 +141,16 @@ class GuardianRegistry {
    */
   storeShare(accountId, guardianId, share) {
     const account = this._accounts.get(accountId);
-    if (!account) throw new HsmAdapterError('ACCOUNT_NOT_FOUND', `account ${accountId} not found`);
+    if (!account)
+      throw new HsmAdapterError(
+        "ACCOUNT_NOT_FOUND",
+        `account ${accountId} not found`,
+      );
     if (!account.guardians.has(guardianId)) {
-      throw new HsmAdapterError('GUARDIAN_UNKNOWN', `guardian ${guardianId} not designated for account ${accountId}`);
+      throw new HsmAdapterError(
+        "GUARDIAN_UNKNOWN",
+        `guardian ${guardianId} not designated for account ${accountId}`,
+      );
     }
     account.recoveryShares.set(guardianId, share);
   }
@@ -144,7 +175,11 @@ class GuardianRegistry {
    */
   addGuardian(accountId, guardianId, approverIds) {
     const account = this._accounts.get(accountId);
-    if (!account) throw new HsmAdapterError('ACCOUNT_NOT_FOUND', `account ${accountId} not found`);
+    if (!account)
+      throw new HsmAdapterError(
+        "ACCOUNT_NOT_FOUND",
+        `account ${accountId} not found`,
+      );
     this._validateApprovers(account, approverIds);
     account.guardians.add(guardianId);
   }
@@ -157,13 +192,23 @@ class GuardianRegistry {
    */
   removeGuardian(accountId, guardianId, approverIds) {
     const account = this._accounts.get(accountId);
-    if (!account) throw new HsmAdapterError('ACCOUNT_NOT_FOUND', `account ${accountId} not found`);
+    if (!account)
+      throw new HsmAdapterError(
+        "ACCOUNT_NOT_FOUND",
+        `account ${accountId} not found`,
+      );
     this._validateApprovers(account, approverIds);
     if (!account.guardians.has(guardianId)) {
-      throw new HsmAdapterError('GUARDIAN_UNKNOWN', `guardian ${guardianId} not designated for account ${accountId}`);
+      throw new HsmAdapterError(
+        "GUARDIAN_UNKNOWN",
+        `guardian ${guardianId} not designated for account ${accountId}`,
+      );
     }
     if (account.guardians.size <= account.threshold) {
-      throw new HsmAdapterError('GUARDIAN_REMOVAL_BLOCKED', `removing guardian would make quorum impossible (${account.guardians.size - 1} < ${account.threshold})`);
+      throw new HsmAdapterError(
+        "GUARDIAN_REMOVAL_BLOCKED",
+        `removing guardian would make quorum impossible (${account.guardians.size - 1} < ${account.threshold})`,
+      );
     }
     account.guardians.delete(guardianId);
     account.recoveryShares.delete(guardianId);
@@ -176,11 +221,17 @@ class GuardianRegistry {
    */
   _validateApprovers(account, approverIds) {
     if (!Array.isArray(approverIds) || approverIds.length < account.threshold) {
-      throw new HsmAdapterError('INSUFFICIENT_APPROVERS', `need ${account.threshold} approvers, got ${approverIds?.length || 0}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_APPROVERS",
+        `need ${account.threshold} approvers, got ${approverIds?.length || 0}`,
+      );
     }
     for (const approverId of approverIds) {
       if (!account.guardians.has(approverId)) {
-        throw new HsmAdapterError('APPROVER_UNAUTHORIZED', `approver ${approverId} is not a designated guardian`);
+        throw new HsmAdapterError(
+          "APPROVER_UNAUTHORIZED",
+          `approver ${approverId} is not a designated guardian`,
+        );
       }
     }
   }
@@ -208,7 +259,10 @@ class ThresholdAccountRecoveryEngine {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    this.defaultTimeLockMs = options.defaultTimeLockMs !== undefined ? options.defaultTimeLockMs : 86400000; // 24 hours
+    this.defaultTimeLockMs =
+      options.defaultTimeLockMs !== undefined
+        ? options.defaultTimeLockMs
+        : 86400000; // 24 hours
     this.maxRecoveryRequests = options.maxRecoveryRequests || 100;
     this._audit = options.audit || null;
 
@@ -226,7 +280,11 @@ class ThresholdAccountRecoveryEngine {
    */
   registerAccount(accountId, guardians, threshold) {
     this._registry.registerAccount(accountId, guardians, threshold);
-    this._emitAudit('ACCOUNT_REGISTERED', { accountId, guardianCount: guardians.length, threshold });
+    this._emitAudit("ACCOUNT_REGISTERED", {
+      accountId,
+      guardianCount: guardians.length,
+      threshold,
+    });
   }
 
   /**
@@ -237,7 +295,7 @@ class ThresholdAccountRecoveryEngine {
    */
   storeRecoveryShare(accountId, guardianId, share) {
     this._registry.storeShare(accountId, guardianId, share);
-    this._emitAudit('RECOVERY_SHARE_STORED', { accountId, guardianId });
+    this._emitAudit("RECOVERY_SHARE_STORED", { accountId, guardianId });
   }
 
   /**
@@ -248,24 +306,38 @@ class ThresholdAccountRecoveryEngine {
    */
   initiateRecovery(accountId, timeLockMs) {
     if (!this._registry.hasAccount(accountId)) {
-      throw new HsmAdapterError('ACCOUNT_NOT_FOUND', `account ${accountId} not registered`);
+      throw new HsmAdapterError(
+        "ACCOUNT_NOT_FOUND",
+        `account ${accountId} not registered`,
+      );
     }
     if (this._recoveryRequests.size >= this.maxRecoveryRequests) {
-      throw new HsmAdapterError('RECOVERY_LIMIT_EXCEEDED', `max ${this.maxRecoveryRequests} active requests`);
+      throw new HsmAdapterError(
+        "RECOVERY_LIMIT_EXCEEDED",
+        `max ${this.maxRecoveryRequests} active requests`,
+      );
     }
 
     // Check if there's already an active recovery for this account
     for (const req of this._recoveryRequests.values()) {
-      if (req.accountId === accountId && req.state !== RECOVERY_STATE.RESTORED && req.state !== RECOVERY_STATE.REJECTED) {
-        throw new HsmAdapterError('RECOVERY_ALREADY_ACTIVE', `account ${accountId} already has active recovery ${req.requestId}`);
+      if (
+        req.accountId === accountId &&
+        req.state !== RECOVERY_STATE.RESTORED &&
+        req.state !== RECOVERY_STATE.REJECTED
+      ) {
+        throw new HsmAdapterError(
+          "RECOVERY_ALREADY_ACTIVE",
+          `account ${accountId} already has active recovery ${req.requestId}`,
+        );
       }
     }
 
     const requestId = `rec-${this._nextRequestId}`;
     this._nextRequestId++;
-    const nonce = crypto.randomBytes(16).toString('hex');
+    const nonce = crypto.randomBytes(16).toString("hex");
     const now = Date.now();
-    const lockMs = timeLockMs !== undefined ? timeLockMs : this.defaultTimeLockMs;
+    const lockMs =
+      timeLockMs !== undefined ? timeLockMs : this.defaultTimeLockMs;
 
     this._recoveryRequests.set(requestId, {
       requestId,
@@ -278,8 +350,18 @@ class ThresholdAccountRecoveryEngine {
     });
 
     this._seenNonces.add(nonce);
-    this._emitAudit('RECOVERY_REQUESTED', { requestId, accountId, timeLockUntil: now + lockMs });
-    return { requestId, accountId, state: RECOVERY_STATE.REQUESTED, nonce, timeLockUntil: now + lockMs };
+    this._emitAudit("RECOVERY_REQUESTED", {
+      requestId,
+      accountId,
+      timeLockUntil: now + lockMs,
+    });
+    return {
+      requestId,
+      accountId,
+      state: RECOVERY_STATE.REQUESTED,
+      nonce,
+      timeLockUntil: now + lockMs,
+    };
   }
 
   /**
@@ -293,17 +375,29 @@ class ThresholdAccountRecoveryEngine {
 
     // Anti-replay: verify nonce
     if (req.nonce !== nonce) {
-      throw new HsmAdapterError('RECOVERY_NONCE_MISMATCH', 'nonce does not match recovery request');
+      throw new HsmAdapterError(
+        "RECOVERY_NONCE_MISMATCH",
+        "nonce does not match recovery request",
+      );
     }
 
     // Verify guardian is designated
     if (!this._registry.isGuardian(req.accountId, guardianId)) {
-      throw new HsmAdapterError('GUARDIAN_UNAUTHORIZED', `guardian ${guardianId} not designated for account ${req.accountId}`);
+      throw new HsmAdapterError(
+        "GUARDIAN_UNAUTHORIZED",
+        `guardian ${guardianId} not designated for account ${req.accountId}`,
+      );
     }
 
     // Check state
-    if (req.state !== RECOVERY_STATE.REQUESTED && req.state !== RECOVERY_STATE.APPROVING) {
-      throw new HsmAdapterError('RECOVERY_NOT_ACCEPTING', `recovery ${requestId} in state ${req.state} does not accept approvals`);
+    if (
+      req.state !== RECOVERY_STATE.REQUESTED &&
+      req.state !== RECOVERY_STATE.APPROVING
+    ) {
+      throw new HsmAdapterError(
+        "RECOVERY_NOT_ACCEPTING",
+        `recovery ${requestId} in state ${req.state} does not accept approvals`,
+      );
     }
 
     // Transition to APPROVING on first approval
@@ -313,7 +407,10 @@ class ThresholdAccountRecoveryEngine {
 
     // Check for duplicate approval
     if (req.approvals.has(guardianId)) {
-      throw new HsmAdapterError('GUARDIAN_ALREADY_APPROVED', `guardian ${guardianId} already approved recovery ${requestId}`);
+      throw new HsmAdapterError(
+        "GUARDIAN_ALREADY_APPROVED",
+        `guardian ${guardianId} already approved recovery ${requestId}`,
+      );
     }
 
     req.approvals.set(guardianId, Date.now());
@@ -321,7 +418,13 @@ class ThresholdAccountRecoveryEngine {
     const account = this._registry.getAccount(req.accountId);
     const quorumReached = req.approvals.size >= account.threshold;
 
-    this._emitAudit('RECOVERY_APPROVED', { requestId, guardianId, approvals: req.approvals.size, threshold: account.threshold, quorumReached });
+    this._emitAudit("RECOVERY_APPROVED", {
+      requestId,
+      guardianId,
+      approvals: req.approvals.size,
+      threshold: account.threshold,
+      quorumReached,
+    });
 
     return {
       requestId,
@@ -344,17 +447,26 @@ class ThresholdAccountRecoveryEngine {
 
     // Check quorum
     if (req.approvals.size < account.threshold) {
-      throw new HsmAdapterError('RECOVERY_QUORUM_NOT_MET', `only ${req.approvals.size} approvals, need ${account.threshold}`);
+      throw new HsmAdapterError(
+        "RECOVERY_QUORUM_NOT_MET",
+        `only ${req.approvals.size} approvals, need ${account.threshold}`,
+      );
     }
 
     // Check time-lock
     if (Date.now() < req.timeLockUntil) {
-      throw new HsmAdapterError('RECOVERY_TIME_LOCKED', `time-lock expires at ${new Date(req.timeLockUntil).toISOString()}`);
+      throw new HsmAdapterError(
+        "RECOVERY_TIME_LOCKED",
+        `time-lock expires at ${new Date(req.timeLockUntil).toISOString()}`,
+      );
     }
 
     // Check state
     if (req.state !== RECOVERY_STATE.APPROVING) {
-      throw new HsmAdapterError('RECOVERY_NOT_APPROVING', `recovery ${requestId} in state ${req.state}, must be approving`);
+      throw new HsmAdapterError(
+        "RECOVERY_NOT_APPROVING",
+        `recovery ${requestId} in state ${req.state}, must be approving`,
+      );
     }
 
     this._transition(requestId, RECOVERY_STATE.RECOVERING);
@@ -368,7 +480,11 @@ class ThresholdAccountRecoveryEngine {
 
     this._transition(requestId, RECOVERY_STATE.RESTORED);
 
-    this._emitAudit('RECOVERY_EXECUTED', { requestId, accountId: req.accountId, sharesCollected: shares.length });
+    this._emitAudit("RECOVERY_EXECUTED", {
+      requestId,
+      accountId: req.accountId,
+      sharesCollected: shares.length,
+    });
     return {
       requestId,
       accountId: req.accountId,
@@ -383,16 +499,22 @@ class ThresholdAccountRecoveryEngine {
    * @param {string} requestId
    * @param {string} [reason]
    */
-  rejectRecovery(requestId, reason = 'manual') {
+  rejectRecovery(requestId, reason = "manual") {
     const req = this._getRecoveryRequest(requestId);
     if (req.state === RECOVERY_STATE.RESTORED) {
-      throw new HsmAdapterError('RECOVERY_ALREADY_RESTORED', `recovery ${requestId} already restored`);
+      throw new HsmAdapterError(
+        "RECOVERY_ALREADY_RESTORED",
+        `recovery ${requestId} already restored`,
+      );
     }
     if (req.state === RECOVERY_STATE.REJECTED) {
-      throw new HsmAdapterError('RECOVERY_ALREADY_REJECTED', `recovery ${requestId} already rejected`);
+      throw new HsmAdapterError(
+        "RECOVERY_ALREADY_REJECTED",
+        `recovery ${requestId} already rejected`,
+      );
     }
     this._transition(requestId, RECOVERY_STATE.REJECTED);
-    this._emitAudit('RECOVERY_REJECTED', { requestId, reason });
+    this._emitAudit("RECOVERY_REJECTED", { requestId, reason });
     return { requestId, state: RECOVERY_STATE.REJECTED, reason };
   }
 
@@ -430,7 +552,9 @@ class ThresholdAccountRecoveryEngine {
    */
   getEngineState() {
     const activeRecoveries = Array.from(this._recoveryRequests.values()).filter(
-      (r) => r.state !== RECOVERY_STATE.RESTORED && r.state !== RECOVERY_STATE.REJECTED,
+      (r) =>
+        r.state !== RECOVERY_STATE.RESTORED &&
+        r.state !== RECOVERY_STATE.REJECTED,
     ).length;
     return {
       registeredAccounts: this._registry.getAccountIds().length,
@@ -447,7 +571,10 @@ class ThresholdAccountRecoveryEngine {
   _getRecoveryRequest(requestId) {
     const req = this._recoveryRequests.get(requestId);
     if (!req) {
-      throw new HsmAdapterError('RECOVERY_NOT_FOUND', `recovery request ${requestId} not found`);
+      throw new HsmAdapterError(
+        "RECOVERY_NOT_FOUND",
+        `recovery request ${requestId} not found`,
+      );
     }
     return req;
   }
@@ -462,7 +589,7 @@ class ThresholdAccountRecoveryEngine {
     const allowed = VALID_TRANSITIONS[req.state] || [];
     if (!allowed.includes(newState)) {
       throw new HsmAdapterError(
-        'RECOVERY_INVALID_TRANSITION',
+        "RECOVERY_INVALID_TRANSITION",
         `cannot transition recovery ${requestId} from ${req.state} to ${newState}`,
       );
     }

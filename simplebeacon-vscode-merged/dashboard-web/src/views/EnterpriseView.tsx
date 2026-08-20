@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -140,8 +140,10 @@ export function EnterpriseView() {
   // Azure DevOps state
   const [azureConfig, setAzureConfig] = useState<AzureDevOpsResponse | null>(null);
   const [generatingAzure, setGeneratingAzure] = useState(false);
+  const fetchErrorRef = useRef(false);
 
   const fetchOrgs = useCallback(async () => {
+    if (fetchErrorRef.current) return;
     setLoading(true);
     setError(null);
     try {
@@ -151,6 +153,9 @@ export function EnterpriseView() {
       setOrgs(data.organizations || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load organizations');
+      if (err.message && /HTTP (401|403|404)/.test(err.message)) {
+        fetchErrorRef.current = true;
+      }
     } finally {
       setLoading(false);
     }
@@ -187,6 +192,7 @@ export function EnterpriseView() {
       const data: OnboardResponse = await res.json();
       setOnboardResult(data);
       toast.success(`Organization "${data.companyName}" provisioned successfully`);
+      fetchErrorRef.current = false;
       await fetchOrgs();
       setActiveTab('result');
     } catch (err: any) {
@@ -523,6 +529,7 @@ export function EnterpriseView() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                aria-label="Remove seat"
                                 onClick={() => handleRemoveSeat(email)}
                               >
                                 <Trash2 className="h-4 w-4" />

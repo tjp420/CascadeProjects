@@ -19,6 +19,7 @@ ROADMAP_MEMORY_LIMIT_MB=1024 npm test -- --testPathPattern=flexible-analyze-road
 ```
 
 Notes:
+
 - This change does NOT remove the guardrail; it only makes it configurable so tests
   can set an appropriate buffer. Keep the guard in place for production safety.
 - Prefer narrowing Jest runs with `--testPathPattern` when debugging memory-sensitive

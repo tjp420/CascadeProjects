@@ -4,12 +4,12 @@ const CLI_DOCS = 'https://github.com/tjp420/simplebeacon/blob/main/README.md';
 
 /** Community-first install page — no enterprise tiers or Stripe checkout. */
 export class PricingView {
-  constructor(app) {
-    this.app = app;
-  }
+    constructor(app) {
+        this.app = app;
+    }
 
-  mount(container) {
-container.innerHTML = `
+    mount(container) {
+        container.innerHTML = `
       <div class="page-header">
         <h1>Install</h1>
         <p class="page-subtitle">
@@ -65,11 +65,10 @@ container.innerHTML = `
       </div>
     `;
 
-    container.querySelector('#goto-about')?.addEventListener('click', () => {
-      this.app.navigate('about');
-    });
-  }
+        container.querySelector('#goto-about')?.addEventListener('click', () => {
+            this.app.navigate('about');
+        });
+    }
 
-  destroy() {}
+    destroy() {}
 }
-

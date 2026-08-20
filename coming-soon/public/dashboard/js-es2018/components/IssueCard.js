@@ -42,18 +42,18 @@ export function renderIssueCard(category) {
 export function renderIssueList(categories, { onSelect } = {}) {
     const wrapper = document.createElement('div');
     wrapper.className = 'issue-list';
-    categories.forEach((category) => {
+    categories.forEach(category => {
         wrapper.appendChild(renderIssueCard(category));
     });
     if (onSelect) {
-        wrapper.querySelectorAll('.issue-card').forEach((card) => {
+        wrapper.querySelectorAll('.issue-card').forEach(card => {
             /**
              * Handler.
              * @returns {any}
              */
             const handler = () => onSelect(card.dataset.category);
             card.addEventListener('click', handler);
-            card.addEventListener('keydown', (e) => {
+            card.addEventListener('keydown', e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     handler();

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * X.509 Certificate Chain Validator
@@ -19,7 +19,7 @@
  * @module hsm-adapter/cert-chain-validator
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 /**
  * Parse a certificate from PEM string or DER Buffer.
@@ -28,13 +28,13 @@ const crypto = require('crypto');
  */
 function parseCertificate(certInput) {
   try {
-    if (typeof certInput === 'string') {
+    if (typeof certInput === "string") {
       // PEM format
-      if (certInput.includes('-----BEGIN CERTIFICATE-----')) {
+      if (certInput.includes("-----BEGIN CERTIFICATE-----")) {
         return new crypto.X509Certificate(certInput);
       }
       // Hex string — convert to buffer
-      return new crypto.X509Certificate(Buffer.from(certInput, 'hex'));
+      return new crypto.X509Certificate(Buffer.from(certInput, "hex"));
     }
     if (Buffer.isBuffer(certInput)) {
       return new crypto.X509Certificate(certInput);
@@ -51,7 +51,7 @@ function parseCertificate(certInput) {
  * @returns {string} Hex fingerprint
  */
 function getFingerprint(cert) {
-  return crypto.createHash('sha256').update(cert.raw).digest('hex');
+  return crypto.createHash("sha256").update(cert.raw).digest("hex");
 }
 
 /**
@@ -157,7 +157,8 @@ class CertChainValidator {
    * @returns {boolean} true if added, false if parse failed
    */
   addRootCA(cert) {
-    const parsed = cert instanceof crypto.X509Certificate ? cert : parseCertificate(cert);
+    const parsed =
+      cert instanceof crypto.X509Certificate ? cert : parseCertificate(cert);
     if (!parsed) return false;
     const fp = getFingerprint(parsed);
     this._rootCAs.set(fp, parsed);
@@ -170,7 +171,8 @@ class CertChainValidator {
    * @returns {boolean} true if added, false if parse failed
    */
   addIntermediateCA(cert) {
-    const parsed = cert instanceof crypto.X509Certificate ? cert : parseCertificate(cert);
+    const parsed =
+      cert instanceof crypto.X509Certificate ? cert : parseCertificate(cert);
     if (!parsed) return false;
     const fp = getFingerprint(parsed);
     this._intermediateCAs.set(fp, parsed);
@@ -210,19 +212,27 @@ class CertChainValidator {
     const errors = [];
     const chain = [];
 
-    const leaf = leafCert instanceof crypto.X509Certificate ? leafCert : parseCertificate(leafCert);
+    const leaf =
+      leafCert instanceof crypto.X509Certificate
+        ? leafCert
+        : parseCertificate(leafCert);
     if (!leaf) {
-      return { valid: false, chain: [], rootFingerprint: null, errors: ['failed to parse leaf certificate'] };
+      return {
+        valid: false,
+        chain: [],
+        rootFingerprint: null,
+        errors: ["failed to parse leaf certificate"],
+      };
     }
 
     // Check leaf validity
     if (checkValidity && !isCertValid(leaf)) {
-      errors.push('leaf certificate is expired or not yet valid');
+      errors.push("leaf certificate is expired or not yet valid");
     }
 
     // Check leaf key usage
     if (!checkKeyUsage(leaf, requiredKeyUsage)) {
-      errors.push('leaf certificate missing required key usage');
+      errors.push("leaf certificate missing required key usage");
     }
 
     chain.push(getFingerprint(leaf));
@@ -243,13 +253,17 @@ class CertChainValidator {
         // Check if root is pinned
         if (checkPin && this._pinnedFingerprints.size > 0) {
           if (!this.isPinned(rootFp)) {
-            errors.push('root certificate is not pinned: ' + rootFp.substring(0, 16) + '...');
+            errors.push(
+              "root certificate is not pinned: " +
+                rootFp.substring(0, 16) +
+                "...",
+            );
           }
         }
 
         // Check root validity
         if (checkValidity && !isCertValid(current)) {
-          errors.push('root certificate is expired or not yet valid');
+          errors.push("root certificate is expired or not yet valid");
         }
 
         return {
@@ -264,22 +278,27 @@ class CertChainValidator {
       let issuer = this._findIssuer(current);
 
       if (!issuer) {
-        errors.push('cannot find issuer for: ' + current.subject);
+        errors.push("cannot find issuer for: " + current.subject);
         return { valid: false, chain, rootFingerprint: null, errors };
       }
 
       // Verify signature
       if (!verifyCertSignature(current, issuer)) {
-        errors.push('signature verification failed: ' + current.subject + ' not signed by ' + issuer.subject);
+        errors.push(
+          "signature verification failed: " +
+            current.subject +
+            " not signed by " +
+            issuer.subject,
+        );
         return { valid: false, chain, rootFingerprint: null, errors };
       }
 
       // Check issuer validity and CA status
       if (!issuer.ca) {
-        errors.push('issuer is not a CA certificate: ' + issuer.subject);
+        errors.push("issuer is not a CA certificate: " + issuer.subject);
       }
       if (checkValidity && !isCertValid(issuer)) {
-        errors.push('intermediate certificate expired: ' + issuer.subject);
+        errors.push("intermediate certificate expired: " + issuer.subject);
       }
 
       const issuerFp = getFingerprint(issuer);
@@ -287,7 +306,7 @@ class CertChainValidator {
       current = issuer;
     }
 
-    errors.push('chain too deep (possible loop)');
+    errors.push("chain too deep (possible loop)");
     return { valid: false, chain, rootFingerprint: null, errors };
   }
 
@@ -306,7 +325,11 @@ class CertChainValidator {
       ...this._rootCAs.values(),
     ];
     for (const ca of candidates) {
-      if (ca.subject === cert.issuer && ca.ca && verifyCertSignature(cert, ca)) {
+      if (
+        ca.subject === cert.issuer &&
+        ca.ca &&
+        verifyCertSignature(cert, ca)
+      ) {
         return ca;
       }
     }
@@ -322,11 +345,22 @@ class CertChainValidator {
    * @returns {{ valid: boolean, chain: string[], rootFingerprint: string|null, errors: string[] }}
    */
   validateSevSnpChain(vcekCert, askCert, arkCert, options = {}) {
-    const ark = arkCert instanceof crypto.X509Certificate ? arkCert : parseCertificate(arkCert);
-    const ask = askCert instanceof crypto.X509Certificate ? askCert : parseCertificate(askCert);
+    const ark =
+      arkCert instanceof crypto.X509Certificate
+        ? arkCert
+        : parseCertificate(arkCert);
+    const ask =
+      askCert instanceof crypto.X509Certificate
+        ? askCert
+        : parseCertificate(askCert);
 
     if (!ark || !ask) {
-      return { valid: false, chain: [], rootFingerprint: null, errors: ['failed to parse ARK or ASK certificate'] };
+      return {
+        valid: false,
+        chain: [],
+        rootFingerprint: null,
+        errors: ["failed to parse ARK or ASK certificate"],
+      };
     }
 
     // Add ARK as root and ASK as intermediate
@@ -352,11 +386,22 @@ class CertChainValidator {
    * @returns {{ valid: boolean, chain: string[], rootFingerprint: string|null, errors: string[] }}
    */
   validateSgxChain(pckCert, pckCaCert, rootCaCert, options = {}) {
-    const rootCa = rootCaCert instanceof crypto.X509Certificate ? rootCaCert : parseCertificate(rootCaCert);
-    const pckCa = pckCaCert instanceof crypto.X509Certificate ? pckCaCert : parseCertificate(pckCaCert);
+    const rootCa =
+      rootCaCert instanceof crypto.X509Certificate
+        ? rootCaCert
+        : parseCertificate(rootCaCert);
+    const pckCa =
+      pckCaCert instanceof crypto.X509Certificate
+        ? pckCaCert
+        : parseCertificate(pckCaCert);
 
     if (!rootCa || !pckCa) {
-      return { valid: false, chain: [], rootFingerprint: null, errors: ['failed to parse Root CA or PCK CA certificate'] };
+      return {
+        valid: false,
+        chain: [],
+        rootFingerprint: null,
+        errors: ["failed to parse Root CA or PCK CA certificate"],
+      };
     }
 
     // Add Root CA as root and PCK CA as intermediate
@@ -378,7 +423,8 @@ class CertChainValidator {
    * @returns {KeyObject|null}
    */
   extractPublicKey(cert) {
-    const parsed = cert instanceof crypto.X509Certificate ? cert : parseCertificate(cert);
+    const parsed =
+      cert instanceof crypto.X509Certificate ? cert : parseCertificate(cert);
     if (!parsed) return null;
     return parsed.publicKey;
   }

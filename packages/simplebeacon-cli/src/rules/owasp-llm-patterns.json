@@ -10,7 +10,16 @@
     "message": "Unsanitized user input flowing into LLM prompt — prompt injection risk (OWASP LLM01)",
     "suggestion": "Sanitize and validate user input before passing to LLM. Use input allowlists and output validation",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -25,7 +34,16 @@
     "message": "Sensitive data (PII/credentials) being sent to LLM API — information disclosure risk (OWASP LLM02)",
     "suggestion": "Never pass PII or credentials to LLM APIs. Redact or strip sensitive fields before API calls",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -40,7 +58,14 @@
     "message": "Raw LLM output being rendered as HTML or executed — XSS/code injection risk (OWASP LLM05)",
     "suggestion": "Sanitize LLM output before rendering. Use textContent instead of innerHTML, or apply HTML sanitization",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -55,7 +80,14 @@
     "message": "LLM output being used for system commands or DB queries — excessive agency risk (OWASP LLM06)",
     "suggestion": "Never let LLM output directly execute commands or queries. Validate and sanitize all LLM-generated actions",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -70,7 +102,14 @@
     "message": "Secrets detected in LLM system prompt — leakage risk (OWASP LLM07)",
     "suggestion": "Never embed credentials in system prompts. Pass secrets through tool functions or env vars instead",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -85,7 +124,14 @@
     "message": "Unbounded LLM token consumption detected — cost and DoS risk (OWASP LLM10)",
     "suggestion": "Set reasonable max_tokens limits (e.g., 4096) and add loop termination conditions for LLM calls",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   }

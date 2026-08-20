@@ -9,25 +9,25 @@
  */
 
 const STRATEGIES = {
-  DELETE: 'delete',
-  REPLACE: 'replace',
-  WRAP: 'wrap',
-  INSERT: 'insert',
+  DELETE: "delete",
+  REPLACE: "replace",
+  WRAP: "wrap",
+  INSERT: "insert",
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function lineAt(content, oneBasedLine) {
-  const lines = content.split('\n');
-  return lines[oneBasedLine - 1] || '';
+  const lines = content.split("\n");
+  return lines[oneBasedLine - 1] || "";
 }
 
 function allLines(content) {
-  return content.split('\n');
+  return content.split("\n");
 }
 
 function joinLines(lines) {
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function replaceLine(lines, oneBasedLine, newText) {
@@ -67,30 +67,36 @@ function replaceStrategy({ finding, content }) {
 
   // Rule-specific replacements
   switch (finding.type) {
-    case 'debugger-statement':
-      newText = lineText.replace(/debugge?r;?/g, '');
+    case "debugger-statement":
+      newText = lineText.replace(/debugge?r;?/g, "");
       confidence = 0.95;
       break;
-    case 'console-log':
-      newText = lineText.replace(/console\.(?:log|warn|error|info|debug)\s*\([^)]*\)\s*;?/g, '');
+    case "console-log":
+      newText = lineText.replace(
+        /console\.(?:log|warn|error|info|debug)\s*\([^)]*\)\s*;?/g,
+        "",
+      );
       confidence = 0.95;
       break;
-    case 'eval-usage':
-      newText = lineText.replace(/eval\s*\(/g, 'JSON.parse(');
+    case "eval-usage":
+      newText = lineText.replace(/eval\s*\(/g, "JSON.parse(");
       confidence = 0.6;
       break;
-    case 'todo-comment':
-    case 'fixme-comment':
-      newText = lineText.replace(/\/\/\s*(TODO|FIXME|HACK|XXX)\s*:?\s*.*/i, '');
+    case "todo-comment":
+    case "fixme-comment":
+      newText = lineText.replace(/\/\/\s*(TODO|FIXME|HACK|XXX)\s*:?\s*.*/i, "");
       confidence = 0.85;
       break;
-    case 'hardcoded-secret':
-      newText = lineText.replace(/['"`]\s*sk_(?:live|test)_[a-zA-Z0-9_]+\s*['"`]/g, "process.env.STRIPE_SECRET_KEY");
+    case "hardcoded-secret":
+      newText = lineText.replace(
+        /['"`]\s*sk_(?:live|test)_[a-zA-Z0-9_]+\s*['"`]/g,
+        "process.env.STRIPE_SECRET_KEY",
+      );
       confidence = 0.75;
       break;
     default:
       // Generic: comment out the line
-      newText = '// ' + lineText;
+      newText = "// " + lineText;
       confidence = 0.5;
   }
 
@@ -108,33 +114,33 @@ function replaceStrategy({ finding, content }) {
 
 function wrapStrategy({ finding, content }) {
   const lineText = lineAt(content, finding.line);
-  let prefix = '';
-  let suffix = '';
+  let prefix = "";
+  let suffix = "";
   let confidence = 0.6;
 
   switch (finding.type) {
-    case 'unhandled-promise':
-      if (!lineText.includes('.catch')) {
-        prefix = 'try { ';
-        suffix = ' } catch (e) { /* handle error */ }';
+    case "unhandled-promise":
+      if (!lineText.includes(".catch")) {
+        prefix = "try { ";
+        suffix = " } catch (e) { /* handle error */ }";
         confidence = 0.7;
       }
       break;
-    case 'missing-strict-mode':
+    case "missing-strict-mode":
       prefix = "'use strict';\n";
-      suffix = '';
+      suffix = "";
       confidence = 0.95;
       break;
-    case 'insecure-random':
+    case "insecure-random":
       if (/Math\.random\(\)/.test(lineText)) {
-        prefix = 'crypto.randomInt(0, ';
-        suffix = ')';
+        prefix = "crypto.randomInt(0, ";
+        suffix = ")";
         confidence = 0.6;
       }
       break;
     default:
-      prefix = '/* simplebeacon-fix: ' + finding.type + ' */\n';
-      suffix = '\n/* end fix */';
+      prefix = "/* simplebeacon-fix: " + finding.type + " */\n";
+      suffix = "\n/* end fix */";
   }
 
   return {
@@ -151,34 +157,34 @@ function wrapStrategy({ finding, content }) {
 
 function insertStrategy({ finding, content }) {
   const lineText = lineAt(content, finding.line);
-  let insertText = '';
+  let insertText = "";
   let insertLine = finding.line;
   let confidence = 0.5;
 
   switch (finding.type) {
-    case 'missing-rate-limit':
+    case "missing-rate-limit":
       insertText = "const rateLimit = require('express-rate-limit');";
       insertLine = 1;
       confidence = 0.85;
       break;
-    case 'missing-strict-mode':
+    case "missing-strict-mode":
       insertText = "'use strict';";
       insertLine = 1;
       confidence = 0.95;
       break;
-    case 'unhandled-promise':
-      insertText = '.catch(err => console.error(err))';
+    case "unhandled-promise":
+      insertText = ".catch(err => console.error(err))";
       confidence = 0.7;
       break;
     default:
-      insertText = '// simplebeacon-ignore: ' + finding.type;
+      insertText = "// simplebeacon-ignore: " + finding.type;
       confidence = 0.4;
   }
 
   return {
     strategy: STRATEGIES.INSERT,
     line: insertLine,
-    oldText: '',
+    oldText: "",
     newText: insertText,
     confidence,
     reason: `Insert guard for ${finding.type}`,
@@ -193,49 +199,47 @@ function selectStrategy(finding) {
 
   // High-confidence DELETE candidates
   const deleteTypes = [
-    'debugger-statement',
-    'console-log',
-    'ai-filler-comment',
-    'ai-filler-block',
-    'markdown-fence-leak',
-    'empty-stub-function',
-    'arrow-stub',
-    'todo-comment',
-    'fixme-comment',
-    'hardcoded-confidence',
-    'hardcoded-completion',
+    "debugger-statement",
+    "console-log",
+    "ai-filler-comment",
+    "ai-filler-block",
+    "markdown-fence-leak",
+    "empty-stub-function",
+    "arrow-stub",
+    "todo-comment",
+    "fixme-comment",
+    "hardcoded-confidence",
+    "hardcoded-completion",
   ];
   if (deleteTypes.includes(type)) return STRATEGIES.DELETE;
 
   // High-confidence REPLACE candidates
   const replaceTypes = [
-    'eval-usage',
-    'hardcoded-secret',
-    'prototype-pollution',
-    'insecure-random',
-    'logging-secrets',
+    "eval-usage",
+    "hardcoded-secret",
+    "prototype-pollution",
+    "insecure-random",
+    "logging-secrets",
   ];
   if (replaceTypes.includes(type)) return STRATEGIES.REPLACE;
 
   // WRAP candidates
   const wrapTypes = [
-    'unhandled-promise',
-    'missing-strict-mode',
-    'unvalidated-redirect',
+    "unhandled-promise",
+    "missing-strict-mode",
+    "unvalidated-redirect",
   ];
   if (wrapTypes.includes(type)) return STRATEGIES.WRAP;
 
   // INSERT candidates
-  const insertTypes = [
-    'missing-rate-limit',
-  ];
+  const insertTypes = ["missing-rate-limit"];
   if (insertTypes.includes(type)) return STRATEGIES.INSERT;
 
   // Default by category
-  if (category === 'debug-artifact') return STRATEGIES.DELETE;
-  if (category === 'tech-debt') return STRATEGIES.DELETE;
-  if (category === 'security-headers') return STRATEGIES.WRAP;
-  if (category === 'config-drift') return STRATEGIES.REPLACE;
+  if (category === "debug-artifact") return STRATEGIES.DELETE;
+  if (category === "tech-debt") return STRATEGIES.DELETE;
+  if (category === "security-headers") return STRATEGIES.WRAP;
+  if (category === "config-drift") return STRATEGIES.REPLACE;
 
   return STRATEGIES.REPLACE;
 }
@@ -282,7 +286,11 @@ function applyPatch(content, patch) {
 
 // ── Diff Generation ────────────────────────────────────────────────────────
 
-function generateDiff(original, patched, { filePath, context = 3 } = { filePath: 'unknown', context: 3 }) {
+function generateDiff(
+  original,
+  patched,
+  { filePath, context = 3 } = { filePath: "unknown", context: 3 },
+) {
   const origLines = allLines(original);
   const patchLines = allLines(patched);
   const hunks = [];
@@ -301,14 +309,16 @@ function generateDiff(original, patched, { filePath, context = 3 } = { filePath:
           lines: [],
         };
         for (let j = start; j < i; j++) {
-          currentHunk.lines.push({ type: 'context', text: origLines[j] });
+          currentHunk.lines.push({ type: "context", text: origLines[j] });
         }
       }
-      if (oldLine !== undefined) currentHunk.lines.push({ type: 'remove', text: oldLine });
-      if (newLine !== undefined) currentHunk.lines.push({ type: 'add', text: newLine });
+      if (oldLine !== undefined)
+        currentHunk.lines.push({ type: "remove", text: oldLine });
+      if (newLine !== undefined)
+        currentHunk.lines.push({ type: "add", text: newLine });
     } else if (currentHunk) {
       if (currentHunk.lines.length < context * 2 + 3) {
-        currentHunk.lines.push({ type: 'context', text: oldLine });
+        currentHunk.lines.push({ type: "context", text: oldLine });
       } else {
         hunks.push(currentHunk);
         currentHunk = null;
@@ -319,7 +329,7 @@ function generateDiff(original, patched, { filePath, context = 3 } = { filePath:
   if (currentHunk) hunks.push(currentHunk);
 
   return {
-    filePath: filePath || 'unknown',
+    filePath: filePath || "unknown",
     originalLineCount: origLines.length,
     patchedLineCount: patchLines.length,
     hunks,
@@ -330,15 +340,18 @@ function generateDiff(original, patched, { filePath, context = 3 } = { filePath:
 function hunksToUnified(hunks, filePath) {
   const lines = [`--- a/${filePath}`, `+++ b/${filePath}`];
   for (const hunk of hunks) {
-    const oldCount = hunk.lines.filter(l => l.type !== 'add').length;
-    const newCount = hunk.lines.filter(l => l.type !== 'remove').length;
-    lines.push(`@@ -${hunk.oldStart},${oldCount} +${hunk.newStart},${newCount} @@`);
+    const oldCount = hunk.lines.filter((l) => l.type !== "add").length;
+    const newCount = hunk.lines.filter((l) => l.type !== "remove").length;
+    lines.push(
+      `@@ -${hunk.oldStart},${oldCount} +${hunk.newStart},${newCount} @@`,
+    );
     for (const line of hunk.lines) {
-      const prefix = line.type === 'remove' ? '-' : line.type === 'add' ? '+' : ' ';
+      const prefix =
+        line.type === "remove" ? "-" : line.type === "add" ? "+" : " ";
       lines.push(prefix + line.text);
     }
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 module.exports = {

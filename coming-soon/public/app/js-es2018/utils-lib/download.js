@@ -27,33 +27,28 @@ export function normalDownload(blob, filename) {
     document.body.appendChild(a);
     try {
         a.click();
-    }
-    finally {
+    } finally {
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 0);
     }
     if (isIdeEmbedDownloadBridge()) {
         notifyExtensionDownload(blob, filename || 'download');
-    }
-    else {
+    } else {
         notifyDownloadComplete(filename || 'download');
     }
 }
 function isIdeEmbedDownloadBridge() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     try {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('sb_notify_base') || params.get('sb_api_base') || params.get('sb_parent_urlbar'))
-            return true;
-        if (sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_api_base'))
-            return true;
+        if (params.get('sb_notify_base') || params.get('sb_api_base') || params.get('sb_parent_urlbar')) return true;
+        if (sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_api_base')) return true;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     try {
         return window.self !== window.top;
-    }
-    catch (_b) {
+    } catch (_b) {
         return false;
     }
 }
@@ -64,17 +59,19 @@ function wouldBeMixedOrLocalBridge(baseUrl) {
         if (base.protocol === 'http:' && typeof window !== 'undefined' && window.location.protocol === 'https:')
             return true;
         // Remote hosted page should not call a localhost/loopback bridge.
-        if (typeof window !== 'undefined' &&
+        if (
+            typeof window !== 'undefined' &&
             !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname) &&
-            /^(localhost|127\.0\.0\.1)$/i.test(base.hostname))
+            /^(localhost|127\.0\.0\.1)$/i.test(base.hostname)
+        )
             return true;
+    } catch (_b) {
+        /* ignore */
     }
-    catch (_b) { /* ignore */ }
     return false;
 }
 function getExtensionBridgeNotifyUrl() {
-    if (typeof window === 'undefined')
-        return '/api/download/notify';
+    if (typeof window === 'undefined') return '/api/download/notify';
     try {
         const params = new URLSearchParams(window.location.search);
         let base = params.get('sb_api_base') || params.get('sb_notify_base');
@@ -82,17 +79,18 @@ function getExtensionBridgeNotifyUrl() {
             base = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
         }
         if (base) {
-            const clean = String(base).replace(/\/api\/?$/, '').trim();
-            if (clean && !wouldBeMixedOrLocalBridge(clean))
-                return `${clean}/api/download/notify`;
+            const clean = String(base)
+                .replace(/\/api\/?$/, '')
+                .trim();
+            if (clean && !wouldBeMixedOrLocalBridge(clean)) return `${clean}/api/download/notify`;
         }
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     return '/api/download/notify';
 }
 function notifyExtensionDownload(blob, filename) {
-    if (!(blob instanceof Blob) || typeof window === 'undefined')
-        return;
+    if (!(blob instanceof Blob) || typeof window === 'undefined') return;
     const safeName = String(filename || 'download');
     const reader = new FileReader();
     reader.onload = () => {
@@ -101,23 +99,28 @@ function notifyExtensionDownload(blob, filename) {
         const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
         try {
             if (window.parent && window.parent !== window) {
-                window.parent.postMessage({
-                    command: 'downloadFile',
-                    filename: safeName,
-                    mimeType: blob.type || 'application/octet-stream',
-                    base64
-                }, '*');
+                window.parent.postMessage(
+                    {
+                        command: 'downloadFile',
+                        filename: safeName,
+                        mimeType: blob.type || 'application/octet-stream',
+                        base64
+                    },
+                    '*'
+                );
             }
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
         try {
             fetch(getExtensionBridgeNotifyUrl(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: safeName, content: base64 })
-            }).catch(() => { });
+            }).catch(() => {});
+        } catch (_b) {
+            /* ignore */
         }
-        catch (_b) { /* ignore */ }
     };
     reader.readAsDataURL(blob);
 }
@@ -129,8 +132,7 @@ export function downloadBlob(blob, filename) {
         let vscode;
         try {
             vscode = window.acquireVsCodeApi();
-        }
-        catch (_a) {
+        } catch (_a) {
             // VS Code API unavailable — fall through to normal download
             return normalDownload(blob, filename);
         }
@@ -139,17 +141,21 @@ export function downloadBlob(blob, filename) {
             const result = String(reader.result || '');
             const commaIdx = result.indexOf(',');
             const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
-            vscode.postMessage({ command: 'downloadFile', filename: filename || 'download', mimeType: blob.type, base64 });
+            vscode.postMessage({
+                command: 'downloadFile',
+                filename: filename || 'download',
+                mimeType: blob.type,
+                base64
+            });
         };
         reader.onerror = () => {
-            window["console"]["error"](
+            window['console']['error'](
                 'FileReader failed to convert blob for VS Code download. Falling back to normal download.'
             );
             try {
                 normalDownload(blob, filename);
-            }
-            catch (err) {
-                window["console"]["error"]('Fallback download failed:', err);
+            } catch (err) {
+                window['console']['error']('Fallback download failed:', err);
             }
         };
         reader.readAsDataURL(blob);
@@ -171,9 +177,10 @@ export function downloadJson(data, filename) {
     let json;
     try {
         json = JSON.stringify(data, null, 2);
-    }
-    catch (err) {
-        throw new Error(`Failed to serialize data to JSON: ${(err === null || err === void 0 ? void 0 : err.message) || String(err)}`);
+    } catch (err) {
+        throw new Error(
+            `Failed to serialize data to JSON: ${(err === null || err === void 0 ? void 0 : err.message) || String(err)}`
+        );
     }
     const blob = new Blob([json], { type: 'application/json' });
     downloadBlob(blob, filename);

@@ -1,11 +1,39 @@
 // simplebeacon-ignore documentation
 import { showToast } from '../utils.js';
-import { canUseDirectoryPicker, filePickerBlockedMessage } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, filePickerBlockedMessage, browserLocalScanCapMessage } from '../utils-lib/dom.js';
 
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260716cachefix1', import.meta.url);
+const WORKER_ASSET_VERSION = '20260804worker1';
+function resolveScanWorkerUrl() {
+  const v = WORKER_ASSET_VERSION;
+  try {
+    if (typeof location !== 'undefined' && location.origin) {
+      const path = String(location.pathname || '');
+      const mount = path.startsWith('/dashboard') ? '/dashboard' : path.startsWith('/app') ? '/app' : null;
+      if (mount) {
+        return new URL(`${mount}/assets/scan-worker.js?v=${v}`, location.origin);
+      }
+    }
+  } catch (_locErr) {
+    /* fall through */
+  }
+  try {
+    const base = typeof import.meta !== 'undefined' && import.meta.url ? import.meta.url : '';
+    if (base.includes('/assets/')) {
+      return new URL(`./scan-worker.js?v=${v}`, base);
+    }
+    if (base) {
+      return new URL(`../workers/scan-worker.js?v=${v}`, base);
+    }
+  } catch (_metaErr) {
+    /* fall through */
+  }
+  return `/app/assets/scan-worker.js?v=${v}`;
+}
 
-const MAX_FILES = 50000;
-const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;
+const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
+const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
+const SKIP_DIRS =
+  /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;
 
 /**
  * Recursively collect FileSystemFileHandle entries from a directory handle.
@@ -37,7 +65,7 @@ async function collectFiles(dirHandle, pathPrefix = '', files = []) {
  * @param {number} analyzedFiles
  * @returns {Object}
  */
-function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths = []) {
+function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths = [], meta = {}) {
   const categories = {};
   const findingsList = [];
   const rawIssues = [];
@@ -59,17 +87,36 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths
 
   const totalFindings = rawIssues.reduce((sum, i) => sum + (i.count || 1), 0);
   const issueCount = totalFindings;
-  const blockingCount = rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high').reduce((sum, i) => sum + (Number(i.count) || 1), 0);
-  const gateScore = blockingCount === 0 && totalFiles > 0 ? 100 : 0;
+  const blockingCount = rawIssues
+    .filter((i) => i.severity === 'critical' || i.severity === 'high')
+    .reduce((sum, i) => sum + (Number(i.count) || 1), 0);
+  const incompleteDrop = totalFiles > 0 && totalFiles < MIN_FILES_FOR_PASS;
+  // Incomplete drops must not score 100 — that produced false "Windows PASS" UX
+  const gateScore = blockingCount === 0 && totalFiles >= MIN_FILES_FOR_PASS ? 100 : 0;
   const mockSampleFiles = filePaths.filter((p) => /sample|mock|fixture|test.*data/i.test(String(p))).length;
   const folderSet = new Set();
   for (const p of filePaths) {
     const parts = String(p).replace(/\\/g, '/').split('/');
     parts.pop();
     let acc = '';
-    for (const part of parts) { acc = acc ? `${acc}/${part}` : part; if (acc) folderSet.add(acc); }
+    for (const part of parts) {
+      acc = acc ? `${acc}/${part}` : part;
+      if (acc) folderSet.add(acc);
+    }
   }
   const totalFolders = folderSet.size;
+  const capped = false; // No cap — MAX_FILES is 999M (matches legacy /audit page)
+  const scanLimitNote = null;
+  const incompleteDropNote = incompleteDrop
+    ? `Only ${totalFiles} file${totalFiles === 1 ? '' : 's'} discovered — this is likely an incomplete folder drop (common for OS/system directories). No full-repo PASS was recorded. Use Select Folder on a project tree, or run: npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json`
+    : null;
+  const limitations = [
+    `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
+    'Pattern matching on file contents — not LLM semantic review.',
+    'Jest not executed during scan — use npm test separately.',
+  ];
+  if (scanLimitNote) limitations.unshift(scanLimitNote);
+  if (incompleteDropNote) limitations.unshift(incompleteDropNote);
 
   return {
     type: 'simplebeacon-report',
@@ -84,7 +131,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths
       codeFilesAnalyzed: analyzedFiles,
       codeFilesDiscovered: totalFiles,
       totalFindings,
-      severityCounts
+      severityCounts,
     },
     categories,
     findings: findingsList,
@@ -118,14 +165,19 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths
       pageSpecsValidated: null,
       pageSpecsFromScanPaths: 0,
       pageSpecsFromAliasPaths: 0,
-      fullDirectoryScan: true,
-      limitations: [
-        `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
-        'Pattern matching on file contents — not LLM semantic review.',
-        'Jest not executed during scan — use npm test separately.'
-      ]
+      fullDirectoryScan: !capped,
+      limitations,
     },
-    gate: { pass: blockingCount === 0 && totalFiles > 0, blockingCount, warningCount: totalFindings - blockingCount, score: gateScore }
+    gate: {
+      pass: blockingCount === 0 && totalFiles >= MIN_FILES_FOR_PASS,
+      blockingCount,
+      warningCount: totalFindings - blockingCount,
+      score: gateScore,
+      incompleteDrop,
+    },
+    issuesTruncated: false,
+    scanLimitNote,
+    incompleteDropNote,
   };
 }
 
@@ -145,12 +197,14 @@ export async function runLocalScan(options = {}) {
   const projectName = dirHandle.name || 'local-project';
   const files = await collectFiles(dirHandle);
   if (files.length === 0) {
-    throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
+    throw new Error(
+      `No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`
+    );
   }
   const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
 
   return new Promise((resolve, reject) => {
-    const worker = new Worker(WORKER_URL, { type: 'module' });
+    const worker = new Worker(resolveScanWorkerUrl(), { type: 'module' });
     const signal = options.signal;
     let settled = false;
 
@@ -175,8 +229,19 @@ export async function runLocalScan(options = {}) {
       }
       if (type === 'complete') {
         cleanup();
-        const analyzedFiles = files.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
-        resolve(buildReport(projectName, issues, total, analyzedFiles, files.map((f) => f.path)));
+        const analyzedFiles = files.filter((f) =>
+          /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)
+        ).length;
+        resolve(
+          buildReport(
+            projectName,
+            issues,
+            total,
+            analyzedFiles,
+            files.map((f) => f.path),
+            { capped: false }
+          )
+        );
       }
       if (type === 'error') {
         cleanup();

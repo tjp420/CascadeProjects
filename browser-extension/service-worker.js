@@ -5,29 +5,31 @@
  * localhost agent directly, bypassing HTTPS mixed-content restrictions.
  */
 // simplebeacon-ignore config-drift — MV3 extension localhost bridge default, not a committed secret
-const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432';
+const DEFAULT_AGENT_ORIGIN = "http://127.0.0.1:55432";
 const EXTENSION_DATA_SERVER_PORTS = [54358, 54697, 58681, 55432]; // simplebeacon-ignore config-drift
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== 'AGENT_REQUEST' || !message.detail) {
+  if (message?.type !== "AGENT_REQUEST" || !message.detail) {
     sendResponse({
       id: message?.detail?.id,
       ok: false,
       status: 400,
-      body: { success: false, error: 'Invalid bridge request' }
+      body: { success: false, error: "Invalid bridge request" },
     });
     return false;
   }
 
   const { id, method, url, body } = message.detail;
-  const absoluteUrl = url.startsWith('http') ? url : `${DEFAULT_AGENT_ORIGIN}${url}`;
+  const absoluteUrl = url.startsWith("http")
+    ? url
+    : `${DEFAULT_AGENT_ORIGIN}${url}`;
   const options = {
-    method: method || 'GET',
-    headers: { Accept: 'application/json' }
+    method: method || "GET",
+    headers: { Accept: "application/json" },
   };
-  if (body && (method === 'POST' || method === 'PUT')) {
-    options.headers['Content-Type'] = 'application/json';
-    options.body = typeof body === 'string' ? body : JSON.stringify(body);
+  if (body && (method === "POST" || method === "PUT")) {
+    options.headers["Content-Type"] = "application/json";
+    options.body = typeof body === "string" ? body : JSON.stringify(body);
   }
 
   fetch(absoluteUrl, options)
@@ -37,7 +39,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         id,
         ok: response.ok,
         status: response.status,
-        body: bodyData
+        body: bodyData,
       });
     })
     .catch((err) => {
@@ -45,7 +47,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         id,
         ok: false,
         status: 0,
-        body: { success: false, error: err.message || 'Extension bridge fetch failed' }
+        body: {
+          success: false,
+          error: err.message || "Extension bridge fetch failed",
+        },
       });
     });
 

@@ -1,18 +1,18 @@
 {
   "name": "simplebeacon-vscode",
   "displayName": "SimpleBeacon AI Slop Cop",
-  "description": "Offline AI code audit ?Çö 38 analyzer engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
+  "description": "Offline AI code audit ?Ã‡Ã¶ 38 analyzer engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
   "homepage": "https://simplebeacon.ai",
   "repository": {
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.497",
+  "version": "3.0.498",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
-    "node": ">=22.0.0",
-    "npm": ">=10.0.0"
+    "node": "\u003e=22.0.0",
+    "npm": "\u003e=10.0.0"
   },
   "categories": [
     "Testing",
@@ -292,7 +292,7 @@
       },
       {
         "command": "simplebeacon.uploadReport",
-        "title": "Upload & Validate Report",
+        "title": "Upload \u0026 Validate Report",
         "category": "SimpleBeacon",
         "icon": "$(cloud-upload)"
       },
@@ -392,7 +392,7 @@
       },
       {
         "command": "simplebeacon.shareCleanBadge",
-        "title": "SimpleBeacon: Copy 'AI Slop Cop Clean' Repository Badge",
+        "title": "SimpleBeacon: Copy \u0027AI Slop Cop Clean\u0027 Repository Badge",
         "category": "SimpleBeacon",
         "icon": "$(copy)"
       },
@@ -679,9 +679,9 @@
             "low-noise"
           ],
           "enumDescriptions": [
-            "Default sensitivity ?Çö all realtime rule engines enabled",
-            "AI slop patterns only ?Çö suppress security/code-quality noise",
-            "High-confidence only ?Çö suppress stylistic and low-confidence matches"
+            "Default sensitivity ?Ã‡Ã¶ all realtime rule engines enabled",
+            "AI slop patterns only ?Ã‡Ã¶ suppress security/code-quality noise",
+            "High-confidence only ?Ã‡Ã¶ suppress stylistic and low-confidence matches"
           ],
           "description": "Select the scanning sensitivity rule preset."
         },
@@ -694,9 +694,9 @@
             "high"
           ],
           "enumDescriptions": [
-            "0.4 floor ?Çö include exploratory/low-confidence matches",
-            "0.6 floor ?Çö balanced noise/accuracy (default)",
-            "0.85 floor ?Çö only explicit, high-confidence signatures"
+            "0.4 floor ?Ã‡Ã¶ include exploratory/low-confidence matches",
+            "0.6 floor ?Ã‡Ã¶ balanced noise/accuracy (default)",
+            "0.85 floor ?Ã‡Ã¶ only explicit, high-confidence signatures"
           ],
           "description": "Minimum confidence level required to report an AI slop finding."
         },
@@ -782,7 +782,7 @@
         "simplebeacon.useEngineApi": {
           "type": "boolean",
           "default": false,
-          "description": "Use the local SimpleBeacon engine API (localhost:3000) for real-time scanning. When enabled, the extension sends file content to the engine's full 38+ scanner suite. When disabled or engine unavailable, falls back to built-in 35-pattern local regex catalog. All communication is over localhost — no content leaves the machine."
+          "description": "Use the local SimpleBeacon engine API (localhost:3000) for real-time scanning. When enabled, the extension sends file content to the engine\u0027s full 38+ scanner suite. When disabled or engine unavailable, falls back to built-in 35-pattern local regex catalog. All communication is over localhost â€” no content leaves the machine."
         },
         "simplebeacon.engineUrl": {
           "type": "string",
@@ -792,19 +792,24 @@
         "simplebeacon.engineTimeoutMs": {
           "type": "number",
           "default": 15000,
-          "description": "Timeout in milliseconds for engine API requests. If the engine doesn't respond within this time, the extension falls back to local regex scanning."
+          "description": "Timeout in milliseconds for engine API requests. If the engine doesn\u0027t respond within this time, the extension falls back to local regex scanning."
         },
         "simplebeacon.contextGuardMode": {
           "type": "string",
-          "enum": ["off", "silent", "toast", "both"],
+          "enum": [
+            "off",
+            "silent",
+            "toast",
+            "both"
+          ],
           "default": "both",
           "enumDescriptions": [
-            "No context guard — full content always sent to engine",
+            "No context guard â€” full content always sent to engine",
             "Silently truncate content exceeding the threshold, no UI notification",
             "Show a toast notification when content exceeds threshold, but still send full content",
             "Show toast AND truncate content (recommended)"
           ],
-          "description": "Controls how the Context Guard handles large editor buffers before sending to the engine API. 'both' (default) shows a toast and truncates the payload to prevent slow scans."
+          "description": "Controls how the Context Guard handles large editor buffers before sending to the engine API. \u0027both\u0027 (default) shows a toast and truncates the payload to prevent slow scans."
         },
         "simplebeacon.contextGuardMaxChars": {
           "type": "number",
@@ -895,7 +900,7 @@
         "simplebeacon.deepScan": {
           "type": "boolean",
           "default": false,
-          "description": "Deep scan mode ?Çö bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)"
+          "description": "Deep scan mode ?Ã‡Ã¶ bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)"
         },
         "simplebeacon.includeDeps": {
           "type": "boolean",
@@ -911,9 +916,9 @@
             "quick"
           ],
           "enumDescriptions": [
-            "Full scan ?Çö all rule engines, full directory walk",
-            "Gate scan ?Çö production paths only, fast quality gate check",
-            "Quick scan ?Çö skip heavy AST engines, fastest feedback"
+            "Full scan ?Ã‡Ã¶ all rule engines, full directory walk",
+            "Gate scan ?Ã‡Ã¶ production paths only, fast quality gate check",
+            "Quick scan ?Ã‡Ã¶ skip heavy AST engines, fastest feedback"
           ],
           "description": "Scan mode controlling depth and rule coverage"
         },
@@ -992,7 +997,7 @@
             "low",
             "info"
           ],
-          "description": "Minimum severity level for inline editor diagnostics (squiggles). 'all' shows every finding from critical down to low-severity AI slop patterns."
+          "description": "Minimum severity level for inline editor diagnostics (squiggles). \u0027all\u0027 shows every finding from critical down to low-severity AI slop patterns."
         },
         "simplebeacon.teamTelemetry.enabled": {
           "type": "boolean",
@@ -1005,24 +1010,24 @@
   "scripts": {
     "build": "npm run compile",
     "vscode:prepublish": "npm run compile",
-    "compile": "node -e \"const fs=require('fs'); fs.mkdirSync('src/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('../packages/simplebeacon-cli/src/rules/'+f+'.json','src/rules/'+f+'.json');}catch(e){}});\" && tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('src/rules/'+f+'.json','out/rules/'+f+'.json');}catch(e){}});\"",
+    "compile": "node -e \"const fs=require(\u0027fs\u0027); fs.mkdirSync(\u0027src/rules\u0027,{recursive:true}); [\u0027llm-slop-catalog\u0027,\u0027security-patterns\u0027,\u0027owasp-llm-patterns\u0027,\u0027compliance-patterns\u0027].forEach(f=\u003e{try{fs.copyFileSync(\u0027../packages/simplebeacon-cli/src/rules/\u0027+f+\u0027.json\u0027,\u0027src/rules/\u0027+f+\u0027.json\u0027);}catch(e){}});\" \u0026\u0026 tsc -p ./ \u0026\u0026 node -e \"const fs=require(\u0027fs\u0027); fs.mkdirSync(\u0027out/rules\u0027,{recursive:true}); [\u0027llm-slop-catalog\u0027,\u0027security-patterns\u0027,\u0027owasp-llm-patterns\u0027,\u0027compliance-patterns\u0027].forEach(f=\u003e{try{fs.copyFileSync(\u0027src/rules/\u0027+f+\u0027.json\u0027,\u0027out/rules/\u0027+f+\u0027.json\u0027);}catch(e){}});\"",
     "watch": "tsc -watch -p ./",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "test:vscode": "npm run compile && node ./out/test/runTest.js",
+    "test:vscode": "npm run compile \u0026\u0026 node ./out/test/runTest.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "verify:scan": "node ../scripts/verify-scan.js",
-    "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix",
+    "verify:all": "npm run compile \u0026\u0026 node ../scripts/verify-scan.js \u0026\u0026 npx @vscode/vsce package --out simplebeacon-test.vsix",
     "sync:dashboard-web": "node scripts/sync-dashboard-web.cjs",
-    "package:vsix": "npm run compile && npm run sync:dashboard-web && npx @vscode/vsce package",
-    "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs",
+    "package:vsix": "npm run compile \u0026\u0026 npm run sync:dashboard-web \u0026\u0026 npx @vscode/vsce package",
+    "test:dashboard": "node ./__extract_html.cjs \u0026\u0026 node ./__test_server.cjs",
     "arch": "depcruise src --config .dependency-cruiser.js",
     "arch:validate": "depcruise src --config .dependency-cruiser.js --output-type err",
-    "arch:graph": "depcruise src --config .dependency-cruiser.js --output-type dot | dot -T svg > architecture.svg",
-    "quality:check": "npm run lint && npm run compile && npm run arch:validate && npm run test"
+    "arch:graph": "depcruise src --config .dependency-cruiser.js --output-type dot | dot -T svg \u003e architecture.svg",
+    "quality:check": "npm run lint \u0026\u0026 npm run compile \u0026\u0026 npm run arch:validate \u0026\u0026 npm run test"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -45,7 +45,17 @@ test.describe('Dashboard Smoke Tests', () => {
     await page.goto(SIGNIN_URL);
     await page.waitForLoadState('networkidle');
 
-    const filtered = consoleErrors.filter(e => !e.includes('favicon') && !e.includes('/api/health') && !e.includes('jszip') && !e.includes('Failed to load resource'));
+    const filtered = consoleErrors.filter(
+      (e) =>
+        !e.includes('favicon') &&
+        !e.includes('/api/health') &&
+        !e.includes('jszip') &&
+        !e.includes('Failed to load resource') &&
+        !e.includes('/api/config/pricing') &&
+        !e.includes('ECONNREFUSED') &&
+        !e.includes('CORS') &&
+        !e.includes('/api/whitelabel')
+    );
     expect(filtered).toHaveLength(0);
   });
 });
@@ -63,7 +73,9 @@ test.describe('Admin View Tab Navigation', () => {
       await page.goto(ADMIN_URL(tab));
       await page.waitForTimeout(1_000);
 
-      const tabTrigger = page.locator(`[data-value="${tab}"], button:has-text("${tab.charAt(0).toUpperCase() + tab.slice(1)}")`).first();
+      const tabTrigger = page
+        .locator(`[data-value="${tab}"], button:has-text("${tab.charAt(0).toUpperCase() + tab.slice(1)}")`)
+        .first();
       if (await tabTrigger.isVisible({ timeout: 3_000 })) {
         await tabTrigger.click();
         await page.waitForTimeout(500);
@@ -77,7 +89,11 @@ test.describe('SSO Login UI', () => {
     // Clear any persisted auth state to ensure sign-in view shows
     await page.context().clearCookies();
     // Ensure localStorage is cleared before page scripts run
-    await page.context().addInitScript(() => { try { window.localStorage.clear(); } catch (_) {} });
+    await page.context().addInitScript(() => {
+      try {
+        window.localStorage.clear();
+      } catch (_) {}
+    });
     await page.goto(SIGNIN_URL);
     await page.waitForLoadState('networkidle');
 

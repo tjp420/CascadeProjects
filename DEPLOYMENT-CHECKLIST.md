@@ -5,6 +5,7 @@
 ---
 
 ## Track 1: Network Topology (DNS)
+
 - [ ] Log into domain registrar (Cloudflare/Namecheap/GoDaddy)
 - [ ] Create A Record: `simplebeacon.ai` → Render load balancer IP
 - [ ] Create CNAME: `www.simplebeacon.ai` → `simplebeacon.ai`
@@ -13,6 +14,7 @@
 - [ ] Verify: `nslookup simplebeacon.ai`
 
 ## Track 2: Payment Gateway (Stripe Live Mode)
+
 - [ ] Switch Stripe dashboard to **Live Mode**
 - [ ] Create product: "AI Slop Cop Pro — Monthly"
 - [ ] Create product: "AI Slop Cop Pro — Yearly" (with discount)
@@ -26,6 +28,7 @@
 - [ ] Copy webhook signing secret to Render env vars
 
 ## Track 3: Communication Gateway (Resend)
+
 - [ ] Log into Resend dashboard
 - [ ] Add domain: `simplebeacon.ai`
 - [ ] Complete TXT/MX domain verification
@@ -34,6 +37,7 @@
 - [ ] Send test email via `scripts/verify-resend.js`
 
 ## Track 4: VS Code Marketplace
+
 - [ ] Register publisher: `simplebeacon`
 - [ ] Build extension: `cd coming-soon && npm run build`
 - [ ] Package `.vsix`: `npx vsce package`
@@ -47,6 +51,7 @@
 - [ ] Submit for review
 
 ## Track 5: CLI Registry Release
+
 - [ ] `cd packages/simplebeacon-cli`
 - [ ] Bump version if needed (`npm version patch`)
 - [ ] Run prepublish checks: `npm run quality:check`
@@ -57,12 +62,15 @@
 ---
 
 ## Post-Launch Verification
+
 Run automated validation:
+
 ```bash
 node scripts/validate-production-assets.js --full
 ```
 
 Expected outputs:
+
 - DNS resolved: `simplebeacon.ai → <IP>`
 - Health endpoint: `200 OK`
 - Security headers: `strict-transport-security`, `x-content-type-options`

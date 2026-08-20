@@ -4,7 +4,7 @@
 **Manufacturer**: SimpleBeacon Infrastructure Team  
 **Address**: https://simplebeacon.ai  
 **Version**: 1.0.0  
-**Date**: 2026-06-14  
+**Date**: 2026-06-14
 
 ---
 
@@ -27,15 +27,15 @@ This declaration is issued under **Regulation (EU) 2024/1689** (EU AI Act).
 
 ## 3. Applicable Requirements
 
-| Article | Requirement | Status |
-|---------|-------------|--------|
-| Art. 50 | Transparency obligations for AI systems | Compliant — disclosures present in user-facing surfaces |
-| Art. 52 | Transparency for general-purpose AI models | Not applicable — platform does not train foundation models |
-| Annex III | High-risk classification | Not classified as high-risk — developer diagnostic tool |
-| Art. 10 | Data governance | Compliant — local-first scanning, no code retention |
-| Art. 13 | Transparency and provision of information | Compliant — model card and system documentation provided |
-| Art. 14 | Human oversight | Compliant — operators control all scan parameters and outputs |
-| Art. 15 | Accuracy, robustness, cybersecurity | Compliant — deterministic scanning, no autonomous decisions |
+| Article   | Requirement                                | Status                                                        |
+| --------- | ------------------------------------------ | ------------------------------------------------------------- |
+| Art. 50   | Transparency obligations for AI systems    | Compliant — disclosures present in user-facing surfaces       |
+| Art. 52   | Transparency for general-purpose AI models | Not applicable — platform does not train foundation models    |
+| Annex III | High-risk classification                   | Not classified as high-risk — developer diagnostic tool       |
+| Art. 10   | Data governance                            | Compliant — local-first scanning, no code retention           |
+| Art. 13   | Transparency and provision of information  | Compliant — model card and system documentation provided      |
+| Art. 14   | Human oversight                            | Compliant — operators control all scan parameters and outputs |
+| Art. 15   | Accuracy, robustness, cybersecurity        | Compliant — deterministic scanning, no autonomous decisions   |
 
 ---
 

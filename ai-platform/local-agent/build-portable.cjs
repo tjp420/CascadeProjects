@@ -7,16 +7,21 @@
  * small launcher script for Windows and Unix.
  */
 
-const fs = require('fs');
-const path = require('path');
-const childProcess = require('child_process');
+const fs = require("fs");
+const path = require("path");
+const childProcess = require("child_process");
 
 const LOCAL_AGENT_DIR = __dirname;
-const MONOREPO_ROOT = path.resolve(LOCAL_AGENT_DIR, '..', '..');
-const OUT_DIR = path.join(LOCAL_AGENT_DIR, 'dist', 'portable');
-const SCANNER_SRC = path.join(MONOREPO_ROOT, 'packages', 'simplebeacon-cli', 'src');
-const SIMPLEBEACON_DIR = path.join(MONOREPO_ROOT, '.simplebeacon');
-const SERVER_DIR = path.join(MONOREPO_ROOT, 'ai-platform', 'server');
+const MONOREPO_ROOT = path.resolve(LOCAL_AGENT_DIR, "..", "..");
+const OUT_DIR = path.join(LOCAL_AGENT_DIR, "dist", "portable");
+const SCANNER_SRC = path.join(
+  MONOREPO_ROOT,
+  "packages",
+  "simplebeacon-cli",
+  "src",
+);
+const SIMPLEBEACON_DIR = path.join(MONOREPO_ROOT, ".simplebeacon");
+const SERVER_DIR = path.join(MONOREPO_ROOT, "ai-platform", "server");
 
 const WIN_BAT = `@echo off
 start "" "node.exe" "%~dp0agent.cjs"
@@ -78,38 +83,69 @@ function main() {
   if (!fs.existsSync(SIMPLEBEACON_DIR)) {
     throw new Error(`.simplebeacon directory not found at ${SIMPLEBEACON_DIR}`);
   }
-  if (!fs.existsSync(path.join(LOCAL_AGENT_DIR, 'node_modules'))) {
-    throw new Error('node_modules not found in local-agent; run npm install first');
+  if (!fs.existsSync(path.join(LOCAL_AGENT_DIR, "node_modules"))) {
+    throw new Error(
+      "node_modules not found in local-agent; run npm install first",
+    );
   }
 
   cleanOutDir();
 
   // Copy the agent source and manifest.
-  fs.copyFileSync(path.join(LOCAL_AGENT_DIR, 'agent.cjs'), path.join(OUT_DIR, 'agent.cjs'));
-  fs.copyFileSync(path.join(LOCAL_AGENT_DIR, 'package.json'), path.join(OUT_DIR, 'package.json'));
-  fs.copyFileSync(path.join(LOCAL_AGENT_DIR, 'README.md'), path.join(OUT_DIR, 'README.md'));
+  fs.copyFileSync(
+    path.join(LOCAL_AGENT_DIR, "agent.cjs"),
+    path.join(OUT_DIR, "agent.cjs"),
+  );
+  fs.copyFileSync(
+    path.join(LOCAL_AGENT_DIR, "package.json"),
+    path.join(OUT_DIR, "package.json"),
+  );
+  fs.copyFileSync(
+    path.join(LOCAL_AGENT_DIR, "README.md"),
+    path.join(OUT_DIR, "README.md"),
+  );
 
   // Copy dependencies and scanner source.
-  copyDir(path.join(LOCAL_AGENT_DIR, 'node_modules'), path.join(OUT_DIR, 'node_modules'));
-  copyDir(SCANNER_SRC, path.join(OUT_DIR, 'packages', 'simplebeacon-cli', 'src'));
-  fs.copyFileSync(
-    path.join(MONOREPO_ROOT, 'packages', 'simplebeacon-cli', 'package.json'),
-    path.join(OUT_DIR, 'packages', 'simplebeacon-cli', 'package.json')
+  copyDir(
+    path.join(LOCAL_AGENT_DIR, "node_modules"),
+    path.join(OUT_DIR, "node_modules"),
   );
-  copyDir(SIMPLEBEACON_DIR, path.join(OUT_DIR, '.simplebeacon'));
+  copyDir(
+    SCANNER_SRC,
+    path.join(OUT_DIR, "packages", "simplebeacon-cli", "src"),
+  );
+  fs.copyFileSync(
+    path.join(MONOREPO_ROOT, "packages", "simplebeacon-cli", "package.json"),
+    path.join(OUT_DIR, "packages", "simplebeacon-cli", "package.json"),
+  );
+  copyDir(SIMPLEBEACON_DIR, path.join(OUT_DIR, ".simplebeacon"));
 
   // Copy server files that the scanner package requires at runtime.
   if (fs.existsSync(SERVER_DIR)) {
-    copyDir(path.join(SERVER_DIR, 'config'), path.join(OUT_DIR, 'ai-platform', 'server', 'config'));
-    copyDir(path.join(SERVER_DIR, 'lib'), path.join(OUT_DIR, 'ai-platform', 'server', 'lib'));
+    copyDir(
+      path.join(SERVER_DIR, "config"),
+      path.join(OUT_DIR, "ai-platform", "server", "config"),
+    );
+    copyDir(
+      path.join(SERVER_DIR, "lib"),
+      path.join(OUT_DIR, "ai-platform", "server", "lib"),
+    );
   }
 
   // Launcher scripts.
-  fs.writeFileSync(path.join(OUT_DIR, 'start-agent.bat'), WIN_BAT);
-  fs.writeFileSync(path.join(OUT_DIR, 'start-agent.sh'), UNIX_SH, { mode: 0o755 });
+  fs.writeFileSync(path.join(OUT_DIR, "start-agent.bat"), WIN_BAT);
+  fs.writeFileSync(path.join(OUT_DIR, "start-agent.sh"), UNIX_SH, {
+    mode: 0o755,
+  });
 
   // Windows installer scripts.
-  const installerFiles = ['install.ps1', 'install-windows.bat', 'uninstall.ps1', 'uninstall-windows.bat', 'install.sh'];
+  const installerFiles = [
+    "install.ps1",
+    "install-windows.bat",
+    "uninstall.ps1",
+    "uninstall-windows.bat",
+    "install.sh",
+  ];
   for (const f of installerFiles) {
     const src = path.join(LOCAL_AGENT_DIR, f);
     if (fs.existsSync(src)) {
@@ -118,17 +154,25 @@ function main() {
   }
 
   // Append installation notes to README.
-  const readmePath = path.join(OUT_DIR, 'README.md');
-  const existingReadme = fs.readFileSync(readmePath, 'utf8');
+  const readmePath = path.join(OUT_DIR, "README.md");
+  const existingReadme = fs.readFileSync(readmePath, "utf8");
   fs.writeFileSync(readmePath, existingReadme + INSTALL_README_NOTE);
 
   // Zip the portable directory.
-  const zipPath = path.join(LOCAL_AGENT_DIR, 'dist', 'simplebeacon-local-agent-portable.zip');
-  if (process.platform === 'win32') {
+  const zipPath = path.join(
+    LOCAL_AGENT_DIR,
+    "dist",
+    "simplebeacon-local-agent-portable.zip",
+  );
+  if (process.platform === "win32") {
     const psCmd = `Push-Location '${OUT_DIR}'; Get-ChildItem | Compress-Archive -DestinationPath '${zipPath}' -Force; Pop-Location`;
-    childProcess.execSync(`powershell -Command "${psCmd}"`, { stdio: 'inherit' });
+    childProcess.execSync(`powershell -Command "${psCmd}"`, {
+      stdio: "inherit",
+    });
   } else {
-    childProcess.execSync(`cd "${OUT_DIR}" && zip -r "${zipPath}" .`, { stdio: 'inherit' });
+    childProcess.execSync(`cd "${OUT_DIR}" && zip -r "${zipPath}" .`, {
+      stdio: "inherit",
+    });
   }
 
   console.log(`[build-portable] Portable distribution ready at ${OUT_DIR}`);

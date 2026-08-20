@@ -2,14 +2,14 @@
 
 **SimpleBeacon Enterprise Single Sign-On Integration Guide**
 
-| | |
-|---|---|
-| **Document Version** | 1.0 |
-| **Audience** | Enterprise IT Administrators, Identity Engineers |
-| **Estimated Time** | 15 minutes |
-| **Protocol** | SAML 2.0 |
-| **Identity Provider** | Okta |
-| **Service Provider** | SimpleBeacon |
+|                       |                                                  |
+| --------------------- | ------------------------------------------------ |
+| **Document Version**  | 1.0                                              |
+| **Audience**          | Enterprise IT Administrators, Identity Engineers |
+| **Estimated Time**    | 15 minutes                                       |
+| **Protocol**          | SAML 2.0                                         |
+| **Identity Provider** | Okta                                             |
+| **Service Provider**  | SimpleBeacon                                     |
 
 ---
 
@@ -121,27 +121,27 @@ The diagram below illustrates the SAML 2.0 authentication flow between Okta (IdP
 
 On the **Configure SAML** screen, fill in the following fields:
 
-| Okta Field | Value | Notes |
-|---|---|---|
-| **Single sign on URL** | `{APP_BASE_URL}/api/sso/saml/acs` | Replace `{APP_BASE_URL}` with your SimpleBeacon base URL. This is the Assertion Consumer Service (ACS) endpoint. |
-| **Audience URI (SP Entity ID)** | `https://simplebeacon.ai/sp` | The Service Provider entity ID. This value must exactly match the `samlIssuer` field entered in SimpleBeacon. A custom value is supported but must be identical on both sides. |
-| **Default RelayState** | *(leave blank)* | SimpleBeacon manages relay state internally. |
-| **Name ID format** | `EmailAddress` | The NameID will be used to identify the user. |
-| **Application username** | `Email` | Maps the Okta username to the user's email address. |
-| **Response** | `Signed` | Recommended. Ensures the SAML response is signed. |
-| **Assertion Signature** | `Signed` | Recommended for additional integrity protection. |
-| **Signature Algorithm** | `RSA-SHA256` | Default and recommended. |
-| **Digest Algorithm** | `SHA256` | Default and recommended. |
+| Okta Field                      | Value                             | Notes                                                                                                                                                                          |
+| ------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Single sign on URL**          | `{APP_BASE_URL}/api/sso/saml/acs` | Replace `{APP_BASE_URL}` with your SimpleBeacon base URL. This is the Assertion Consumer Service (ACS) endpoint.                                                               |
+| **Audience URI (SP Entity ID)** | `https://simplebeacon.ai/sp`      | The Service Provider entity ID. This value must exactly match the `samlIssuer` field entered in SimpleBeacon. A custom value is supported but must be identical on both sides. |
+| **Default RelayState**          | _(leave blank)_                   | SimpleBeacon manages relay state internally.                                                                                                                                   |
+| **Name ID format**              | `EmailAddress`                    | The NameID will be used to identify the user.                                                                                                                                  |
+| **Application username**        | `Email`                           | Maps the Okta username to the user's email address.                                                                                                                            |
+| **Response**                    | `Signed`                          | Recommended. Ensures the SAML response is signed.                                                                                                                              |
+| **Assertion Signature**         | `Signed`                          | Recommended for additional integrity protection.                                                                                                                               |
+| **Signature Algorithm**         | `RSA-SHA256`                      | Default and recommended.                                                                                                                                                       |
+| **Digest Algorithm**            | `SHA256`                          | Default and recommended.                                                                                                                                                       |
 
 ### Attribute Statements (Optional but Recommended)
 
 Add the following attribute statements to pass user profile data to SimpleBeacon:
 
-| Name | Name format | Value |
-|---|---|---|
-| `email` | Unspecified | `user.email` |
+| Name        | Name format | Value            |
+| ----------- | ----------- | ---------------- |
+| `email`     | Unspecified | `user.email`     |
 | `firstName` | Unspecified | `user.firstName` |
-| `lastName` | Unspecified | `user.lastName` |
+| `lastName`  | Unspecified | `user.lastName`  |
 
 Example configuration:
 
@@ -152,7 +152,7 @@ Attribute Statements
   Name: lastName     Name format: Unspecified   Value: user.lastName
 ```
 
-> **Screenshot placeholder:** *[Insert screenshot of Okta SAML configuration screen showing the completed fields above.]*
+> **Screenshot placeholder:** _[Insert screenshot of Okta SAML configuration screen showing the completed fields above.]_
 
 Click **Next** to proceed to the feedback screen, then click **Finish**.
 
@@ -217,29 +217,29 @@ Now that you have the Okta IdP SSO URL and X.509 certificate, register the SSO c
 3. Click **Add Provider**.
 4. Fill in the form fields as follows:
 
-| SimpleBeacon Field | Value | Description |
-|---|---|---|
-| **Display Name** (`displayName`) | `Acme Okta` | Human-readable label shown in the admin dashboard. |
-| **Method** (`method`) | `saml` | Select the SAML radio option. |
-| **Provider Type** (`providerType`) | `okta` | Select from the dropdown. |
-| **Domain** (`domain`) | `acme.com` | The email domain used for auto-routing. Users with `@acme.com` addresses will be redirected to Okta. |
-| **SAML Entry Point** (`samlEntryPoint`) | *(paste IdP SSO URL from Okta)* | The Okta Single Sign-On URL obtained in Step 3.2. |
-| **SAML Certificate** (`samlCert`) | *(paste X.509 PEM certificate from Okta)* | The full PEM block including BEGIN/END delimiters from Step 3.3. |
-| **SAML Issuer** (`samlIssuer`) | `https://simplebeacon.ai/sp` | The SP Entity ID. **Must exactly match** the Audience URI configured in Okta (Step 2). |
+| SimpleBeacon Field                      | Value                                     | Description                                                                                          |
+| --------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Display Name** (`displayName`)        | `Acme Okta`                               | Human-readable label shown in the admin dashboard.                                                   |
+| **Method** (`method`)                   | `saml`                                    | Select the SAML radio option.                                                                        |
+| **Provider Type** (`providerType`)      | `okta`                                    | Select from the dropdown.                                                                            |
+| **Domain** (`domain`)                   | `acme.com`                                | The email domain used for auto-routing. Users with `@acme.com` addresses will be redirected to Okta. |
+| **SAML Entry Point** (`samlEntryPoint`) | _(paste IdP SSO URL from Okta)_           | The Okta Single Sign-On URL obtained in Step 3.2.                                                    |
+| **SAML Certificate** (`samlCert`)       | _(paste X.509 PEM certificate from Okta)_ | The full PEM block including BEGIN/END delimiters from Step 3.3.                                     |
+| **SAML Issuer** (`samlIssuer`)          | `https://simplebeacon.ai/sp`              | The SP Entity ID. **Must exactly match** the Audience URI configured in Okta (Step 2).               |
 
 5. Click **Save** to persist the configuration.
 
 ### Field Mapping Reference (Okta to SimpleBeacon)
 
-| Okta Field | SimpleBeacon Form Field | SimpleBeacon Schema Field |
-|---|---|---|
-| App name | Display Name | `displayName` |
-| (n/a) | Method | `method` |
-| (n/a) | Provider Type | `providerType` |
-| (n/a) | Domain | `domain` |
-| Identity Provider Single Sign-On URL | SAML Entry Point | `saml.entryPoint` |
-| Identity Provider Certificate (PEM) | SAML Certificate | `saml.cert` |
-| Audience URI (SP Entity ID) | SAML Issuer | `saml.issuer` |
+| Okta Field                           | SimpleBeacon Form Field | SimpleBeacon Schema Field |
+| ------------------------------------ | ----------------------- | ------------------------- |
+| App name                             | Display Name            | `displayName`             |
+| (n/a)                                | Method                  | `method`                  |
+| (n/a)                                | Provider Type           | `providerType`            |
+| (n/a)                                | Domain                  | `domain`                  |
+| Identity Provider Single Sign-On URL | SAML Entry Point        | `saml.entryPoint`         |
+| Identity Provider Certificate (PEM)  | SAML Certificate        | `saml.cert`               |
+| Audience URI (SP Entity ID)          | SAML Issuer             | `saml.issuer`             |
 
 > **Note:** The certificate you paste is encrypted at rest using AES-256-GCM before being stored. See [Security Notes](#11-security-notes) for details.
 
@@ -285,12 +285,12 @@ The returned XML should contain the `entityID` and `AssertionConsumerService` `L
 
 ### 6.4 Common Test Issues
 
-| Symptom | Likely Cause | Resolution |
-|---|---|---|
-| Redirect to Okta fails | `samlEntryPoint` URL is incorrect or unreachable | Verify the URL copied from Okta. Ensure network access to Okta. |
-| "Invalid signature" after login | `samlCert` does not match the Okta signing certificate | Re-download the certificate from Okta and paste the full PEM block. |
-| "Entity ID mismatch" | `samlIssuer` differs from Okta Audience URI | Ensure both sides use the exact same value, including trailing slashes. |
-| ACS URL not reached | ACS URL in Okta does not match `{APP_BASE_URL}/api/sso/saml/acs` | Correct the Single sign on URL in Okta. |
+| Symptom                         | Likely Cause                                                     | Resolution                                                              |
+| ------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Redirect to Okta fails          | `samlEntryPoint` URL is incorrect or unreachable                 | Verify the URL copied from Okta. Ensure network access to Okta.         |
+| "Invalid signature" after login | `samlCert` does not match the Okta signing certificate           | Re-download the certificate from Okta and paste the full PEM block.     |
+| "Entity ID mismatch"            | `samlIssuer` differs from Okta Audience URI                      | Ensure both sides use the exact same value, including trailing slashes. |
+| ACS URL not reached             | ACS URL in Okta does not match `{APP_BASE_URL}/api/sso/saml/acs` | Correct the Single sign on URL in Okta.                                 |
 
 ---
 
@@ -465,12 +465,12 @@ Then paste the contents of `okta_cert.pem` (including the `-----BEGIN CERTIFICAT
 
 ### Additional Issues
 
-| Issue | Possible Cause | Resolution |
-|---|---|---|
-| `providerId` not found | The `providerId` in the URL does not match a saved config | Verify the provider ID in the admin dashboard. |
-| User not redirected to Okta | Provider is disabled (`enabled: false`) | Enable the provider in the admin dashboard. |
-| Auto-routing not working | `domain` field is missing or incorrect | Ensure the domain matches the user's email domain (without `@`). |
-| "Method not allowed" on ACS | ACS endpoint received a GET instead of POST | The ACS endpoint requires POST. This is handled by the browser redirect from Okta. |
+| Issue                       | Possible Cause                                            | Resolution                                                                         |
+| --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `providerId` not found      | The `providerId` in the URL does not match a saved config | Verify the provider ID in the admin dashboard.                                     |
+| User not redirected to Okta | Provider is disabled (`enabled: false`)                   | Enable the provider in the admin dashboard.                                        |
+| Auto-routing not working    | `domain` field is missing or incorrect                    | Ensure the domain matches the user's email domain (without `@`).                   |
+| "Method not allowed" on ACS | ACS endpoint received a GET instead of POST               | The ACS endpoint requires POST. This is handled by the browser redirect from Okta. |
 
 ---
 
@@ -516,51 +516,51 @@ SimpleBeacon implements several security controls to protect SSO configuration d
 
 ### Endpoint Summary
 
-| Purpose | Method | Endpoint |
-|---|---|---|
-| Create SSO config | `POST` | `/api/enterprise/sso/configs` |
-| Update SSO config | `PUT` | `/api/enterprise/sso/configs/:providerId` |
-| List all SSO configs | `GET` | `/api/enterprise/sso/configs` |
-| Test connectivity | `GET` | `/api/enterprise/sso/test/:providerId` |
-| Initiate SAML login | `GET` | `/api/sso/saml/login?providerId=okta` |
-| SAML ACS endpoint | `POST` | `/api/sso/saml/acs` |
-| SP metadata | `GET` | `/api/sso/saml/metadata/:providerId` |
+| Purpose              | Method | Endpoint                                  |
+| -------------------- | ------ | ----------------------------------------- |
+| Create SSO config    | `POST` | `/api/enterprise/sso/configs`             |
+| Update SSO config    | `PUT`  | `/api/enterprise/sso/configs/:providerId` |
+| List all SSO configs | `GET`  | `/api/enterprise/sso/configs`             |
+| Test connectivity    | `GET`  | `/api/enterprise/sso/test/:providerId`    |
+| Initiate SAML login  | `GET`  | `/api/sso/saml/login?providerId=okta`     |
+| SAML ACS endpoint    | `POST` | `/api/sso/saml/acs`                       |
+| SP metadata          | `GET`  | `/api/sso/saml/metadata/:providerId`      |
 
 ### Okta Configuration Summary
 
-| Okta Field | Value |
-|---|---|
-| App name | `SimpleBeacon` |
-| Sign-in method | SAML 2.0 |
-| Single sign on URL | `{APP_BASE_URL}/api/sso/saml/acs` |
-| Audience URI (SP Entity ID) | `https://simplebeacon.ai/sp` |
-| Default RelayState | *(blank)* |
-| Name ID format | `EmailAddress` |
-| Application username | `Email` |
-| Response / Assertion Signature | `Signed` |
-| Signature Algorithm | `RSA-SHA256` |
+| Okta Field                     | Value                             |
+| ------------------------------ | --------------------------------- |
+| App name                       | `SimpleBeacon`                    |
+| Sign-in method                 | SAML 2.0                          |
+| Single sign on URL             | `{APP_BASE_URL}/api/sso/saml/acs` |
+| Audience URI (SP Entity ID)    | `https://simplebeacon.ai/sp`      |
+| Default RelayState             | _(blank)_                         |
+| Name ID format                 | `EmailAddress`                    |
+| Application username           | `Email`                           |
+| Response / Assertion Signature | `Signed`                          |
+| Signature Algorithm            | `RSA-SHA256`                      |
 
 ### SimpleBeacon Configuration Summary
 
-| Field | Form Field | Schema Path | Example Value |
-|---|---|---|---|
-| Display Name | Display Name | `displayName` | `Acme Okta` |
-| Method | Method | `method` | `saml` |
-| Provider Type | Provider Type | `providerType` | `okta` |
-| Domain | Domain | `domain` | `acme.com` |
+| Field            | Form Field       | Schema Path       | Example Value                            |
+| ---------------- | ---------------- | ----------------- | ---------------------------------------- |
+| Display Name     | Display Name     | `displayName`     | `Acme Okta`                              |
+| Method           | Method           | `method`          | `saml`                                   |
+| Provider Type    | Provider Type    | `providerType`    | `okta`                                   |
+| Domain           | Domain           | `domain`          | `acme.com`                               |
 | SAML Entry Point | SAML Entry Point | `saml.entryPoint` | `https://acme.okta.com/app/.../sso/saml` |
-| SAML Certificate | SAML Certificate | `saml.cert` | `-----BEGIN CERTIFICATE-----...` |
-| SAML Issuer | SAML Issuer | `saml.issuer` | `https://simplebeacon.ai/sp` |
-| Enabled | Enabled toggle | `enabled` | `true` |
+| SAML Certificate | SAML Certificate | `saml.cert`       | `-----BEGIN CERTIFICATE-----...`         |
+| SAML Issuer      | SAML Issuer      | `saml.issuer`     | `https://simplebeacon.ai/sp`             |
+| Enabled          | Enabled toggle   | `enabled`         | `true`                                   |
 
 ### Attribute Statement Summary
 
-| Name | Value |
-|---|---|
-| `email` | `user.email` |
+| Name        | Value            |
+| ----------- | ---------------- |
+| `email`     | `user.email`     |
 | `firstName` | `user.firstName` |
-| `lastName` | `user.lastName` |
+| `lastName`  | `user.lastName`  |
 
 ---
 
-*End of document. For additional support, contact your SimpleBeacon account team or refer to the SimpleBeacon administrator documentation.*
+_End of document. For additional support, contact your SimpleBeacon account team or refer to the SimpleBeacon administrator documentation._

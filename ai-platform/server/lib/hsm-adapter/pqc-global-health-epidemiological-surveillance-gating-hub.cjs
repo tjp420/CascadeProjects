@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 92: PQC Global Health Epidemiological Surveillance Gating Hub.
@@ -20,20 +20,20 @@
  * @module hsm-adapter/pqc-global-health-epidemiological-surveillance-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const POOL_STATUS = {
-  OPEN: 'open',
-  REBALANCING: 'rebalancing',
-  ACCREDITED: 'accredited',
-  SETTLED: 'settled',
-  CANCELLED: 'cancelled',
+  OPEN: "open",
+  REBALANCING: "rebalancing",
+  ACCREDITED: "accredited",
+  SETTLED: "settled",
+  CANCELLED: "cancelled",
 };
 
 const REBALANCE_DIRECTION = {
-  INCREASE: 'increase',
-  DECREASE: 'decrease',
+  INCREASE: "increase",
+  DECREASE: "decrease",
 };
 
 class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
@@ -67,35 +67,81 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
   initializePool(request) {
     _validateInitRequest(this.policy, request);
     if (this._pools.size >= this._maxPools) {
-      throw new HsmAdapterError('EPIGATE_MAX_POOLS',
-        `maximum ${this._maxPools} pools reached`);
+      throw new HsmAdapterError(
+        "EPIGATE_MAX_POOLS",
+        `maximum ${this._maxPools} pools reached`,
+      );
     }
-    if (this.policy.requireWhoAuthorityInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireWhoAuthorityInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.whoAuthorityInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.whoAuthorityInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('EPIGATE_INSTITUTION_INITIALIZER_UNATTESTED', 'WHO authority initializer attestation invalid');
+          throw new HsmAdapterError(
+            "EPIGATE_INSTITUTION_INITIALIZER_UNATTESTED",
+            "WHO authority initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('EPIGATE_INSTITUTION_INITIALIZER_UNATTESTED', 'WHO authority initializer attestation invalid');
+        throw new HsmAdapterError(
+          "EPIGATE_INSTITUTION_INITIALIZER_UNATTESTED",
+          "WHO authority initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('EPIGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "EPIGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('EPIGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "EPIGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.surveillanceWindowSeconds === 'number' && request.surveillanceWindowSeconds > (this.policy.maxSurveillanceWindowSeconds || 604800)) {
-      throw new HsmAdapterError('EPIGATE_SURVEILLANCE_WINDOW_EXCEEDED', `surveillance window seconds ${request.surveillanceWindowSeconds} exceeds maximum ${this.policy.maxSurveillanceWindowSeconds}`);
+    if (
+      typeof request.surveillanceWindowSeconds === "number" &&
+      request.surveillanceWindowSeconds >
+        (this.policy.maxSurveillanceWindowSeconds || 604800)
+    ) {
+      throw new HsmAdapterError(
+        "EPIGATE_SURVEILLANCE_WINDOW_EXCEEDED",
+        `surveillance window seconds ${request.surveillanceWindowSeconds} exceeds maximum ${this.policy.maxSurveillanceWindowSeconds}`,
+      );
     }
-    if (typeof request.genomicChainDepth === 'number' && request.genomicChainDepth > (this.policy.maxGenomicChainDepth || 16)) {
-      throw new HsmAdapterError('EPIGATE_GENOMIC_DEPTH_EXCEEDED', `genomic chain depth ${request.genomicChainDepth} exceeds maximum ${this.policy.maxGenomicChainDepth}`);
+    if (
+      typeof request.genomicChainDepth === "number" &&
+      request.genomicChainDepth > (this.policy.maxGenomicChainDepth || 16)
+    ) {
+      throw new HsmAdapterError(
+        "EPIGATE_GENOMIC_DEPTH_EXCEEDED",
+        `genomic chain depth ${request.genomicChainDepth} exceeds maximum ${this.policy.maxGenomicChainDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('EPIGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "EPIGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -103,8 +149,10 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
       sourceTenantId: request.sourceTenantId,
       targetChainId: request.targetChainId,
       blindedCaseTelemetryCommitment: request.blindedCaseTelemetryCommitment,
-      blindedGenomicSequenceCommitment: request.blindedGenomicSequenceCommitment,
-      blindedHealthAuthorityIdentityCommitment: request.blindedHealthAuthorityIdentityCommitment,
+      blindedGenomicSequenceCommitment:
+        request.blindedGenomicSequenceCommitment,
+      blindedHealthAuthorityIdentityCommitment:
+        request.blindedHealthAuthorityIdentityCommitment,
       surveillanceWindowSeconds: request.surveillanceWindowSeconds,
       genomicChainDepth: request.genomicChainDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
@@ -120,7 +168,7 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
     this._pools.set(poolId, pool);
     this._initCount++;
     if (this._audit) {
-      this._audit('EPIDEMIOLOGY_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("EPIDEMIOLOGY_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -132,11 +180,16 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
    */
   batchInitializePools(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('EPIGATE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "EPIGATE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('EPIGATE_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "EPIGATE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let successCount = 0;
@@ -148,17 +201,26 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
         successCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'auto',
+          poolId: req.poolId || "auto",
           initialized: false,
-          error: err.code || 'EPIGATE_BATCH_ERROR',
+          error: err.code || "EPIGATE_BATCH_ERROR",
         });
         failedCount++;
       }
     }
     if (this._audit) {
-      this._audit('EPIGATE_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
+      this._audit("EPIGATE_BATCH_INITIALIZED", {
+        successCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, successCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      successCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -178,7 +240,10 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
   markEpidemiologicalClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('EPIGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.epidemiologicalClaimVerified = true;
     return pool;
@@ -191,49 +256,75 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
    */
   rebalanceGenomicChainDepth(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('EPIGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "EPIGATE_REBALANCE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('EPIGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
-      throw new HsmAdapterError('EPIGATE_NOT_REBALANCEABLE',
-        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    if (
+      pool.status !== POOL_STATUS.OPEN &&
+      pool.status !== POOL_STATUS.REBALANCING
+    ) {
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_REBALANCEABLE",
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`,
+      );
     }
     const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
     if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
-      throw new HsmAdapterError('EPIGATE_REBALANCE_DIRECTION_INVALID',
-        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(', ')}`);
+      throw new HsmAdapterError(
+        "EPIGATE_REBALANCE_DIRECTION_INVALID",
+        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(", ")}`,
+      );
     }
-    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
-      throw new HsmAdapterError('EPIGATE_REBALANCE_AMOUNT_INVALID',
-        'rebalanceAmount must be a positive number');
+    if (
+      typeof request.rebalanceAmount !== "number" ||
+      request.rebalanceAmount <= 0
+    ) {
+      throw new HsmAdapterError(
+        "EPIGATE_REBALANCE_AMOUNT_INVALID",
+        "rebalanceAmount must be a positive number",
+      );
     }
     const newEpoch = pool.rebalanceEpoch + 1;
     pool.rebalanceEpoch = newEpoch;
     pool.status = POOL_STATUS.REBALANCING;
-    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalanceId =
+      request.rebalanceId || `rebal-${crypto.randomBytes(4).toString("hex")}`;
     const rebalance = {
       rebalanceId,
       poolId: request.poolId,
       direction,
       rebalanceAmount: request.rebalanceAmount,
       rebalanceEpoch: newEpoch,
-      newGenomicChainDepth: request.newGenomicChainDepth !== undefined ? request.newGenomicChainDepth : pool.genomicChainDepth,
+      newGenomicChainDepth:
+        request.newGenomicChainDepth !== undefined
+          ? request.newGenomicChainDepth
+          : pool.genomicChainDepth,
       rebalancedAt: Math.floor(Date.now() / 1000),
     };
     this._rebalances.set(rebalanceId, rebalance);
     this._rebalanceCount++;
     if (request.newGenomicChainDepth !== undefined) {
-      if (request.newGenomicChainDepth > (this.policy.maxGenomicChainDepth || 16)) {
-        throw new HsmAdapterError('EPIGATE_GENOMIC_DEPTH_EXCEEDED',
-          `new genomic chain depth ${request.newGenomicChainDepth} exceeds maximum ${this.policy.maxGenomicChainDepth}`);
+      if (
+        request.newGenomicChainDepth > (this.policy.maxGenomicChainDepth || 16)
+      ) {
+        throw new HsmAdapterError(
+          "EPIGATE_GENOMIC_DEPTH_EXCEEDED",
+          `new genomic chain depth ${request.newGenomicChainDepth} exceeds maximum ${this.policy.maxGenomicChainDepth}`,
+        );
       }
       pool.genomicChainDepth = request.newGenomicChainDepth;
     }
     if (this._audit) {
-      this._audit('EPIGATE_GENOMIC_DEPTH_REBALANCED', { ...rebalance });
+      this._audit("EPIGATE_GENOMIC_DEPTH_REBALANCED", { ...rebalance });
     }
     return rebalance;
   }
@@ -256,30 +347,52 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('EPIGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.epidemiologicalClaimVerified) {
-      throw new HsmAdapterError('EPIGATE_EPIDEMIOLOGICAL_CLAIM_NOT_VERIFIED', `pool ${request.poolId} epidemiological claim not verified`);
+      throw new HsmAdapterError(
+        "EPIGATE_EPIDEMIOLOGICAL_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} epidemiological claim not verified`,
+      );
     }
-    if (this.policy.requireEpidemiologyOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireEpidemiologyOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.epidemiologyOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.epidemiologyOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('EPIGATE_EPIDEMIOLOGY_COMMITTEE_UNATTESTED', 'epidemiology oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "EPIGATE_EPIDEMIOLOGY_COMMITTEE_UNATTESTED",
+            "epidemiology oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('EPIGATE_EPIDEMIOLOGY_COMMITTEE_UNATTESTED', 'epidemiology oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "EPIGATE_EPIDEMIOLOGY_COMMITTEE_UNATTESTED",
+          "epidemiology oversight committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minEpidemiologyQuorum || 5)) {
-      throw new HsmAdapterError('EPIGATE_ACCREDITATION_QUORUM_INSUFFICIENT', `accreditation signatures ${signatures.length} below minimum ${this.policy.minEpidemiologyQuorum}`);
+      throw new HsmAdapterError(
+        "EPIGATE_ACCREDITATION_QUORUM_INSUFFICIENT",
+        `accreditation signatures ${signatures.length} below minimum ${this.policy.minEpidemiologyQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     pool.status = POOL_STATUS.ACCREDITED;
     pool.outbreakAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -288,7 +401,7 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
     };
     this._accreditCount++;
     if (this._audit) {
-      this._audit('OUTBREAK_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("OUTBREAK_ACCREDITATION_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -300,41 +413,58 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
    */
   settlePool(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('EPIGATE_SETTLE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "EPIGATE_SETTLE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('EPIGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (pool.status !== POOL_STATUS.ACCREDITED) {
-      throw new HsmAdapterError('EPIGATE_NOT_ACCREDITED',
-        `pool ${request.poolId} status is ${pool.status}, expected accredited`);
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_ACCREDITED",
+        `pool ${request.poolId} status is ${pool.status}, expected accredited`,
+      );
     }
-    if (!request.targetChainId || typeof request.targetChainId !== 'string') {
-      throw new HsmAdapterError('EPIGATE_SETTLE_CHAIN_MISSING', 'targetChainId is required for settlement');
+    if (!request.targetChainId || typeof request.targetChainId !== "string") {
+      throw new HsmAdapterError(
+        "EPIGATE_SETTLE_CHAIN_MISSING",
+        "targetChainId is required for settlement",
+      );
     }
     if (request.targetChainId !== pool.targetChainId) {
-      throw new HsmAdapterError('EPIGATE_SETTLE_CHAIN_MISMATCH',
-        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`);
+      throw new HsmAdapterError(
+        "EPIGATE_SETTLE_CHAIN_MISMATCH",
+        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
+    const settlementId =
+      request.settlementId || `settle-${crypto.randomBytes(4).toString("hex")}`;
     const settlement = {
       settlementId,
       poolId: request.poolId,
       targetChainId: request.targetChainId,
-      settlementProofHash: request.settlementProofHash || crypto.createHash('sha256')
-        .update(`${request.poolId}:${request.targetChainId}:${now}`)
-        .digest('hex'),
+      settlementProofHash:
+        request.settlementProofHash ||
+        crypto
+          .createHash("sha256")
+          .update(`${request.poolId}:${request.targetChainId}:${now}`)
+          .digest("hex"),
       settledAt: now,
     };
     pool.status = POOL_STATUS.SETTLED;
-    pool.settlementStatus = 'settled';
+    pool.settlementStatus = "settled";
     pool.settledAt = now;
     this._settlements.set(request.poolId, settlement);
     this._settleCount++;
     if (this._audit) {
-      this._audit('EPIGATE_SETTLED', { ...settlement });
+      this._audit("EPIGATE_SETTLED", { ...settlement });
     }
     return settlement;
   }
@@ -348,27 +478,39 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
   aggregateCommitteeSignatures(poolId, partialSignatures) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('EPIGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('EPIGATE_NO_SIGNATURES', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "EPIGATE_NO_SIGNATURES",
+        "partialSignatures array is required",
+      );
     }
     if (partialSignatures.length < (this.policy.minEpidemiologyQuorum || 5)) {
-      throw new HsmAdapterError('EPIGATE_ACCREDITATION_QUORUM_INSUFFICIENT',
-        `${partialSignatures.length} signatures below minimum ${this.policy.minEpidemiologyQuorum || 5}`);
+      throw new HsmAdapterError(
+        "EPIGATE_ACCREDITATION_QUORUM_INSUFFICIENT",
+        `${partialSignatures.length} signatures below minimum ${this.policy.minEpidemiologyQuorum || 5}`,
+      );
     }
-    const aggregatedSig = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSig = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: partialSignatures.length,
       aggregatedSignature: aggregatedSig,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('EPIGATE_SIGNATURES_AGGREGATED', { poolId, count: partialSignatures.length });
+      this._audit("EPIGATE_SIGNATURES_AGGREGATED", {
+        poolId,
+        count: partialSignatures.length,
+      });
     }
     return result;
   }
@@ -381,21 +523,31 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
   cancelPool(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('EPIGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "EPIGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
-    if (pool.status === POOL_STATUS.ACCREDITED || pool.status === POOL_STATUS.SETTLED) {
-      throw new HsmAdapterError('EPIGATE_ALREADY_ACCREDITED',
-        `pool ${poolId} has been accredited/settled and cannot be cancelled`);
+    if (
+      pool.status === POOL_STATUS.ACCREDITED ||
+      pool.status === POOL_STATUS.SETTLED
+    ) {
+      throw new HsmAdapterError(
+        "EPIGATE_ALREADY_ACCREDITED",
+        `pool ${poolId} has been accredited/settled and cannot be cancelled`,
+      );
     }
     if (pool.status === POOL_STATUS.CANCELLED) {
-      throw new HsmAdapterError('EPIGATE_ALREADY_CANCELLED',
-        `pool ${poolId} is already cancelled`);
+      throw new HsmAdapterError(
+        "EPIGATE_ALREADY_CANCELLED",
+        `pool ${poolId} is already cancelled`,
+      );
     }
     pool.status = POOL_STATUS.CANCELLED;
     pool.cancelledAt = Math.floor(Date.now() / 1000);
     this._cancelCount++;
     if (this._audit) {
-      this._audit('EPIGATE_CANCELLED', { poolId });
+      this._audit("EPIGATE_CANCELLED", { poolId });
     }
     return { poolId, cancelled: true };
   }
@@ -414,7 +566,7 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
    * @returns {object[]}
    */
   getPools() {
-    return Array.from(this._pools.values()).map(p => ({
+    return Array.from(this._pools.values()).map((p) => ({
       poolId: p.poolId,
       sourceTenantId: p.sourceTenantId,
       targetChainId: p.targetChainId,
@@ -458,28 +610,59 @@ class PqcGlobalHealthEpidemiologicalSurveillanceGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('EPIGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "EPIGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedCaseTelemetryCommitment || !request.blindedGenomicSequenceCommitment || !request.blindedHealthAuthorityIdentityCommitment) {
-    throw new HsmAdapterError('EPIGATE_FIELDS_MISSING', 'blindedCaseTelemetryCommitment, blindedGenomicSequenceCommitment, and blindedHealthAuthorityIdentityCommitment are required');
+  if (
+    !request.blindedCaseTelemetryCommitment ||
+    !request.blindedGenomicSequenceCommitment ||
+    !request.blindedHealthAuthorityIdentityCommitment
+  ) {
+    throw new HsmAdapterError(
+      "EPIGATE_FIELDS_MISSING",
+      "blindedCaseTelemetryCommitment, blindedGenomicSequenceCommitment, and blindedHealthAuthorityIdentityCommitment are required",
+    );
   }
-  if (typeof request.surveillanceWindowSeconds !== 'number') {
-    throw new HsmAdapterError('EPIGATE_FIELDS_MISSING', 'surveillanceWindowSeconds is required');
+  if (typeof request.surveillanceWindowSeconds !== "number") {
+    throw new HsmAdapterError(
+      "EPIGATE_FIELDS_MISSING",
+      "surveillanceWindowSeconds is required",
+    );
   }
-  if (typeof request.genomicChainDepth !== 'number') {
-    throw new HsmAdapterError('EPIGATE_FIELDS_MISSING', 'genomicChainDepth is required');
+  if (typeof request.genomicChainDepth !== "number") {
+    throw new HsmAdapterError(
+      "EPIGATE_FIELDS_MISSING",
+      "genomicChainDepth is required",
+    );
   }
-  if (policy.requireWhoAuthorityInitializerAttestation && !request.whoAuthorityInitializerAttestation) {
-    throw new HsmAdapterError('EPIGATE_INSTITUTION_INITIALIZER_ATTESTATION_MISSING', 'WHO authority initializer attestation is required');
+  if (
+    policy.requireWhoAuthorityInitializerAttestation &&
+    !request.whoAuthorityInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "EPIGATE_INSTITUTION_INITIALIZER_ATTESTATION_MISSING",
+      "WHO authority initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('EPIGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "EPIGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireEpidemiologyOversightCommitteeAttestation && !request.epidemiologyOversightCommitteeAttestation) {
-    throw new HsmAdapterError('EPIGATE_CLEARING_ATTESTATION_MISSING', 'epidemiology oversight committee attestation is required');
+  if (
+    policy.requireEpidemiologyOversightCommitteeAttestation &&
+    !request.epidemiologyOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "EPIGATE_CLEARING_ATTESTATION_MISSING",
+      "epidemiology oversight committee attestation is required",
+    );
   }
 }
 

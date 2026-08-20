@@ -9,27 +9,27 @@
 
 const mockSnapshotSeeds = {
   sampleAuditReport: {
-    projectId: 'sample-project-123',
-    timestamp: '2026-06-01T00:00:00.000Z',
+    projectId: "sample-project-123",
+    timestamp: "2026-06-01T00:00:00.000Z",
     findings: [
       {
-        id: 'sample-finding-1',
-        severity: 'high',
-        description: 'Sample credential pattern for testing',
-        pattern: 'sample-api-key-pattern'
-      }
-    ]
+        id: "sample-finding-1",
+        severity: "high",
+        description: "Sample credential pattern for testing",
+        pattern: "sample-api-key-pattern",
+      },
+    ],
   },
   templateSample: {
     // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case credentials for SimpleBeacon rule validation
-    databaseUrl: 'postgresql://user:placeholder@localhost:5432/db', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case database URL
-    apiKey: 'sk_test_your_api_key_here', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case API key
-    secret: 'sample-secret-for-template-rendering'
+    databaseUrl: "postgresql://user:placeholder@localhost:5432/db", // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case database URL
+    apiKey: "sk_test_your_api_key_here", // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case API key
+    secret: "sample-secret-for-template-rendering",
   },
   sampleJson: {
-    mockCredential: 'mock-credential-value-for-testing',
-    placeholderKey: 'placeholder-key-12345'
-  }
+    mockCredential: "mock-credential-value-for-testing",
+    placeholderKey: "placeholder-key-12345",
+  },
 };
 
 function getSnapshotSeed(type) {

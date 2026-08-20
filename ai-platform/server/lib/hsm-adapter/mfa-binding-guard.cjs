@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 30: MFA binding guard.
@@ -9,15 +9,15 @@
  * @module hsm-adapter/mfa-binding-guard
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 function _hashHex(inputs) {
-  const h = crypto.createHash('sha256');
+  const h = crypto.createHash("sha256");
   for (const item of inputs) {
-    h.update(typeof item === 'string' ? item : JSON.stringify(item));
+    h.update(typeof item === "string" ? item : JSON.stringify(item));
   }
-  return h.digest('hex');
+  return h.digest("hex");
 }
 
 class MfaBindingGuard {
@@ -40,28 +40,47 @@ class MfaBindingGuard {
    * @returns {boolean}
    */
   validate(token, expectedDeviceId) {
-    if (!token || typeof token !== 'object') {
-      throw new HsmAdapterError('INVALID_INPUT', 'MFA token is required');
+    if (!token || typeof token !== "object") {
+      throw new HsmAdapterError("INVALID_INPUT", "MFA token is required");
     }
     if (token.deviceId !== expectedDeviceId) {
-      throw new HsmAdapterError('MFA_DEVICE_MISMATCH', `MFA token device ${token.deviceId} does not match ${expectedDeviceId}`);
+      throw new HsmAdapterError(
+        "MFA_DEVICE_MISMATCH",
+        `MFA token device ${token.deviceId} does not match ${expectedDeviceId}`,
+      );
     }
-    if (!Array.isArray(token.signatures) || token.signatures.length < this._minSignatures) {
-      throw new HsmAdapterError('MFA_SIGNATURES_MISSING', `MFA token has ${(token.signatures || []).length} signatures, require ${this._minSignatures}`);
+    if (
+      !Array.isArray(token.signatures) ||
+      token.signatures.length < this._minSignatures
+    ) {
+      throw new HsmAdapterError(
+        "MFA_SIGNATURES_MISSING",
+        `MFA token has ${(token.signatures || []).length} signatures, require ${this._minSignatures}`,
+      );
     }
-    if (typeof token.createdAt !== 'number' || Date.now() - token.createdAt > this._tokenExpiryMs) {
-      throw new HsmAdapterError('MFA_TOKEN_EXPIRED', 'MFA token is expired');
+    if (
+      typeof token.createdAt !== "number" ||
+      Date.now() - token.createdAt > this._tokenExpiryMs
+    ) {
+      throw new HsmAdapterError("MFA_TOKEN_EXPIRED", "MFA token is expired");
     }
 
     // Simulated signature integrity: each signature must match the expected factor hash.
     for (let i = 0; i < token.signatures.length; i += 1) {
-      const expected = _hashHex([token.deviceId, token.createdAt, `factor${i + 1}`]);
+      const expected = _hashHex([
+        token.deviceId,
+        token.createdAt,
+        `factor${i + 1}`,
+      ]);
       if (token.signatures[i] !== expected) {
-        throw new HsmAdapterError('MFA_SIGNATURE_INVALID', `MFA signature ${i} failed integrity check`);
+        throw new HsmAdapterError(
+          "MFA_SIGNATURE_INVALID",
+          `MFA signature ${i} failed integrity check`,
+        );
       }
     }
 
-    this._emitAudit('MFA_TOKEN_AUTHENTICATED', {
+    this._emitAudit("MFA_TOKEN_AUTHENTICATED", {
       deviceId: token.deviceId,
       signatureCount: token.signatures.length,
       createdAt: token.createdAt,
@@ -77,8 +96,8 @@ class MfaBindingGuard {
    */
   static generateToken(deviceId, createdAt = Date.now()) {
     const signatures = [
-      _hashHex([deviceId, createdAt, 'factor1']),
-      _hashHex([deviceId, createdAt, 'factor2']),
+      _hashHex([deviceId, createdAt, "factor1"]),
+      _hashHex([deviceId, createdAt, "factor2"]),
     ];
     return { deviceId, signatures, createdAt };
   }

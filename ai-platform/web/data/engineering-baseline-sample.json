@@ -10,12 +10,8 @@
   "releaseMilestones": {
     "status": "complete"
   },
-  "criticalPath": [
-    {}
-  ],
-  "successMetrics": [
-    {}
-  ],
+  "criticalPath": [{}],
+  "successMetrics": [{}],
   "riskAssessment": {},
   "budgetEstimate": {},
   "recommendations": {}

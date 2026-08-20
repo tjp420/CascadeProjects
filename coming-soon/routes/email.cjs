@@ -11,9 +11,18 @@ const { generateLicenseToken } = require('../lib/license-utils.cjs');
 const { createTokenChain, activateToken, hashToken } = require('../lib/token-chain-store.cjs');
 
 const logger = {
-    error: (...a) => { const c = globalThis.console; c.error(...a); },
-    info: (...a) => { const c = globalThis.console; c.info(...a); },
-    warn: (...a) => { const c = globalThis.console; c.warn(...a); }
+    error: (...a) => {
+        const c = globalThis.console;
+        c.error(...a);
+    },
+    info: (...a) => {
+        const c = globalThis.console;
+        c.info(...a);
+    },
+    warn: (...a) => {
+        const c = globalThis.console;
+        c.warn(...a);
+    }
 };
 
 // ── Admin auth helper (mirrors routes/admin.cjs) ───────────────────────────
@@ -66,9 +75,11 @@ router.post('/api/emails/resend-token', express.json(), async (req, res) => {
 
         // Find active paid subscription
         const dbInstance = db.getDb();
-        const activeSub = dbInstance.prepare(
-            "SELECT * FROM paid_subscriptions WHERE customer_email = ? AND status = 'active' ORDER BY current_period_end DESC LIMIT 1"
-        ).get(customer.email);
+        const activeSub = dbInstance
+            .prepare(
+                "SELECT * FROM paid_subscriptions WHERE customer_email = ? AND status = 'active' ORDER BY current_period_end DESC LIMIT 1"
+            )
+            .get(customer.email);
         if (!activeSub) {
             return res.status(403).json({ error: 'No active paid subscription found.' });
         }
@@ -80,9 +91,17 @@ router.post('/api/emails/resend-token', express.json(), async (req, res) => {
             : 60 * 24 * 30;
         const ttlLabel = ttlMinutes >= 60 * 24 * 365 ? '1 year' : '30 days';
 
-        const features = finalTier === 'enterprise'
-            ? ['continuous_shield', 'team_dashboard', 'ci_integration', 'compliance_certificate', 'eu_ai_act', 'analyst_support']
-            : ['continuous_shield', 'team_dashboard', 'ci_integration'];
+        const features =
+            finalTier === 'enterprise'
+                ? [
+                      'continuous_shield',
+                      'team_dashboard',
+                      'ci_integration',
+                      'compliance_certificate',
+                      'eu_ai_act',
+                      'analyst_support'
+                  ]
+                : ['continuous_shield', 'team_dashboard', 'ci_integration'];
 
         const licenseSecret = process.env.SIMPLEBEACON_LICENSE_SECRET;
         if (!licenseSecret) {
@@ -202,25 +221,31 @@ router.post('/api/webhooks/resend', express.json(), (req, res) => {
                 break;
             case 'email.delivered': {
                 const dbInstance = db.getDb();
-                dbInstance.prepare("UPDATE email_queue SET status = 'delivered', delivered_at = ? WHERE id = ?").run(now, email.id);
+                dbInstance
+                    .prepare("UPDATE email_queue SET status = 'delivered', delivered_at = ? WHERE id = ?")
+                    .run(now, email.id);
                 status = 'delivered';
                 break;
             }
             case 'email.bounced': {
                 const dbInstance = db.getDb();
-                dbInstance.prepare("UPDATE email_queue SET status = 'bounced', bounced_at = ? WHERE id = ?").run(now, email.id);
+                dbInstance
+                    .prepare("UPDATE email_queue SET status = 'bounced', bounced_at = ? WHERE id = ?")
+                    .run(now, email.id);
                 status = 'bounced';
                 break;
             }
             case 'email.complained': {
                 const dbInstance = db.getDb();
-                dbInstance.prepare("UPDATE email_queue SET status = 'complained', bounced_at = ? WHERE id = ?").run(now, email.id);
+                dbInstance
+                    .prepare("UPDATE email_queue SET status = 'complained', bounced_at = ? WHERE id = ?")
+                    .run(now, email.id);
                 status = 'complained';
                 break;
             }
             case 'email.opened': {
                 const dbInstance = db.getDb();
-                dbInstance.prepare("UPDATE email_queue SET opened_at = ? WHERE id = ?").run(now, email.id);
+                dbInstance.prepare('UPDATE email_queue SET opened_at = ? WHERE id = ?').run(now, email.id);
                 break;
             }
             default:

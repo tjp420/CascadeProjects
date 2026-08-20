@@ -3,8 +3,6 @@
     "total": 100,
     "sampleJsonFiles": 50
   },
-  "sources": [
-    "filesystem"
-  ],
+  "sources": ["filesystem"],
   "dataSource": "repository-audit"
 }

@@ -25,8 +25,10 @@ class PrimeField {
   }
 
   inv(a) {
-    let t = 0n, newT = 1n;
-    let r = this.q, newR = this.toBig(a) % this.q;
+    let t = 0n,
+      newT = 1n;
+    let r = this.q,
+      newR = this.toBig(a) % this.q;
     while (newR !== 0n) {
       const quotient = r / newR;
       const tmpT = newT;
@@ -36,7 +38,7 @@ class PrimeField {
       newR = r - quotient * newR;
       r = tmpR;
     }
-    if (r > 1n) throw new Error('NOT_INVERTIBLE');
+    if (r > 1n) throw new Error("NOT_INVERTIBLE");
     if (t < 0n) t += this.q;
     return t;
   }

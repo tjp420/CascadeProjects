@@ -11,14 +11,11 @@
  * @license MIT
  */
 
-'use strict';
+"use strict";
 
-const logger = require('../lib/app-logger.cjs');
+const logger = require("../lib/app-logger.cjs");
 
-const REQUIRED_STRIPE_VARS = [
-  'STRIPE_SECRET_KEY',
-  'STRIPE_WEBHOOK_SECRET'
-];
+const REQUIRED_STRIPE_VARS = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"];
 
 /**
  * Validate that STRIPE_SECRET_KEY starts with sk_ or rk_ (restricted key).
@@ -26,7 +23,9 @@ const REQUIRED_STRIPE_VARS = [
  * @returns {boolean}
  */
 function isValidStripeSecretKey(val) {
-  return typeof val === 'string' && (val.startsWith('sk_') || val.startsWith('rk_'));
+  return (
+    typeof val === "string" && (val.startsWith("sk_") || val.startsWith("rk_"))
+  );
 }
 
 /**
@@ -35,7 +34,7 @@ function isValidStripeSecretKey(val) {
  * @returns {boolean}
  */
 function isValidWebhookSecret(val) {
-  return typeof val === 'string' && val.startsWith('whsec_');
+  return typeof val === "string" && val.startsWith("whsec_");
 }
 
 /**
@@ -50,10 +49,9 @@ function isValidWebhookSecret(val) {
  * @returns {{missing:string[],invalid:string[],passed:boolean}} Validation result.
  */
 function validateEnvironment(opts) {
-  const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-  const fatal = opts && typeof opts.fatal === 'boolean'
-    ? opts.fatal
-    : false; // never crash — boot the server, let billing routes fail at runtime
+  const isProduction =
+    String(process.env.NODE_ENV || "").toLowerCase() === "production";
+  const fatal = opts && typeof opts.fatal === "boolean" ? opts.fatal : false; // never crash — boot the server, let billing routes fail at runtime
 
   const missing = [];
   const invalid = [];
@@ -64,34 +62,52 @@ function validateEnvironment(opts) {
     }
   }
 
-  if (process.env.STRIPE_SECRET_KEY && !isValidStripeSecretKey(process.env.STRIPE_SECRET_KEY)) {
-    invalid.push('STRIPE_SECRET_KEY must start with "sk_" (sk_test_ or sk_live_)');
+  if (
+    process.env.STRIPE_SECRET_KEY &&
+    !isValidStripeSecretKey(process.env.STRIPE_SECRET_KEY)
+  ) {
+    invalid.push(
+      'STRIPE_SECRET_KEY must start with "sk_" (sk_test_ or sk_live_)',
+    );
   }
 
-  if (process.env.STRIPE_WEBHOOK_SECRET && !isValidWebhookSecret(process.env.STRIPE_WEBHOOK_SECRET)) {
+  if (
+    process.env.STRIPE_WEBHOOK_SECRET &&
+    !isValidWebhookSecret(process.env.STRIPE_WEBHOOK_SECRET)
+  ) {
     invalid.push('STRIPE_WEBHOOK_SECRET must start with "whsec_"');
   }
 
   const passed = missing.length === 0 && invalid.length === 0;
 
   if (passed) {
-    logger.info('[EnvValidator] Environment validation passed: Stripe billing services ready.');
+    logger.info(
+      "[EnvValidator] Environment validation passed: Stripe billing services ready.",
+    );
     return { missing, invalid, passed: true };
   }
 
-  logger.error('[EnvValidator] Environment validation FAILED!');
+  logger.error("[EnvValidator] Environment validation FAILED!");
   if (missing.length > 0) {
-    logger.error('[EnvValidator] Missing required variables: ' + missing.join(', '));
+    logger.error(
+      "[EnvValidator] Missing required variables: " + missing.join(", "),
+    );
   }
   if (invalid.length > 0) {
-    logger.error('[EnvValidator] Invalid variable formats: ' + invalid.join('; '));
+    logger.error(
+      "[EnvValidator] Invalid variable formats: " + invalid.join("; "),
+    );
   }
 
   if (fatal) {
-    logger.error('[EnvValidator] Server boot aborted to prevent silent webhook failures.');
+    logger.error(
+      "[EnvValidator] Server boot aborted to prevent silent webhook failures.",
+    );
     process.exit(1);
   } else {
-    logger.warn('[EnvValidator] Stripe billing will not function — missing/invalid keys. Non-billing endpoints remain available.');
+    logger.warn(
+      "[EnvValidator] Stripe billing will not function — missing/invalid keys. Non-billing endpoints remain available.",
+    );
   }
 
   return { missing, invalid, passed: false };
@@ -101,5 +117,5 @@ module.exports = {
   validateEnvironment,
   isValidStripeSecretKey,
   isValidWebhookSecret,
-  REQUIRED_STRIPE_VARS
+  REQUIRED_STRIPE_VARS,
 };

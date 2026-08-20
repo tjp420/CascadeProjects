@@ -18,7 +18,11 @@
  */
 
 function escapeHtml(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 function renderLicenseConfirmation(opts) {
@@ -41,33 +45,63 @@ function renderLicenseConfirmation(opts) {
     // Strip any trailing #/signin from signInUrl and use path-based routing instead
     const signInBase = signInUrl.replace(/\/#\/signin\/?$/, '/signin').replace(/\/#\/signin$/, '/signin');
     const activateUrl = signInBase + (signInBase.includes('?') ? '&' : '?') + 'mode=license&token=' + tokenEncoded;
-    const registerUrl = signInBase + (signInBase.includes('?') ? '&' : '?') + 'mode=register&email=' + emailEncoded + '&name=' + nameEncoded;
+    const registerUrl =
+        signInBase +
+        (signInBase.includes('?') ? '&' : '?') +
+        'mode=register&email=' +
+        emailEncoded +
+        '&name=' +
+        nameEncoded;
     const loginUrl = signInBase + (signInBase.includes('?') ? '&' : '?') + 'mode=signin&email=' + emailEncoded;
     const dashboardWithToken = dashboardUrl + (dashboardUrl.includes('?') ? '&' : '?') + 'token=' + tokenEncoded;
 
-    const featuresHtml = features.map(f => '<li style="padding:8px 0 8px 28px;font-size:0.88rem;color:#c4b5fd;position:relative;"><span style="position:absolute;left:0;top:11px;color:#fbbf24;">&#10003;</span>' + escapeHtml(f) + '</li>').join('');
-    const featuresBlock = features.length > 0
-        ? '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(251,191,36,0.15);border-radius:12px;padding:24px;margin-bottom:24px;"><div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#fbbf24;margin-bottom:16px;">Included in your plan</div><ul style="list-style:none;padding:0;margin:0;">' + featuresHtml + '</ul></div>'
-        : '';
+    const featuresHtml = features
+        .map(
+            f =>
+                '<li style="padding:8px 0 8px 28px;font-size:0.88rem;color:#c4b5fd;position:relative;"><span style="position:absolute;left:0;top:11px;color:#fbbf24;">&#10003;</span>' +
+                escapeHtml(f) +
+                '</li>'
+        )
+        .join('');
+    const featuresBlock =
+        features.length > 0
+            ? '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(251,191,36,0.15);border-radius:12px;padding:24px;margin-bottom:24px;"><div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#fbbf24;margin-bottom:16px;">Included in your plan</div><ul style="list-style:none;padding:0;margin:0;">' +
+              featuresHtml +
+              '</ul></div>'
+            : '';
 
     const subject = 'Your ' + tierLabel + ' License Token — Activate in 30 seconds';
-    const text = 'Welcome to ' + tierLabel + '!\n\n'
-        + 'Your subscription is active. Choose an option to get started:\n\n'
-        + 'OPTION 1: Activate your license (instant, no password)\n'
-        + activateUrl + '\n\n'
-        + 'OPTION 2: Create an account (email pre-filled)\n'
-        + registerUrl + '\n\n'
-        + 'OPTION 3: Sign in to an existing account\n'
-        + loginUrl + '\n\n'
-        + 'License Token: ' + token + '\n'
-        + 'Valid for: ' + ttlLabel + '\n\n'
-        + 'STEP 2: Install the CLI (1 minute)\n'
-        + '  npx --yes simplebeacon init --starter\n\n'
-        + 'STEP 3: Run your first scan (30 seconds)\n'
-        + '  npx simplebeacon scan --gate --offline\n\n'
-        + 'API Key (for CI/CD): ' + apiKey + '\n'
-        + 'Dashboard: ' + dashboardWithToken + '\n\n'
-        + 'Questions? Reply to this email or contact admin@simplebeacon.ai';
+    const text =
+        'Welcome to ' +
+        tierLabel +
+        '!\n\n' +
+        'Your subscription is active. Choose an option to get started:\n\n' +
+        'OPTION 1: Activate your license (instant, no password)\n' +
+        activateUrl +
+        '\n\n' +
+        'OPTION 2: Create an account (email pre-filled)\n' +
+        registerUrl +
+        '\n\n' +
+        'OPTION 3: Sign in to an existing account\n' +
+        loginUrl +
+        '\n\n' +
+        'License Token: ' +
+        token +
+        '\n' +
+        'Valid for: ' +
+        ttlLabel +
+        '\n\n' +
+        'STEP 2: Install the CLI (1 minute)\n' +
+        '  npx --yes simplebeacon init --starter\n\n' +
+        'STEP 3: Run your first scan (30 seconds)\n' +
+        '  npx simplebeacon scan --gate --offline\n\n' +
+        'API Key (for CI/CD): ' +
+        apiKey +
+        '\n' +
+        'Dashboard: ' +
+        dashboardWithToken +
+        '\n\n' +
+        'Questions? Reply to this email or contact admin@simplebeacon.ai';
 
     const html = `<!DOCTYPE html>
 <html lang="en">

@@ -361,28 +361,28 @@ After any reset, verify these work before resuming development:
 
 ## 11. Common Errors & Fixes
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `MODULE_NOT_FOUND` | Corrupted `node_modules` | Run per-package reinstall (Section 4) |
-| `EACCES: permission denied` | npm installed with sudo | `sudo chown -R $(whoami) ~/.npm` then reinstall |
-| `Port 3000 already in use` | Previous dev server zombie | `npx kill-port 3000` or `lsof -ti:3000 \| xargs kill -9` |
-| `SQLite database is locked` | Concurrent processes holding DB | Kill all node processes, delete `*.db-wal` and `*.db-shm` |
-| `TypeScript compilation errors` | Stale `out/` directory | `rm -rf out && npx tsc` |
-| `VS Code: extension fails to activate` | Corrupted extension storage | Follow Section 8.2 |
-| `scanner reports stale results` | File content cache not cleared | Follow Section 6 |
+| Error                                  | Cause                           | Fix                                                       |
+| -------------------------------------- | ------------------------------- | --------------------------------------------------------- |
+| `MODULE_NOT_FOUND`                     | Corrupted `node_modules`        | Run per-package reinstall (Section 4)                     |
+| `EACCES: permission denied`            | npm installed with sudo         | `sudo chown -R $(whoami) ~/.npm` then reinstall           |
+| `Port 3000 already in use`             | Previous dev server zombie      | `npx kill-port 3000` or `lsof -ti:3000 \| xargs kill -9`  |
+| `SQLite database is locked`            | Concurrent processes holding DB | Kill all node processes, delete `*.db-wal` and `*.db-shm` |
+| `TypeScript compilation errors`        | Stale `out/` directory          | `rm -rf out && npx tsc`                                   |
+| `VS Code: extension fails to activate` | Corrupted extension storage     | Follow Section 8.2                                        |
+| `scanner reports stale results`        | File content cache not cleared  | Follow Section 6                                          |
 
 ---
 
 ## 12. Emergency Contacts
 
-| Issue | Who to Ask |
-|-------|-----------|
-| Database migration failure | Backend lead — check `#backend` channel |
-| Extension build failure | Frontend lead — check `#vscode` channel |
-| CLI scanner crash | Core maintainer — check `#cli` channel |
-| Git history rewrite | Repo admin — coordinate before force-push |
+| Issue                             | Who to Ask                                       |
+| --------------------------------- | ------------------------------------------------ |
+| Database migration failure        | Backend lead — check `#backend` channel          |
+| Extension build failure           | Frontend lead — check `#vscode` channel          |
+| CLI scanner crash                 | Core maintainer — check `#cli` channel           |
+| Git history rewrite               | Repo admin — coordinate before force-push        |
 | Can't recover after nuclear reset | Anyone with a clean clone — re-clone from GitHub |
 
 ---
 
-*This guide is a living document. Update it when new failure modes are discovered during 2.0 development.*
+_This guide is a living document. Update it when new failure modes are discovered during 2.0 development._

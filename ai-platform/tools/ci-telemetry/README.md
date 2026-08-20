@@ -19,5 +19,6 @@ node ai-platform/tools/ci-telemetry/parse-jest-results.cjs ai-platform/test-resu
 ```
 
 Integration guidance:
+
 - Add a step after your test run in the relevant workflow (e.g., `ai-platform/.github/workflows/health-tests.yml`) to run this parser.
 - Upload the generated files with `actions/upload-artifact@v4` or post to an internal telemetry endpoint.

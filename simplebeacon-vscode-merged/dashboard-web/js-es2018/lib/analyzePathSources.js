@@ -1,13 +1,13 @@
 /** Keep in sync with server/lib/path-safety.js DEFAULT_ALLOWED_HOSTS */
 export const REMOTE_REPO_HOSTS = [
-    'github.com',
-    'www.github.com',
-    'gitlab.com',
-    'www.gitlab.com',
-    'bitbucket.org',
-    'www.bitbucket.org',
-    'codeberg.org',
-    'www.codeberg.org'
+  'github.com',
+  'www.github.com',
+  'gitlab.com',
+  'www.gitlab.com',
+  'bitbucket.org',
+  'www.bitbucket.org',
+  'codeberg.org',
+  'www.codeberg.org',
 ];
 /**
  * Is remote repo url.
@@ -15,33 +15,28 @@ export const REMOTE_REPO_HOSTS = [
  * @returns {any}
  */
 export function isRemoteRepoUrl(value) {
-    const raw = String(value || '').trim();
-    if (!raw)
-        return false;
-    if (/^git@[^:]+:[\w.\-/]+/i.test(raw))
-        return true;
-    if (raw.startsWith('ssh://git@') || raw.startsWith('ssh://')) {
-        try {
-            const host = new URL(raw).hostname.toLowerCase();
-            return REMOTE_REPO_HOSTS.includes(host);
-        }
-        catch (_a) {
-            return false;
-        }
-    }
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  if (/^git@[^:]+:[\w.\-/]+/i.test(raw)) return true;
+  if (raw.startsWith('ssh://git@') || raw.startsWith('ssh://')) {
     try {
-        const parsed = new URL(raw);
-        if (parsed.protocol !== 'https:')
-            return false;
-        return REMOTE_REPO_HOSTS.includes(parsed.hostname.toLowerCase());
+      const host = new URL(raw).hostname.toLowerCase();
+      return REMOTE_REPO_HOSTS.includes(host);
+    } catch (_a) {
+      return false;
     }
-    catch (_b) {
-        return false;
-    }
+  }
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'https:') return false;
+    return REMOTE_REPO_HOSTS.includes(parsed.hostname.toLowerCase());
+  } catch (_b) {
+    return false;
+  }
 }
 /** @deprecated use isRemoteRepoUrl */
 export function isGithubRepoUrl(value) {
-    return isRemoteRepoUrl(value);
+  return isRemoteRepoUrl(value);
 }
 /**
  * Source chip title.
@@ -49,7 +44,12 @@ export function isGithubRepoUrl(value) {
  * @returns {any}
  */
 export function sourceChipTitle(source) {
-    const hint = (source === null || source === void 0 ? void 0 : source.hint) ? ` — ${source.hint}` : '';
-    const kind = (source === null || source === void 0 ? void 0 : source.kind) === 'remote' ? 'HTTPS clone' : (source === null || source === void 0 ? void 0 : source.kind) === 'cached' ? 'Cached clone' : 'Local folder';
-    return `${kind}${hint}`;
+  const hint = (source === null || source === void 0 ? void 0 : source.hint) ? ` — ${source.hint}` : '';
+  const kind =
+    (source === null || source === void 0 ? void 0 : source.kind) === 'remote'
+      ? 'HTTPS clone'
+      : (source === null || source === void 0 ? void 0 : source.kind) === 'cached'
+        ? 'Cached clone'
+        : 'Local folder';
+  return `${kind}${hint}`;
 }

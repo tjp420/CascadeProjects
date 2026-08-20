@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 49: ZK match attestation.
@@ -10,8 +10,8 @@
  * @module hsm-adapter/zk-match-attestation
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkMatchAttestation {
   /**
@@ -32,9 +32,9 @@ class ZkMatchAttestation {
    */
   generate(query, matches) {
     const input = _canonicalInput(query, matches);
-    const proof = crypto.createHash('sha256').update(input).digest('hex');
+    const proof = crypto.createHash("sha256").update(input).digest("hex");
     if (this._audit) {
-      this._audit('ZK_LOOKUP_MATCH_VERIFIED', {
+      this._audit("ZK_LOOKUP_MATCH_VERIFIED", {
         tenantId: query.tenantId,
         tableAlias: query.tableAlias,
         matchCount: matches.length,
@@ -53,14 +53,17 @@ class ZkMatchAttestation {
   verify(query, matches, proof) {
     const expected = this.generate(query, matches);
     if (proof !== expected) {
-      throw new HsmAdapterError('ZK_LOOKUP_PROOF_INVALID', 'zk match attestation verification failed');
+      throw new HsmAdapterError(
+        "ZK_LOOKUP_PROOF_INVALID",
+        "zk match attestation verification failed",
+      );
     }
     return { verified: true, matchCount: matches.length };
   }
 }
 
 function _canonicalInput(query, matches) {
-  const recordIds = matches.map((m) => m.recordId).join(',');
+  const recordIds = matches.map((m) => m.recordId).join(",");
   return `LOOKUP:${query.tenantId}:${query.tableAlias}:${query.encryptedFilterHash}:${query.requestedColumns}:${query.queryEpoch}:${recordIds}`;
 }
 

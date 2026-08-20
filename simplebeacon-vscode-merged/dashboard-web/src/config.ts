@@ -3,7 +3,7 @@
  * Override with the `sb_api_base` query parameter, e.g.:
  *   http://localhost:5173/?sb_api_base=http://127.0.0.1:8081/api#/signin
  */
-export const DEFAULT_API_BASE = 'http://127.0.0.1:58000';
+export const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:58000';
 
 export function getApiBase(): string {
   if (typeof window === 'undefined') return DEFAULT_API_BASE;
@@ -35,11 +35,11 @@ export function getApiBase(): string {
       }
       return DEFAULT_API_BASE;
     }
-    // Canonical production domain serves the API same-origin.
-    if (host === 'simplebeacon.ai') {
+    // Canonical production + Cloudflare Pages (preview) proxy /api/* via the Worker — same-origin.
+    if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
       return window.location.origin;
     }
-    // Cloudflare Pages previews and other non-local domains talk to the production API.
+    // Other non-local domains fall back to production API (may require CORS on backend).
     if (!host.endsWith('.onrender.com')) {
       return 'https://simplebeacon.ai';
     }
@@ -56,13 +56,15 @@ export function getApiBase(): string {
  */
 export function authHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+  const token =
+    localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export function isTokenExpired(): boolean {
   if (typeof window === 'undefined') return false;
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+  const token =
+    localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   if (!token) return true;
   try {
     const parts = token.split('.');
@@ -78,6 +80,7 @@ export function isTokenExpired(): boolean {
 export function clearAuthAndRedirect(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('sb_token');
+  localStorage.removeItem('sb-token');
   localStorage.removeItem('auth_token');
   localStorage.removeItem('sb_user');
   if (window.location.hash && window.location.hash.includes('signin')) return;
@@ -86,7 +89,9 @@ export function clearAuthAndRedirect(): void {
 
 export function apiUrl(path: string): string {
   const base = getApiBase() || '';
-  const normalized = String(base).replace(/\/+$/, '').replace(/\/api$/i, '');
+  const normalized = String(base)
+    .replace(/\/+$/, '')
+    .replace(/\/api$/i, '');
   const segment = String(path || '').replace(/^\/+/, '');
   if (!segment) return normalized || '/';
   if (normalized) return `${normalized}/api/${segment}`;
@@ -145,7 +150,10 @@ if (typeof window !== 'undefined') {
           // requests will fail with preflight errors.
           const allowHeaders = res.headers.get('Access-Control-Allow-Headers') || '';
           if (allowHeaders && allowHeaders !== '*') {
-            const allowed = allowHeaders.toLowerCase().split(',').map(h => h.trim());
+            const allowed = allowHeaders
+              .toLowerCase()
+              .split(',')
+              .map((h) => h.trim());
             if (!allowed.includes('authorization')) {
               return false;
             }
@@ -155,7 +163,7 @@ if (typeof window !== 'undefined') {
           return false;
         }
       }
-      const results = await Promise.allSettled(ports.map(p => probePort(p)));
+      const results = await Promise.allSettled(ports.map((p) => probePort(p)));
       _probeDone = true;
       for (let i = 0; i < ports.length; i++) {
         const r = results[i];

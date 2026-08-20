@@ -37,8 +37,7 @@ async function fetchJson(url, timeoutMs = 10000) {
     let httpResponse;
     try {
         httpResponse = await fetchWithTimeout(url, { headers: authService.getAuthHeaders() }, timeoutMs);
-    }
-    catch (error) {
+    } catch (error) {
         throw new Error(buildNetworkErrorMessage(url, error));
     }
     if (httpResponse.status === 401) {
@@ -47,7 +46,9 @@ async function fetchJson(url, timeoutMs = 10000) {
     }
     if (!httpResponse.ok) {
         const body = await httpResponse.text().catch(() => '');
-        throw new Error(`Failed to load ${url}${body ? ` (${httpResponse.status}: ${body.slice(0, 120)})` : ` (${httpResponse.status})`}`);
+        throw new Error(
+            `Failed to load ${url}${body ? ` (${httpResponse.status}: ${body.slice(0, 120)})` : ` (${httpResponse.status})`}`
+        );
     }
     return readJsonResponseBody(httpResponse, {});
 }
@@ -67,13 +68,41 @@ export class PlatformService {
     }
     async fetchAll() {
         const results = await Promise.allSettled([
-            (async () => { const d = await fetchJson(PLATFORM.dashboardHome); this.dashboardHome = d.data || d; return this.dashboardHome; })(),
-            (async () => { const d = await fetchJson(PLATFORM.devTools); this.devTools = Array.isArray(d) ? d : d.tools || []; return this.devTools; })(),
-            (async () => { const d = await fetchJson(PLATFORM.devWorkflows); this.devWorkflows = Array.isArray(d) ? d : d.workflows || []; return this.devWorkflows; })(),
-            (async () => { const d = await fetchJson(PLATFORM.coverageOverview); this.coverage = d; return d; })(),
-            (async () => { const d = await fetchJson(PLATFORM.securityOverview); this.security = d; return d; })(),
-            (async () => { const d = await fetchJson(PLATFORM.qualityOverview); this.quality = d; return d; })(),
-            (async () => { const d = await fetchJson(PLATFORM.help); this.help = d.data || d; return this.help; })()
+            (async () => {
+                const d = await fetchJson(PLATFORM.dashboardHome);
+                this.dashboardHome = d.data || d;
+                return this.dashboardHome;
+            })(),
+            (async () => {
+                const d = await fetchJson(PLATFORM.devTools);
+                this.devTools = Array.isArray(d) ? d : d.tools || [];
+                return this.devTools;
+            })(),
+            (async () => {
+                const d = await fetchJson(PLATFORM.devWorkflows);
+                this.devWorkflows = Array.isArray(d) ? d : d.workflows || [];
+                return this.devWorkflows;
+            })(),
+            (async () => {
+                const d = await fetchJson(PLATFORM.coverageOverview);
+                this.coverage = d;
+                return d;
+            })(),
+            (async () => {
+                const d = await fetchJson(PLATFORM.securityOverview);
+                this.security = d;
+                return d;
+            })(),
+            (async () => {
+                const d = await fetchJson(PLATFORM.qualityOverview);
+                this.quality = d;
+                return d;
+            })(),
+            (async () => {
+                const d = await fetchJson(PLATFORM.help);
+                this.help = d.data || d;
+                return this.help;
+            })()
         ]);
         return results;
     }
@@ -109,8 +138,7 @@ export class PlatformService {
     }
     async fetchMergerReductionScan(projectPath) {
         const params = new URLSearchParams({ scope: 'repository', _: String(Date.now()) });
-        if (projectPath)
-            params.set('projectPath', projectPath);
+        if (projectPath) params.set('projectPath', projectPath);
         const data = await fetchJson(`/api/merger-tool/reduction-scan?${params}`, 180000);
         const report = data.data || data;
         this.mergerReductionScan = report;
@@ -167,7 +195,8 @@ export const FEATURE_CATALOG = [
                 icon: '⚡',
                 route: 'analyze',
                 analyzeMode: 'complete',
-                description: 'Full gate bundle — all eight scans including file reduction, data quality, and cleanup assistant (dry-run)'
+                description:
+                    'Full gate bundle — all eight scans including file reduction, data quality, and cleanup assistant (dry-run)'
             },
             {
                 id: 'simplebeacon-scan',

@@ -10,8 +10,7 @@ export function deepClone(obj) {
     if (typeof structuredClone === 'function') {
         try {
             return structuredClone(obj);
-        }
-        catch (_a) {
+        } catch (_a) {
             // structuredClone can fail on functions, DOM nodes, etc.
         }
     }
@@ -24,25 +23,18 @@ export function deepClone(obj) {
  * @returns {unknown}
  */
 export function clone(obj) {
-    if (obj == null || typeof obj !== 'object')
-        return obj;
-    if (Array.isArray(obj))
-        return [...obj];
+    if (obj == null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return [...obj];
     return { ...obj };
 }
 function _deepClone(obj, seen = new WeakMap()) {
-    if (obj === null || typeof obj !== 'object')
-        return obj;
-    if (seen.has(obj))
-        return seen.get(obj);
-    if (obj instanceof Date)
-        return new Date(obj.getTime());
-    if (obj instanceof RegExp)
-        return new RegExp(obj.source, obj.flags);
-    if (obj instanceof URL)
-        return new URL(obj.href);
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (seen.has(obj)) return seen.get(obj);
+    if (obj instanceof Date) return new Date(obj.getTime());
+    if (obj instanceof RegExp) return new RegExp(obj.source, obj.flags);
+    if (obj instanceof URL) return new URL(obj.href);
     if (obj instanceof Error) {
-        const err = new (obj.constructor)(obj.message);
+        const err = new obj.constructor(obj.message);
         err.stack = obj.stack;
         seen.set(obj, err);
         return err;
@@ -77,13 +69,11 @@ function _deepClone(obj, seen = new WeakMap()) {
         for (const key of Object.keys(obj)) {
             try {
                 cloned[key] = _deepClone(obj[key], seen);
-            }
-            catch (_a) {
+            } catch (_a) {
                 // Skip properties that throw on access (e.g., throwing getters)
             }
         }
-    }
-    catch (_b) {
+    } catch (_b) {
         // Object.keys may throw on exotic objects
     }
     return cloned;
@@ -95,30 +85,21 @@ function _deepClone(obj, seen = new WeakMap()) {
  * @returns {boolean}
  */
 export function deepEqual(a, b) {
-    if (a === b)
-        return true;
-    if (a == null || b == null)
-        return a === b;
-    if (typeof a !== typeof b)
-        return false;
-    if (typeof a !== 'object')
-        return false;
-    if (a instanceof Date && b instanceof Date)
-        return a.getTime() === b.getTime();
-    if (a instanceof RegExp && b instanceof RegExp)
-        return a.source === b.source && a.flags === b.flags;
+    if (a === b) return true;
+    if (a == null || b == null) return a === b;
+    if (typeof a !== typeof b) return false;
+    if (typeof a !== 'object') return false;
+    if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+    if (a instanceof RegExp && b instanceof RegExp) return a.source === b.source && a.flags === b.flags;
     if (a instanceof Map && b instanceof Map) {
-        if (a.size !== b.size)
-            return false;
+        if (a.size !== b.size) return false;
         for (const [k, v] of a) {
-            if (!b.has(k) || !deepEqual(v, b.get(k)))
-                return false;
+            if (!b.has(k) || !deepEqual(v, b.get(k))) return false;
         }
         return true;
     }
     if (a instanceof Set && b instanceof Set) {
-        if (a.size !== b.size)
-            return false;
+        if (a.size !== b.size) return false;
         for (const v of a) {
             let found = false;
             for (const w of b) {
@@ -127,29 +108,23 @@ export function deepEqual(a, b) {
                     break;
                 }
             }
-            if (!found)
-                return false;
+            if (!found) return false;
         }
         return true;
     }
     if (Array.isArray(a) && Array.isArray(b)) {
-        if (a.length !== b.length)
-            return false;
+        if (a.length !== b.length) return false;
         for (let i = 0; i < a.length; i++) {
-            if (!deepEqual(a[i], b[i]))
-                return false;
+            if (!deepEqual(a[i], b[i])) return false;
         }
         return true;
     }
     const keysA = Object.keys(a);
     const keysB = Object.keys(b);
-    if (keysA.length !== keysB.length)
-        return false;
+    if (keysA.length !== keysB.length) return false;
     for (const key of keysA) {
-        if (!Object.prototype.hasOwnProperty.call(b, key))
-            return false;
-        if (!deepEqual(a[key], b[key]))
-            return false;
+        if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+        if (!deepEqual(a[key], b[key])) return false;
     }
     return true;
 }
@@ -161,14 +136,11 @@ export function deepEqual(a, b) {
  * @returns {Pick<T, K>}
  */
 export function pick(obj, keys) {
-    if (!obj || typeof obj !== 'object')
-        return {};
+    if (!obj || typeof obj !== 'object') return {};
     const result = {};
-    if (!keys || typeof keys === 'string' || typeof keys[Symbol.iterator] !== 'function')
-        return result;
+    if (!keys || typeof keys === 'string' || typeof keys[Symbol.iterator] !== 'function') return result;
     for (const key of keys) {
-        if (Object.hasOwn(obj, key))
-            result[key] = obj[key];
+        if (Object.hasOwn(obj, key)) result[key] = obj[key];
     }
     return result;
 }
@@ -180,13 +152,11 @@ export function pick(obj, keys) {
  * @returns {Partial<T>}
  */
 export function omit(obj, keys) {
-    if (!obj || typeof obj !== 'object')
-        return {};
+    if (!obj || typeof obj !== 'object') return {};
     const set = new Set(keys && typeof keys !== 'string' && typeof keys[Symbol.iterator] === 'function' ? keys : []);
     const result = {};
     for (const key of Object.keys(obj)) {
-        if (!set.has(key))
-            result[key] = obj[key];
+        if (!set.has(key)) result[key] = obj[key];
     }
     return result;
 }
@@ -197,15 +167,12 @@ export function omit(obj, keys) {
  * @returns {Object}
  */
 export function defaults(target, ...sources) {
-    if (!target || typeof target !== 'object')
-        return {};
+    if (!target || typeof target !== 'object') return {};
     const result = { ...target };
     for (const src of sources) {
-        if (!src || typeof src !== 'object')
-            continue;
+        if (!src || typeof src !== 'object') continue;
         for (const key of Object.keys(src)) {
-            if (!(key in result))
-                result[key] = src[key];
+            if (!(key in result)) result[key] = src[key];
         }
     }
     return result;
@@ -217,20 +184,23 @@ export function defaults(target, ...sources) {
  * @returns {Object}
  */
 export function merge(target, ...sources) {
-    if (!target || typeof target !== 'object')
-        return {};
+    if (!target || typeof target !== 'object') return {};
     const result = { ...target };
     for (const src of sources) {
-        if (!src || typeof src !== 'object')
-            continue;
+        if (!src || typeof src !== 'object') continue;
         for (const key of Object.keys(src)) {
-            if (DANGEROUS_KEYS.has(key))
-                continue;
+            if (DANGEROUS_KEYS.has(key)) continue;
             const val = src[key];
-            if (val && typeof val === 'object' && !Array.isArray(val) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
+            if (
+                val &&
+                typeof val === 'object' &&
+                !Array.isArray(val) &&
+                result[key] &&
+                typeof result[key] === 'object' &&
+                !Array.isArray(result[key])
+            ) {
                 result[key] = merge(result[key], val);
-            }
-            else {
+            } else {
                 result[key] = val;
             }
         }
@@ -241,8 +211,7 @@ export function merge(target, ...sources) {
  * @returns {Object}
  */
 export function invert(obj) {
-    if (!obj || typeof obj !== 'object')
-        return {};
+    if (!obj || typeof obj !== 'object') return {};
     const result = {};
     for (const [key, val] of Object.entries(obj)) {
         result[String(val)] = key;
@@ -256,8 +225,7 @@ export function invert(obj) {
  * @returns {Object}
  */
 export function mapValues(obj, fn) {
-    if (!obj || typeof obj !== 'object' || typeof fn !== 'function')
-        return {};
+    if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
     const result = {};
     for (const [key, val] of Object.entries(obj)) {
         result[key] = fn(val, key);
@@ -271,8 +239,7 @@ export function mapValues(obj, fn) {
  * @returns {Object}
  */
 export function mapKeys(obj, fn) {
-    if (!obj || typeof obj !== 'object' || typeof fn !== 'function')
-        return {};
+    if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
     const result = {};
     for (const [key, val] of Object.entries(obj)) {
         result[fn(key, val)] = val;
@@ -296,13 +263,11 @@ export function has(obj, key) {
  * @returns {unknown}
  */
 export function get(obj, path, fallback) {
-    if (!obj || typeof obj !== 'object' || typeof path !== 'string')
-        return fallback;
+    if (!obj || typeof obj !== 'object' || typeof path !== 'string') return fallback;
     const keys = path.split('.');
     let current = obj;
     for (const key of keys) {
-        if (current == null || typeof current !== 'object')
-            return fallback;
+        if (current == null || typeof current !== 'object') return fallback;
         current = current[key];
     }
     return current === undefined ? fallback : current;
@@ -316,11 +281,9 @@ export function get(obj, path, fallback) {
  */
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 export function set(obj, path, value) {
-    if (!obj || typeof obj !== 'object' || typeof path !== 'string')
-        return obj;
+    if (!obj || typeof obj !== 'object' || typeof path !== 'string') return obj;
     const keys = path.split('.');
-    if (keys.some(key => DANGEROUS_KEYS.has(key)))
-        return obj;
+    if (keys.some(key => DANGEROUS_KEYS.has(key))) return obj;
     let current = obj;
     for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
@@ -339,8 +302,7 @@ export function set(obj, path, value) {
  * @returns {Object<string, unknown>}
  */
 export function zipObject(keys, values) {
-    if (!Array.isArray(keys))
-        return {};
+    if (!Array.isArray(keys)) return {};
     const result = {};
     for (let i = 0; i < keys.length; i++) {
         result[keys[i]] = i < (values || []).length ? values[i] : undefined;
@@ -373,18 +335,15 @@ export function constant(value) {
  * @returns {T[]}
  */
 export function at(obj, paths) {
-    if (!obj || typeof obj !== 'object')
-        return [];
-    if (!Array.isArray(paths))
-        return [];
+    if (!obj || typeof obj !== 'object') return [];
+    if (!Array.isArray(paths)) return [];
     const result = [];
     for (const p of paths) {
         const parts = String(p).split('.');
         let current = obj;
         for (const part of parts) {
             current = current === null || current === void 0 ? void 0 : current[part];
-            if (current === undefined)
-                break;
+            if (current === undefined) break;
         }
         result.push(current);
     }
@@ -397,13 +356,11 @@ export function at(obj, paths) {
  * @returns {boolean}
  */
 export function unset(obj, path) {
-    if (!obj || typeof obj !== 'object')
-        return false;
+    if (!obj || typeof obj !== 'object') return false;
     const parts = String(path).split('.');
     let current = obj;
     for (let i = 0; i < parts.length - 1; i++) {
-        if (current == null || typeof current !== 'object' || !(parts[i] in current))
-            return false;
+        if (current == null || typeof current !== 'object' || !(parts[i] in current)) return false;
         current = current[parts[i]];
     }
     const last = parts[parts.length - 1];
@@ -420,20 +377,21 @@ export function unset(obj, path) {
  * @returns {Record<string, unknown>}
  */
 export function defaultsDeep(target, ...sources) {
-    if (!target || typeof target !== 'object')
-        return target;
+    if (!target || typeof target !== 'object') return target;
     for (const source of sources) {
-        if (!source || typeof source !== 'object')
-            continue;
+        if (!source || typeof source !== 'object') continue;
         for (const key of Object.keys(source)) {
-            if (DANGEROUS_KEYS.has(key))
-                continue;
+            if (DANGEROUS_KEYS.has(key)) continue;
             if (target[key] === undefined) {
                 target[key] = source[key];
-            }
-            else if (target[key] != null && typeof target[key] === 'object' &&
-                source[key] != null && typeof source[key] === 'object' &&
-                !Array.isArray(target[key]) && !Array.isArray(source[key])) {
+            } else if (
+                target[key] != null &&
+                typeof target[key] === 'object' &&
+                source[key] != null &&
+                typeof source[key] === 'object' &&
+                !Array.isArray(target[key]) &&
+                !Array.isArray(source[key])
+            ) {
                 defaultsDeep(target[key], source[key]);
             }
         }

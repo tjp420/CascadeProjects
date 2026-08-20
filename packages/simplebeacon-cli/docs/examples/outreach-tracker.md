@@ -2,18 +2,18 @@
 
 Copy this table into Notion, a spreadsheet, or your CRM. Goal: **10 delivered**, **3 CI adoptions**, **1 paid pilot**.
 
-| # | Company / contact | Repo URL | Status | Scan date | Gate | High | Medium | Assessment file | CI wired? | Next step |
-|---|-------------------|----------|--------|-----------|------|------|--------|-----------------|-----------|-----------|
-| 1 | | | queued | | | | | | no | Send OUTREACH email |
-| 2 | | | queued | | | | | | no | |
-| 3 | | | queued | | | | | | no | |
-| 4 | | | queued | | | | | | no | |
-| 5 | | | queued | | | | | | no | |
-| 6 | | | queued | | | | | | no | |
-| 7 | | | queued | | | | | | no | |
-| 8 | | | queued | | | | | | no | |
-| 9 | | | queued | | | | | | no | |
-| 10 | | | queued | | | | | | no | |
+| #   | Company / contact | Repo URL | Status | Scan date | Gate | High | Medium | Assessment file | CI wired? | Next step           |
+| --- | ----------------- | -------- | ------ | --------- | ---- | ---- | ------ | --------------- | --------- | ------------------- |
+| 1   |                   |          | queued |           |      |      |        |                 | no        | Send OUTREACH email |
+| 2   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 3   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 4   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 5   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 6   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 7   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 8   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 9   |                   |          | queued |           |      |      |        |                 | no        |                     |
+| 10  |                   |          | queued |           |      |      |        |                 | no        |                     |
 
 **Status values:** `queued` → `contacted` → `scan scheduled` → `delivered` → `ci trial` → `pilot` → `closed-won` / `closed-lost`
 

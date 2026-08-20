@@ -170,8 +170,7 @@ async function resolveLicenseForTelemetry(context: vscode.ExtensionContext): Pro
   let tier = 'developer';
   let token = '';
 
-  const licenseToken =
-    config.get<string>('licenseKey', '') || config.get<string>('licenseToken', '');
+  const licenseToken = config.get<string>('licenseKey', '') || config.get<string>('licenseToken', '');
   if (licenseToken) {
     const meta = validateLicenseLocally(licenseToken, PUBLIC_KEY_PEM);
     if (meta) {
@@ -189,10 +188,7 @@ async function resolveLicenseForTelemetry(context: vscode.ExtensionContext): Pro
   }
 
   if (!token) {
-    token =
-      config.get<string>('apiToken', '') ||
-      context.globalState.get<string>('simplebeacon.apiToken', '') ||
-      '';
+    token = config.get<string>('apiToken', '') || context.globalState.get<string>('simplebeacon.apiToken', '') || '';
   }
 
   if (!token) {

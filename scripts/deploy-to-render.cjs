@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 // simplebeacon-ignore: security — all findings are false positives (scanner patterns, dashboard code, build scripts)
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-'use strict';
+"use strict";
 /**
  * Deploy SimpleBeacon to Render
- * 
+ *
  * Prerequisites:
  * 1. Install Render CLI: npm install -g @render/cli
  * 2. Login: render login
  * 3. Set env vars in Render dashboard or via CLI
- * 
+ *
  * Usage:
  *   node scripts/deploy-to-render.cjs
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { execSync } = require("child_process");
+const path = require("path");
+const fs = require("fs");
 
-const ROOT = path.join(__dirname, '..');
-const RENDER_YAML = path.join(ROOT, 'render.yaml');
+const ROOT = path.join(__dirname, "..");
+const RENDER_YAML = path.join(ROOT, "render.yaml");
 
 function checkFile(filePath, label) {
   if (!fs.existsSync(filePath)) {
@@ -32,7 +32,7 @@ function checkFile(filePath, label) {
 function run(cmd, cwd = ROOT) {
   console.log(`\n▶ ${cmd}`);
   try {
-    const output = execSync(cmd, { cwd, stdio: 'inherit' });
+    const output = execSync(cmd, { cwd, stdio: "inherit" });
     return output;
   } catch (err) {
     console.error(`❌ Command failed: ${cmd}`);
@@ -41,34 +41,40 @@ function run(cmd, cwd = ROOT) {
 }
 
 function main() {
-  console.log('🚀 SimpleBeacon Render Deploy\n');
+  console.log("🚀 SimpleBeacon Render Deploy\n");
 
   // 1. Verify required files
-  checkFile(RENDER_YAML, 'render.yaml');
-  checkFile(path.join(ROOT, 'ai-platform', 'simplebeacon-server.cjs'), 'Server entry');
-  checkFile(path.join(ROOT, '.env.example'), 'Env example');
+  checkFile(RENDER_YAML, "render.yaml");
+  checkFile(
+    path.join(ROOT, "ai-platform", "simplebeacon-server.cjs"),
+    "Server entry",
+  );
+  checkFile(path.join(ROOT, ".env.example"), "Env example");
 
   // 2. Verify TypeScript compilation
-  console.log('\n📦 Verifying extension build...');
+  console.log("\n📦 Verifying extension build...");
   try {
-    execSync('npm run compile', { cwd: path.join(ROOT, 'simplebeacon-vscode-merged'), stdio: 'pipe' });
-    console.log('✅ Extension compiled');
+    execSync("npm run compile", {
+      cwd: path.join(ROOT, "simplebeacon-vscode-merged"),
+      stdio: "pipe",
+    });
+    console.log("✅ Extension compiled");
   } catch {
-    console.error('❌ Extension compilation failed');
+    console.error("❌ Extension compilation failed");
     process.exit(1);
   }
 
   // 3. Check syntax of critical server files
-  console.log('\n🔍 Checking server syntax...');
+  console.log("\n🔍 Checking server syntax...");
   const serverFiles = [
-    'ai-platform/simplebeacon-server.cjs',
-    'ai-platform/src/api/simplebeacon-billing-api.cjs',
-    'coming-soon/routes/checkout.cjs',
-    'coming-soon/services/email.cjs'
+    "ai-platform/simplebeacon-server.cjs",
+    "ai-platform/src/api/simplebeacon-billing-api.cjs",
+    "coming-soon/routes/checkout.cjs",
+    "coming-soon/services/email.cjs",
   ];
   for (const file of serverFiles) {
     try {
-      execSync(`node -c ${path.join(ROOT, file)}`, { stdio: 'pipe' });
+      execSync(`node -c ${path.join(ROOT, file)}`, { stdio: "pipe" });
       console.log(`✅ ${file}`);
     } catch {
       console.error(`❌ Syntax error in ${file}`);
@@ -77,42 +83,44 @@ function main() {
   }
 
   // 4. Verify env completeness
-  console.log('\n🔐 Checking env.example completeness...');
-  const envContent = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf8');
+  console.log("\n🔐 Checking env.example completeness...");
+  const envContent = fs.readFileSync(path.join(ROOT, ".env.example"), "utf8");
   const requiredVars = [
-    'STRIPE_SECRET_KEY',
-    'STRIPE_PUBLISHABLE_KEY',
-    'STRIPE_WEBHOOK_SECRET',
-    'SIMPLEBEACON_LICENSE_SECRET',
-    'RESEND_API_KEY',
-    'PUBLIC_URL',
-    'SIMPLEBEACON_APP_URL'
+    "STRIPE_SECRET_KEY",
+    "STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "SIMPLEBEACON_LICENSE_SECRET",
+    "RESEND_API_KEY",
+    "PUBLIC_URL",
+    "SIMPLEBEACON_APP_URL",
   ];
-  const missing = requiredVars.filter(v => !envContent.includes(v));
+  const missing = requiredVars.filter((v) => !envContent.includes(v));
   if (missing.length) {
-    console.warn(`⚠️ Missing from .env.example: ${missing.join(', ')}`);
+    console.warn(`⚠️ Missing from .env.example: ${missing.join(", ")}`);
   } else {
-    console.log('✅ All critical env vars documented');
+    console.log("✅ All critical env vars documented");
   }
 
   // 5. Deploy via Render CLI
-  console.log('\n🌐 Deploying to Render...');
-  console.log('   (Ensure Render CLI is installed: npm install -g @render/cli)');
-  console.log('   (Ensure you are logged in: render login)');
-  
+  console.log("\n🌐 Deploying to Render...");
+  console.log(
+    "   (Ensure Render CLI is installed: npm install -g @render/cli)",
+  );
+  console.log("   (Ensure you are logged in: render login)");
+
   try {
-    run('render deploy --preview .', ROOT);
+    run("render deploy --preview .", ROOT);
   } catch {
-    console.log('\n⚠️ Render CLI deploy failed. Manual deploy steps:');
-    console.log('   1. Push code to GitHub');
-    console.log('   2. Go to https://dashboard.render.com');
+    console.log("\n⚠️ Render CLI deploy failed. Manual deploy steps:");
+    console.log("   1. Push code to GitHub");
+    console.log("   2. Go to https://dashboard.render.com");
     console.log('   3. Click "New +" → "Blueprint"');
-    console.log('   4. Connect your GitHub repo');
-    console.log('   5. Render will detect render.yaml and create the service');
-    console.log('   6. Set sync: false env vars in the dashboard');
+    console.log("   4. Connect your GitHub repo");
+    console.log("   5. Render will detect render.yaml and create the service");
+    console.log("   6. Set sync: false env vars in the dashboard");
   }
 
-  console.log('\n✅ Deploy script complete');
+  console.log("\n✅ Deploy script complete");
 }
 
 if (require.main === module) {

@@ -1,26 +1,34 @@
 // Append comprehensive tests to crypto-policy-engine.test.cjs
 // Uses fd-based writes to bypass IDE reversion
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+const fs = require("fs");
+const path = require("path");
+const { execSync } = require("child_process");
 
 const root = __dirname;
 
 function fdWrite(filePath, newContent) {
-    const fd = fs.openSync(filePath, 'r+');
-    fs.writeSync(fd, newContent, 0, 'utf8');
-    fs.ftruncateSync(fd, Buffer.byteLength(newContent, 'utf8'));
-    fs.closeSync(fd);
+  const fd = fs.openSync(filePath, "r+");
+  fs.writeSync(fd, newContent, 0, "utf8");
+  fs.ftruncateSync(fd, Buffer.byteLength(newContent, "utf8"));
+  fs.closeSync(fd);
 }
 
-const testPath = path.join(root, 'ai-platform', 'server', 'lib', 'hsm-adapter', '__tests__', 'crypto-policy-engine.test.cjs');
-const existing = fs.readFileSync(testPath, 'utf8');
+const testPath = path.join(
+  root,
+  "ai-platform",
+  "server",
+  "lib",
+  "hsm-adapter",
+  "__tests__",
+  "crypto-policy-engine.test.cjs",
+);
+const existing = fs.readFileSync(testPath, "utf8");
 
 // Find the last closing }); of the describe block
-const lastCloseIdx = existing.lastIndexOf('});');
+const lastCloseIdx = existing.lastIndexOf("});");
 if (lastCloseIdx < 0) {
-    console.error('Could not find closing });');
-    process.exit(1);
+  console.error("Could not find closing });");
+  process.exit(1);
 }
 
 // New tests to insert BEFORE the final });
@@ -718,36 +726,45 @@ const newTests = `
 // Insert before the final });
 const before = existing.slice(0, lastCloseIdx);
 const after = existing.slice(lastCloseIdx);
-const updated = before + newTests + '\n' + after;
+const updated = before + newTests + "\n" + after;
 
 fdWrite(testPath, updated);
 
 // Verify
-const verify = fs.readFileSync(testPath, 'utf8');
-const hasNewTests = verify.includes('pq*Gating operations') && verify.includes('FIPS mode') && verify.includes('threshold operation');
-console.log('Test file updated:', hasNewTests ? 'OK' : 'FAIL');
-console.log('Total lines:', verify.split('\n').length);
+const verify = fs.readFileSync(testPath, "utf8");
+const hasNewTests =
+  verify.includes("pq*Gating operations") &&
+  verify.includes("FIPS mode") &&
+  verify.includes("threshold operation");
+console.log("Test file updated:", hasNewTests ? "OK" : "FAIL");
+console.log("Total lines:", verify.split("\n").length);
 
 // Syntax check
-console.log('\n=== SYNTAX CHECK ===');
+console.log("\n=== SYNTAX CHECK ===");
 try {
-    execSync('node -c ai-platform/server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs', { cwd: root, stdio: 'inherit' });
-    console.log('SYNTAX OK');
+  execSync(
+    "node -c ai-platform/server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs",
+    { cwd: root, stdio: "inherit" },
+  );
+  console.log("SYNTAX OK");
 } catch (e) {
-    console.error('SYNTAX FAILED:', e.message);
-    process.exit(1);
+  console.error("SYNTAX FAILED:", e.message);
+  process.exit(1);
 }
 
 // Run tests
-console.log('\n=== RUNNING TESTS ===');
+console.log("\n=== RUNNING TESTS ===");
 try {
-    execSync('npx jest --config jest.config.cjs crypto-policy-engine --coverage --collectCoverageFrom="server/lib/hsm-adapter/crypto-policy-engine.cjs" 2>&1', {
-        cwd: path.join(root, 'ai-platform'),
-        stdio: 'inherit',
-        timeout: 120000,
-    });
+  execSync(
+    'npx jest --config jest.config.cjs crypto-policy-engine --coverage --collectCoverageFrom="server/lib/hsm-adapter/crypto-policy-engine.cjs" 2>&1',
+    {
+      cwd: path.join(root, "ai-platform"),
+      stdio: "inherit",
+      timeout: 120000,
+    },
+  );
 } catch (e) {
-    console.log('TESTS FAILED (exit code', e.status, ')');
+  console.log("TESTS FAILED (exit code", e.status, ")");
 }
 
-console.log('\n=== DONE ===');
+console.log("\n=== DONE ===");

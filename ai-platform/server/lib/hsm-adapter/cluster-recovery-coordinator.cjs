@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 33: Cluster recovery coordinator.
@@ -9,7 +9,7 @@
  * @module hsm-adapter/cluster-recovery-coordinator
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ClusterRecoveryCoordinator {
   /**
@@ -54,16 +54,20 @@ class ClusterRecoveryCoordinator {
    */
   startRecovery(nodeId, shardId, localSequence) {
     if (!this.clusterNodes.has(nodeId)) {
-      throw new HsmAdapterError('RECOVERY_NODE_REJECTED', `node ${nodeId} is not in the cluster`);
+      throw new HsmAdapterError(
+        "RECOVERY_NODE_REJECTED",
+        `node ${nodeId} is not in the cluster`,
+      );
     }
     const clusterSeq = this._clusterSequences.get(shardId) || 0;
     const lag = clusterSeq - localSequence;
     if (lag <= 0) {
-      return { status: 'NO_RECOVERY_NEEDED', nodeId, shardId, lag };
+      return { status: "NO_RECOVERY_NEEDED", nodeId, shardId, lag };
     }
 
     const sessionId = `${nodeId}:${shardId}:${Date.now()}`;
-    const mode = lag > this.checkpointThreshold ? 'checkpoint' : 'sliding-window';
+    const mode =
+      lag > this.checkpointThreshold ? "checkpoint" : "sliding-window";
     const session = {
       sessionId,
       nodeId,
@@ -79,7 +83,7 @@ class ClusterRecoveryCoordinator {
     };
     this._recoveries.set(sessionId, session);
 
-    this._emitAudit('NODE_RECOVERY_STARTED', {
+    this._emitAudit("NODE_RECOVERY_STARTED", {
       sessionId,
       nodeId,
       shardId,
@@ -103,10 +107,16 @@ class ClusterRecoveryCoordinator {
   ackBatch(sessionId, batchSize) {
     const session = this._recoveries.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('RECOVERY_SESSION_NOT_FOUND', `no session ${sessionId}`);
+      throw new HsmAdapterError(
+        "RECOVERY_SESSION_NOT_FOUND",
+        `no session ${sessionId}`,
+      );
     }
     if (session.completed) {
-      throw new HsmAdapterError('RECOVERY_SESSION_COMPLETED', `session ${sessionId} already completed`);
+      throw new HsmAdapterError(
+        "RECOVERY_SESSION_COMPLETED",
+        `session ${sessionId} already completed`,
+      );
     }
 
     session.ackedBatches += 1;
@@ -116,14 +126,14 @@ class ClusterRecoveryCoordinator {
 
     if (session.localSequence >= session.clusterSequence) {
       session.completed = true;
-      this._emitAudit('NODE_RECOVERY_SYNCED', {
+      this._emitAudit("NODE_RECOVERY_SYNCED", {
         sessionId,
         nodeId: session.nodeId,
         shardId: session.shardId,
         ackedBatches: session.ackedBatches,
       });
     } else {
-      this._emitAudit('CATCH_UP_BATCH_ACK', {
+      this._emitAudit("CATCH_UP_BATCH_ACK", {
         sessionId,
         nodeId: session.nodeId,
         shardId: session.shardId,
@@ -143,23 +153,32 @@ class ClusterRecoveryCoordinator {
   failBatch(sessionId) {
     const session = this._recoveries.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('RECOVERY_SESSION_NOT_FOUND', `no session ${sessionId}`);
+      throw new HsmAdapterError(
+        "RECOVERY_SESSION_NOT_FOUND",
+        `no session ${sessionId}`,
+      );
     }
     if (session.completed) {
-      throw new HsmAdapterError('RECOVERY_SESSION_COMPLETED', `session ${sessionId} already completed`);
+      throw new HsmAdapterError(
+        "RECOVERY_SESSION_COMPLETED",
+        `session ${sessionId} already completed`,
+      );
     }
 
     session.attempts += 1;
     if (session.attempts > this.reSyncRetryLimit) {
-      throw new HsmAdapterError('RECOVERY_RETRY_EXHAUSTED', `session ${sessionId} exhausted retries`);
+      throw new HsmAdapterError(
+        "RECOVERY_RETRY_EXHAUSTED",
+        `session ${sessionId} exhausted retries`,
+      );
     }
 
     session.nextBackOffMs = Math.min(
       session.nextBackOffMs * 2,
-      this.maxBackOffMs
+      this.maxBackOffMs,
     );
 
-    this._emitAudit('CATCH_UP_BATCH_RETRY', {
+    this._emitAudit("CATCH_UP_BATCH_RETRY", {
       sessionId,
       nodeId: session.nodeId,
       shardId: session.shardId,
@@ -178,10 +197,16 @@ class ClusterRecoveryCoordinator {
   nextBatchRange(sessionId) {
     const session = this._recoveries.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('RECOVERY_SESSION_NOT_FOUND', `no session ${sessionId}`);
+      throw new HsmAdapterError(
+        "RECOVERY_SESSION_NOT_FOUND",
+        `no session ${sessionId}`,
+      );
     }
     const from = session.localSequence;
-    const to = Math.min(from + this.maxCatchUpBatchSize, session.clusterSequence);
+    const to = Math.min(
+      from + this.maxCatchUpBatchSize,
+      session.clusterSequence,
+    );
     return { from, to, size: to - from };
   }
 

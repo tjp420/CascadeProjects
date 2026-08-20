@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * @module health-diagnostics
@@ -13,10 +13,10 @@
  * @file server/routes/health-diagnostics.cjs
  */
 
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const logger = require('../lib/app-logger.cjs');
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const logger = require("../lib/app-logger.cjs");
 
 const router = express.Router();
 
@@ -33,29 +33,37 @@ const MEMORY_CRITICAL_THRESHOLD_MB = 800; // heapUsed critical threshold
  * @returns {{ status: string, detail: object }}
  */
 function checkEncryptionKey() {
-  const keyPath = path.join(process.cwd(), '.simplebeacon', '.encryption-key');
+  const keyPath = path.join(process.cwd(), ".simplebeacon", ".encryption-key");
   try {
     if (!fs.existsSync(keyPath)) {
       return {
-        status: 'DOWN',
-        detail: { path: keyPath, reason: 'encryption_key_missing' }
+        status: "DOWN",
+        detail: { path: keyPath, reason: "encryption_key_missing" },
       };
     }
-    const raw = fs.readFileSync(keyPath, 'utf8').trim();
+    const raw = fs.readFileSync(keyPath, "utf8").trim();
     if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
       return {
-        status: 'DEGRADED',
-        detail: { path: keyPath, reason: 'encryption_key_invalid_format', length: raw.length }
+        status: "DEGRADED",
+        detail: {
+          path: keyPath,
+          reason: "encryption_key_invalid_format",
+          length: raw.length,
+        },
       };
     }
     return {
-      status: 'UP',
-      detail: { path: keyPath, keyLength: 256 }
+      status: "UP",
+      detail: { path: keyPath, keyLength: 256 },
     };
   } catch (err) {
     return {
-      status: 'DOWN',
-      detail: { path: keyPath, reason: 'encryption_key_read_error', error: err.message }
+      status: "DOWN",
+      detail: {
+        path: keyPath,
+        reason: "encryption_key_read_error",
+        error: err.message,
+      },
     };
   }
 }
@@ -68,10 +76,10 @@ function checkEncryptionKey() {
  * @returns {{ status: string, files: object[] }}
  */
 function checkDatastoreIntegrity() {
-  const dataDir = path.join(process.cwd(), '.simplebeacon');
-  const targets = ['webhook-configs.json', 'user-ai-keys.json'];
+  const dataDir = path.join(process.cwd(), ".simplebeacon");
+  const targets = ["webhook-configs.json", "user-ai-keys.json"];
   const fileResults = [];
-  let overallStatus = 'UP';
+  let overallStatus = "UP";
 
   for (const filename of targets) {
     const filePath = path.join(dataDir, filename);
@@ -79,48 +87,52 @@ function checkDatastoreIntegrity() {
       if (!fs.existsSync(filePath)) {
         fileResults.push({
           file: filename,
-          status: 'INITIALIZED_EMPTY',
-          reason: 'file_not_yet_created'
+          status: "INITIALIZED_EMPTY",
+          reason: "file_not_yet_created",
         });
         // INITIALIZED_EMPTY is not a failure — it's a valid fresh-install state
         continue;
       }
-      const raw = fs.readFileSync(filePath, 'utf8');
+      const raw = fs.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(raw);
-      const validType = Array.isArray(parsed) || (typeof parsed === 'object' && parsed !== null);
+      const validType =
+        Array.isArray(parsed) ||
+        (typeof parsed === "object" && parsed !== null);
       if (!validType) {
         fileResults.push({
           file: filename,
-          status: 'DEGRADED',
-          reason: 'invalid_json_type',
-          type: typeof parsed
+          status: "DEGRADED",
+          reason: "invalid_json_type",
+          type: typeof parsed,
         });
-        overallStatus = overallStatus === 'UP' ? 'DEGRADED' : overallStatus;
+        overallStatus = overallStatus === "UP" ? "DEGRADED" : overallStatus;
       } else {
-        const count = Array.isArray(parsed) ? parsed.length : Object.keys(parsed).length;
+        const count = Array.isArray(parsed)
+          ? parsed.length
+          : Object.keys(parsed).length;
         fileResults.push({
           file: filename,
-          status: 'UP',
-          entries: count
+          status: "UP",
+          entries: count,
         });
       }
     } catch (err) {
       if (err instanceof SyntaxError) {
         fileResults.push({
           file: filename,
-          status: 'DEGRADED',
-          reason: 'json_parse_error',
-          error: err.message
+          status: "DEGRADED",
+          reason: "json_parse_error",
+          error: err.message,
         });
-        overallStatus = overallStatus === 'UP' ? 'DEGRADED' : overallStatus;
+        overallStatus = overallStatus === "UP" ? "DEGRADED" : overallStatus;
       } else {
         fileResults.push({
           file: filename,
-          status: 'DOWN',
-          reason: 'read_error',
-          error: err.message
+          status: "DOWN",
+          reason: "read_error",
+          error: err.message,
         });
-        overallStatus = 'DOWN';
+        overallStatus = "DOWN";
       }
     }
   }
@@ -140,11 +152,11 @@ function checkMemoryGauge() {
   const rssMB = Math.round(mem.rss / 1024 / 1024);
   const externalMB = Math.round((mem.external || 0) / 1024 / 1024);
 
-  let status = 'UP';
+  let status = "UP";
   if (heapUsedMB >= MEMORY_CRITICAL_THRESHOLD_MB) {
-    status = 'DOWN';
+    status = "DOWN";
   } else if (heapUsedMB >= MEMORY_WARN_THRESHOLD_MB) {
-    status = 'DEGRADED';
+    status = "DEGRADED";
   }
 
   return {
@@ -155,8 +167,8 @@ function checkMemoryGauge() {
       rssMB,
       externalMB,
       warnThresholdMB: MEMORY_WARN_THRESHOLD_MB,
-      criticalThresholdMB: MEMORY_CRITICAL_THRESHOLD_MB
-    }
+      criticalThresholdMB: MEMORY_CRITICAL_THRESHOLD_MB,
+    },
   };
 }
 
@@ -175,18 +187,18 @@ function runHealthChecks() {
   const statuses = [encryption.status, datastore.status, memory.status];
 
   let overall;
-  if (statuses.includes('DOWN')) {
-    overall = 'DOWN';
-  } else if (statuses.includes('DEGRADED')) {
-    overall = 'DEGRADED';
+  if (statuses.includes("DOWN")) {
+    overall = "DOWN";
+  } else if (statuses.includes("DEGRADED")) {
+    overall = "DEGRADED";
   } else {
-    overall = 'UP';
+    overall = "UP";
   }
 
   return {
     status: overall,
     timestamp: new Date().toISOString(),
-    checks: subChecks
+    checks: subChecks,
   };
 }
 
@@ -200,16 +212,16 @@ let _lastCheckResult = null;
  * @param {{ status: string, checks: object }} result
  */
 function emitAlertIfNeeded(result) {
-  if (result.status === 'UP') return;
-  const alertLevel = result.status === 'DOWN' ? 'error' : 'warn';
-  logger[alertLevel]('CRITICAL_SYS_ALERT: health check degraded', {
+  if (result.status === "UP") return;
+  const alertLevel = result.status === "DOWN" ? "error" : "warn";
+  logger[alertLevel]("CRITICAL_SYS_ALERT: health check degraded", {
     status: result.status,
     timestamp: result.timestamp,
     checks: {
       encryption: result.checks.encryption.status,
       datastore: result.checks.datastore.status,
-      memory: result.checks.memory.status
-    }
+      memory: result.checks.memory.status,
+    },
   });
 }
 
@@ -220,24 +232,28 @@ function emitAlertIfNeeded(result) {
  */
 function startHealthCheckCron() {
   if (_intervalHandle) return _intervalHandle;
-  if (process.env.NODE_ENV === 'test') return null; // skip in test to avoid open handles
+  if (process.env.NODE_ENV === "test") return null; // skip in test to avoid open handles
 
   const tick = () => {
     try {
       const result = runHealthChecks();
       _lastCheckResult = result;
       emitAlertIfNeeded(result);
-      logger.info('[HealthDiagnostics] periodic check complete', { status: result.status });
+      logger.info("[HealthDiagnostics] periodic check complete", {
+        status: result.status,
+      });
     } catch (err) {
-      logger.error('[HealthDiagnostics] periodic check failed', { error: err.message });
+      logger.error("[HealthDiagnostics] periodic check failed", {
+        error: err.message,
+      });
     }
   };
 
   _intervalHandle = setInterval(tick, HEALTH_CHECK_INTERVAL_MS);
   // Don't keep the process alive solely for this interval
   if (_intervalHandle.unref) _intervalHandle.unref();
-  logger.info('[HealthDiagnostics] background cron started', {
-    intervalMs: HEALTH_CHECK_INTERVAL_MS
+  logger.info("[HealthDiagnostics] background cron started", {
+    intervalMs: HEALTH_CHECK_INTERVAL_MS,
   });
   return _intervalHandle;
 }
@@ -250,7 +266,7 @@ function stopHealthCheckCron() {
   if (_intervalHandle) {
     clearInterval(_intervalHandle);
     _intervalHandle = null;
-    logger.info('[HealthDiagnostics] background cron stopped');
+    logger.info("[HealthDiagnostics] background cron stopped");
   }
 }
 
@@ -264,9 +280,10 @@ function getLastCheckResult() {
 
 // ── Route handler ──────────────────────────────────────────────────────────
 
-router.get('/', (req, res) => {
+router.get("/", (req, res) => {
   const result = runHealthChecks();
-  const httpStatus = result.status === 'DOWN' ? 503 : result.status === 'DEGRADED' ? 200 : 200;
+  const httpStatus =
+    result.status === "DOWN" ? 503 : result.status === "DEGRADED" ? 200 : 200;
   res.status(httpStatus).json(result);
 });
 

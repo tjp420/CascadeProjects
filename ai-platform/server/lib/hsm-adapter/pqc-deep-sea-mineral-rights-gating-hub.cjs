@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 95: PQC Deep-Sea Mineral Rights Gating Hub.
@@ -20,20 +20,20 @@
  * @module hsm-adapter/pqc-deep-sea-mineral-rights-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const POOL_STATUS = {
-  OPEN: 'open',
-  REBALANCING: 'rebalancing',
-  ACCREDITED: 'accredited',
-  SETTLED: 'settled',
-  CANCELLED: 'cancelled',
+  OPEN: "open",
+  REBALANCING: "rebalancing",
+  ACCREDITED: "accredited",
+  SETTLED: "settled",
+  CANCELLED: "cancelled",
 };
 
 const REBALANCE_DIRECTION = {
-  INCREASE: 'increase',
-  DECREASE: 'decrease',
+  INCREASE: "increase",
+  DECREASE: "decrease",
 };
 
 class PqcDeepSeaMineralRightsGatingHub {
@@ -67,35 +67,81 @@ class PqcDeepSeaMineralRightsGatingHub {
   initializePool(request) {
     _validateInitRequest(this.policy, request);
     if (this._pools.size >= this._maxPools) {
-      throw new HsmAdapterError('SEABEDGATE_MAX_POOLS',
-        `maximum ${this._maxPools} pools reached`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_MAX_POOLS",
+        `maximum ${this._maxPools} pools reached`,
+      );
     }
-    if (this.policy.requireIsaAuthorityInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireIsaAuthorityInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.isaAuthorityInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.isaAuthorityInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SEABEDGATE_INSTITUTION_INITIALIZER_UNATTESTED', 'ISA authority initializer attestation invalid');
+          throw new HsmAdapterError(
+            "SEABEDGATE_INSTITUTION_INITIALIZER_UNATTESTED",
+            "ISA authority initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SEABEDGATE_INSTITUTION_INITIALIZER_UNATTESTED', 'ISA authority initializer attestation invalid');
+        throw new HsmAdapterError(
+          "SEABEDGATE_INSTITUTION_INITIALIZER_UNATTESTED",
+          "ISA authority initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('SEABEDGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('SEABEDGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.leaseWindowSeconds === 'number' && request.leaseWindowSeconds > (this.policy.maxLeaseWindowSeconds || 31536000)) {
-      throw new HsmAdapterError('SEABEDGATE_LEASE_WINDOW_EXCEEDED', `lease window seconds ${request.leaseWindowSeconds} exceeds maximum ${this.policy.maxLeaseWindowSeconds}`);
+    if (
+      typeof request.leaseWindowSeconds === "number" &&
+      request.leaseWindowSeconds >
+        (this.policy.maxLeaseWindowSeconds || 31536000)
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDGATE_LEASE_WINDOW_EXCEEDED",
+        `lease window seconds ${request.leaseWindowSeconds} exceeds maximum ${this.policy.maxLeaseWindowSeconds}`,
+      );
     }
-    if (typeof request.extractionChainDepth === 'number' && request.extractionChainDepth > (this.policy.maxExtractionChainDepth || 15)) {
-      throw new HsmAdapterError('SEABEDGATE_EXTRACTION_DEPTH_EXCEEDED', `extraction chain depth ${request.extractionChainDepth} exceeds maximum ${this.policy.maxExtractionChainDepth}`);
+    if (
+      typeof request.extractionChainDepth === "number" &&
+      request.extractionChainDepth > (this.policy.maxExtractionChainDepth || 15)
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDGATE_EXTRACTION_DEPTH_EXCEEDED",
+        `extraction chain depth ${request.extractionChainDepth} exceeds maximum ${this.policy.maxExtractionChainDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('SEABEDGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -103,8 +149,10 @@ class PqcDeepSeaMineralRightsGatingHub {
       sourceTenantId: request.sourceTenantId,
       targetChainId: request.targetChainId,
       blindedMineralSurveyCommitment: request.blindedMineralSurveyCommitment,
-      blindedExtractionVolumeCommitment: request.blindedExtractionVolumeCommitment,
-      blindedSovereignAuthorityIdentityCommitment: request.blindedSovereignAuthorityIdentityCommitment,
+      blindedExtractionVolumeCommitment:
+        request.blindedExtractionVolumeCommitment,
+      blindedSovereignAuthorityIdentityCommitment:
+        request.blindedSovereignAuthorityIdentityCommitment,
       leaseWindowSeconds: request.leaseWindowSeconds,
       extractionChainDepth: request.extractionChainDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
@@ -120,7 +168,7 @@ class PqcDeepSeaMineralRightsGatingHub {
     this._pools.set(poolId, pool);
     this._initCount++;
     if (this._audit) {
-      this._audit('SEABED_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("SEABED_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -132,11 +180,16 @@ class PqcDeepSeaMineralRightsGatingHub {
    */
   batchInitializePools(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('SEABEDGATE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "SEABEDGATE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('SEABEDGATE_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let successCount = 0;
@@ -148,17 +201,26 @@ class PqcDeepSeaMineralRightsGatingHub {
         successCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'auto',
+          poolId: req.poolId || "auto",
           initialized: false,
-          error: err.code || 'SEABEDGATE_BATCH_ERROR',
+          error: err.code || "SEABEDGATE_BATCH_ERROR",
         });
         failedCount++;
       }
     }
     if (this._audit) {
-      this._audit('SEABEDGATE_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
+      this._audit("SEABEDGATE_BATCH_INITIALIZED", {
+        successCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, successCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      successCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -178,7 +240,10 @@ class PqcDeepSeaMineralRightsGatingHub {
   markExtractionClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.extractionClaimVerified = true;
     return pool;
@@ -191,49 +256,76 @@ class PqcDeepSeaMineralRightsGatingHub {
    */
   rebalanceExtractionChainDepth(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('SEABEDGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SEABEDGATE_REBALANCE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_REBALANCEABLE',
-        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    if (
+      pool.status !== POOL_STATUS.OPEN &&
+      pool.status !== POOL_STATUS.REBALANCING
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_REBALANCEABLE",
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`,
+      );
     }
     const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
     if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
-      throw new HsmAdapterError('SEABEDGATE_REBALANCE_DIRECTION_INVALID',
-        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(', ')}`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_REBALANCE_DIRECTION_INVALID",
+        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(", ")}`,
+      );
     }
-    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
-      throw new HsmAdapterError('SEABEDGATE_REBALANCE_AMOUNT_INVALID',
-        'rebalanceAmount must be a positive number');
+    if (
+      typeof request.rebalanceAmount !== "number" ||
+      request.rebalanceAmount <= 0
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDGATE_REBALANCE_AMOUNT_INVALID",
+        "rebalanceAmount must be a positive number",
+      );
     }
     const newEpoch = pool.rebalanceEpoch + 1;
     pool.rebalanceEpoch = newEpoch;
     pool.status = POOL_STATUS.REBALANCING;
-    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalanceId =
+      request.rebalanceId || `rebal-${crypto.randomBytes(4).toString("hex")}`;
     const rebalance = {
       rebalanceId,
       poolId: request.poolId,
       direction,
       rebalanceAmount: request.rebalanceAmount,
       rebalanceEpoch: newEpoch,
-      newExtractionChainDepth: request.newExtractionChainDepth !== undefined ? request.newExtractionChainDepth : pool.extractionChainDepth,
+      newExtractionChainDepth:
+        request.newExtractionChainDepth !== undefined
+          ? request.newExtractionChainDepth
+          : pool.extractionChainDepth,
       rebalancedAt: Math.floor(Date.now() / 1000),
     };
     this._rebalances.set(rebalanceId, rebalance);
     this._rebalanceCount++;
     if (request.newExtractionChainDepth !== undefined) {
-      if (request.newExtractionChainDepth > (this.policy.maxExtractionChainDepth || 15)) {
-        throw new HsmAdapterError('SEABEDGATE_EXTRACTION_DEPTH_EXCEEDED',
-          `new extraction chain depth ${request.newExtractionChainDepth} exceeds maximum ${this.policy.maxExtractionChainDepth}`);
+      if (
+        request.newExtractionChainDepth >
+        (this.policy.maxExtractionChainDepth || 15)
+      ) {
+        throw new HsmAdapterError(
+          "SEABEDGATE_EXTRACTION_DEPTH_EXCEEDED",
+          `new extraction chain depth ${request.newExtractionChainDepth} exceeds maximum ${this.policy.maxExtractionChainDepth}`,
+        );
       }
       pool.extractionChainDepth = request.newExtractionChainDepth;
     }
     if (this._audit) {
-      this._audit('SEABEDGATE_EXTRACTION_DEPTH_REBALANCED', { ...rebalance });
+      this._audit("SEABEDGATE_EXTRACTION_DEPTH_REBALANCED", { ...rebalance });
     }
     return rebalance;
   }
@@ -256,30 +348,52 @@ class PqcDeepSeaMineralRightsGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.extractionClaimVerified) {
-      throw new HsmAdapterError('SEABEDGATE_EXTRACTION_CLAIM_NOT_VERIFIED', `pool ${request.poolId} extraction claim not verified`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_EXTRACTION_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} extraction claim not verified`,
+      );
     }
-    if (this.policy.requireSeabedOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireSeabedOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.seabedOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.seabedOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SEABEDGATE_OVERSIGHT_COMMITTEE_UNATTESTED', 'seabed oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "SEABEDGATE_OVERSIGHT_COMMITTEE_UNATTESTED",
+            "seabed oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SEABEDGATE_OVERSIGHT_COMMITTEE_UNATTESTED', 'seabed oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "SEABEDGATE_OVERSIGHT_COMMITTEE_UNATTESTED",
+          "seabed oversight committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minSovereignQuorum || 6)) {
-      throw new HsmAdapterError('SEABEDGATE_ACCREDITATION_QUORUM_INSUFFICIENT', `accreditation signatures ${signatures.length} below minimum ${this.policy.minSovereignQuorum}`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_ACCREDITATION_QUORUM_INSUFFICIENT",
+        `accreditation signatures ${signatures.length} below minimum ${this.policy.minSovereignQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     pool.status = POOL_STATUS.ACCREDITED;
     pool.leaseAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -288,7 +402,7 @@ class PqcDeepSeaMineralRightsGatingHub {
     };
     this._accreditCount++;
     if (this._audit) {
-      this._audit('LEASE_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("LEASE_ACCREDITATION_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -300,41 +414,58 @@ class PqcDeepSeaMineralRightsGatingHub {
    */
   settlePool(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('SEABEDGATE_SETTLE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "SEABEDGATE_SETTLE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (pool.status !== POOL_STATUS.ACCREDITED) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_ACCREDITED',
-        `pool ${request.poolId} status is ${pool.status}, expected accredited`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_ACCREDITED",
+        `pool ${request.poolId} status is ${pool.status}, expected accredited`,
+      );
     }
-    if (!request.targetChainId || typeof request.targetChainId !== 'string') {
-      throw new HsmAdapterError('SEABEDGATE_SETTLE_CHAIN_MISSING', 'targetChainId is required for settlement');
+    if (!request.targetChainId || typeof request.targetChainId !== "string") {
+      throw new HsmAdapterError(
+        "SEABEDGATE_SETTLE_CHAIN_MISSING",
+        "targetChainId is required for settlement",
+      );
     }
     if (request.targetChainId !== pool.targetChainId) {
-      throw new HsmAdapterError('SEABEDGATE_SETTLE_CHAIN_MISMATCH',
-        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_SETTLE_CHAIN_MISMATCH",
+        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
+    const settlementId =
+      request.settlementId || `settle-${crypto.randomBytes(4).toString("hex")}`;
     const settlement = {
       settlementId,
       poolId: request.poolId,
       targetChainId: request.targetChainId,
-      settlementProofHash: request.settlementProofHash || crypto.createHash('sha256')
-        .update(`${request.poolId}:${request.targetChainId}:${now}`)
-        .digest('hex'),
+      settlementProofHash:
+        request.settlementProofHash ||
+        crypto
+          .createHash("sha256")
+          .update(`${request.poolId}:${request.targetChainId}:${now}`)
+          .digest("hex"),
       settledAt: now,
     };
     pool.status = POOL_STATUS.SETTLED;
-    pool.settlementStatus = 'settled';
+    pool.settlementStatus = "settled";
     pool.settledAt = now;
     this._settlements.set(request.poolId, settlement);
     this._settleCount++;
     if (this._audit) {
-      this._audit('SEABEDGATE_SETTLED', { ...settlement });
+      this._audit("SEABEDGATE_SETTLED", { ...settlement });
     }
     return settlement;
   }
@@ -348,27 +479,39 @@ class PqcDeepSeaMineralRightsGatingHub {
   aggregateCommitteeSignatures(poolId, partialSignatures) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('SEABEDGATE_NO_SIGNATURES', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "SEABEDGATE_NO_SIGNATURES",
+        "partialSignatures array is required",
+      );
     }
     if (partialSignatures.length < (this.policy.minSovereignQuorum || 6)) {
-      throw new HsmAdapterError('SEABEDGATE_ACCREDITATION_QUORUM_INSUFFICIENT',
-        `${partialSignatures.length} signatures below minimum ${this.policy.minSovereignQuorum || 6}`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_ACCREDITATION_QUORUM_INSUFFICIENT",
+        `${partialSignatures.length} signatures below minimum ${this.policy.minSovereignQuorum || 6}`,
+      );
     }
-    const aggregatedSig = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSig = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: partialSignatures.length,
       aggregatedSignature: aggregatedSig,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('SEABEDGATE_SIGNATURES_AGGREGATED', { poolId, count: partialSignatures.length });
+      this._audit("SEABEDGATE_SIGNATURES_AGGREGATED", {
+        poolId,
+        count: partialSignatures.length,
+      });
     }
     return result;
   }
@@ -381,21 +524,31 @@ class PqcDeepSeaMineralRightsGatingHub {
   cancelPool(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('SEABEDGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
-    if (pool.status === POOL_STATUS.ACCREDITED || pool.status === POOL_STATUS.SETTLED) {
-      throw new HsmAdapterError('SEABEDGATE_ALREADY_ACCREDITED',
-        `pool ${poolId} has been accredited/settled and cannot be cancelled`);
+    if (
+      pool.status === POOL_STATUS.ACCREDITED ||
+      pool.status === POOL_STATUS.SETTLED
+    ) {
+      throw new HsmAdapterError(
+        "SEABEDGATE_ALREADY_ACCREDITED",
+        `pool ${poolId} has been accredited/settled and cannot be cancelled`,
+      );
     }
     if (pool.status === POOL_STATUS.CANCELLED) {
-      throw new HsmAdapterError('SEABEDGATE_ALREADY_CANCELLED',
-        `pool ${poolId} is already cancelled`);
+      throw new HsmAdapterError(
+        "SEABEDGATE_ALREADY_CANCELLED",
+        `pool ${poolId} is already cancelled`,
+      );
     }
     pool.status = POOL_STATUS.CANCELLED;
     pool.cancelledAt = Math.floor(Date.now() / 1000);
     this._cancelCount++;
     if (this._audit) {
-      this._audit('SEABEDGATE_CANCELLED', { poolId });
+      this._audit("SEABEDGATE_CANCELLED", { poolId });
     }
     return { poolId, cancelled: true };
   }
@@ -414,7 +567,7 @@ class PqcDeepSeaMineralRightsGatingHub {
    * @returns {object[]}
    */
   getPools() {
-    return Array.from(this._pools.values()).map(p => ({
+    return Array.from(this._pools.values()).map((p) => ({
       poolId: p.poolId,
       sourceTenantId: p.sourceTenantId,
       targetChainId: p.targetChainId,
@@ -458,28 +611,59 @@ class PqcDeepSeaMineralRightsGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('SEABEDGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "SEABEDGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedMineralSurveyCommitment || !request.blindedExtractionVolumeCommitment || !request.blindedSovereignAuthorityIdentityCommitment) {
-    throw new HsmAdapterError('SEABEDGATE_FIELDS_MISSING', 'blindedMineralSurveyCommitment, blindedExtractionVolumeCommitment, and blindedSovereignAuthorityIdentityCommitment are required');
+  if (
+    !request.blindedMineralSurveyCommitment ||
+    !request.blindedExtractionVolumeCommitment ||
+    !request.blindedSovereignAuthorityIdentityCommitment
+  ) {
+    throw new HsmAdapterError(
+      "SEABEDGATE_FIELDS_MISSING",
+      "blindedMineralSurveyCommitment, blindedExtractionVolumeCommitment, and blindedSovereignAuthorityIdentityCommitment are required",
+    );
   }
-  if (typeof request.leaseWindowSeconds !== 'number') {
-    throw new HsmAdapterError('SEABEDGATE_FIELDS_MISSING', 'leaseWindowSeconds is required');
+  if (typeof request.leaseWindowSeconds !== "number") {
+    throw new HsmAdapterError(
+      "SEABEDGATE_FIELDS_MISSING",
+      "leaseWindowSeconds is required",
+    );
   }
-  if (typeof request.extractionChainDepth !== 'number') {
-    throw new HsmAdapterError('SEABEDGATE_FIELDS_MISSING', 'extractionChainDepth is required');
+  if (typeof request.extractionChainDepth !== "number") {
+    throw new HsmAdapterError(
+      "SEABEDGATE_FIELDS_MISSING",
+      "extractionChainDepth is required",
+    );
   }
-  if (policy.requireIsaAuthorityInitializerAttestation && !request.isaAuthorityInitializerAttestation) {
-    throw new HsmAdapterError('SEABEDGATE_INSTITUTION_INITIALIZER_ATTESTATION_MISSING', 'ISA authority initializer attestation is required');
+  if (
+    policy.requireIsaAuthorityInitializerAttestation &&
+    !request.isaAuthorityInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SEABEDGATE_INSTITUTION_INITIALIZER_ATTESTATION_MISSING",
+      "ISA authority initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('SEABEDGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "SEABEDGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireSeabedOversightCommitteeAttestation && !request.seabedOversightCommitteeAttestation) {
-    throw new HsmAdapterError('SEABEDGATE_CLEARING_ATTESTATION_MISSING', 'seabed oversight committee attestation is required');
+  if (
+    policy.requireSeabedOversightCommitteeAttestation &&
+    !request.seabedOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SEABEDGATE_CLEARING_ATTESTATION_MISSING",
+      "seabed oversight committee attestation is required",
+    );
   }
 }
 

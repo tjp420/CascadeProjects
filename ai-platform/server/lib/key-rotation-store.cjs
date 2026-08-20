@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Key Rotation Store — Zero-Downtime Master Key Rotation
 //
@@ -15,19 +15,20 @@
 //   KEY_ROTATION_GRACE_MS — grace window in ms (default: 172800000 = 48h)
 //   KEY_ROTATION_STORE_PATH — path to persist rotation state (optional)
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
-const GRACE_MS = parseInt(process.env.KEY_ROTATION_GRACE_MS, 10) || 48 * 60 * 60 * 1000;
+const GRACE_MS =
+  parseInt(process.env.KEY_ROTATION_GRACE_MS, 10) || 48 * 60 * 60 * 1000;
 const STORE_PATH = process.env.KEY_ROTATION_STORE_PATH || null;
 
 // Stateful key ring — tracks active and previous master keys
 let _keyRing = {
-  active: null,    // Buffer (32 bytes)
-  previous: null,  // Buffer (32 bytes) or null
+  active: null, // Buffer (32 bytes)
+  previous: null, // Buffer (32 bytes) or null
   rotatedAt: null, // number (Date.now()) or null
-  epoch: 0,        // cluster epoch counter (persisted across restarts)
+  epoch: 0, // cluster epoch counter (persisted across restarts)
 };
 
 /**
@@ -49,38 +50,42 @@ function getActiveKeyBuffer() {
   return _keyRing.active;
 }
 
-const TENANT_DERIVATION_INFO = 'simplebeacon-tenant-v1';
+const TENANT_DERIVATION_INFO = "simplebeacon-tenant-v1";
 
 function _normalizeOrgId(orgId) {
-  if (typeof orgId !== 'string') return '';
-  return orgId.normalize('NFKC').trim().toLowerCase();
+  if (typeof orgId !== "string") return "";
+  return orgId.normalize("NFKC").trim().toLowerCase();
 }
 
 function deriveTenantKey(orgId) {
-  if (!orgId || typeof orgId !== 'string') {
-    const err = new TypeError('Tenant key derivation requires a valid orgId');
-    err.code = 'missing_org_id';
+  if (!orgId || typeof orgId !== "string") {
+    const err = new TypeError("Tenant key derivation requires a valid orgId");
+    err.code = "missing_org_id";
     throw err;
   }
   const normalized = _normalizeOrgId(orgId);
   if (!normalized) {
-    const err = new TypeError('Tenant key derivation requires a non-empty orgId');
-    err.code = 'missing_org_id';
+    const err = new TypeError(
+      "Tenant key derivation requires a non-empty orgId",
+    );
+    err.code = "missing_org_id";
     throw err;
   }
   const master = getActiveKeyBuffer();
   if (!master) {
-    const err = new Error('No active master key available for tenant derivation');
-    err.code = 'master_key_unavailable';
+    const err = new Error(
+      "No active master key available for tenant derivation",
+    );
+    err.code = "master_key_unavailable";
     throw err;
   }
-  const salt = Buffer.from(`sb:tenant:${normalized}`, 'utf8');
-  const info = Buffer.from(TENANT_DERIVATION_INFO, 'utf8');
-  return Buffer.from(crypto.hkdfSync('sha256', master, salt, info, 32));
+  const salt = Buffer.from(`sb:tenant:${normalized}`, "utf8");
+  const info = Buffer.from(TENANT_DERIVATION_INFO, "utf8");
+  return Buffer.from(crypto.hkdfSync("sha256", master, salt, info, 32));
 }
 
 function deriveTenantKeyHex(orgId) {
-  return deriveTenantKey(orgId).toString('hex');
+  return deriveTenantKey(orgId).toString("hex");
 }
 
 /**
@@ -90,13 +95,13 @@ function deriveTenantKeyHex(orgId) {
 function getDecryptionKeys() {
   const keys = [];
   if (_keyRing.active) {
-    keys.push({ keyHex: _keyRing.active.toString('hex') });
+    keys.push({ keyHex: _keyRing.active.toString("hex") });
   }
   // Include previous key only if within the grace window
   if (_keyRing.previous && _keyRing.rotatedAt) {
     const elapsed = Date.now() - _keyRing.rotatedAt;
     if (elapsed < GRACE_MS) {
-      keys.push({ keyHex: _keyRing.previous.toString('hex') });
+      keys.push({ keyHex: _keyRing.previous.toString("hex") });
     }
   }
   return keys;
@@ -111,23 +116,25 @@ function getDecryptionKeys() {
  */
 function rotateKey(newKeyRaw, graceMs) {
   if (!newKeyRaw) {
-    throw new TypeError('Key rotation requires a high-entropy master key');
+    throw new TypeError("Key rotation requires a high-entropy master key");
   }
 
   // Convert string input to a 32-byte key via SHA-256
   let newKey;
   if (Buffer.isBuffer(newKeyRaw)) {
     if (newKeyRaw.length < 32) {
-      throw new TypeError('Key rotation requires at least 32 bytes of entropy');
+      throw new TypeError("Key rotation requires at least 32 bytes of entropy");
     }
-    newKey = crypto.createHash('sha256').update(newKeyRaw).digest();
-  } else if (typeof newKeyRaw === 'string') {
+    newKey = crypto.createHash("sha256").update(newKeyRaw).digest();
+  } else if (typeof newKeyRaw === "string") {
     if (newKeyRaw.length < 32) {
-      throw new TypeError('Key rotation requires at least 32 characters of entropy');
+      throw new TypeError(
+        "Key rotation requires at least 32 characters of entropy",
+      );
     }
-    newKey = crypto.createHash('sha256').update(newKeyRaw).digest();
+    newKey = crypto.createHash("sha256").update(newKeyRaw).digest();
   } else {
-    throw new TypeError('Key rotation requires a string or Buffer key');
+    throw new TypeError("Key rotation requires a string or Buffer key");
   }
 
   // Transition keys down the ring
@@ -171,9 +178,10 @@ function purgeExpiredKeys(force) {
  */
 function getRotationStatus() {
   const grace = _keyRing._graceOverride || GRACE_MS;
-  const graceExpired = _keyRing.previous && _keyRing.rotatedAt
-    ? (Date.now() - _keyRing.rotatedAt >= grace)
-    : false;
+  const graceExpired =
+    _keyRing.previous && _keyRing.rotatedAt
+      ? Date.now() - _keyRing.rotatedAt >= grace
+      : false;
 
   return {
     hasActive: !!_keyRing.active,
@@ -182,10 +190,18 @@ function getRotationStatus() {
     graceMs: grace,
     graceExpired,
     activeFingerprint: _keyRing.active
-      ? crypto.createHash('sha256').update(_keyRing.active).digest('hex').slice(0, 16)
+      ? crypto
+          .createHash("sha256")
+          .update(_keyRing.active)
+          .digest("hex")
+          .slice(0, 16)
       : null,
     previousFingerprint: _keyRing.previous
-      ? crypto.createHash('sha256').update(_keyRing.previous).digest('hex').slice(0, 16)
+      ? crypto
+          .createHash("sha256")
+          .update(_keyRing.previous)
+          .digest("hex")
+          .slice(0, 16)
       : null,
   };
 }
@@ -199,7 +215,7 @@ function getRotationStatus() {
  * @returns {{ migrated: boolean, newValue: string|null }}
  */
 function reKeyValue(encryptedValue, decryptFn, encryptFn) {
-  if (!encryptedValue || typeof encryptedValue !== 'string') {
+  if (!encryptedValue || typeof encryptedValue !== "string") {
     return { migrated: false, newValue: null };
   }
   // Try to decrypt with current key first (already migrated)
@@ -228,13 +244,13 @@ function reKeyStore(store, decryptFn, encryptFn, valueExtractor, valueSetter) {
   let skipped = 0;
   let failed = 0;
 
-  if (!store || typeof store !== 'object') {
+  if (!store || typeof store !== "object") {
     return { migrated, skipped, failed };
   }
 
   const entries = Array.isArray(store) ? store : Object.values(store);
   for (const entry of entries) {
-    if (!entry || typeof entry !== 'object') {
+    if (!entry || typeof entry !== "object") {
       skipped++;
       continue;
     }
@@ -269,12 +285,12 @@ function persistState() {
       graceOverride: _keyRing._graceOverride || null,
       epoch: _keyRing.epoch || 0,
       activeFingerprint: _keyRing.active
-        ? crypto.createHash('sha256').update(_keyRing.active).digest('hex')
+        ? crypto.createHash("sha256").update(_keyRing.active).digest("hex")
         : null,
     };
     const dir = path.dirname(STORE_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(STORE_PATH, JSON.stringify(state, null, 2), 'utf8');
+    fs.writeFileSync(STORE_PATH, JSON.stringify(state, null, 2), "utf8");
   } catch {
     // Persistence is best-effort — don't block rotation on disk errors
   }
@@ -290,18 +306,22 @@ function loadState() {
   if (!STORE_PATH) return null;
   try {
     if (!fs.existsSync(STORE_PATH)) return null;
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
     const state = JSON.parse(raw);
-    if (typeof state.epoch === 'number' && state.epoch > 0) {
+    if (typeof state.epoch === "number" && state.epoch > 0) {
       _keyRing.epoch = state.epoch;
     }
-    if (typeof state.rotatedAt === 'number') {
+    if (typeof state.rotatedAt === "number") {
       _keyRing.rotatedAt = state.rotatedAt;
     }
-    if (typeof state.graceOverride === 'number') {
+    if (typeof state.graceOverride === "number") {
       _keyRing._graceOverride = state.graceOverride;
     }
-    return { epoch: _keyRing.epoch, rotatedAt: _keyRing.rotatedAt, graceOverride: _keyRing._graceOverride };
+    return {
+      epoch: _keyRing.epoch,
+      rotatedAt: _keyRing.rotatedAt,
+      graceOverride: _keyRing._graceOverride,
+    };
   } catch {
     // Best-effort load — don't crash on corrupt state
     return null;
@@ -313,7 +333,7 @@ function loadState() {
  * @param {number} newEpoch
  */
 function setEpoch(newEpoch) {
-  if (typeof newEpoch === 'number' && newEpoch >= 0) {
+  if (typeof newEpoch === "number" && newEpoch >= 0) {
     _keyRing.epoch = newEpoch;
     persistState();
   }
@@ -333,8 +353,8 @@ function getEpoch() {
  */
 function getKeyRingHex() {
   return {
-    activeHex: _keyRing.active ? _keyRing.active.toString('hex') : null,
-    previousHex: _keyRing.previous ? _keyRing.previous.toString('hex') : null,
+    activeHex: _keyRing.active ? _keyRing.active.toString("hex") : null,
+    previousHex: _keyRing.previous ? _keyRing.previous.toString("hex") : null,
   };
 }
 
@@ -354,27 +374,35 @@ function getKeyRingHex() {
  * @throws {TypeError} if the hex is invalid, uppercase, or wrong length
  */
 function _validateStrictLowercaseHex(hex, fieldName) {
-  if (!hex || typeof hex !== 'string') {
-    throw new TypeError(fieldName + ' must be a non-empty hex string');
+  if (!hex || typeof hex !== "string") {
+    throw new TypeError(fieldName + " must be a non-empty hex string");
   }
   if (hex.length !== 64) {
-    throw new TypeError(fieldName + ' must be exactly 64 hex characters (32 bytes), got ' + hex.length);
+    throw new TypeError(
+      fieldName +
+        " must be exactly 64 hex characters (32 bytes), got " +
+        hex.length,
+    );
   }
   // Strict lowercase hex: only [0-9a-f], rejects [A-F] and non-hex chars
   if (!/^[0-9a-f]+$/.test(hex)) {
-    throw new TypeError(fieldName + ' must be strictly lowercase hex [0-9a-f]; uppercase or non-hex characters are rejected for JCS canonicalization');
+    throw new TypeError(
+      fieldName +
+        " must be strictly lowercase hex [0-9a-f]; uppercase or non-hex characters are rejected for JCS canonicalization",
+    );
   }
 }
 
 function applyKeyringCommit(activeHex, previousHex, rotatedAt, graceMs) {
-  _validateStrictLowercaseHex(activeHex, 'activeHex');
+  _validateStrictLowercaseHex(activeHex, "activeHex");
   if (previousHex !== null && previousHex !== undefined) {
-    _validateStrictLowercaseHex(previousHex, 'previousHex');
+    _validateStrictLowercaseHex(previousHex, "previousHex");
   }
-  _keyRing.active = Buffer.from(activeHex, 'hex');
-  _keyRing.previous = previousHex ? Buffer.from(previousHex, 'hex') : null;
+  _keyRing.active = Buffer.from(activeHex, "hex");
+  _keyRing.previous = previousHex ? Buffer.from(previousHex, "hex") : null;
   _keyRing.rotatedAt = rotatedAt;
-  _keyRing._graceOverride = (graceMs && Number.isFinite(graceMs)) ? graceMs : null;
+  _keyRing._graceOverride =
+    graceMs && Number.isFinite(graceMs) ? graceMs : null;
   persistState();
 }
 

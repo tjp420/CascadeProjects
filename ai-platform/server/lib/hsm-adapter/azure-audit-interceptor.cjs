@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Azure SDK audit interceptor.
@@ -29,7 +29,7 @@ class AuditInterceptor {
   logSuccess(event, operation, extra = {}) {
     if (!this._logger) return;
     this._logger.info(event, {
-      status: 'success',
+      status: "success",
       operation,
       provider: this._providerName,
       ...extra,
@@ -46,10 +46,10 @@ class AuditInterceptor {
   logFailure(event, operation, error, extra = {}) {
     if (!this._logger) return;
     this._logger.info(event, {
-      status: 'failure',
+      status: "failure",
       operation,
       provider: this._providerName,
-      errorCode: error.code || error.statusCode || 'UNKNOWN',
+      errorCode: error.code || error.statusCode || "UNKNOWN",
       errorMessage: error.message,
       ...extra,
     });

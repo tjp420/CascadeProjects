@@ -4,12 +4,12 @@ This document describes how the Simplebeacon platform addresses **Regulation (EU
 
 ## System classification
 
-| Area | Posture |
-|------|---------|
-| Core Simplebeacon gate | Deterministic software quality and hygiene scanner — not an autonomous decision system |
-| Optional LLM summaries | General-purpose generative AI add-on; users must disclose AI interaction per Article 50 in their own products |
-| DLP AI proxy | Security control inspecting outbound AI API payloads — not a high-risk Annex III use case in default configuration |
-| High-risk patterns | Gate rules flag Annex III-style employment, credit, biometric, and similar patterns for manual review |
+| Area                   | Posture                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Core Simplebeacon gate | Deterministic software quality and hygiene scanner — not an autonomous decision system                             |
+| Optional LLM summaries | General-purpose generative AI add-on; users must disclose AI interaction per Article 50 in their own products      |
+| DLP AI proxy           | Security control inspecting outbound AI API payloads — not a high-risk Annex III use case in default configuration |
+| High-risk patterns     | Gate rules flag Annex III-style employment, credit, biometric, and similar patterns for manual review              |
 
 ## Article 50 transparency
 

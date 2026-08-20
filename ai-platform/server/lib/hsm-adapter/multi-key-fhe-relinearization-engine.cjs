@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 58: Fully Homomorphic Encryption Multi-Key Relinearization Engine.
@@ -22,8 +22,8 @@
  * @module hsm-adapter/multi-key-fhe-relinearization-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   fieldPrime: (1n << 256n) - 189n,
@@ -38,26 +38,26 @@ const DEFAULT_OPTIONS = {
 };
 
 const KEY_STATUS = {
-  ACTIVE: 'active',
-  COMPROMISED: 'compromised',
-  REVOKED: 'revoked',
-  EXPIRED: 'expired',
+  ACTIVE: "active",
+  COMPROMISED: "compromised",
+  REVOKED: "revoked",
+  EXPIRED: "expired",
 };
 
 const CIPHERTEXT_STATUS = {
-  FRESH: 'fresh',
-  EVALUATED: 'evaluated',
-  RELINEARIZED: 'relinearized',
-  BOOTSTRAPPED: 'bootstrapped',
-  EXHAUSTED: 'exhausted',
+  FRESH: "fresh",
+  EVALUATED: "evaluated",
+  RELINEARIZED: "relinearized",
+  BOOTSTRAPPED: "bootstrapped",
+  EXHAUSTED: "exhausted",
 };
 
 const OP_TYPE = {
-  ADD: 'add',
-  MUL: 'mul',
-  SCALAR_MUL: 'scalarMul',
-  SCALAR_ADD: 'scalarAdd',
-  SUB: 'sub',
+  ADD: "add",
+  MUL: "mul",
+  SCALAR_MUL: "scalarMul",
+  SCALAR_ADD: "scalarAdd",
+  SUB: "sub",
 };
 
 /**
@@ -98,15 +98,23 @@ class MultiKeyFheRelinearizationEngine {
    * @returns {object} Key pair info
    */
   generateKeyPair(keyId, userId) {
-    if (!keyId || typeof keyId !== 'string') {
-      throw new HsmAdapterError('INVALID_KEY_ID', 'keyId must be a non-empty string');
+    if (!keyId || typeof keyId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_KEY_ID",
+        "keyId must be a non-empty string",
+      );
     }
     if (this._keyPairs.has(keyId)) {
-      throw new HsmAdapterError('KEY_ALREADY_EXISTS', `key ${keyId} already exists`);
+      throw new HsmAdapterError(
+        "KEY_ALREADY_EXISTS",
+        `key ${keyId} already exists`,
+      );
     }
     if (this._keyPairs.size >= this.maxKeyPairs) {
-      throw new HsmAdapterError('MAX_KEY_PAIRS_REACHED',
-        `maximum ${this.maxKeyPairs} key pairs reached`);
+      throw new HsmAdapterError(
+        "MAX_KEY_PAIRS_REACHED",
+        `maximum ${this.maxKeyPairs} key pairs reached`,
+      );
     }
     // Generate FHE key pair (simulated LWE-style)
     const secretKey = _randomFieldElement(this.fieldPrime);
@@ -122,8 +130,8 @@ class MultiKeyFheRelinearizationEngine {
       decryptionCount: 0,
     };
     this._keyPairs.set(keyId, keyPair);
-    if (typeof this._audit === 'function') {
-      this._audit('KEY_PAIR_GENERATED', { keyId, userId: keyPair.userId });
+    if (typeof this._audit === "function") {
+      this._audit("KEY_PAIR_GENERATED", { keyId, userId: keyPair.userId });
     }
     return {
       keyId,
@@ -141,34 +149,56 @@ class MultiKeyFheRelinearizationEngine {
    * @returns {object} Relinearization key info
    */
   generateRelinearizationKey(relinKeyId, sourceKeyId, targetKeyId) {
-    if (!relinKeyId || typeof relinKeyId !== 'string') {
-      throw new HsmAdapterError('INVALID_RELIN_KEY_ID', 'relinKeyId must be a non-empty string');
+    if (!relinKeyId || typeof relinKeyId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_RELIN_KEY_ID",
+        "relinKeyId must be a non-empty string",
+      );
     }
     if (this._relinKeys.has(relinKeyId)) {
-      throw new HsmAdapterError('RELIN_KEY_ALREADY_EXISTS',
-        `relinearization key ${relinKeyId} already exists`);
+      throw new HsmAdapterError(
+        "RELIN_KEY_ALREADY_EXISTS",
+        `relinearization key ${relinKeyId} already exists`,
+      );
     }
     if (this._relinKeys.size >= this.maxRelinearizationKeys) {
-      throw new HsmAdapterError('MAX_RELIN_KEYS_REACHED',
-        `maximum ${this.maxRelinearizationKeys} relinearization keys reached`);
+      throw new HsmAdapterError(
+        "MAX_RELIN_KEYS_REACHED",
+        `maximum ${this.maxRelinearizationKeys} relinearization keys reached`,
+      );
     }
     const sourceKey = this._keyPairs.get(sourceKeyId);
     if (!sourceKey) {
-      throw new HsmAdapterError('KEY_NOT_FOUND', `source key ${sourceKeyId} not found`);
+      throw new HsmAdapterError(
+        "KEY_NOT_FOUND",
+        `source key ${sourceKeyId} not found`,
+      );
     }
     const targetKey = this._keyPairs.get(targetKeyId);
     if (!targetKey) {
-      throw new HsmAdapterError('KEY_NOT_FOUND', `target key ${targetKeyId} not found`);
+      throw new HsmAdapterError(
+        "KEY_NOT_FOUND",
+        `target key ${targetKeyId} not found`,
+      );
     }
     if (sourceKey.status !== KEY_STATUS.ACTIVE) {
-      throw new HsmAdapterError('KEY_NOT_ACTIVE', `source key ${sourceKeyId} is ${sourceKey.status}`);
+      throw new HsmAdapterError(
+        "KEY_NOT_ACTIVE",
+        `source key ${sourceKeyId} is ${sourceKey.status}`,
+      );
     }
     if (targetKey.status !== KEY_STATUS.ACTIVE) {
-      throw new HsmAdapterError('KEY_NOT_ACTIVE', `target key ${targetKeyId} is ${targetKey.status}`);
+      throw new HsmAdapterError(
+        "KEY_NOT_ACTIVE",
+        `target key ${targetKeyId} is ${targetKey.status}`,
+      );
     }
     // Generate relinearization key (simulated)
-    const relinKeyData = crypto.createHash('sha256')
-      .update(`relin:${sourceKeyId}:${targetKeyId}:${sourceKey.secretKey.toString(16)}`)
+    const relinKeyData = crypto
+      .createHash("sha256")
+      .update(
+        `relin:${sourceKeyId}:${targetKeyId}:${sourceKey.secretKey.toString(16)}`,
+      )
       .digest();
     const relinKey = {
       relinKeyId,
@@ -179,8 +209,12 @@ class MultiKeyFheRelinearizationEngine {
       usageCount: 0,
     };
     this._relinKeys.set(relinKeyId, relinKey);
-    if (typeof this._audit === 'function') {
-      this._audit('RELIN_KEY_GENERATED', { relinKeyId, sourceKeyId, targetKeyId });
+    if (typeof this._audit === "function") {
+      this._audit("RELIN_KEY_GENERATED", {
+        relinKeyId,
+        sourceKeyId,
+        targetKeyId,
+      });
     }
     return {
       relinKeyId,
@@ -199,10 +233,13 @@ class MultiKeyFheRelinearizationEngine {
   encrypt(keyId, plaintext) {
     const keyPair = this._keyPairs.get(keyId);
     if (!keyPair) {
-      throw new HsmAdapterError('KEY_NOT_FOUND', `key ${keyId} not found`);
+      throw new HsmAdapterError("KEY_NOT_FOUND", `key ${keyId} not found`);
     }
     if (keyPair.status !== KEY_STATUS.ACTIVE) {
-      throw new HsmAdapterError('KEY_NOT_ACTIVE', `key ${keyId} is ${keyPair.status}`);
+      throw new HsmAdapterError(
+        "KEY_NOT_ACTIVE",
+        `key ${keyId} is ${keyPair.status}`,
+      );
     }
     const pt = _toFieldElement(this.fieldPrime, plaintext);
     // Simulated FHE encryption: ciphertext = plaintext + noise * publicKey
@@ -222,8 +259,8 @@ class MultiKeyFheRelinearizationEngine {
     };
     this._ciphertexts.set(ciphertextId, ciphertext);
     keyPair.encryptionCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('ENCRYPTED', { ciphertextId, keyId });
+    if (typeof this._audit === "function") {
+      this._audit("ENCRYPTED", { ciphertextId, keyId });
     }
     return {
       ciphertextId,
@@ -241,20 +278,26 @@ class MultiKeyFheRelinearizationEngine {
   decrypt(ciphertextId) {
     const ct = this._ciphertexts.get(ciphertextId);
     if (!ct) {
-      throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${ciphertextId} not found`);
+      throw new HsmAdapterError(
+        "CIPHERTEXT_NOT_FOUND",
+        `ciphertext ${ciphertextId} not found`,
+      );
     }
     const keyPair = this._keyPairs.get(ct.keyId);
     if (!keyPair) {
-      throw new HsmAdapterError('KEY_NOT_FOUND', `key ${ct.keyId} not found`);
+      throw new HsmAdapterError("KEY_NOT_FOUND", `key ${ct.keyId} not found`);
     }
     if (keyPair.status !== KEY_STATUS.ACTIVE) {
-      throw new HsmAdapterError('KEY_NOT_ACTIVE', `key ${ct.keyId} is ${keyPair.status}`);
+      throw new HsmAdapterError(
+        "KEY_NOT_ACTIVE",
+        `key ${ct.keyId} is ${keyPair.status}`,
+      );
     }
     // Simulated decryption: plaintext = (ciphertext mod secretKey)
     const plaintext = ct.plaintext; // In simulation, we stored it
     keyPair.decryptionCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('DECRYPTED', { ciphertextId, keyId: ct.keyId });
+    if (typeof this._audit === "function") {
+      this._audit("DECRYPTED", { ciphertextId, keyId: ct.keyId });
     }
     return {
       ciphertextId,
@@ -293,17 +336,30 @@ class MultiKeyFheRelinearizationEngine {
    */
   mul(ctId1, ctId2, relinKeyId) {
     const ct1 = this._ciphertexts.get(ctId1);
-    if (!ct1) throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${ctId1} not found`);
+    if (!ct1)
+      throw new HsmAdapterError(
+        "CIPHERTEXT_NOT_FOUND",
+        `ciphertext ${ctId1} not found`,
+      );
     const ct2 = this._ciphertexts.get(ctId2);
-    if (!ct2) throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${ctId2} not found`);
+    if (!ct2)
+      throw new HsmAdapterError(
+        "CIPHERTEXT_NOT_FOUND",
+        `ciphertext ${ctId2} not found`,
+      );
     // Check noise budget
-    if (ct1.noiseBudget < this.noiseThreshold || ct2.noiseBudget < this.noiseThreshold) {
+    if (
+      ct1.noiseBudget < this.noiseThreshold ||
+      ct2.noiseBudget < this.noiseThreshold
+    ) {
       if (this.enableBootstrapping) {
         this._bootstrap(ctId1);
         this._bootstrap(ctId2);
       } else {
-        throw new HsmAdapterError('NOISE_BUDGET_EXHAUSTED',
-          `noise budget too low for multiplication`);
+        throw new HsmAdapterError(
+          "NOISE_BUDGET_EXHAUSTED",
+          `noise budget too low for multiplication`,
+        );
       }
     }
     // Same key — direct multiplication
@@ -312,19 +368,28 @@ class MultiKeyFheRelinearizationEngine {
     }
     // Different keys — need relinearization
     if (!relinKeyId) {
-      throw new HsmAdapterError('RELIN_KEY_REQUIRED',
-        `cross-key multiplication requires a relinearization key`);
+      throw new HsmAdapterError(
+        "RELIN_KEY_REQUIRED",
+        `cross-key multiplication requires a relinearization key`,
+      );
     }
     const relinKey = this._relinKeys.get(relinKeyId);
     if (!relinKey) {
-      throw new HsmAdapterError('RELIN_KEY_NOT_FOUND', `relinearization key ${relinKeyId} not found`);
+      throw new HsmAdapterError(
+        "RELIN_KEY_NOT_FOUND",
+        `relinearization key ${relinKeyId} not found`,
+      );
     }
     // Check relin key matches the ciphertexts' keys
-    const sourceMatches = relinKey.sourceKeyId === ct1.keyId || relinKey.sourceKeyId === ct2.keyId;
-    const targetMatches = relinKey.targetKeyId === ct1.keyId || relinKey.targetKeyId === ct2.keyId;
+    const sourceMatches =
+      relinKey.sourceKeyId === ct1.keyId || relinKey.sourceKeyId === ct2.keyId;
+    const targetMatches =
+      relinKey.targetKeyId === ct1.keyId || relinKey.targetKeyId === ct2.keyId;
     if (!sourceMatches || !targetMatches) {
-      throw new HsmAdapterError('RELIN_KEY_MISMATCH',
-        `relinearization key does not match ciphertext keys`);
+      throw new HsmAdapterError(
+        "RELIN_KEY_MISMATCH",
+        `relinearization key does not match ciphertext keys`,
+      );
     }
     // Perform relinearized multiplication
     const result = this._evaluate(OP_TYPE.MUL, [ctId1, ctId2], relinKeyId);
@@ -346,7 +411,10 @@ class MultiKeyFheRelinearizationEngine {
   scalarMul(ciphertextId, scalar) {
     const ct = this._ciphertexts.get(ciphertextId);
     if (!ct) {
-      throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${ciphertextId} not found`);
+      throw new HsmAdapterError(
+        "CIPHERTEXT_NOT_FOUND",
+        `ciphertext ${ciphertextId} not found`,
+      );
     }
     const s = _toFieldElement(this.fieldPrime, scalar);
     const newPlaintext = (ct.plaintext * s) % this.fieldPrime;
@@ -366,7 +434,7 @@ class MultiKeyFheRelinearizationEngine {
     this._ciphertexts.set(newCtId, newCiphertext);
     this._opCount++;
     this._checkNoiseBudget(newCtId);
-    this._recordHistory('SCALAR_MUL', ct.ciphertextId, newCtId);
+    this._recordHistory("SCALAR_MUL", ct.ciphertextId, newCtId);
     return {
       ciphertextId: newCtId,
       keyId: newCiphertext.keyId,
@@ -384,7 +452,10 @@ class MultiKeyFheRelinearizationEngine {
   scalarAdd(ciphertextId, scalar) {
     const ct = this._ciphertexts.get(ciphertextId);
     if (!ct) {
-      throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${ciphertextId} not found`);
+      throw new HsmAdapterError(
+        "CIPHERTEXT_NOT_FOUND",
+        `ciphertext ${ciphertextId} not found`,
+      );
     }
     const s = _toFieldElement(this.fieldPrime, scalar);
     const newPlaintext = (ct.plaintext + s) % this.fieldPrime;
@@ -403,7 +474,7 @@ class MultiKeyFheRelinearizationEngine {
     };
     this._ciphertexts.set(newCtId, newCiphertext);
     this._opCount++;
-    this._recordHistory('SCALAR_ADD', ct.ciphertextId, newCtId);
+    this._recordHistory("SCALAR_ADD", ct.ciphertextId, newCtId);
     return {
       ciphertextId: newCtId,
       keyId: newCiphertext.keyId,
@@ -421,26 +492,46 @@ class MultiKeyFheRelinearizationEngine {
    */
   switchKey(ciphertextId, targetKeyId, relinKeyId) {
     if (!this.enableKeySwitching) {
-      throw new HsmAdapterError('KEY_SWITCHING_DISABLED', 'key switching is disabled');
+      throw new HsmAdapterError(
+        "KEY_SWITCHING_DISABLED",
+        "key switching is disabled",
+      );
     }
     const ct = this._ciphertexts.get(ciphertextId);
     if (!ct) {
-      throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${ciphertextId} not found`);
+      throw new HsmAdapterError(
+        "CIPHERTEXT_NOT_FOUND",
+        `ciphertext ${ciphertextId} not found`,
+      );
     }
     const targetKey = this._keyPairs.get(targetKeyId);
     if (!targetKey) {
-      throw new HsmAdapterError('KEY_NOT_FOUND', `target key ${targetKeyId} not found`);
+      throw new HsmAdapterError(
+        "KEY_NOT_FOUND",
+        `target key ${targetKeyId} not found`,
+      );
     }
     if (targetKey.status !== KEY_STATUS.ACTIVE) {
-      throw new HsmAdapterError('KEY_NOT_ACTIVE', `target key ${targetKeyId} is ${targetKey.status}`);
+      throw new HsmAdapterError(
+        "KEY_NOT_ACTIVE",
+        `target key ${targetKeyId} is ${targetKey.status}`,
+      );
     }
     const relinKey = this._relinKeys.get(relinKeyId);
     if (!relinKey) {
-      throw new HsmAdapterError('RELIN_KEY_NOT_FOUND', `relinearization key ${relinKeyId} not found`);
+      throw new HsmAdapterError(
+        "RELIN_KEY_NOT_FOUND",
+        `relinearization key ${relinKeyId} not found`,
+      );
     }
-    if (relinKey.sourceKeyId !== ct.keyId || relinKey.targetKeyId !== targetKeyId) {
-      throw new HsmAdapterError('RELIN_KEY_MISMATCH',
-        `relinearization key does not match source/target keys`);
+    if (
+      relinKey.sourceKeyId !== ct.keyId ||
+      relinKey.targetKeyId !== targetKeyId
+    ) {
+      throw new HsmAdapterError(
+        "RELIN_KEY_MISMATCH",
+        `relinearization key does not match source/target keys`,
+      );
     }
     const newCtId = `ct-${Date.now()}-${crypto.randomInt(0, 1000000)}`;
     const newCiphertext = {
@@ -459,9 +550,9 @@ class MultiKeyFheRelinearizationEngine {
     this._keySwitchCount++;
     this._opCount++;
     this._checkNoiseBudget(newCtId);
-    this._recordHistory('KEY_SWITCH', ct.ciphertextId, newCtId);
-    if (typeof this._audit === 'function') {
-      this._audit('KEY_SWITCHED', { ciphertextId, newCtId, targetKeyId });
+    this._recordHistory("KEY_SWITCH", ct.ciphertextId, newCtId);
+    if (typeof this._audit === "function") {
+      this._audit("KEY_SWITCHED", { ciphertextId, newCtId, targetKeyId });
     }
     return {
       ciphertextId: newCtId,
@@ -478,7 +569,10 @@ class MultiKeyFheRelinearizationEngine {
    */
   bootstrap(ciphertextId) {
     if (!this.enableBootstrapping) {
-      throw new HsmAdapterError('BOOTSTRAPPING_DISABLED', 'bootstrapping is disabled');
+      throw new HsmAdapterError(
+        "BOOTSTRAPPING_DISABLED",
+        "bootstrapping is disabled",
+      );
     }
     return this._bootstrap(ciphertextId);
   }
@@ -490,12 +584,12 @@ class MultiKeyFheRelinearizationEngine {
   revokeKey(keyId) {
     const keyPair = this._keyPairs.get(keyId);
     if (!keyPair) {
-      throw new HsmAdapterError('KEY_NOT_FOUND', `key ${keyId} not found`);
+      throw new HsmAdapterError("KEY_NOT_FOUND", `key ${keyId} not found`);
     }
     keyPair.status = KEY_STATUS.REVOKED;
     keyPair.secretKey = 0n; // Zeroize
-    if (typeof this._audit === 'function') {
-      this._audit('KEY_REVOKED', { keyId });
+    if (typeof this._audit === "function") {
+      this._audit("KEY_REVOKED", { keyId });
     }
     return { keyId, revoked: true };
   }
@@ -524,7 +618,7 @@ class MultiKeyFheRelinearizationEngine {
    * @returns {object[]}
    */
   getKeyPairs() {
-    return Array.from(this._keyPairs.values()).map(k => ({
+    return Array.from(this._keyPairs.values()).map((k) => ({
       keyId: k.keyId,
       userId: k.userId,
       status: k.status,
@@ -573,7 +667,7 @@ class MultiKeyFheRelinearizationEngine {
    * @returns {object[]}
    */
   getEvalHistory(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._evalHistory.slice(-n);
   }
 
@@ -620,12 +714,18 @@ class MultiKeyFheRelinearizationEngine {
    */
   _evaluate(op, ctIds, relinKeyId) {
     if (this._opCount >= this.maxCiphertextOps) {
-      throw new HsmAdapterError('MAX_OPS_REACHED',
-        `maximum ${this.maxCiphertextOps} operations reached`);
+      throw new HsmAdapterError(
+        "MAX_OPS_REACHED",
+        `maximum ${this.maxCiphertextOps} operations reached`,
+      );
     }
-    const cts = ctIds.map(id => {
+    const cts = ctIds.map((id) => {
       const ct = this._ciphertexts.get(id);
-      if (!ct) throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${id} not found`);
+      if (!ct)
+        throw new HsmAdapterError(
+          "CIPHERTEXT_NOT_FOUND",
+          `ciphertext ${id} not found`,
+        );
       return ct;
     });
     let newPlaintext, newValue, newNoise, noiseCost;
@@ -637,9 +737,13 @@ class MultiKeyFheRelinearizationEngine {
         noiseCost = 1;
         break;
       case OP_TYPE.SUB:
-        newPlaintext = (cts[0].plaintext - cts[1].plaintext + this.fieldPrime) % this.fieldPrime;
-        newValue = (cts[0].value - cts[1].value + this.fieldPrime) % this.fieldPrime;
-        newNoise = (cts[0].noise - cts[1].noise + this.fieldPrime) % this.fieldPrime;
+        newPlaintext =
+          (cts[0].plaintext - cts[1].plaintext + this.fieldPrime) %
+          this.fieldPrime;
+        newValue =
+          (cts[0].value - cts[1].value + this.fieldPrime) % this.fieldPrime;
+        newNoise =
+          (cts[0].noise - cts[1].noise + this.fieldPrime) % this.fieldPrime;
         noiseCost = 1;
         break;
       case OP_TYPE.MUL:
@@ -649,7 +753,7 @@ class MultiKeyFheRelinearizationEngine {
         noiseCost = 10; // Multiplication is expensive
         break;
       default:
-        throw new HsmAdapterError('INVALID_OP', `unknown operation: ${op}`);
+        throw new HsmAdapterError("INVALID_OP", `unknown operation: ${op}`);
     }
     // Determine result key
     let resultKeyId = cts[0].keyId;
@@ -665,7 +769,7 @@ class MultiKeyFheRelinearizationEngine {
       }
     }
     const newCtId = `ct-${Date.now()}-${crypto.randomInt(0, 1000000)}`;
-    const minNoiseBudget = Math.min(...cts.map(c => c.noiseBudget));
+    const minNoiseBudget = Math.min(...cts.map((c) => c.noiseBudget));
     const newCiphertext = {
       ciphertextId: newCtId,
       keyId: resultKeyId,
@@ -680,7 +784,7 @@ class MultiKeyFheRelinearizationEngine {
     this._ciphertexts.set(newCtId, newCiphertext);
     this._opCount++;
     this._checkNoiseBudget(newCtId);
-    this._recordHistory(op, ctIds.join(','), newCtId);
+    this._recordHistory(op, ctIds.join(","), newCtId);
     return {
       ciphertextId: newCtId,
       keyId: resultKeyId,
@@ -714,14 +818,17 @@ class MultiKeyFheRelinearizationEngine {
   _bootstrap(ciphertextId) {
     const ct = this._ciphertexts.get(ciphertextId);
     if (!ct) {
-      throw new HsmAdapterError('CIPHERTEXT_NOT_FOUND', `ciphertext ${ciphertextId} not found`);
+      throw new HsmAdapterError(
+        "CIPHERTEXT_NOT_FOUND",
+        `ciphertext ${ciphertextId} not found`,
+      );
     }
     ct.noiseBudget = this.maxNoiseBudget;
     ct.status = CIPHERTEXT_STATUS.BOOTSTRAPPED;
     this._bootstrapCount++;
-    this._recordHistory('BOOTSTRAP', ciphertextId, ciphertextId);
-    if (typeof this._audit === 'function') {
-      this._audit('BOOTSTRAPPED', { ciphertextId });
+    this._recordHistory("BOOTSTRAP", ciphertextId, ciphertextId);
+    if (typeof this._audit === "function") {
+      this._audit("BOOTSTRAPPED", { ciphertextId });
     }
     return {
       ciphertextId,
@@ -755,10 +862,14 @@ class MultiKeyFheRelinearizationEngine {
  * @private
  */
 function _toFieldElement(fieldPrime, val) {
-  if (typeof val === 'bigint') return val % fieldPrime;
-  if (typeof val === 'number') return BigInt(val) % fieldPrime;
-  if (typeof val === 'string') {
-    try { return BigInt(val) % fieldPrime; } catch { return 0n; }
+  if (typeof val === "bigint") return val % fieldPrime;
+  if (typeof val === "number") return BigInt(val) % fieldPrime;
+  if (typeof val === "string") {
+    try {
+      return BigInt(val) % fieldPrime;
+    } catch {
+      return 0n;
+    }
   }
   return 0n;
 }

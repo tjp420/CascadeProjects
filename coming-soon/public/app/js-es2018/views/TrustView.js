@@ -8,16 +8,15 @@ import { getVsCodeApi, renderSkeletonCard } from '../utils-lib/dom.js?v=20260725
  * @returns {any}
  */
 function extractLiveTrustData(data) {
-    if (!data || typeof data !== 'object')
-        return null;
+    if (!data || typeof data !== 'object') return null;
     const source = data.live || data;
     const headline = source.headline;
-    const headlineObj = (typeof headline === 'object' && headline && headline.primary) ? headline : null;
+    const headlineObj = typeof headline === 'object' && headline && headline.primary ? headline : null;
     return {
         verificationId: source.verificationId || null,
-        headlineSource: headlineObj ? (headlineObj.source || null) : (source.headlineSource || null),
-        headlineReason: headlineObj ? (headlineObj.reason || null) : (source.headlineReason || null),
-        headline: headlineObj ? (headlineObj.primary || null) : (source.headline || null),
+        headlineSource: headlineObj ? headlineObj.source || null : source.headlineSource || null,
+        headlineReason: headlineObj ? headlineObj.reason || null : source.headlineReason || null,
+        headline: headlineObj ? headlineObj.primary || null : source.headline || null,
         gatePass: source.gatePass != null ? source.gatePass : null,
         score: source.score != null ? source.score : null,
         generatedAt: source.generatedAt || null,
@@ -39,8 +38,7 @@ function extractLiveTrustData(data) {
  */
 function normalizeStaticTrustPayload(data) {
     const live = extractLiveTrustData(data);
-    if (!live)
-        return null;
+    if (!live) return null;
     return { success: true, live, staticHost: true, staticPayload: true };
 }
 /**
@@ -49,8 +47,7 @@ function normalizeStaticTrustPayload(data) {
  */
 async function fetchStaticTrustFallback() {
     const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
-    if (!trustHttpResponse || !trustHttpResponse.ok)
-        return null;
+    if (!trustHttpResponse || !trustHttpResponse.ok) return null;
     const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
     return normalizeStaticTrustPayload(trustVerificationDocument);
 }
@@ -60,14 +57,12 @@ async function fetchStaticTrustFallback() {
  * @returns {any}
  */
 function normalizeTrustApiPayload(data) {
-    if (!data || typeof data !== 'object')
-        return null;
+    if (!data || typeof data !== 'object') return null;
     if (!data.type && !data.platform && !data.monorepo && !data.live) {
         return data;
     }
     const live = extractLiveTrustData(data);
-    if (!live)
-        return null;
+    if (!live) return null;
     return {
         success: data.success != null ? data.success : true,
         live,
@@ -83,16 +78,14 @@ export async function fetchTrustVerification() {
     const contentType = String(res.headers.get('content-type') || '').toLowerCase();
     if (!contentType.includes('application/json')) {
         const fallback = await fetchStaticTrustFallback();
-        if (fallback)
-            return fallback;
+        if (fallback) return fallback;
         return { staticHost: true, live: null };
     }
     const rawData = await res.json().catch(() => null);
     const data = normalizeTrustApiPayload(rawData);
     if (!data) {
         const fallback = await fetchStaticTrustFallback();
-        if (fallback)
-            return fallback;
+        if (fallback) return fallback;
         return { staticHost: true, live: null };
     }
     if (!res.ok || !data.success) {
@@ -145,19 +138,27 @@ function renderReAttestation(meta) {
       <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">
         <strong>Scope note:</strong> ${escapeHtml(scope.workflowNote || meta.message || '')}
       </p>
-      ${meta.attestationNote || hygiene.attestationNote ? `
+      ${
+          meta.attestationNote || hygiene.attestationNote
+              ? `
         <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">
           <strong>Attestation note:</strong> ${escapeHtml(meta.attestationNote || hygiene.attestationNote || '')}
         </p>
-      ` : ''}
-      ${Array.isArray(meta.exportNotes) && meta.exportNotes.length ? `
+      `
+              : ''
+      }
+      ${
+          Array.isArray(meta.exportNotes) && meta.exportNotes.length
+              ? `
         <details style="margin-top:var(--space-3);">
           <summary style="cursor:pointer;font-size:var(--font-size-sm);font-weight:600;color:var(--text-secondary);">Export notes (${meta.exportNotes.length})</summary>
           <ul style="margin:var(--space-2) 0 0;padding-left:1.25rem;font-size:var(--font-size-xs);color:var(--text-muted);">
-            ${meta.exportNotes.map((n) => `<li class="mb-1">${escapeHtml(n)}</li>`).join('')}
+            ${meta.exportNotes.map(n => `<li class="mb-1">${escapeHtml(n)}</li>`).join('')}
           </ul>
         </details>
-      ` : ''}
+      `
+              : ''
+      }
     </div>
   `;
 }
@@ -185,13 +186,21 @@ function renderSnapshot(snap, title) {
     const badgeLabel = gatePass ? 'GATE PASS' : 'GATE REVIEW';
     const quality = snap.qualityScore != null ? snap.qualityScore + '%' : '—';
     const issueCount = snap.issueCount != null ? formatNumber(snap.issueCount) : '—';
-    const schema = (snap.schemaPassed != null ? snap.schemaPassed : '—') + '/' + (snap.schemaChecked != null ? snap.schemaChecked : '—');
+    const schema =
+        (snap.schemaPassed != null ? snap.schemaPassed : '—') +
+        '/' +
+        (snap.schemaChecked != null ? snap.schemaChecked : '—');
     const consistency = snap.consistencyScore != null ? snap.consistencyScore + '%' : '—';
     const repoFiles = snap.repositoryFilesTotal != null ? formatNumber(snap.repositoryFilesTotal) : '—';
     const gateChecked = snap.ruleScopedFilesAnalyzed != null ? formatNumber(snap.ruleScopedFilesAnalyzed) : '—';
     const mockSample = snap.mockSampleFiles != null ? formatNumber(snap.mockSampleFiles) : '—';
     const fictionJson = snap.fictionJsonFilesScanned != null ? formatNumber(snap.fictionJsonFilesScanned) : '—';
-    const fictionSamples = snap.fictionSampleFilesScanned != null ? formatNumber(snap.fictionSampleFilesScanned) : (snap.mockSampleFiles != null ? formatNumber(snap.mockSampleFiles) : '—');
+    const fictionSamples =
+        snap.fictionSampleFilesScanned != null
+            ? formatNumber(snap.fictionSampleFilesScanned)
+            : snap.mockSampleFiles != null
+              ? formatNumber(snap.mockSampleFiles)
+              : '—';
     return `
     <div class="card mb-4" style="border-top:3px solid ${accent};">
       <div class="section-heading mb-3">
@@ -274,26 +283,30 @@ export class TrustView {
         </div>
       </div>
 
-      ${staticHost ? `
+      ${
+          staticHost
+              ? `
         <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
           <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
             Static-host preview: trust APIs require <code>npm run dashboard</code> locally.
           </p>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
       <div class="grid-3 mb-4">
         <div class="card" style="border-top:3px solid var(--accent);">
           <div class="text-muted text-xs" style="margin-bottom:0.25rem;">Trust score</div>
           <div style="font-size:2rem;font-weight:700;color:var(--text-primary);">${escapeHtml((live && live.score) != null ? live.score + '%' : '—')}</div>
         </div>
-        <div class="card" style="border-top:3px solid ${(live && live.gatePass) ? 'var(--success)' : 'var(--warning)'};">
+        <div class="card" style="border-top:3px solid ${live && live.gatePass ? 'var(--success)' : 'var(--warning)'};">
           <div class="text-muted text-xs" style="margin-bottom:0.25rem;">Gate</div>
-          <div style="font-size:1.25rem;font-weight:700;color:var(--text-primary);">${(live && live.gatePass) ? 'PASS' : 'REVIEW'}</div>
+          <div style="font-size:1.25rem;font-weight:700;color:var(--text-primary);">${live && live.gatePass ? 'PASS' : 'REVIEW'}</div>
         </div>
         <div class="card" style="border-top:3px solid var(--accent);">
           <div class="text-muted text-xs" style="margin-bottom:0.25rem;">Generated</div>
-          <div style="font-size:1rem;font-weight:600;color:var(--text-primary);">${escapeHtml((live && live.generatedAt) ? live.generatedAt.slice(0, 10) : '—')}</div>
+          <div style="font-size:1rem;font-weight:600;color:var(--text-primary);">${escapeHtml(live && live.generatedAt ? live.generatedAt.slice(0, 10) : '—')}</div>
         </div>
       </div>
 
@@ -305,7 +318,7 @@ export class TrustView {
               ID: <code>${escapeHtml((live && live.verificationId) || '—')}</code> · Method: deterministic gate + pattern matching
             </p>
           </div>
-          ${(live && live.headline) ? `<span class="gate-badge ${live.gatePass ? 'pass' : 'warn'}">${escapeHtml(live.headline)}</span>` : ''}
+          ${live && live.headline ? `<span class="gate-badge ${live.gatePass ? 'pass' : 'warn'}">${escapeHtml(live.headline)}</span>` : ''}
         </div>
         <p style="margin:0 0 0.75rem;font-size:var(--font-size-sm);color:var(--text-secondary);">
           We publish <strong>scoped</strong> Simplebeacon scan results — not marketing claims.
@@ -313,39 +326,55 @@ export class TrustView {
         </p>
         <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">
           Headline source: <code>${escapeHtml((live && live.headlineSource) || 'n/a')}</code>
-          ${(live && live.headlineReason) ? ` · ${escapeHtml(live.headlineReason)}` : ''}
+          ${live && live.headlineReason ? ` · ${escapeHtml(live.headlineReason)}` : ''}
         </p>
       </div>
 
-      ${factors.length ? `
+      ${
+          factors.length
+              ? `
         <div class="card mb-4">
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Trust factors</h3>
           <div class="metrics-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
-            ${factors.map((f) => `
-              <div class="metric-chip" style="${f.status === 'Fail' ? 'border-color:var(--danger);' : (f.status === 'Review' ? 'border-color:var(--warning);' : '')}">
+            ${factors
+                .map(
+                    f => `
+              <div class="metric-chip" style="${f.status === 'Fail' ? 'border-color:var(--danger);' : f.status === 'Review' ? 'border-color:var(--warning);' : ''}">
                 <strong>${escapeHtml(f.status || '—')}</strong> ${escapeHtml(f.text || '')}
               </div>
-            `).join('')}
+            `
+                )
+                .join('')}
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
-      ${badges.length ? `
+      ${
+          badges.length
+              ? `
         <div class="card mb-4">
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Badges</h3>
           <div class="metrics-row" style="display:flex;flex-wrap:wrap;gap:8px;">
-            ${badges.map((b) => `
+            ${badges
+                .map(
+                    b => `
               <div class="metric-chip" style="${b.unlocked ? '' : 'opacity:0.5;'}">
                 <span style="margin-right:0.25rem;">${escapeHtml(b.icon || '')}</span>
                 <strong>${escapeHtml(b.name || '')}</strong>
               </div>
-            `).join('')}
+            `
+                )
+                .join('')}
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
       ${renderSnapshot((live && live.platform) || null, 'Platform gate scan')}
-      ${(live && live.monorepo) ? renderSnapshot(live.monorepo, 'Monorepo root scan') : ''}
+      ${live && live.monorepo ? renderSnapshot(live.monorepo, 'Monorepo root scan') : ''}
       ${renderReAttestation(reAttestation)}
 
       <div class="card mb-4">
@@ -353,21 +382,29 @@ export class TrustView {
           <h3 style="margin:0;font-size:var(--font-size-base);">Repository optimization</h3>
           <a class="btn btn-secondary btn-sm" href="/dashboard/repository-health">Full health report →</a>
         </div>
-        ${(repoHealth && repoHealth.headline)
-          ? renderRepositoryHealthSection(repoHealth, { compact: true })
-          : '<p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">Run consolidation scan to publish repo health metrics.</p>'}
+        ${
+            repoHealth && repoHealth.headline
+                ? renderRepositoryHealthSection(repoHealth, { compact: true })
+                : '<p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">Run consolidation scan to publish repo health metrics.</p>'
+        }
       </div>
 
-      ${disclaimers.length ? `
+      ${
+          disclaimers.length
+              ? `
         <div class="card mb-4">
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Scope disclaimers</h3>
           <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-            ${disclaimers.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
+            ${disclaimers.map(line => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
           </ul>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
-      ${fictionScope ? `
+      ${
+          fictionScope
+              ? `
         <div class="card mb-4">
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Fiction / KPI scope</h3>
           <div class="metrics-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:0.75rem;">
@@ -380,16 +417,22 @@ export class TrustView {
             · Pattern matching only (config.ignore applied)
           </p>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
-      ${methodology.length ? `
+      ${
+          methodology.length
+              ? `
         <div class="card mb-4">
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Methodology</h3>
           <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-            ${methodology.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
+            ${methodology.map(line => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
           </ul>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
       <div class="card">
         <h3 class="mb-2" style="font-size:var(--font-size-base);">Embed badge</h3>
@@ -401,8 +444,7 @@ export class TrustView {
     `;
     }
     downloadTrustData() {
-        if (!this.data)
-            return;
+        if (!this.data) return;
         const payload = {
             exportedAt: new Date().toISOString(),
             ...this.data
@@ -416,66 +458,78 @@ export class TrustView {
         setHtml(container, this.render());
         try {
             this.data = await fetchTrustVerification();
-        }
-        catch (err) {
+        } catch (err) {
             this.error = err.message;
-        }
-        finally {
+        } finally {
             this.loading = false;
             setHtml(container, this.render());
-            (_a = container.querySelector('#trust-download-json')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.downloadTrustData());
+            (_a = container.querySelector('#trust-download-json')) === null || _a === void 0
+                ? void 0
+                : _a.addEventListener('click', () => this.downloadTrustData());
             const retryBtn = container.querySelector('#trust-retry-btn');
             if (retryBtn) {
                 retryBtn.addEventListener('click', () => this.mount(container));
             }
-            (_b = container.querySelector('#trust-send-ai-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', async () => {
-                var _a, _b, _c;
-                const data = this.data;
-                if (!data) {
-                    showToast('No trust data to send', 'error');
-                    return;
-                }
-                const live = data.live || {};
-                const payload = {
-                    projectPath: this.app.state.lastProjectPath || window.location.origin,
-                    reportType: 'trust-verification',
-                    reportSummary: {
-                        verificationId: live.verificationId,
-                        headlineSource: live.headlineSource,
-                        headlineReason: live.headlineReason,
-                        platform: live.platform,
-                        monorepo: live.monorepo,
-                        repositoryHealthScore: (_c = (_b = (_a = live.repositoryHealth) === null || _a === void 0 ? void 0 : _a.headline) === null || _b === void 0 ? void 0 : _b.repositoryHealthScore) !== null && _c !== void 0 ? _c : 'N/A'
-                    },
-                    notes: 'Trust Verification — scoped scan results and repository health'
-                };
-                const vscode = getVsCodeApi();
-                if (vscode) {
-                    try {
-                        vscode.postMessage({ command: 'sendToAI', data: payload });
-                        showToast('Trust verification sent to AI agent', 'success');
-                        return;
-                    }
-                    catch (err) {
-                        window["console"]["warn"]('[Trust-AI] vscode.postMessage failed:', err);
-                    } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
-                }
-                try {
-                    const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    const json = await res.json();
-                    if (json.success && json.content) {
-                        await navigator.clipboard.writeText(json.content);
-                        showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
-                    }
-                    else {
-                        showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
-                    }
-                }
-                catch (err) {
-                    showToast('Failed to send: ' + err.message, 'error');
-                }
-            });
+            (_b = container.querySelector('#trust-send-ai-btn')) === null || _b === void 0
+                ? void 0
+                : _b.addEventListener('click', async () => {
+                      var _a, _b, _c;
+                      const data = this.data;
+                      if (!data) {
+                          showToast('No trust data to send', 'error');
+                          return;
+                      }
+                      const live = data.live || {};
+                      const payload = {
+                          projectPath: this.app.state.lastProjectPath || window.location.origin,
+                          reportType: 'trust-verification',
+                          reportSummary: {
+                              verificationId: live.verificationId,
+                              headlineSource: live.headlineSource,
+                              headlineReason: live.headlineReason,
+                              platform: live.platform,
+                              monorepo: live.monorepo,
+                              repositoryHealthScore:
+                                  (_c =
+                                      (_b =
+                                          (_a = live.repositoryHealth) === null || _a === void 0
+                                              ? void 0
+                                              : _a.headline) === null || _b === void 0
+                                          ? void 0
+                                          : _b.repositoryHealthScore) !== null && _c !== void 0
+                                      ? _c
+                                      : 'N/A'
+                          },
+                          notes: 'Trust Verification — scoped scan results and repository health'
+                      };
+                      const vscode = getVsCodeApi();
+                      if (vscode) {
+                          try {
+                              vscode.postMessage({ command: 'sendToAI', data: payload });
+                              showToast('Trust verification sent to AI agent', 'success');
+                              return;
+                          } catch (err) {
+                              window['console']['warn']('[Trust-AI] vscode.postMessage failed:', err);
+                          } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+                      }
+                      try {
+                          const res = await fetch('/api/ai-context', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(payload)
+                          });
+                          const json = await res.json();
+                          if (json.success && json.content) {
+                              await navigator.clipboard.writeText(json.content);
+                              showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                          } else {
+                              showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                          }
+                      } catch (err) {
+                          showToast('Failed to send: ' + err.message, 'error');
+                      }
+                  });
         }
     }
-    destroy() { }
+    destroy() {}
 }

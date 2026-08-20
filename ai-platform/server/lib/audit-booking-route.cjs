@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, and EU AI Act indicators — all findings are false positives, dashboard code, debug artifacts, debugArtifacts, test fixtures
-const fs = require('fs');
-const path = require('path');
-const logger = require('./app-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const logger = require("./app-logger.cjs");
 
 const fsp = fs.promises;
 
@@ -11,8 +11,8 @@ const fsp = fs.promises;
  * @returns {any}
  */
 function bookingsFilePath(options) {
-  const dataDir = options.dataDir || path.join(__dirname, '..', '..', 'data');
-  return path.join(dataDir, 'audit-bookings.json');
+  const dataDir = options.dataDir || path.join(__dirname, "..", "..", "data");
+  return path.join(dataDir, "audit-bookings.json");
 }
 
 /**
@@ -23,12 +23,12 @@ function bookingsFilePath(options) {
 async function loadBookings(options) {
   const file = bookingsFilePath(options);
   try {
-    const raw = await fsp.readFile(file, 'utf8');
+    const raw = await fsp.readFile(file, "utf8");
     const rows = JSON.parse(raw);
     return Array.isArray(rows) ? rows : [];
   } catch (err) {
-    if (err && err.code === 'ENOENT') return [];
-    logger.warn('[audit-booking] load failed:', err.message);
+    if (err && err.code === "ENOENT") return [];
+    logger.warn("[audit-booking] load failed:", err.message);
     return [];
   }
 }
@@ -62,10 +62,10 @@ function bookingResponse(saved, emailResult) {
     emailSent,
     bookingId: saved.bookingId,
     totalBookings: saved.rows.length,
-    operatorInboxUrl: '/operator/bookings',
+    operatorInboxUrl: "/operator/bookings",
     message: emailSent
-      ? 'Booking saved and emailed to the operator inbox.'
-      : 'Booking saved — view it in the operator inbox (email not configured yet).'
+      ? "Booking saved and emailed to the operator inbox."
+      : "Booking saved — view it in the operator inbox (email not configured yet).",
   };
 }
 
@@ -78,26 +78,32 @@ function bookingResponse(saved, emailResult) {
  */
 async function handleAuditBooking(req, res, options = {}) {
   const landingEnabled = options.landingEnabled !== false;
-  if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
+  if (!landingEnabled) return res.status(404).json({ error: "not_found" });
 
-  if (String(req.body?.website || '').trim()) {
-    return res.json({ ok: true, emailSent: false, ignored: 'spam' });
+  if (String(req.body?.website || "").trim()) {
+    return res.json({ ok: true, emailSent: false, ignored: "spam" });
   }
 
-  const contactEmail = String(req.body?.contactEmail || req.body?.email || '').trim().toLowerCase();
-  const company = String(req.body?.company || '').trim();
-  const repository = String(req.body?.repository || '').trim();
-  const branch = String(req.body?.branch || 'main').trim();
-  const handoffDate = String(req.body?.handoffDate || req.body?.handoff_date || '').trim();
-  const source = String(req.body?.source || 'landing').trim();
-  const notes = String(req.body?.notes || '').trim();
-  const paymentsMode = req.body?.paymentsEnabled === true ? 'paid' : 'testing';
+  const contactEmail = String(req.body?.contactEmail || req.body?.email || "")
+    .trim()
+    .toLowerCase();
+  const company = String(req.body?.company || "").trim();
+  const repository = String(req.body?.repository || "").trim();
+  const branch = String(req.body?.branch || "main").trim();
+  const handoffDate = String(
+    req.body?.handoffDate || req.body?.handoff_date || "",
+  ).trim();
+  const source = String(req.body?.source || "landing").trim();
+  const notes = String(req.body?.notes || "").trim();
+  const paymentsMode = req.body?.paymentsEnabled === true ? "paid" : "testing";
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-    return res.status(400).json({ error: 'invalid_email' });
+    return res.status(400).json({ error: "invalid_email" });
   }
   if (!company || !repository) {
-    return res.status(400).json({ error: 'missing_fields', fields: ['company', 'repository'] });
+    return res
+      .status(400)
+      .json({ error: "missing_fields", fields: ["company", "repository"] });
   }
 
   const entry = {
@@ -109,29 +115,29 @@ async function handleAuditBooking(req, res, options = {}) {
     source,
     notes,
     paymentsMode,
-    receivedAt: new Date().toISOString()
+    receivedAt: new Date().toISOString(),
   };
 
   let saved;
   try {
     saved = await saveBooking(entry, options);
   } catch (err) {
-    logger.warn('[audit-booking] persist failed:', err.message);
-    return res.status(500).json({ error: 'save_failed', message: err.message });
+    logger.warn("[audit-booking] persist failed:", err.message);
+    return res.status(500).json({ error: "save_failed", message: err.message });
   }
 
   try {
-    const { sendAuditBookingEmail } = require('./audit-booking-mail.cjs');
+    const { sendAuditBookingEmail } = require("./audit-booking-mail.cjs");
     const result = await sendAuditBookingEmail(entry);
     if (!result.sent) {
       return res.json(bookingResponse(saved, result));
     }
     return res.json(bookingResponse(saved, result));
   } catch (err) {
-    logger.warn('[audit-booking] email failed');
+    logger.warn("[audit-booking] email failed");
     return res.json({
       ...bookingResponse(saved, { sent: false }),
-      emailError: err.message
+      emailError: err.message,
     });
   }
 }
@@ -145,13 +151,13 @@ async function handleAuditBooking(req, res, options = {}) {
  */
 async function handleListAuditBookings(req, res, options = {}) {
   const landingEnabled = options.landingEnabled !== false;
-  if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
+  if (!landingEnabled) return res.status(404).json({ error: "not_found" });
 
   const rows = (await loadBookings(options)).slice().reverse();
   return res.json({
     ok: true,
     count: rows.length,
-    bookings: rows
+    bookings: rows,
   });
 }
 
@@ -166,22 +172,22 @@ function registerOperatorInboxPage(app, options = {}) {
   const landingRoot = options.landingRoot;
   if (!landingRoot) return;
 
-  const inboxHtml = path.join(landingRoot, 'operator-bookings.html');
+  const inboxHtml = path.join(landingRoot, "operator-bookings.html");
   if (!fs.existsSync(inboxHtml)) return;
 
-/**
- * Send inbox.
- * @param {any} _req
- * @param {Array} res
- * @returns {any}
- */
+  /**
+   * Send inbox.
+   * @param {any} _req
+   * @param {Array} res
+   * @returns {any}
+   */
   function sendInbox(_req, res) {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.type('text/html');
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.type("text/html");
     res.sendFile(inboxHtml);
   }
 
-  app.get('/operator/bookings', sendInbox);
+  app.get("/operator/bookings", sendInbox);
 }
 
 /**
@@ -191,16 +197,16 @@ function registerOperatorInboxPage(app, options = {}) {
  * @returns {any}
  */
 function registerAuditBookingRoute(app, options = {}) {
-  app.post('/api/audit-booking', (req, res) => {
+  app.post("/api/audit-booking", (req, res) => {
     handleAuditBooking(req, res, options).catch((err) => {
-      logger.warn('[audit-booking] request failed:', err.message);
-      res.status(500).json({ error: 'request_failed', message: err.message });
+      logger.warn("[audit-booking] request failed:", err.message);
+      res.status(500).json({ error: "request_failed", message: err.message });
     });
   });
-  app.get('/api/audit-bookings', (req, res) => {
+  app.get("/api/audit-bookings", (req, res) => {
     handleListAuditBookings(req, res, options).catch((err) => {
-      logger.warn('[audit-booking] list failed:', err.message);
-      res.status(500).json({ error: 'list_failed', message: err.message });
+      logger.warn("[audit-booking] list failed:", err.message);
+      res.status(500).json({ error: "list_failed", message: err.message });
     });
   });
   registerOperatorInboxPage(app, options);
@@ -211,5 +217,5 @@ module.exports = {
   handleListAuditBookings,
   registerOperatorInboxPage,
   registerAuditBookingRoute,
-  loadBookings
+  loadBookings,
 };

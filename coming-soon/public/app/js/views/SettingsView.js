@@ -5,11 +5,26 @@ import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyz
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels } from '../services/aiKeysService.js?v=20260716cachefix1';
+import {
+    fetchUserAiKeys,
+    saveUserAiKeys,
+    clearUserAiKeys,
+    normalizeAiKeysRecord,
+    fetchOllamaModels,
+    shouldProbeOllamaModels
+} from '../services/aiKeysService.js?v=20260716cachefix1';
 import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
-import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, isStockpiledEntry, loadStockpileEntries, tokenHint, } from '../services/tokenStockpileService.js';
+import {
+    activateStockpileEntry,
+    addToStockpile,
+    BUY_TIME_TOKENS_URL,
+    decodeTokenMeta,
+    isStockpiledEntry,
+    loadStockpileEntries,
+    tokenHint
+} from '../services/tokenStockpileService.js';
 const AI_KEY_FIELDS = [
     { id: 'openai', label: 'OpenAI API key', placeholder: 'sk-...' },
     { id: 'anthropic', label: 'Anthropic API key', placeholder: 'sk-ant-...' }
@@ -59,7 +74,7 @@ export class SettingsView {
         this.tokenVault = loadStockpileEntries();
     }
     markTokenUsed(token) {
-        const entry = this.tokenVault.find((v) => v.token === token);
+        const entry = this.tokenVault.find(v => v.token === token);
         if (entry && !entry.usedAt) {
             entry.usedAt = new Date().toISOString();
             this.saveTokenVault();
@@ -67,21 +82,23 @@ export class SettingsView {
     }
     canReturnToken(index) {
         const entry = this.tokenVault[index];
-        if (!entry)
-            return false;
+        if (!entry) return false;
         const activeToken = authService.getToken();
         return isStockpiledEntry(entry, activeToken);
     }
     returnVaultToken(index, rerender) {
         const entry = this.tokenVault[index];
-        if (!entry)
-            return;
+        if (!entry) return;
         if (!this.canReturnToken(index)) {
             showToast('This token has already been used and cannot be returned', 'error');
             return;
         }
         const tHint = entry.token.length > 24 ? `${entry.token.slice(0, 8)}…${entry.token.slice(-8)}` : entry.token;
-        if (!globalThis.confirm(`Return unused token ${tHint}?\n\nThis will remove it from your vault. Tokens that have been activated or used cannot be returned.`))
+        if (
+            !globalThis.confirm(
+                `Return unused token ${tHint}?\n\nThis will remove it from your vault. Tokens that have been activated or used cannot be returned.`
+            )
+        )
             return;
         this.removeFromVault(index);
         showToast('Token returned and removed from vault', 'success');
@@ -101,19 +118,15 @@ export class SettingsView {
         showToast('Time token loaded into this session', 'success');
     }
     _formatRelativeTime(iso) {
-        if (!iso)
-            return '';
+        if (!iso) return '';
         const then = new Date(iso).getTime();
         const now = Date.now();
         const diff = Math.max(0, now - then);
         const mins = Math.floor(diff / 60000);
-        if (mins < 1)
-            return 'just now';
-        if (mins < 60)
-            return `${mins}m ago`;
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins}m ago`;
         const hrs = Math.floor(mins / 60);
-        if (hrs < 24)
-            return `${hrs}h ago`;
+        if (hrs < 24) return `${hrs}h ago`;
         const days = Math.floor(hrs / 24);
         return `${days}d ago`;
     }
@@ -124,22 +137,18 @@ export class SettingsView {
     computeVaultMetrics() {
         const total = this.tokenVault.length;
         const activeToken = authService.getToken();
-        const activeIndex = this.tokenVault.findIndex((v) => v.token === activeToken);
-        const stockpiled = this.tokenVault.filter((v) => isStockpiledEntry(v, activeToken)).length;
+        const activeIndex = this.tokenVault.findIndex(v => v.token === activeToken);
+        const stockpiled = this.tokenVault.filter(v => isStockpiledEntry(v, activeToken)).length;
         return { total, activeIndex, stockpiled };
     }
     matchOllamaModelOption(selected, models = []) {
         const want = String(selected || '').trim();
-        if (!want)
-            return '';
-        if (models.includes(want))
-            return want;
-        const prefixed = models.find((name) => name.startsWith(`${want}:`));
-        if (prefixed)
-            return prefixed;
-        const byBase = models.find((name) => name.split(':')[0] === want);
-        if (byBase)
-            return byBase;
+        if (!want) return '';
+        if (models.includes(want)) return want;
+        const prefixed = models.find(name => name.startsWith(`${want}:`));
+        if (prefixed) return prefixed;
+        const byBase = models.find(name => name.split(':')[0] === want);
+        if (byBase) return byBase;
         return want;
     }
     renderOllamaModelSelect(keys) {
@@ -151,14 +160,16 @@ export class SettingsView {
         let options = '';
         if (this.ollamaModelsLoading) {
             options = '<option value="">Loading models…</option>';
-        }
-        else if (!models.length) {
+        } else if (!models.length) {
             options = `<option value="">${this.ollamaModelsError ? 'Ollama unreachable' : 'No models found'}</option>`;
-        }
-        else {
-            options = `<option value="">— Select a model —</option>${models.map((name) => `
+        } else {
+            options = `<option value="">— Select a model —</option>${models
+                .map(
+                    name => `
         <option value="${escapeHtml(name)}" ${name === selected ? 'selected' : ''}>${escapeHtml(name)}</option>
-      `).join('')}`;
+      `
+                )
+                .join('')}`;
         }
         return `
       <div class="settings-ollama-model-row">
@@ -182,27 +193,36 @@ export class SettingsView {
     }
     refreshOllamaModelSelect() {
         var _a;
-        const wrap = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-ai-ollama-model-wrap');
-        if (!wrap)
-            return;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        const wrap =
+            (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-ai-ollama-model-wrap');
+        if (!wrap) return;
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         wrap.innerHTML = this.renderOllamaModelSelect(this.displayAiKeys());
         this.bindOllamaModelEvents(this._root);
     }
     bindOllamaModelEvents(root = this._root) {
         var _a, _b;
-        if (!root)
-            return;
-        (_a = root.querySelector('#settings-ai-ollama-model')) === null || _a === void 0 ? void 0 : _a.addEventListener('change', (e) => {
-            this.aiKeysFormDraft.ollamaModel = e.target.value;
-        });
-        (_b = root.querySelector('#settings-ai-refresh-models')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
-            var _a, _b;
-            const baseUrl = ((_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim())
-                || this.displayAiKeys().ollamaBaseUrl
-                || OLLAMA_DEFAULT_URL;
-            void this.loadOllamaModels(baseUrl);
-        });
+        if (!root) return;
+        (_a = root.querySelector('#settings-ai-ollama-model')) === null || _a === void 0
+            ? void 0
+            : _a.addEventListener('change', e => {
+                  this.aiKeysFormDraft.ollamaModel = e.target.value;
+              });
+        (_b = root.querySelector('#settings-ai-refresh-models')) === null || _b === void 0
+            ? void 0
+            : _b.addEventListener('click', () => {
+                  var _a, _b;
+                  const baseUrl =
+                      ((_b =
+                          (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0
+                              ? void 0
+                              : _a.value) === null || _b === void 0
+                          ? void 0
+                          : _b.trim()) ||
+                      this.displayAiKeys().ollamaBaseUrl ||
+                      OLLAMA_DEFAULT_URL;
+                  void this.loadOllamaModels(baseUrl);
+              });
     }
     scheduleOllamaModelsReload(baseUrl) {
         clearTimeout(this._ollamaModelsTimer);
@@ -220,8 +240,7 @@ export class SettingsView {
             this.ollamaModels = result.models;
             if (!result.models.length) {
                 this.ollamaModelsError = result.message || 'No models returned — run `ollama pull <model>`';
-            }
-            else if (!result.ok) {
+            } else if (!result.ok) {
                 this.ollamaModelsError = result.message;
             }
             const current = this.displayAiKeys().ollamaModel;
@@ -229,12 +248,10 @@ export class SettingsView {
                 const picked = String(result.models[0]).split(':')[0];
                 this.syncAiKeysFormDraft({ ollamaBaseUrl: url, ollamaModel: picked });
             }
-        }
-        catch (err) {
+        } catch (err) {
             this.ollamaModels = [];
             this.ollamaModelsError = err.message;
-        }
-        finally {
+        } finally {
             this.ollamaModelsLoading = false;
             this.refreshOllamaModelSelect();
             if (options.toastOnSuccess && this.ollamaModels.length) {
@@ -245,17 +262,50 @@ export class SettingsView {
     syncAiKeysFormDraft(source = {}) {
         var _a, _b, _c, _d, _e, _f;
         this.aiKeysFormDraft = {
-            ollamaBaseUrl: (_c = (_a = source.ollamaBaseUrl) !== null && _a !== void 0 ? _a : (_b = this.aiKeysFormDraft) === null || _b === void 0 ? void 0 : _b.ollamaBaseUrl) !== null && _c !== void 0 ? _c : '',
-            ollamaModel: (_f = (_d = source.ollamaModel) !== null && _d !== void 0 ? _d : (_e = this.aiKeysFormDraft) === null || _e === void 0 ? void 0 : _e.ollamaModel) !== null && _f !== void 0 ? _f : ''
+            ollamaBaseUrl:
+                (_c =
+                    (_a = source.ollamaBaseUrl) !== null && _a !== void 0
+                        ? _a
+                        : (_b = this.aiKeysFormDraft) === null || _b === void 0
+                          ? void 0
+                          : _b.ollamaBaseUrl) !== null && _c !== void 0
+                    ? _c
+                    : '',
+            ollamaModel:
+                (_f =
+                    (_d = source.ollamaModel) !== null && _d !== void 0
+                        ? _d
+                        : (_e = this.aiKeysFormDraft) === null || _e === void 0
+                          ? void 0
+                          : _e.ollamaModel) !== null && _f !== void 0
+                    ? _f
+                    : ''
         };
     }
     captureAiKeysFormDraft(root = this._root) {
         var _a, _b, _c, _d, _e, _f;
-        if (!root)
-            return;
+        if (!root) return;
         this.syncAiKeysFormDraft({
-            ollamaBaseUrl: (_c = (_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : '',
-            ollamaModel: (_f = (_e = (_d = root.querySelector('#settings-ai-ollama-model')) === null || _d === void 0 ? void 0 : _d.value) === null || _e === void 0 ? void 0 : _e.trim()) !== null && _f !== void 0 ? _f : ''
+            ollamaBaseUrl:
+                (_c =
+                    (_b =
+                        (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0
+                            ? void 0
+                            : _a.value) === null || _b === void 0
+                        ? void 0
+                        : _b.trim()) !== null && _c !== void 0
+                    ? _c
+                    : '',
+            ollamaModel:
+                (_f =
+                    (_e =
+                        (_d = root.querySelector('#settings-ai-ollama-model')) === null || _d === void 0
+                            ? void 0
+                            : _d.value) === null || _e === void 0
+                        ? void 0
+                        : _e.trim()) !== null && _f !== void 0
+                    ? _f
+                    : ''
         });
     }
     displayAiKeys() {
@@ -275,36 +325,37 @@ export class SettingsView {
         const el = document.createElement('div');
         el.className = 'fade-in';
         if (this.loading && !this.draft) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Loading configuration…</p></div>
         ${renderEmptyState({
-                icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-                title: 'Loading configuration…',
-                body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
-            })}
+            icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+            title: 'Loading configuration…',
+            body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+        })}
       `;
             return el;
         }
         if (this.error && !this.draft) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Configuration unavailable</p></div>
         ${renderEmptyState({
-                icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-                title: 'Configuration unavailable',
-                body: escapeHtml(this.error),
-                actions: [{ label: 'Retry', id: 'settings-reload', className: 'btn-primary' }]
-            })}
+            icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+            title: 'Configuration unavailable',
+            body: escapeHtml(this.error),
+            actions: [{ label: 'Retry', id: 'settings-reload', className: 'btn-primary' }]
+        })}
       `;
-            (_a = el.querySelector('#settings-reload')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
-                const container = el.parentElement;
-                if (container)
-                    this.loadAndMount(container);
-            });
+            (_a = el.querySelector('#settings-reload')) === null || _a === void 0
+                ? void 0
+                : _a.addEventListener('click', () => {
+                      const container = el.parentElement;
+                      if (container) this.loadAndMount(container);
+                  });
             return el;
         }
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Settings</h1>
@@ -325,7 +376,7 @@ export class SettingsView {
         <div class="settings-field">
           <label class="settings-label" for="settings-profile-select">Profile</label>
           <select class="settings-input" id="settings-profile-select" style="max-width:200px;">
-            ${PROFILES.map((p) => `<option value="${escapeHtml(p)}" ${config.profile === p ? 'selected' : ''}>${escapeHtml(p.charAt(0).toUpperCase() + p.slice(1))}</option>`).join('')}
+            ${PROFILES.map(p => `<option value="${escapeHtml(p)}" ${config.profile === p ? 'selected' : ''}>${escapeHtml(p.charAt(0).toUpperCase() + p.slice(1))}</option>`).join('')}
           </select>
           <span class="text-muted" style="font-size:var(--font-size-xs);margin-left:var(--space-2);">Choose a preset rule profile</span>
         </div>
@@ -372,7 +423,10 @@ export class SettingsView {
 
       <div class="card settings-grid mb-6" id="settings-section-rules">
         <h2 class="card-title">Rules</h2>
-        ${RULE_ORDER.map((name) => { var _a; return renderRuleRow(name, (_a = config.rules) === null || _a === void 0 ? void 0 : _a[name]); }).join('')}
+        ${RULE_ORDER.map(name => {
+            var _a;
+            return renderRuleRow(name, (_a = config.rules) === null || _a === void 0 ? void 0 : _a[name]);
+        }).join('')}
       </div>
 
       <div class="card settings-grid mb-6" id="settings-section-gate">
@@ -380,13 +434,19 @@ export class SettingsView {
         <div class="settings-field settings-field-stack">
           <span class="settings-label">Fail on</span>
           <div class="settings-checkbox-group">
-            ${SEVERITIES.map((sev) => { var _a; return checkbox('fail', sev, (_a = config.gate) === null || _a === void 0 ? void 0 : _a.failOn); }).join('')}
+            ${SEVERITIES.map(sev => {
+                var _a;
+                return checkbox('fail', sev, (_a = config.gate) === null || _a === void 0 ? void 0 : _a.failOn);
+            }).join('')}
           </div>
         </div>
         <div class="settings-field settings-field-stack">
           <span class="settings-label">Warn on</span>
           <div class="settings-checkbox-group">
-            ${SEVERITIES.map((sev) => { var _a; return checkbox('warn', sev, (_a = config.gate) === null || _a === void 0 ? void 0 : _a.warnOn); }).join('')}
+            ${SEVERITIES.map(sev => {
+                var _a;
+                return checkbox('warn', sev, (_a = config.gate) === null || _a === void 0 ? void 0 : _a.warnOn);
+            }).join('')}
           </div>
         </div>
       </div>
@@ -481,7 +541,9 @@ export class SettingsView {
         gap:var(--space-1);
         flex-wrap:wrap;">
         <span style="font-weight:600;font-size:0.875rem;margin-right:var(--space-2);color:var(--text-secondary);">Jump to:</span>
-        ${sections.map((s) => `
+        ${sections
+            .map(
+                s => `
           <a href="#${s.id}" class="settings-nav-link" data-scroll-to="${s.id}" style="
             padding:4px 10px;
             border-radius:999px;
@@ -495,7 +557,9 @@ export class SettingsView {
             cursor:pointer;">
             ${escapeHtml(s.label)}
           </a>
-        `).join('')}
+        `
+            )
+            .join('')}
         <div style="margin-left:auto;display:flex;gap:var(--space-2);align-items:center;">
           <button type="button" class="btn btn-secondary btn-sm" id="settings-reset" ${!dirty || this.busy ? 'disabled' : ''}>Reset</button>
           <button type="button" class="btn btn-secondary btn-sm" id="settings-export">Export</button>
@@ -516,39 +580,50 @@ export class SettingsView {
                 if (payloadB64) {
                     payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
                 }
-            }
-            catch (_a) {
+            } catch (_a) {
                 payload = null;
             }
         }
-        const hint = token && token.length > 24 ? `${token.slice(0, 8)}…${token.slice(-8)}` : (token || '—');
+        const hint = token && token.length > 24 ? `${token.slice(0, 8)}…${token.slice(-8)}` : token || '—';
         const expiresAt = (payload === null || payload === void 0 ? void 0 : payload.exp)
             ? new Date(payload.exp * 1000).toLocaleString()
             : '—';
-        const email = (user === null || user === void 0 ? void 0 : user.email) || (payload === null || payload === void 0 ? void 0 : payload.sub) || '—';
-        const plan = (user === null || user === void 0 ? void 0 : user.plan) || (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.tier) || '—';
+        const email =
+            (user === null || user === void 0 ? void 0 : user.email) ||
+            (payload === null || payload === void 0 ? void 0 : payload.sub) ||
+            '—';
+        const plan =
+            (user === null || user === void 0 ? void 0 : user.plan) ||
+            (payload === null || payload === void 0 ? void 0 : payload.plan) ||
+            (payload === null || payload === void 0 ? void 0 : payload.tier) ||
+            '—';
         const { total, activeIndex, stockpiled } = this.computeVaultMetrics();
-        const vaultRows = this.tokenVault.map((entry, idx) => {
-            var _a, _b;
-            const isActive = idx === activeIndex;
-            const meta = entry.meta || decodeTokenMeta(entry.token);
-            const tHint = tokenHint(entry.token);
-            const u = ((_a = entry.user) === null || _a === void 0 ? void 0 : _a.email) || ((_b = entry.user) === null || _b === void 0 ? void 0 : _b.sub) || meta.email || '—';
-            const activeLabel = isActive
-                ? `<span class="badge badge-success" style="margin-left:var(--space-2);">active</span>`
-                : '';
-            const stockpileLabel = isStockpiledEntry(entry, authService.getToken())
-                ? `<span class="badge" style="margin-left:var(--space-2);background:var(--primary-subtle);color:var(--primary);">stockpiled</span>`
-                : '';
-            const timeLabel = entry.activatedAt
-                ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• loaded ${this._formatRelativeTime(entry.activatedAt)}</span>`
-                : `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• expires ${escapeHtml(meta.expiresLabel)}</span>`;
-            const canReturn = this.canReturnToken(idx);
-            const returnBtn = canReturn
-                ? `<button type="button" class="btn btn-ghost btn-sm" data-vault-return="${idx}" style="white-space:nowrap;color:var(--success);">Return</button>`
-                : `<span class="text-muted" style="font-size:0.7rem;white-space:nowrap;padding:var(--space-1) var(--space-2);">Used • no return</span>`;
-            const loadLabel = isStockpiledEntry(entry, authService.getToken()) ? 'Load' : 'Use';
-            return `
+        const vaultRows = this.tokenVault
+            .map((entry, idx) => {
+                var _a, _b;
+                const isActive = idx === activeIndex;
+                const meta = entry.meta || decodeTokenMeta(entry.token);
+                const tHint = tokenHint(entry.token);
+                const u =
+                    ((_a = entry.user) === null || _a === void 0 ? void 0 : _a.email) ||
+                    ((_b = entry.user) === null || _b === void 0 ? void 0 : _b.sub) ||
+                    meta.email ||
+                    '—';
+                const activeLabel = isActive
+                    ? `<span class="badge badge-success" style="margin-left:var(--space-2);">active</span>`
+                    : '';
+                const stockpileLabel = isStockpiledEntry(entry, authService.getToken())
+                    ? `<span class="badge" style="margin-left:var(--space-2);background:var(--primary-subtle);color:var(--primary);">stockpiled</span>`
+                    : '';
+                const timeLabel = entry.activatedAt
+                    ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• loaded ${this._formatRelativeTime(entry.activatedAt)}</span>`
+                    : `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• expires ${escapeHtml(meta.expiresLabel)}</span>`;
+                const canReturn = this.canReturnToken(idx);
+                const returnBtn = canReturn
+                    ? `<button type="button" class="btn btn-ghost btn-sm" data-vault-return="${idx}" style="white-space:nowrap;color:var(--success);">Return</button>`
+                    : `<span class="text-muted" style="font-size:0.7rem;white-space:nowrap;padding:var(--space-1) var(--space-2);">Used • no return</span>`;
+                const loadLabel = isStockpiledEntry(entry, authService.getToken()) ? 'Load' : 'Use';
+                return `
         <div class="settings-row" style="align-items:center;gap:var(--space-2);">
           <span class="settings-value" style="flex:1;min-width:0;">
             <code>${escapeHtml(tHint)}</code>
@@ -560,7 +635,8 @@ export class SettingsView {
           <button type="button" class="btn btn-ghost btn-sm" data-vault-remove="${idx}" style="white-space:nowrap;color:var(--danger);">Remove</button>
         </div>
       `;
-        }).join('');
+            })
+            .join('');
         return `
       <div class="card settings-grid mb-6" id="settings-token-card">
         <h2 class="card-title">Token</h2>
@@ -604,19 +680,27 @@ export class SettingsView {
           <button type="button" class="btn btn-info btn-sm" id="settings-token-register-email">Register with email</button>
           ${total > 0 ? `<button type="button" class="btn btn-ghost btn-sm" id="settings-token-clear-vault" style="color:var(--danger);">Clear stockpile (${total})</button>` : ''}
         </div>
-        ${total > 0 ? `
+        ${
+            total > 0
+                ? `
           <div style="margin-top:var(--space-4);border-top:1px solid var(--border);padding-top:var(--space-3);">
             <p class="text-muted" style="font-size:0.75rem;margin:0 0 var(--space-2);">Token loader — reserved time tokens (Load when you need them)</p>
             ${vaultRows}
           </div>
-        ` : ''}
+        `
+                : ''
+        }
       </div>
     `;
     }
     stockpileTokenFromInput(root, rerender) {
         var _a, _b, _c;
-        const input = (_a = (root || this._root)) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-token-input');
-        const newToken = ((_b = input === null || input === void 0 ? void 0 : input.value) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+        const input =
+            (_a = root || this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-token-input');
+        const newToken =
+            ((_b = input === null || input === void 0 ? void 0 : input.value) === null || _b === void 0
+                ? void 0
+                : _b.trim()) || '';
         if (!newToken) {
             showToast('Paste a token first', 'error');
             return;
@@ -629,8 +713,7 @@ export class SettingsView {
         let payload;
         try {
             payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-        }
-        catch (_d) {
+        } catch (_d) {
             showToast('Invalid token — could not decode JWT payload', 'error');
             return;
         }
@@ -643,12 +726,10 @@ export class SettingsView {
         this.tokenVault = loadStockpileEntries();
         if (result.duplicate) {
             showToast('Token already in stockpile', 'info');
-        }
-        else {
+        } else {
             showToast('Time token stockpiled for future use', 'success');
         }
-        if (input)
-            input.value = '';
+        if (input) input.value = '';
         rerender();
     }
     copyActiveToken() {
@@ -658,7 +739,10 @@ export class SettingsView {
             return;
         }
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            void navigator.clipboard.writeText(token).then(() => showToast('Active token copied', 'success')).catch(() => showToast('Copy failed', 'error'));
+            void navigator.clipboard
+                .writeText(token)
+                .then(() => showToast('Active token copied', 'success'))
+                .catch(() => showToast('Copy failed', 'error'));
             return;
         }
         showToast('Clipboard unavailable — copy from Profile', 'error');
@@ -672,8 +756,12 @@ export class SettingsView {
     }
     updateToken(root, rerender) {
         var _a, _b;
-        const input = (_a = (root || this._root)) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-token-input');
-        const newToken = ((_b = input === null || input === void 0 ? void 0 : input.value) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+        const input =
+            (_a = root || this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-token-input');
+        const newToken =
+            ((_b = input === null || input === void 0 ? void 0 : input.value) === null || _b === void 0
+                ? void 0
+                : _b.trim()) || '';
         if (!newToken) {
             showToast('Paste a token first', 'error');
             return;
@@ -686,8 +774,7 @@ export class SettingsView {
         let payload;
         try {
             payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-        }
-        catch (_c) {
+        } catch (_c) {
             showToast('Invalid token — could not decode JWT payload', 'error');
             return;
         }
@@ -699,19 +786,20 @@ export class SettingsView {
         // Save current token to vault before replacing (if different)
         const currentToken = authService.getToken();
         if (currentToken && currentToken !== newToken) {
-            const currentUser = authService.getUser() || { email: payload.sub || 'token-user', plan: payload.plan || payload.tier || 'free' };
+            const currentUser = authService.getUser() || {
+                email: payload.sub || 'token-user',
+                plan: payload.plan || payload.tier || 'free'
+            };
             this.addToVault(currentToken, currentUser);
         }
         authService.setSession(newToken, user);
         this.addToVault(newToken, user, { stockpile: false });
         showToast('Token activated and saved to stockpile history', 'success');
-        if (input)
-            input.value = '';
+        if (input) input.value = '';
         rerender();
     }
     clearToken(rerender) {
-        if (!globalThis.confirm('Remove saved active token?'))
-            return;
+        if (!globalThis.confirm('Remove saved active token?')) return;
         authService.clearSession();
         showToast('Active token cleared', 'info');
         rerender();
@@ -741,7 +829,7 @@ export class SettingsView {
         rerender();
     }
     updateVaultEmail(token, email) {
-        const entry = this.tokenVault.find((e) => e.token === token);
+        const entry = this.tokenVault.find(e => e.token === token);
         if (entry) {
             entry.user = entry.user || {};
             entry.user.email = email;
@@ -749,8 +837,7 @@ export class SettingsView {
         }
     }
     confirmAndClearVault(rerender) {
-        if (!globalThis.confirm('Remove all stored tokens from vault?'))
-            return;
+        if (!globalThis.confirm('Remove all stored tokens from vault?')) return;
         this.clearVault();
         showToast('Token vault cleared', 'info');
         rerender();
@@ -766,31 +853,41 @@ export class SettingsView {
                 promptForCredentials: parsed.promptForCredentials !== false,
                 credentials: {
                     projectName: ((_a = parsed.credentials) === null || _a === void 0 ? void 0 : _a.projectName) || '',
-                    signatoryName: ((_b = parsed.credentials) === null || _b === void 0 ? void 0 : _b.signatoryName) || '',
-                    signatoryTitle: ((_c = parsed.credentials) === null || _c === void 0 ? void 0 : _c.signatoryTitle) || '',
+                    signatoryName:
+                        ((_b = parsed.credentials) === null || _b === void 0 ? void 0 : _b.signatoryName) || '',
+                    signatoryTitle:
+                        ((_c = parsed.credentials) === null || _c === void 0 ? void 0 : _c.signatoryTitle) || '',
                     contactEmail: ((_d = parsed.credentials) === null || _d === void 0 ? void 0 : _d.contactEmail) || ''
                 },
                 agency: {
-                    projectName: ((_e = parsed.agency) === null || _e === void 0 ? void 0 : _e.projectName) || 'CascadeProjects',
+                    projectName:
+                        ((_e = parsed.agency) === null || _e === void 0 ? void 0 : _e.projectName) || 'CascadeProjects',
                     devAgency: ((_f = parsed.agency) === null || _f === void 0 ? void 0 : _f.devAgency) || 'Agency',
                     client: ((_g = parsed.agency) === null || _g === void 0 ? void 0 : _g.client) || '',
                     milestone: ((_h = parsed.agency) === null || _h === void 0 ? void 0 : _h.milestone) || 'Release',
                     date: ((_j = parsed.agency) === null || _j === void 0 ? void 0 : _j.date) || today,
                     scanId: ((_k = parsed.agency) === null || _k === void 0 ? void 0 : _k.scanId) || '',
-                    score: (_m = (_l = parsed.agency) === null || _l === void 0 ? void 0 : _l.score) !== null && _m !== void 0 ? _m : 100,
+                    score:
+                        (_m = (_l = parsed.agency) === null || _l === void 0 ? void 0 : _l.score) !== null &&
+                        _m !== void 0
+                            ? _m
+                            : 100,
                     status: ((_o = parsed.agency) === null || _o === void 0 ? void 0 : _o.status) || 'PASS'
                 },
                 executive: {
-                    projectName: ((_p = parsed.executive) === null || _p === void 0 ? void 0 : _p.projectName) || 'CascadeProjects',
-                    assessor: ((_q = parsed.executive) === null || _q === void 0 ? void 0 : _q.assessor) || 'SimpleBeacon Operator',
+                    projectName:
+                        ((_p = parsed.executive) === null || _p === void 0 ? void 0 : _p.projectName) ||
+                        'CascadeProjects',
+                    assessor:
+                        ((_q = parsed.executive) === null || _q === void 0 ? void 0 : _q.assessor) ||
+                        'SimpleBeacon Operator',
                     date: ((_r = parsed.executive) === null || _r === void 0 ? void 0 : _r.date) || today,
                     reportId: ((_s = parsed.executive) === null || _s === void 0 ? void 0 : _s.reportId) || '',
                     summary: ((_t = parsed.executive) === null || _t === void 0 ? void 0 : _t.summary) || '',
                     verdict: ((_u = parsed.executive) === null || _u === void 0 ? void 0 : _u.verdict) || 'READY'
                 }
             };
-        }
-        catch (_v) {
+        } catch (_v) {
             return { promptForCredentials: true, credentials: {}, agency: {}, executive: {} };
         }
     }
@@ -945,7 +1042,7 @@ export class SettingsView {
           Gate scans stay deterministic — AI never changes findings.
           Keys are encrypted on the server and tied to your account.
         </p>
-        ${AI_KEY_FIELDS.map((field) => {
+        ${AI_KEY_FIELDS.map(field => {
             const status = providers[field.id] || {};
             return `
             <div class="settings-field settings-field-stack">
@@ -1003,18 +1100,16 @@ export class SettingsView {
         this._aiKeysLoadGen = generation;
         try {
             const keys = await fetchUserAiKeys();
-            if (generation !== this._aiKeysLoadGen)
-                return keys;
+            if (generation !== this._aiKeysLoadGen) return keys;
             this.aiKeys = normalizeAiKeysRecord(keys);
             this.syncAiKeysFormDraft(this.aiKeys);
             return this.aiKeys;
-        }
-        catch (err) {
-            if (generation !== this._aiKeysLoadGen)
-                return null;
+        } catch (err) {
+            if (generation !== this._aiKeysLoadGen) return null;
             this.aiKeys = normalizeAiKeysRecord(null);
             this.syncAiKeysFormDraft(this.aiKeys);
-            const isAuthError = err.code === 'auth_required' || /Authentication required|Unauthorized/i.test(err.message);
+            const isAuthError =
+                err.code === 'auth_required' || /Authentication required|Unauthorized/i.test(err.message);
             if (!isAuthError) {
                 console['warn']('AI keys unavailable:', err.message);
             }
@@ -1024,11 +1119,16 @@ export class SettingsView {
     updateAiKeysBusyUi() {
         var _a, _b, _c;
         const root = this._root;
-        if (!root)
-            return;
-        (_a = root.querySelector('#settings-ai-save')) === null || _a === void 0 ? void 0 : _a.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
-        (_b = root.querySelector('#settings-ai-clear')) === null || _b === void 0 ? void 0 : _b.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
-        (_c = root.querySelector('#settings-ai-test-ollama')) === null || _c === void 0 ? void 0 : _c.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
+        if (!root) return;
+        (_a = root.querySelector('#settings-ai-save')) === null || _a === void 0
+            ? void 0
+            : _a.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
+        (_b = root.querySelector('#settings-ai-clear')) === null || _b === void 0
+            ? void 0
+            : _b.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
+        (_c = root.querySelector('#settings-ai-test-ollama')) === null || _c === void 0
+            ? void 0
+            : _c.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
         const saveBtn = root.querySelector('#settings-ai-save');
         if (saveBtn) {
             saveBtn.textContent = this.aiKeysBusy === 'save' ? 'Saving…' : 'Save AI keys';
@@ -1049,9 +1149,11 @@ export class SettingsView {
         if (root) {
             for (const field of AI_KEY_FIELDS) {
                 const input = root.querySelector(`#settings-ai-${field.id}`);
-                const value = ((_a = input === null || input === void 0 ? void 0 : input.value) === null || _a === void 0 ? void 0 : _a.trim()) || '';
-                if (value)
-                    payload[field.id] = value;
+                const value =
+                    ((_a = input === null || input === void 0 ? void 0 : input.value) === null || _a === void 0
+                        ? void 0
+                        : _a.trim()) || '';
+                if (value) payload[field.id] = value;
             }
         }
         return payload;
@@ -1059,8 +1161,26 @@ export class SettingsView {
     async testOllamaConnection(root, rerender) {
         var _a, _b, _c, _d;
         const payloadRoot = root || this._root;
-        const baseUrl = ((_b = (_a = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || 'http://127.0.0.1:11434';
-        const model = ((_d = (_c = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama-model')) === null || _c === void 0 ? void 0 : _c.value) === null || _d === void 0 ? void 0 : _d.trim()) || '';
+        const baseUrl =
+            ((_b =
+                (_a =
+                    payloadRoot === null || payloadRoot === void 0
+                        ? void 0
+                        : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0
+                    ? void 0
+                    : _a.value) === null || _b === void 0
+                ? void 0
+                : _b.trim()) || 'http://127.0.0.1:11434';
+        const model =
+            ((_d =
+                (_c =
+                    payloadRoot === null || payloadRoot === void 0
+                        ? void 0
+                        : payloadRoot.querySelector('#settings-ai-ollama-model')) === null || _c === void 0
+                    ? void 0
+                    : _c.value) === null || _d === void 0
+                ? void 0
+                : _d.trim()) || '';
         this.aiKeysBusy = 'test-ollama';
         this.updateAiKeysBusyUi();
         try {
@@ -1073,11 +1193,9 @@ export class SettingsView {
             this.syncAiKeysFormDraft({ ollamaBaseUrl: baseUrl, ollamaModel: picked });
             showToast(`Ollama connected — ${this.ollamaModels.length} model(s) available`, 'success');
             rerender();
-        }
-        catch (err) {
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.aiKeysBusy = false;
             this.updateAiKeysBusyUi();
         }
@@ -1096,23 +1214,22 @@ export class SettingsView {
             this.syncAiKeysFormDraft(this.aiKeys);
             const payloadRoot = root || this._root;
             for (const field of AI_KEY_FIELDS) {
-                const input = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector(`#settings-ai-${field.id}`);
-                if (input)
-                    input.value = '';
+                const input =
+                    payloadRoot === null || payloadRoot === void 0
+                        ? void 0
+                        : payloadRoot.querySelector(`#settings-ai-${field.id}`);
+                if (input) input.value = '';
             }
             showToast('AI provider keys saved', 'success');
             rerender();
-        }
-        catch (err) {
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.aiKeysBusy = false;
         }
     }
     async clearAllAiKeys(rerender) {
-        if (!globalThis.confirm('Remove all saved AI provider keys for your account?'))
-            return;
+        if (!globalThis.confirm('Remove all saved AI provider keys for your account?')) return;
         this.aiKeysBusy = 'clear';
         this.updateAiKeysBusyUi();
         try {
@@ -1120,18 +1237,16 @@ export class SettingsView {
             this.syncAiKeysFormDraft(this.aiKeys);
             showToast('AI provider keys cleared', 'info');
             rerender();
-        }
-        catch (err) {
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.aiKeysBusy = false;
         }
     }
     async loadAndMount(container) {
         this.loading = true;
         this.error = null;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = '';
         container.appendChild(this.render());
         try {
@@ -1145,12 +1260,10 @@ export class SettingsView {
             this.presets = presets;
             this.draft = cloneConfig(config);
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-        }
-        catch (err) {
+        } catch (err) {
             this.error = err.message;
             this.draft = this.draft || cloneConfig(this.app.state.config || {});
-        }
-        finally {
+        } finally {
             this.loading = false;
             this.mount(container);
         }
@@ -1164,12 +1277,11 @@ export class SettingsView {
         if (incoming && (!this.draft || !this.isDirty())) {
             this.draft = cloneConfig(incoming);
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-        }
-        else if (!this.draft) {
+        } else if (!this.draft) {
             this.draft = cloneConfig(incoming || {});
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
         }
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = '';
         const root = this.render();
         container.appendChild(root);
@@ -1183,8 +1295,7 @@ export class SettingsView {
         });
         if (!this.aiKeys) {
             void this.loadAiKeys().then(() => {
-                if (container.contains(root))
-                    this.mount(container);
+                if (container.contains(root)) this.mount(container);
             });
         }
         if (!this.isDirty()) {
@@ -1196,8 +1307,7 @@ export class SettingsView {
         this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
     }
     isDirty() {
-        if (!this.draft || !this.savedSnapshot || !this._root)
-            return false;
+        if (!this.draft || !this.savedSnapshot || !this._root) return false;
         return JSON.stringify(this.buildConfigFromDom(this.draft, this._root)) !== this.savedSnapshot;
     }
     bindEvents(root) {
@@ -1209,16 +1319,17 @@ export class SettingsView {
          */
         const rerender = () => {
             this.captureAiKeysFormDraft(this._root);
-            if (container)
-                this.mount(container);
+            if (container) this.mount(container);
         };
-        (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (e) => {
-            this.aiKeysFormDraft.ollamaBaseUrl = e.target.value;
-            this.scheduleOllamaModelsReload(e.target.value);
-        });
+        (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0
+            ? void 0
+            : _a.addEventListener('input', e => {
+                  this.aiKeysFormDraft.ollamaBaseUrl = e.target.value;
+                  this.scheduleOllamaModelsReload(e.target.value);
+              });
         this.bindOllamaModelEvents(root);
-        root.querySelectorAll('.settings-nav-link[data-scroll-to]').forEach((link) => {
-            link.addEventListener('click', (e) => {
+        root.querySelectorAll('.settings-nav-link[data-scroll-to]').forEach(link => {
+            link.addEventListener('click', e => {
                 e.preventDefault();
                 const targetId = link.dataset.scrollTo;
                 const target = root.querySelector(`#${targetId}`);
@@ -1235,14 +1346,24 @@ export class SettingsView {
             this.draft = this.buildConfigFromDom(this.draft, root);
             rerender();
         };
-        (_b = root.querySelector('#settings-profile-select')) === null || _b === void 0 ? void 0 : _b.addEventListener('change', (e) => {
-            this.applyProfilePreset(e.target.value, rerender);
-        });
-        (_c = root.querySelector('#settings-sample-dir')) === null || _c === void 0 ? void 0 : _c.addEventListener('input', onFieldChange);
-        (_d = root.querySelector('#settings-scan-paths')) === null || _d === void 0 ? void 0 : _d.addEventListener('input', onFieldChange);
-        (_e = root.querySelector('#settings-production-paths')) === null || _e === void 0 ? void 0 : _e.addEventListener('input', onFieldChange);
-        (_f = root.querySelector('#settings-full-directory-scan')) === null || _f === void 0 ? void 0 : _f.addEventListener('change', onFieldChange);
-        root.querySelectorAll('[data-rule-toggle]').forEach((btn) => {
+        (_b = root.querySelector('#settings-profile-select')) === null || _b === void 0
+            ? void 0
+            : _b.addEventListener('change', e => {
+                  this.applyProfilePreset(e.target.value, rerender);
+              });
+        (_c = root.querySelector('#settings-sample-dir')) === null || _c === void 0
+            ? void 0
+            : _c.addEventListener('input', onFieldChange);
+        (_d = root.querySelector('#settings-scan-paths')) === null || _d === void 0
+            ? void 0
+            : _d.addEventListener('input', onFieldChange);
+        (_e = root.querySelector('#settings-production-paths')) === null || _e === void 0
+            ? void 0
+            : _e.addEventListener('input', onFieldChange);
+        (_f = root.querySelector('#settings-full-directory-scan')) === null || _f === void 0
+            ? void 0
+            : _f.addEventListener('change', onFieldChange);
+        root.querySelectorAll('[data-rule-toggle]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const name = btn.dataset.ruleToggle;
                 const enabled = btn.dataset.enabled !== 'true';
@@ -1251,97 +1372,178 @@ export class SettingsView {
                 rerender();
             });
         });
-        root.querySelectorAll('[data-gate-group]').forEach((input) => {
+        root.querySelectorAll('[data-gate-group]').forEach(input => {
             input.addEventListener('change', onFieldChange);
         });
-        (_g = root.querySelector('#settings-reset')) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => {
-            this.resetDraft();
-            rerender();
-            showToast('Changes discarded', 'info');
-        });
-        (_h = root.querySelector('#settings-export')) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {
-            const config = this.buildConfigFromDom(this.draft, root);
-            downloadJson(config, 'simplebeacon-config.json');
-            showToast('Config exported', 'success');
-        });
-        (_j = root.querySelector('#settings-save')) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => this.save(rerender));
-        (_k = root.querySelector('#settings-discover-paths')) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => this.discoverPathsFromProject(rerender));
-        (_l = root.querySelector('#settings-sync-paths')) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => this.syncPathsFromProject(rerender));
-        (_m = root.querySelector('#settings-baseline-sync')) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => this.syncBaseline(rerender));
-        (_o = root.querySelector('#settings-run-scan')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => this.runScan(rerender));
-        (_p = root.querySelector('#settings-ai-save')) === null || _p === void 0 ? void 0 : _p.addEventListener('click', () => this.saveAiKeys(root, rerender));
-        (_q = root.querySelector('#settings-ai-clear')) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => this.clearAllAiKeys(rerender));
-        (_r = root.querySelector('#settings-ai-test-ollama')) === null || _r === void 0 ? void 0 : _r.addEventListener('click', () => this.testOllamaConnection(root, rerender));
-        (_s = root.querySelector('#settings-download-save')) === null || _s === void 0 ? void 0 : _s.addEventListener('click', () => {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
-            const autoPdfCheckbox = root.querySelector('#settings-download-auto-pdf');
-            const promptCheckbox = root.querySelector('#settings-download-prompt-credentials');
-            const projectInput = root.querySelector('#settings-download-default-project');
-            const signatoryInput = root.querySelector('#settings-download-default-signatory');
-            const titleInput = root.querySelector('#settings-download-default-title');
-            const emailInput = root.querySelector('#settings-download-default-email');
-            this.saveDownloadSettings({
-                autoGeneratePdf: autoPdfCheckbox ? autoPdfCheckbox.checked : false,
-                promptForCredentials: promptCheckbox ? promptCheckbox.checked : true,
-                credentials: {
-                    projectName: projectInput ? projectInput.value.trim() : '',
-                    signatoryName: signatoryInput ? signatoryInput.value.trim() : '',
-                    signatoryTitle: titleInput ? titleInput.value.trim() : '',
-                    contactEmail: emailInput ? emailInput.value.trim() : ''
-                },
-                agency: {
-                    projectName: ((_a = root.querySelector('#settings-agency-project')) === null || _a === void 0 ? void 0 : _a.value.trim()) || '',
-                    devAgency: ((_b = root.querySelector('#settings-agency-dev')) === null || _b === void 0 ? void 0 : _b.value.trim()) || '',
-                    client: ((_c = root.querySelector('#settings-agency-client')) === null || _c === void 0 ? void 0 : _c.value.trim()) || '',
-                    milestone: ((_d = root.querySelector('#settings-agency-milestone')) === null || _d === void 0 ? void 0 : _d.value) || 'Release',
-                    date: ((_e = root.querySelector('#settings-agency-date')) === null || _e === void 0 ? void 0 : _e.value) || '',
-                    scanId: ((_f = root.querySelector('#settings-agency-scan-id')) === null || _f === void 0 ? void 0 : _f.value.trim()) || '',
-                    score: Number(((_g = root.querySelector('#settings-agency-score')) === null || _g === void 0 ? void 0 : _g.value) || 100),
-                    status: ((_h = root.querySelector('#settings-agency-status')) === null || _h === void 0 ? void 0 : _h.value) || 'PASS'
-                },
-                executive: {
-                    projectName: ((_j = root.querySelector('#settings-exec-project')) === null || _j === void 0 ? void 0 : _j.value.trim()) || '',
-                    assessor: ((_k = root.querySelector('#settings-exec-assessor')) === null || _k === void 0 ? void 0 : _k.value.trim()) || '',
-                    date: ((_l = root.querySelector('#settings-exec-date')) === null || _l === void 0 ? void 0 : _l.value) || '',
-                    reportId: ((_m = root.querySelector('#settings-exec-report-id')) === null || _m === void 0 ? void 0 : _m.value.trim()) || '',
-                    summary: ((_o = root.querySelector('#settings-exec-summary')) === null || _o === void 0 ? void 0 : _o.value) || '',
-                    verdict: ((_p = root.querySelector('#settings-exec-verdict')) === null || _p === void 0 ? void 0 : _p.value) || 'READY'
-                }
-            });
-            showToast('Report credentials saved', 'success');
-        });
+        (_g = root.querySelector('#settings-reset')) === null || _g === void 0
+            ? void 0
+            : _g.addEventListener('click', () => {
+                  this.resetDraft();
+                  rerender();
+                  showToast('Changes discarded', 'info');
+              });
+        (_h = root.querySelector('#settings-export')) === null || _h === void 0
+            ? void 0
+            : _h.addEventListener('click', () => {
+                  const config = this.buildConfigFromDom(this.draft, root);
+                  downloadJson(config, 'simplebeacon-config.json');
+                  showToast('Config exported', 'success');
+              });
+        (_j = root.querySelector('#settings-save')) === null || _j === void 0
+            ? void 0
+            : _j.addEventListener('click', () => this.save(rerender));
+        (_k = root.querySelector('#settings-discover-paths')) === null || _k === void 0
+            ? void 0
+            : _k.addEventListener('click', () => this.discoverPathsFromProject(rerender));
+        (_l = root.querySelector('#settings-sync-paths')) === null || _l === void 0
+            ? void 0
+            : _l.addEventListener('click', () => this.syncPathsFromProject(rerender));
+        (_m = root.querySelector('#settings-baseline-sync')) === null || _m === void 0
+            ? void 0
+            : _m.addEventListener('click', () => this.syncBaseline(rerender));
+        (_o = root.querySelector('#settings-run-scan')) === null || _o === void 0
+            ? void 0
+            : _o.addEventListener('click', () => this.runScan(rerender));
+        (_p = root.querySelector('#settings-ai-save')) === null || _p === void 0
+            ? void 0
+            : _p.addEventListener('click', () => this.saveAiKeys(root, rerender));
+        (_q = root.querySelector('#settings-ai-clear')) === null || _q === void 0
+            ? void 0
+            : _q.addEventListener('click', () => this.clearAllAiKeys(rerender));
+        (_r = root.querySelector('#settings-ai-test-ollama')) === null || _r === void 0
+            ? void 0
+            : _r.addEventListener('click', () => this.testOllamaConnection(root, rerender));
+        (_s = root.querySelector('#settings-download-save')) === null || _s === void 0
+            ? void 0
+            : _s.addEventListener('click', () => {
+                  var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+                  const autoPdfCheckbox = root.querySelector('#settings-download-auto-pdf');
+                  const promptCheckbox = root.querySelector('#settings-download-prompt-credentials');
+                  const projectInput = root.querySelector('#settings-download-default-project');
+                  const signatoryInput = root.querySelector('#settings-download-default-signatory');
+                  const titleInput = root.querySelector('#settings-download-default-title');
+                  const emailInput = root.querySelector('#settings-download-default-email');
+                  this.saveDownloadSettings({
+                      autoGeneratePdf: autoPdfCheckbox ? autoPdfCheckbox.checked : false,
+                      promptForCredentials: promptCheckbox ? promptCheckbox.checked : true,
+                      credentials: {
+                          projectName: projectInput ? projectInput.value.trim() : '',
+                          signatoryName: signatoryInput ? signatoryInput.value.trim() : '',
+                          signatoryTitle: titleInput ? titleInput.value.trim() : '',
+                          contactEmail: emailInput ? emailInput.value.trim() : ''
+                      },
+                      agency: {
+                          projectName:
+                              ((_a = root.querySelector('#settings-agency-project')) === null || _a === void 0
+                                  ? void 0
+                                  : _a.value.trim()) || '',
+                          devAgency:
+                              ((_b = root.querySelector('#settings-agency-dev')) === null || _b === void 0
+                                  ? void 0
+                                  : _b.value.trim()) || '',
+                          client:
+                              ((_c = root.querySelector('#settings-agency-client')) === null || _c === void 0
+                                  ? void 0
+                                  : _c.value.trim()) || '',
+                          milestone:
+                              ((_d = root.querySelector('#settings-agency-milestone')) === null || _d === void 0
+                                  ? void 0
+                                  : _d.value) || 'Release',
+                          date:
+                              ((_e = root.querySelector('#settings-agency-date')) === null || _e === void 0
+                                  ? void 0
+                                  : _e.value) || '',
+                          scanId:
+                              ((_f = root.querySelector('#settings-agency-scan-id')) === null || _f === void 0
+                                  ? void 0
+                                  : _f.value.trim()) || '',
+                          score: Number(
+                              ((_g = root.querySelector('#settings-agency-score')) === null || _g === void 0
+                                  ? void 0
+                                  : _g.value) || 100
+                          ),
+                          status:
+                              ((_h = root.querySelector('#settings-agency-status')) === null || _h === void 0
+                                  ? void 0
+                                  : _h.value) || 'PASS'
+                      },
+                      executive: {
+                          projectName:
+                              ((_j = root.querySelector('#settings-exec-project')) === null || _j === void 0
+                                  ? void 0
+                                  : _j.value.trim()) || '',
+                          assessor:
+                              ((_k = root.querySelector('#settings-exec-assessor')) === null || _k === void 0
+                                  ? void 0
+                                  : _k.value.trim()) || '',
+                          date:
+                              ((_l = root.querySelector('#settings-exec-date')) === null || _l === void 0
+                                  ? void 0
+                                  : _l.value) || '',
+                          reportId:
+                              ((_m = root.querySelector('#settings-exec-report-id')) === null || _m === void 0
+                                  ? void 0
+                                  : _m.value.trim()) || '',
+                          summary:
+                              ((_o = root.querySelector('#settings-exec-summary')) === null || _o === void 0
+                                  ? void 0
+                                  : _o.value) || '',
+                          verdict:
+                              ((_p = root.querySelector('#settings-exec-verdict')) === null || _p === void 0
+                                  ? void 0
+                                  : _p.value) || 'READY'
+                      }
+                  });
+                  showToast('Report credentials saved', 'success');
+              });
         // Credential editor tab switching
-        root.querySelectorAll('[data-cred-tab]').forEach((tab) => {
+        root.querySelectorAll('[data-cred-tab]').forEach(tab => {
             tab.addEventListener('click', () => {
                 var _a;
                 const target = tab.dataset.credTab;
-                root.querySelectorAll('[data-cred-tab]').forEach((t) => t.classList.remove('active'));
-                root.querySelectorAll('[data-cred-panel]').forEach((p) => p.classList.remove('active'));
+                root.querySelectorAll('[data-cred-tab]').forEach(t => t.classList.remove('active'));
+                root.querySelectorAll('[data-cred-panel]').forEach(p => p.classList.remove('active'));
                 tab.classList.add('active');
-                (_a = root.querySelector(`[data-cred-panel="${target}"]`)) === null || _a === void 0 ? void 0 : _a.classList.add('active');
+                (_a = root.querySelector(`[data-cred-panel="${target}"]`)) === null || _a === void 0
+                    ? void 0
+                    : _a.classList.add('active');
             });
         });
-        (_t = root.querySelector('#settings-token-update')) === null || _t === void 0 ? void 0 : _t.addEventListener('click', () => this.updateToken(root, rerender));
-        (_u = root.querySelector('#settings-token-stockpile')) === null || _u === void 0 ? void 0 : _u.addEventListener('click', () => this.stockpileTokenFromInput(root, rerender));
-        (_v = root.querySelector('#settings-token-buy')) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => this.openBuyTimeTokens());
-        (_w = root.querySelector('#settings-token-get')) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => this.copyActiveToken());
-        (_x = root.querySelector('#settings-token-clear')) === null || _x === void 0 ? void 0 : _x.addEventListener('click', () => this.clearToken(rerender));
-        (_y = root.querySelector('#settings-token-register-email')) === null || _y === void 0 ? void 0 : _y.addEventListener('click', () => this.registerTokenWithEmail(rerender));
-        (_z = root.querySelector('#settings-token-clear-vault')) === null || _z === void 0 ? void 0 : _z.addEventListener('click', () => this.confirmAndClearVault(rerender));
-        root.querySelectorAll('[data-vault-activate]').forEach((btn) => {
+        (_t = root.querySelector('#settings-token-update')) === null || _t === void 0
+            ? void 0
+            : _t.addEventListener('click', () => this.updateToken(root, rerender));
+        (_u = root.querySelector('#settings-token-stockpile')) === null || _u === void 0
+            ? void 0
+            : _u.addEventListener('click', () => this.stockpileTokenFromInput(root, rerender));
+        (_v = root.querySelector('#settings-token-buy')) === null || _v === void 0
+            ? void 0
+            : _v.addEventListener('click', () => this.openBuyTimeTokens());
+        (_w = root.querySelector('#settings-token-get')) === null || _w === void 0
+            ? void 0
+            : _w.addEventListener('click', () => this.copyActiveToken());
+        (_x = root.querySelector('#settings-token-clear')) === null || _x === void 0
+            ? void 0
+            : _x.addEventListener('click', () => this.clearToken(rerender));
+        (_y = root.querySelector('#settings-token-register-email')) === null || _y === void 0
+            ? void 0
+            : _y.addEventListener('click', () => this.registerTokenWithEmail(rerender));
+        (_z = root.querySelector('#settings-token-clear-vault')) === null || _z === void 0
+            ? void 0
+            : _z.addEventListener('click', () => this.confirmAndClearVault(rerender));
+        root.querySelectorAll('[data-vault-activate]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const idx = parseInt(btn.dataset.vaultActivate, 10);
                 this.activateVaultToken(idx);
                 rerender();
             });
         });
-        root.querySelectorAll('[data-vault-return]').forEach((btn) => {
+        root.querySelectorAll('[data-vault-return]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const idx = parseInt(btn.dataset.vaultReturn, 10);
                 this.returnVaultToken(idx, rerender);
             });
         });
-        root.querySelectorAll('[data-vault-remove]').forEach((btn) => {
+        root.querySelectorAll('[data-vault-remove]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const idx = parseInt(btn.dataset.vaultRemove, 10);
                 this.removeFromVault(idx);
@@ -1382,8 +1584,7 @@ export class SettingsView {
             }
             showToast(`Applied ${profile} rule presets`, 'info');
             rerender();
-        }
-        catch (err) {
+        } catch (err) {
             showToast(err.message, 'error');
         }
     }
@@ -1392,12 +1593,27 @@ export class SettingsView {
         const root = rootEl || this._root;
         const config = cloneConfig(base);
         if (root) {
-            config.sampleDir = ((_b = (_a = root.querySelector('#settings-sample-dir')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || config.sampleDir;
-            const scanPaths = textToPaths((_c = root.querySelector('#settings-scan-paths')) === null || _c === void 0 ? void 0 : _c.value);
-            const productionPaths = textToPaths((_d = root.querySelector('#settings-production-paths')) === null || _d === void 0 ? void 0 : _d.value);
+            config.sampleDir =
+                ((_b =
+                    (_a = root.querySelector('#settings-sample-dir')) === null || _a === void 0 ? void 0 : _a.value) ===
+                    null || _b === void 0
+                    ? void 0
+                    : _b.trim()) || config.sampleDir;
+            const scanPaths = textToPaths(
+                (_c = root.querySelector('#settings-scan-paths')) === null || _c === void 0 ? void 0 : _c.value
+            );
+            const productionPaths = textToPaths(
+                (_d = root.querySelector('#settings-production-paths')) === null || _d === void 0 ? void 0 : _d.value
+            );
             config.scanPaths = scanPaths;
             config.productionPaths = productionPaths;
-            config.fullDirectoryScan = (_f = (_e = root.querySelector('#settings-full-directory-scan')) === null || _e === void 0 ? void 0 : _e.checked) !== null && _f !== void 0 ? _f : config.fullDirectoryScan;
+            config.fullDirectoryScan =
+                (_f =
+                    (_e = root.querySelector('#settings-full-directory-scan')) === null || _e === void 0
+                        ? void 0
+                        : _e.checked) !== null && _f !== void 0
+                    ? _f
+                    : config.fullDirectoryScan;
             config.gate = config.gate || { failOn: [], warnOn: [] };
             config.gate.failOn = readGateSelection(root, 'fail');
             config.gate.warnOn = readGateSelection(root, 'warn');
@@ -1425,12 +1641,15 @@ export class SettingsView {
             this.app.state.config = result.config;
             this.draft = cloneConfig(result.config);
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-            showToast(((_a = result.warnings) === null || _a === void 0 ? void 0 : _a.length) ? `Saved (${result.warnings.length} warning(s))` : 'Settings saved', 'success');
-        }
-        catch (err) {
+            showToast(
+                ((_a = result.warnings) === null || _a === void 0 ? void 0 : _a.length)
+                    ? `Saved (${result.warnings.length} warning(s))`
+                    : 'Settings saved',
+                'success'
+            );
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.busy = false;
             rerender();
         }
@@ -1445,36 +1664,67 @@ export class SettingsView {
             this.draft = cloneConfig(config);
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
             showToast('Scan paths synced from current project', 'success');
-        }
-        catch (err) {
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.busy = false;
             rerender();
         }
     }
     inferScanPaths(dirs, root) {
-        const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
+        const rootNorm = String(root || '')
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
         const candidates = new Set();
-        const scanPatterns = ['src', 'server', 'web', 'lib', 'app', 'api', 'routes', 'services', 'packages', 'js', 'ts', 'client', 'frontend', 'core', 'ui', 'components', 'utils', 'helpers'];
+        const scanPatterns = [
+            'src',
+            'server',
+            'web',
+            'lib',
+            'app',
+            'api',
+            'routes',
+            'services',
+            'packages',
+            'js',
+            'ts',
+            'client',
+            'frontend',
+            'core',
+            'ui',
+            'components',
+            'utils',
+            'helpers'
+        ];
         for (const dir of dirs) {
             const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
             const firstPart = rel.split('/')[0];
-            if (scanPatterns.includes(firstPart))
-                candidates.add(firstPart);
+            if (scanPatterns.includes(firstPart)) candidates.add(firstPart);
         }
         return Array.from(candidates);
     }
     inferProductionPaths(dirs, root) {
-        const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
+        const rootNorm = String(root || '')
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
         const candidates = new Set();
-        const prodPatterns = ['dist', 'build', 'public', 'out', '.next', 'static', 'deploy', 'release', 'bundle', 'production', 'prod'];
+        const prodPatterns = [
+            'dist',
+            'build',
+            'public',
+            'out',
+            '.next',
+            'static',
+            'deploy',
+            'release',
+            'bundle',
+            'production',
+            'prod'
+        ];
         for (const dir of dirs) {
             const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
             const firstPart = rel.split('/')[0];
-            if (prodPatterns.includes(firstPart))
-                candidates.add(firstPart);
+            if (prodPatterns.includes(firstPart)) candidates.add(firstPart);
         }
         return Array.from(candidates);
     }
@@ -1492,19 +1742,20 @@ export class SettingsView {
                 showToast('Could not read project structure', 'error');
                 return;
             }
-            const dirs = inventory.directoryTree.map((d) => String(d.path || d.name || ''));
+            const dirs = inventory.directoryTree.map(d => String(d.path || d.name || ''));
             const scanPaths = this.inferScanPaths(dirs, projectPath);
             const productionPaths = this.inferProductionPaths(dirs, projectPath);
             this.draft = this.draft || cloneConfig(this.app.state.config || {});
             this.draft.scanPaths = scanPaths;
             this.draft.productionPaths = productionPaths;
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-            showToast(`Discovered ${scanPaths.length} scan path(s), ${productionPaths.length} production path(s)`, 'success');
-        }
-        catch (err) {
+            showToast(
+                `Discovered ${scanPaths.length} scan path(s), ${productionPaths.length} production path(s)`,
+                'success'
+            );
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.busy = false;
             rerender();
         }
@@ -1520,12 +1771,13 @@ export class SettingsView {
             await this.app.platformService.fetchAll();
             this.app.state.dashboardHome = this.app.platformService.dashboardHome;
             this.app.refreshCurrentView();
-            showToast(`Baseline synced — ${((_a = result.baseline) === null || _a === void 0 ? void 0 : _a.jestTestsLabel) || 'Jest updated'}`, 'success');
-        }
-        catch (err) {
+            showToast(
+                `Baseline synced — ${((_a = result.baseline) === null || _a === void 0 ? void 0 : _a.jestTestsLabel) || 'Jest updated'}`,
+                'success'
+            );
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.busy = false;
             rerender();
         }
@@ -1544,11 +1796,9 @@ export class SettingsView {
             const data = await scanService.fetchAll();
             Object.assign(this.app.state, data);
             showToast('Scan complete — dashboard metrics updated', 'success');
-        }
-        catch (err) {
+        } catch (err) {
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.busy = false;
             rerender();
         }
@@ -1601,7 +1851,7 @@ function checkbox(group, severity, list = []) {
  * @returns {any}
  */
 function readGateSelection(root, group) {
-    return SEVERITIES.filter((sev) => {
+    return SEVERITIES.filter(sev => {
         const input = root.querySelector(`[data-gate-group="${group}"][value="${sev}"]`);
         return input === null || input === void 0 ? void 0 : input.checked;
     });
@@ -1625,7 +1875,7 @@ function mergeRules(existing = {}, preset = {}) {
  * @returns {any}
  */
 function formatRuleName(name) {
-    return name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 /**
  * Paths to text.
@@ -1643,7 +1893,7 @@ function pathsToText(paths) {
 function textToPaths(text) {
     return String(text || '')
         .split(/\r?\n/)
-        .map((line) => line.trim())
+        .map(line => line.trim())
         .filter(Boolean);
 }
 /**

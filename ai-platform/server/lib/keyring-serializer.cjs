@@ -1,20 +1,20 @@
-'use strict';
+"use strict";
 
 /**
  * keyring-serializer.cjs
  * Consolidated Single-Envelope Serialization Pipeline with Embedded AES-KWP Protection.
  */
-const { wrapPad, unwrapPad } = require('./aes-kw.cjs');
+const { wrapPad, unwrapPad } = require("./aes-kw.cjs");
 
-const MAGIC = Buffer.from([0x54, 0x31, 0x30, 0x4B]); // "T10K" Track 10 Keyring
+const MAGIC = Buffer.from([0x54, 0x31, 0x30, 0x4b]); // "T10K" Track 10 Keyring
 const SCHEMA_VERSION = 1;
 const MAX_BYTE_SIZE = 10 * 1024 * 1024; // 10 MB strict ceiling
 
 class KeyringValidationError extends Error {
   constructor(message, code) {
     super(message);
-    this.name = 'KeyringValidationError';
-    this.code = code || 'INTERNAL_ERROR';
+    this.name = "KeyringValidationError";
+    this.code = code || "INTERNAL_ERROR";
   }
 }
 
@@ -25,19 +25,25 @@ class KeyringValidationError extends Error {
  * @returns {Buffer} Standardized Track 10 binary container.
  */
 function serialize(keyringData, kek) {
-  if (!keyringData || typeof keyringData !== 'object') {
-    throw new KeyringValidationError('Invalid dataset payload provided for serialization.', 'INVALID_PAYLOAD');
+  if (!keyringData || typeof keyringData !== "object") {
+    throw new KeyringValidationError(
+      "Invalid dataset payload provided for serialization.",
+      "INVALID_PAYLOAD",
+    );
   }
   if (!Buffer.isBuffer(kek)) {
-    throw new KeyringValidationError('KEK must be a Buffer.', 'INVALID_KEK');
+    throw new KeyringValidationError("KEK must be a Buffer.", "INVALID_KEK");
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new KeyringValidationError('Invalid KEK length. Must be 128, 192, or 256 bits.', 'INVALID_KEK_LENGTH');
+    throw new KeyringValidationError(
+      "Invalid KEK length. Must be 128, 192, or 256 bits.",
+      "INVALID_KEK_LENGTH",
+    );
   }
 
   try {
     // 1. Convert structural maps to flat binary payload
-    const bodyPlaintext = Buffer.from(JSON.stringify(keyringData), 'utf8');
+    const bodyPlaintext = Buffer.from(JSON.stringify(keyringData), "utf8");
 
     // 2. Encrypt structural map body via verified AES-KWP
     const encryptedBody = wrapPad(kek, bodyPlaintext);
@@ -54,7 +60,7 @@ function serialize(keyringData, kek) {
     if (totalPayload.length > MAX_BYTE_SIZE) {
       throw new KeyringValidationError(
         `Serialized payload exceeds strict structural safety limits (${MAX_BYTE_SIZE} bytes).`,
-        'ENVELOPE_TOO_LARGE'
+        "ENVELOPE_TOO_LARGE",
       );
     }
 
@@ -73,21 +79,33 @@ function serialize(keyringData, kek) {
  */
 function deserialize(buffer, kek) {
   if (!Buffer.isBuffer(buffer)) {
-    throw new KeyringValidationError('Target dataset for parsing must evaluate as a valid structural Buffer object.', 'INVALID_ENVELOPE_BUFFER');
+    throw new KeyringValidationError(
+      "Target dataset for parsing must evaluate as a valid structural Buffer object.",
+      "INVALID_ENVELOPE_BUFFER",
+    );
   }
   if (!Buffer.isBuffer(kek)) {
-    throw new KeyringValidationError('KEK must be a Buffer.', 'INVALID_KEK');
+    throw new KeyringValidationError("KEK must be a Buffer.", "INVALID_KEK");
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new KeyringValidationError('Invalid KEK length. Must be 128, 192, or 256 bits.', 'INVALID_KEK_LENGTH');
+    throw new KeyringValidationError(
+      "Invalid KEK length. Must be 128, 192, or 256 bits.",
+      "INVALID_KEK_LENGTH",
+    );
   }
   if (buffer.length < 12) {
-    throw new KeyringValidationError('Malformed input stream: Header chunk length is under threshold limits.', 'HEADER_TOO_SMALL');
+    throw new KeyringValidationError(
+      "Malformed input stream: Header chunk length is under threshold limits.",
+      "HEADER_TOO_SMALL",
+    );
   }
 
   // 1. Verify Magic footprint markers
   if (!buffer.subarray(0, 4).equals(MAGIC)) {
-    throw new KeyringValidationError('Malformed dataset envelope: Unrecognized signature magic marker flags.', 'INVALID_MAGIC');
+    throw new KeyringValidationError(
+      "Malformed dataset envelope: Unrecognized signature magic marker flags.",
+      "INVALID_MAGIC",
+    );
   }
 
   // 2. Parse structural metadata layers
@@ -95,7 +113,7 @@ function deserialize(buffer, kek) {
   if (version !== SCHEMA_VERSION) {
     throw new KeyringValidationError(
       `Unsupported envelope version registry parsed: Target runtime requires v${SCHEMA_VERSION}.`,
-      'UNSUPPORTED_VERSION'
+      "UNSUPPORTED_VERSION",
     );
   }
 
@@ -105,7 +123,7 @@ function deserialize(buffer, kek) {
   if (buffer.length !== expectedTotalSize) {
     throw new KeyringValidationError(
       `Envelope body size alignment mismatch error condition detected. Expected: ${expectedTotalSize}, Got: ${buffer.length}`,
-      'ENVELOPE_SIZE_MISMATCH'
+      "ENVELOPE_SIZE_MISMATCH",
     );
   }
 
@@ -115,11 +133,11 @@ function deserialize(buffer, kek) {
     // 3. Process structural KWP unwrapping layers
     const decryptedPayload = unwrapPad(kek, encryptedBody);
 
-    return JSON.parse(decryptedPayload.toString('utf8'));
+    return JSON.parse(decryptedPayload.toString("utf8"));
   } catch (error) {
     throw new KeyringValidationError(
       `Cryptographic envelope unpacking failed structural integrity verification passes: ${error.message}`,
-      'ENVELOPE_INTEGRITY'
+      "ENVELOPE_INTEGRITY",
     );
   }
 }

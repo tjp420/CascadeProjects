@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 53: Zero-Knowledge Range Proofs and Auditable Asset Solvency.
@@ -19,8 +19,8 @@
  * @module hsm-adapter/zk-range-proof-solvency
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   maxRangeBits: 64,
@@ -34,18 +34,18 @@ const DEFAULT_OPTIONS = {
 };
 
 const PROOF_STATUS = {
-  GENERATED: 'generated',
-  VERIFIED: 'verified',
-  INVALID: 'invalid',
-  EXPIRED: 'expired',
-  REVOKED: 'revoked',
+  GENERATED: "generated",
+  VERIFIED: "verified",
+  INVALID: "invalid",
+  EXPIRED: "expired",
+  REVOKED: "revoked",
 };
 
 const AUDIT_STATUS = {
-  PENDING: 'pending',
-  SOLVENT: 'solvent',
-  INSOLVENT: 'insolvent',
-  FAILED: 'failed',
+  PENDING: "pending",
+  SOLVENT: "solvent",
+  INSOLVENT: "insolvent",
+  FAILED: "failed",
 };
 
 /**
@@ -81,13 +81,17 @@ class ZkRangeProofSolvency {
    * @returns {object} Commitment { commitment, blinding, value }
    */
   commit(value, blinding) {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      throw new HsmAdapterError('INVALID_VALUE', 'value must be a finite number');
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new HsmAdapterError(
+        "INVALID_VALUE",
+        "value must be a finite number",
+      );
     }
-    const blind = blinding || crypto.randomBytes(32).toString('hex');
-    const commitment = crypto.createHash('sha256')
+    const blind = blinding || crypto.randomBytes(32).toString("hex");
+    const commitment = crypto
+      .createHash("sha256")
       .update(`${value}:${blind}`)
-      .digest('hex');
+      .digest("hex");
     return { commitment, blinding: blind, value };
   }
 
@@ -103,66 +107,86 @@ class ZkRangeProofSolvency {
    * @returns {object} Range proof
    */
   generateRangeProof(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'proof config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "proof config is required");
     }
-    if (typeof config.value !== 'number' || !Number.isFinite(config.value)) {
-      throw new HsmAdapterError('INVALID_VALUE', 'value must be a finite number');
+    if (typeof config.value !== "number" || !Number.isFinite(config.value)) {
+      throw new HsmAdapterError(
+        "INVALID_VALUE",
+        "value must be a finite number",
+      );
     }
-    if (!config.blinding || typeof config.blinding !== 'string') {
-      throw new HsmAdapterError('INVALID_BLINDING', 'blinding factor is required');
+    if (!config.blinding || typeof config.blinding !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_BLINDING",
+        "blinding factor is required",
+      );
     }
-    if (typeof config.min !== 'number' || typeof config.max !== 'number') {
-      throw new HsmAdapterError('INVALID_RANGE', 'min and max must be numbers');
+    if (typeof config.min !== "number" || typeof config.max !== "number") {
+      throw new HsmAdapterError("INVALID_RANGE", "min and max must be numbers");
     }
     if (config.min >= config.max) {
-      throw new HsmAdapterError('INVALID_RANGE', 'min must be less than max');
+      throw new HsmAdapterError("INVALID_RANGE", "min must be less than max");
     }
     // Check value is in range (prover-side check)
     if (config.value < config.min || config.value > config.max) {
-      throw new HsmAdapterError('VALUE_OUT_OF_RANGE',
-        `value ${config.value} is outside range [${config.min}, ${config.max}]`);
+      throw new HsmAdapterError(
+        "VALUE_OUT_OF_RANGE",
+        `value ${config.value} is outside range [${config.min}, ${config.max}]`,
+      );
     }
     // Check bit width
-    const bitWidth = Math.max(config.max.toString(2).length, config.min.toString(2).length);
+    const bitWidth = Math.max(
+      config.max.toString(2).length,
+      config.min.toString(2).length,
+    );
     if (bitWidth > this.maxRangeBits) {
-      throw new HsmAdapterError('RANGE_TOO_WIDE',
-        `range bit width ${bitWidth} exceeds max ${this.maxRangeBits}`);
+      throw new HsmAdapterError(
+        "RANGE_TOO_WIDE",
+        `range bit width ${bitWidth} exceeds max ${this.maxRangeBits}`,
+      );
     }
-    const proofId = _generateId('rproof', Date.now());
+    const proofId = _generateId("rproof", Date.now());
     const now = Date.now();
     // Generate proof components
-    const commitment = crypto.createHash('sha256')
+    const commitment = crypto
+      .createHash("sha256")
       .update(`${config.value}:${config.blinding}`)
-      .digest('hex');
+      .digest("hex");
     // Simulated ZK proof: hash of (commitment, range, value-in-range witness)
-    const witness = _computeWitness(config.value, config.min, config.max, config.blinding);
-    const proofHash = crypto.createHash('sha256')
+    const witness = _computeWitness(
+      config.value,
+      config.min,
+      config.max,
+      config.blinding,
+    );
+    const proofHash = crypto
+      .createHash("sha256")
       .update(`${commitment}:${config.min}:${config.max}:${witness}`)
-      .digest('hex');
+      .digest("hex");
     const proof = {
       proofId,
       commitment,
       min: config.min,
       max: config.max,
       proofHash,
-      assetId: config.assetId || 'default',
-      proverId: config.proverId || 'anonymous',
+      assetId: config.assetId || "default",
+      proverId: config.proverId || "anonymous",
       status: PROOF_STATUS.GENERATED,
       generatedAt: now,
       expiresAt: now + this.proofValidityMs,
       bitWidth,
     };
     this._proofs.set(proofId, proof);
-    this._appendLog('RANGE_PROOF_GENERATED', {
+    this._appendLog("RANGE_PROOF_GENERATED", {
       proofId,
       assetId: proof.assetId,
       min: proof.min,
       max: proof.max,
       bitWidth,
     });
-    if (typeof this._audit === 'function') {
-      this._audit('RANGE_PROOF_GENERATED', { proofId, assetId: proof.assetId });
+    if (typeof this._audit === "function") {
+      this._audit("RANGE_PROOF_GENERATED", { proofId, assetId: proof.assetId });
     }
     return {
       proofId,
@@ -186,27 +210,28 @@ class ZkRangeProofSolvency {
    * @returns {object} Verification result
    */
   verifyRangeProof(proof) {
-    if (!proof || typeof proof !== 'object') {
-      throw new HsmAdapterError('INVALID_PROOF', 'proof is required');
+    if (!proof || typeof proof !== "object") {
+      throw new HsmAdapterError("INVALID_PROOF", "proof is required");
     }
-    if (!proof.proofId || typeof proof.proofId !== 'string') {
-      throw new HsmAdapterError('INVALID_PROOF', 'proofId is required');
+    if (!proof.proofId || typeof proof.proofId !== "string") {
+      throw new HsmAdapterError("INVALID_PROOF", "proofId is required");
     }
-    if (!proof.commitment || typeof proof.commitment !== 'string') {
-      throw new HsmAdapterError('INVALID_PROOF', 'commitment is required');
+    if (!proof.commitment || typeof proof.commitment !== "string") {
+      throw new HsmAdapterError("INVALID_PROOF", "commitment is required");
     }
-    if (!proof.proofHash || typeof proof.proofHash !== 'string') {
-      throw new HsmAdapterError('INVALID_PROOF', 'proofHash is required');
+    if (!proof.proofHash || typeof proof.proofHash !== "string") {
+      throw new HsmAdapterError("INVALID_PROOF", "proofHash is required");
     }
-    if (typeof proof.min !== 'number' || typeof proof.max !== 'number') {
-      throw new HsmAdapterError('INVALID_PROOF', 'min and max must be numbers');
+    if (typeof proof.min !== "number" || typeof proof.max !== "number") {
+      throw new HsmAdapterError("INVALID_PROOF", "min and max must be numbers");
     }
     // Check if proof is stored locally
     const stored = this._proofs.get(proof.proofId);
     let isValid = false;
     if (stored) {
       // Verify against stored proof
-      isValid = stored.commitment === proof.commitment &&
+      isValid =
+        stored.commitment === proof.commitment &&
         stored.min === proof.min &&
         stored.max === proof.max &&
         stored.proofHash === proof.proofHash &&
@@ -226,20 +251,25 @@ class ZkRangeProofSolvency {
         isValid = false;
       } else {
         // Recompute expected proof hash from public inputs
-        const expectedHash = crypto.createHash('sha256')
+        const expectedHash = crypto
+          .createHash("sha256")
           .update(`${proof.commitment}:${proof.min}:${proof.max}`)
-          .digest('hex');
+          .digest("hex");
         // In a real ZK system, this would verify the proof cryptographically
         // Here we check that the proof hash is a valid SHA-256 hash
-        isValid = proof.proofHash.length === 64 && /^[0-9a-f]+$/i.test(proof.proofHash);
+        isValid =
+          proof.proofHash.length === 64 && /^[0-9a-f]+$/i.test(proof.proofHash);
       }
     }
-    this._appendLog('RANGE_PROOF_VERIFIED', {
+    this._appendLog("RANGE_PROOF_VERIFIED", {
       proofId: proof.proofId,
       valid: isValid,
     });
-    if (typeof this._audit === 'function') {
-      this._audit('RANGE_PROOF_VERIFIED', { proofId: proof.proofId, valid: isValid });
+    if (typeof this._audit === "function") {
+      this._audit("RANGE_PROOF_VERIFIED", {
+        proofId: proof.proofId,
+        valid: isValid,
+      });
     }
     return {
       proofId: proof.proofId,
@@ -257,14 +287,19 @@ class ZkRangeProofSolvency {
    */
   generateBatchProofs(items) {
     if (!this.enableBatchProofs) {
-      throw new HsmAdapterError('BATCH_DISABLED', 'batch proofs are disabled');
+      throw new HsmAdapterError("BATCH_DISABLED", "batch proofs are disabled");
     }
     if (!Array.isArray(items) || items.length === 0) {
-      throw new HsmAdapterError('INVALID_BATCH', 'items must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_BATCH",
+        "items must be a non-empty array",
+      );
     }
     if (items.length > this.maxBatchSize) {
-      throw new HsmAdapterError('BATCH_TOO_LARGE',
-        `${items.length} items exceed max batch size ${this.maxBatchSize}`);
+      throw new HsmAdapterError(
+        "BATCH_TOO_LARGE",
+        `${items.length} items exceed max batch size ${this.maxBatchSize}`,
+      );
     }
     const proofs = [];
     const errors = [];
@@ -277,11 +312,12 @@ class ZkRangeProofSolvency {
       }
     }
     // Generate batch commitment
-    const batchId = _generateId('batch', Date.now());
-    const batchHash = crypto.createHash('sha256')
-      .update(proofs.map(p => p.proofHash).join(':'))
-      .digest('hex');
-    this._appendLog('BATCH_PROOFS_GENERATED', {
+    const batchId = _generateId("batch", Date.now());
+    const batchHash = crypto
+      .createHash("sha256")
+      .update(proofs.map((p) => p.proofHash).join(":"))
+      .digest("hex");
+    this._appendLog("BATCH_PROOFS_GENERATED", {
       batchId,
       count: proofs.length,
       errors: errors.length,
@@ -307,20 +343,32 @@ class ZkRangeProofSolvency {
    * @returns {object} Solvency audit result
    */
   initiateSolvencyAudit(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'audit config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "audit config is required");
     }
-    if (!config.auditId || typeof config.auditId !== 'string') {
-      throw new HsmAdapterError('INVALID_AUDIT_ID', 'auditId must be a non-empty string');
+    if (!config.auditId || typeof config.auditId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_AUDIT_ID",
+        "auditId must be a non-empty string",
+      );
     }
     if (this._audits.has(config.auditId)) {
-      throw new HsmAdapterError('AUDIT_ALREADY_EXISTS', `audit ${config.auditId} already exists`);
+      throw new HsmAdapterError(
+        "AUDIT_ALREADY_EXISTS",
+        `audit ${config.auditId} already exists`,
+      );
     }
     if (!Array.isArray(config.assetProofs) || config.assetProofs.length === 0) {
-      throw new HsmAdapterError('INVALID_ASSET_PROOFS', 'assetProofs must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_ASSET_PROOFS",
+        "assetProofs must be a non-empty array",
+      );
     }
     if (!Array.isArray(config.liabilityProofs)) {
-      throw new HsmAdapterError('INVALID_LIABILITY_PROOFS', 'liabilityProofs must be an array');
+      throw new HsmAdapterError(
+        "INVALID_LIABILITY_PROOFS",
+        "liabilityProofs must be an array",
+      );
     }
     // Verify all proofs
     let assetCount = 0;
@@ -331,7 +379,11 @@ class ZkRangeProofSolvency {
       if (result.verified) {
         assetCount++;
       } else {
-        verificationErrors.push({ proofId: proof.proofId, type: 'asset', error: 'verification failed' });
+        verificationErrors.push({
+          proofId: proof.proofId,
+          type: "asset",
+          error: "verification failed",
+        });
       }
     }
     for (const proof of config.liabilityProofs) {
@@ -339,13 +391,17 @@ class ZkRangeProofSolvency {
       if (result.verified) {
         liabilityCount++;
       } else {
-        verificationErrors.push({ proofId: proof.proofId, type: 'liability', error: 'verification failed' });
+        verificationErrors.push({
+          proofId: proof.proofId,
+          type: "liability",
+          error: "verification failed",
+        });
       }
     }
     const now = Date.now();
     const audit = {
       auditId: config.auditId,
-      auditorId: config.auditorId || 'anonymous',
+      auditorId: config.auditorId || "anonymous",
       status: AUDIT_STATUS.PENDING,
       assetProofCount: config.assetProofs.length,
       liabilityProofCount: config.liabilityProofs.length,
@@ -357,7 +413,7 @@ class ZkRangeProofSolvency {
       result: null,
     };
     this._audits.set(config.auditId, audit);
-    this._appendLog('SOLVENCY_AUDIT_INITIATED', {
+    this._appendLog("SOLVENCY_AUDIT_INITIATED", {
       auditId: config.auditId,
       assetProofs: config.assetProofs.length,
       liabilityProofs: config.liabilityProofs.length,
@@ -382,23 +438,43 @@ class ZkRangeProofSolvency {
   completeSolvencyAudit(auditId, totals) {
     const audit = this._audits.get(auditId);
     if (!audit) {
-      throw new HsmAdapterError('AUDIT_NOT_FOUND', `audit ${auditId} not found`);
+      throw new HsmAdapterError(
+        "AUDIT_NOT_FOUND",
+        `audit ${auditId} not found`,
+      );
     }
     if (audit.status !== AUDIT_STATUS.PENDING) {
-      throw new HsmAdapterError('AUDIT_NOT_PENDING', `audit is in status ${audit.status}`);
+      throw new HsmAdapterError(
+        "AUDIT_NOT_PENDING",
+        `audit is in status ${audit.status}`,
+      );
     }
-    if (!totals || typeof totals.totalAssets !== 'number' || typeof totals.totalLiabilities !== 'number') {
-      throw new HsmAdapterError('INVALID_TOTALS', 'totalAssets and totalLiabilities are required');
+    if (
+      !totals ||
+      typeof totals.totalAssets !== "number" ||
+      typeof totals.totalLiabilities !== "number"
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_TOTALS",
+        "totalAssets and totalLiabilities are required",
+      );
     }
     if (totals.totalAssets < 0) {
-      throw new HsmAdapterError('INVALID_ASSETS', 'totalAssets cannot be negative');
+      throw new HsmAdapterError(
+        "INVALID_ASSETS",
+        "totalAssets cannot be negative",
+      );
     }
     if (totals.totalLiabilities < 0) {
-      throw new HsmAdapterError('INVALID_LIABILITIES', 'totalLiabilities cannot be negative');
+      throw new HsmAdapterError(
+        "INVALID_LIABILITIES",
+        "totalLiabilities cannot be negative",
+      );
     }
-    const ratio = totals.totalLiabilities === 0
-      ? Infinity
-      : totals.totalAssets / totals.totalLiabilities;
+    const ratio =
+      totals.totalLiabilities === 0
+        ? Infinity
+        : totals.totalAssets / totals.totalLiabilities;
     const isSolvent = ratio >= this.minLiabilityRatio;
     audit.status = isSolvent ? AUDIT_STATUS.SOLVENT : AUDIT_STATUS.INSOLVENT;
     audit.completedAt = Date.now();
@@ -421,14 +497,18 @@ class ZkRangeProofSolvency {
     if (this._completedAudits.length > this._maxHistory) {
       this._completedAudits.shift();
     }
-    this._appendLog('SOLVENCY_AUDIT_COMPLETED', {
+    this._appendLog("SOLVENCY_AUDIT_COMPLETED", {
       auditId,
       status: audit.status,
       ratio,
       isSolvent,
     });
-    if (typeof this._audit === 'function') {
-      this._audit('SOLVENCY_AUDIT_COMPLETED', { auditId, status: audit.status, ratio });
+    if (typeof this._audit === "function") {
+      this._audit("SOLVENCY_AUDIT_COMPLETED", {
+        auditId,
+        status: audit.status,
+        ratio,
+      });
     }
     return {
       auditId,
@@ -450,11 +530,17 @@ class ZkRangeProofSolvency {
   revokeProof(proofId, reason) {
     const proof = this._proofs.get(proofId);
     if (!proof) {
-      throw new HsmAdapterError('PROOF_NOT_FOUND', `proof ${proofId} not found`);
+      throw new HsmAdapterError(
+        "PROOF_NOT_FOUND",
+        `proof ${proofId} not found`,
+      );
     }
     proof.status = PROOF_STATUS.REVOKED;
-    this._appendLog('PROOF_REVOKED', { proofId, reason: reason || 'unspecified' });
-    return { proofId, revoked: true, reason: reason || 'unspecified' };
+    this._appendLog("PROOF_REVOKED", {
+      proofId,
+      reason: reason || "unspecified",
+    });
+    return { proofId, revoked: true, reason: reason || "unspecified" };
   }
 
   /**
@@ -485,8 +571,12 @@ class ZkRangeProofSolvency {
    */
   getActiveProofs() {
     return Array.from(this._proofs.values())
-      .filter(p => p.status === PROOF_STATUS.GENERATED || p.status === PROOF_STATUS.VERIFIED)
-      .map(p => ({
+      .filter(
+        (p) =>
+          p.status === PROOF_STATUS.GENERATED ||
+          p.status === PROOF_STATUS.VERIFIED,
+      )
+      .map((p) => ({
         proofId: p.proofId,
         assetId: p.assetId,
         status: p.status,
@@ -501,7 +591,7 @@ class ZkRangeProofSolvency {
    * @returns {object[]}
    */
   getCompletedAudits(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedAudits.slice(-n);
   }
 
@@ -511,7 +601,7 @@ class ZkRangeProofSolvency {
    * @returns {object[]}
    */
   getAuditLog(limit) {
-    const n = typeof limit === 'number' ? limit : 50;
+    const n = typeof limit === "number" ? limit : 50;
     return this._auditLog.slice(-n);
   }
 
@@ -523,9 +613,10 @@ class ZkRangeProofSolvency {
     for (let i = 1; i < this._auditLog.length; i++) {
       const prev = this._auditLog[i - 1];
       const curr = this._auditLog[i];
-      const expectedPrevHash = crypto.createHash('sha256')
+      const expectedPrevHash = crypto
+        .createHash("sha256")
         .update(JSON.stringify(prev))
-        .digest('hex');
+        .digest("hex");
       if (curr.prevHash !== expectedPrevHash) {
         return { intact: false, brokenAt: i };
       }
@@ -570,9 +661,13 @@ class ZkRangeProofSolvency {
    * @private
    */
   _appendLog(event, info) {
-    const prevHash = this._auditLog.length > 0
-      ? crypto.createHash('sha256').update(JSON.stringify(this._auditLog[this._auditLog.length - 1])).digest('hex')
-      : '0'.repeat(64);
+    const prevHash =
+      this._auditLog.length > 0
+        ? crypto
+            .createHash("sha256")
+            .update(JSON.stringify(this._auditLog[this._auditLog.length - 1]))
+            .digest("hex")
+        : "0".repeat(64);
     this._auditLog.push({
       seq: this._auditLog.length,
       event,
@@ -590,9 +685,10 @@ function _computeWitness(value, min, max, blinding) {
   // Simulated ZK witness: proves value is in [min, max] without revealing it
   // In production, this would be a proper ZK proof (Bulletproof, etc.)
   const inRange = value >= min && value <= max;
-  return crypto.createHash('sha256')
+  return crypto
+    .createHash("sha256")
     .update(`${inRange}:${value - min}:${max - value}:${blinding}`)
-    .digest('hex');
+    .digest("hex");
 }
 
 function _generateId(prefix, timestamp) {

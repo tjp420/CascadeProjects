@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Distributed rate limiter adapter for agentic triggers.
 // - Tries to use ioredis (connected via REDIS_URL)
@@ -7,7 +7,8 @@
 
 const QUOTA = {
   RATE_LIMIT_MAX_PER_WINDOW: Number(process.env.AGENTIC_RATE_LIMIT_MAX) || 3,
-  RATE_LIMIT_WINDOW_MS: Number(process.env.AGENTIC_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
+  RATE_LIMIT_WINDOW_MS:
+    Number(process.env.AGENTIC_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
 };
 
 const REDIS_RETRY_BASE_MS = Number(process.env.REDIS_RETRY_BASE_MS) || 1000;
@@ -26,7 +27,10 @@ function isRedisAvailable() {
 
 function markRedisError() {
   redisRetryAttempt++;
-  const delay = Math.min(REDIS_RETRY_BASE_MS * Math.pow(2, redisRetryAttempt - 1), REDIS_RETRY_MAX_MS);
+  const delay = Math.min(
+    REDIS_RETRY_BASE_MS * Math.pow(2, redisRetryAttempt - 1),
+    REDIS_RETRY_MAX_MS,
+  );
   redisErrorUntil = Date.now() + delay;
 }
 
@@ -36,26 +40,27 @@ function markRedisSuccess() {
 }
 
 try {
-  const IORedis = require('ioredis');
-  const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
+  const IORedis = require("ioredis");
+  const url =
+    process.env.REDIS_URL || process.env.REDIS || "redis://127.0.0.1:6379";
   redisClient = new IORedis(url, {
     maxRetriesPerRequest: 3,
     connectTimeout: 2000,
   });
-  redisClient.on('error', () => {
+  redisClient.on("error", () => {
     // Suppress unhandled error events — ioredis retries internally.
     // The isRedisAvailable() check with exponential backoff handles fallout.
     usingRedis = false;
     markRedisError();
   });
-  redisClient.on('ready', () => {
+  redisClient.on("ready", () => {
     usingRedis = true;
     markRedisSuccess();
   });
   usingRedis = true;
-    // Define a named Lua command to avoid runtime dynamic-eval usage being flagged
-    try {
-      const lua = `
+  // Define a named Lua command to avoid runtime dynamic-eval usage being flagged
+  try {
+    const lua = `
         local key=KEYS[1]
         local now=tonumber(ARGV[1])
         local window=tonumber(ARGV[2])
@@ -73,10 +78,10 @@ try {
         redis.call('EXPIRE', key .. ':seq', math.ceil(window/1000) + 1)
         return {1, 0}
       `;
-      redisClient.defineCommand('agenticRateLimit', { numberOfKeys: 1, lua });
-    } catch (err) {
-      // best-effort
-    }
+    redisClient.defineCommand("agenticRateLimit", { numberOfKeys: 1, lua });
+  } catch (err) {
+    // best-effort
+  }
 } catch (e) {
   // ioredis not installed or connection failed; fall back
   usingRedis = false;
@@ -84,7 +89,8 @@ try {
 
 const inMemoryWindows = new Map();
 const inMemoryActiveCounts = new Map();
-const ACTIVE_COUNT_TTL_SECONDS = parseInt(process.env.AGENTIC_ACTIVE_COUNT_TTL_S, 10) || 300;
+const ACTIVE_COUNT_TTL_SECONDS =
+  parseInt(process.env.AGENTIC_ACTIVE_COUNT_TTL_S, 10) || 300;
 
 async function checkAndRecordRateLimit(orgId) {
   const now = Date.now();
@@ -111,21 +117,33 @@ async function checkAndRecordRateLimit(orgId) {
       return {1, 0}
     `;
     try {
-      if (typeof redisClient.agenticRateLimit === 'function') {
-        const res = await redisClient.agenticRateLimit(key, now, windowMs, QUOTA.RATE_LIMIT_MAX_PER_WINDOW);
+      if (typeof redisClient.agenticRateLimit === "function") {
+        const res = await redisClient.agenticRateLimit(
+          key,
+          now,
+          windowMs,
+          QUOTA.RATE_LIMIT_MAX_PER_WINDOW,
+        );
         markRedisSuccess();
         const allowed = Number(res[0]) === 1;
         if (allowed) return { allowed: true };
         const earliest = Number(res[1]) || now;
-        const retryAfterMs = (earliest + windowMs) - now;
+        const retryAfterMs = earliest + windowMs - now;
         return { allowed: false, retryAfterMs };
       }
-      const res = await redisClient.send_command('EVAL', [script, '1', key, now, windowMs, QUOTA.RATE_LIMIT_MAX_PER_WINDOW]);
+      const res = await redisClient.send_command("EVAL", [
+        script,
+        "1",
+        key,
+        now,
+        windowMs,
+        QUOTA.RATE_LIMIT_MAX_PER_WINDOW,
+      ]);
       markRedisSuccess();
       const allowed = Number(res[0]) === 1;
       if (allowed) return { allowed: true };
       const earliest = Number(res[1]) || now;
-      const retryAfterMs = (earliest + windowMs) - now;
+      const retryAfterMs = earliest + windowMs - now;
       return { allowed: false, retryAfterMs };
     } catch (e) {
       markRedisError();
@@ -138,7 +156,7 @@ async function checkAndRecordRateLimit(orgId) {
   arr = arr.filter((t) => t >= windowStart);
   if (arr.length >= QUOTA.RATE_LIMIT_MAX_PER_WINDOW) {
     inMemoryWindows.set(orgId, arr);
-    return { allowed: false, retryAfterMs: (arr[0] + windowMs) - now };
+    return { allowed: false, retryAfterMs: arr[0] + windowMs - now };
   }
   arr.push(now);
   inMemoryWindows.set(orgId, arr);
@@ -217,7 +235,13 @@ module.exports = {
   shutdown: async () => {
     try {
       if (redisClient) {
-        try { await redisClient.quit(); } catch (e) { try { redisClient.disconnect(); } catch (__) {} }
+        try {
+          await redisClient.quit();
+        } catch (e) {
+          try {
+            redisClient.disconnect();
+          } catch (__) {}
+        }
       }
     } catch (e) {
       // ignore

@@ -4,7 +4,8 @@ module.exports = {
     // ── Layer boundary rules ─────────────────────────────────────
     {
       name: 'no-cross-ui-imports',
-      comment: 'Dashboard/welcome modules should not import each other directly. Go through extension or utils. Same-family imports (e.g., welcomeDashboard→welcomeDashboardHtml) are allowed.',
+      comment:
+        'Dashboard/welcome modules should not import each other directly. Go through extension or utils. Same-family imports (e.g., welcomeDashboard→welcomeDashboardHtml) are allowed.',
       severity: 'error',
       from: {
         path: '^src/(dashboard[^/]*|welcomeDashboard[^/]*|web2Panel|settingsProvider|summaryProvider|roadmapProvider)\\.ts$',
@@ -16,7 +17,8 @@ module.exports = {
     },
     {
       name: 'utils-is-leaf',
-      comment: 'src/utils/ must only import from external packages, Node built-ins, or VS Code API. It should not depend on other src/ modules.',
+      comment:
+        'src/utils/ must only import from external packages, Node built-ins, or VS Code API. It should not depend on other src/ modules.',
       severity: 'error',
       from: { path: '^src/utils/' },
       to: {
@@ -58,7 +60,8 @@ module.exports = {
     // New cycles will fail the gate at error severity.
     {
       name: 'no-circular-known',
-      comment: 'Pre-existing cycles between extension.ts, providers/index.ts, and dashboardPanel.ts. Tolerated as warnings while being refactored.',
+      comment:
+        'Pre-existing cycles between extension.ts, providers/index.ts, and dashboardPanel.ts. Tolerated as warnings while being refactored.',
       severity: 'warn',
       from: {
         path: '^src/(extension|providers/index|aiPlatform/dashboardPanel|dashboardUpdater)\\.ts$',
@@ -69,7 +72,8 @@ module.exports = {
     },
     {
       name: 'no-circular',
-      comment: 'Circular dependencies are not allowed in src/. Break the cycle by extracting shared code into src/utils/ or using a bridge/mediator pattern.',
+      comment:
+        'Circular dependencies are not allowed in src/. Break the cycle by extracting shared code into src/utils/ or using a bridge/mediator pattern.',
       severity: 'error',
       from: {
         path: '^src/',
@@ -79,19 +83,11 @@ module.exports = {
         circular: true,
       },
     },
-
   ],
   options: {
     doNotFollow: {
       path: 'node_modules',
-      dependencyTypes: [
-        'npm',
-        'npm-dev',
-        'npm-optional',
-        'npm-peer',
-        'npm-bundled',
-        'npm-no-pkg',
-      ],
+      dependencyTypes: ['npm', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-bundled', 'npm-no-pkg'],
     },
     tsPreCompilationDeps: true,
     tsConfig: {

@@ -26,12 +26,12 @@
  * @returns {import('express').Response}
  */
 function sendError(res, status, error, options = {}) {
-    const { message, code, details, ...extra } = options;
-    const body = { success: false, error };
-    if (message) body.message = message;
-    if (code) body.code = code;
-    if (details) body.details = details;
-    return res.status(status).json({ ...body, ...extra });
+  const { message, code, details, ...extra } = options;
+  const body = { success: false, error };
+  if (message) body.message = message;
+  if (code) body.code = code;
+  if (details) body.details = details;
+  return res.status(status).json({ ...body, ...extra });
 }
 
 /**
@@ -42,7 +42,7 @@ function sendError(res, status, error, options = {}) {
  * @returns {import('express').Response}
  */
 function sendSuccess(res, data = {}, status = 200) {
-    return res.status(status).json({ success: true, ...data });
+  return res.status(status).json({ success: true, ...data });
 }
 
 module.exports = { sendError, sendSuccess };

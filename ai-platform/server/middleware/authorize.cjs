@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Authorization Middleware ?????? checks user permissions against required
@@ -12,12 +12,12 @@
  * Also provides org-partition enforcement via enforceOrgPartition().
  */
 
-const rbacStore = require('../lib/rbac-store.cjs');
+const rbacStore = require("../lib/rbac-store.cjs");
 
 // Lazy-load settings store to avoid circular dependency at module init
 function getSettings() {
   try {
-    return require('../lib/security-monitor-settings-store.cjs').getSettings();
+    return require("../lib/security-monitor-settings-store.cjs").getSettings();
   } catch {
     return {};
   }
@@ -41,21 +41,23 @@ function getViolationTtlMs() {
 
 function getViolationMaxLog() {
   const max = getSettings().orgPartitionViolationMaxLog;
-  return typeof max === 'number' && max >= 10 ? max : 1000;
+  return typeof max === "number" && max >= 10 ? max : 1000;
 }
 
 function getViolationMemoryGuardMb() {
   const mb = getSettings().orgPartitionViolationMemoryGuardMb;
-  return typeof mb === 'number' && mb >= 1 ? mb : 50;
+  return typeof mb === "number" && mb >= 1 ? mb : 50;
 }
 
 function getViolationCleanupIntervalMs() {
   const interval = getSettings().orgPartitionViolationCleanupIntervalMs;
-  return typeof interval === 'number' && interval >= 10000 ? interval : 5 * 60 * 1000;
+  return typeof interval === "number" && interval >= 10000
+    ? interval
+    : 5 * 60 * 1000;
 }
 
 function getOrgId(req) {
-  return req.user?.id || req.user?.email || 'default';
+  return req.user?.id || req.user?.email || "default";
 }
 
 // ?????? Org Partition Enforcement ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
@@ -112,7 +114,10 @@ function enforceViolationCap() {
   }
 
   // Enforce memory guard ??? keep trimming until under the MB threshold
-  while (estimateViolationMemoryMb() > memoryGuardMb && _partitionViolations.length > 0) {
+  while (
+    estimateViolationMemoryMb() > memoryGuardMb &&
+    _partitionViolations.length > 0
+  ) {
     _partitionViolations.pop();
     trimmed++;
   }
@@ -195,7 +200,11 @@ function recordViolation(violation) {
   // Feed the stream interdiction engine for unified multi-axis tracking
   const streamKey = violation.userId || violation.callerOrgId;
   if (streamKey) {
-    recordStreamFailure(streamKey, 'org_partition', `${violation.method} ${violation.path}`);
+    recordStreamFailure(
+      streamKey,
+      "org_partition",
+      `${violation.method} ${violation.path}`,
+    );
   }
 
   if (!shouldAlertOnViolation()) return;
@@ -203,7 +212,7 @@ function recordViolation(violation) {
   const threshold = getViolationAlertThreshold();
   const callerOrgId = violation.callerOrgId;
   const recentOrgViolations = _partitionViolations.filter(
-    (v) => v.callerOrgId === callerOrgId
+    (v) => v.callerOrgId === callerOrgId,
   ).length;
 
   if (recentOrgViolations >= threshold) {
@@ -219,16 +228,21 @@ function recordViolation(violation) {
         keyToBlock,
         `auto:org_partition_violation_spike (${recentOrgViolations} violations, threshold ${threshold})`,
         getInterdictionTtlMs(),
-        'auto'
+        "auto",
       );
     }
 
     try {
-      const { processEvent } = require('../lib/alert-dispatcher.cjs');
-      processEvent(callerOrgId, 'org_partition_violation_spike', {
-        severity: 'high',
+      const { processEvent } = require("../lib/alert-dispatcher.cjs");
+      processEvent(callerOrgId, "org_partition_violation_spike", {
+        severity: "high",
         message: `Org partition violation spike: ${recentOrgViolations} cross-org access attempts blocked`,
-        data: { orgId: callerOrgId, violationCount: recentOrgViolations, threshold, recentViolation: violation },
+        data: {
+          orgId: callerOrgId,
+          violationCount: recentOrgViolations,
+          threshold,
+          recentViolation: violation,
+        },
       }).catch(() => {});
     } catch {}
   }
@@ -257,12 +271,16 @@ function getPartitionStats() {
 }
 
 function resolveCallerOrgId(req) {
-  return req.user?.id || req.user?.email || 'default';
+  return req.user?.id || req.user?.email || "default";
 }
 
 function hasCrossOrgAccess(userId, orgId, fallbackRole) {
-  const { permissions } = rbacStore.resolveUserRole(userId, orgId, fallbackRole);
-  return permissions.includes('admin:all');
+  const { permissions } = rbacStore.resolveUserRole(
+    userId,
+    orgId,
+    fallbackRole,
+  );
+  return permissions.includes("admin:all");
 }
 
 /**
@@ -278,8 +296,8 @@ function enforceOrgPartition() {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        error: 'authentication_required',
-        message: 'Authentication required before partition check',
+        error: "authentication_required",
+        message: "Authentication required before partition check",
       });
     }
 
@@ -287,10 +305,7 @@ function enforceOrgPartition() {
     const userId = req.user.id || req.user.email;
 
     const clientOrgId =
-      req.body?.orgId ||
-      req.query?.orgId ||
-      req.params?.orgId ||
-      null;
+      req.body?.orgId || req.query?.orgId || req.params?.orgId || null;
 
     if (!clientOrgId) {
       req.resolvedOrgId = callerOrgId;
@@ -329,8 +344,9 @@ function enforceOrgPartition() {
 
     return res.status(403).json({
       success: false,
-      error: 'org_partition_violation',
-      message: 'Cross-organization access denied. You can only access data within your own organization.',
+      error: "org_partition_violation",
+      message:
+        "Cross-organization access denied. You can only access data within your own organization.",
       callerOrgId,
       requestedOrgId: clientOrgId,
     });
@@ -345,26 +361,28 @@ function enforceOrgPartition() {
 function authorize(requiredPermission) {
   return function authorizeMiddleware(req, res, next) {
     if (!req.user) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          error: 'authentication_required',
-          message: 'Authentication required before authorization',
-        });
+      return res.status(401).json({
+        success: false,
+        error: "authentication_required",
+        message: "Authentication required before authorization",
+      });
     }
 
     const orgId = getOrgId(req);
     const userId = req.user.id || req.user.email;
 
     // Resolve user's role and permissions
-    const { role, permissions, source } = rbacStore.resolveUserRole(userId, orgId, req.user.role);
+    const { role, permissions, source } = rbacStore.resolveUserRole(
+      userId,
+      orgId,
+      req.user.role,
+    );
 
     // Check permission
     if (!rbacStore.hasPermission(permissions, requiredPermission)) {
       return res.status(403).json({
         success: false,
-        error: 'insufficient_permissions',
+        error: "insufficient_permissions",
         message: `Role "${role}" does not have permission "${requiredPermission}"`,
         requiredPermission,
         userRole: role,
@@ -387,7 +405,9 @@ function authorize(requiredPermission) {
 function authorizeAny(...permissions) {
   return function authorizeAnyMiddleware(req, res, next) {
     if (!req.user) {
-      return res.status(401).json({ success: false, error: 'authentication_required' });
+      return res
+        .status(401)
+        .json({ success: false, error: "authentication_required" });
     }
 
     const orgId = getOrgId(req);
@@ -395,15 +415,17 @@ function authorizeAny(...permissions) {
     const { role, permissions: userPerms } = rbacStore.resolveUserRole(
       userId,
       orgId,
-      req.user.role
+      req.user.role,
     );
 
-    const hasAny = permissions.some((p) => rbacStore.hasPermission(userPerms, p));
+    const hasAny = permissions.some((p) =>
+      rbacStore.hasPermission(userPerms, p),
+    );
     if (!hasAny) {
       return res.status(403).json({
         success: false,
-        error: 'insufficient_permissions',
-        message: `Role "${role}" requires one of: ${permissions.join(', ')}`,
+        error: "insufficient_permissions",
+        message: `Role "${role}" requires one of: ${permissions.join(", ")}`,
       });
     }
 
@@ -444,13 +466,13 @@ const DEFAULT_INTERDICTION_TTL_MS = 15 * 60 * 1000;
 //   streamInterdictionThresholds — per-type threshold object
 
 const STREAM_FAILURE_TYPES = [
-  'chain_verification',
-  'pii_violation',
-  'guardrail_refusal',
-  'auth_failure',
-  'org_partition',
-  'rate_limit',
-  'bundle_verification',
+  "chain_verification",
+  "pii_violation",
+  "guardrail_refusal",
+  "auth_failure",
+  "org_partition",
+  "rate_limit",
+  "bundle_verification",
 ];
 
 let _streamFailures = []; // array of { apiKey, type, detail, at }
@@ -474,32 +496,34 @@ function isStreamInterdictionEnabled() {
 function getStreamWindowMs() {
   const settings = getSettings();
   const w = settings.streamInterdictionWindowMs;
-  return typeof w === 'number' && w >= 10000 ? w : 5 * 60 * 1000;
+  return typeof w === "number" && w >= 10000 ? w : 5 * 60 * 1000;
 }
 
 function getStreamTtlMs() {
   const settings = getSettings();
   const t = settings.streamInterdictionTtlMs;
-  return typeof t === 'number' && t >= 1000 ? t : 30 * 60 * 1000;
+  return typeof t === "number" && t >= 1000 ? t : 30 * 60 * 1000;
 }
 
 function getStreamMaxFailures() {
   const settings = getSettings();
   const m = settings.streamInterdictionMaxFailures;
-  return typeof m === 'number' && m >= 100 ? m : 10000;
+  return typeof m === "number" && m >= 100 ? m : 10000;
 }
 
 function getStreamThresholds() {
   const settings = getSettings();
-  return settings.streamInterdictionThresholds || {
-    chain_verification: 3,
-    pii_violation: 5,
-    guardrail_refusal: 5,
-    auth_failure: 10,
-    org_partition: 5,
-    rate_limit: 10,
-    bundle_verification: 3,
-  };
+  return (
+    settings.streamInterdictionThresholds || {
+      chain_verification: 3,
+      pii_violation: 5,
+      guardrail_refusal: 5,
+      auth_failure: 10,
+      org_partition: 5,
+      rate_limit: 10,
+      bundle_verification: 3,
+    }
+  );
 }
 
 function getStreamThreshold(failureType) {
@@ -539,7 +563,7 @@ function countStreamFailures(apiKey, failureType) {
   const windowMs = getStreamWindowMs();
   const cutoff = Date.now() - windowMs;
   return _streamFailures.filter(
-    (f) => f.apiKey === apiKey && f.type === failureType && f.at > cutoff
+    (f) => f.apiKey === apiKey && f.type === failureType && f.at > cutoff,
   ).length;
 }
 
@@ -555,11 +579,13 @@ function countStreamFailures(apiKey, failureType) {
  * @returns {{ recorded: boolean, count: number, interdicted: boolean, threshold: number }}
  */
 function recordStreamFailure(apiKey, failureType, detail) {
-  if (!apiKey || !failureType) return { recorded: false, count: 0, interdicted: false, threshold: 0 };
+  if (!apiKey || !failureType)
+    return { recorded: false, count: 0, interdicted: false, threshold: 0 };
   if (!STREAM_FAILURE_TYPES.includes(failureType)) {
     return { recorded: false, count: 0, interdicted: false, threshold: 0 };
   }
-  if (!isStreamInterdictionEnabled()) return { recorded: false, count: 0, interdicted: false, threshold: 0 };
+  if (!isStreamInterdictionEnabled())
+    return { recorded: false, count: 0, interdicted: false, threshold: 0 };
 
   // Purge expired entries lazily
   purgeExpiredStreamFailures();
@@ -573,7 +599,8 @@ function recordStreamFailure(apiKey, failureType, detail) {
   });
 
   _streamInterdictionStats.totalFailuresRecorded++;
-  _streamInterdictionStats.byType[failureType] = (_streamInterdictionStats.byType[failureType] || 0) + 1;
+  _streamInterdictionStats.byType[failureType] =
+    (_streamInterdictionStats.byType[failureType] || 0) + 1;
 
   // Enforce cap after adding
   enforceStreamFailureCap();
@@ -589,7 +616,7 @@ function recordStreamFailure(apiKey, failureType, detail) {
       apiKey,
       `auto:stream_interdiction (${failureType} ${count}/${threshold} in window)`,
       ttl,
-      'auto'
+      "auto",
     );
     _streamInterdictionStats.totalAutoInterdicts++;
     _streamInterdictionStats.lastAutoInterdict = new Date().toISOString();
@@ -623,7 +650,10 @@ function getStreamFailureStats() {
     .slice(-20)
     .reverse()
     .map((f) => ({
-      apiKey: f.apiKey.length > 8 ? f.apiKey.slice(0, 4) + '\u2026' + f.apiKey.slice(-4) : f.apiKey,
+      apiKey:
+        f.apiKey.length > 8
+          ? f.apiKey.slice(0, 4) + "\u2026" + f.apiKey.slice(-4)
+          : f.apiKey,
       type: f.type,
       detail: f.detail,
       at: new Date(f.at).toISOString(),
@@ -635,7 +665,10 @@ function getStreamFailureStats() {
     ttlMs: getStreamTtlMs(),
     thresholds: getStreamThresholds(),
     totalFailuresInWindow: _streamFailures.filter((f) => f.at > cutoff).length,
-    stats: { ..._streamInterdictionStats, byType: { ..._streamInterdictionStats.byType } },
+    stats: {
+      ..._streamInterdictionStats,
+      byType: { ..._streamInterdictionStats.byType },
+    },
     recentFailures,
     byKey,
   };
@@ -678,13 +711,15 @@ let _interdictionStats = {
 function getInterdictionTtlMs() {
   const settings = getSettings();
   const ttl = settings.interdictionDefaultTtlMs;
-  return typeof ttl === 'number' && ttl >= 1000 ? ttl : DEFAULT_INTERDICTION_TTL_MS;
+  return typeof ttl === "number" && ttl >= 1000
+    ? ttl
+    : DEFAULT_INTERDICTION_TTL_MS;
 }
 
 function getInterdictionMaxKeys() {
   const settings = getSettings();
   const max = settings.interdictionMaxKeys;
-  return typeof max === 'number' && max >= 100 ? max : MAX_INTERDICTED_KEYS;
+  return typeof max === "number" && max >= 100 ? max : MAX_INTERDICTED_KEYS;
 }
 
 function isAutoInterdictionEnabled() {
@@ -699,7 +734,7 @@ function isAutoInterdictionEnabled() {
  * @returns {string|null}
  */
 function extractApiKey(req) {
-  return req.headers['x-api-key'] || req.query.apiKey || req.user?.id || null;
+  return req.headers["x-api-key"] || req.query.apiKey || req.user?.id || null;
 }
 
 /**
@@ -710,7 +745,7 @@ function extractApiKey(req) {
  * @param {string} [source] — 'manual' or 'auto'
  * @returns {{ blocked: boolean, expiresAt: number }}
  */
-function interdictKey(apiKey, reason, ttlMs, source = 'manual') {
+function interdictKey(apiKey, reason, ttlMs, source = "manual") {
   if (!apiKey) return { blocked: false, expiresAt: 0 };
   const ttl = ttlMs || getInterdictionTtlMs();
   const expiresAt = Date.now() + ttl;
@@ -723,14 +758,14 @@ function interdictKey(apiKey, reason, ttlMs, source = 'manual') {
   }
 
   _interdictedKeys.set(apiKey, {
-    reason: reason || 'unspecified',
+    reason: reason || "unspecified",
     blockedAt: Date.now(),
     expiresAt,
     source,
   });
 
   _interdictionStats.totalBlocked++;
-  if (source === 'auto') {
+  if (source === "auto") {
     _interdictionStats.totalAutoTriggered++;
     _interdictionStats.lastAutoTrigger = new Date().toISOString();
   }
@@ -770,7 +805,11 @@ function checkInterdiction(apiKey) {
     return { interdicted: false, reason: null, expiresAt: null };
   }
 
-  return { interdicted: true, reason: block.reason, expiresAt: block.expiresAt };
+  return {
+    interdicted: true,
+    reason: block.reason,
+    expiresAt: block.expiresAt,
+  };
 }
 
 /**
@@ -788,7 +827,10 @@ function getInterdictedKeys() {
       continue;
     }
     keys.push({
-      apiKey: apiKey.length > 8 ? apiKey.slice(0, 4) + '…' + apiKey.slice(-4) : apiKey,
+      apiKey:
+        apiKey.length > 8
+          ? apiKey.slice(0, 4) + "…" + apiKey.slice(-4)
+          : apiKey,
       reason: block.reason,
       blockedAt: new Date(block.blockedAt).toISOString(),
       expiresAt: new Date(block.expiresAt).toISOString(),
@@ -841,8 +883,9 @@ function enforceKeyInterdiction() {
       _interdictionStats.totalRequestsRejected++;
       return res.status(423).json({
         success: false,
-        error: 'token_interdicted',
-        message: 'This access key has been temporarily locked due to real-time security interdiction.',
+        error: "token_interdicted",
+        message:
+          "This access key has been temporarily locked due to real-time security interdiction.",
         expiresAt: new Date(status.expiresAt).toISOString(),
       });
     }

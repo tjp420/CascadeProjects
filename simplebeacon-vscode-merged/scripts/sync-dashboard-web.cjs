@@ -27,10 +27,7 @@ if (fs.existsSync(authServicePath)) {
     // Insert after the existing import from ../utils/url.js
     const importLine = "import { apiUrl } from '../utils/url.js';";
     if (content.includes(importLine)) {
-      content = content.replace(
-        importLine,
-        `${importLine}\nimport { apiBaseUrl } from '../utils/url.js';`
-      );
+      content = content.replace(importLine, `${importLine}\nimport { apiBaseUrl } from '../utils/url.js';`);
     }
     // Append the apiBase export at the end
     if (!content.includes('export function apiBase')) {
@@ -54,7 +51,10 @@ if (fs.existsSync(destIndex)) {
   let html = fs.readFileSync(destIndex, 'utf8');
   // Replace /src/main.tsx with ./dist/assets/main.js (production build)
   if (html.includes('/src/main.tsx')) {
-    html = html.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, '<script type="module" src="./dist/assets/main.js"></script>');
+    html = html.replace(
+      /<script type="module" src="\/src\/main\.tsx"><\/script>/,
+      '<script type="module" src="./dist/assets/main.js"></script>'
+    );
     console.log('[sync-dashboard-web] Patched index.html: /src/main.tsx -> ./dist/assets/main.js');
   }
   // Rewrite absolute /assets/ paths to /dashboard/assets/ for extension serving

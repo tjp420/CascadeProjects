@@ -64,12 +64,17 @@ export function showToast(message, type = 'info', opts = {}) {
     if (typeof document === 'undefined' || !document.body) {
         return;
     }
-    const { html = false, duration = 3500, queue = true } = (opts && typeof opts === 'object' && !Array.isArray(opts)) ? opts : {};
+    const {
+        html = false,
+        duration = 3500,
+        queue = true
+    } = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : {};
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;';
+        container.style.cssText =
+            'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;';
         document.body.appendChild(container);
     }
     if (queue) {
@@ -146,7 +151,12 @@ export function downloadBlob(blob, filename) {
             const result = String(reader.result || '');
             const commaIdx = result.indexOf(',');
             const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
-            vscode.postMessage({ command: 'downloadFile', filename: filename || 'download', mimeType: blob.type, base64 });
+            vscode.postMessage({
+                command: 'downloadFile',
+                filename: filename || 'download',
+                mimeType: blob.type,
+                base64
+            });
         };
         reader.onerror = () => {
             console.error('FileReader failed to convert blob for VS Code download. Falling back to normal download.');
@@ -216,9 +226,10 @@ export function renderEmptyState(opts) {
     const { icon, title, body = '', actions: rawActions = [], iconWrapper = 'svg' } = opts;
     const actions = Array.isArray(rawActions) ? rawActions : [];
     const safeIcon = String(icon || '');
-    const iconHtml = iconWrapper === 'emoji'
-        ? `<div class="empty-state-icon" style="font-size:3rem;background:none;width:auto;height:auto;">${escapeHtml(safeIcon)}</div>`
-        : `<div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${safeIcon}</svg></div>`;
+    const iconHtml =
+        iconWrapper === 'emoji'
+            ? `<div class="empty-state-icon" style="font-size:3rem;background:none;width:auto;height:auto;">${escapeHtml(safeIcon)}</div>`
+            : `<div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${safeIcon}</svg></div>`;
     const bodyHtml = body ? `<p class="empty-state-body">${body}</p>` : '';
     const actionsHtml = actions.length
         ? `<div class="empty-state-actions">${actions.map((a, idx) => `<button class="btn ${escapeHtml(a.className || 'btn-primary')}"${a.id ? ` id="${escapeHtml(a.id)}"` : ` data-action-index="${idx}"`}>${escapeHtml(a.label)}</button>`).join('')}</div>`
@@ -316,7 +327,10 @@ export function throttle(fn, limit = 300) {
             fn.apply(self, args2);
         } catch (err) {
             inThrottle = false;
-            if (timer) { clearTimeout(timer); timer = null; }
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
             throw err;
         }
     };
@@ -342,11 +356,17 @@ export function throttle(fn, limit = 300) {
     };
     throttled.cancel = () => {
         inThrottle = false;
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
         pending = pendingThis = null;
     };
     throttled.flush = () => {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
         if (pending !== null) {
             inThrottle = true;
             const args2 = pending;
@@ -356,10 +376,16 @@ export function throttle(fn, limit = 300) {
                 fn.apply(self, args2);
             } catch (err) {
                 inThrottle = false;
-                if (timer) { clearTimeout(timer); timer = null; }
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
                 throw err;
             }
-            timer = setTimeout(() => { inThrottle = false; timer = null; }, cooldown);
+            timer = setTimeout(() => {
+                inThrottle = false;
+                timer = null;
+            }, cooldown);
         }
     };
     throttled.pending = () => timer !== null;
@@ -515,7 +541,7 @@ export function memoize(fn, maxSize = 1000) {
     };
     memoized.clear = () => cache.clear();
     Object.defineProperty(memoized, 'size', { get: () => cache.size });
-    memoized.has = (key) => {
+    memoized.has = key => {
         if (key === undefined) return false;
         let k;
         try {
@@ -753,9 +779,7 @@ export function pick(obj, keys) {
  */
 export function omit(obj, keys) {
     if (!obj || typeof obj !== 'object') return {};
-    const keySet = new Set(
-        keys && typeof keys !== 'string' && typeof keys[Symbol.iterator] === 'function' ? keys : []
-    );
+    const keySet = new Set(keys && typeof keys !== 'string' && typeof keys[Symbol.iterator] === 'function' ? keys : []);
     const result = {};
     for (const key of Object.keys(obj)) {
         if (!keySet.has(key)) result[key] = obj[key];
@@ -1026,7 +1050,10 @@ export function deepEqual(a, b) {
         for (const v of a) {
             let found = false;
             for (const w of b) {
-                if (deepEqual(v, w)) { found = true; break; }
+                if (deepEqual(v, w)) {
+                    found = true;
+                    break;
+                }
             }
             if (!found) return false;
         }
@@ -1068,10 +1095,15 @@ export function debounceLeading(fn, wait = 300) {
         } else {
             clearTimeout(timeout);
         }
-        timeout = setTimeout(() => { timeout = null; }, delay);
+        timeout = setTimeout(() => {
+            timeout = null;
+        }, delay);
     };
     debounced.cancel = () => {
-        if (timeout !== null) { clearTimeout(timeout); timeout = null; }
+        if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+        }
     };
     return debounced;
 }
@@ -1174,7 +1206,14 @@ export function merge(target, ...sources) {
         if (!src || typeof src !== 'object') continue;
         for (const key of Object.keys(src)) {
             const val = src[key];
-            if (val && typeof val === 'object' && !Array.isArray(val) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
+            if (
+                val &&
+                typeof val === 'object' &&
+                !Array.isArray(val) &&
+                result[key] &&
+                typeof result[key] === 'object' &&
+                !Array.isArray(result[key])
+            ) {
                 result[key] = merge(result[key], val);
             } else {
                 result[key] = val;
@@ -1261,7 +1300,16 @@ export function hash(str) {
  * @returns {never}
  */
 export function assertNever(value, message = 'Unexpected value') {
-    const display = typeof value === 'string' ? value : (() => { try { return JSON.stringify(value); } catch { return String(value); } })();
+    const display =
+        typeof value === 'string'
+            ? value
+            : (() => {
+                  try {
+                      return JSON.stringify(value);
+                  } catch {
+                      return String(value);
+                  }
+              })();
     throw new Error(`${message}: ${display}`);
 }
 
@@ -1349,7 +1397,7 @@ export function uid() {
  * @returns {Function}
  */
 export function seq(...fns) {
-    return (value) => fns.reduce((v, fn) => fn(v), value);
+    return value => fns.reduce((v, fn) => fn(v), value);
 }
 
 /**
@@ -1390,7 +1438,7 @@ export async function pMap(array, mapper, concurrency = Infinity) {
             }
             const i = index++;
             active++;
-            Promise.resolve(mapper(array[i], i)).then((value) => {
+            Promise.resolve(mapper(array[i], i)).then(value => {
                 results[i] = value;
                 active--;
                 next();
@@ -1413,7 +1461,7 @@ export function memoizeAsync(fn, resolver) {
     const memoized = function (...args) {
         const key = typeof resolver === 'function' ? resolver.apply(this, args) : JSON.stringify(args);
         if (cache.has(key)) return cache.get(key);
-        const promise = fn.apply(this, args).catch((err) => {
+        const promise = fn.apply(this, args).catch(err => {
             cache.delete(key);
             throw err;
         });
@@ -1422,7 +1470,7 @@ export function memoizeAsync(fn, resolver) {
     };
     memoized.clear = () => cache.clear();
     Object.defineProperty(memoized, 'size', { get: () => cache.size });
-    memoized.has = (key) => cache.has(key);
+    memoized.has = key => cache.has(key);
     return memoized;
 }
 
@@ -1533,7 +1581,10 @@ export function throttleAsync(fn, wait = 300) {
         return pendingPromise;
     };
     throttled.cancel = () => {
-        if (timeout !== null) { clearTimeout(timeout); timeout = null; }
+        if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+        }
         lastArgs = lastThis = null;
         if (rejectPending) {
             rejectPending(new Error('Throttled call was cancelled'));
@@ -1543,7 +1594,10 @@ export function throttleAsync(fn, wait = 300) {
         }
     };
     throttled.flush = async () => {
-        if (timeout !== null) { clearTimeout(timeout); timeout = null; }
+        if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+        }
         if (lastArgs) {
             const argsToUse = lastArgs;
             const self = lastThis;
@@ -1607,5 +1661,3 @@ export function safeParseFloat(str, fallback = 0) {
     const parsed = Number.parseFloat(str);
     return Number.isFinite(parsed) ? parsed : fallback;
 }
-
-

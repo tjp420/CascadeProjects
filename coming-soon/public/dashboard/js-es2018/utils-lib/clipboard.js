@@ -8,8 +8,7 @@
  */
 export async function copyToClipboard(text) {
     const s = String(text !== null && text !== void 0 ? text : '');
-    if (!s)
-        return false;
+    if (!s) return false;
     try {
         if (typeof navigator !== 'undefined' && navigator.clipboard) {
             await navigator.clipboard.writeText(s);
@@ -26,8 +25,7 @@ export async function copyToClipboard(text) {
             ta.remove();
             return ok;
         }
-    }
-    catch (_a) {
+    } catch (_a) {
         // fall through
     }
     return false;

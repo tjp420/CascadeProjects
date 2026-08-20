@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 22: Tamper-evident signed epoch frame.
@@ -10,15 +10,15 @@
  * @module hsm-adapter/epoch-frame
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 function _serialize(epochNumber, previousHash, consensusTimestamp, driftMs) {
   const parts = [
-    Buffer.from(epochNumber.toString(10), 'utf8'),
+    Buffer.from(epochNumber.toString(10), "utf8"),
     previousHash,
-    Buffer.from(consensusTimestamp.toString(10), 'utf8'),
-    Buffer.from(driftMs.toString(10), 'utf8'),
+    Buffer.from(consensusTimestamp.toString(10), "utf8"),
+    Buffer.from(driftMs.toString(10), "utf8"),
   ];
   return Buffer.concat(parts);
 }
@@ -47,8 +47,13 @@ class EpochFrame {
    * @returns {Buffer}
    */
   hash() {
-    const payload = _serialize(this.epochNumber, this.previousHash, this.consensusTimestamp, this.driftMs);
-    return crypto.createHash('sha256').update(payload).digest();
+    const payload = _serialize(
+      this.epochNumber,
+      this.previousHash,
+      this.consensusTimestamp,
+      this.driftMs,
+    );
+    return crypto.createHash("sha256").update(payload).digest();
   }
 
   /**
@@ -57,10 +62,15 @@ class EpochFrame {
    * @returns {EpochFrame}
    */
   sign(privateKey) {
-    const payload = _serialize(this.epochNumber, this.previousHash, this.consensusTimestamp, this.driftMs);
-    const signer = crypto.createSign('sha256');
+    const payload = _serialize(
+      this.epochNumber,
+      this.previousHash,
+      this.consensusTimestamp,
+      this.driftMs,
+    );
+    const signer = crypto.createSign("sha256");
     signer.update(payload);
-    this.signature = signer.sign(privateKey, 'base64');
+    this.signature = signer.sign(privateKey, "base64");
     return this;
   }
 
@@ -72,16 +82,27 @@ class EpochFrame {
    */
   verify(publicKey, previousFrame) {
     if (!this.signature) {
-      throw new HsmAdapterError('EPOCH_SIGNATURE_INVALID', 'frame has no signature');
+      throw new HsmAdapterError(
+        "EPOCH_SIGNATURE_INVALID",
+        "frame has no signature",
+      );
     }
-    const payload = _serialize(this.epochNumber, this.previousHash, this.consensusTimestamp, this.driftMs);
-    const verifier = crypto.createVerify('sha256');
+    const payload = _serialize(
+      this.epochNumber,
+      this.previousHash,
+      this.consensusTimestamp,
+      this.driftMs,
+    );
+    const verifier = crypto.createVerify("sha256");
     verifier.update(payload);
-    const sigOk = verifier.verify(publicKey, this.signature, 'base64');
+    const sigOk = verifier.verify(publicKey, this.signature, "base64");
     if (!sigOk) return false;
 
     if (this.epochNumber > 0 && previousFrame) {
-      const expected = previousFrame instanceof EpochFrame ? previousFrame.hash() : previousFrame;
+      const expected =
+        previousFrame instanceof EpochFrame
+          ? previousFrame.hash()
+          : previousFrame;
       if (!this.previousHash.equals(expected)) {
         return false;
       }

@@ -3,17 +3,20 @@
  * Resend webhook (Svix-signed) — delivery / open / click events for outreach sends.
  */
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const logger = require('./app-logger.cjs');
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const logger = require("./app-logger.cjs");
 
-const express = require('express');
-const { sendClientError, ERROR_CODES } = require('../../shared-utils/index.cjs');
-const { loadSentLog, writeSentLog } = require('./outreach-mail.cjs');
+const express = require("express");
+const {
+  sendClientError,
+  ERROR_CODES,
+} = require("../../shared-utils/index.cjs");
+const { loadSentLog, writeSentLog } = require("./outreach-mail.cjs");
 
-const constants = require('../config/constants.cjs');
-const WEBHOOK_PATH = '/api/simplebeacon/outreach/webhooks/resend';
+const constants = require("../config/constants.cjs");
+const WEBHOOK_PATH = "/api/simplebeacon/outreach/webhooks/resend";
 const SVIX_TOLERANCE_SEC = 300;
 
 /**
@@ -22,8 +25,8 @@ const SVIX_TOLERANCE_SEC = 300;
  * @returns {any}
  */
 function eventsLogPath(options) {
-  const dataDir = options.dataDir || path.join(__dirname, '..', '..', 'data');
-  return path.join(dataDir, 'outreach-events.jsonl');
+  const dataDir = options.dataDir || path.join(__dirname, "..", "..", "data");
+  return path.join(dataDir, "outreach-events.jsonl");
 }
 
 /**
@@ -39,7 +42,7 @@ function emptyEngagement() {
     bouncedAt: null,
     complainedAt: null,
     lastEventAt: null,
-    lastEventType: null
+    lastEventType: null,
   };
 }
 
@@ -58,11 +61,11 @@ function normalizeEngagement(row) {
  * @returns {any}
  */
 function decodeSvixSecret(secret) {
-  const raw = String(secret || '').trim();
+  const raw = String(secret || "").trim();
   if (!raw) return null;
-  const key = raw.startsWith('whsec_') ? raw.slice(6) : raw;
+  const key = raw.startsWith("whsec_") ? raw.slice(6) : raw;
   try {
-    return Buffer.from(key, 'base64');
+    return Buffer.from(key, "base64");
   } catch {
     return null;
   }
@@ -101,26 +104,33 @@ function headerValue(headers, name) {
  * @returns {any}
  */
 function verifySvixWebhook(rawBody, headers, secret) {
-  const msgId = headerValue(headers, 'svix-id');
-  const msgTimestamp = headerValue(headers, 'svix-timestamp');
-  const msgSignature = headerValue(headers, 'svix-signature');
+  const msgId = headerValue(headers, "svix-id");
+  const msgTimestamp = headerValue(headers, "svix-timestamp");
+  const msgSignature = headerValue(headers, "svix-signature");
   const secretBuffer = decodeSvixSecret(secret);
 
   if (!msgId || !msgTimestamp || !msgSignature || !secretBuffer) return null;
 
   const ts = Number(msgTimestamp);
   if (!Number.isFinite(ts)) return null;
-  const age = Math.abs(Math.floor(Math.floor(Date.now() / constants.MS_PER_SECOND)) - ts);
+  const age = Math.abs(
+    Math.floor(Math.floor(Date.now() / constants.MS_PER_SECOND)) - ts,
+  );
   if (age > SVIX_TOLERANCE_SEC) return null;
 
-  const payload = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '');
+  const payload = Buffer.isBuffer(rawBody)
+    ? rawBody.toString("utf8")
+    : String(rawBody || "");
   const signedContent = `${msgId}.${msgTimestamp}.${payload}`;
-  const expected = crypto.createHmac('sha256', secretBuffer).update(signedContent).digest('base64');
+  const expected = crypto
+    .createHmac("sha256", secretBuffer)
+    .update(signedContent)
+    .digest("base64");
 
-  const parts = String(msgSignature).split(' ');
+  const parts = String(msgSignature).split(" ");
   for (const part of parts) {
-    const [version, sig] = part.split(',');
-    if (version !== 'v1' || !sig) continue;
+    const [version, sig] = part.split(",");
+    if (version !== "v1" || !sig) continue;
     if (safeEqual(sig, expected)) {
       try {
         return JSON.parse(payload);
@@ -140,9 +150,11 @@ function verifySvixWebhook(rawBody, headers, secret) {
  * @returns {any}
  */
 function tagValue(tags, name) {
-  if (!Array.isArray(tags)) return '';
-  const hit = tags.find((t) => String(t?.name || '').toLowerCase() === String(name).toLowerCase());
-  return hit ? String(hit.value || '').trim() : '';
+  if (!Array.isArray(tags)) return "";
+  const hit = tags.find(
+    (t) => String(t?.name || "").toLowerCase() === String(name).toLowerCase(),
+  );
+  return hit ? String(hit.value || "").trim() : "";
 }
 
 /**
@@ -152,9 +164,12 @@ function tagValue(tags, name) {
  */
 function recipientEmail(data) {
   const to = data?.to;
-  if (Array.isArray(to) && to.length) return String(to[0] || '').trim().toLowerCase();
-  if (typeof to === 'string') return to.trim().toLowerCase();
-  return '';
+  if (Array.isArray(to) && to.length)
+    return String(to[0] || "")
+      .trim()
+      .toLowerCase();
+  if (typeof to === "string") return to.trim().toLowerCase();
+  return "";
 }
 
 /**
@@ -163,7 +178,7 @@ function recipientEmail(data) {
  * @returns {any}
  */
 function resendEmailIdFromData(data) {
-  return String(data?.email_id || data?.id || '').trim();
+  return String(data?.email_id || data?.id || "").trim();
 }
 
 /**
@@ -173,18 +188,18 @@ function resendEmailIdFromData(data) {
  */
 function engagementFieldForEvent(type) {
   switch (type) {
-    case 'email.sent':
-      return 'sentAt';
-    case 'email.delivered':
-      return 'deliveredAt';
-    case 'email.opened':
-      return 'openedAt';
-    case 'email.clicked':
-      return 'clickedAt';
-    case 'email.bounced':
-      return 'bouncedAt';
-    case 'email.complained':
-      return 'complainedAt';
+    case "email.sent":
+      return "sentAt";
+    case "email.delivered":
+      return "deliveredAt";
+    case "email.opened":
+      return "openedAt";
+    case "email.clicked":
+      return "clickedAt";
+    case "email.bounced":
+      return "bouncedAt";
+    case "email.complained":
+      return "complainedAt";
     default:
       return null;
   }
@@ -199,25 +214,32 @@ function engagementFieldForEvent(type) {
 function findSentRowIndex(rows, event) {
   const data = event?.data || {};
   const emailId = resendEmailIdFromData(data);
-  const logId = tagValue(data.tags, 'log_id');
-  const prospectId = tagValue(data.tags, 'prospect_id');
+  const logId = tagValue(data.tags, "log_id");
+  const prospectId = tagValue(data.tags, "prospect_id");
   const to = recipientEmail(data);
-  const eventAt = String(event?.created_at || data?.created_at || new Date().toISOString());
+  const eventAt = String(
+    event?.created_at || data?.created_at || new Date().toISOString(),
+  );
 
   if (emailId) {
-    const idx = rows.findIndex((row) => String(row.resendEmailId || '') === emailId);
+    const idx = rows.findIndex(
+      (row) => String(row.resendEmailId || "") === emailId,
+    );
     if (idx >= 0) return idx;
   }
 
   if (logId) {
-    const idx = rows.findIndex((row) => String(row.id || '') === logId);
+    const idx = rows.findIndex((row) => String(row.id || "") === logId);
     if (idx >= 0) return idx;
   }
 
   if (prospectId && to) {
     for (let i = rows.length - 1; i >= 0; i -= 1) {
       const row = rows[i];
-      if (String(row.prospectId || '') === prospectId && String(row.to || '').toLowerCase() === to) {
+      if (
+        String(row.prospectId || "") === prospectId &&
+        String(row.to || "").toLowerCase() === to
+      ) {
         return i;
       }
     }
@@ -225,7 +247,7 @@ function findSentRowIndex(rows, event) {
 
   if (to) {
     for (let i = rows.length - 1; i >= 0; i -= 1) {
-      if (String(rows[i].to || '').toLowerCase() === to) return i;
+      if (String(rows[i].to || "").toLowerCase() === to) return i;
     }
   }
 
@@ -240,7 +262,9 @@ function findSentRowIndex(rows, event) {
  */
 function applyEngagementPatch(row, event) {
   const field = engagementFieldForEvent(event.type);
-  const eventAt = String(event?.created_at || event?.data?.created_at || new Date().toISOString());
+  const eventAt = String(
+    event?.created_at || event?.data?.created_at || new Date().toISOString(),
+  );
   const engagement = normalizeEngagement(row);
   engagement.lastEventAt = eventAt;
   engagement.lastEventType = event.type;
@@ -252,7 +276,7 @@ function applyEngagementPatch(row, event) {
   return {
     ...row,
     resendEmailId: row.resendEmailId || emailId || undefined,
-    engagement
+    engagement,
   };
 }
 
@@ -270,9 +294,9 @@ async function appendEventLog(event, options) {
     type: event.type,
     emailId: resendEmailIdFromData(event.data || {}),
     to: recipientEmail(event.data || {}),
-    prospectId: tagValue(event.data?.tags, 'prospect_id') || undefined
+    prospectId: tagValue(event.data?.tags, "prospect_id") || undefined,
   });
-  await fs.promises.appendFile(file, `${line}\n`, 'utf8');
+  await fs.promises.appendFile(file, `${line}\n`, "utf8");
 }
 
 /**
@@ -304,14 +328,14 @@ async function processResendWebhookEvent(event, options = {}) {
 function setupOutreachResendWebhook(app, options = {}) {
   app.post(
     WEBHOOK_PATH,
-    express.raw({ type: 'application/json' }),
+    express.raw({ type: "application/json" }),
     async (req, res) => {
-      const secret = String(process.env.RESEND_WEBHOOK_SECRET || '').trim();
+      const secret = String(process.env.RESEND_WEBHOOK_SECRET || "").trim();
       if (!secret) {
         return sendClientError(res, 503, null, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_WEBHOOK_NOT_CONFIGURED,
-          fallback: 'Resend webhook secret not configured',
-          req
+          fallback: "Resend webhook secret not configured",
+          req,
         });
       }
 
@@ -319,8 +343,8 @@ function setupOutreachResendWebhook(app, options = {}) {
       if (!event || !event.type) {
         return sendClientError(res, 400, null, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_WEBHOOK_SIGNATURE_INVALID,
-          fallback: 'Invalid Resend webhook signature',
-          req
+          fallback: "Invalid Resend webhook signature",
+          req,
         });
       }
 
@@ -328,14 +352,14 @@ function setupOutreachResendWebhook(app, options = {}) {
         const result = await processResendWebhookEvent(event, options);
         return res.json({ ok: true, received: event.type, ...result });
       } catch (err) {
-        logger.warn('[outreach-webhook] process failed:', err.message);
+        logger.warn("[outreach-webhook] process failed:", err.message);
         return sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
-          fallback: 'Outreach webhook processing failed',
-          req
+          fallback: "Outreach webhook processing failed",
+          req,
         });
       }
-    }
+    },
   );
 }
 
@@ -346,5 +370,5 @@ module.exports = {
   processResendWebhookEvent,
   applyEngagementPatch,
   findSentRowIndex,
-  setupOutreachResendWebhook
+  setupOutreachResendWebhook,
 };

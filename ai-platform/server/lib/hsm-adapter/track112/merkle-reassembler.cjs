@@ -25,21 +25,21 @@
  * @module track112/merkle-reassembler
  */
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
-const { writeAtomicSync } = require('../../storage/reassembler.cjs');
+const { writeAtomicSync } = require("../../storage/reassembler.cjs");
 
 const DEFAULT_LEAF_SIZE = 4096;
-const STATE_FILENAME = 'tree-state.json';
+const STATE_FILENAME = "tree-state.json";
 
 function sha256Buf(buf) {
-  return crypto.createHash('sha256').update(buf).digest();
+  return crypto.createHash("sha256").update(buf).digest();
 }
 
 function sha256Hex(buf) {
-  return sha256Buf(buf).toString('hex');
+  return sha256Buf(buf).toString("hex");
 }
 
 /**
@@ -49,8 +49,8 @@ function sha256Hex(buf) {
  * @returns {string} hex digest
  */
 function combineHashes(leftHex, rightHex) {
-  const left = Buffer.from(leftHex, 'hex');
-  const right = Buffer.from(rightHex, 'hex');
+  const left = Buffer.from(leftHex, "hex");
+  const right = Buffer.from(rightHex, "hex");
   return sha256Hex(Buffer.concat([left, right]));
 }
 
@@ -84,8 +84,8 @@ class MerkleReassembler {
    * @param {Buffer} buf — chunk data
    */
   append(offset, buf) {
-    if (this._finalized) throw new Error('tree_already_finalized');
-    if (offset % this.leafSize !== 0) throw new Error('offset_not_aligned');
+    if (this._finalized) throw new Error("tree_already_finalized");
+    if (offset % this.leafSize !== 0) throw new Error("offset_not_aligned");
     if (!Buffer.isBuffer(buf)) buf = Buffer.from(buf);
 
     const leafHash = sha256Hex(buf);
@@ -93,7 +93,7 @@ class MerkleReassembler {
     this._root = null;
 
     if (this.metrics) {
-      this.metrics.incrementCounter('hsm_track112_merkle_leaf_hashed_total');
+      this.metrics.incrementCounter("hsm_track112_merkle_leaf_hashed_total");
     }
 
     this._saveState();
@@ -168,7 +168,7 @@ class MerkleReassembler {
     this._finalized = state.finalized || false;
 
     if (this.metrics) {
-      this.metrics.incrementCounter('hsm_track112_merkle_tree_rebuild_total');
+      this.metrics.incrementCounter("hsm_track112_merkle_tree_rebuild_total");
     }
   }
 
@@ -225,7 +225,7 @@ class MerkleReassembler {
     const statePath = path.join(this.stateDir, STATE_FILENAME);
     try {
       if (fs.existsSync(statePath)) {
-        const raw = fs.readFileSync(statePath, 'utf8');
+        const raw = fs.readFileSync(statePath, "utf8");
         const state = JSON.parse(raw);
         this.loadState(state);
       }

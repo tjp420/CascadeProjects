@@ -31,7 +31,7 @@ export async function fetchSiemTelemetry() {
     if (msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
       return { status: 'unavailable', metrics: {}, peers: {}, distributedSyncEnabled: false };
     }
-    window["console"]["error"]('[siemTelemetryService] Error fetching telemetry:', msg);
+    window['console']['error']('[siemTelemetryService] Error fetching telemetry:', msg);
     throw error;
   }
 }

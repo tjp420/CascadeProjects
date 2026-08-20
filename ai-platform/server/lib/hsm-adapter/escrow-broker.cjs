@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 23: Cross-tenant key escrow broker.
@@ -11,9 +11,9 @@
  * @module hsm-adapter/escrow-broker
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { DeclassificationProof } = require('./declassification-proof.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const { DeclassificationProof } = require("./declassification-proof.cjs");
 
 class EscrowBroker {
   /**
@@ -27,7 +27,9 @@ class EscrowBroker {
     this._publicKeys = options.publicKeys || {};
     this._policyEngine = options.policyEngine || null;
     this._timeAnchor = options.timeAnchor || null;
-    this._brokerKeyPair = options.brokerKeyPair || crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    this._brokerKeyPair =
+      options.brokerKeyPair ||
+      crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" });
     this._escrows = new Map();
     this._byKeyRef = new Map();
   }
@@ -49,10 +51,16 @@ class EscrowBroker {
    */
   initiateEscrow(sourceTenantId, destTenantId, keyRef) {
     if (sourceTenantId === destTenantId) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'source and destination tenant must be different');
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        "source and destination tenant must be different",
+      );
     }
     if (!this._publicKeys[sourceTenantId] || !this._publicKeys[destTenantId]) {
-      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', 'escrow requires public keys for both tenants');
+      throw new HsmAdapterError(
+        "UNAUTHORIZED_KEY_ACCESS",
+        "escrow requires public keys for both tenants",
+      );
     }
 
     const escrowId = crypto.randomUUID();
@@ -82,28 +90,49 @@ class EscrowBroker {
   consentToEscrow(escrowId, tenantId, signature) {
     const escrow = this._escrows.get(escrowId);
     if (!escrow) {
-      throw new HsmAdapterError('UNKNOWN_ESCROW', `escrow not found: ${escrowId}`);
+      throw new HsmAdapterError(
+        "UNKNOWN_ESCROW",
+        `escrow not found: ${escrowId}`,
+      );
     }
     if (escrow.finalized) {
-      throw new HsmAdapterError('ESCROW_ALREADY_FINALIZED', `escrow ${escrowId} is already finalized`);
+      throw new HsmAdapterError(
+        "ESCROW_ALREADY_FINALIZED",
+        `escrow ${escrowId} is already finalized`,
+      );
     }
-    if (tenantId !== escrow.sourceTenantId && tenantId !== escrow.destTenantId) {
-      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', `tenant ${tenantId} is not a party to escrow ${escrowId}`);
+    if (
+      tenantId !== escrow.sourceTenantId &&
+      tenantId !== escrow.destTenantId
+    ) {
+      throw new HsmAdapterError(
+        "UNAUTHORIZED_KEY_ACCESS",
+        `tenant ${tenantId} is not a party to escrow ${escrowId}`,
+      );
     }
     if (escrow.consents.has(tenantId)) {
-      throw new HsmAdapterError('ESCROW_ALREADY_CONSENTED', `tenant ${tenantId} already consented to escrow ${escrowId}`);
+      throw new HsmAdapterError(
+        "ESCROW_ALREADY_CONSENTED",
+        `tenant ${tenantId} already consented to escrow ${escrowId}`,
+      );
     }
 
     const publicKey = this._publicKeys[tenantId];
     if (!publicKey) {
-      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', `no public key registered for tenant ${tenantId}`);
+      throw new HsmAdapterError(
+        "UNAUTHORIZED_KEY_ACCESS",
+        `no public key registered for tenant ${tenantId}`,
+      );
     }
 
     const payload = this._consentCanonical(escrow, tenantId);
-    const verifier = crypto.createVerify('sha256');
-    verifier.update(Buffer.from(payload, 'utf8'));
-    if (!verifier.verify(publicKey, signature, 'base64')) {
-      throw new HsmAdapterError('INVALID_ESCROW_SIGNATURE', `invalid consent signature from tenant ${tenantId}`);
+    const verifier = crypto.createVerify("sha256");
+    verifier.update(Buffer.from(payload, "utf8"));
+    if (!verifier.verify(publicKey, signature, "base64")) {
+      throw new HsmAdapterError(
+        "INVALID_ESCROW_SIGNATURE",
+        `invalid consent signature from tenant ${tenantId}`,
+      );
     }
 
     escrow.consents.set(tenantId, { tenantId, payload, signature });
@@ -119,7 +148,10 @@ class EscrowBroker {
   finalizeEscrow(escrowId, options = {}) {
     const escrow = this._escrows.get(escrowId);
     if (!escrow) {
-      throw new HsmAdapterError('UNKNOWN_ESCROW', `escrow not found: ${escrowId}`);
+      throw new HsmAdapterError(
+        "UNKNOWN_ESCROW",
+        `escrow not found: ${escrowId}`,
+      );
     }
     if (escrow.finalized) {
       return escrow.proof;
@@ -127,7 +159,10 @@ class EscrowBroker {
 
     const consentCount = escrow.consents.size;
     if (consentCount < 2) {
-      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', `only ${consentCount} consent signatures, require 2`);
+      throw new HsmAdapterError(
+        "ESCROW_CONSENT_MISSING",
+        `only ${consentCount} consent signatures, require 2`,
+      );
     }
 
     const consensusTimestamp = this._consensusTime();
@@ -135,13 +170,13 @@ class EscrowBroker {
     const expiry = consensusTimestamp + tokenExpiryMs;
 
     if (this._policyEngine) {
-      this._policyEngine.validate(escrow.destTenantId, 'escrow', {
+      this._policyEngine.validate(escrow.destTenantId, "escrow", {
         sourceTenantId: escrow.sourceTenantId,
         destTenantId: escrow.destTenantId,
         consentCount,
         tokenExpiryMs,
         escrowLifetimeMs: consensusTimestamp - escrow.initiatedAt,
-        algorithm: 'aes-kw',
+        algorithm: "aes-kw",
       });
     }
 
@@ -155,7 +190,8 @@ class EscrowBroker {
       consentSignatures: Array.from(escrow.consents.values()),
     });
 
-    const brokerPrivateKey = this._brokerKeyPair.privateKey || this._brokerKeyPair.private;
+    const brokerPrivateKey =
+      this._brokerKeyPair.privateKey || this._brokerKeyPair.private;
     proof.sign(brokerPrivateKey);
     escrow.finalized = true;
     escrow.proof = proof;
@@ -177,20 +213,33 @@ class EscrowBroker {
 
     const escrow = this._escrows.get(escrowId);
     if (!escrow || !escrow.finalized) {
-      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', `escrow for ${keyRef} is not finalized`);
+      throw new HsmAdapterError(
+        "ESCROW_CONSENT_MISSING",
+        `escrow for ${keyRef} is not finalized`,
+      );
     }
 
     if (!token) {
-      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', `declassification token required for escrowed key ${keyRef}`);
+      throw new HsmAdapterError(
+        "ESCROW_CONSENT_MISSING",
+        `declassification token required for escrowed key ${keyRef}`,
+      );
     }
 
-    const proof = token instanceof DeclassificationProof ? token : new DeclassificationProof(token);
+    const proof =
+      token instanceof DeclassificationProof
+        ? token
+        : new DeclassificationProof(token);
     if (proof.keyRef !== keyRef || proof.destTenantId !== tenantId) {
-      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', 'declassification token does not match key or destination tenant');
+      throw new HsmAdapterError(
+        "ESCROW_CONSENT_MISSING",
+        "declassification token does not match key or destination tenant",
+      );
     }
 
     const currentTime = this._consensusTime();
-    const brokerPublicKey = this._brokerKeyPair.publicKey || this._brokerKeyPair.public;
+    const brokerPublicKey =
+      this._brokerKeyPair.publicKey || this._brokerKeyPair.public;
     proof.verify(this._publicKeys, brokerPublicKey, currentTime);
     return escrow;
   }

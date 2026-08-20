@@ -1,5 +1,9 @@
 import { authService, apiBase } from './authService.js?v=20260722bridgefix1';
-import { getBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured } from './localAgentService.js?v=20260716cachefix1';
+import {
+  getBridgeFetch,
+  getExtensionBridgeOrigin,
+  hasExtensionBridgeConfigured,
+} from './localAgentService.js?v=20260716cachefix1';
 
 function defaultRpId() {
   if (typeof location === 'undefined') return 'simplebeacon.ai';
@@ -14,7 +18,9 @@ function bufferToBase64url(buffer) {
 }
 
 function base64urlToBuffer(base64url) {
-  const base64 = String(base64url || '').replace(/-/g, '+').replace(/_/g, '/');
+  const base64 = String(base64url || '')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
   const pad = '='.repeat((4 - (base64.length % 4)) % 4);
   const binary = atob(base64 + pad);
   const bytes = new Uint8Array(binary.length);
@@ -29,8 +35,8 @@ function serializeCredential(credential) {
     rawId: bufferToBase64url(credential.rawId),
     type: credential.type,
     response: {
-      clientDataJSON: bufferToBase64url(response.clientDataJSON)
-    }
+      clientDataJSON: bufferToBase64url(response.clientDataJSON),
+    },
   };
   if (response.attestationObject) {
     payload.response.attestationObject = bufferToBase64url(response.attestationObject);
@@ -67,7 +73,7 @@ async function requestChallenge(purpose, extra = {}) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authService.getAuthHeaders() },
     credentials: 'same-origin',
-    body: JSON.stringify({ purpose, ...extra })
+    body: JSON.stringify({ purpose, ...extra }),
   });
   const data = await res.json().catch(() => ({}));
   if (res.status === 404) {
@@ -88,7 +94,7 @@ export async function registerSecurityKey({ email, label = 'Security key' } = {}
     throw new Error('Security keys are not supported in this browser.');
   }
   const challengeData = await requestChallenge('register', {
-    email: email || authService.getUser()?.email || undefined
+    email: email || authService.getUser()?.email || undefined,
   });
   const userIdSource = authService.getUser()?.id || email || 'simplebeacon-user';
   const credential = await navigator.credentials.create({
@@ -96,24 +102,24 @@ export async function registerSecurityKey({ email, label = 'Security key' } = {}
       challenge: base64urlToBuffer(challengeData.challenge),
       rp: {
         name: challengeData.rpName || 'SimpleBeacon',
-        id: challengeData.rpId || defaultRpId()
+        id: challengeData.rpId || defaultRpId(),
       },
       user: {
         id: base64urlToBuffer(bufferToBase64url(new TextEncoder().encode(userIdSource))),
         name: email || authService.getUser()?.email || 'SimpleBeacon user',
-        displayName: email || authService.getUser()?.email || 'SimpleBeacon user'
+        displayName: email || authService.getUser()?.email || 'SimpleBeacon user',
       },
       pubKeyCredParams: [
         { type: 'public-key', alg: -7 },
-        { type: 'public-key', alg: -257 }
+        { type: 'public-key', alg: -257 },
       ],
       authenticatorSelection: {
         residentKey: 'preferred',
-        userVerification: 'preferred'
+        userVerification: 'preferred',
       },
       timeout: 60000,
-      attestation: 'none'
-    }
+      attestation: 'none',
+    },
   });
   if (!credential) {
     throw new Error('Security key registration was cancelled.');
@@ -125,8 +131,8 @@ export async function registerSecurityKey({ email, label = 'Security key' } = {}
     body: JSON.stringify({
       challengeId: challengeData.challengeId,
       label,
-      credential: serializeCredential(credential)
-    })
+      credential: serializeCredential(credential),
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
@@ -145,8 +151,8 @@ export async function authenticateWithSecurityKey() {
       challenge: base64urlToBuffer(challengeData.challenge),
       rpId: challengeData.rpId || defaultRpId(),
       timeout: 60000,
-      userVerification: 'preferred'
-    }
+      userVerification: 'preferred',
+    },
   });
   if (!assertion) {
     throw new Error('Security key sign-in was cancelled.');
@@ -157,8 +163,8 @@ export async function authenticateWithSecurityKey() {
     credentials: 'same-origin',
     body: JSON.stringify({
       challengeId: challengeData.challengeId,
-      credential: serializeCredential(assertion)
-    })
+      credential: serializeCredential(assertion),
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success || !data.token) {
@@ -170,7 +176,7 @@ export async function authenticateWithSecurityKey() {
 export async function listSecurityKeys() {
   const res = await webAuthnFetch('/api/webauthn/credentials', {
     headers: authService.getAuthHeaders(),
-    credentials: 'same-origin'
+    credentials: 'same-origin',
   });
   if (res.status === 401) {
     return [];
@@ -189,7 +195,7 @@ export async function removeSecurityKey(credentialId) {
   const res = await webAuthnFetch(`/api/webauthn/credentials/${encodeURIComponent(credentialId)}`, {
     method: 'DELETE',
     headers: authService.getAuthHeaders(),
-    credentials: 'same-origin'
+    credentials: 'same-origin',
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {

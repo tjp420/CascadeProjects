@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 84: PQC DAO Treasury Management Gating Hub.
@@ -15,8 +15,8 @@
  * @module hsm-adapter/pqc-dao-treasury-management-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class PqcDaoTreasuryManagementGatingHub {
   /**
@@ -39,52 +39,98 @@ class PqcDaoTreasuryManagementGatingHub {
    */
   initializePool(request) {
     _validateInitRequest(this.policy, request);
-    if (this.policy.requireGovernanceAuthorityInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireGovernanceAuthorityInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.governanceAuthorityInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.governanceAuthorityInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TREASURYGATE_AUTHORITY_INITIALIZER_UNATTESTED', 'governance authority initializer attestation invalid');
+          throw new HsmAdapterError(
+            "TREASURYGATE_AUTHORITY_INITIALIZER_UNATTESTED",
+            "governance authority initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TREASURYGATE_AUTHORITY_INITIALIZER_UNATTESTED', 'governance authority initializer attestation invalid');
+        throw new HsmAdapterError(
+          "TREASURYGATE_AUTHORITY_INITIALIZER_UNATTESTED",
+          "governance authority initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('TREASURYGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TREASURYGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('TREASURYGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TREASURYGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.proposalWindowSeconds === 'number' && request.proposalWindowSeconds > (this.policy.maxProposalWindowSeconds || 2592000)) {
-      throw new HsmAdapterError('TREASURYGATE_PROPOSAL_WINDOW_EXCEEDED', `proposal window seconds ${request.proposalWindowSeconds} exceeds maximum ${this.policy.maxProposalWindowSeconds}`);
+    if (
+      typeof request.proposalWindowSeconds === "number" &&
+      request.proposalWindowSeconds >
+        (this.policy.maxProposalWindowSeconds || 2592000)
+    ) {
+      throw new HsmAdapterError(
+        "TREASURYGATE_PROPOSAL_WINDOW_EXCEEDED",
+        `proposal window seconds ${request.proposalWindowSeconds} exceeds maximum ${this.policy.maxProposalWindowSeconds}`,
+      );
     }
-    if (typeof request.allocationDepth === 'number' && request.allocationDepth > (this.policy.maxAllocationDepth || 16)) {
-      throw new HsmAdapterError('TREASURYGATE_ALLOCATION_DEPTH_EXCEEDED', `allocation depth ${request.allocationDepth} exceeds maximum ${this.policy.maxAllocationDepth}`);
+    if (
+      typeof request.allocationDepth === "number" &&
+      request.allocationDepth > (this.policy.maxAllocationDepth || 16)
+    ) {
+      throw new HsmAdapterError(
+        "TREASURYGATE_ALLOCATION_DEPTH_EXCEEDED",
+        `allocation depth ${request.allocationDepth} exceeds maximum ${this.policy.maxAllocationDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('TREASURYGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "TREASURYGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
       poolId,
       sourceTenantId: request.sourceTenantId,
       targetChainId: request.targetChainId,
-      blindedTreasuryAllocationCommitment: request.blindedTreasuryAllocationCommitment,
-      blindedProposalExecutionCommitment: request.blindedProposalExecutionCommitment,
+      blindedTreasuryAllocationCommitment:
+        request.blindedTreasuryAllocationCommitment,
+      blindedProposalExecutionCommitment:
+        request.blindedProposalExecutionCommitment,
       blindedVoterIdentityCommitment: request.blindedVoterIdentityCommitment,
       proposalWindowSeconds: request.proposalWindowSeconds,
       allocationDepth: request.allocationDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: "open",
       proposalClaimVerified: false,
       voterAccreditationCompletedAt: null,
     };
     this._pools.set(poolId, pool);
     if (this._audit) {
-      this._audit('TREASURY_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("TREASURY_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -106,7 +152,10 @@ class PqcDaoTreasuryManagementGatingHub {
   markProposalClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('TREASURYGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "TREASURYGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.proposalClaimVerified = true;
     return pool;
@@ -121,30 +170,52 @@ class PqcDaoTreasuryManagementGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('TREASURYGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "TREASURYGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.proposalClaimVerified) {
-      throw new HsmAdapterError('TREASURYGATE_PROPOSAL_CLAIM_NOT_VERIFIED', `pool ${request.poolId} proposal claim not verified`);
+      throw new HsmAdapterError(
+        "TREASURYGATE_PROPOSAL_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} proposal claim not verified`,
+      );
     }
-    if (this.policy.requireTreasuryOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireTreasuryOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.treasuryOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.treasuryOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TREASURYGATE_OVERSIGHT_COMMITTEE_UNATTESTED', 'treasury oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "TREASURYGATE_OVERSIGHT_COMMITTEE_UNATTESTED",
+            "treasury oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TREASURYGATE_OVERSIGHT_COMMITTEE_UNATTESTED', 'treasury oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "TREASURYGATE_OVERSIGHT_COMMITTEE_UNATTESTED",
+          "treasury oversight committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minProposalQuorum || 3)) {
-      throw new HsmAdapterError('TREASURYGATE_QUORUM_INSUFFICIENT', `proposal signatures ${signatures.length} below minimum ${this.policy.minProposalQuorum}`);
+      throw new HsmAdapterError(
+        "TREASURYGATE_QUORUM_INSUFFICIENT",
+        `proposal signatures ${signatures.length} below minimum ${this.policy.minProposalQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'accredited';
+    pool.status = "accredited";
     pool.voterAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -152,7 +223,7 @@ class PqcDaoTreasuryManagementGatingHub {
       completedAt: now,
     };
     if (this._audit) {
-      this._audit('VOTER_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("VOTER_ACCREDITATION_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -168,28 +239,59 @@ class PqcDaoTreasuryManagementGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('TREASURYGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "TREASURYGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedTreasuryAllocationCommitment || !request.blindedProposalExecutionCommitment || !request.blindedVoterIdentityCommitment) {
-    throw new HsmAdapterError('TREASURYGATE_FIELDS_MISSING', 'blindedTreasuryAllocationCommitment, blindedProposalExecutionCommitment, and blindedVoterIdentityCommitment are required');
+  if (
+    !request.blindedTreasuryAllocationCommitment ||
+    !request.blindedProposalExecutionCommitment ||
+    !request.blindedVoterIdentityCommitment
+  ) {
+    throw new HsmAdapterError(
+      "TREASURYGATE_FIELDS_MISSING",
+      "blindedTreasuryAllocationCommitment, blindedProposalExecutionCommitment, and blindedVoterIdentityCommitment are required",
+    );
   }
-  if (typeof request.proposalWindowSeconds !== 'number') {
-    throw new HsmAdapterError('TREASURYGATE_FIELDS_MISSING', 'proposalWindowSeconds is required');
+  if (typeof request.proposalWindowSeconds !== "number") {
+    throw new HsmAdapterError(
+      "TREASURYGATE_FIELDS_MISSING",
+      "proposalWindowSeconds is required",
+    );
   }
-  if (typeof request.allocationDepth !== 'number') {
-    throw new HsmAdapterError('TREASURYGATE_FIELDS_MISSING', 'allocationDepth is required');
+  if (typeof request.allocationDepth !== "number") {
+    throw new HsmAdapterError(
+      "TREASURYGATE_FIELDS_MISSING",
+      "allocationDepth is required",
+    );
   }
-  if (policy.requireGovernanceAuthorityInitializerAttestation && !request.governanceAuthorityInitializerAttestation) {
-    throw new HsmAdapterError('TREASURYGATE_AUTHORITY_ATTESTATION_MISSING', 'governance authority initializer attestation is required');
+  if (
+    policy.requireGovernanceAuthorityInitializerAttestation &&
+    !request.governanceAuthorityInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TREASURYGATE_AUTHORITY_ATTESTATION_MISSING",
+      "governance authority initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('TREASURYGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "TREASURYGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireTreasuryOversightCommitteeAttestation && !request.treasuryOversightCommitteeAttestation) {
-    throw new HsmAdapterError('TREASURYGATE_OVERSIGHT_ATTESTATION_MISSING', 'treasury oversight committee attestation is required');
+  if (
+    policy.requireTreasuryOversightCommitteeAttestation &&
+    !request.treasuryOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TREASURYGATE_OVERSIGHT_ATTESTATION_MISSING",
+      "treasury oversight committee attestation is required",
+    );
   }
 }
 

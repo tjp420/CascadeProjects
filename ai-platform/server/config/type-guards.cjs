@@ -16,7 +16,7 @@ function isNil(value) {
 }
 
 function isSymbol(value) {
-  return typeof value === 'symbol';
+  return typeof value === "symbol";
 }
 
 function isMap(value) {
@@ -33,5 +33,5 @@ module.exports = Object.freeze({
   isNil,
   isSymbol,
   isMap,
-  isSet
+  isSet,
 });

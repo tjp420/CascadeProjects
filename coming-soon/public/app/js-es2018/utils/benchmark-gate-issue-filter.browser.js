@@ -1,7 +1,8 @@
 /**
  * Browser mirror of benchmark gate issue exclusions — keep in sync with fiction-digest-export-sanitize.js.
  */
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
+const SCANNER_IMPL_PATH_RE =
+    /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
 const OSS_SCANNER_ROOT_FILES = new Set(['src/scan.js', 'src/config.js', 'src/project-detect.js', 'src/index.js']);
 const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
     'scanner-meta',
@@ -25,10 +26,8 @@ function normalizeRel(filePath) {
  */
 export function isScannerImplementationPath(relativePath) {
     const rel = normalizeRel(relativePath);
-    if (SCANNER_IMPL_PATH_RE.test(rel.toLowerCase()))
-        return true;
-    if (OSS_SCANNER_ROOT_FILES.has(rel))
-        return true;
+    if (SCANNER_IMPL_PATH_RE.test(rel.toLowerCase())) return true;
+    if (OSS_SCANNER_ROOT_FILES.has(rel)) return true;
     return false;
 }
 /**
@@ -38,15 +37,16 @@ export function isScannerImplementationPath(relativePath) {
  */
 export function isBenchmarkCloneNoiseIssue(issue) {
     var _a, _b;
-    if (!issue)
-        return false;
-    const pattern = String(issue.pattern || ((_a = issue.metadata) === null || _a === void 0 ? void 0 : _a.patternId) || '');
-    const category = String(issue.category || ((_b = issue.metadata) === null || _b === void 0 ? void 0 : _b.category) || '');
+    if (!issue) return false;
+    const pattern = String(
+        issue.pattern || ((_a = issue.metadata) === null || _a === void 0 ? void 0 : _a.patternId) || ''
+    );
+    const category = String(
+        issue.category || ((_b = issue.metadata) === null || _b === void 0 ? void 0 : _b.category) || ''
+    );
     const type = String(issue.type || '');
-    if (/SB-HANDOFF/i.test(pattern) || category === 'handoff-integrity')
-        return true;
-    if (/EUAI-/i.test(pattern) || /EU AI Act/i.test(type))
-        return true;
+    if (/SB-HANDOFF/i.test(pattern) || category === 'handoff-integrity') return true;
+    if (/EUAI-/i.test(pattern) || /EU AI Act/i.test(type)) return true;
     return false;
 }
 /**
@@ -56,14 +56,12 @@ export function isBenchmarkCloneNoiseIssue(issue) {
  */
 export function isBenchmarkScannerMetaIssue(issue) {
     var _a, _b;
-    if (!issue)
-        return false;
+    if (!issue) return false;
     const intent = String(((_a = issue.metadata) === null || _a === void 0 ? void 0 : _a.intent) || issue.intent || '');
-    if (intent && SUPPRESSED_PRODUCTION_LEAK_INTENTS.has(intent))
-        return true;
-    if (!/production leak/i.test(String(issue.type || '')))
-        return false;
-    const filePath = issue.filePath || issue.file || ((_b = issue.filePaths) === null || _b === void 0 ? void 0 : _b[0]) || '';
+    if (intent && SUPPRESSED_PRODUCTION_LEAK_INTENTS.has(intent)) return true;
+    if (!/production leak/i.test(String(issue.type || ''))) return false;
+    const filePath =
+        issue.filePath || issue.file || ((_b = issue.filePaths) === null || _b === void 0 ? void 0 : _b[0]) || '';
     return filePath ? isScannerImplementationPath(filePath) : false;
 }
 /**
@@ -73,10 +71,8 @@ export function isBenchmarkScannerMetaIssue(issue) {
  * @returns {any}
  */
 export function isBenchmarkDigestExcludedIssue(issue, benchmarkScan) {
-    if (!benchmarkScan || !issue)
-        return false;
-    if (isBenchmarkCloneNoiseIssue(issue))
-        return true;
+    if (!benchmarkScan || !issue) return false;
+    if (isBenchmarkCloneNoiseIssue(issue)) return true;
     return isBenchmarkScannerMetaIssue(issue);
 }
 /**
@@ -86,9 +82,8 @@ export function isBenchmarkDigestExcludedIssue(issue, benchmarkScan) {
  * @returns {any}
  */
 export function filterBenchmarkGateIssues(issues = [], benchmarkScan) {
-    if (!benchmarkScan)
-        return issues;
-    return issues.filter((issue) => !isBenchmarkDigestExcludedIssue(issue, true));
+    if (!benchmarkScan) return issues;
+    return issues.filter(issue => !isBenchmarkDigestExcludedIssue(issue, true));
 }
 /**
  * Recompute gate from issues.
@@ -100,10 +95,10 @@ export function recomputeGateFromIssues(issues, gateConfig = {}) {
     const failOn = gateConfig.failOn || ['high'];
     const warnOn = gateConfig.warnOn || ['medium', 'low'];
     const blockingCount = issues
-        .filter((issue) => failOn.includes(issue.severityBand || issue.severity))
+        .filter(issue => failOn.includes(issue.severityBand || issue.severity))
         .reduce((sum, issue) => sum + (issue.count || 1), 0);
     const warningCount = issues
-        .filter((issue) => warnOn.includes(issue.severityBand || issue.severity))
+        .filter(issue => warnOn.includes(issue.severityBand || issue.severity))
         .reduce((sum, issue) => sum + (issue.count || 1), 0);
     return {
         ...gateConfig,
@@ -120,20 +115,19 @@ export function recomputeGateFromIssues(issues, gateConfig = {}) {
  */
 export function normalizeBenchmarkGateReport(report, projectPath) {
     var _a, _b;
-    if (!report || report.type !== 'simplebeacon-report')
-        return report;
+    if (!report || report.type !== 'simplebeacon-report') return report;
     const projectKey = normalizeRel(projectPath || report.projectRoot || '');
     const isBenchmark = /\/github-cache\//i.test(projectKey) || projectKey.startsWith('github-cache/');
-    if (!isBenchmark)
-        return report;
-    const sourceIssues = ((_a = report.rawIssues) === null || _a === void 0 ? void 0 : _a.length) ? report.rawIssues : (report.detectedIssues || []);
+    if (!isBenchmark) return report;
+    const sourceIssues = ((_a = report.rawIssues) === null || _a === void 0 ? void 0 : _a.length)
+        ? report.rawIssues
+        : report.detectedIssues || [];
     const benchmarkCloneNoiseIssues = [];
     const deduped = [];
     const seen = new Set();
     for (const issue of sourceIssues) {
         const key = issue.id || `${issue.severity}|${issue.type}|${issue.filePath}|${issue.description}`;
-        if (seen.has(key))
-            continue;
+        if (seen.has(key)) continue;
         seen.add(key);
         if (isBenchmarkDigestExcludedIssue(issue, true)) {
             benchmarkCloneNoiseIssues.push(issue);
@@ -141,10 +135,14 @@ export function normalizeBenchmarkGateReport(report, projectPath) {
         }
         deduped.push(issue);
     }
-    const gateConfig = report.gate || ((_b = report.scanScope) === null || _b === void 0 ? void 0 : _b.gatePolicy) || { failOn: ['high'], warnOn: ['medium', 'low'] };
+    const gateConfig = report.gate ||
+        ((_b = report.scanScope) === null || _b === void 0 ? void 0 : _b.gatePolicy) || {
+            failOn: ['high'],
+            warnOn: ['medium', 'low']
+        };
     const gate = recomputeGateFromIssues(deduped, gateConfig);
     const productionLeakFindings = deduped
-        .filter((i) => /production leak/i.test(String(i.type || '')))
+        .filter(i => /production leak/i.test(String(i.type || '')))
         .reduce((sum, i) => sum + (i.count || 1), 0);
     return {
         ...report,

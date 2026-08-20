@@ -3,8 +3,6 @@
   "overview": {
     "totalMerges": 12
   },
-  "merges": [
-    {}
-  ],
+  "merges": [{}],
   "reductionScan": {}
 }

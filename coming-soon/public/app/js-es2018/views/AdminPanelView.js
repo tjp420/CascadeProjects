@@ -95,8 +95,7 @@ export class AdminPanelView {
             const sameOrigin = typeof location !== 'undefined' ? apiOrigin === location.origin : true;
             const creds = sameOrigin ? 'include' : 'omit';
             return fetch(url, { ...options, headers, credentials: creds });
-        }
-        catch (_a) {
+        } catch (_a) {
             return fetch(url, { ...options, headers, credentials: 'omit' });
         }
     }
@@ -275,10 +274,12 @@ export class AdminPanelView {
     }
 
     async promptPassword(title = 'Confirm destructive action') {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay';
-            setHtml(overlay, `
+            setHtml(
+                overlay,
+                `
                 <div class="admin-modal" role="dialog" aria-modal="true">
                     <h3>${escapeHtml(title)}</h3>
                     <p class="text-muted">Enter your admin password to continue.</p>
@@ -287,33 +288,36 @@ export class AdminPanelView {
                         <button class="btn btn-secondary" id="admin-password-cancel" type="button">Cancel</button>
                         <button class="btn btn-primary" id="admin-password-confirm" type="button">Confirm</button>
                     </div>
-                </div>`);
+                </div>`
+            );
             document.body.appendChild(overlay);
             const input = overlay.querySelector('#admin-password-input');
             const confirm = overlay.querySelector('#admin-password-confirm');
             const cancel = overlay.querySelector('#admin-password-cancel');
             input.focus();
-            const finish = (value) => {
+            const finish = value => {
                 overlay.remove();
                 resolve(value);
             };
             confirm.addEventListener('click', () => finish(input.value || null));
             cancel.addEventListener('click', () => finish(null));
-            input.addEventListener('keydown', (e) => {
+            input.addEventListener('keydown', e => {
                 if (e.key === 'Enter') finish(input.value || null);
                 if (e.key === 'Escape') finish(null);
             });
-            overlay.addEventListener('click', (e) => {
+            overlay.addEventListener('click', e => {
                 if (e.target === overlay) finish(null);
             });
         });
     }
 
     async promptConfirmEmail(user) {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay';
-            setHtml(overlay, `
+            setHtml(
+                overlay,
+                `
                 <div class="admin-modal" role="dialog" aria-modal="true">
                     <h3>Delete ${escapeHtml(user.name || user.email)}</h3>
                     <p class="text-danger">This action cannot be undone. Type the account email to confirm.</p>
@@ -322,23 +326,24 @@ export class AdminPanelView {
                         <button class="btn btn-secondary" id="admin-confirm-cancel" type="button">Cancel</button>
                         <button class="btn btn-danger" id="admin-confirm-ok" type="button">Delete account</button>
                     </div>
-                </div>`);
+                </div>`
+            );
             document.body.appendChild(overlay);
             const input = overlay.querySelector('#admin-confirm-input');
             const ok = overlay.querySelector('#admin-confirm-ok');
             const cancel = overlay.querySelector('#admin-confirm-cancel');
             input.focus();
-            const finish = (value) => {
+            const finish = value => {
                 overlay.remove();
                 resolve(value);
             };
             ok.addEventListener('click', () => finish(input.value || null));
             cancel.addEventListener('click', () => finish(null));
-            input.addEventListener('keydown', (e) => {
+            input.addEventListener('keydown', e => {
                 if (e.key === 'Enter') finish(input.value || null);
                 if (e.key === 'Escape') finish(null);
             });
-            overlay.addEventListener('click', (e) => {
+            overlay.addEventListener('click', e => {
                 if (e.target === overlay) finish(null);
             });
         });
@@ -421,7 +426,9 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        setHtml(overlay, `
+        setHtml(
+            overlay,
+            `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Change tier for ${escapeHtml(user.name || user.email)}</h3>
                 <label>Trust level</label>
@@ -451,11 +458,14 @@ export class AdminPanelView {
                     <button class="btn btn-secondary" id="admin-tier-cancel" type="button">Cancel</button>
                     <button class="btn btn-primary" id="admin-tier-save" type="button">Save changes</button>
                 </div>
-            </div>`);
+            </div>`
+        );
         document.body.appendChild(overlay);
         const finish = () => overlay.remove();
         overlay.querySelector('#admin-tier-cancel').addEventListener('click', finish);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(); });
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) finish();
+        });
         overlay.querySelector('#admin-tier-save').addEventListener('click', async () => {
             const trustLevel = overlay.querySelector('#admin-tier-trust').value;
             const subscriptionTier = overlay.querySelector('#admin-tier-subscription').value;
@@ -488,7 +498,9 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        setHtml(overlay, `
+        setHtml(
+            overlay,
+            `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Edit account details</h3>
                 <label>Display name</label>
@@ -501,11 +513,14 @@ export class AdminPanelView {
                     <button class="btn btn-secondary" id="admin-edit-cancel" type="button">Cancel</button>
                     <button class="btn btn-primary" id="admin-edit-save" type="button">Save</button>
                 </div>
-            </div>`);
+            </div>`
+        );
         document.body.appendChild(overlay);
         const finish = () => overlay.remove();
         overlay.querySelector('#admin-edit-cancel').addEventListener('click', finish);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(); });
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) finish();
+        });
         overlay.querySelector('#admin-edit-save').addEventListener('click', async () => {
             const name = overlay.querySelector('#admin-edit-name').value.trim();
             const email = overlay.querySelector('#admin-edit-email').value.trim();
@@ -542,7 +557,9 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        setHtml(overlay, `
+        setHtml(
+            overlay,
+            `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Refund ${escapeHtml(user.name || user.email)}</h3>
                 <p class="text-muted">Refunds all active paid subscriptions for this account. Stripe refund is attempted first when configured.</p>
@@ -554,11 +571,14 @@ export class AdminPanelView {
                     <button class="btn btn-secondary" id="admin-refund-cancel" type="button">Cancel</button>
                     <button class="btn btn-danger" id="admin-refund-confirm" type="button">Process refund</button>
                 </div>
-            </div>`);
+            </div>`
+        );
         document.body.appendChild(overlay);
         const finish = () => overlay.remove();
         overlay.querySelector('#admin-refund-cancel').addEventListener('click', finish);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(); });
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) finish();
+        });
         overlay.querySelector('#admin-refund-confirm').addEventListener('click', async () => {
             const reason = overlay.querySelector('#admin-refund-reason').value.trim();
             const password = overlay.querySelector('#admin-refund-password').value;
@@ -587,31 +607,39 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        setHtml(overlay, `
+        setHtml(
+            overlay,
+            `
             <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true" style="max-width:720px;max-height:90vh;overflow:auto;">
                 <h3>Account details</h3>
                 <p class="text-muted">${escapeHtml(user.name || user.email)}</p>
                 <div class="admin-details-loading"><div class="skeleton-row" style="width:60%"></div><div class="skeleton-row" style="width:80%"></div></div>
-            </div>`);
+            </div>`
+        );
         document.body.appendChild(overlay);
         const close = () => overlay.remove();
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) close();
+        });
 
         this.adminFetch(`/api/admin/users/${encodeURIComponent(id)}/details`)
-            .then(async (res) => {
+            .then(async res => {
                 if (!res.ok) throw new Error(`Details API ${res.status}`);
                 const data = await res.json();
                 if (!data || !data.user) throw new Error('No details returned');
                 setHtml(overlay, this.renderDetailsModal(user, data));
                 this.bindDetailsModal(overlay, data);
             })
-            .catch((err) => {
-                setHtml(overlay, `
+            .catch(err => {
+                setHtml(
+                    overlay,
+                    `
                     <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true">
                         <h3>Account details</h3>
                         <p class="text-danger">${escapeHtml(err.message || 'Failed to load details')}</p>
                         <button class="btn btn-secondary" id="admin-details-close" type="button">Close</button>
-                    </div>`);
+                    </div>`
+                );
                 overlay.querySelector('#admin-details-close')?.addEventListener('click', close);
             });
     }
@@ -649,7 +677,8 @@ export class AdminPanelView {
     }
 
     renderOverviewTab(user, u) {
-        const statusClass = String(u.status || 'active').toLowerCase() === 'active' ? 'status-online' : 'status-offline';
+        const statusClass =
+            String(u.status || 'active').toLowerCase() === 'active' ? 'status-online' : 'status-offline';
         const items = [
             ['Account ID', u.id || '—'],
             ['Email', u.email || '—'],
@@ -658,7 +687,10 @@ export class AdminPanelView {
             ['Account status', this.badge(u.status, 'status-' + statusClass)],
             ['Verification', this.badge(u.verificationStatus, 'status-' + statusClass)],
             ['Online now', u.online ? 'Yes' : 'No'],
-            ['Last seen', this.formatDate(u.lastSeen) + (u.lastSeen ? ' (' + this.formatRelative(u.lastSeen) + ')' : '')],
+            [
+                'Last seen',
+                this.formatDate(u.lastSeen) + (u.lastSeen ? ' (' + this.formatRelative(u.lastSeen) + ')' : '')
+            ],
             ['Created', this.formatDate(u.createdAt)],
             ['Successful analyses', u.successfulAnalyses || 0],
             ['Security incidents', u.securityIncidents || 0],
@@ -675,8 +707,8 @@ export class AdminPanelView {
         const statusBadge = status.valid
             ? this.badge('Valid', 'status-valid')
             : status.registered
-                ? this.badge(status.expired ? 'Expired' : 'Invalid', 'status-' + (status.expired ? 'expired' : 'invalid'))
-                : this.badge('Unregistered', 'status-unregistered');
+              ? this.badge(status.expired ? 'Expired' : 'Invalid', 'status-' + (status.expired ? 'expired' : 'invalid'))
+              : this.badge('Unregistered', 'status-unregistered');
         const tokenRow = token.licenseTokenFull
             ? `<div class="admin-token-row"><code class="admin-token-value" data-masked="${escapeHtml(token.licenseToken || '')}" data-full="${escapeHtml(token.licenseTokenFull)}">${escapeHtml(token.licenseToken || '')}</code><button class="btn btn-ghost btn-sm" id="admin-reveal-token" type="button">Reveal</button></div>`
             : `<code>${escapeHtml(token.licenseToken || '—')}</code>`;
@@ -690,11 +722,20 @@ export class AdminPanelView {
             ['Token tier', this.badge(token.tokenTier || 'community', 'tier')],
             ['Registered', this.formatDate(token.registeredAt || status.registeredAt)],
             ['Issued', this.formatDate(status.issuedAt)],
-            ['Expires', this.formatDate(status.expiresAt) + (status.expiringSoon ? ' <span class="status-badge expired">Expiring soon</span>' : '')],
+            [
+                'Expires',
+                this.formatDate(status.expiresAt) +
+                    (status.expiringSoon ? ' <span class="status-badge expired">Expiring soon</span>' : '')
+            ],
             ['Scan quota', token.scanQuota != null ? token.scanQuota : '—'],
             ['Scans this period', token.scansThisPeriod != null ? token.scansThisPeriod : '—'],
             ['API calls this period', token.apiCallsThisPeriod != null ? token.apiCallsThisPeriod : '—'],
-            ['Features', Array.isArray(status.features) && status.features.length ? status.features.map(f => `<span class="admin-chip">${escapeHtml(f)}</span>`).join(' ') : '—']
+            [
+                'Features',
+                Array.isArray(status.features) && status.features.length
+                    ? status.features.map(f => `<span class="admin-chip">${escapeHtml(f)}</span>`).join(' ')
+                    : '—'
+            ]
         ];
         return `<div class="admin-details-tab">${this.renderKV(items)}</div>`;
     }
@@ -713,12 +754,22 @@ export class AdminPanelView {
         ];
         const subs = (billing.subscriptions || []).length
             ? `<table class="admin-table"><thead><tr><th>Subscription ID</th><th>Price</th><th>Status</th><th>Period</th></tr></thead><tbody>` +
-              billing.subscriptions.map((s) => `<tr><td><code>${escapeHtml(s.stripeSubscriptionId || '—')}</code></td><td><code>${escapeHtml(s.stripePriceId || '—')}</code></td><td>${this.badge(s.status, 'status-' + s.status)}</td><td>${this.formatDate(s.currentPeriodStart)} – ${this.formatDate(s.currentPeriodEnd)}</td></tr>`).join('') +
+              billing.subscriptions
+                  .map(
+                      s =>
+                          `<tr><td><code>${escapeHtml(s.stripeSubscriptionId || '—')}</code></td><td><code>${escapeHtml(s.stripePriceId || '—')}</code></td><td>${this.badge(s.status, 'status-' + s.status)}</td><td>${this.formatDate(s.currentPeriodStart)} – ${this.formatDate(s.currentPeriodEnd)}</td></tr>`
+                  )
+                  .join('') +
               `</tbody></table>`
             : '<p class="text-muted">No Stripe subscriptions.</p>';
         const refunds = (billing.refunds || []).length
             ? `<table class="admin-table"><thead><tr><th>Amount</th><th>Reason</th><th>Status</th><th>Date</th></tr></thead><tbody>` +
-              billing.refunds.map((r) => `<tr><td>${escapeHtml(r.amount || '—')}</td><td>${escapeHtml(r.reason || '—')}</td><td>${this.badge(r.status, 'status-' + (r.status || 'pending'))}</td><td>${this.formatDate(r.createdAt)}</td></tr>`).join('') +
+              billing.refunds
+                  .map(
+                      r =>
+                          `<tr><td>${escapeHtml(r.amount || '—')}</td><td>${escapeHtml(r.reason || '—')}</td><td>${this.badge(r.status, 'status-' + (r.status || 'pending'))}</td><td>${this.formatDate(r.createdAt)}</td></tr>`
+                  )
+                  .join('') +
               `</tbody></table>`
             : '<p class="text-muted">No refunds.</p>';
         return `<div class="admin-details-tab">${this.renderKV(items)}<h4 class="admin-details-subtitle">Subscriptions</h4>${subs}<h4 class="admin-details-subtitle">Refunds</h4>${refunds}</div>`;
@@ -728,7 +779,12 @@ export class AdminPanelView {
         if (!sessions || !sessions.length) {
             return `<div class="admin-details-tab"><p class="text-muted">No active sessions for this account.</p></div>`;
         }
-        const rows = sessions.map((s) => `<tr><td><code>${escapeHtml(s.id || '—')}</code></td><td>${s.online ? 'Online' : 'Offline'}</td><td>${this.formatDate(s.lastSeen)}</td><td>${this.formatDate(s.createdAt)}</td></tr>`).join('');
+        const rows = sessions
+            .map(
+                s =>
+                    `<tr><td><code>${escapeHtml(s.id || '—')}</code></td><td>${s.online ? 'Online' : 'Offline'}</td><td>${this.formatDate(s.lastSeen)}</td><td>${this.formatDate(s.createdAt)}</td></tr>`
+            )
+            .join('');
         return `<div class="admin-details-tab"><table class="admin-table"><thead><tr><th>Session ID</th><th>Status</th><th>Last seen</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
 
@@ -743,18 +799,23 @@ export class AdminPanelView {
     bindDetailsModal(overlay, data) {
         const closeBtn = overlay.querySelector('#admin-details-close');
         if (closeBtn) closeBtn.addEventListener('click', () => overlay.remove());
-        overlay.querySelectorAll('.admin-tab').forEach((btn) => {
+        overlay.querySelectorAll('.admin-tab').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tab = btn.dataset.tab;
                 overlay.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 overlay.querySelectorAll('.admin-tab-body').forEach(b => {
-                    if (b.dataset.tabBody === tab) { b.classList.add('active'); b.style.display = 'block'; }
-                    else { b.classList.remove('active'); b.style.display = 'none'; }
+                    if (b.dataset.tabBody === tab) {
+                        b.classList.add('active');
+                        b.style.display = 'block';
+                    } else {
+                        b.classList.remove('active');
+                        b.style.display = 'none';
+                    }
                 });
             });
         });
-        overlay.querySelectorAll('#admin-reveal-token, #admin-reveal-api').forEach((btn) => {
+        overlay.querySelectorAll('#admin-reveal-token, #admin-reveal-api').forEach(btn => {
             btn.addEventListener('click', () => {
                 const code = btn.previousElementSibling;
                 if (!code) return;
@@ -771,7 +832,7 @@ export class AdminPanelView {
 
     getPageRangeLabel() {
         if (!this.totalUsers) return '0 accounts';
-        const start = ((this.pageIndex - 1) * this.pageLimit) + 1;
+        const start = (this.pageIndex - 1) * this.pageLimit + 1;
         const end = Math.min(this.pageIndex * this.pageLimit, this.totalUsers);
         return `${formatCompactNumber(start)}–${formatCompactNumber(end)} of ${formatCompactNumber(this.totalUsers)}`;
     }
@@ -821,7 +882,7 @@ export class AdminPanelView {
             totalAccounts: this.totalUsers,
             exportedUserCount: this.users.length,
             exportScope: this.totalUsers > this.users.length ? 'current-page' : 'full-page',
-            users: this.users.map((u) => ({
+            users: this.users.map(u => ({
                 id: u.id,
                 email: u.email,
                 name: u.name,
@@ -835,7 +896,7 @@ export class AdminPanelView {
                 online: u.online,
                 lastSeen: u.lastSeen
             })),
-            sessions: (this.sessions || []).map((s) => ({
+            sessions: (this.sessions || []).map(s => ({
                 id: s.id || s.sessionId || null,
                 email: s.email || s.userEmail || null,
                 createdAt: s.createdAt || s.created_at || null,
@@ -844,9 +905,10 @@ export class AdminPanelView {
             }))
         };
         downloadJson(payload, `admin-panel-export-${new Date().toISOString().slice(0, 10)}.json`);
-        const scopeNote = payload.exportScope === 'current-page'
-            ? ` (page ${this.pageIndex} of ${formatCompactNumber(this.totalUsers)} accounts)`
-            : '';
+        const scopeNote =
+            payload.exportScope === 'current-page'
+                ? ` (page ${this.pageIndex} of ${formatCompactNumber(this.totalUsers)} accounts)`
+                : '';
         showToast(`Admin panel exported${scopeNote}`, 'success');
     }
 
@@ -869,10 +931,13 @@ export class AdminPanelView {
         }
         const filtered = this.getFilteredUsers();
         const onlineCount = this.stats?.onlineNow ?? filtered.filter(u => u.online).length;
-        const showIncidents = filtered.some(u => (u.securityIncidents || 0) > 0) || this.users.some(u => (u.securityIncidents || 0) > 0);
+        const showIncidents =
+            filtered.some(u => (u.securityIncidents || 0) > 0) || this.users.some(u => (u.securityIncidents || 0) > 0);
         const tierCounts = this.getTierCounts();
         const statusCounts = this.getStatusCounts();
-        setHtml(this.container, `
+        setHtml(
+            this.container,
+            `
             <div class="page-header admin-page-header">
                 <div>
                     <h1>Account Manager</h1>
@@ -941,7 +1006,8 @@ export class AdminPanelView {
                     </div>
                 </section>
             </div>
-        `);
+        `
+        );
         this.bindEvents();
     }
 
@@ -972,12 +1038,18 @@ export class AdminPanelView {
         if (!this.sessions.length) {
             return '<p class="text-muted admin-sessions-empty">No active sessions</p>';
         }
-        const rows = this.sessions.slice(0, 12).map((s) => {
-            const email = s.email || s.userEmail || 'Unknown';
-            const online = s.online ? 'online' : 'offline';
-            return `<div class="admin-session-row ${online}"><span class="admin-session-email">${escapeHtml(email)}</span><span class="admin-session-meta">${escapeHtml(this.formatRelative(s.lastSeen) || (s.online ? 'Online' : 'Offline'))}</span></div>`;
-        }).join('');
-        const more = this.sessions.length > 12 ? `<p class="text-muted admin-sessions-more">+${this.sessions.length - 12} more</p>` : '';
+        const rows = this.sessions
+            .slice(0, 12)
+            .map(s => {
+                const email = s.email || s.userEmail || 'Unknown';
+                const online = s.online ? 'online' : 'offline';
+                return `<div class="admin-session-row ${online}"><span class="admin-session-email">${escapeHtml(email)}</span><span class="admin-session-meta">${escapeHtml(this.formatRelative(s.lastSeen) || (s.online ? 'Online' : 'Offline'))}</span></div>`;
+            })
+            .join('');
+        const more =
+            this.sessions.length > 12
+                ? `<p class="text-muted admin-sessions-more">+${this.sessions.length - 12} more</p>`
+                : '';
         return `<div class="admin-sessions-list">${rows}${more}</div>`;
     }
 
@@ -1004,16 +1076,20 @@ export class AdminPanelView {
 
     renderGroupedTables(filtered, showIncidents) {
         const tiers = ['gold', 'silver', 'bronze'];
-        const groups = tiers.map((tier) => ({
-            tier,
-            users: filtered.filter((u) => String(u.trustLevel || 'bronze').toLowerCase() === tier)
-        })).filter((g) => g.users.length > 0);
-        const other = filtered.filter((u) => !tiers.includes(String(u.trustLevel || 'bronze').toLowerCase()));
+        const groups = tiers
+            .map(tier => ({
+                tier,
+                users: filtered.filter(u => String(u.trustLevel || 'bronze').toLowerCase() === tier)
+            }))
+            .filter(g => g.users.length > 0);
+        const other = filtered.filter(u => !tiers.includes(String(u.trustLevel || 'bronze').toLowerCase()));
         if (other.length) groups.push({ tier: 'other', users: other });
         if (!groups.length) {
             return this.renderFlatTable(filtered, showIncidents);
         }
-        return groups.map((g) => `
+        return groups
+            .map(
+                g => `
             <div class="admin-tier-group">
                 <h3 class="admin-tier-group-title"><span class="trust-badge trust-${escapeHtml(g.tier === 'other' ? 'bronze' : g.tier)}">${escapeHtml(g.tier)}</span> ${g.users.length} account${g.users.length === 1 ? '' : 's'}</h3>
                 <div class="table-responsive">
@@ -1022,7 +1098,9 @@ export class AdminPanelView {
                         <tbody>${this.renderUserRows(g.users, showIncidents)}</tbody>
                     </table>
                 </div>
-            </div>`).join('');
+            </div>`
+            )
+            .join('');
     }
 
     renderSortHeader(field, label) {
@@ -1033,22 +1111,26 @@ export class AdminPanelView {
 
     renderUserRows(filtered, showIncidents = false) {
         const colSpan = showIncidents ? 7 : 6;
-        if (!filtered.length) return `<tr><td colspan="${colSpan}" class="text-center text-muted" style="padding:2rem;">No accounts found</td></tr>`;
-        return filtered.map(u => {
-            const sc = u.online ? 'status-online' : 'status-offline';
-            const st = u.online ? 'Online' : 'Offline';
-            const lastMeta = u.lastSeen ? `<span class="admin-status-meta" title="${escapeHtml(this.formatDate(u.lastSeen))}">${escapeHtml(this.formatRelative(u.lastSeen))}</span>` : '';
-            const protectedUser = this.isProtectedUser(u);
-            const accountStatus = String(u.status || 'active').toLowerCase();
-            const pending = accountStatus === 'pending';
-            const suspended = accountStatus === 'suspended';
-            const tokenBadge = u.hasLicenseToken
-                ? `<span class="admin-chip ${u.tokenExpired ? 'expired' : u.tokenValid ? 'valid' : 'invalid'}" title="Token: ${u.tokenRegistered ? (u.tokenValid ? 'valid' : (u.tokenExpired ? 'expired' : 'invalid')) : 'unregistered'}">Token ${u.tokenRegistered ? (u.tokenValid ? 'Valid' : (u.tokenExpired ? 'Expired' : 'Invalid')) : '—'}</span>`
-                : '';
-            const billingBadge = u.subscriptionStatus
-                ? `<span class="admin-chip ${u.hasActiveSubscription ? 'valid' : 'inactive'}">${escapeHtml(u.subscriptionStatus)}${u.plan ? ` · ${escapeHtml(u.plan)}` : ''}</span>`
-                : '';
-            return `
+        if (!filtered.length)
+            return `<tr><td colspan="${colSpan}" class="text-center text-muted" style="padding:2rem;">No accounts found</td></tr>`;
+        return filtered
+            .map(u => {
+                const sc = u.online ? 'status-online' : 'status-offline';
+                const st = u.online ? 'Online' : 'Offline';
+                const lastMeta = u.lastSeen
+                    ? `<span class="admin-status-meta" title="${escapeHtml(this.formatDate(u.lastSeen))}">${escapeHtml(this.formatRelative(u.lastSeen))}</span>`
+                    : '';
+                const protectedUser = this.isProtectedUser(u);
+                const accountStatus = String(u.status || 'active').toLowerCase();
+                const pending = accountStatus === 'pending';
+                const suspended = accountStatus === 'suspended';
+                const tokenBadge = u.hasLicenseToken
+                    ? `<span class="admin-chip ${u.tokenExpired ? 'expired' : u.tokenValid ? 'valid' : 'invalid'}" title="Token: ${u.tokenRegistered ? (u.tokenValid ? 'valid' : u.tokenExpired ? 'expired' : 'invalid') : 'unregistered'}">Token ${u.tokenRegistered ? (u.tokenValid ? 'Valid' : u.tokenExpired ? 'Expired' : 'Invalid') : '—'}</span>`
+                    : '';
+                const billingBadge = u.subscriptionStatus
+                    ? `<span class="admin-chip ${u.hasActiveSubscription ? 'valid' : 'inactive'}">${escapeHtml(u.subscriptionStatus)}${u.plan ? ` · ${escapeHtml(u.plan)}` : ''}</span>`
+                    : '';
+                return `
                 <tr data-user-id="${escapeHtml(u.id)}" class="${suspended || pending ? 'admin-row-suspended' : ''}">
                     <td>
                         <div class="admin-account-name">${escapeHtml(u.name || '')}</div>
@@ -1071,16 +1153,19 @@ export class AdminPanelView {
                                 <button class="admin-action-item" data-action="details" data-id="${escapeHtml(u.id)}">Details</button>
                                 <button class="admin-action-item" data-action="edit" data-id="${escapeHtml(u.id)}">Edit</button>
                                 <button class="admin-action-item" data-action="tier" data-id="${escapeHtml(u.id)}">Change tier</button>
-                                ${(suspended || pending)
-                                    ? `<button class="admin-action-item" data-action="unsuspend" data-id="${escapeHtml(u.id)}">${pending ? 'Approve account' : 'Reactivate'}</button>`
-                                    : `<button class="admin-action-item" data-action="suspend" data-id="${escapeHtml(u.id)}" ${protectedUser ? 'disabled' : ''}>Suspend</button>`}
+                                ${
+                                    suspended || pending
+                                        ? `<button class="admin-action-item" data-action="unsuspend" data-id="${escapeHtml(u.id)}">${pending ? 'Approve account' : 'Reactivate'}</button>`
+                                        : `<button class="admin-action-item" data-action="suspend" data-id="${escapeHtml(u.id)}" ${protectedUser ? 'disabled' : ''}>Suspend</button>`
+                                }
                                 <button class="admin-action-item" data-action="refund" data-id="${escapeHtml(u.id)}">Refund</button>
                                 <button class="admin-action-item admin-action-danger" data-action="delete" data-id="${escapeHtml(u.id)}" ${protectedUser ? 'disabled' : ''}>Delete</button>
                             </div>
                         </div>
                     </td>
                 </tr>`;
-        }).join('');
+            })
+            .join('');
     }
 
     renderLoading() {
@@ -1091,7 +1176,10 @@ export class AdminPanelView {
                 <div class="skeleton-row" style="width:20%"></div>
             </div></div>
             <div class="card"><div class="admin-loading-skeleton">
-                ${Array(5).fill(0).map(() => '<div class="skeleton-row"></div>').join('')}
+                ${Array(5)
+                    .fill(0)
+                    .map(() => '<div class="skeleton-row"></div>')
+                    .join('')}
             </div></div>
             <style>
                 .admin-loading-skeleton { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; }
@@ -1115,7 +1203,7 @@ export class AdminPanelView {
     bindEvents() {
         const searchInput = this.container.querySelector('#admin-search');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+            searchInput.addEventListener('input', e => {
                 this.searchQuery = e.target.value;
                 this.scheduleSearchReload();
             });
@@ -1123,16 +1211,19 @@ export class AdminPanelView {
         // Delegate Prev/Next clicks so handlers survive render reflows and avoid duplicate listeners
         if (!this._paginationDelegated && this.container) {
             this._paginationDelegated = true;
-            this.container.addEventListener('click', (e) => {
+            this.container.addEventListener('click', e => {
                 const prev = e.target.closest && e.target.closest('#admin-prev-page');
                 const next = e.target.closest && e.target.closest('#admin-next-page');
                 if (!prev && !next) return;
                 e.preventDefault();
                 if (prev) {
-                    this.goToPreviousPage().catch(() => { /* ignore */ });
-                }
-                else if (next) {
-                    this.goToNextPage().catch(() => { /* ignore */ });
+                    this.goToPreviousPage().catch(() => {
+                        /* ignore */
+                    });
+                } else if (next) {
+                    this.goToNextPage().catch(() => {
+                        /* ignore */
+                    });
                 }
             });
         }
@@ -1153,19 +1244,19 @@ export class AdminPanelView {
         }
         const pageSizeSelect = this.container.querySelector('#admin-page-size');
         if (pageSizeSelect) {
-            pageSizeSelect.addEventListener('change', (e) => {
+            pageSizeSelect.addEventListener('change', e => {
                 this.pageLimit = Number(e.target.value) || PAGE_SIZE;
                 this.loadData({ reset: true });
             });
         }
         const groupTier = this.container.querySelector('#admin-group-tier');
         if (groupTier) {
-            groupTier.addEventListener('change', (e) => {
+            groupTier.addEventListener('change', e => {
                 this.groupByTier = e.target.checked;
                 this.render();
             });
         }
-        this.container.querySelectorAll('[data-filter-kind]').forEach((btn) => {
+        this.container.querySelectorAll('[data-filter-kind]').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.setFilter(btn.dataset.filterKind, btn.dataset.filterValue);
             });
@@ -1188,7 +1279,7 @@ export class AdminPanelView {
     bindRowActions() {
         if (!this.container) return;
         this.container.querySelectorAll('.admin-actions-toggle').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', e => {
                 e.stopPropagation();
                 const id = e.target.dataset.id;
                 const menu = this.container.querySelector(`.admin-actions-menu[data-menu-id="${CSS.escape(id)}"]`);
@@ -1199,7 +1290,7 @@ export class AdminPanelView {
             });
         });
         this.container.querySelectorAll('.admin-action-item').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', e => {
                 e.stopPropagation();
                 const action = e.target.dataset.action;
                 const id = e.target.dataset.id;

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 59: Governance Proposal Voting Monitor.
@@ -11,8 +11,8 @@
  * @module hsm-adapter/governance-proposal-voting-monitor
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class GovernanceProposalVotingMonitor {
   /**
@@ -39,59 +39,121 @@ class GovernanceProposalVotingMonitor {
   recordVote(request) {
     _validateVoteRequest(this.policy, request);
     if (!this._bridge) {
-      throw new HsmAdapterError('GOV_VOTE_BRIDGE_MISSING', 'governance bridge is required');
+      throw new HsmAdapterError(
+        "GOV_VOTE_BRIDGE_MISSING",
+        "governance bridge is required",
+      );
     }
     const proposal = this._bridge.getProposal(request.proposalId);
     if (!proposal) {
-      if (this.policy.banMalformedOrOutOfOrderVotes && typeof request.peerId === 'string') {
+      if (
+        this.policy.banMalformedOrOutOfOrderVotes &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('GOV_PROPOSAL_NOT_FOUND', `proposal ${request.proposalId} not found`);
+      throw new HsmAdapterError(
+        "GOV_PROPOSAL_NOT_FOUND",
+        `proposal ${request.proposalId} not found`,
+      );
     }
     if (!this._bridge.isProposalActive(request.proposalId)) {
-      if (this.policy.banMalformedOrOutOfOrderVotes && typeof request.peerId === 'string') {
+      if (
+        this.policy.banMalformedOrOutOfOrderVotes &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('GOV_PROPOSAL_INACTIVE', `proposal ${request.proposalId} is no longer active`);
+      throw new HsmAdapterError(
+        "GOV_PROPOSAL_INACTIVE",
+        `proposal ${request.proposalId} is no longer active`,
+      );
     }
-    if (this.policy.requireVerifierRelayAttestation && this._attestationClient) {
+    if (
+      this.policy.requireVerifierRelayAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.verifierRelayAttestation);
+        const result = this._attestationClient.verify(
+          request.verifierRelayAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('GOV_VERIFIER_RELAY_UNATTESTED', 'verifier relay attestation invalid');
+          throw new HsmAdapterError(
+            "GOV_VERIFIER_RELAY_UNATTESTED",
+            "verifier relay attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('GOV_VERIFIER_RELAY_UNATTESTED', 'verifier relay attestation invalid');
+        throw new HsmAdapterError(
+          "GOV_VERIFIER_RELAY_UNATTESTED",
+          "verifier relay attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('GOV_VOTE_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "GOV_VOTE_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('GOV_VOTE_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "GOV_VOTE_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
     const voteKey = `${request.proposalId}:${request.platformId}`;
     if (this._votes.has(voteKey)) {
-      if (this.policy.banMalformedOrOutOfOrderVotes && typeof request.peerId === 'string') {
+      if (
+        this.policy.banMalformedOrOutOfOrderVotes &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('GOV_VOTE_DUPLICATE', `vote from platform ${request.platformId} already recorded for proposal ${request.proposalId}`);
+      throw new HsmAdapterError(
+        "GOV_VOTE_DUPLICATE",
+        `vote from platform ${request.platformId} already recorded for proposal ${request.proposalId}`,
+      );
     }
-    const voteDecision = request.voteDecision || 'approve';
-    if (voteDecision !== 'approve' && voteDecision !== 'reject') {
-      if (this.policy.banMalformedOrOutOfOrderVotes && typeof request.peerId === 'string') {
+    const voteDecision = request.voteDecision || "approve";
+    if (voteDecision !== "approve" && voteDecision !== "reject") {
+      if (
+        this.policy.banMalformedOrOutOfOrderVotes &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('GOV_VOTE_DECISION_INVALID', `vote decision ${voteDecision} is not valid; allowed: approve, reject`);
+      throw new HsmAdapterError(
+        "GOV_VOTE_DECISION_INVALID",
+        `vote decision ${voteDecision} is not valid; allowed: approve, reject`,
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
-      if (this.policy.banMalformedOrOutOfOrderVotes && typeof request.peerId === 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
+      if (
+        this.policy.banMalformedOrOutOfOrderVotes &&
+        typeof request.peerId === "string"
+      ) {
         this._bannedPeers.add(request.peerId);
       }
-      throw new HsmAdapterError('GOV_VOTE_SIGNATURE_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "GOV_VOTE_SIGNATURE_MISSING",
+        "partial signature is required",
+      );
     }
-    const voteId = request.voteId || `vote-${crypto.randomBytes(4).toString('hex')}`;
+    const voteId =
+      request.voteId || `vote-${crypto.randomBytes(4).toString("hex")}`;
     const vote = {
       voteId,
       proposalId: request.proposalId,
@@ -102,7 +164,7 @@ class GovernanceProposalVotingMonitor {
     };
     this._votes.set(voteKey, vote);
     if (this._audit) {
-      this._audit('GOVERNANCE_VOTE_RECORDED', { ...vote });
+      this._audit("GOVERNANCE_VOTE_RECORDED", { ...vote });
     }
     return vote;
   }
@@ -114,21 +176,33 @@ class GovernanceProposalVotingMonitor {
    */
   checkAndExecute(proposalId) {
     if (!this._bridge) {
-      throw new HsmAdapterError('GOV_EXEC_BRIDGE_MISSING', 'governance bridge is required');
+      throw new HsmAdapterError(
+        "GOV_EXEC_BRIDGE_MISSING",
+        "governance bridge is required",
+      );
     }
     const proposal = this._bridge.getProposal(proposalId);
     if (!proposal) {
-      throw new HsmAdapterError('GOV_PROPOSAL_NOT_FOUND', `proposal ${proposalId} not found`);
+      throw new HsmAdapterError(
+        "GOV_PROPOSAL_NOT_FOUND",
+        `proposal ${proposalId} not found`,
+      );
     }
-    if (proposal.status === 'executed') {
-      throw new HsmAdapterError('GOV_PROPOSAL_ALREADY_EXECUTED', `proposal ${proposalId} already executed`);
+    if (proposal.status === "executed") {
+      throw new HsmAdapterError(
+        "GOV_PROPOSAL_ALREADY_EXECUTED",
+        `proposal ${proposalId} already executed`,
+      );
     }
     if (!this._bridge.isProposalActive(proposalId)) {
-      throw new HsmAdapterError('GOV_PROPOSAL_INACTIVE', `proposal ${proposalId} is no longer active`);
+      throw new HsmAdapterError(
+        "GOV_PROPOSAL_INACTIVE",
+        `proposal ${proposalId} is no longer active`,
+      );
     }
     const approveVotes = [];
     for (const [key, vote] of this._votes) {
-      if (key.startsWith(`${proposalId}:`) && vote.voteDecision === 'approve') {
+      if (key.startsWith(`${proposalId}:`) && vote.voteDecision === "approve") {
         approveVotes.push(vote);
       }
     }
@@ -147,7 +221,7 @@ class GovernanceProposalVotingMonitor {
       executedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('CROSS_CHAIN_PROPOSAL_EXECUTED', { ...result });
+      this._audit("CROSS_CHAIN_PROPOSAL_EXECUTED", { ...result });
     }
     return result;
   }
@@ -179,10 +253,19 @@ class GovernanceProposalVotingMonitor {
 
 function _validateVoteRequest(policy, request) {
   if (!request.proposalId || !request.platformId) {
-    throw new HsmAdapterError('GOV_VOTE_FIELDS_MISSING', 'proposalId and platformId are required');
+    throw new HsmAdapterError(
+      "GOV_VOTE_FIELDS_MISSING",
+      "proposalId and platformId are required",
+    );
   }
-  if (policy.requireVerifierRelayAttestation && !request.verifierRelayAttestation) {
-    throw new HsmAdapterError('GOV_VOTE_ATTESTATION_MISSING', 'verifier relay attestation is required');
+  if (
+    policy.requireVerifierRelayAttestation &&
+    !request.verifierRelayAttestation
+  ) {
+    throw new HsmAdapterError(
+      "GOV_VOTE_ATTESTATION_MISSING",
+      "verifier relay attestation is required",
+    );
   }
 }
 

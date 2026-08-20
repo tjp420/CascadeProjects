@@ -9,6 +9,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 **Description:** AI Slop Cop sidebar showing scan results and gate status
 
 **Content to capture:**
+
 - AI Slop Cop sidebar panel
 - Scan results with severity breakdown
 - Gate status badge (PASS/FAIL)
@@ -16,6 +17,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 - Issues breakdown (Errors, Warnings, Infos)
 
 **How to capture:**
+
 1. Open VSCode with a project
 2. Open AI Slop Cop sidebar
 3. Run a scan
@@ -29,6 +31,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 **Description:** Detailed list of findings with file locations and rule IDs
 
 **Content to capture:**
+
 - Findings list expanded
 - Individual finding details
 - File path and line number
@@ -36,6 +39,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 - Fix suggestion
 
 **How to capture:**
+
 1. Click on an issue count in sidebar
 2. Expand findings list
 3. Capture the detailed view
@@ -48,6 +52,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 **Description:** VSCode settings showing AI Slop Cop configuration options
 
 **Content to capture:**
+
 - Settings editor
 - AI Slop Cop settings section
 - License token field
@@ -56,6 +61,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 - Severity overrides
 
 **How to capture:**
+
 1. Open Settings (Ctrl+,)
 2. Search for "simplebeacon"
 3. Capture the settings panel
@@ -68,12 +74,14 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 **Description:** Full scan checkbox enabled with increased file count
 
 **Content to capture:**
+
 - AI Slop Cop sidebar
 - Full scan checkbox checked
 - Higher file count (vs normal scan)
 - Progress indicator
 
 **How to capture:**
+
 1. Enable full scan checkbox
 2. Run a scan
 3. Capture the sidebar with results
@@ -86,12 +94,14 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 **Description:** Exported JSON or Markdown report
 
 **Content to capture:**
+
 - Exported report file open in editor
 - JSON structure with findings
 - Gate status summary
 - Severity breakdown
 
 **How to capture:**
+
 1. Run a scan
 2. Click "Export Report"
 3. Open the exported file
@@ -109,6 +119,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 **Current Icon:** `vscode-extension/resources/icon.svg`
 
 **Icon Description:**
+
 - Shield or security symbol
 - Clean lines
 - Professional color scheme (blue/gray)
@@ -121,6 +132,7 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 **Use:** Featured in marketplace search results
 
 **Content:**
+
 - Extension name
 - Tagline
 - Key features
@@ -138,15 +150,18 @@ VSCode Marketplace requires at least one screenshot (max 5). Recommended size: 1
 ## Tools for Screenshots
 
 ### VSCode Built-in
+
 - Use VSCode's screenshot feature (Ctrl+Shift+P → "Screenshot")
 - Export as PNG
 
 ### System Tools
+
 - Windows: Snipping Tool, Win+Shift+S
 - Mac: Cmd+Shift+4
 - Linux: gnome-screenshot, flameshot
 
 ### Editing Tools
+
 - GIMP (free)
 - Photoshop
 - Figma
@@ -179,8 +194,8 @@ For consistent screenshots, consider using a script:
 
 ```javascript
 // screenshot-generator.js
-const vscode = require('vscode');
-const path = require('path');
+const vscode = require("vscode");
+const path = require("path");
 
 async function generateScreenshots() {
   // Open specific files

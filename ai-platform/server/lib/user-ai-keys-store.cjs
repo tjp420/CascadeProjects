@@ -9,16 +9,23 @@
  * - Risk Level: Minimal (infrastructure component)
  */
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
-const PROJECT_ROOT = path.join(__dirname, '../..');
-const STORE_PATH = process.env.SIMPLEBEACON_USER_AI_KEYS_STORE
-  || path.join(PROJECT_ROOT, '.simplebeacon', 'user-ai-keys.json');
+const PROJECT_ROOT = path.join(__dirname, "../..");
+const STORE_PATH =
+  process.env.SIMPLEBEACON_USER_AI_KEYS_STORE ||
+  path.join(PROJECT_ROOT, ".simplebeacon", "user-ai-keys.json");
 
-const PROVIDERS = ['openai', 'anthropic'];
-const _STRING_FIELDS = [...PROVIDERS, 'ollamaBaseUrl', 'ollamaModel', 'openaiModel', 'anthropicModel'];
+const PROVIDERS = ["openai", "anthropic"];
+const _STRING_FIELDS = [
+  ...PROVIDERS,
+  "ollamaBaseUrl",
+  "ollamaModel",
+  "openaiModel",
+  "anthropicModel",
+];
 
 /**
  * Normalize email.
@@ -26,7 +33,9 @@ const _STRING_FIELDS = [...PROVIDERS, 'ollamaBaseUrl', 'ollamaModel', 'openaiMod
  * @returns {any}
  */
 function normalizeEmail(email) {
-  return String(email || '').trim().toLowerCase();
+  return String(email || "")
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -34,10 +43,11 @@ function normalizeEmail(email) {
  * @returns {any}
  */
 function encryptionKey() {
-  const secret = process.env.SIMPLEBEACON_KEY_ENCRYPTION_SECRET
-    || process.env.JWT_SECRET
-    || 'simplebeacon-dev-keys-insecure';
-  return crypto.createHash('sha256').update(String(secret)).digest();
+  const secret =
+    process.env.SIMPLEBEACON_KEY_ENCRYPTION_SECRET ||
+    process.env.JWT_SECRET ||
+    "simplebeacon-dev-keys-insecure";
+  return crypto.createHash("sha256").update(String(secret)).digest();
 }
 
 /**
@@ -46,16 +56,19 @@ function encryptionKey() {
  * @returns {any}
  */
 function encryptSecret(plaintext) {
-  const text = String(plaintext || '').trim();
+  const text = String(plaintext || "").trim();
   if (!text) return null;
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+  const cipher = crypto.createCipheriv("aes-256-gcm", encryptionKey(), iv);
+  const encrypted = Buffer.concat([
+    cipher.update(text, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return {
-    iv: iv.toString('base64'),
-    tag: tag.toString('base64'),
-    data: encrypted.toString('base64')
+    iv: iv.toString("base64"),
+    tag: tag.toString("base64"),
+    data: encrypted.toString("base64"),
   };
 }
 
@@ -65,21 +78,21 @@ function encryptSecret(plaintext) {
  * @returns {any}
  */
 function decryptSecret(payload) {
-  if (!payload?.data || !payload?.iv || !payload?.tag) return '';
+  if (!payload?.data || !payload?.iv || !payload?.tag) return "";
   try {
     const decipher = crypto.createDecipheriv(
-      'aes-256-gcm',
+      "aes-256-gcm",
       encryptionKey(),
-      Buffer.from(payload.iv, 'base64')
+      Buffer.from(payload.iv, "base64"),
     );
-    decipher.setAuthTag(Buffer.from(payload.tag, 'base64'));
+    decipher.setAuthTag(Buffer.from(payload.tag, "base64"));
     const decrypted = Buffer.concat([
-      decipher.update(Buffer.from(payload.data, 'base64')),
-      decipher.final()
+      decipher.update(Buffer.from(payload.data, "base64")),
+      decipher.final(),
     ]);
-    return decrypted.toString('utf8');
+    return decrypted.toString("utf8");
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -89,9 +102,9 @@ function decryptSecret(payload) {
  * @returns {any}
  */
 function maskSecret(value) {
-  const text = String(value || '').trim();
+  const text = String(value || "").trim();
   if (!text) return null;
-  if (text.length <= 8) return '••••••••';
+  if (text.length <= 8) return "••••••••";
   return `${text.slice(0, 4)}…${text.slice(-4)}`;
 }
 
@@ -101,9 +114,11 @@ function maskSecret(value) {
  */
 async function readStore() {
   try {
-    const raw = await fs.promises.readFile(STORE_PATH, 'utf8');
+    const raw = await fs.promises.readFile(STORE_PATH, "utf8");
     const parsed = JSON.parse(raw);
-    return parsed.users && typeof parsed.users === 'object' ? parsed : { users: {} };
+    return parsed.users && typeof parsed.users === "object"
+      ? parsed
+      : { users: {} };
   } catch {
     return { users: {} };
   }
@@ -116,7 +131,11 @@ async function readStore() {
  */
 async function writeStore(store) {
   await fs.promises.mkdir(path.dirname(STORE_PATH), { recursive: true });
-  await fs.promises.writeFile(STORE_PATH, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
+  await fs.promises.writeFile(
+    STORE_PATH,
+    `${JSON.stringify(store, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 /**
@@ -127,11 +146,11 @@ function emptyRecord() {
   return {
     openai: null,
     anthropic: null,
-    ollamaBaseUrl: '',
-    ollamaModel: '',
-    openaiModel: '',
-    anthropicModel: '',
-    updatedAt: null
+    ollamaBaseUrl: "",
+    ollamaModel: "",
+    openaiModel: "",
+    anthropicModel: "",
+    updatedAt: null,
   };
 }
 
@@ -186,17 +205,17 @@ async function getUserAiKeysPublic(email) {
     const value = decryptSecret(record[provider]);
     providers[provider] = {
       configured: Boolean(value),
-      hint: maskSecret(value)
+      hint: maskSecret(value),
     };
   }
   return {
     email: normalizeEmail(email),
     providers,
-    ollamaBaseUrl: record.ollamaBaseUrl || '',
-    ollamaModel: record.ollamaModel || '',
-    openaiModel: record.openaiModel || '',
-    anthropicModel: record.anthropicModel || '',
-    updatedAt: record.updatedAt || null
+    ollamaBaseUrl: record.ollamaBaseUrl || "",
+    ollamaModel: record.ollamaModel || "",
+    openaiModel: record.openaiModel || "",
+    anthropicModel: record.anthropicModel || "",
+    updatedAt: record.updatedAt || null,
   };
 }
 
@@ -209,7 +228,7 @@ async function getUserAiKeysPublic(email) {
 async function saveUserAiKeys(email, payload = {}) {
   const normalized = normalizeEmail(email);
   if (!normalized) {
-    throw new Error('email is required');
+    throw new Error("email is required");
   }
 
   const store = await readStore();
@@ -217,31 +236,31 @@ async function saveUserAiKeys(email, payload = {}) {
   const next = { ...existing };
 
   for (const provider of PROVIDERS) {
-    if (!({}).hasOwnProperty.call(payload, provider)) continue;
+    if (!{}.hasOwnProperty.call(payload, provider)) continue;
     const raw = payload[provider];
-    if (raw === null || raw === '') {
+    if (raw === null || raw === "") {
       next[provider] = null;
       continue;
     }
     const trimmed = String(raw).trim();
-    if (!trimmed || trimmed.includes('…')) continue;
+    if (!trimmed || trimmed.includes("…")) continue;
     next[provider] = encryptSecret(trimmed);
   }
 
-  if (({}).hasOwnProperty.call(payload, 'ollamaBaseUrl')) {
-    next.ollamaBaseUrl = String(payload.ollamaBaseUrl || '').trim();
+  if ({}.hasOwnProperty.call(payload, "ollamaBaseUrl")) {
+    next.ollamaBaseUrl = String(payload.ollamaBaseUrl || "").trim();
   }
 
-  if (({}).hasOwnProperty.call(payload, 'ollamaModel')) {
-    next.ollamaModel = String(payload.ollamaModel || '').trim();
+  if ({}.hasOwnProperty.call(payload, "ollamaModel")) {
+    next.ollamaModel = String(payload.ollamaModel || "").trim();
   }
 
-  if (({}).hasOwnProperty.call(payload, 'openaiModel')) {
-    next.openaiModel = String(payload.openaiModel || '').trim();
+  if ({}.hasOwnProperty.call(payload, "openaiModel")) {
+    next.openaiModel = String(payload.openaiModel || "").trim();
   }
 
-  if (({}).hasOwnProperty.call(payload, 'anthropicModel')) {
-    next.anthropicModel = String(payload.anthropicModel || '').trim();
+  if ({}.hasOwnProperty.call(payload, "anthropicModel")) {
+    next.anthropicModel = String(payload.anthropicModel || "").trim();
   }
 
   next.updatedAt = new Date().toISOString();
@@ -257,7 +276,7 @@ async function saveUserAiKeys(email, payload = {}) {
  */
 async function clearUserAiKeys(email) {
   const normalized = normalizeEmail(email);
-  if (!normalized) return getUserAiKeysPublic('');
+  if (!normalized) return getUserAiKeysPublic("");
   const store = await readStore();
   delete store.users[normalized];
   await writeStore(store);
@@ -269,5 +288,5 @@ module.exports = {
   getUserAiKeysPublic,
   saveUserAiKeys,
   clearUserAiKeys,
-  maskSecret
+  maskSecret,
 };

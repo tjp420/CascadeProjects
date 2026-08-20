@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 18: Out-of-order ratchet message handler.
@@ -9,7 +9,7 @@
  * @module hsm-adapter/ratchet-message-handler
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 function _cacheKey(chainIndex, messageIndex) {
   return `${chainIndex}:${messageIndex}`;
@@ -22,8 +22,10 @@ class RatchetMessageHandler {
    * @param {number} [options.maxCacheMs=300000]
    */
   constructor(options = {}) {
-    this._maxSkipped = typeof options.maxSkipped === 'number' ? options.maxSkipped : 1000;
-    this._maxCacheMs = typeof options.maxCacheMs === 'number' ? options.maxCacheMs : 300000;
+    this._maxSkipped =
+      typeof options.maxSkipped === "number" ? options.maxSkipped : 1000;
+    this._maxCacheMs =
+      typeof options.maxCacheMs === "number" ? options.maxCacheMs : 300000;
     this._skipped = new Map();
     this._timestamps = new Map();
     this._createdAt = Date.now();
@@ -46,10 +48,13 @@ class RatchetMessageHandler {
    * @param {string|Buffer} [aad='']
    * @returns {Buffer}
    */
-  decrypt(ratchet, envelope, aad = '') {
+  decrypt(ratchet, envelope, aad = "") {
     this._pruneExpired();
     if (envelope.chainIndex !== ratchet.chainIndex) {
-      throw new HsmAdapterError('RATCHET_DESYNCHRONIZED', `chainIndex ${envelope.chainIndex} != current ${ratchet.chainIndex}`);
+      throw new HsmAdapterError(
+        "RATCHET_DESYNCHRONIZED",
+        `chainIndex ${envelope.chainIndex} != current ${ratchet.chainIndex}`,
+      );
     }
 
     const target = envelope.messageIndex;
@@ -59,7 +64,10 @@ class RatchetMessageHandler {
       const key = _cacheKey(ratchet.chainIndex, target);
       const messageKey = this._skipped.get(key);
       if (!messageKey) {
-        throw new HsmAdapterError('RATCHET_DESYNCHRONIZED', `no cached key for message ${target}`);
+        throw new HsmAdapterError(
+          "RATCHET_DESYNCHRONIZED",
+          `no cached key for message ${target}`,
+        );
       }
       const plaintext = ratchet.decryptWithKey(envelope, aad, messageKey);
       this._skipped.delete(key);
@@ -70,7 +78,10 @@ class RatchetMessageHandler {
 
     const gap = target - expected;
     if (gap > this._maxSkipped) {
-      throw new HsmAdapterError('MAX_SKIPPED_EXCEEDED', `gap ${gap} exceeds maxSkipped ${this._maxSkipped}`);
+      throw new HsmAdapterError(
+        "MAX_SKIPPED_EXCEEDED",
+        `gap ${gap} exceeds maxSkipped ${this._maxSkipped}`,
+      );
     }
 
     // Derive and cache skipped keys

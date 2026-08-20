@@ -4,7 +4,7 @@
  * Enforces workspace-scoped PostgreSQL transactions to prevent cross-tenant leakage.
  */
 
-const logger = require('./app-logger.cjs');
+const logger = require("./app-logger.cjs");
 
 /**
  * Express middleware: opens a scoped PostgreSQL transaction with SET LOCAL
@@ -15,13 +15,15 @@ function setWorkspaceRlsContext(req, res, next) {
   // Store original db.query so the route can use the scoped client
   const db = req.db;
   if (!db) {
-    logger.warn('[RBAC] req.db missing — skipping RLS guard');
+    logger.warn("[RBAC] req.db missing — skipping RLS guard");
     return next();
   }
 
   const workspaceId = req.user?.workspaceId || req.user?.organizationId || null;
   if (!workspaceId) {
-    logger.warn('[RBAC] No workspaceId/organizationId in req.user — skipping RLS guard');
+    logger.warn(
+      "[RBAC] No workspaceId/organizationId in req.user — skipping RLS guard",
+    );
     return next();
   }
 
@@ -39,18 +41,18 @@ function setWorkspaceRlsContext(req, res, next) {
       const originalSend = res.send.bind(res);
       const originalJson = res.json.bind(res);
 
-      res.end = function(...args) {
+      res.end = function (...args) {
         res.end = originalEnd;
         resolve();
         return originalEnd(...args);
       };
-      res.send = function(...args) {
+      res.send = function (...args) {
         res.send = originalSend;
         res.end = originalEnd;
         resolve();
         return originalSend(...args);
       };
-      res.json = function(...args) {
+      res.json = function (...args) {
         res.json = originalJson;
         res.send = originalSend;
         res.end = originalEnd;
@@ -75,8 +77,10 @@ function setWorkspaceRlsContext(req, res, next) {
   }).catch((err) => {
     // Transaction rolled back — propagate error if response not yet sent
     if (!res.headersSent) {
-      logger.error('[RBAC] RLS transaction failed:', err.message);
-      res.status(500).json({ error: 'Workspace transaction failed', message: err.message });
+      logger.error("[RBAC] RLS transaction failed:", err.message);
+      res
+        .status(500)
+        .json({ error: "Workspace transaction failed", message: err.message });
     }
   });
 }
@@ -88,11 +92,11 @@ function setWorkspaceRlsContext(req, res, next) {
 function requirePermission(permission) {
   return (req, res, next) => {
     const perms = req.user?.permissions || [];
-    if (perms.includes(permission) || perms.includes('admin:all')) {
+    if (perms.includes(permission) || perms.includes("admin:all")) {
       return next();
     }
-    logger.warn('[RBAC] Permission denied:', permission, req.user?.id);
-    return res.status(403).json({ error: 'Forbidden', required: permission });
+    logger.warn("[RBAC] Permission denied:", permission, req.user?.id);
+    return res.status(403).json({ error: "Forbidden", required: permission });
   };
 }
 
@@ -102,17 +106,19 @@ function requirePermission(permission) {
 function requireAnyPermission(...permissions) {
   return (req, res, next) => {
     const perms = req.user?.permissions || [];
-    const allowed = permissions.some((p) => perms.includes(p) || perms.includes('admin:all'));
+    const allowed = permissions.some(
+      (p) => perms.includes(p) || perms.includes("admin:all"),
+    );
     if (allowed) {
       return next();
     }
-    logger.warn('[RBAC] Permission denied (any):', permissions, req.user?.id);
-    return res.status(403).json({ error: 'Forbidden', required: permissions });
+    logger.warn("[RBAC] Permission denied (any):", permissions, req.user?.id);
+    return res.status(403).json({ error: "Forbidden", required: permissions });
   };
 }
 
 module.exports = {
   setWorkspaceRlsContext,
   requirePermission,
-  requireAnyPermission
+  requireAnyPermission,
 };

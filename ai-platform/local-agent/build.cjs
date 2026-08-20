@@ -6,13 +6,19 @@
  * and creates a staging directory that pkg can bundle from the monorepo.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const LOCAL_AGENT_DIR = __dirname;
-const MONOREPO_ROOT = path.resolve(LOCAL_AGENT_DIR, '..', '..');
-const SCANNER_MODULE = path.join(MONOREPO_ROOT, 'packages', 'simplebeacon-cli', 'src', 'index.js');
-const SIMPLEBEACON_DIR = path.join(MONOREPO_ROOT, '.simplebeacon');
+const MONOREPO_ROOT = path.resolve(LOCAL_AGENT_DIR, "..", "..");
+const SCANNER_MODULE = path.join(
+  MONOREPO_ROOT,
+  "packages",
+  "simplebeacon-cli",
+  "src",
+  "index.js",
+);
+const SIMPLEBEACON_DIR = path.join(MONOREPO_ROOT, ".simplebeacon");
 
 function verifyPath(p, label) {
   if (!fs.existsSync(p)) {
@@ -21,9 +27,9 @@ function verifyPath(p, label) {
 }
 
 function main() {
-  verifyPath(SCANNER_MODULE, 'SimpleBeacon CLI scanner module');
-  verifyPath(SIMPLEBEACON_DIR, '.simplebeacon config directory');
-  console.log('[build] Scanner module and config directory verified.');
+  verifyPath(SCANNER_MODULE, "SimpleBeacon CLI scanner module");
+  verifyPath(SIMPLEBEACON_DIR, ".simplebeacon config directory");
+  console.log("[build] Scanner module and config directory verified.");
 }
 
 if (require.main === module) {

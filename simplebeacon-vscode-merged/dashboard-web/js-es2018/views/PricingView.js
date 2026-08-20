@@ -11,12 +11,12 @@ const QUICKSTART_URL = 'https://github.com/simplebeacon/guardrails#readme';
  * Team pricing + self-serve Stripe checkout for AI Guardrails CI tier.
  */
 export class PricingView {
-    constructor(app) {
-        this.app = app;
-    }
+  constructor(app) {
+    this.app = app;
+  }
 
-    mount(container) {
-        container.innerHTML = `
+  mount(container) {
+    container.innerHTML = `
       <div class="page-header">
         <h1 style="margin:0 0 0.5rem;font-size:var(--font-size-2xl);color:var(--text-primary);">Team Pricing</h1>
         <p class="page-subtitle">
@@ -97,43 +97,41 @@ export class PricingView {
       </div>
     `;
 
-        const emailInput = container.querySelector('#checkout-email');
-        const stored = billingService.getEmail() || authService.getUser()?.email || '';
-        if (emailInput && stored) {
-            emailInput.value = stored;
-        }
-
-        container.querySelector('#pricing-goto-register')?.addEventListener('click', () => {
-            this.app.navigate('register');
-        });
-
-        container.querySelectorAll('[data-checkout]').forEach((btn) => {
-            btn.addEventListener('click', async () => {
-                const product = btn.getAttribute('data-checkout');
-                const email = (emailInput?.value || billingService.getEmail() || '').trim();
-                if (!email || !email.includes('@')) {
-                    showToast('Enter your work email before checkout', 'error');
-                    emailInput?.focus();
-                    return;
-                }
-                btn.disabled = true;
-                try {
-                    await billingService.startCheckout(product, email);
-                }
-                catch (err) {
-                    showToast(err.message || 'Checkout unavailable', 'error');
-                }
-                finally {
-                    btn.disabled = false;
-                }
-            });
-        });
-
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('canceled') === 'true') {
-            showToast('Checkout canceled — Community tier is still free', 'info');
-        }
+    const emailInput = container.querySelector('#checkout-email');
+    const stored = billingService.getEmail() || authService.getUser()?.email || '';
+    if (emailInput && stored) {
+      emailInput.value = stored;
     }
 
-    destroy() { }
+    container.querySelector('#pricing-goto-register')?.addEventListener('click', () => {
+      this.app.navigate('register');
+    });
+
+    container.querySelectorAll('[data-checkout]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const product = btn.getAttribute('data-checkout');
+        const email = (emailInput?.value || billingService.getEmail() || '').trim();
+        if (!email || !email.includes('@')) {
+          showToast('Enter your work email before checkout', 'error');
+          emailInput?.focus();
+          return;
+        }
+        btn.disabled = true;
+        try {
+          await billingService.startCheckout(product, email);
+        } catch (err) {
+          showToast(err.message || 'Checkout unavailable', 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('canceled') === 'true') {
+      showToast('Checkout canceled — Community tier is still free', 'info');
+    }
+  }
+
+  destroy() {}
 }

@@ -37,7 +37,7 @@ function normalizeStaticRepositoryHealthPayload(payload) {
     recommendations: Array.isArray(health.recommendations) ? health.recommendations : [],
     disclaimers: Array.isArray(health.disclaimers) ? health.disclaimers : [],
     monorepo: health.monorepo || null,
-    platform: health.platform || null
+    platform: health.platform || null,
   };
 }
 
@@ -78,8 +78,8 @@ export async function fetchRepositoryHealth() {
       headline: null,
       recommendations: [],
       disclaimers: [
-        'Repository optimization data is unavailable on static hosting. Run the dashboard server for live optimization APIs.'
-      ]
+        'Repository optimization data is unavailable on static hosting. Run the dashboard server for live optimization APIs.',
+      ],
     };
   }
   const data = await res.json().catch(() => null);
@@ -91,8 +91,8 @@ export async function fetchRepositoryHealth() {
       headline: null,
       recommendations: [],
       disclaimers: [
-        'Repository optimization API returned invalid data on this host. Live optimization requires the dashboard server.'
-      ]
+        'Repository optimization API returned invalid data on this host. Live optimization requires the dashboard server.',
+      ],
     };
   }
   if (!res.ok || data.success === false) {
@@ -233,147 +233,186 @@ export class RepositoryHealthView {
         <p class="text-muted analyze-hero-sub">Duplicate detection, oversized files, and consolidation opportunities.</p>
       </div>
 
-      <div class="section-block repo-health-grid">
-        <div class="repo-health-main">
-          <div class="summary-cards">
-            <div class="summary-card">
-              <span class="value">${headline ? escapeHtml(String(headline.repositoryHealthScore)) : '—'}</span>
-              <span class="label">Health score</span>
-            </div>
-            <div class="summary-card">
-              <span class="value">${headline ? escapeHtml(headline.optimizationPotential || '—') : '—'}</span>
-              <span class="label">Optimization potential</span>
-            </div>
-            <div class="summary-card">
-              <span class="value">${headline ? escapeHtml(String(headline.duplicateGroups ?? '—')) : '—'}</span>
-              <span class="label">Duplicate groups</span>
-            </div>
-            <div class="summary-card">
-              <span class="value">${headline ? escapeHtml(String(headline.oversizedFiles ?? '—')) : '—'}</span>
-              <span class="label">Oversized files</span>
-            </div>
+      <div class="section-block">
+        <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
+          <div class="analyze-action-info">
+            <span class="text-muted" style="font-size:var(--font-size-sm);">${headline ? `Score ${headline.repositoryHealthScore}/100` : 'No scan data'}</span>
           </div>
-
-          ${renderHealthSnapshot(health?.monorepo, 'Monorepo root')}
-          ${health?.platform && health?.monorepo ? renderHealthSnapshot(health.platform, 'Platform (ai-platform)') : ''}
-
-          ${this.candidates.length ? `
-            <div class="card mb-4">
-              <h3 class="mb-2" style="font-size:var(--font-size-base);">Merge candidates (preview only)</h3>
-              <p class="text-muted text-sm">Phase 3 safety: preview → confirm → quarantine. No auto-delete. Pairs under <code>ai-platform/packages/simplebeacon-cli</code> ↔ <code>packages/simplebeacon-cli</code> are intentional npm mirrors and are not shown.</p>
-              <div class="consolidation-list">
-                ${this.candidates.slice(0, 5).map((item) => `
-                  <div class="consolidation-card card">
-                    <div class="consolidation-meta">${escapeHtml(item.mergeType || 'candidate')} · ${escapeHtml(item.savingsLabel || '—')} savings</div>
-                    <p><code>${escapeHtml((item.files || []).map((f) => f.path).join(' ↔ ') || '—')}</code></p>
-                    <button type="button" class="btn btn-secondary btn-sm preview-merge-btn" data-candidate-id="${escapeHtml(item.id || '')}" ${this.previewLoading && this.previewCandidateId === item.id ? 'disabled' : ''}>
-                      ${this.previewLoading && this.previewCandidateId === item.id ? 'Previewing…' : 'Preview merge'}
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-
-          ${this.previewLoading ? `
-            <div class="card mb-4" id="merge-preview-panel">
-              <p class="text-muted" style="margin:0;"><span class="loading-spinner"></span> Building merge preview…</p>
-            </div>
-          ` : ''}
-
-          ${this.preview ? `
-            <div class="card mb-4" id="merge-preview-panel">
-              <h3 class="mb-2" style="font-size:var(--font-size-base);">Merge preview</h3>
-              <p class="text-muted text-sm">Keep: <code>${escapeHtml(this.preview.keepFile || '—')}</code> · Remove: ${(this.preview.removeFiles || []).map((f) => `<code>${escapeHtml(f)}</code>`).join(', ') || '—'}</p>
-              <p class="text-muted text-sm">Conflicts: ${this.preview.conflicts?.length || 0} · Safe: ${this.preview.safeToExecute ? 'yes' : 'no'} · Mode: ${escapeHtml(this.preview.executionMode || '—')}</p>
-              ${this.preview.riskAssessment ? `
-                <p class="text-muted text-sm">Risk: ${escapeHtml(this.preview.riskAssessment.level || '—')}${(this.preview.riskAssessment.factors || []).length ? ` · ${escapeHtml(this.preview.riskAssessment.factors.join('; '))}` : ''}</p>
-              ` : ''}
-              ${this.preview.safeToExecute ? `
-                <div class="flex gap-2 mt-2">
-                  <button type="button" class="btn btn-danger btn-sm" id="quarantine-merge-btn">Quarantine duplicates</button>
-                  <span class="text-muted text-sm" style="align-self:center;">Requires phrase: <code>${escapeHtml(this.preview.confirmationPhrase || '')}</code></span>
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
-
-          ${this.previewError ? `<p class="text-danger card" id="merge-preview-panel">${escapeHtml(this.previewError)}</p>` : ''}
-
-          ${(health?.recommendations || []).length ? `
-            <div class="card mb-4">
-              <h3 class="mb-2" style="font-size:var(--font-size-base);">Top recommendations</h3>
-              <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-                ${health.recommendations.map((item) => `
-                  <li class="mb-2">
-                    <strong>${escapeHtml(item.priority || '—')}</strong> — ${escapeHtml(item.description || item.action || '')}
-                    ${item.savings ? ` · Save ${escapeHtml(item.savings)}` : ''}
-                  </li>
-                `).join('')}
-              </ul>
-            </div>
-          ` : ''}
-
-          ${(health?.disclaimers || []).length ? `
-            <div class="card">
-              <h3 class="mb-2" style="font-size:var(--font-size-base);">Scope</h3>
-              <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-                ${health.disclaimers.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
+          <div class="flex gap-2">
+            <button type="button" class="btn btn-primary btn-sm" id="run-optimization-scan" ${this.scanning || staticHost ? 'disabled' : ''}>
+              ${this.scanning ? 'Scanning…' : 'Run consolidation scan'}
+            </button>
+            <a class="btn btn-secondary btn-sm" href="/api/optimization/compliance?format=html" target="_blank" rel="noopener">Compliance report</a>
+            <a class="btn btn-ghost btn-sm" href="/dashboard/trust">Trust dashboard</a>
+            <button type="button" class="btn btn-ghost btn-sm" id="send-health-ai-btn" title="Send repository health data to AI coding agent">🤖 Send to AI Agent</button>
+          </div>
         </div>
 
-        <aside class="repo-health-side">
+        ${
+          staticHost
+            ? `
+          <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
+            <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
+              Static-host preview: optimization APIs require <code>npm run dashboard</code> locally.
+            </p>
+          </div>
+        `
+            : ''
+        }
+
+        <div class="card mb-4">
+          <p style="margin:0;font-size:var(--font-size-sm);color:var(--text-secondary);">
+            Measured duplicate detection and oversized-file analysis — separate from security gate scans.
+            We publish our own repo health so you can verify the engine on real data.
+          </p>
+        </div>
+
+        ${
+          headline
+            ? `
           <div class="card mb-4">
-            <div class="section-heading"><h3 style="margin:0;font-size:var(--font-size-base);">Actions</h3></div>
-            <div style="margin-top:8px">
-              <div class="analyze-action-info"><span class="text-muted" style="font-size:var(--font-size-sm);">${headline ? `Score ${headline.repositoryHealthScore}/100` : 'No scan data'}</span></div>
-              <div class="flex gap-2" style="margin-top:8px">
-                <button type="button" class="btn btn-primary btn-sm" id="run-optimization-scan" ${this.scanning || staticHost ? 'disabled' : ''}>
-                  ${this.scanning ? 'Scanning…' : 'Run consolidation scan'}
-                </button>
-                <a class="btn btn-secondary btn-sm" href="/api/optimization/compliance?format=html" target="_blank" rel="noopener">Compliance</a>
-              </div>
-              <div style="margin-top:8px" class="flex gap-2">
-                <a class="btn btn-secondary btn-sm" href="/api/optimization/export?format=json">Export JSON</a>
-                <a class="btn btn-secondary btn-sm" href="/api/optimization/export?format=csv">Export CSV</a>
-              </div>
-              <div style="margin-top:8px" class="flex gap-2">
-                <a class="btn btn-ghost btn-sm" href="/dashboard/trust">Trust dashboard</a>
-                <button type="button" class="btn btn-ghost btn-sm" id="send-health-ai-btn" title="Send repository health data to AI coding agent">🤖 Send to AI Agent</button>
-              </div>
+            <div class="section-heading mb-2">
+              <h3 style="margin:0;font-size:var(--font-size-base);">Headline metrics</h3>
+              <span class="gate-badge ${headline.repositoryHealthScore >= 80 ? 'pass' : headline.repositoryHealthScore >= 60 ? 'warn' : 'fail'}">
+                ${headline.repositoryHealthScore}/100
+              </span>
+            </div>
+            <div class="metrics-row">
+              <div class="metric-chip"><strong>${escapeHtml(headline.optimizationPotential || '—')}</strong> savings potential</div>
+              <div class="metric-chip"><strong>${headline.duplicateGroups ?? '—'}</strong> exact duplicate groups</div>
+              <div class="metric-chip"><strong>${headline.oversizedFiles ?? '—'}</strong> oversized files</div>
+              <div class="metric-chip"><strong>${headline.reductionOpportunities ?? '—'}</strong> reduction opportunities</div>
+              <div class="metric-chip"><strong>${formatNumber(headline.repositoryFilesTotal ?? '—')}</strong> repo files</div>
+              <div class="metric-chip"><strong>${formatNumber(headline.repositoryFoldersTotal ?? '—')}</strong> folders</div>
             </div>
           </div>
+        `
+            : ''
+        }
 
-          ${staticHost ? `
-            <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
-              <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
-                Static-host preview: optimization APIs require <code>npm run dashboard</code> locally.
-              </p>
-            </div>
-          ` : ''}
+        ${renderHealthSnapshot(health?.monorepo, 'Monorepo root')}
+        ${health?.platform && health?.monorepo ? renderHealthSnapshot(health.platform, 'Platform (ai-platform)') : ''}
 
+        ${
+          this.candidates.length
+            ? `
           <div class="card mb-4">
-            <h3 class="mb-2" style="font-size:var(--font-size-base);">About</h3>
-            <p style="margin:0;font-size:var(--font-size-sm);color:var(--text-secondary);">Measured duplicate detection and oversized-file analysis — separate from security gate scans. We publish our own repo health so you can verify the engine on real data.</p>
+            <h3 class="mb-2" style="font-size:var(--font-size-base);">Merge candidates (preview only)</h3>
+            <p class="text-muted text-sm">Phase 3 safety: preview → confirm → quarantine. No auto-delete. Pairs under <code>ai-platform/packages/simplebeacon-cli</code> ↔ <code>packages/simplebeacon-cli</code> are intentional npm mirrors and are not shown.</p>
+            <div class="consolidation-list">
+              ${this.candidates
+                .slice(0, 5)
+                .map(
+                  (item) => `
+                <div class="consolidation-card card">
+                  <div class="consolidation-meta">${escapeHtml(item.mergeType || 'candidate')} · ${escapeHtml(item.savingsLabel || '—')} savings</div>
+                  <p><code>${escapeHtml((item.files || []).map((f) => f.path).join(' ↔ ') || '—')}</code></p>
+                  <button type="button" class="btn btn-secondary btn-sm preview-merge-btn" data-candidate-id="${escapeHtml(item.id || '')}" ${this.previewLoading && this.previewCandidateId === item.id ? 'disabled' : ''}>
+                    ${this.previewLoading && this.previewCandidateId === item.id ? 'Previewing…' : 'Preview merge'}
+                  </button>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
           </div>
-        </aside>
+        `
+            : ''
+        }
+
+        ${
+          this.previewLoading
+            ? `
+          <div class="card mb-4" id="merge-preview-panel">
+            <p class="text-muted" style="margin:0;"><span class="loading-spinner"></span> Building merge preview…</p>
+          </div>
+        `
+            : ''
+        }
+
+        ${
+          this.preview
+            ? `
+          <div class="card mb-4" id="merge-preview-panel">
+            <h3 class="mb-2" style="font-size:var(--font-size-base);">Merge preview</h3>
+            <p class="text-muted text-sm">Keep: <code>${escapeHtml(this.preview.keepFile || '—')}</code> · Remove: ${(this.preview.removeFiles || []).map((f) => `<code>${escapeHtml(f)}</code>`).join(', ') || '—'}</p>
+            <p class="text-muted text-sm">Conflicts: ${this.preview.conflicts?.length || 0} · Safe: ${this.preview.safeToExecute ? 'yes' : 'no'} · Mode: ${escapeHtml(this.preview.executionMode || '—')}</p>
+            ${
+              this.preview.riskAssessment
+                ? `
+              <p class="text-muted text-sm">Risk: ${escapeHtml(this.preview.riskAssessment.level || '—')}${(this.preview.riskAssessment.factors || []).length ? ` · ${escapeHtml(this.preview.riskAssessment.factors.join('; '))}` : ''}</p>
+            `
+                : ''
+            }
+            ${
+              this.preview.safeToExecute
+                ? `
+              <div class="flex gap-2 mt-2">
+                <button type="button" class="btn btn-danger btn-sm" id="quarantine-merge-btn">Quarantine duplicates</button>
+                <span class="text-muted text-sm" style="align-self:center;">Requires phrase: <code>${escapeHtml(this.preview.confirmationPhrase || '')}</code></span>
+              </div>
+            `
+                : ''
+            }
+          </div>
+        `
+            : ''
+        }
+
+        ${this.previewError ? `<p class="text-danger card" id="merge-preview-panel">${escapeHtml(this.previewError)}</p>` : ''}
+
+        ${
+          (health?.recommendations || []).length
+            ? `
+          <div class="card mb-4">
+            <h3 class="mb-2" style="font-size:var(--font-size-base);">Top recommendations</h3>
+            <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
+              ${health.recommendations
+                .map(
+                  (item) => `
+                <li class="mb-2">
+                  <strong>${escapeHtml(item.priority || '—')}</strong> — ${escapeHtml(item.description || item.action || '')}
+                  ${item.savings ? ` · Save ${escapeHtml(item.savings)}` : ''}
+                </li>
+              `
+                )
+                .join('')}
+            </ul>
+          </div>
+        `
+            : ''
+        }
+
+        ${
+          (health?.disclaimers || []).length
+            ? `
+          <div class="card">
+            <h3 class="mb-2" style="font-size:var(--font-size-base);">Scope</h3>
+            <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
+              ${health.disclaimers.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
+            </ul>
+          </div>
+        `
+            : ''
+        }
       </div>
     `;
   }
 
   async fetchCandidatesList() {
-/**
- * Fetch list.
- * @param {string} projectPath
- * @returns {any}
- */
+    /**
+     * Fetch list.
+     * @param {string} projectPath
+     * @returns {any}
+     */
     const fetchList = async (projectPath) => {
       const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
-      const candRes = await fetch(`/api/optimization/candidates${params}`, { cache: 'no-store', headers: authHeaders() });
+      const candRes = await fetch(`/api/optimization/candidates${params}`, {
+        cache: 'no-store',
+        headers: authHeaders(),
+      });
       const candData = await readJsonOrDefault(candRes, {});
-      return candData.success ? (candData.candidates || []) : [];
+      return candData.success ? candData.candidates || [] : [];
     };
 
     const projectPath = this.app.state.lastProjectPath || '';
@@ -420,28 +459,7 @@ export class RepositoryHealthView {
   }
 
   paint(container) {
-    // Render HTML string into DOM without assigning to innerHTML directly
-    try {
-      const html = this.render();
-      if (typeof DOMParser !== 'undefined') {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        // Clear existing children
-        while (container.firstChild) container.removeChild(container.firstChild);
-        // Move parsed nodes into container
-        Array.from(doc.body.childNodes).forEach((n) => container.appendChild(n));
-      } else {
-        // Fallback for older environments: build using a template element
-        const tpl = document.createElement('template');
-        tpl.innerHTML = this.render();
-        container.innerHTML = '';
-        container.appendChild(tpl.content.cloneNode(true));
-      }
-    } catch (e) {
-      // If parsing fails, fallback to safe text output to avoid XSS
-      container.textContent = 'Failed to render repository health view.';
-      console.error('Render error in RepositoryHealthView.paint', e);
-    }
+    container.innerHTML = this.render();
     this.bindEvents(container);
   }
 
@@ -478,8 +496,8 @@ export class RepositoryHealthView {
         headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           projectPath: this.resolvePreviewProjectPath(),
-          candidateId
-        })
+          candidateId,
+        }),
       });
       const data = await readJsonOrDefault(res, {});
       if (!res.ok || !data.success) throw new Error(data.error || 'Preview failed');
@@ -520,7 +538,7 @@ export class RepositoryHealthView {
         const res = await fetch('/api/optimization/analyze', {
           method: 'POST',
           headers: authHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ projectPath: this.app.state.lastProjectPath || '' })
+          body: JSON.stringify({ projectPath: this.app.state.lastProjectPath || '' }),
         });
         const data = await readJsonOrDefault(res, {});
         if (!res.ok || !data.success) throw new Error(data.error || 'Scan failed');
@@ -540,7 +558,10 @@ export class RepositoryHealthView {
     container.querySelector('#quarantine-merge-btn')?.addEventListener('click', async () => {
       if (!this.preview) return;
       const btn = container.querySelector('#quarantine-merge-btn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Quarantining…'; }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Quarantining…';
+      }
       try {
         const res = await fetch('/api/optimization/merge-execute', {
           method: 'POST',
@@ -549,8 +570,8 @@ export class RepositoryHealthView {
             projectPath: this.resolvePreviewProjectPath(),
             previewId: this.preview.previewId || undefined,
             confirmed: true,
-            confirmationPhrase: this.preview.confirmationPhrase
-          })
+            confirmationPhrase: this.preview.confirmationPhrase,
+          }),
         });
         const data = await readJsonOrDefault(res, {});
         if (!res.ok || !data.success) throw new Error(data.error || 'Quarantine failed');
@@ -561,16 +582,23 @@ export class RepositoryHealthView {
         this.paint(container);
       } catch (err) {
         showToast(err.message, 'error');
-        if (btn) { btn.disabled = false; btn.textContent = 'Quarantine duplicates'; }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Quarantine duplicates';
+        }
       }
     });
 
     container.querySelector('#send-health-ai-btn')?.addEventListener('click', async () => {
       const health = this.data;
-      if (!health || !health.headline) { showToast('No repository health data — run a scan first', 'error'); return; }
+      if (!health || !health.headline) {
+        showToast('No repository health data — run a scan first', 'error');
+        return;
+      }
       const headline = health.headline;
       const payload = {
-        projectPath: health.projectRoot || health.projectPath || this.app.state.lastProjectPath || window.location.origin,
+        projectPath:
+          health.projectRoot || health.projectPath || this.app.state.lastProjectPath || window.location.origin,
         reportType: 'repository-health',
         reportSummary: {
           repositoryHealthScore: headline.repositoryHealthScore,
@@ -579,9 +607,9 @@ export class RepositoryHealthView {
           oversizedFiles: headline.oversizedFiles,
           reductionOpportunities: headline.reductionOpportunities,
           repositoryFilesTotal: headline.repositoryFilesTotal,
-          repositoryFoldersTotal: headline.repositoryFoldersTotal
+          repositoryFoldersTotal: headline.repositoryFoldersTotal,
         },
-        notes: ''
+        notes: '',
       };
       const vscode = this._getVscodeApi();
       if (vscode) {
@@ -590,7 +618,7 @@ export class RepositoryHealthView {
           showToast('Repository health sent to your AI coding agent', 'success');
           return;
         } catch (err) {
-          window["console"]["warn"]('[Health-AI] vscode.postMessage failed:', err);
+          window['console']['warn']('[Health-AI] vscode.postMessage failed:', err);
         }
       }
       // Fallback: POST to /api/ai-context and copy to clipboard
@@ -598,7 +626,7 @@ export class RepositoryHealthView {
         const res = await fetch('/api/ai-context', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
         const json = await res.json();
         if (json.success && json.content) {

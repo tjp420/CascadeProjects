@@ -3,22 +3,10 @@
   "overview": {
     "overallCoverage": 31.8
   },
-  "projects": [
-    {}
-  ],
-  "coverageTrends": [
-    {}
-  ],
-  "uncoveredFiles": [
-    {}
-  ],
-  "recommendations": [
-    {}
-  ],
-  "recentRuns": [
-    {}
-  ],
-  "coverageGoals": [
-    {}
-  ]
+  "projects": [{}],
+  "coverageTrends": [{}],
+  "uncoveredFiles": [{}],
+  "recommendations": [{}],
+  "recentRuns": [{}],
+  "coverageGoals": [{}]
 }

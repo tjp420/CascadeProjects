@@ -1,7 +1,7 @@
-'use strict';
+"use strict";
 
-const { CryptoPolicyEngine } = require('./crypto-policy-engine.cjs');
-const { incrementCounter } = require('./hsm-metrics.cjs');
+const { CryptoPolicyEngine } = require("./crypto-policy-engine.cjs");
+const { incrementCounter } = require("./hsm-metrics.cjs");
 
 class ZkLatticeVfhssValidator {
   constructor(engine) {
@@ -13,28 +13,31 @@ class ZkLatticeVfhssValidator {
 
     if (policy.latticeVfhssGating.requireEnclaveEvaluationAttestation) {
       if (!claim.enclaveEvaluationAttestation) {
-        throw new Error('VFHSSCLAIM_UNATTESTED_EVALUATION');
+        throw new Error("VFHSSCLAIM_UNATTESTED_EVALUATION");
       }
     }
 
     if (!Array.isArray(claim.shares)) {
-      throw new Error('VFHSSCLAIM_INSUFFICIENT_SHARES');
+      throw new Error("VFHSSCLAIM_INSUFFICIENT_SHARES");
     }
 
     const shareCount = claim.shares.length;
     const minShares = policy.latticeVfhssGating.minVfhssShares;
 
     if (shareCount < minShares) {
-      throw new Error('VFHSSCLAIM_INSUFFICIENT_SHARES');
+      throw new Error("VFHSSCLAIM_INSUFFICIENT_SHARES");
     }
 
-    if (typeof claim.homomorphicDepth === 'number' && claim.homomorphicDepth > policy.latticeVfhssGating.maxHomomorphicDepth) {
-      throw new Error('VFHSSCLAIM_HOMOMORPHIC_DEPTH_EXCEEDED');
+    if (
+      typeof claim.homomorphicDepth === "number" &&
+      claim.homomorphicDepth > policy.latticeVfhssGating.maxHomomorphicDepth
+    ) {
+      throw new Error("VFHSSCLAIM_HOMOMORPHIC_DEPTH_EXCEEDED");
     }
 
-    this.engine.validate(tenantId, 'latticeVfhssGating', claim);
+    this.engine.validate(tenantId, "latticeVfhssGating", claim);
 
-    incrementCounter('hsm_zk_vfhss_claim_verified_total');
+    incrementCounter("hsm_zk_vfhss_claim_verified_total");
     return true;
   }
 }

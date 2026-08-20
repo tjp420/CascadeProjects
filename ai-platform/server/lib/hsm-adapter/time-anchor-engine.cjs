@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 22: Distributed time anchor engine.
@@ -10,8 +10,8 @@
  * @module hsm-adapter/time-anchor-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 function _canonical(epochNumber, timestamp, oracleId) {
   return `${epochNumber}:${timestamp}:${oracleId}`;
@@ -45,7 +45,11 @@ class TimeAnchorEngine {
 
   _audit(event, extra = {}) {
     if (!this._logger || !this._logger.info) return;
-    this._logger.info(event, { sub: 'hsm-adapter', provider: 'time-anchor', ...extra });
+    this._logger.info(event, {
+      sub: "hsm-adapter",
+      provider: "time-anchor",
+      ...extra,
+    });
   }
 
   /**
@@ -58,22 +62,34 @@ class TimeAnchorEngine {
   submitPulse(oracleId, timestamp, signature, epochNumber = 0) {
     const oracle = this._oracles[oracleId];
     if (!oracle) {
-      throw new HsmAdapterError('ORACLE_QUORUM_FAILED', `unknown oracle ${oracleId}`);
+      throw new HsmAdapterError(
+        "ORACLE_QUORUM_FAILED",
+        `unknown oracle ${oracleId}`,
+      );
     }
 
     if (epochNumber < this._lastEpoch) {
-      throw new HsmAdapterError('MONOTONIC_TIME_VIOLATION', `epoch ${epochNumber} is older than last epoch ${this._lastEpoch}`);
+      throw new HsmAdapterError(
+        "MONOTONIC_TIME_VIOLATION",
+        `epoch ${epochNumber} is older than last epoch ${this._lastEpoch}`,
+      );
     }
     if (timestamp < this._lastConsensus) {
-      throw new HsmAdapterError('MONOTONIC_TIME_VIOLATION', `timestamp ${timestamp} is older than last consensus ${this._lastConsensus}`);
+      throw new HsmAdapterError(
+        "MONOTONIC_TIME_VIOLATION",
+        `timestamp ${timestamp} is older than last consensus ${this._lastConsensus}`,
+      );
     }
 
     const payload = _canonical(epochNumber, timestamp, oracleId);
-    const verifier = crypto.createVerify('sha256');
+    const verifier = crypto.createVerify("sha256");
     verifier.update(payload);
-    const ok = verifier.verify(oracle.publicKey, signature, 'base64');
+    const ok = verifier.verify(oracle.publicKey, signature, "base64");
     if (!ok) {
-      throw new HsmAdapterError('ORACLE_SIGNATURE_INVALID', `invalid signature from oracle ${oracleId}`);
+      throw new HsmAdapterError(
+        "ORACLE_SIGNATURE_INVALID",
+        `invalid signature from oracle ${oracleId}`,
+      );
     }
 
     this._pulses.push({ oracleId, timestamp, epochNumber, signature });
@@ -87,32 +103,47 @@ class TimeAnchorEngine {
   consensusTimestamp(epochNumber) {
     if (this._pulses.length < this._minQuorum) {
       if (this._lastConsensus > 0) return this._lastConsensus;
-      throw new HsmAdapterError('ORACLE_QUORUM_FAILED', `only ${this._pulses.length} valid pulses, need ${this._minQuorum}`);
+      throw new HsmAdapterError(
+        "ORACLE_QUORUM_FAILED",
+        `only ${this._pulses.length} valid pulses, need ${this._minQuorum}`,
+      );
     }
 
     const sorted = this._pulses.map((p) => p.timestamp).sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)];
 
     const inliers = this._pulses.filter(
-      (p) => Math.abs(p.timestamp - median) <= this._maxDriftMs
+      (p) => Math.abs(p.timestamp - median) <= this._maxDriftMs,
     );
 
     if (inliers.length < this._minQuorum) {
-      throw new HsmAdapterError('ORACLE_QUORUM_FAILED', `only ${inliers.length} inlier pulses, need ${this._minQuorum}`);
+      throw new HsmAdapterError(
+        "ORACLE_QUORUM_FAILED",
+        `only ${inliers.length} inlier pulses, need ${this._minQuorum}`,
+      );
     }
 
-    const inlierTimestamps = inliers.map((p) => p.timestamp).sort((a, b) => a - b);
+    const inlierTimestamps = inliers
+      .map((p) => p.timestamp)
+      .sort((a, b) => a - b);
     const consensus = inlierTimestamps[Math.floor(inlierTimestamps.length / 2)];
 
     if (consensus < this._lastConsensus) {
-      throw new HsmAdapterError('MONOTONIC_TIME_VIOLATION', `consensus ${consensus} is older than last consensus ${this._lastConsensus}`);
+      throw new HsmAdapterError(
+        "MONOTONIC_TIME_VIOLATION",
+        `consensus ${consensus} is older than last consensus ${this._lastConsensus}`,
+      );
     }
 
     this._lastConsensus = consensus;
     this._lastEpoch = epochNumber !== undefined ? epochNumber : this._lastEpoch;
     this._pulses = [];
 
-    this._audit('TIME_CONSENSUS_REACHED', { consensus, inliers: inliers.length, epochNumber: this._lastEpoch });
+    this._audit("TIME_CONSENSUS_REACHED", {
+      consensus,
+      inliers: inliers.length,
+      epochNumber: this._lastEpoch,
+    });
     return consensus;
   }
 

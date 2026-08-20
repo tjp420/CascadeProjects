@@ -1,592 +1,552 @@
 {
-  "name": "SimpleBeacon Roadmap — ai_agent",
-  "desc": "Auto-generated from SimpleBeacon scan summary. Generated 6/7/2026",
-  "labels": [
-    {
-      "id": "label_critical",
-      "name": "Critical",
-      "color": "red"
-    },
-    {
-      "id": "label_high",
-      "name": "High Priority",
-      "color": "orange"
-    },
-    {
-      "id": "label_medium",
-      "name": "Medium",
-      "color": "yellow"
-    },
-    {
-      "id": "label_low",
-      "name": "Low Priority",
-      "color": "green"
-    }
-  ],
-  "lists": [
-    {
-      "id": "list_todo",
-      "name": "To Do",
-      "pos": 65536
-    },
-    {
-      "id": "list_progress",
-      "name": "In Progress",
-      "pos": 131072
-    },
-    {
-      "id": "list_review",
-      "name": "Under Review",
-      "pos": 196608
-    },
-    {
-      "id": "list_done",
-      "name": "Done",
-      "pos": 262144
-    }
-  ],
-  "cards": [
-    {
-      "id": "card_0",
-      "name": "Phase 1: Consistency & Deduplication",
-      "desc": "Phase: Phase 1: Consistency & Deduplication\nSeverity: high\nEffort: 3–5 days\nProgress: 55%\n\nEliminate redundancy: 8 duplicate group(s): 60% consistency.",
-      "idList": "list_todo",
-      "pos": 1024,
-      "idLabels": [
-        "label_high"
-      ],
-      "idChecklists": [
-        "check_0"
-      ]
-    },
-    {
-      "id": "card_1",
-      "name": "Phase 2: Cleanup & Hygiene",
-      "desc": "Phase: Phase 2: Cleanup & Hygiene\nSeverity: high\nEffort: 1–2 days\nProgress: 43%\n\n5 debug artifacts + 66 bloat file(s) detected.\n\nImpact: HYGIENE RISK: Debug artifacts should ! reach production builds.\n\nFix: Remove console.log, debugger, TODO, and FIXME markers before release.",
-      "idList": "list_progress",
-      "pos": 2048,
-      "idLabels": [
-        "label_high"
-      ],
-      "idChecklists": [
-        "check_1"
-      ]
-    },
-    {
-      "id": "card_2",
-      "name": "Phase 3: Security Hardening",
-      "desc": "Phase: Phase 3: Security Hardening\nSeverity: medium\nEffort: 1–2 days\nProgress: 100%\n\nAddress 0 credential and 0 production leak finding(s).\n\nImpact: MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.\n\nFix: Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "idList": "list_done",
-      "pos": 3072,
-      "idLabels": [
-        "label_medium"
-      ],
-      "idChecklists": [
-        "check_2"
-      ]
-    },
-    {
-      "id": "card_3",
-      "name": "Phase 4: Data Integrity",
-      "desc": "Phase: Phase 4: Data Integrity\nSeverity: medium\nEffort: 2–4 days\nProgress: 100%\n\nData integrity verified — no structural issues detected.",
-      "idList": "list_done",
-      "pos": 4096,
-      "idLabels": [
-        "label_medium"
-      ],
-      "idChecklists": [
-        "check_3"
-      ]
-    },
-    {
-      "id": "card_4",
-      "name": "Phase 5: Governance & Compliance",
-      "desc": "Phase: Phase 5: Governance & Compliance\nSeverity: medium\nEffort: 2–3 days\nProgress: 100%\n\n11 license file(s), 8 security file(s).",
-      "idList": "list_done",
-      "pos": 5120,
-      "idLabels": [
-        "label_medium"
-      ],
-      "idChecklists": [
-        "check_4"
-      ]
-    },
-    {
-      "id": "card_5",
-      "name": "Phase 6: Quality Optimization",
-      "desc": "Phase: Phase 6: Quality Optimization\nSeverity: low\nEffort: Ongoing\nProgress: 40%\n\nDrive quality score from 93/100 toward 95+. 5 debug artifact(s).",
-      "idList": "list_todo",
-      "pos": 6144,
-      "idLabels": [
-        "label_low"
-      ],
-      "idChecklists": [
-        "check_5"
-      ]
-    },
-    {
-      "id": "card_6",
-      "name": "Phase 7: Mock Data Review",
-      "desc": "Phase: Phase 7: Mock Data Review\nSeverity: low\nEffort: 1 day\nProgress: 55%\n\n91 mock/fixture file(s) detected — verify excluded from production.",
-      "idList": "list_todo",
-      "pos": 7168,
-      "idLabels": [
-        "label_low"
-      ],
-      "idChecklists": [
-        "check_6"
-      ]
-    },
-    {
-      "id": "card_7",
-      "name": "Phase 8: npm Audit",
-      "desc": "Phase: Phase 8: npm Audit\nSeverity: low\nEffort: 1 day\nProgress: 50%\n\n11 package.json file(s), 110 total dependencies.",
-      "idList": "list_todo",
-      "pos": 8192,
-      "idLabels": [
-        "label_low"
-      ],
-      "idChecklists": [
-        "check_7"
-      ]
-    },
-    {
-      "id": "card_8",
-      "name": "Phase 9: Dependency Vulnerability Audit",
-      "desc": "Phase: Phase 9: Dependency Vulnerability Audit\nSeverity: low\nEffort: 1–3 days\nProgress: 100%\n\n0 vulnerable dependency(ies) detected.",
-      "idList": "list_done",
-      "pos": 9216,
-      "idLabels": [
-        "label_low"
-      ],
-      "idChecklists": [
-        "check_8"
-      ]
-    },
-    {
-      "id": "card_9",
-      "name": "Phase 10: EU AI Act Compliance",
-      "desc": "Phase: Phase 10: EU AI Act Compliance\nSeverity: critical\nEffort: 5–10 days\nProgress: 40%\n\nRegulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",
-      "idList": "list_progress",
-      "pos": 10240,
-      "idLabels": [
-        "label_critical"
-      ],
-      "idChecklists": [
-        "check_9"
-      ]
-    }
-  ],
-  "checklists": [
-    {
-      "id": "check_0",
-      "idCard": "card_0",
-      "name": "Remediation Tasks",
-      "checkItems": [
+    "name": "SimpleBeacon Roadmap — ai_agent",
+    "desc": "Auto-generated from SimpleBeacon scan summary. Generated 6/7/2026",
+    "labels": [
         {
-          "id": "item_0_0",
-          "name": "Consolidate 8 duplicate group(s)",
-          "pos": 0,
-          "state": "incomplete"
+            "id": "label_critical",
+            "name": "Critical",
+            "color": "red"
         },
         {
-          "id": "item_0_1",
-          "name": "Review consistency check failures",
-          "pos": 1024,
-          "state": "incomplete"
+            "id": "label_high",
+            "name": "High Priority",
+            "color": "orange"
         },
         {
-          "id": "item_0_2",
-          "name": "Standardize naming conventions",
-          "pos": 2048,
-          "state": "incomplete"
+            "id": "label_medium",
+            "name": "Medium",
+            "color": "yellow"
         },
         {
-          "id": "item_0_3",
-          "name": "Document canonical file locations",
-          "pos": 3072,
-          "state": "incomplete"
+            "id": "label_low",
+            "name": "Low Priority",
+            "color": "green"
         }
-      ]
-    },
-    {
-      "id": "check_1",
-      "idCard": "card_1",
-      "name": "Remediation Tasks",
-      "checkItems": [
+    ],
+    "lists": [
         {
-          "id": "item_1_0",
-          "name": "console.log('Could not find pushModule(13)'); add-modules.js:15",
-          "pos": 0,
-          "state": "incomplete"
+            "id": "list_todo",
+            "name": "To Do",
+            "pos": 65536
         },
         {
-          "id": "item_1_1",
-          "name": "console.log('Added modules 14 and 15 after line', insertIdx + 1); add-modules.js:55",
-          "pos": 1024,
-          "state": "incomplete"
+            "id": "list_progress",
+            "name": "In Progress",
+            "pos": 131072
         },
         {
-          "id": "item_1_2",
-          "name": "console.log('[MCP HTTP] Scan complete. reportJson type:', typeof reportJson); ai-platform/mcp-http-server.cjs:546",
-          "pos": 2048,
-          "state": "incomplete"
+            "id": "list_review",
+            "name": "Under Review",
+            "pos": 196608
         },
         {
-          "id": "item_1_3",
-          "name": "11 more console.log occurrence(s)",
-          "pos": 3072,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_4",
-          "name": "Delete self-generated bloat: .simplebeacon/final-verify.json.simplebeacon-backup.2026-06-06T23-31-04-954Z",
-          "pos": 4096,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_5",
-          "name": "Delete self-generated bloat: .simplebeacon/gate-test-report.json.simplebeacon-backup.2026-06-07T03-56-18-206Z",
-          "pos": 5120,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_6",
-          "name": "Delete self-generated bloat: .simplebeacon/gate-test-report.json.simplebeacon-backup.2026-06-07T03-57-18-869Z",
-          "pos": 6144,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_7",
-          "name": "...and 63 more bloat file(s)",
-          "pos": 7168,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_8",
-          "name": "Add bloat patterns to .simplebeaconignore",
-          "pos": 8192,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_9",
-          "name": "Purge old scan backups with retention policy",
-          "pos": 9216,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_10",
-          "name": "Install eslint-plugin-no-console for CI",
-          "pos": 10240,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_1_11",
-          "name": "Add pre-commit hook to reject console.log",
-          "pos": 11264,
-          "state": "incomplete"
+            "id": "list_done",
+            "name": "Done",
+            "pos": 262144
         }
-      ]
-    },
-    {
-      "id": "check_2",
-      "idCard": "card_2",
-      "name": "Remediation Tasks",
-      "checkItems": [
+    ],
+    "cards": [
         {
-          "id": "item_2_0",
-          "name": "const password = '***REDACTED***' — coming-soon/test-all-patterns.js:102",
-          "pos": 0,
-          "state": "complete"
+            "id": "card_0",
+            "name": "Phase 1: Consistency & Deduplication",
+            "desc": "Phase: Phase 1: Consistency & Deduplication\nSeverity: high\nEffort: 3–5 days\nProgress: 55%\n\nEliminate redundancy: 8 duplicate group(s): 60% consistency.",
+            "idList": "list_todo",
+            "pos": 1024,
+            "idLabels": ["label_high"],
+            "idChecklists": ["check_0"]
         },
         {
-          "id": "item_2_1",
-          "name": "api_key = '***REDACTED***' — coming-soon/test-all-patterns.js:103",
-          "pos": 1024,
-          "state": "complete"
+            "id": "card_1",
+            "name": "Phase 2: Cleanup & Hygiene",
+            "desc": "Phase: Phase 2: Cleanup & Hygiene\nSeverity: high\nEffort: 1–2 days\nProgress: 43%\n\n5 debug artifacts + 66 bloat file(s) detected.\n\nImpact: HYGIENE RISK: Debug artifacts should ! reach production builds.\n\nFix: Remove console.log, debugger, TODO, and FIXME markers before release.",
+            "idList": "list_progress",
+            "pos": 2048,
+            "idLabels": ["label_high"],
+            "idChecklists": ["check_1"]
         },
         {
-          "id": "item_2_2",
-          "name": "AWS_ACCESS_KEY_ID = '***REDACTED***' — coming-soon/test-all-patterns.js:104",
-          "pos": 2048,
-          "state": "complete"
+            "id": "card_2",
+            "name": "Phase 3: Security Hardening",
+            "desc": "Phase: Phase 3: Security Hardening\nSeverity: medium\nEffort: 1–2 days\nProgress: 100%\n\nAddress 0 credential and 0 production leak finding(s).\n\nImpact: MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.\n\nFix: Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "idList": "list_done",
+            "pos": 3072,
+            "idLabels": ["label_medium"],
+            "idChecklists": ["check_2"]
         },
         {
-          "id": "item_2_3",
-          "name": "Add .env to .gitignore",
-          "pos": 3072,
-          "state": "complete"
+            "id": "card_3",
+            "name": "Phase 4: Data Integrity",
+            "desc": "Phase: Phase 4: Data Integrity\nSeverity: medium\nEffort: 2–4 days\nProgress: 100%\n\nData integrity verified — no structural issues detected.",
+            "idList": "list_done",
+            "pos": 4096,
+            "idLabels": ["label_medium"],
+            "idChecklists": ["check_3"]
         },
         {
-          "id": "item_2_4",
-          "name": "Re-run gate scan",
-          "pos": 4096,
-          "state": "complete"
+            "id": "card_4",
+            "name": "Phase 5: Governance & Compliance",
+            "desc": "Phase: Phase 5: Governance & Compliance\nSeverity: medium\nEffort: 2–3 days\nProgress: 100%\n\n11 license file(s), 8 security file(s).",
+            "idList": "list_done",
+            "pos": 5120,
+            "idLabels": ["label_medium"],
+            "idChecklists": ["check_4"]
+        },
+        {
+            "id": "card_5",
+            "name": "Phase 6: Quality Optimization",
+            "desc": "Phase: Phase 6: Quality Optimization\nSeverity: low\nEffort: Ongoing\nProgress: 40%\n\nDrive quality score from 93/100 toward 95+. 5 debug artifact(s).",
+            "idList": "list_todo",
+            "pos": 6144,
+            "idLabels": ["label_low"],
+            "idChecklists": ["check_5"]
+        },
+        {
+            "id": "card_6",
+            "name": "Phase 7: Mock Data Review",
+            "desc": "Phase: Phase 7: Mock Data Review\nSeverity: low\nEffort: 1 day\nProgress: 55%\n\n91 mock/fixture file(s) detected — verify excluded from production.",
+            "idList": "list_todo",
+            "pos": 7168,
+            "idLabels": ["label_low"],
+            "idChecklists": ["check_6"]
+        },
+        {
+            "id": "card_7",
+            "name": "Phase 8: npm Audit",
+            "desc": "Phase: Phase 8: npm Audit\nSeverity: low\nEffort: 1 day\nProgress: 50%\n\n11 package.json file(s), 110 total dependencies.",
+            "idList": "list_todo",
+            "pos": 8192,
+            "idLabels": ["label_low"],
+            "idChecklists": ["check_7"]
+        },
+        {
+            "id": "card_8",
+            "name": "Phase 9: Dependency Vulnerability Audit",
+            "desc": "Phase: Phase 9: Dependency Vulnerability Audit\nSeverity: low\nEffort: 1–3 days\nProgress: 100%\n\n0 vulnerable dependency(ies) detected.",
+            "idList": "list_done",
+            "pos": 9216,
+            "idLabels": ["label_low"],
+            "idChecklists": ["check_8"]
+        },
+        {
+            "id": "card_9",
+            "name": "Phase 10: EU AI Act Compliance",
+            "desc": "Phase: Phase 10: EU AI Act Compliance\nSeverity: critical\nEffort: 5–10 days\nProgress: 40%\n\nRegulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",
+            "idList": "list_progress",
+            "pos": 10240,
+            "idLabels": ["label_critical"],
+            "idChecklists": ["check_9"]
         }
-      ]
-    },
-    {
-      "id": "check_3",
-      "idCard": "card_3",
-      "name": "Remediation Tasks",
-      "checkItems": [
+    ],
+    "checklists": [
         {
-          "id": "item_3_0",
-          "name": "Validate all JSON",
-          "pos": 0,
-          "state": "complete"
+            "id": "check_0",
+            "idCard": "card_0",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_0_0",
+                    "name": "Consolidate 8 duplicate group(s)",
+                    "pos": 0,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_0_1",
+                    "name": "Review consistency check failures",
+                    "pos": 1024,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_0_2",
+                    "name": "Standardize naming conventions",
+                    "pos": 2048,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_0_3",
+                    "name": "Document canonical file locations",
+                    "pos": 3072,
+                    "state": "incomplete"
+                }
+            ]
         },
         {
-          "id": "item_3_1",
-          "name": "Re-run scan",
-          "pos": 1024,
-          "state": "complete"
+            "id": "check_1",
+            "idCard": "card_1",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_1_0",
+                    "name": "console.log('Could not find pushModule(13)'); add-modules.js:15",
+                    "pos": 0,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_1",
+                    "name": "console.log('Added modules 14 and 15 after line', insertIdx + 1); add-modules.js:55",
+                    "pos": 1024,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_2",
+                    "name": "console.log('[MCP HTTP] Scan complete. reportJson type:', typeof reportJson); ai-platform/mcp-http-server.cjs:546",
+                    "pos": 2048,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_3",
+                    "name": "11 more console.log occurrence(s)",
+                    "pos": 3072,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_4",
+                    "name": "Delete self-generated bloat: .simplebeacon/final-verify.json.simplebeacon-backup.2026-06-06T23-31-04-954Z",
+                    "pos": 4096,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_5",
+                    "name": "Delete self-generated bloat: .simplebeacon/gate-test-report.json.simplebeacon-backup.2026-06-07T03-56-18-206Z",
+                    "pos": 5120,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_6",
+                    "name": "Delete self-generated bloat: .simplebeacon/gate-test-report.json.simplebeacon-backup.2026-06-07T03-57-18-869Z",
+                    "pos": 6144,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_7",
+                    "name": "...and 63 more bloat file(s)",
+                    "pos": 7168,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_8",
+                    "name": "Add bloat patterns to .simplebeaconignore",
+                    "pos": 8192,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_9",
+                    "name": "Purge old scan backups with retention policy",
+                    "pos": 9216,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_10",
+                    "name": "Install eslint-plugin-no-console for CI",
+                    "pos": 10240,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_1_11",
+                    "name": "Add pre-commit hook to reject console.log",
+                    "pos": 11264,
+                    "state": "incomplete"
+                }
+            ]
+        },
+        {
+            "id": "check_2",
+            "idCard": "card_2",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_2_0",
+                    "name": "const password = '***REDACTED***' — coming-soon/test-all-patterns.js:102",
+                    "pos": 0,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_2_1",
+                    "name": "api_key = '***REDACTED***' — coming-soon/test-all-patterns.js:103",
+                    "pos": 1024,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_2_2",
+                    "name": "AWS_ACCESS_KEY_ID = '***REDACTED***' — coming-soon/test-all-patterns.js:104",
+                    "pos": 2048,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_2_3",
+                    "name": "Add .env to .gitignore",
+                    "pos": 3072,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_2_4",
+                    "name": "Re-run gate scan",
+                    "pos": 4096,
+                    "state": "complete"
+                }
+            ]
+        },
+        {
+            "id": "check_3",
+            "idCard": "card_3",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_3_0",
+                    "name": "Validate all JSON",
+                    "pos": 0,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_3_1",
+                    "name": "Re-run scan",
+                    "pos": 1024,
+                    "state": "complete"
+                }
+            ]
+        },
+        {
+            "id": "check_4",
+            "idCard": "card_4",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_4_0",
+                    "name": "Audit 11 open-source license file(s)",
+                    "pos": 0,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_4_1",
+                    "name": "Review 8 security/governance file(s)",
+                    "pos": 1024,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_4_2",
+                    "name": "Verify license compatibility with distribution model",
+                    "pos": 2048,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_4_3",
+                    "name": "Document governance policies",
+                    "pos": 3072,
+                    "state": "complete"
+                }
+            ]
+        },
+        {
+            "id": "check_5",
+            "idCard": "card_5",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_5_0",
+                    "name": "Remove debug artifact in add-modules.js",
+                    "pos": 0,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_5_1",
+                    "name": "Remove debug artifact in ai-platform/mcp-http-server.cjs",
+                    "pos": 1024,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_5_2",
+                    "name": "Remove debug artifact in ai-platform/packages/simplebeacon-cli/src/reporters/ai-enhanced-report.js",
+                    "pos": 2048,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_5_3",
+                    "name": "Remove debug artifact in ai-platform/packages/simplebeacon-cli/src/reporters/build-report.js",
+                    "pos": 3072,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_5_4",
+                    "name": "Remove debug artifact in ai-platform/packages/simplebeacon-intelligence/scripts/fetch-grammars.js",
+                    "pos": 4096,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_5_5",
+                    "name": "Add test coverage for uncovered modules",
+                    "pos": 5120,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_5_6",
+                    "name": "Install pre-commit hooks for automated scanning",
+                    "pos": 6144,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_5_7",
+                    "name": "Schedule monthly quality gate reviews",
+                    "pos": 7168,
+                    "state": "incomplete"
+                }
+            ]
+        },
+        {
+            "id": "check_6",
+            "idCard": "card_6",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_6_0",
+                    "name": "Review 91 Mock / Fixture / Sample Files file(s)",
+                    "pos": 0,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_6_1",
+                    "name": "Add .simplebeaconignore patterns for fixtures",
+                    "pos": 1024,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_6_2",
+                    "name": "Exclude test data from production builds",
+                    "pos": 2048,
+                    "state": "incomplete"
+                }
+            ]
+        },
+        {
+            "id": "check_7",
+            "idCard": "card_7",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_7_0",
+                    "name": "Review ai-agent/package.json",
+                    "pos": 0,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_1",
+                    "name": "Review ai-platform/package.json",
+                    "pos": 1024,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_2",
+                    "name": "Review ai-platform/packages/simplebeacon-cli/package.json",
+                    "pos": 2048,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_3",
+                    "name": "Review ai-platform/packages/simplebeacon-intelligence/package.json",
+                    "pos": 3072,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_4",
+                    "name": "Review ai-tools/package.json",
+                    "pos": 4096,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_5",
+                    "name": "Audit 110 total dependencies",
+                    "pos": 5120,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_6",
+                    "name": "Run npm audit",
+                    "pos": 6144,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_7",
+                    "name": "Verify lockfile integrity",
+                    "pos": 7168,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_7_8",
+                    "name": "Review dependency update policy",
+                    "pos": 8192,
+                    "state": "incomplete"
+                }
+            ]
+        },
+        {
+            "id": "check_8",
+            "idCard": "card_8",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_8_0",
+                    "name": "Run npm audit fix",
+                    "pos": 0,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_8_1",
+                    "name": "Review dependency update policy",
+                    "pos": 1024,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_8_2",
+                    "name": "Enable Dependabot or Snyx",
+                    "pos": 2048,
+                    "state": "complete"
+                }
+            ]
+        },
+        {
+            "id": "check_9",
+            "idCard": "card_9",
+            "name": "Remediation Tasks",
+            "checkItems": [
+                {
+                    "id": "item_9_0",
+                    "name": "Address 1 high-risk indicator(s)",
+                    "pos": 0,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_9_1",
+                    "name": "Close 1 transparency gap(s)",
+                    "pos": 1024,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_9_2",
+                    "name": "Review 3 AI system indicator(s) (Art. 6)",
+                    "pos": 2048,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_9_3",
+                    "name": "Generate documentation artifacts",
+                    "pos": 3072,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_9_4",
+                    "name": "Review AI system classification (Art. 6)",
+                    "pos": 4096,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_9_5",
+                    "name": "Schedule legal review",
+                    "pos": 5120,
+                    "state": "incomplete"
+                }
+            ]
         }
-      ]
-    },
-    {
-      "id": "check_4",
-      "idCard": "card_4",
-      "name": "Remediation Tasks",
-      "checkItems": [
-        {
-          "id": "item_4_0",
-          "name": "Audit 11 open-source license file(s)",
-          "pos": 0,
-          "state": "complete"
-        },
-        {
-          "id": "item_4_1",
-          "name": "Review 8 security/governance file(s)",
-          "pos": 1024,
-          "state": "complete"
-        },
-        {
-          "id": "item_4_2",
-          "name": "Verify license compatibility with distribution model",
-          "pos": 2048,
-          "state": "complete"
-        },
-        {
-          "id": "item_4_3",
-          "name": "Document governance policies",
-          "pos": 3072,
-          "state": "complete"
-        }
-      ]
-    },
-    {
-      "id": "check_5",
-      "idCard": "card_5",
-      "name": "Remediation Tasks",
-      "checkItems": [
-        {
-          "id": "item_5_0",
-          "name": "Remove debug artifact in add-modules.js",
-          "pos": 0,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_5_1",
-          "name": "Remove debug artifact in ai-platform/mcp-http-server.cjs",
-          "pos": 1024,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_5_2",
-          "name": "Remove debug artifact in ai-platform/packages/simplebeacon-cli/src/reporters/ai-enhanced-report.js",
-          "pos": 2048,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_5_3",
-          "name": "Remove debug artifact in ai-platform/packages/simplebeacon-cli/src/reporters/build-report.js",
-          "pos": 3072,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_5_4",
-          "name": "Remove debug artifact in ai-platform/packages/simplebeacon-intelligence/scripts/fetch-grammars.js",
-          "pos": 4096,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_5_5",
-          "name": "Add test coverage for uncovered modules",
-          "pos": 5120,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_5_6",
-          "name": "Install pre-commit hooks for automated scanning",
-          "pos": 6144,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_5_7",
-          "name": "Schedule monthly quality gate reviews",
-          "pos": 7168,
-          "state": "incomplete"
-        }
-      ]
-    },
-    {
-      "id": "check_6",
-      "idCard": "card_6",
-      "name": "Remediation Tasks",
-      "checkItems": [
-        {
-          "id": "item_6_0",
-          "name": "Review 91 Mock / Fixture / Sample Files file(s)",
-          "pos": 0,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_6_1",
-          "name": "Add .simplebeaconignore patterns for fixtures",
-          "pos": 1024,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_6_2",
-          "name": "Exclude test data from production builds",
-          "pos": 2048,
-          "state": "incomplete"
-        }
-      ]
-    },
-    {
-      "id": "check_7",
-      "idCard": "card_7",
-      "name": "Remediation Tasks",
-      "checkItems": [
-        {
-          "id": "item_7_0",
-          "name": "Review ai-agent/package.json",
-          "pos": 0,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_1",
-          "name": "Review ai-platform/package.json",
-          "pos": 1024,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_2",
-          "name": "Review ai-platform/packages/simplebeacon-cli/package.json",
-          "pos": 2048,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_3",
-          "name": "Review ai-platform/packages/simplebeacon-intelligence/package.json",
-          "pos": 3072,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_4",
-          "name": "Review ai-tools/package.json",
-          "pos": 4096,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_5",
-          "name": "Audit 110 total dependencies",
-          "pos": 5120,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_6",
-          "name": "Run npm audit",
-          "pos": 6144,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_7",
-          "name": "Verify lockfile integrity",
-          "pos": 7168,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_7_8",
-          "name": "Review dependency update policy",
-          "pos": 8192,
-          "state": "incomplete"
-        }
-      ]
-    },
-    {
-      "id": "check_8",
-      "idCard": "card_8",
-      "name": "Remediation Tasks",
-      "checkItems": [
-        {
-          "id": "item_8_0",
-          "name": "Run npm audit fix",
-          "pos": 0,
-          "state": "complete"
-        },
-        {
-          "id": "item_8_1",
-          "name": "Review dependency update policy",
-          "pos": 1024,
-          "state": "complete"
-        },
-        {
-          "id": "item_8_2",
-          "name": "Enable Dependabot or Snyx",
-          "pos": 2048,
-          "state": "complete"
-        }
-      ]
-    },
-    {
-      "id": "check_9",
-      "idCard": "card_9",
-      "name": "Remediation Tasks",
-      "checkItems": [
-        {
-          "id": "item_9_0",
-          "name": "Address 1 high-risk indicator(s)",
-          "pos": 0,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_9_1",
-          "name": "Close 1 transparency gap(s)",
-          "pos": 1024,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_9_2",
-          "name": "Review 3 AI system indicator(s) (Art. 6)",
-          "pos": 2048,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_9_3",
-          "name": "Generate documentation artifacts",
-          "pos": 3072,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_9_4",
-          "name": "Review AI system classification (Art. 6)",
-          "pos": 4096,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_9_5",
-          "name": "Schedule legal review",
-          "pos": 5120,
-          "state": "incomplete"
-        }
-      ]
-    }
-  ],
-  "customFields": [],
-  "actions": [],
-  "members": [],
-  "memberships": []
+    ],
+    "customFields": [],
+    "actions": [],
+    "members": [],
+    "memberships": []
 }

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 37: Multiparty Re-Keying.
@@ -20,20 +20,20 @@
  * @module hsm-adapter/multiparty-rekeying-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 // 256-bit prime field: 2^256 - 189 (same as threshold-secret-splitter)
 const FIELD_PRIME = (1n << 256n) - 189n;
 
 // ── Re-keying states ─────────────────────────────────────────────
 const REKEY_STATE = {
-  IDLE: 'idle',
-  PROPOSING: 'proposing',
-  RESHARING: 'resharing',
-  VERIFIED: 'verified',
-  COMMITTED: 'committed',
-  ABORTED: 'aborted',
+  IDLE: "idle",
+  PROPOSING: "proposing",
+  RESHARING: "resharing",
+  VERIFIED: "verified",
+  COMMITTED: "committed",
+  ABORTED: "aborted",
 };
 
 // ── Valid state transitions ──────────────────────────────────────
@@ -107,7 +107,7 @@ function _evaluatePolynomial(coefficients, x) {
  * Compute SHA-256 hash of input.
  */
 function _hash(data) {
-  return crypto.createHash('sha256').update(data).digest('hex');
+  return crypto.createHash("sha256").update(data).digest("hex");
 }
 
 /**
@@ -161,14 +161,26 @@ class MultipartyReKeyingEngine {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    if (!Array.isArray(options.shareholders) || options.shareholders.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'shareholders must be a non-empty array');
+    if (
+      !Array.isArray(options.shareholders) ||
+      options.shareholders.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "shareholders must be a non-empty array",
+      );
     }
     if (!Number.isInteger(options.threshold) || options.threshold < 1) {
-      throw new HsmAdapterError('INVALID_INPUT', 'threshold must be a positive integer');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "threshold must be a positive integer",
+      );
     }
     if (options.threshold > options.shareholders.length) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold ${options.threshold} exceeds shareholders ${options.shareholders.length}`);
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        `threshold ${options.threshold} exceeds shareholders ${options.shareholders.length}`,
+      );
     }
 
     this._shareholders = new Set(options.shareholders);
@@ -191,32 +203,51 @@ class MultipartyReKeyingEngine {
    */
   proposeReKeying(options = {}) {
     if (this._reKeyingState !== REKEY_STATE.IDLE) {
-      throw new HsmAdapterError('REKEYING_IN_PROGRESS', `cannot propose while in state ${this._reKeyingState}`);
+      throw new HsmAdapterError(
+        "REKEYING_IN_PROGRESS",
+        `cannot propose while in state ${this._reKeyingState}`,
+      );
     }
 
-    const newShareholders = options.newShareholders || Array.from(this._shareholders);
+    const newShareholders =
+      options.newShareholders || Array.from(this._shareholders);
     const newThreshold = options.newThreshold || this._threshold;
 
     if (!Array.isArray(newShareholders) || newShareholders.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'newShareholders must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "newShareholders must be a non-empty array",
+      );
     }
     if (!Number.isInteger(newThreshold) || newThreshold < 1) {
-      throw new HsmAdapterError('INVALID_INPUT', 'newThreshold must be a positive integer');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "newThreshold must be a positive integer",
+      );
     }
     if (newThreshold > newShareholders.length) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `newThreshold ${newThreshold} exceeds new shareholders ${newShareholders.length}`);
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        `newThreshold ${newThreshold} exceeds new shareholders ${newShareholders.length}`,
+      );
     }
 
     // Anti-rollback: epoch must be strictly monotonic
-    const targetEpoch = options.targetEpoch !== undefined ? options.targetEpoch : this._currentEpoch + 1;
+    const targetEpoch =
+      options.targetEpoch !== undefined
+        ? options.targetEpoch
+        : this._currentEpoch + 1;
     if (targetEpoch <= this._currentEpoch) {
       throw new HsmAdapterError(
-        'REKEYING_EPOCH_ROLLBACK',
+        "REKEYING_EPOCH_ROLLBACK",
         `target epoch ${targetEpoch} <= current epoch ${this._currentEpoch}`,
       );
     }
     if (targetEpoch > this._maxReKeyingEpochs) {
-      throw new HsmAdapterError('REKEYING_EPOCH_EXCEEDED', `target epoch ${targetEpoch} exceeds max ${this._maxReKeyingEpochs}`);
+      throw new HsmAdapterError(
+        "REKEYING_EPOCH_EXCEEDED",
+        `target epoch ${targetEpoch} exceeds max ${this._maxReKeyingEpochs}`,
+      );
     }
 
     this._activeReKeying = {
@@ -231,7 +262,7 @@ class MultipartyReKeyingEngine {
     };
 
     this._transition(REKEY_STATE.PROPOSING);
-    this._emitAudit('REKEYING_PROPOSED', {
+    this._emitAudit("REKEYING_PROPOSED", {
       epoch: targetEpoch,
       oldShareholders: this._activeReKeying.oldShareholders,
       newShareholders,
@@ -255,20 +286,29 @@ class MultipartyReKeyingEngine {
    */
   submitResharing(shareholderId, polynomial, subShares) {
     this._validateCurrentShareholder(shareholderId);
-    if (this._reKeyingState !== REKEY_STATE.PROPOSING && this._reKeyingState !== REKEY_STATE.RESHARING) {
-      throw new HsmAdapterError('REKEYING_NOT_ACCEPTING', `state ${this._reKeyingState} does not accept resharings`);
+    if (
+      this._reKeyingState !== REKEY_STATE.PROPOSING &&
+      this._reKeyingState !== REKEY_STATE.RESHARING
+    ) {
+      throw new HsmAdapterError(
+        "REKEYING_NOT_ACCEPTING",
+        `state ${this._reKeyingState} does not accept resharings`,
+      );
     }
 
     // Verify polynomial constant term is zero (so secret doesn't change)
     if (polynomial[0] !== 0n) {
-      throw new HsmAdapterError('RESHARING_INVALID', 'polynomial constant term must be zero to preserve secret');
+      throw new HsmAdapterError(
+        "RESHARING_INVALID",
+        "polynomial constant term must be zero to preserve secret",
+      );
     }
 
     // Verify polynomial degree matches threshold
     const expectedDegree = this._activeReKeying.oldThreshold - 1;
     if (polynomial.length !== expectedDegree + 1) {
       throw new HsmAdapterError(
-        'RESHARING_INVALID',
+        "RESHARING_INVALID",
         `polynomial degree ${polynomial.length - 1} does not match expected ${expectedDegree}`,
       );
     }
@@ -277,7 +317,10 @@ class MultipartyReKeyingEngine {
     const newShareholderSet = new Set(this._activeReKeying.newShareholders);
     for (const [targetId] of subShares) {
       if (!newShareholderSet.has(targetId)) {
-        throw new HsmAdapterError('RESHARING_INVALID', `sub-share target ${targetId} not in new committee`);
+        throw new HsmAdapterError(
+          "RESHARING_INVALID",
+          `sub-share target ${targetId} not in new committee`,
+        );
       }
     }
 
@@ -286,16 +329,24 @@ class MultipartyReKeyingEngine {
       this._transition(REKEY_STATE.RESHARING);
     }
 
-    const resharing = new ShareResharing(shareholderId, [...polynomial], new Map(subShares));
+    const resharing = new ShareResharing(
+      shareholderId,
+      [...polynomial],
+      new Map(subShares),
+    );
     this._activeReKeying.resharings.set(shareholderId, resharing);
 
-    this._emitAudit('RESHARING_SUBMITTED', {
+    this._emitAudit("RESHARING_SUBMITTED", {
       shareholderId,
       epoch: this._activeReKeying.epoch,
       subShareCount: subShares.size,
     });
 
-    return { shareholderId, epoch: this._activeReKeying.epoch, state: this._reKeyingState };
+    return {
+      shareholderId,
+      epoch: this._activeReKeying.epoch,
+      state: this._reKeyingState,
+    };
   }
 
   /**
@@ -304,14 +355,17 @@ class MultipartyReKeyingEngine {
    */
   verifyResharings() {
     if (this._reKeyingState !== REKEY_STATE.RESHARING) {
-      throw new HsmAdapterError('REKEYING_NOT_RESHARING', `state ${this._reKeyingState} must be resharing`);
+      throw new HsmAdapterError(
+        "REKEYING_NOT_RESHARING",
+        `state ${this._reKeyingState} must be resharing`,
+      );
     }
 
     // Need at least old threshold resharings
     const requiredResharings = this._activeReKeying.oldThreshold;
     if (this._activeReKeying.resharings.size < requiredResharings) {
       throw new HsmAdapterError(
-        'RESHARING_INSUFFICIENT',
+        "RESHARING_INSUFFICIENT",
         `only ${this._activeReKeying.resharings.size} resharings, need ${requiredResharings}`,
       );
     }
@@ -333,7 +387,7 @@ class MultipartyReKeyingEngine {
     this._activeReKeying.newShares = newShareholderShares;
     this._transition(REKEY_STATE.VERIFIED);
 
-    this._emitAudit('RESHARING_VERIFIED', {
+    this._emitAudit("RESHARING_VERIFIED", {
       epoch: this._activeReKeying.epoch,
       resharings: this._activeReKeying.resharings.size,
       newShareholders: this._activeReKeying.newShareholders.length,
@@ -355,12 +409,15 @@ class MultipartyReKeyingEngine {
   acknowledge(shareholderId) {
     this._validateCurrentShareholder(shareholderId);
     if (this._reKeyingState !== REKEY_STATE.VERIFIED) {
-      throw new HsmAdapterError('REKEYING_NOT_VERIFIED', `state ${this._reKeyingState} must be verified`);
+      throw new HsmAdapterError(
+        "REKEYING_NOT_VERIFIED",
+        `state ${this._reKeyingState} must be verified`,
+      );
     }
 
     this._activeReKeying.acks.set(shareholderId, true);
 
-    this._emitAudit('REKEYING_ACKNOWLEDGED', {
+    this._emitAudit("REKEYING_ACKNOWLEDGED", {
       shareholderId,
       acks: this._activeReKeying.acks.size,
       required: this._threshold,
@@ -397,7 +454,7 @@ class MultipartyReKeyingEngine {
 
     this._transition(REKEY_STATE.COMMITTED);
 
-    this._emitAudit('REKEYING_COMMITTED', {
+    this._emitAudit("REKEYING_COMMITTED", {
       epoch: this._currentEpoch,
       newShareholders: Array.from(this._shareholders),
       newThreshold: this._threshold,
@@ -408,15 +465,24 @@ class MultipartyReKeyingEngine {
    * Abort the active re-keying round.
    * @param {string} [reason]
    */
-  abort(reason = 'manual') {
+  abort(reason = "manual") {
     if (this._reKeyingState === REKEY_STATE.IDLE) {
-      throw new HsmAdapterError('REKEYING_NOT_ACTIVE', 'no active re-keying to abort');
+      throw new HsmAdapterError(
+        "REKEYING_NOT_ACTIVE",
+        "no active re-keying to abort",
+      );
     }
     if (this._reKeyingState === REKEY_STATE.COMMITTED) {
-      throw new HsmAdapterError('REKEYING_ALREADY_COMMITTED', 'cannot abort committed re-keying');
+      throw new HsmAdapterError(
+        "REKEYING_ALREADY_COMMITTED",
+        "cannot abort committed re-keying",
+      );
     }
     if (this._reKeyingState === REKEY_STATE.ABORTED) {
-      throw new HsmAdapterError('REKEYING_ALREADY_ABORTED', 're-keying already aborted');
+      throw new HsmAdapterError(
+        "REKEYING_ALREADY_ABORTED",
+        "re-keying already aborted",
+      );
     }
 
     // Zeroize any resharings
@@ -427,7 +493,10 @@ class MultipartyReKeyingEngine {
     }
 
     this._transition(REKEY_STATE.ABORTED);
-    this._emitAudit('REKEYING_ABORTED', { reason, epoch: this._activeReKeying?.epoch });
+    this._emitAudit("REKEYING_ABORTED", {
+      reason,
+      epoch: this._activeReKeying?.epoch,
+    });
 
     return { state: REKEY_STATE.ABORTED, reason };
   }
@@ -436,12 +505,18 @@ class MultipartyReKeyingEngine {
    * Reset the engine to IDLE after a committed or aborted re-keying.
    */
   reset() {
-    if (this._reKeyingState !== REKEY_STATE.COMMITTED && this._reKeyingState !== REKEY_STATE.ABORTED) {
-      throw new HsmAdapterError('REKEYING_NOT_TERMINAL', `state ${this._reKeyingState} must be committed or aborted`);
+    if (
+      this._reKeyingState !== REKEY_STATE.COMMITTED &&
+      this._reKeyingState !== REKEY_STATE.ABORTED
+    ) {
+      throw new HsmAdapterError(
+        "REKEYING_NOT_TERMINAL",
+        `state ${this._reKeyingState} must be committed or aborted`,
+      );
     }
     this._activeReKeying = null;
     this._reKeyingState = REKEY_STATE.IDLE;
-    this._emitAudit('REKEYING_RESET', { epoch: this._currentEpoch });
+    this._emitAudit("REKEYING_RESET", { epoch: this._currentEpoch });
     return { state: REKEY_STATE.IDLE };
   }
 
@@ -455,15 +530,17 @@ class MultipartyReKeyingEngine {
       currentEpoch: this._currentEpoch,
       shareholders: Array.from(this._shareholders),
       threshold: this._threshold,
-      activeReKeying: this._activeReKeying ? {
-        epoch: this._activeReKeying.epoch,
-        newShareholders: this._activeReKeying.newShareholders,
-        newThreshold: this._activeReKeying.newThreshold,
-        resharingsSubmitted: this._activeReKeying.resharings.size,
-        acksReceived: this._activeReKeying.acks.size,
-        acksRequired: this._threshold,
-        oldSharesZeroized: this._activeReKeying.oldSharesZeroized,
-      } : null,
+      activeReKeying: this._activeReKeying
+        ? {
+            epoch: this._activeReKeying.epoch,
+            newShareholders: this._activeReKeying.newShareholders,
+            newThreshold: this._activeReKeying.newThreshold,
+            resharingsSubmitted: this._activeReKeying.resharings.size,
+            acksReceived: this._activeReKeying.acks.size,
+            acksRequired: this._threshold,
+            oldSharesZeroized: this._activeReKeying.oldSharesZeroized,
+          }
+        : null,
     };
   }
 
@@ -497,7 +574,10 @@ class MultipartyReKeyingEngine {
    */
   _validateCurrentShareholder(shareholderId) {
     if (!this._shareholders.has(shareholderId)) {
-      throw new HsmAdapterError('SHAREHOLDER_UNKNOWN', `shareholder ${shareholderId} not in current committee`);
+      throw new HsmAdapterError(
+        "SHAREHOLDER_UNKNOWN",
+        `shareholder ${shareholderId} not in current committee`,
+      );
     }
   }
 
@@ -509,7 +589,7 @@ class MultipartyReKeyingEngine {
     const allowed = VALID_TRANSITIONS[this._reKeyingState] || [];
     if (!allowed.includes(newState)) {
       throw new HsmAdapterError(
-        'REKEYING_INVALID_TRANSITION',
+        "REKEYING_INVALID_TRANSITION",
         `cannot transition from ${this._reKeyingState} to ${newState}`,
       );
     }

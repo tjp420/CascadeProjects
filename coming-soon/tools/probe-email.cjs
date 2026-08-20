@@ -38,7 +38,9 @@ function parseArgs(argv) {
 }
 
 function buildProbePayload(to) {
-    const appUrl = String(process.env.SIMPLEBEACON_APP_URL || process.env.PUBLIC_URL || 'https://simplebeacon.ai').replace(/\/$/, '');
+    const appUrl = String(
+        process.env.SIMPLEBEACON_APP_URL || process.env.PUBLIC_URL || 'https://simplebeacon.ai'
+    ).replace(/\/$/, '');
     return {
         to,
         subject: 'Referral Pipeline Authorization Trace',
@@ -95,7 +97,7 @@ async function main() {
     process.exit(1);
 }
 
-main().catch((err) => {
+main().catch(err => {
     console.error('[FAIL] Probe error:', err.message);
     process.exit(1);
 });

@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-'use strict';
-const fs = require('fs');
-const path = require('path');
+"use strict";
+const fs = require("fs");
+const path = require("path");
 
 const LOADER = `function buildGraphFromTree(items, parentPath) {
   const nodes = [], edges = [];
@@ -45,7 +45,7 @@ delete GRAPH.mode;`;
 const OLD = `const GRAPH = JSON.parse(document.getElementById('graphData').textContent);
 const TREE = JSON.parse(document.getElementById('treeData').textContent);`;
 
-const OLD_EARLY_RETURN = 'if (!canvas || GRAPH.nodes.length === 0) return;';
+const OLD_EARLY_RETURN = "if (!canvas || GRAPH.nodes.length === 0) return;";
 const NEW_EARLY_RETURN = `if (!canvas) return;
   const wrap = canvas.parentElement;
   if (GRAPH.nodes.length === 0) {
@@ -66,29 +66,35 @@ const NEW_EARLY_RETURN = `if (!canvas) return;
 const targets = process.argv.slice(2);
 for (const file of targets) {
   if (!fs.existsSync(file)) {
-    console.warn('skip missing', file);
+    console.warn("skip missing", file);
     continue;
   }
-  let html = fs.readFileSync(file, 'utf8');
+  let html = fs.readFileSync(file, "utf8");
   if (!html.includes('id="graphData"')) {
-    console.warn('skip (no graphData)', file);
+    console.warn("skip (no graphData)", file);
     continue;
   }
-  if (html.includes('loadGraphPayload')) {
-    console.log('already patched', file);
+  if (html.includes("loadGraphPayload")) {
+    console.log("already patched", file);
     continue;
   }
   if (!html.includes(OLD)) {
-    console.warn('skip (unexpected script layout)', file);
+    console.warn("skip (unexpected script layout)", file);
     continue;
   }
   html = html.replace(OLD, LOADER);
   if (html.includes(OLD_EARLY_RETURN)) {
     html = html.replace(OLD_EARLY_RETURN, NEW_EARLY_RETURN);
     // Remove duplicate wrap assignment if present after patch
-    html = html.replace(/\n  const wrap = canvas\.parentElement;\n  const detailsPanel/g, '\n  const detailsPanel');
+    html = html.replace(
+      /\n  const wrap = canvas\.parentElement;\n  const detailsPanel/g,
+      "\n  const detailsPanel",
+    );
   }
-  html = html.replace('Graph shows JS/TS modules only.', 'JS/TS: import graph. Other stacks: folder tree.');
-  fs.writeFileSync(file, html, 'utf8');
-  console.log('patched', file);
+  html = html.replace(
+    "Graph shows JS/TS modules only.",
+    "JS/TS: import graph. Other stacks: folder tree.",
+  );
+  fs.writeFileSync(file, html, "utf8");
+  console.log("patched", file);
 }

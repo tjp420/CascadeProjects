@@ -24,21 +24,21 @@
 
 ## System Architecture
 
-| Component | Technology | Purpose |
-|---|---|---|
-| Pattern Matcher | RegEx engine | Detect security/compliance markers |
-| File Analyzer | Static AST-like parsing | Language detection, line counting |
-| Heuristic Scorer | Weighted formula | Quality score from findings |
-| Report Builder | Template engine | Markdown/HTML certificate generation |
+| Component        | Technology              | Purpose                              |
+| ---------------- | ----------------------- | ------------------------------------ |
+| Pattern Matcher  | RegEx engine            | Detect security/compliance markers   |
+| File Analyzer    | Static AST-like parsing | Language detection, line counting    |
+| Heuristic Scorer | Weighted formula        | Quality score from findings          |
+| Report Builder   | Template engine         | Markdown/HTML certificate generation |
 
 ## Performance Characteristics
 
-| Metric | Value |
-|---|---|
+| Metric              | Value                                          |
+| ------------------- | ---------------------------------------------- |
 | Supported Languages | JavaScript, TypeScript, Python, Java, Go, Rust |
-| Average Scan Speed | ~1,000 files / 30 seconds (browser) |
-| False Positive Rate | ~15% (confidence scores guide triage) |
-| Coverage | 32 analyzer modules |
+| Average Scan Speed  | ~1,000 files / 30 seconds (browser)            |
+| False Positive Rate | ~15% (confidence scores guide triage)          |
+| Coverage            | 32 analyzer modules                            |
 
 ## Limitations & Risks
 
@@ -54,12 +54,12 @@
 
 ## Maintenance
 
-| Activity | Frequency |
-|---|---|
-| Pattern registry update | Quarterly |
-| Language support review | Bi-annually |
-| EU AI Act compliance check | Quarterly |
+| Activity                   | Frequency   |
+| -------------------------- | ----------- |
+| Pattern registry update    | Quarterly   |
+| Language support review    | Bi-annually |
+| EU AI Act compliance check | Quarterly   |
 
 ---
 
-*Generated for EU AI Act Annex IV technical documentation requirements.*
+_Generated for EU AI Act Annex IV technical documentation requirements._

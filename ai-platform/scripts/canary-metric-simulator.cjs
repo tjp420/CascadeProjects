@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 /**
  * Canary Metric Simulator — Milestone 4
@@ -24,16 +24,22 @@
  *   deprecation   — verify deprecation window expiry behavior
  */
 
-const path = require('path');
+const path = require("path");
 const {
   loadCanaryConfig,
   shouldEnableHybrid,
   checkRollback,
   resolveDeprecationState,
   enrollmentScore,
-} = require('../server/lib/quantum-hybrid-rollout.cjs');
+} = require("../server/lib/quantum-hybrid-rollout.cjs");
 
-const CONFIG_PATH = path.join(__dirname, '..', 'server', 'config', 'quantum-hybrid-canary.json');
+const CONFIG_PATH = path.join(
+  __dirname,
+  "..",
+  "server",
+  "config",
+  "quantum-hybrid-canary.json",
+);
 
 // ── Mock metric generators ─────────────────────────────────────────────────
 
@@ -84,8 +90,8 @@ function noisyNode(stagePercent) {
   return {
     ...healthyMetrics(stagePercent),
     perNodeHandshakeFailurePct: {
-      'node-canary-03': 75.0,
-      'node-canary-07': 3.0,
+      "node-canary-03": 75.0,
+      "node-canary-07": 3.0,
     },
   };
 }
@@ -99,8 +105,8 @@ function cascadingFailure(stagePercent) {
     heartbeatTimeoutRatePct: 2.0,
     baselineHeartbeatTimeoutRatePct: 0.5,
     perNodeHandshakeFailurePct: {
-      'node-canary-01': 60.0,
-      'node-canary-02': 45.0,
+      "node-canary-01": 60.0,
+      "node-canary-02": 45.0,
     },
     _stage: stagePercent,
   };
@@ -109,13 +115,41 @@ function cascadingFailure(stagePercent) {
 // ── Scenario definitions ───────────────────────────────────────────────────
 
 const SCENARIOS = {
-  healthy: { generate: healthyMetrics, expectRollback: false, description: 'All metrics within thresholds' },
-  connection: { generate: connectionDropSpike, expectRollback: true, description: 'Connection drop spike > 5% delta' },
-  handshake: { generate: handshakeFailure, expectRollback: true, description: 'Handshake failure rate > 10%' },
-  downgrade: { generate: downgradeSpike, expectRollback: true, description: 'Downgrade rejection rate > 5%' },
-  heartbeat: { generate: heartbeatTimeout, expectRollback: true, description: 'Heartbeat timeout multiplier > 2x' },
-  'noisy-node': { generate: noisyNode, expectRollback: true, description: 'Single node failure > 50%' },
-  cascading: { generate: cascadingFailure, expectRollback: true, description: 'Multiple thresholds breached' },
+  healthy: {
+    generate: healthyMetrics,
+    expectRollback: false,
+    description: "All metrics within thresholds",
+  },
+  connection: {
+    generate: connectionDropSpike,
+    expectRollback: true,
+    description: "Connection drop spike > 5% delta",
+  },
+  handshake: {
+    generate: handshakeFailure,
+    expectRollback: true,
+    description: "Handshake failure rate > 10%",
+  },
+  downgrade: {
+    generate: downgradeSpike,
+    expectRollback: true,
+    description: "Downgrade rejection rate > 5%",
+  },
+  heartbeat: {
+    generate: heartbeatTimeout,
+    expectRollback: true,
+    description: "Heartbeat timeout multiplier > 2x",
+  },
+  "noisy-node": {
+    generate: noisyNode,
+    expectRollback: true,
+    description: "Single node failure > 50%",
+  },
+  cascading: {
+    generate: cascadingFailure,
+    expectRollback: true,
+    description: "Multiple thresholds breached",
+  },
 };
 
 // ── Simulator runner ───────────────────────────────────────────────────────
@@ -142,7 +176,8 @@ function runScenario(name, config) {
         handshakeFailureRatePct: metrics.handshakeFailureRatePct,
         downgradeRejectedRatePct: metrics.downgradeRejectedRatePct,
         heartbeatTimeoutRatePct: metrics.heartbeatTimeoutRatePct,
-        baselineHeartbeatTimeoutRatePct: metrics.baselineHeartbeatTimeoutRatePct,
+        baselineHeartbeatTimeoutRatePct:
+          metrics.baselineHeartbeatTimeoutRatePct,
         perNodeHandshakeFailurePct: metrics.perNodeHandshakeFailurePct,
       },
       decision,
@@ -151,16 +186,25 @@ function runScenario(name, config) {
   }
 
   const allPassed = results.every((r) => r.passed);
-  return { name, description: scenario.description, expectRollback: scenario.expectRollback, results, allPassed };
+  return {
+    name,
+    description: scenario.description,
+    expectRollback: scenario.expectRollback,
+    results,
+    allPassed,
+  };
 }
 
 function runStageProgression(config) {
   const stages = config.canary_parameters.stages || [0, 5, 25, 50, 100];
-  const salt = config.canary_parameters.salt || 'simplebeacon:canary:v1';
+  const salt = config.canary_parameters.salt || "simplebeacon:canary:v1";
   // Use 1000 nodes for tighter convergence to expected percentages.
   // With 100 nodes, variance at the 25% stage can exceed 5%.
   const NODE_COUNT = 1000;
-  const nodeIds = Array.from({ length: NODE_COUNT }, (_, i) => `node-${String(i).padStart(4, '0')}`);
+  const nodeIds = Array.from(
+    { length: NODE_COUNT },
+    (_, i) => `node-${String(i).padStart(4, "0")}`,
+  );
 
   const results = stages.map((stagePercent) => {
     const cfg = JSON.parse(JSON.stringify(config));
@@ -186,7 +230,7 @@ function runStageProgression(config) {
   });
 
   const allPassed = results.every((r) => r.passed);
-  return { name: 'stage-progression', results, allPassed };
+  return { name: "stage-progression", results, allPassed };
 }
 
 function runDeprecationCheck(config) {
@@ -195,12 +239,12 @@ function runDeprecationCheck(config) {
   const msPerDay = 24 * 60 * 60 * 1000;
 
   const cases = [
-    { label: 'day-0', offset: 0, expected: true },
-    { label: 'day-7', offset: 7 * msPerDay, expected: true },
-    { label: 'day-13', offset: 13 * msPerDay, expected: true },
-    { label: 'day-14', offset: 14 * msPerDay, expected: false },
-    { label: 'day-15', offset: 15 * msPerDay, expected: false },
-    { label: 'day-30', offset: 30 * msPerDay, expected: false },
+    { label: "day-0", offset: 0, expected: true },
+    { label: "day-7", offset: 7 * msPerDay, expected: true },
+    { label: "day-13", offset: 13 * msPerDay, expected: true },
+    { label: "day-14", offset: 14 * msPerDay, expected: false },
+    { label: "day-15", offset: 15 * msPerDay, expected: false },
+    { label: "day-30", offset: 30 * msPerDay, expected: false },
   ];
 
   const results = cases.map((c) => {
@@ -215,30 +259,30 @@ function runDeprecationCheck(config) {
   });
 
   const allPassed = results.every((r) => r.passed);
-  return { name: 'deprecation', results, allPassed };
+  return { name: "deprecation", results, allPassed };
 }
 
 // ── CLI entry point ────────────────────────────────────────────────────────
 
 function main() {
   const args = process.argv.slice(2);
-  const jsonMode = args.includes('--json');
-  const scenarioArg = args.find((a) => a.startsWith('--scenario='));
-  const requestedScenario = scenarioArg ? scenarioArg.split('=')[1] : null;
+  const jsonMode = args.includes("--json");
+  const scenarioArg = args.find((a) => a.startsWith("--scenario="));
+  const requestedScenario = scenarioArg ? scenarioArg.split("=")[1] : null;
 
   const config = loadCanaryConfig(CONFIG_PATH);
 
   const scenarioNames = requestedScenario
     ? [requestedScenario]
-    : [...Object.keys(SCENARIOS), 'stage-progression', 'deprecation'];
+    : [...Object.keys(SCENARIOS), "stage-progression", "deprecation"];
 
   const outputs = [];
 
   for (const name of scenarioNames) {
     let result;
-    if (name === 'stage-progression') {
+    if (name === "stage-progression") {
       result = runStageProgression(config);
-    } else if (name === 'deprecation') {
+    } else if (name === "deprecation") {
       result = runDeprecationCheck(config);
     } else {
       result = runScenario(name, config);
@@ -251,35 +295,47 @@ function main() {
   const overallPass = totalPassed === totalScenarios;
 
   if (jsonMode) {
-    console.log(JSON.stringify({
-      totalScenarios,
-      totalPassed,
-      overallPass,
-      scenarios: outputs,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          totalScenarios,
+          totalPassed,
+          overallPass,
+          scenarios: outputs,
+        },
+        null,
+        2,
+      ),
+    );
   } else {
-    console.log('=== Canary Metric Simulator ===');
+    console.log("=== Canary Metric Simulator ===");
     console.log();
     for (const out of outputs) {
-      const status = out.allPassed ? 'PASS' : 'FAIL';
+      const status = out.allPassed ? "PASS" : "FAIL";
       const desc = out.description || out.name;
       console.log(`[${status}] ${out.name}: ${desc}`);
       if (out.results) {
         for (const r of out.results) {
-          const subStatus = r.passed ? 'ok' : 'FAIL';
+          const subStatus = r.passed ? "ok" : "FAIL";
           if (r.stage !== undefined) {
-            console.log(`       stage ${r.stage}% → ${subStatus} (rollback=${r.decision?.shouldRollback}, reasons=${r.decision?.reasons?.length || 0})`);
+            console.log(
+              `       stage ${r.stage}% → ${subStatus} (rollback=${r.decision?.shouldRollback}, reasons=${r.decision?.reasons?.length || 0})`,
+            );
           } else if (r.label) {
-            console.log(`       ${r.label}: deprecationActive=${r.deprecationActive} → ${subStatus}`);
+            console.log(
+              `       ${r.label}: deprecationActive=${r.deprecationActive} → ${subStatus}`,
+            );
           } else if (r.enrolledCount !== undefined) {
-            console.log(`       stage ${r.stage}%: enrolled=${r.enrolledCount}/1000 (${r.enrollmentPct}%) → ${subStatus}`);
+            console.log(
+              `       stage ${r.stage}%: enrolled=${r.enrolledCount}/1000 (${r.enrollmentPct}%) → ${subStatus}`,
+            );
           }
         }
       }
       console.log();
     }
     console.log(`=== ${totalPassed}/${totalScenarios} scenarios passed ===`);
-    console.log(`Overall: ${overallPass ? 'PASS' : 'FAIL'}`);
+    console.log(`Overall: ${overallPass ? "PASS" : "FAIL"}`);
   }
 
   process.exit(overallPass ? 0 : 1);

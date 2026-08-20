@@ -6,18 +6,21 @@
 const {
   buildRepoFingerprint,
   buildRulesFingerprint,
-  buildAnonymizedAggregate
-} = require('./anonymized-export');
+  buildAnonymizedAggregate,
+} = require("./anonymized-export");
 
-const DEFAULT_TELEMETRY_URL = process.env.SIMPLEBEACON_CI_TELEMETRY_URL
-  || 'https://simplebeacon.ai/api/simplebeacon/ci/telemetry';
+const DEFAULT_TELEMETRY_URL =
+  process.env.SIMPLEBEACON_CI_TELEMETRY_URL ||
+  "https://simplebeacon.ai/api/simplebeacon/ci/telemetry";
 
-const TELEMETRY_POST_TIMEOUT_MS = Number(process.env.SIMPLEBEACON_CI_TELEMETRY_TIMEOUT_MS) || 3000;
+const TELEMETRY_POST_TIMEOUT_MS =
+  Number(process.env.SIMPLEBEACON_CI_TELEMETRY_TIMEOUT_MS) || 3000;
 
-const LEGACY_FIELDS_ENABLED = process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === '1'
-  || process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === 'true';
+const LEGACY_FIELDS_ENABLED =
+  process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === "1" ||
+  process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === "true";
 
-const VALID_SCAN_SOURCES = new Set(['ci', 'ide', 'dashboard']);
+const VALID_SCAN_SOURCES = new Set(["ci", "ide", "dashboard"]);
 
 /**
  * @param {Object} report
@@ -29,7 +32,7 @@ function buildSeverityRollup(report) {
     critical: Number(counts.critical || 0),
     high: Number(counts.high || 0),
     medium: Number(counts.medium || 0),
-    low: Number(counts.low || 0)
+    low: Number(counts.low || 0),
   };
 }
 
@@ -42,10 +45,13 @@ function buildCategoryRollup(report) {
   if (rawIssues.length > 0) {
     return buildAnonymizedAggregate(rawIssues).byCategory;
   }
-  if (report.categoryCounts && typeof report.categoryCounts === 'object') {
+  if (report.categoryCounts && typeof report.categoryCounts === "object") {
     return { ...report.categoryCounts };
   }
-  if (report.aggregate?.byCategory && typeof report.aggregate.byCategory === 'object') {
+  if (
+    report.aggregate?.byCategory &&
+    typeof report.aggregate.byCategory === "object"
+  ) {
     return { ...report.aggregate.byCategory };
   }
   return {};
@@ -63,14 +69,16 @@ function buildCiTelemetryPayload(report, license, context = {}) {
   const gateFailed = gate.pass === false || (gate.blockingCount || 0) > 0;
   const scanSource = VALID_SCAN_SOURCES.has(context.scanSource)
     ? context.scanSource
-    : (process.env.GITHUB_ACTIONS ? 'ci' : 'ci');
+    : process.env.GITHUB_ACTIONS
+      ? "ci"
+      : "ci";
   const projectRoot = context.projectRoot || report.projectRoot || null;
   const rulesFingerprint = buildRulesFingerprint(report.scanScope || {});
 
   const payload = {
-    event: context.event || 'team_scan',
+    event: context.event || "team_scan",
     timestamp: new Date().toISOString(),
-    tier: license?.tier || 'developer',
+    tier: license?.tier || "developer",
     scan_source: scanSource,
     gate_pass: !gateFailed,
     gates_tripped: gateFailed ? 1 : 0,
@@ -83,7 +91,7 @@ function buildCiTelemetryPayload(report, license, context = {}) {
     diff_files: report.scanScope?.diffFileCount || 0,
     quality_score: report.qualityScore ?? null,
     severity_rollup: buildSeverityRollup(report),
-    category_rollup: buildCategoryRollup(report)
+    category_rollup: buildCategoryRollup(report),
   };
 
   if (projectRoot) {
@@ -97,11 +105,15 @@ function buildCiTelemetryPayload(report, license, context = {}) {
   }
 
   if (LEGACY_FIELDS_ENABLED) {
-    payload.repository = context.repository || process.env.GITHUB_REPOSITORY || null;
+    payload.repository =
+      context.repository || process.env.GITHUB_REPOSITORY || null;
     payload.workflow = context.workflow || process.env.GITHUB_WORKFLOW || null;
     payload.run_id = context.runId || process.env.GITHUB_RUN_ID || null;
     payload.ref = context.ref || process.env.GITHUB_REF || null;
-    payload.pull_request = context.pullRequest || process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER || null;
+    payload.pull_request =
+      context.pullRequest ||
+      process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER ||
+      null;
   }
 
   return payload;
@@ -115,23 +127,27 @@ function buildCiTelemetryPayload(report, license, context = {}) {
  */
 async function postCiTelemetry(report, license, options = {}) {
   if (options.airGapped === true) {
-    return { skipped: true, reason: 'air_gapped' };
+    return { skipped: true, reason: "air_gapped" };
   }
   if (options.offline === true) {
-    return { skipped: true, reason: 'offline' };
+    return { skipped: true, reason: "offline" };
   }
   if (!license?.paid) {
-    return { skipped: true, reason: 'community_tier' };
+    return { skipped: true, reason: "community_tier" };
   }
   const token = process.env.SIMPLEBEACON_LICENSE_TOKEN;
   if (!token) {
-    return { skipped: true, reason: 'missing_token' };
+    return { skipped: true, reason: "missing_token" };
   }
-  if (typeof globalThis.fetch !== 'function') {
-    return { skipped: true, reason: 'fetch_unavailable' };
+  if (typeof globalThis.fetch !== "function") {
+    return { skipped: true, reason: "fetch_unavailable" };
   }
 
-  const payload = buildCiTelemetryPayload(report, license, options.context || {});
+  const payload = buildCiTelemetryPayload(
+    report,
+    license,
+    options.context || {},
+  );
   const url = options.url || DEFAULT_TELEMETRY_URL;
   const timeoutMs = TELEMETRY_POST_TIMEOUT_MS;
   const controller = new AbortController();
@@ -139,17 +155,17 @@ async function postCiTelemetry(report, license, options = {}) {
 
   try {
     const response = await globalThis.fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
-      signal: controller.signal
+      signal: controller.signal,
     });
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
+      const text = await response.text().catch(() => "");
       return { ok: false, status: response.status, error: text.slice(0, 200) };
     }
     const data = await response.json().catch(() => ({}));
@@ -171,8 +187,8 @@ async function postCiTelemetry(report, license, options = {}) {
 async function postTeamTelemetry(report, license, options = {}) {
   const context = {
     ...(options.context || {}),
-    event: 'team_scan',
-    scanSource: options.scanSource || options.context?.scanSource || 'ci'
+    event: "team_scan",
+    scanSource: options.scanSource || options.context?.scanSource || "ci",
   };
   return postCiTelemetry(report, license, { ...options, context });
 }
@@ -183,5 +199,5 @@ module.exports = {
   postTeamTelemetry,
   DEFAULT_TELEMETRY_URL,
   TELEMETRY_POST_TIMEOUT_MS,
-  LEGACY_FIELDS_ENABLED
+  LEGACY_FIELDS_ENABLED,
 };

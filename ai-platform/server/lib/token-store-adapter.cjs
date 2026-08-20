@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Token Store Adapter — pluggable session token persistence.
@@ -15,22 +15,32 @@
  *   - JSON fallback can lazily backfill to Redis when Redis reconnects.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const tokenDb = require('./token-db.cjs');
+const tokenDb = require("./token-db.cjs");
 
 let IORedis;
 let Redis;
-try { IORedis = require('ioredis'); } catch { IORedis = null; }
-try { Redis = require('redis'); } catch { Redis = null; }
+try {
+  IORedis = require("ioredis");
+} catch {
+  IORedis = null;
+}
+try {
+  Redis = require("redis");
+} catch {
+  Redis = null;
+}
 
 const REDIS_URL = process.env.REDIS_SESSION_URL || process.env.REDIS_URL;
-const REDIS_SESSION_PREFIX = 'session';
+const REDIS_SESSION_PREFIX = "session";
 const REDIS_SEQ_KEY = (tenantId) => `seq:session:${tenantId}`;
-const REDIS_TOKEN_KEY = (tenantId, tokenHash) => `${REDIS_SESSION_PREFIX}:${tenantId}:${tokenHash}`;
+const REDIS_TOKEN_KEY = (tenantId, tokenHash) =>
+  `${REDIS_SESSION_PREFIX}:${tenantId}:${tokenHash}`;
 const REDIS_TENANT_ZSET = (tenantId) => `zset:sessions:${tenantId}`;
-const REDIS_ACCOUNT_ZSET = (tenantId, accountId) => `zset:sessions:${tenantId}:account:${accountId}`;
+const REDIS_ACCOUNT_ZSET = (tenantId, accountId) =>
+  `zset:sessions:${tenantId}:account:${accountId}`;
 
 // ─── JsonFileTokenStore (fallback) ──────────────────────────────────────────
 
@@ -79,20 +89,24 @@ class RedisTokenStore {
     this.client = client;
   }
 
-  async getSessionTokenByHash(tokenHash, tenantId = 'default') {
+  async getSessionTokenByHash(tokenHash, tenantId = "default") {
     const raw = await this.client.get(REDIS_TOKEN_KEY(tenantId, tokenHash));
     return raw ? JSON.parse(raw) : null;
   }
 
-  async findSessionTokensByTenant(tenantId = 'default') {
+  async findSessionTokensByTenant(tenantId = "default") {
     const keys = await this.client.zrange(REDIS_TENANT_ZSET(tenantId), 0, -1);
     if (!keys.length) return [];
     const values = await this.client.mget(keys);
     return values.filter(Boolean).map((v) => JSON.parse(v));
   }
 
-  async findSessionTokensByAccount(accountId, tenantId = 'default') {
-    const keys = await this.client.zrange(REDIS_ACCOUNT_ZSET(tenantId, accountId), 0, -1);
+  async findSessionTokensByAccount(accountId, tenantId = "default") {
+    const keys = await this.client.zrange(
+      REDIS_ACCOUNT_ZSET(tenantId, accountId),
+      0,
+      -1,
+    );
     if (!keys.length) return [];
     const values = await this.client.mget(keys);
     return values.filter(Boolean).map((v) => JSON.parse(v));
@@ -103,10 +117,17 @@ class RedisTokenStore {
    * Uses WATCH/MULTI/EXEC with an explicit retry loop.
    */
   async syncSessionToken(token) {
-    const { token_hash, tenant_id = 'default', token_sequence = 0, epoch = 0 } = token;
+    const {
+      token_hash,
+      tenant_id = "default",
+      token_sequence = 0,
+      epoch = 0,
+    } = token;
     const key = REDIS_TOKEN_KEY(tenant_id, token_hash);
     const tenantZset = REDIS_TENANT_ZSET(tenant_id);
-    const accountZset = token.account_id ? REDIS_ACCOUNT_ZSET(tenant_id, token.account_id) : null;
+    const accountZset = token.account_id
+      ? REDIS_ACCOUNT_ZSET(tenant_id, token.account_id)
+      : null;
 
     const maxAttempts = 5;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -117,10 +138,16 @@ class RedisTokenStore {
       if (parsed) {
         const localEpoch = parsed.epoch || 0;
         const localSeq = parsed.token_sequence || 0;
-        const newer = epoch > localEpoch || (epoch === localEpoch && token_sequence > localSeq);
+        const newer =
+          epoch > localEpoch ||
+          (epoch === localEpoch && token_sequence > localSeq);
         if (!newer) {
           await this.client.unwatch();
-          return { accepted: false, action: 'ignored', reason: 'stale_sequence' };
+          return {
+            accepted: false,
+            action: "ignored",
+            reason: "stale_sequence",
+          };
         }
       }
 
@@ -138,11 +165,15 @@ class RedisTokenStore {
 
       const results = await multi.exec();
       if (results) {
-        return { accepted: true, action: existing ? 'update' : 'insert' };
+        return { accepted: true, action: existing ? "update" : "insert" };
       }
       // Transaction aborted because key changed; retry
     }
-    return { accepted: false, action: 'error', reason: 'concurrent_update_retries_exhausted' };
+    return {
+      accepted: false,
+      action: "error",
+      reason: "concurrent_update_retries_exhausted",
+    };
   }
 
   async expireSessionToken(id) {
@@ -152,10 +183,10 @@ class RedisTokenStore {
   }
 
   async rotateSessionToken(id, newTokenHash, newExpiresAt) {
-    return { accepted: false, reason: 'rotate_requires_lookup' };
+    return { accepted: false, reason: "rotate_requires_lookup" };
   }
 
-  async nextSequence(tenantId = 'default') {
+  async nextSequence(tenantId = "default") {
     return await this.client.incr(REDIS_SEQ_KEY(tenantId));
   }
 
@@ -164,12 +195,12 @@ class RedisTokenStore {
    * This is a one-way sync; JSON tokens without a Redis key are written.
    */
   async backfillToRedis() {
-    const all = tokenDb.findSessionTokensByTenant('*') || [];
+    const all = tokenDb.findSessionTokensByTenant("*") || [];
     if (!all.length) return { backfilled: 0 };
     let backfilled = 0;
     const pipeline = this.client.pipeline();
     for (const token of all) {
-      const t = token.tenant_id || 'default';
+      const t = token.tenant_id || "default";
       const key = REDIS_TOKEN_KEY(t, token.token_hash);
       pipeline.get(key);
       backfilled += 1;
@@ -208,7 +239,8 @@ async function getStore() {
       _redisClient = createRedisClient();
       if (_redisClient) {
         try {
-          if (typeof _redisClient.connect === 'function') await _redisClient.connect();
+          if (typeof _redisClient.connect === "function")
+            await _redisClient.connect();
           _activeStore = new RedisTokenStore(_redisClient);
           return _activeStore;
         } catch (err) {

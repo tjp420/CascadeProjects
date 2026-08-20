@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Tests for violation retention policy in authorize.cjs
@@ -7,14 +7,17 @@
  * guard, cleanup timer lifecycle, and integration with recordViolation().
  */
 
-const { describe, it, before, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
+const { describe, it, before, beforeEach, afterEach } = require("node:test");
+const assert = require("node:assert");
+const os = require("os");
+const fs = require("fs");
+const path = require("path");
 
 // Set env vars before requiring modules
-const _tempSettingsPath = path.join(os.tmpdir(), 'sb-violation-retention-test-settings.json');
+const _tempSettingsPath = path.join(
+  os.tmpdir(),
+  "sb-violation-retention-test-settings.json",
+);
 process.env.SECURITY_MONITOR_SETTINGS_PATH = _tempSettingsPath;
 
 function writeSettings(updates = {}) {
@@ -30,7 +33,7 @@ function writeSettings(updates = {}) {
       orgPartitionViolationMemoryGuardMb: 50,
       ...updates,
     }),
-    'utf8'
+    "utf8",
   );
 }
 
@@ -46,7 +49,7 @@ const {
   estimateViolationMemoryMb,
   startCleanupTimer,
   stopCleanupTimer,
-} = require('../../middleware/authorize.cjs');
+} = require("../../middleware/authorize.cjs");
 
 // Helper to create mock Express objects
 function createMockReq(opts = {}) {
@@ -54,15 +57,15 @@ function createMockReq(opts = {}) {
     body: opts.body || {},
     query: opts.query || {},
     params: opts.params || {},
-    method: opts.method || 'GET',
-    path: opts.path || '/api/test',
-    ip: opts.ip || '127.0.0.1',
-    socket: { remoteAddress: opts.ip || '127.0.0.1' },
+    method: opts.method || "GET",
+    path: opts.path || "/api/test",
+    ip: opts.ip || "127.0.0.1",
+    socket: { remoteAddress: opts.ip || "127.0.0.1" },
   };
-  if ('user' in opts) {
+  if ("user" in opts) {
     req.user = opts.user;
   } else {
-    req.user = { id: 'user-org-a', email: 'user@org-a.com' };
+    req.user = { id: "user-org-a", email: "user@org-a.com" };
   }
   return req;
 }
@@ -83,13 +86,13 @@ function createMockRes() {
   return res;
 }
 
-describe('Violation Retention Policy', () => {
+describe("Violation Retention Policy", () => {
   let settingsStore;
 
   before(() => {
     // Get the settings store module ??? this is the same module instance
     // that authorize.cjs uses since it lazy-loads via require()
-    settingsStore = require('../../lib/security-monitor-settings-store.cjs');
+    settingsStore = require("../../lib/security-monitor-settings-store.cjs");
   });
 
   beforeEach(() => {
@@ -114,12 +117,12 @@ describe('Violation Retention Policy', () => {
 
   // ?????? clearViolations ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-  describe('clearViolations', () => {
-    it('should clear all violations from the buffer', () => {
+  describe("clearViolations", () => {
+    it("should clear all violations from the buffer", () => {
       // Record some violations by calling enforceOrgPartition
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
-      const req = createMockReq({ body: { orgId: 'org-b' } });
+      const req = createMockReq({ body: { orgId: "org-b" } });
       const res = createMockRes();
       middleware(req, res, () => {});
 
@@ -130,7 +133,7 @@ describe('Violation Retention Policy', () => {
       assert.strictEqual(getPartitionViolations().length, 0);
     });
 
-    it('should return 0 when there are no violations', () => {
+    it("should return 0 when there are no violations", () => {
       clearViolations();
       const cleared = clearViolations();
       assert.strictEqual(cleared, 0);
@@ -139,15 +142,15 @@ describe('Violation Retention Policy', () => {
 
   // ?????? purgeExpiredViolations ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-  describe('purgeExpiredViolations', () => {
-    it('should remove violations older than the TTL', () => {
+  describe("purgeExpiredViolations", () => {
+    it("should remove violations older than the TTL", () => {
       // Set a very short TTL (1 second)
       settingsStore.updateSettings({ orgPartitionViolationTtlMs: 1000 });
 
       // Record a violation
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
-      const req = createMockReq({ body: { orgId: 'org-b' } });
+      const req = createMockReq({ body: { orgId: "org-b" } });
       const res = createMockRes();
       middleware(req, res, () => {});
 
@@ -168,14 +171,14 @@ describe('Violation Retention Policy', () => {
       assert.ok(getPartitionViolations().length > 0);
     });
 
-    it('should purge violations with backdated timestamps', () => {
+    it("should purge violations with backdated timestamps", () => {
       // This test works by directly manipulating the violation buffer
       // We'll record violations, then backdate their timestamps, then purge
 
       // Record a violation
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
-      const req = createMockReq({ body: { orgId: 'org-b' } });
+      const req = createMockReq({ body: { orgId: "org-b" } });
       const res = createMockRes();
       middleware(req, res, () => {});
 
@@ -183,10 +186,14 @@ describe('Violation Retention Policy', () => {
       assert.ok(violations.length > 0);
 
       // Set TTL to 1 hour
-      settingsStore.updateSettings({ orgPartitionViolationTtlMs: 60 * 60 * 1000 });
+      settingsStore.updateSettings({
+        orgPartitionViolationTtlMs: 60 * 60 * 1000,
+      });
 
       // Backdate the violation by 2 hours
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const twoHoursAgo = new Date(
+        Date.now() - 2 * 60 * 60 * 1000,
+      ).toISOString();
       // We need to access the internal array ??? use the exported getPartitionViolations
       // which returns the actual array reference
       for (const v of violations) {
@@ -199,11 +206,11 @@ describe('Violation Retention Policy', () => {
       assert.strictEqual(getPartitionViolations().length, 0);
     });
 
-    it('should return 0 when no violations are expired', () => {
+    it("should return 0 when no violations are expired", () => {
       // Record a fresh violation
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
-      const req = createMockReq({ body: { orgId: 'org-b' } });
+      const req = createMockReq({ body: { orgId: "org-b" } });
       const res = createMockRes();
       middleware(req, res, () => {});
 
@@ -212,7 +219,7 @@ describe('Violation Retention Policy', () => {
       assert.strictEqual(purged, 0);
     });
 
-    it('should update lastCleanupRun timestamp', () => {
+    it("should update lastCleanupRun timestamp", () => {
       const before = Date.now();
       purgeExpiredViolations();
       // getPartitionStats should show lastCleanupRun
@@ -224,16 +231,16 @@ describe('Violation Retention Policy', () => {
 
   // ?????? enforceViolationCap ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-  describe('enforceViolationCap', () => {
-    it('should trim violations when count exceeds maxLog', () => {
+  describe("enforceViolationCap", () => {
+    it("should trim violations when count exceeds maxLog", () => {
       // Set a small max log (minimum allowed is 10)
       settingsStore.updateSettings({ orgPartitionViolationMaxLog: 10 });
 
       // Record 20 violations
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
       for (let i = 0; i < 20; i++) {
-        const req = createMockReq({ body: { orgId: 'org-b' } });
+        const req = createMockReq({ body: { orgId: "org-b" } });
         const res = createMockRes();
         middleware(req, res, () => {});
       }
@@ -242,12 +249,12 @@ describe('Violation Retention Policy', () => {
       assert.ok(getPartitionViolations().length <= 10);
     });
 
-    it('should not trim when under the cap', () => {
+    it("should not trim when under the cap", () => {
       settingsStore.updateSettings({ orgPartitionViolationMaxLog: 100 });
 
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
-      const req = createMockReq({ body: { orgId: 'org-b' } });
+      const req = createMockReq({ body: { orgId: "org-b" } });
       const res = createMockRes();
       middleware(req, res, () => {});
 
@@ -256,7 +263,7 @@ describe('Violation Retention Policy', () => {
       assert.strictEqual(getPartitionViolations().length, before);
     });
 
-    it('should enforce memory guard by trimming violations', () => {
+    it("should enforce memory guard by trimming violations", () => {
       // Set a very low memory guard (1 MB minimum, but we need at least 1)
       // At 0.5KB per violation, 1 MB = ~2048 violations. We'll record 10
       // violations which is well under 1 MB, so this test verifies the
@@ -268,10 +275,10 @@ describe('Violation Retention Policy', () => {
         orgPartitionViolationMaxLog: 1000,
       });
 
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
       for (let i = 0; i < 10; i++) {
-        const req = createMockReq({ body: { orgId: 'org-b' } });
+        const req = createMockReq({ body: { orgId: "org-b" } });
         const res = createMockRes();
         middleware(req, res, () => {});
       }
@@ -288,16 +295,16 @@ describe('Violation Retention Policy', () => {
 
   // ?????? estimateViolationMemoryMb ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-  describe('estimateViolationMemoryMb', () => {
-    it('should return 0 when buffer is empty', () => {
+  describe("estimateViolationMemoryMb", () => {
+    it("should return 0 when buffer is empty", () => {
       clearViolations();
       assert.strictEqual(estimateViolationMemoryMb(), 0);
     });
 
-    it('should return a positive number when violations exist', () => {
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+    it("should return a positive number when violations exist", () => {
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
-      const req = createMockReq({ body: { orgId: 'org-b' } });
+      const req = createMockReq({ body: { orgId: "org-b" } });
       const res = createMockRes();
       middleware(req, res, () => {});
 
@@ -307,35 +314,35 @@ describe('Violation Retention Policy', () => {
 
   // ?????? getPartitionStats with retention info ??????????????????????????????????????????????????????????????????????????????????????????????????????
 
-  describe('getPartitionStats retention fields', () => {
-    it('should include violationTtlMs in stats', () => {
+  describe("getPartitionStats retention fields", () => {
+    it("should include violationTtlMs in stats", () => {
       const stats = getPartitionStats();
-      assert.ok('violationTtlMs' in stats);
-      assert.ok(typeof stats.violationTtlMs === 'number');
+      assert.ok("violationTtlMs" in stats);
+      assert.ok(typeof stats.violationTtlMs === "number");
     });
 
-    it('should include violationMaxLog in stats', () => {
+    it("should include violationMaxLog in stats", () => {
       const stats = getPartitionStats();
-      assert.ok('violationMaxLog' in stats);
-      assert.ok(typeof stats.violationMaxLog === 'number');
+      assert.ok("violationMaxLog" in stats);
+      assert.ok(typeof stats.violationMaxLog === "number");
     });
 
-    it('should include violationMemoryGuardMb in stats', () => {
+    it("should include violationMemoryGuardMb in stats", () => {
       const stats = getPartitionStats();
-      assert.ok('violationMemoryGuardMb' in stats);
+      assert.ok("violationMemoryGuardMb" in stats);
     });
 
-    it('should include estimatedMemoryMb in stats', () => {
+    it("should include estimatedMemoryMb in stats", () => {
       const stats = getPartitionStats();
-      assert.ok('estimatedMemoryMb' in stats);
+      assert.ok("estimatedMemoryMb" in stats);
     });
 
-    it('should include lastCleanupRun in stats', () => {
+    it("should include lastCleanupRun in stats", () => {
       const stats = getPartitionStats();
-      assert.ok('lastCleanupRun' in stats);
+      assert.ok("lastCleanupRun" in stats);
     });
 
-    it('should reflect config changes in stats', () => {
+    it("should reflect config changes in stats", () => {
       settingsStore.updateSettings({
         orgPartitionViolationTtlMs: 2 * 60 * 60 * 1000,
         orgPartitionViolationMaxLog: 500,
@@ -351,21 +358,21 @@ describe('Violation Retention Policy', () => {
 
   // ?????? Cleanup Timer ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-  describe('cleanup timer', () => {
-    it('startCleanupTimer should not throw', () => {
+  describe("cleanup timer", () => {
+    it("startCleanupTimer should not throw", () => {
       assert.doesNotThrow(() => startCleanupTimer());
     });
 
-    it('stopCleanupTimer should not throw', () => {
+    it("stopCleanupTimer should not throw", () => {
       startCleanupTimer();
       assert.doesNotThrow(() => stopCleanupTimer());
     });
 
-    it('should be safe to call stopCleanupTimer without start', () => {
+    it("should be safe to call stopCleanupTimer without start", () => {
       assert.doesNotThrow(() => stopCleanupTimer());
     });
 
-    it('should be safe to call startCleanupTimer multiple times', () => {
+    it("should be safe to call startCleanupTimer multiple times", () => {
       startCleanupTimer();
       startCleanupTimer();
       startCleanupTimer();
@@ -375,34 +382,40 @@ describe('Violation Retention Policy', () => {
 
   // ?????? Settings Validation ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
-  describe('settings validation', () => {
-    it('should reject orgPartitionViolationTtlMs < 60000', () => {
-      const result = settingsStore.updateSettings({ orgPartitionViolationTtlMs: 30000 });
+  describe("settings validation", () => {
+    it("should reject orgPartitionViolationTtlMs < 60000", () => {
+      const result = settingsStore.updateSettings({
+        orgPartitionViolationTtlMs: 30000,
+      });
       assert.strictEqual(result.success, false);
-      assert.ok(result.error.includes('60000'));
+      assert.ok(result.error.includes("60000"));
     });
 
-    it('should reject orgPartitionViolationMaxLog < 10', () => {
-      const result = settingsStore.updateSettings({ orgPartitionViolationMaxLog: 5 });
+    it("should reject orgPartitionViolationMaxLog < 10", () => {
+      const result = settingsStore.updateSettings({
+        orgPartitionViolationMaxLog: 5,
+      });
       assert.strictEqual(result.success, false);
-      assert.ok(result.error.includes('10'));
+      assert.ok(result.error.includes("10"));
     });
 
-    it('should reject orgPartitionViolationCleanupIntervalMs < 10000', () => {
+    it("should reject orgPartitionViolationCleanupIntervalMs < 10000", () => {
       const result = settingsStore.updateSettings({
         orgPartitionViolationCleanupIntervalMs: 5000,
       });
       assert.strictEqual(result.success, false);
-      assert.ok(result.error.includes('10000'));
+      assert.ok(result.error.includes("10000"));
     });
 
-    it('should reject orgPartitionViolationMemoryGuardMb < 1', () => {
-      const result = settingsStore.updateSettings({ orgPartitionViolationMemoryGuardMb: 0 });
+    it("should reject orgPartitionViolationMemoryGuardMb < 1", () => {
+      const result = settingsStore.updateSettings({
+        orgPartitionViolationMemoryGuardMb: 0,
+      });
       assert.strictEqual(result.success, false);
-      assert.ok(result.error.includes('1'));
+      assert.ok(result.error.includes("1"));
     });
 
-    it('should accept valid retention settings', () => {
+    it("should accept valid retention settings", () => {
       const result = settingsStore.updateSettings({
         orgPartitionViolationTtlMs: 48 * 60 * 60 * 1000,
         orgPartitionViolationMaxLog: 5000,
@@ -415,19 +428,19 @@ describe('Violation Retention Policy', () => {
 
   // ?????? Integration: recordViolation respects retention ????????????????????????????????????????????????????????????????????????
 
-  describe('recordViolation integration with retention', () => {
-    it('should auto-trim when recording many violations', () => {
+  describe("recordViolation integration with retention", () => {
+    it("should auto-trim when recording many violations", () => {
       settingsStore.updateSettings({
         orgPartitionViolationMaxLog: 10,
         orgPartitionViolationMemoryGuardMb: 50,
       });
 
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
 
       // Record 50 violations
       for (let i = 0; i < 50; i++) {
-        const req = createMockReq({ body: { orgId: 'org-b' } });
+        const req = createMockReq({ body: { orgId: "org-b" } });
         const res = createMockRes();
         middleware(req, res, () => {});
       }
@@ -436,7 +449,7 @@ describe('Violation Retention Policy', () => {
       assert.strictEqual(getPartitionViolations().length, 10);
     });
 
-    it('should refuse to store new violations under extreme memory pressure', () => {
+    it("should refuse to store new violations under extreme memory pressure", () => {
       // Set memory guard to minimum (1 MB) and max log very high,
       // then record enough violations to exceed 1 MB (~2048 at 0.5KB each).
       // We'll record 3000 violations and verify the buffer stays around 1 MB.
@@ -445,11 +458,11 @@ describe('Violation Retention Policy', () => {
         orgPartitionViolationMaxLog: 10000,
       });
 
-      const { enforceOrgPartition } = require('../../middleware/authorize.cjs');
+      const { enforceOrgPartition } = require("../../middleware/authorize.cjs");
       const middleware = enforceOrgPartition();
 
       for (let i = 0; i < 3000; i++) {
-        const req = createMockReq({ body: { orgId: 'org-b' } });
+        const req = createMockReq({ body: { orgId: "org-b" } });
         const res = createMockRes();
         middleware(req, res, () => {});
       }
@@ -457,9 +470,15 @@ describe('Violation Retention Policy', () => {
       // Memory guard should have kicked in ??? buffer should be at or near
       // the 1 MB threshold (~2048 violations at 0.5 KB each)
       const violations = getPartitionViolations();
-      assert.ok(violations.length <= 2050, `Expected <= 2050, got ${violations.length}`);
+      assert.ok(
+        violations.length <= 2050,
+        `Expected <= 2050, got ${violations.length}`,
+      );
       const stats = getPartitionStats();
-      assert.ok(stats.estimatedMemoryMb <= 1.01, `Expected <= 1.01 MB, got ${stats.estimatedMemoryMb}`);
+      assert.ok(
+        stats.estimatedMemoryMb <= 1.01,
+        `Expected <= 1.01 MB, got ${stats.estimatedMemoryMb}`,
+      );
     });
   });
 });

@@ -4,5 +4,8 @@
     "qualityScore": 85
   },
   "currentScore": 85,
-  "metrics": [{"name":"accuracy","value":92},{"name":"coverage","value":85}]
+  "metrics": [
+    { "name": "accuracy", "value": 92 },
+    { "name": "coverage", "value": 85 }
+  ]
 }

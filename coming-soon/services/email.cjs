@@ -33,7 +33,10 @@ function queueEmailToDisk({ to, subject, text, html }) {
         const fsSync = require('fs');
         ensureQueueDir();
         const filePath = path.join(EMAIL_QUEUE_DIR, id + '.json');
-        fsSync.writeFileSync(filePath, JSON.stringify({ id, to, subject, text, html, queuedAt: new Date().toISOString() }, null, 2) + '\n');
+        fsSync.writeFileSync(
+            filePath,
+            JSON.stringify({ id, to, subject, text, html, queuedAt: new Date().toISOString() }, null, 2) + '\n'
+        );
         return { sent: false, queued: true, queuePath: filePath };
     }
 }
@@ -43,23 +46,41 @@ function sendViaResend({ to, from, subject, text, html }) {
         const key = process.env.RESEND_API_KEY;
         if (!key || !key.startsWith('re_')) return reject(new Error('Resend not configured'));
         const payload = JSON.stringify({ from, to: [to], subject, text, html });
-        const req = https.request({
-            hostname: 'api.resend.com',
-            path: '/emails',
-            method: 'POST',
-            timeout: 15000,
-            headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
-        }, (res) => {
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                    try { resolve({ id: JSON.parse(data).id }); } catch { resolve({ id: null }); }
-                } else { reject(new Error('Resend ' + res.statusCode + ': ' + data)); }
-            });
-        });
+        const req = https.request(
+            {
+                hostname: 'api.resend.com',
+                path: '/emails',
+                method: 'POST',
+                timeout: 15000,
+                headers: {
+                    Authorization: 'Bearer ' + key,
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(payload)
+                }
+            },
+            res => {
+                let data = '';
+                res.on('data', chunk => {
+                    data += chunk;
+                });
+                res.on('end', () => {
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        try {
+                            resolve({ id: JSON.parse(data).id });
+                        } catch {
+                            resolve({ id: null });
+                        }
+                    } else {
+                        reject(new Error('Resend ' + res.statusCode + ': ' + data));
+                    }
+                });
+            }
+        );
         req.on('error', reject);
-        req.on('timeout', () => { req.destroy(); reject(new Error('Resend request timed out')); });
+        req.on('timeout', () => {
+            req.destroy();
+            reject(new Error('Resend request timed out'));
+        });
         req.write(payload);
         req.end();
     });
@@ -67,7 +88,11 @@ function sendViaResend({ to, from, subject, text, html }) {
 
 async function sendViaSmtp({ to, from, subject, text, html }) {
     let nodemailer;
-    try { nodemailer = require('nodemailer'); } catch { throw new Error('nodemailer not installed'); }
+    try {
+        nodemailer = require('nodemailer');
+    } catch {
+        throw new Error('nodemailer not installed');
+    }
     const smtp = getSmtpSettings();
     if (!smtp) throw new Error('SMTP not configured');
     const transporter = nodemailer.createTransport({

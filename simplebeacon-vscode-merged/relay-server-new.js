@@ -8,7 +8,9 @@ const sidebarTempFile = path.join(os.tmpdir(), 'simplebeacon-sidebar-browser.htm
 
 function getSidebarHtml() {
   if (fs.existsSync(sidebarTempFile)) {
-    try { return fs.readFileSync(sidebarTempFile, 'utf8'); } catch (e) {}
+    try {
+      return fs.readFileSync(sidebarTempFile, 'utf8');
+    } catch (e) {}
   }
   return '<h1>SimpleBeacon Sidebar</h1><p>Run "SimpleBeacon: Open Sidebar in Browser" from VS Code: to generate the sidebar HTML.</p>';
 }
@@ -148,35 +150,53 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With');
-  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
   const parsed = require('url').parse(req.url || '', true);
-  const cacheHeaders = { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' };
+  const cacheHeaders = {
+    'Content-Type': 'text/html',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  };
 
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
-    res.writeHead(200, cacheHeaders); res.end(getLayoutHtml()); return;
+    res.writeHead(200, cacheHeaders);
+    res.end(getLayoutHtml());
+    return;
   }
   if (parsed.pathname === '/sidebar') {
     let sidebarHtml = getSidebarHtml();
     if (sidebarHtml && !sidebarHtml.includes('window.__SB_BROWSER_MODE__')) {
-      const browserMock = '<script>(function(){window.__SB_BROWSER_MODE__=true;document.body&&document.body.classList.add("browser-mode");window.vscode=window.vscode||{postMessage:function(msg){if(msg&&msg.command){try{parent.postMessage(msg,"*");}catch(e){}}}};})();</script>';
+      const browserMock =
+        '<script>(function(){window.__SB_BROWSER_MODE__=true;document.body&&document.body.classList.add("browser-mode");window.vscode=window.vscode||{postMessage:function(msg){if(msg&&msg.command){try{parent.postMessage(msg,"*");}catch(e){}}}};})();</script>';
       if (sidebarHtml.includes('</body>')) sidebarHtml = sidebarHtml.replace('</body>', browserMock + '</body>');
       else if (sidebarHtml.includes('</head>')) sidebarHtml = sidebarHtml.replace('</head>', browserMock + '</head>');
       else sidebarHtml = browserMock + sidebarHtml;
     }
-    res.writeHead(200, cacheHeaders); res.end(sidebarHtml); return;
+    res.writeHead(200, cacheHeaders);
+    res.end(sidebarHtml);
+    return;
   }
   if (parsed.pathname === '/welcome') {
     let sidebarHtml = getSidebarHtml();
     if (sidebarHtml && !sidebarHtml.includes('window.__SB_BROWSER_MODE__')) {
-      const browserMock = '<script>(function(){window.__SB_BROWSER_MODE__=true;document.body&&document.body.classList.add("browser-mode");var vs={postMessage:function(msg){if(msg&&msg.command){try{parent.postMessage(msg,"*");}catch(e){}}},getState:function(){return{};},setState:function(){}};window.vscode=vs;if(typeof vscode==="undefined"){window.vscode=vs;}})();</script>';
+      const browserMock =
+        '<script>(function(){window.__SB_BROWSER_MODE__=true;document.body&&document.body.classList.add("browser-mode");var vs={postMessage:function(msg){if(msg&&msg.command){try{parent.postMessage(msg,"*");}catch(e){}}},getState:function(){return{};},setState:function(){}};window.vscode=vs;if(typeof vscode==="undefined"){window.vscode=vs;}})();</script>';
       // Inject at the beginning so it runs before any script that references bare 'vscode'
       if (sidebarHtml.includes('<head>')) sidebarHtml = sidebarHtml.replace('<head>', '<head>' + browserMock);
       else if (sidebarHtml.includes('<body>')) sidebarHtml = sidebarHtml.replace('<body>', '<body>' + browserMock);
       else sidebarHtml = browserMock + sidebarHtml;
     }
-    res.writeHead(200, cacheHeaders); res.end(sidebarHtml); return;
+    res.writeHead(200, cacheHeaders);
+    res.end(sidebarHtml);
+    return;
   }
-  res.writeHead(404); res.end('Not found');
+  res.writeHead(404);
+  res.end('Not found');
 });
 
 server.listen(PORT, '127.0.0.1', () => {

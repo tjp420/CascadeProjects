@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 31: Governance policy broker.
@@ -11,10 +11,17 @@
  * @module hsm-adapter/governance-policy-broker
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
-function _canonicalPayload({ proposalId, nonce, sponsor, policyHash, timestamp, signer }) {
+function _canonicalPayload({
+  proposalId,
+  nonce,
+  sponsor,
+  policyHash,
+  timestamp,
+  signer,
+}) {
   return `${proposalId}|${nonce}|${sponsor}|${policyHash}|${timestamp}|${signer}`;
 }
 
@@ -45,12 +52,21 @@ class GovernancePolicyBroker {
    * @returns {object}
    */
   initiate(proposal) {
-    if (!proposal || typeof proposal !== 'object') {
-      throw new HsmAdapterError('INVALID_INPUT', 'proposal object is required');
+    if (!proposal || typeof proposal !== "object") {
+      throw new HsmAdapterError("INVALID_INPUT", "proposal object is required");
     }
     const { proposalId, nonce, sponsor, policyHash, timestamp } = proposal;
-    if (!proposalId || !nonce || !sponsor || !policyHash || typeof timestamp !== 'number') {
-      throw new HsmAdapterError('INVALID_INPUT', 'proposalId, nonce, sponsor, policyHash, and timestamp are required');
+    if (
+      !proposalId ||
+      !nonce ||
+      !sponsor ||
+      !policyHash ||
+      typeof timestamp !== "number"
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "proposalId, nonce, sponsor, policyHash, and timestamp are required",
+      );
     }
     const entry = {
       proposalId,
@@ -63,7 +79,7 @@ class GovernancePolicyBroker {
     };
     this._proposals.set(proposalId, entry);
 
-    this._emitAudit('GOVERNANCE_PROPOSAL_INITIATED', {
+    this._emitAudit("GOVERNANCE_PROPOSAL_INITIATED", {
       proposalId,
       sponsor,
       policyHash,
@@ -82,32 +98,60 @@ class GovernancePolicyBroker {
   sign(proposalId, sig) {
     const proposal = this._proposals.get(proposalId);
     if (!proposal) {
-      throw new HsmAdapterError('GOVERNANCE_PROPOSAL_NOT_FOUND', `no proposal ${proposalId}`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_PROPOSAL_NOT_FOUND",
+        `no proposal ${proposalId}`,
+      );
     }
     if (proposal.committed) {
-      throw new HsmAdapterError('GOVERNANCE_PROPOSAL_COMMITTED', `proposal ${proposalId} is already committed`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_PROPOSAL_COMMITTED",
+        `proposal ${proposalId} is already committed`,
+      );
     }
 
     const now = Date.now();
     if (now - proposal.timestamp > this.proposalExpiryMs) {
-      throw new HsmAdapterError('GOVERNANCE_PROPOSAL_EXPIRED', `proposal ${proposalId} expired`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_PROPOSAL_EXPIRED",
+        `proposal ${proposalId} expired`,
+      );
     }
 
-    if (!sig || typeof sig !== 'object' || typeof sig.signer !== 'string' || typeof sig.signature !== 'string') {
-      throw new HsmAdapterError('INVALID_INPUT', 'signature must contain signer and signature strings');
+    if (
+      !sig ||
+      typeof sig !== "object" ||
+      typeof sig.signer !== "string" ||
+      typeof sig.signature !== "string"
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "signature must contain signer and signature strings",
+      );
     }
 
     if (this.allowedAdmins.size > 0 && !this.allowedAdmins.has(sig.signer)) {
-      throw new HsmAdapterError('GOVERNANCE_SIGNER_REJECTED', `signer ${sig.signer} is not an allowed admin`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_SIGNER_REJECTED",
+        `signer ${sig.signer} is not an allowed admin`,
+      );
     }
 
     if (proposal.signatures.some((s) => s.signer === sig.signer)) {
-      throw new HsmAdapterError('GOVERNANCE_DUPLICATE_SIGNER', `signer ${sig.signer} already signed`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_DUPLICATE_SIGNER",
+        `signer ${sig.signer} already signed`,
+      );
     }
 
-    const expected = _hash(_canonicalPayload({ ...proposal, signer: sig.signer }));
+    const expected = _hash(
+      _canonicalPayload({ ...proposal, signer: sig.signer }),
+    );
     if (sig.signature !== expected) {
-      throw new HsmAdapterError('GOVERNANCE_SIGNATURE_INVALID', `signature from ${sig.signer} does not verify`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_SIGNATURE_INVALID",
+        `signature from ${sig.signer} does not verify`,
+      );
     }
 
     proposal.signatures.push(sig);
@@ -122,18 +166,27 @@ class GovernancePolicyBroker {
   commit(proposalId) {
     const proposal = this._proposals.get(proposalId);
     if (!proposal) {
-      throw new HsmAdapterError('GOVERNANCE_PROPOSAL_NOT_FOUND', `no proposal ${proposalId}`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_PROPOSAL_NOT_FOUND",
+        `no proposal ${proposalId}`,
+      );
     }
     if (Date.now() - proposal.timestamp > this.proposalExpiryMs) {
-      throw new HsmAdapterError('GOVERNANCE_PROPOSAL_EXPIRED', `proposal ${proposalId} expired before commit`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_PROPOSAL_EXPIRED",
+        `proposal ${proposalId} expired before commit`,
+      );
     }
     if (proposal.signatures.length < this.minAdminQuorum) {
-      throw new HsmAdapterError('GOVERNANCE_QUORUM_NOT_MET', `signatures ${proposal.signatures.length} below quorum ${this.minAdminQuorum}`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_QUORUM_NOT_MET",
+        `signatures ${proposal.signatures.length} below quorum ${this.minAdminQuorum}`,
+      );
     }
 
     proposal.committed = true;
 
-    this._emitAudit('POLICY_CONSENSUS_COMMITTED', {
+    this._emitAudit("POLICY_CONSENSUS_COMMITTED", {
       proposalId,
       policyHash: proposal.policyHash,
       signers: proposal.signatures.map((s) => s.signer),
@@ -151,7 +204,10 @@ class GovernancePolicyBroker {
   getProposal(proposalId) {
     const proposal = this._proposals.get(proposalId);
     if (!proposal) {
-      throw new HsmAdapterError('GOVERNANCE_PROPOSAL_NOT_FOUND', `no proposal ${proposalId}`);
+      throw new HsmAdapterError(
+        "GOVERNANCE_PROPOSAL_NOT_FOUND",
+        `no proposal ${proposalId}`,
+      );
     }
     return proposal;
   }
@@ -162,7 +218,7 @@ class GovernancePolicyBroker {
 }
 
 function _hash(input) {
-  return crypto.createHash('sha256').update(input).digest('hex');
+  return crypto.createHash("sha256").update(input).digest("hex");
 }
 
 module.exports = { GovernancePolicyBroker, _canonicalPayload };

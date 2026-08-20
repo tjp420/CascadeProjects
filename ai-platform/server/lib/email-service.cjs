@@ -11,20 +11,21 @@
  * Env: CF_API_TOKEN, CF_ACCOUNT_ID, CF_EMAIL_FROM, RESEND_API_KEY, RESEND_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE
  */
 
-const https = require('https');
-const path = require('path');
-const logger = require('./app-logger.cjs');
-const fs = require('fs');
+const https = require("https");
+const path = require("path");
+const logger = require("./app-logger.cjs");
+const fs = require("fs");
 
 let nodemailer = null;
 try {
-  nodemailer = require('nodemailer');
+  nodemailer = require("nodemailer");
 } catch {
   nodemailer = null;
 }
 
-const QUEUE_DIR = process.env.EMAIL_QUEUE_DIR
-  || path.join(process.cwd(), '.simplebeacon', 'email-queue');
+const QUEUE_DIR =
+  process.env.EMAIL_QUEUE_DIR ||
+  path.join(process.cwd(), ".simplebeacon", "email-queue");
 
 /**
  * Ensure queue dir.
@@ -41,17 +42,18 @@ function ensureQueueDir() {
  * @returns {any}
  */
 function getCloudflareConfig() {
-  const apiToken = process.env.CF_API_TOKEN || '';
-  const accountId = process.env.CF_ACCOUNT_ID || '';
+  const apiToken = process.env.CF_API_TOKEN || "";
+  const accountId = process.env.CF_ACCOUNT_ID || "";
   if (!apiToken || !accountId) return null;
-  const from = process.env.CF_EMAIL_FROM || 'admin@simplebeacon.ai';
+  const from = process.env.CF_EMAIL_FROM || "admin@simplebeacon.ai";
   return { apiToken, accountId, from };
 }
 
 function getResendConfig() {
-  const key = process.env.RESEND_API_KEY || process.env.SMTP_PASS || '';
-  if (!key.startsWith('re_')) return null;
-  const from = process.env.RESEND_FROM || process.env.SMTP_FROM || 'admin@simplebeacon.ai';
+  const key = process.env.RESEND_API_KEY || process.env.SMTP_PASS || "";
+  if (!key.startsWith("re_")) return null;
+  const from =
+    process.env.RESEND_FROM || process.env.SMTP_FROM || "admin@simplebeacon.ai";
   return { key, from };
 }
 
@@ -64,8 +66,8 @@ function getSmtpConfig() {
   const port = Number(process.env.SMTP_PORT) || 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || 'admin@simplebeacon.ai';
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  const from = process.env.SMTP_FROM || "admin@simplebeacon.ai";
+  const secure = process.env.SMTP_SECURE === "true" || port === 465;
 
   if (!host || !user || !pass) return null;
   return { host, port, user, pass, from, secure };
@@ -82,7 +84,7 @@ function createTransporter() {
     host: cfg.host,
     port: cfg.port,
     secure: cfg.secure,
-    auth: { user: cfg.user, pass: cfg.pass }
+    auth: { user: cfg.user, pass: cfg.pass },
   });
 }
 
@@ -99,42 +101,53 @@ function createTransporter() {
 function sendViaCloudflare({ to, from, subject, text, html }) {
   return new Promise((resolve, reject) => {
     const cfg = getCloudflareConfig();
-    if (!cfg) return reject(new Error('Cloudflare Email not configured'));
+    if (!cfg) return reject(new Error("Cloudflare Email not configured"));
 
     const body = JSON.stringify({
       from,
       to: Array.isArray(to) ? to : [to],
       subject,
       text: text || undefined,
-      html: html || undefined
+      html: html || undefined,
     });
 
-    const req = https.request({
-      hostname: 'api.cloudflare.com',
-      path: `/client/v4/accounts/${cfg.accountId}/email/sending/send`,
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cfg.apiToken}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const json = JSON.parse(data);
-            resolve({ id: json.result?.messageId || json.result?.id || null });
-          } catch {
-            resolve({ id: null });
+    const req = https.request(
+      {
+        hostname: "api.cloudflare.com",
+        path: `/client/v4/accounts/${cfg.accountId}/email/sending/send`,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cfg.apiToken}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const json = JSON.parse(data);
+              resolve({
+                id: json.result?.messageId || json.result?.id || null,
+              });
+            } catch {
+              resolve({ id: null });
+            }
+          } else {
+            reject(
+              new Error(
+                `Cloudflare Email API error ${res.statusCode}: ${data}`,
+              ),
+            );
           }
-        } else {
-          reject(new Error(`Cloudflare Email API error ${res.statusCode}: ${data}`));
-        }
-      });
-    });
-    req.on('error', reject);
+        });
+      },
+    );
+    req.on("error", reject);
     req.write(body);
     req.end();
   });
@@ -143,49 +156,54 @@ function sendViaCloudflare({ to, from, subject, text, html }) {
 function sendViaResend({ to, from, subject, text, html, attachments = [] }) {
   return new Promise((resolve, reject) => {
     const cfg = getResendConfig();
-    if (!cfg) return reject(new Error('Resend not configured'));
+    if (!cfg) return reject(new Error("Resend not configured"));
 
     const body = {
       from,
       to: Array.isArray(to) ? to : [to],
       subject,
       text: text || undefined,
-      html: html || undefined
+      html: html || undefined,
     };
     if (attachments.length) {
       body.attachments = attachments.map((a) => ({
         filename: a.filename,
-        content: a.content
+        content: a.content,
       }));
     }
     const payload = JSON.stringify(body);
 
-    const req = https.request({
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cfg.key}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
-      }
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const json = JSON.parse(data);
-            resolve({ id: json.id });
-          } catch {
-            resolve({ id: null });
+    const req = https.request(
+      {
+        hostname: "api.resend.com",
+        path: "/emails",
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cfg.key}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const json = JSON.parse(data);
+              resolve({ id: json.id });
+            } catch {
+              resolve({ id: null });
+            }
+          } else {
+            reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
           }
-        } else {
-          reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
-        }
-      });
-    });
-    req.on('error', reject);
+        });
+      },
+    );
+    req.on("error", reject);
     req.write(payload);
     req.end();
   });
@@ -208,15 +226,15 @@ function queueEmailToDisk({ to, subject, text, html, attachments = [] }) {
     id,
     to,
     subject,
-    text: text || '',
+    text: text || "",
     html: html || undefined,
     attachments: attachments.map((a) => ({
       filename: a.filename,
-      content: a.content.slice(0, 80) + '...'
+      content: a.content.slice(0, 80) + "...",
     })),
-    queuedAt: new Date().toISOString()
+    queuedAt: new Date().toISOString(),
   };
-  fs.writeFileSync(filePath, JSON.stringify(payload, null, 2) + '\n');
+  fs.writeFileSync(filePath, JSON.stringify(payload, null, 2) + "\n");
   return { sent: false, queued: true, queuePath: filePath };
 }
 
@@ -228,17 +246,28 @@ function queueEmailToDisk({ to, subject, text, html, attachments = [] }) {
 async function sendEmail(options = {}) {
   const { to, subject, text, html, attachments } = options;
   if (!to || !subject) {
-    return { sent: false, queued: false, error: 'to and subject are required' };
+    return { sent: false, queued: false, error: "to and subject are required" };
   }
 
   // 1. Cloudflare Email Sending
   const cfCfg = getCloudflareConfig();
   if (cfCfg) {
     try {
-      const result = await sendViaCloudflare({ to, from: cfCfg.from, subject, text, html });
-      return { sent: true, queued: false, id: result.id, provider: 'cloudflare' };
+      const result = await sendViaCloudflare({
+        to,
+        from: cfCfg.from,
+        subject,
+        text,
+        html,
+      });
+      return {
+        sent: true,
+        queued: false,
+        id: result.id,
+        provider: "cloudflare",
+      };
     } catch (err) {
-      logger.error('[Email] Cloudflare failed:', err.message);
+      logger.error("[Email] Cloudflare failed:", err.message);
       // fall through to Resend
     }
   }
@@ -247,10 +276,17 @@ async function sendEmail(options = {}) {
   const cfg = getResendConfig();
   if (cfg) {
     try {
-      const result = await sendViaResend({ to, from: cfg.from, subject, text, html, attachments });
-      return { sent: true, queued: false, id: result.id, provider: 'resend' };
+      const result = await sendViaResend({
+        to,
+        from: cfg.from,
+        subject,
+        text,
+        html,
+        attachments,
+      });
+      return { sent: true, queued: false, id: result.id, provider: "resend" };
     } catch (err) {
-      logger.error('[Email] Resend API failed'); // simplebeacon-ignore pii-logging — error detail removed
+      logger.error("[Email] Resend API failed"); // simplebeacon-ignore pii-logging — error detail removed
       // fall through to SMTP
     }
   }
@@ -264,25 +300,34 @@ async function sendEmail(options = {}) {
         from: smtpCfg.from,
         to,
         subject,
-        text: text || '',
-        html: html || undefined
+        text: text || "",
+        html: html || undefined,
       };
       if (attachments?.length) {
         mailOptions.attachments = attachments.map((a) => ({
           filename: a.filename,
-          content: Buffer.from(a.content, 'base64')
+          content: Buffer.from(a.content, "base64"),
         }));
       }
       await transporter.sendMail(mailOptions);
-      return { sent: true, queued: false, provider: 'smtp' };
+      return { sent: true, queued: false, provider: "smtp" };
     } catch (err) {
-      logger.error('[Email] SMTP send failed:', err.message);
+      logger.error("[Email] SMTP send failed:", err.message);
       // fall through to queue
     }
   }
 
   // 4. Disk queue fallback
-  return { ...queueEmailToDisk({ to, subject, text, html, attachments }), provider: 'queued' };
+  return {
+    ...queueEmailToDisk({ to, subject, text, html, attachments }),
+    provider: "queued",
+  };
 }
 
-module.exports = { sendEmail, getCloudflareConfig, getResendConfig, getSmtpConfig, QUEUE_DIR };
+module.exports = {
+  sendEmail,
+  getCloudflareConfig,
+  getResendConfig,
+  getSmtpConfig,
+  QUEUE_DIR,
+};

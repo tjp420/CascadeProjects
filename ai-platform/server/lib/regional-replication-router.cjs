@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Regional Replication Router
@@ -18,15 +18,27 @@
  * @module regional-replication-router
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 /**
  * Default regional zones. Can be overridden via constructor options.
  */
 const DEFAULT_ZONES = [
-  { id: 'us-east', endpoint: process.env.SIMPLEBEACON_ZONE_US_EAST || '', apiKeyEnv: 'SIMPLEBEACON_ZONE_US_EAST_KEY' },
-  { id: 'eu-west', endpoint: process.env.SIMPLEBEACON_ZONE_EU_WEST || '', apiKeyEnv: 'SIMPLEBEACON_ZONE_EU_WEST_KEY' },
-  { id: 'ap-southeast', endpoint: process.env.SIMPLEBEACON_ZONE_AP_SOUTHEAST || '', apiKeyEnv: 'SIMPLEBEACON_ZONE_AP_SOUTHEAST_KEY' }
+  {
+    id: "us-east",
+    endpoint: process.env.SIMPLEBEACON_ZONE_US_EAST || "",
+    apiKeyEnv: "SIMPLEBEACON_ZONE_US_EAST_KEY",
+  },
+  {
+    id: "eu-west",
+    endpoint: process.env.SIMPLEBEACON_ZONE_EU_WEST || "",
+    apiKeyEnv: "SIMPLEBEACON_ZONE_EU_WEST_KEY",
+  },
+  {
+    id: "ap-southeast",
+    endpoint: process.env.SIMPLEBEACON_ZONE_AP_SOUTHEAST || "",
+    apiKeyEnv: "SIMPLEBEACON_ZONE_AP_SOUTHEAST_KEY",
+  },
 ];
 
 /**
@@ -34,8 +46,8 @@ const DEFAULT_ZONES = [
  * @enum {string}
  */
 const CONFLICT_STRATEGIES = {
-  LATEST_WINS: 'latest-wins',
-  MANUAL: 'manual'
+  LATEST_WINS: "latest-wins",
+  MANUAL: "manual",
 };
 
 /**
@@ -43,12 +55,12 @@ const CONFLICT_STRATEGIES = {
  * @enum {string}
  */
 const SYNC_STATUS = {
-  IDLE: 'idle',
-  SYNCING: 'syncing',
-  SUCCESS: 'success',
-  FAILED: 'failed',
-  DEGRADED: 'degraded',
-  CONFLICT: 'conflict'
+  IDLE: "idle",
+  SYNCING: "syncing",
+  SUCCESS: "success",
+  FAILED: "failed",
+  DEGRADED: "degraded",
+  CONFLICT: "conflict",
 };
 
 /**
@@ -62,7 +74,7 @@ const MAX_PAYLOAD_SIZE = 1024 * 1024;
 const DEFAULT_RETRY = {
   maxAttempts: 3,
   baseDelayMs: 1000,
-  maxDelayMs: 10000
+  maxDelayMs: 10000,
 };
 
 /**
@@ -72,7 +84,7 @@ const DEFAULT_RETRY = {
  */
 function hashPayload(payload) {
   const text = JSON.stringify(payload);
-  return crypto.createHash('sha256').update(text).digest('hex').slice(0, 16);
+  return crypto.createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
 /**
@@ -90,18 +102,20 @@ function sleep(ms) {
  * @throws {Error} if payload is invalid
  */
 function validatePayload(payload) {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Payload must be a non-null object');
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Payload must be a non-null object");
   }
-  if (!payload.type || typeof payload.type !== 'string') {
+  if (!payload.type || typeof payload.type !== "string") {
     throw new Error('Payload must have a string "type" field');
   }
-  if (!payload.data || typeof payload.data !== 'object') {
+  if (!payload.data || typeof payload.data !== "object") {
     throw new Error('Payload must have an object "data" field');
   }
   const size = Buffer.byteLength(JSON.stringify(payload));
   if (size > MAX_PAYLOAD_SIZE) {
-    throw new Error(`Payload exceeds maximum size (${MAX_PAYLOAD_SIZE} bytes): ${size} bytes`);
+    throw new Error(
+      `Payload exceeds maximum size (${MAX_PAYLOAD_SIZE} bytes): ${size} bytes`,
+    );
   }
 }
 
@@ -122,7 +136,8 @@ class RegionalReplicationRouter {
     this.queues = new Map();
     this.conflicts = new Map();
     this.retry = { ...DEFAULT_RETRY, ...options.retry };
-    this.conflictStrategy = options.conflictStrategy || CONFLICT_STRATEGIES.LATEST_WINS;
+    this.conflictStrategy =
+      options.conflictStrategy || CONFLICT_STRATEGIES.LATEST_WINS;
     this.fetchFn = options.fetchFn || null;
     this.logger = options.logger || console;
 
@@ -138,11 +153,11 @@ class RegionalReplicationRouter {
    */
   registerZone(zone) {
     if (!zone || !zone.id) {
-      throw new Error('Zone must have an id');
+      throw new Error("Zone must have an id");
     }
     this.zones.set(zone.id, {
       id: zone.id,
-      endpoint: zone.endpoint || '',
+      endpoint: zone.endpoint || "",
       apiKeyEnv: zone.apiKeyEnv || null,
       status: SYNC_STATUS.IDLE,
       lastSync: null,
@@ -150,7 +165,7 @@ class RegionalReplicationRouter {
       pending: 0,
       syncCount: 0,
       failCount: 0,
-      conflictCount: 0
+      conflictCount: 0,
     });
     this.queues.set(zone.id, []);
   }
@@ -193,7 +208,9 @@ class RegionalReplicationRouter {
         syncCount: zone.syncCount,
         failCount: zone.failCount,
         conflictCount: zone.conflictCount,
-        endpoint: zone.endpoint ? `${zone.endpoint.slice(0, 30)}...` : '(not configured)'
+        endpoint: zone.endpoint
+          ? `${zone.endpoint.slice(0, 30)}...`
+          : "(not configured)",
       };
     }
     return result;
@@ -215,7 +232,7 @@ class RegionalReplicationRouter {
       pending: zone.pending,
       syncCount: zone.syncCount,
       failCount: zone.failCount,
-      conflictCount: zone.conflictCount
+      conflictCount: zone.conflictCount,
     };
   }
 
@@ -241,7 +258,7 @@ class RegionalReplicationRouter {
       ...payload,
       version: payload.version || `${Date.now()}-${hashPayload(payload)}`,
       timestamp: payload.timestamp || new Date().toISOString(),
-      sourceHash: hashPayload(payload)
+      sourceHash: hashPayload(payload),
     };
 
     // Check for conflict: if zone has a different version with same payload type
@@ -254,7 +271,7 @@ class RegionalReplicationRouter {
         zoneId,
         success: false,
         status: SYNC_STATUS.CONFLICT,
-        message: 'Conflict detected — resolve before syncing'
+        message: "Conflict detected — resolve before syncing",
       };
     }
 
@@ -279,7 +296,7 @@ class RegionalReplicationRouter {
           zoneId,
           success: false,
           status: SYNC_STATUS.FAILED,
-          error: err.message
+          error: err.message,
         };
       }
     }
@@ -311,15 +328,17 @@ class RegionalReplicationRouter {
           success: true,
           status: SYNC_STATUS.SUCCESS,
           attempt,
-          result
+          result,
         };
       } catch (err) {
         lastError = err;
-        this.logger.error(`[replication] Zone ${zoneId} sync attempt ${attempt}/${this.retry.maxAttempts} failed: ${err.message}`);
+        this.logger.error(
+          `[replication] Zone ${zoneId} sync attempt ${attempt}/${this.retry.maxAttempts} failed: ${err.message}`,
+        );
         if (attempt < this.retry.maxAttempts) {
           const delay = Math.min(
             this.retry.baseDelayMs * Math.pow(2, attempt - 1),
-            this.retry.maxDelayMs
+            this.retry.maxDelayMs,
           );
           await sleep(delay);
         }
@@ -328,15 +347,15 @@ class RegionalReplicationRouter {
 
     // All retries exhausted
     zone.status = SYNC_STATUS.DEGRADED;
-    zone.lastError = lastError ? lastError.message : 'Unknown error';
+    zone.lastError = lastError ? lastError.message : "Unknown error";
     zone.pending = Math.max(0, zone.pending - 1);
     zone.failCount++;
     return {
       zoneId,
       success: false,
       status: SYNC_STATUS.DEGRADED,
-      error: lastError ? lastError.message : 'Unknown error',
-      attempts: this.retry.maxAttempts
+      error: lastError ? lastError.message : "Unknown error",
+      attempts: this.retry.maxAttempts,
     };
   }
 
@@ -354,26 +373,26 @@ class RegionalReplicationRouter {
     }
 
     const apiKey = this.getZoneApiKey(zoneId);
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { "Content-Type": "application/json" };
     if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+      headers["Authorization"] = `Bearer ${apiKey}`;
     }
 
     if (this.fetchFn) {
       // Use injected fetch (for testing)
       return this.fetchFn(zone.endpoint, {
-        method: 'POST',
+        method: "POST",
         headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
     }
 
     // Use global fetch (Node 18+)
-    if (typeof fetch !== 'undefined') {
+    if (typeof fetch !== "undefined") {
       const res = await fetch(zone.endpoint, {
-        method: 'POST',
+        method: "POST",
         headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         throw new Error(`Zone ${zoneId} returned HTTP ${res.status}`);
@@ -381,7 +400,7 @@ class RegionalReplicationRouter {
       return res.json();
     }
 
-    throw new Error('No fetch implementation available');
+    throw new Error("No fetch implementation available");
   }
 
   /**
@@ -393,7 +412,10 @@ class RegionalReplicationRouter {
   detectConflict(existing, incoming) {
     if (!existing || !incoming) return false;
     if (existing.type !== incoming.type) return false;
-    if (existing.version === incoming.version && existing.sourceHash !== incoming.sourceHash) {
+    if (
+      existing.version === incoming.version &&
+      existing.sourceHash !== incoming.sourceHash
+    ) {
       return true;
     }
     return false;
@@ -414,7 +436,7 @@ class RegionalReplicationRouter {
       existing,
       incoming,
       detectedAt: new Date().toISOString(),
-      resolved: false
+      resolved: false,
     });
     const zone = this.zones.get(zoneId);
     if (zone) {
@@ -443,10 +465,11 @@ class RegionalReplicationRouter {
     if (strategy === CONFLICT_STRATEGIES.LATEST_WINS) {
       const existingTime = Date.parse(conflict.existing.timestamp || 0);
       const incomingTime = Date.parse(conflict.incoming.timestamp || 0);
-      winningPayload = incomingTime >= existingTime ? conflict.incoming : conflict.existing;
+      winningPayload =
+        incomingTime >= existingTime ? conflict.incoming : conflict.existing;
     } else if (strategy === CONFLICT_STRATEGIES.MANUAL) {
       if (!manualPayload) {
-        throw new Error('manualPayload required for manual strategy');
+        throw new Error("manualPayload required for manual strategy");
       }
       winningPayload = manualPayload;
     } else {
@@ -468,7 +491,7 @@ class RegionalReplicationRouter {
       conflictId,
       resolved: true,
       winner: winningPayload.version,
-      payload: winningPayload
+      payload: winningPayload,
     };
   }
 }
@@ -479,5 +502,5 @@ module.exports = {
   SYNC_STATUS,
   DEFAULT_ZONES,
   hashPayload,
-  validatePayload
+  validatePayload,
 };

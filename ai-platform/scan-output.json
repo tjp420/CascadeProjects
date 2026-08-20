@@ -24,9 +24,7 @@
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\user\\CascadeProjects\\coming-soon",
   "configPath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
-  "scanPaths": [
-    "C:\\Users\\user\\CascadeProjects\\coming-soon"
-  ],
+  "scanPaths": ["C:\\Users\\user\\CascadeProjects\\coming-soon"],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\user\\CascadeProjects\\coming-soon",
     "totalFiles": 1210,
@@ -234,12 +232,8 @@
       "pattern": null,
       "line": 1,
       "recommendation": null,
-      "affectedFiles": [
-        "public/app/assets/TeamMetricsView.js"
-      ],
-      "filePaths": [
-        "public/app/assets/TeamMetricsView.js"
-      ],
+      "affectedFiles": ["public/app/assets/TeamMetricsView.js"],
+      "filePaths": ["public/app/assets/TeamMetricsView.js"],
       "file": "public/app/assets/TeamMetricsView.js"
     },
     {
@@ -251,12 +245,8 @@
       "pattern": null,
       "line": 1,
       "recommendation": null,
-      "affectedFiles": [
-        "public/dashboard/assets/TeamMetricsView.js"
-      ],
-      "filePaths": [
-        "public/dashboard/assets/TeamMetricsView.js"
-      ],
+      "affectedFiles": ["public/dashboard/assets/TeamMetricsView.js"],
+      "filePaths": ["public/dashboard/assets/TeamMetricsView.js"],
       "file": "public/dashboard/assets/TeamMetricsView.js"
     }
   ],
@@ -325,12 +315,8 @@
       "line": 1,
       "description": "public/app/assets/TeamMetricsView.js:1 framework-practices pattern detected",
       "count": 1,
-      "affectedFiles": [
-        "public/app/assets/TeamMetricsView.js"
-      ],
-      "filePaths": [
-        "public/app/assets/TeamMetricsView.js"
-      ],
+      "affectedFiles": ["public/app/assets/TeamMetricsView.js"],
+      "filePaths": ["public/app/assets/TeamMetricsView.js"],
       "metadata": {
         "ruleId": "framework-practices",
         "match": "useEffect(()=>"
@@ -346,12 +332,8 @@
       "line": 1,
       "description": "public/dashboard/assets/TeamMetricsView.js:1 framework-practices pattern detected",
       "count": 1,
-      "affectedFiles": [
-        "public/dashboard/assets/TeamMetricsView.js"
-      ],
-      "filePaths": [
-        "public/dashboard/assets/TeamMetricsView.js"
-      ],
+      "affectedFiles": ["public/dashboard/assets/TeamMetricsView.js"],
+      "filePaths": ["public/dashboard/assets/TeamMetricsView.js"],
       "metadata": {
         "ruleId": "framework-practices",
         "match": "useEffect(()=>"
@@ -423,13 +405,8 @@
       "security-patterns"
     ],
     "gatePolicy": {
-      "failOn": [
-        "high"
-      ],
-      "warnOn": [
-        "medium",
-        "low"
-      ]
+      "failOn": ["high"],
+      "warnOn": ["medium", "low"]
     },
     "diffOnly": false,
     "diffFileCount": 0,
@@ -482,13 +459,8 @@
   },
   "gate": {
     "pass": false,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "blockingCount": 1,
     "warningCount": 3,
     "blockingIssues": [
@@ -558,12 +530,8 @@
         "line": 1,
         "description": "public/app/assets/TeamMetricsView.js:1 framework-practices pattern detected",
         "count": 1,
-        "affectedFiles": [
-          "public/app/assets/TeamMetricsView.js"
-        ],
-        "filePaths": [
-          "public/app/assets/TeamMetricsView.js"
-        ],
+        "affectedFiles": ["public/app/assets/TeamMetricsView.js"],
+        "filePaths": ["public/app/assets/TeamMetricsView.js"],
         "metadata": {
           "ruleId": "framework-practices",
           "match": "useEffect(()=>"
@@ -579,12 +547,8 @@
         "line": 1,
         "description": "public/dashboard/assets/TeamMetricsView.js:1 framework-practices pattern detected",
         "count": 1,
-        "affectedFiles": [
-          "public/dashboard/assets/TeamMetricsView.js"
-        ],
-        "filePaths": [
-          "public/dashboard/assets/TeamMetricsView.js"
-        ],
+        "affectedFiles": ["public/dashboard/assets/TeamMetricsView.js"],
+        "filePaths": ["public/dashboard/assets/TeamMetricsView.js"],
         "metadata": {
           "ruleId": "framework-practices",
           "match": "useEffect(()=>"
@@ -629,12 +593,8 @@
         "line": 1,
         "description": "public/app/assets/TeamMetricsView.js:1 framework-practices pattern detected",
         "count": 1,
-        "affectedFiles": [
-          "public/app/assets/TeamMetricsView.js"
-        ],
-        "filePaths": [
-          "public/app/assets/TeamMetricsView.js"
-        ],
+        "affectedFiles": ["public/app/assets/TeamMetricsView.js"],
+        "filePaths": ["public/app/assets/TeamMetricsView.js"],
         "metadata": {
           "ruleId": "framework-practices",
           "match": "useEffect(()=>"
@@ -650,12 +610,8 @@
         "line": 1,
         "description": "public/dashboard/assets/TeamMetricsView.js:1 framework-practices pattern detected",
         "count": 1,
-        "affectedFiles": [
-          "public/dashboard/assets/TeamMetricsView.js"
-        ],
-        "filePaths": [
-          "public/dashboard/assets/TeamMetricsView.js"
-        ],
+        "affectedFiles": ["public/dashboard/assets/TeamMetricsView.js"],
+        "filePaths": ["public/dashboard/assets/TeamMetricsView.js"],
         "metadata": {
           "ruleId": "framework-practices",
           "match": "useEffect(()=>"

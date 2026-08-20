@@ -12,8 +12,10 @@ const SEVERITY_MAP = {
     credentials: 'critical',
     euAiAct: 'high'
 };
-const CREDENTIAL_LINE_RE = /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/i;
-const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
+const CREDENTIAL_LINE_RE =
+    /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/i;
+const CREDENTIAL_ALLOWLIST =
+    /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
 const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data)/i;
 /** Concatenate two Uint8Arrays without spreading large arrays. */
 function concatBytes(a, b) {
@@ -26,8 +28,7 @@ function concatBytes(a, b) {
 function decodeText(bytes) {
     try {
         return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-    }
-    catch (_a) {
+    } catch (_a) {
         return '';
     }
 }
@@ -45,27 +46,24 @@ class JsChunkAnalyzer {
         this.totalBytes += chunk.length;
         if (!this.seenPe && this.totalBytes >= 2) {
             const head = this.carry.length ? this.carry : chunk;
-            if (head.length >= 2 && head[0] === 0x4D && head[1] === 0x5A) {
+            if (head.length >= 2 && head[0] === 0x4d && head[1] === 0x5a) {
                 this.isPe = true;
             }
             this.seenPe = true;
         }
         const buffer = this.carry.length ? concatBytes(this.carry, chunk) : chunk;
-        if (!buffer.length)
-            return;
+        if (!buffer.length) return;
         // Carry over the last incomplete line so patterns that span a chunk
         // boundary are scanned once the full line is available.
         if (_isLast) {
             this.scanTextPatterns(buffer, true);
             this.carry = new Uint8Array(0);
-        }
-        else {
+        } else {
             const lastNewline = this.lastNewlineIndex(buffer);
             if (lastNewline === -1) {
                 // No complete line yet; accumulate everything for the next chunk.
                 this.carry = buffer;
-            }
-            else {
+            } else {
                 const scanRegion = buffer.slice(0, lastNewline + 1);
                 this.carry = buffer.slice(lastNewline + 1);
                 this.scanTextPatterns(scanRegion, false);
@@ -74,8 +72,7 @@ class JsChunkAnalyzer {
     }
     lastNewlineIndex(bytes) {
         for (let i = bytes.length - 1; i >= 0; i--) {
-            if (bytes[i] === 0x0A)
-                return i;
+            if (bytes[i] === 0x0a) return i;
         }
         return -1;
     }
@@ -94,11 +91,9 @@ class JsChunkAnalyzer {
         let localLine = 0;
         for (const line of lines) {
             localLine += 1;
-            if (localLine > lineCount)
-                break;
+            if (localLine > lineCount) break;
             const trimmed = line.trim();
-            if (!trimmed)
-                continue;
+            if (!trimmed) continue;
             if (this.hasConsoleLog(trimmed)) {
                 this.pushFinding('debugArtifacts', localLine, trimmed);
             }
@@ -121,19 +116,19 @@ class JsChunkAnalyzer {
     hasConsoleLog(line) {
         const lower = line.toLowerCase();
         const dbgKeyword = ['debug', 'ger'].join('');
-        return lower.includes('console.log') ||
+        return (
+            lower.includes('console.log') ||
             lower.includes('console.warn') ||
             lower.includes('console.error') ||
-            new RegExp(`\\b${dbgKeyword}\\s*;`).test(line);
+            new RegExp(`\\b${dbgKeyword}\\s*;`).test(line)
+        );
     }
     hasTodo(line) {
         const lower = line.toLowerCase();
-        return lower.includes('todo') || lower.includes('fixme') ||
-            lower.includes('hack') || lower.includes('xxx');
+        return lower.includes('todo') || lower.includes('fixme') || lower.includes('hack') || lower.includes('xxx');
     }
     hasCredential(line) {
-        if (IGNORE_LINE_RE.test(line) || CREDENTIAL_ALLOWLIST.test(line))
-            return false;
+        if (IGNORE_LINE_RE.test(line) || CREDENTIAL_ALLOWLIST.test(line)) return false;
         return CREDENTIAL_LINE_RE.test(line);
     }
 }
@@ -161,8 +156,7 @@ async function createAnalyzer() {
                 const wasm = await import(WASM_PKG_URL);
                 await wasm.default();
                 return { type: 'wasm', wasm };
-            }
-            catch (_a) {
+            } catch (_a) {
                 return { type: 'js' };
             }
         })();

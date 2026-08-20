@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * @module code-understanding
@@ -19,23 +19,33 @@
  * @file server/lib/code-understanding/index.cjs
  */
 
-const { understandCodeSnippet, understandFile, attachUnderstandingToCodebaseReport } = require('./code-understanding-engine.cjs');
-const { analyzeSemanticLayer } = require('./semantic-analyzer.cjs');
-const { analyzeContextualLayer } = require('./contextual-analyzer.cjs');
-const { appendExpertReview, loadExpertReviews, summarizeExpertConsensus } = require('./expert-review-store.cjs');
-const { detectBusinessLogicPatterns } = require('./business-logic-patterns.cjs');
+const {
+  understandCodeSnippet,
+  understandFile,
+  attachUnderstandingToCodebaseReport,
+} = require("./code-understanding-engine.cjs");
+const { analyzeSemanticLayer } = require("./semantic-analyzer.cjs");
+const { analyzeContextualLayer } = require("./contextual-analyzer.cjs");
+const {
+  appendExpertReview,
+  loadExpertReviews,
+  summarizeExpertConsensus,
+} = require("./expert-review-store.cjs");
+const {
+  detectBusinessLogicPatterns,
+} = require("./business-logic-patterns.cjs");
 
-const { generateZscriptModReport } = require('./zscript-mod-report.cjs');
+const { generateZscriptModReport } = require("./zscript-mod-report.cjs");
 
 module.exports = Object.freeze({
-    understandCodeSnippet,
-    understandFile,
-    attachUnderstandingToCodebaseReport,
-    analyzeSemanticLayer,
-    analyzeContextualLayer,
-    appendExpertReview,
-    loadExpertReviews,
-    summarizeExpertConsensus,
-    detectBusinessLogicPatterns,
-    generateZscriptModReport
+  understandCodeSnippet,
+  understandFile,
+  attachUnderstandingToCodebaseReport,
+  analyzeSemanticLayer,
+  analyzeContextualLayer,
+  appendExpertReview,
+  loadExpertReviews,
+  summarizeExpertConsensus,
+  detectBusinessLogicPatterns,
+  generateZscriptModReport,
 });

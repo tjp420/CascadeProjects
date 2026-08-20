@@ -1,18 +1,20 @@
-const { EnclaveWorker } = require('../enclave-worker.cjs');
+const { EnclaveWorker } = require("../enclave-worker.cjs");
 
-describe('EnclaveWorker', () => {
-  test('schedules flush and rotate with intervals and calls manager methods', async () => {
+describe("EnclaveWorker", () => {
+  test("schedules flush and rotate with intervals and calls manager methods", async () => {
     const manager = {
       flushPendingReplications: jest.fn(async () => {}),
       rotateKek: jest.fn(async () => {}),
     };
 
-    const generateNewWrapFn = jest.fn(async () => async () => Buffer.from('newwrap'));
+    const generateNewWrapFn = jest.fn(
+      async () => async () => Buffer.from("newwrap"),
+    );
 
     // Capture setInterval callbacks to invoke them directly
     const callbacks = [];
     const origSetInterval = global.setInterval;
-    global.setInterval = function(fn, ms, ...args) {
+    global.setInterval = function (fn, ms, ...args) {
       callbacks.push({ fn, ms, args });
       return { unref: () => {}, ref: () => {}, hasRef: () => false };
     };

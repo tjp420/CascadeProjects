@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 79: PQC Clinical Trial Verification Gating Hub.
@@ -15,8 +15,8 @@
  * @module hsm-adapter/pqc-clinical-trial-verification-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class PqcClinicalTrialVerificationGatingHub {
   /**
@@ -39,32 +39,76 @@ class PqcClinicalTrialVerificationGatingHub {
    */
   initializePool(request) {
     _validateInitRequest(this.policy, request);
-    if (this.policy.requireTrialOversightInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireTrialOversightInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.trialOversightInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.trialOversightInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TRIALGATE_OVERSIGHT_INITIALIZER_UNATTESTED', 'trial oversight initializer attestation invalid');
+          throw new HsmAdapterError(
+            "TRIALGATE_OVERSIGHT_INITIALIZER_UNATTESTED",
+            "trial oversight initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TRIALGATE_OVERSIGHT_INITIALIZER_UNATTESTED', 'trial oversight initializer attestation invalid');
+        throw new HsmAdapterError(
+          "TRIALGATE_OVERSIGHT_INITIALIZER_UNATTESTED",
+          "trial oversight initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('TRIALGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TRIALGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('TRIALGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TRIALGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.trialDurationSeconds === 'number' && request.trialDurationSeconds > (this.policy.maxTrialDurationSeconds || 94608000)) {
-      throw new HsmAdapterError('TRIALGATE_TRIAL_DURATION_EXCEEDED', `trial duration seconds ${request.trialDurationSeconds} exceeds maximum ${this.policy.maxTrialDurationSeconds}`);
+    if (
+      typeof request.trialDurationSeconds === "number" &&
+      request.trialDurationSeconds >
+        (this.policy.maxTrialDurationSeconds || 94608000)
+    ) {
+      throw new HsmAdapterError(
+        "TRIALGATE_TRIAL_DURATION_EXCEEDED",
+        `trial duration seconds ${request.trialDurationSeconds} exceeds maximum ${this.policy.maxTrialDurationSeconds}`,
+      );
     }
-    if (typeof request.cohortMetricDepth === 'number' && request.cohortMetricDepth > (this.policy.maxCohortMetricDepth || 24)) {
-      throw new HsmAdapterError('TRIALGATE_COHORT_DEPTH_EXCEEDED', `cohort metric depth ${request.cohortMetricDepth} exceeds maximum ${this.policy.maxCohortMetricDepth}`);
+    if (
+      typeof request.cohortMetricDepth === "number" &&
+      request.cohortMetricDepth > (this.policy.maxCohortMetricDepth || 24)
+    ) {
+      throw new HsmAdapterError(
+        "TRIALGATE_COHORT_DEPTH_EXCEEDED",
+        `cohort metric depth ${request.cohortMetricDepth} exceeds maximum ${this.policy.maxCohortMetricDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('TRIALGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "TRIALGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -73,18 +117,19 @@ class PqcClinicalTrialVerificationGatingHub {
       targetChainId: request.targetChainId,
       blindedProtocolHashCommitment: request.blindedProtocolHashCommitment,
       blindedCohortMetricCommitment: request.blindedCohortMetricCommitment,
-      blindedInvestigatorHashCommitment: request.blindedInvestigatorHashCommitment,
+      blindedInvestigatorHashCommitment:
+        request.blindedInvestigatorHashCommitment,
       trialDurationSeconds: request.trialDurationSeconds,
       cohortMetricDepth: request.cohortMetricDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: "open",
       trialClaimVerified: false,
       cohortAccreditationCompletedAt: null,
     };
     this._pools.set(poolId, pool);
     if (this._audit) {
-      this._audit('CLINICAL_TRIAL_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("CLINICAL_TRIAL_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -106,7 +151,10 @@ class PqcClinicalTrialVerificationGatingHub {
   markTrialClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('TRIALGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "TRIALGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.trialClaimVerified = true;
     return pool;
@@ -121,30 +169,52 @@ class PqcClinicalTrialVerificationGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('TRIALGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "TRIALGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.trialClaimVerified) {
-      throw new HsmAdapterError('TRIALGATE_TRIAL_CLAIM_NOT_VERIFIED', `pool ${request.poolId} trial claim not verified`);
+      throw new HsmAdapterError(
+        "TRIALGATE_TRIAL_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} trial claim not verified`,
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TRIALGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "TRIALGATE_CLEARING_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TRIALGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "TRIALGATE_CLEARING_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minTrialOversightQuorum || 3)) {
-      throw new HsmAdapterError('TRIALGATE_QUORUM_INSUFFICIENT', `trial oversight signatures ${signatures.length} below minimum ${this.policy.minTrialOversightQuorum}`);
+      throw new HsmAdapterError(
+        "TRIALGATE_QUORUM_INSUFFICIENT",
+        `trial oversight signatures ${signatures.length} below minimum ${this.policy.minTrialOversightQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'accredited';
+    pool.status = "accredited";
     pool.cohortAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -152,7 +222,7 @@ class PqcClinicalTrialVerificationGatingHub {
       completedAt: now,
     };
     if (this._audit) {
-      this._audit('COHORT_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("COHORT_ACCREDITATION_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -168,28 +238,59 @@ class PqcClinicalTrialVerificationGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('TRIALGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "TRIALGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedProtocolHashCommitment || !request.blindedCohortMetricCommitment || !request.blindedInvestigatorHashCommitment) {
-    throw new HsmAdapterError('TRIALGATE_FIELDS_MISSING', 'blindedProtocolHashCommitment, blindedCohortMetricCommitment, and blindedInvestigatorHashCommitment are required');
+  if (
+    !request.blindedProtocolHashCommitment ||
+    !request.blindedCohortMetricCommitment ||
+    !request.blindedInvestigatorHashCommitment
+  ) {
+    throw new HsmAdapterError(
+      "TRIALGATE_FIELDS_MISSING",
+      "blindedProtocolHashCommitment, blindedCohortMetricCommitment, and blindedInvestigatorHashCommitment are required",
+    );
   }
-  if (typeof request.trialDurationSeconds !== 'number') {
-    throw new HsmAdapterError('TRIALGATE_FIELDS_MISSING', 'trialDurationSeconds is required');
+  if (typeof request.trialDurationSeconds !== "number") {
+    throw new HsmAdapterError(
+      "TRIALGATE_FIELDS_MISSING",
+      "trialDurationSeconds is required",
+    );
   }
-  if (typeof request.cohortMetricDepth !== 'number') {
-    throw new HsmAdapterError('TRIALGATE_FIELDS_MISSING', 'cohortMetricDepth is required');
+  if (typeof request.cohortMetricDepth !== "number") {
+    throw new HsmAdapterError(
+      "TRIALGATE_FIELDS_MISSING",
+      "cohortMetricDepth is required",
+    );
   }
-  if (policy.requireTrialOversightInitializerAttestation && !request.trialOversightInitializerAttestation) {
-    throw new HsmAdapterError('TRIALGATE_OVERSIGHT_ATTESTATION_MISSING', 'trial oversight initializer attestation is required');
+  if (
+    policy.requireTrialOversightInitializerAttestation &&
+    !request.trialOversightInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TRIALGATE_OVERSIGHT_ATTESTATION_MISSING",
+      "trial oversight initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('TRIALGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "TRIALGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('TRIALGATE_CLEARING_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TRIALGATE_CLEARING_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Edge-native compliance certificate signing module.
@@ -24,15 +24,15 @@
  * @returns {Response}
  */
 function jsonResponse(data, status, corsOrigin) {
-    const headers = {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
-    };
-    if (corsOrigin) {
-        headers['Access-Control-Allow-Origin'] = corsOrigin;
-        headers['Vary'] = 'Origin';
-    }
-    return new Response(JSON.stringify(data), { status, headers });
+  const headers = {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+  };
+  if (corsOrigin) {
+    headers["Access-Control-Allow-Origin"] = corsOrigin;
+    headers["Vary"] = "Origin";
+  }
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 /**
@@ -41,41 +41,70 @@ function jsonResponse(data, status, corsOrigin) {
  * @returns {{valid: boolean, error?: string, hash?: string, timestamp?: number, metadata?: Object}}
  */
 function validatePayload(body) {
-    if (!body || typeof body !== 'object') {
-        return { valid: false, error: 'Request body must be a JSON object' };
-    }
+  if (!body || typeof body !== "object") {
+    return { valid: false, error: "Request body must be a JSON object" };
+  }
 
-    const { hash, timestamp, metadata } = body;
+  const { hash, timestamp, metadata } = body;
 
-    if (!hash || typeof hash !== 'string') {
-        return { valid: false, error: 'Missing or invalid "hash" field — expected a SHA-256 hex string' };
-    }
+  if (!hash || typeof hash !== "string") {
+    return {
+      valid: false,
+      error: 'Missing or invalid "hash" field — expected a SHA-256 hex string',
+    };
+  }
 
-    // SHA-256 hex is 64 chars. Also allow 128-char SHA-512 for future compat.
-    if (!/^[a-f0-9]{64}$/i.test(hash) && !/^[a-f0-9]{128}$/i.test(hash)) {
-        return { valid: false, error: 'Invalid hash format — expected 64-char SHA-256 or 128-char SHA-512 hex string' };
-    }
+  // SHA-256 hex is 64 chars. Also allow 128-char SHA-512 for future compat.
+  if (!/^[a-f0-9]{64}$/i.test(hash) && !/^[a-f0-9]{128}$/i.test(hash)) {
+    return {
+      valid: false,
+      error:
+        "Invalid hash format — expected 64-char SHA-256 or 128-char SHA-512 hex string",
+    };
+  }
 
-    if (!timestamp || typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
-        return { valid: false, error: 'Missing or invalid "timestamp" field — expected a Unix epoch number' };
-    }
+  if (
+    !timestamp ||
+    typeof timestamp !== "number" ||
+    !Number.isFinite(timestamp)
+  ) {
+    return {
+      valid: false,
+      error:
+        'Missing or invalid "timestamp" field — expected a Unix epoch number',
+    };
+  }
 
-    // Reject timestamps more than 5 minutes in the future or 1 hour in the past
-    const now = Date.now();
-    const skew = Math.abs(now - timestamp);
-    if (timestamp > now + 5 * 60 * 1000) {
-        return { valid: false, error: 'Timestamp is too far in the future (max 5 min skew allowed)' };
-    }
-    if (timestamp < now - 60 * 60 * 1000) {
-        return { valid: false, error: 'Timestamp is too old (max 1 hour staleness allowed)' };
-    }
+  // Reject timestamps more than 5 minutes in the future or 1 hour in the past
+  const now = Date.now();
+  const skew = Math.abs(now - timestamp);
+  if (timestamp > now + 5 * 60 * 1000) {
+    return {
+      valid: false,
+      error: "Timestamp is too far in the future (max 5 min skew allowed)",
+    };
+  }
+  if (timestamp < now - 60 * 60 * 1000) {
+    return {
+      valid: false,
+      error: "Timestamp is too old (max 1 hour staleness allowed)",
+    };
+  }
 
-    // Metadata is optional but must be an object if present
-    if (metadata !== undefined && (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata))) {
-        return { valid: false, error: 'Invalid "metadata" field — expected a JSON object' };
-    }
+  // Metadata is optional but must be an object if present
+  if (
+    metadata !== undefined &&
+    (typeof metadata !== "object" ||
+      metadata === null ||
+      Array.isArray(metadata))
+  ) {
+    return {
+      valid: false,
+      error: 'Invalid "metadata" field — expected a JSON object',
+    };
+  }
 
-    return { valid: true, hash, timestamp, metadata: metadata || {} };
+  return { valid: true, hash, timestamp, metadata: metadata || {} };
 }
 
 /**
@@ -84,7 +113,9 @@ function validatePayload(body) {
  * @returns {string}
  */
 function bytesToHex(bytes) {
-    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -98,12 +129,12 @@ function bytesToHex(bytes) {
  * @returns {string}
  */
 function canonicalizePayload(hash, timestamp, metadata) {
-    // Build object with keys in sorted order: hash, metadata, timestamp
-    const sorted = {};
-    sorted.hash = hash;
-    sorted.metadata = metadata;
-    sorted.timestamp = timestamp;
-    return JSON.stringify(sorted);
+  // Build object with keys in sorted order: hash, metadata, timestamp
+  const sorted = {};
+  sorted.hash = hash;
+  sorted.metadata = metadata;
+  sorted.timestamp = timestamp;
+  return JSON.stringify(sorted);
 }
 
 /**
@@ -115,88 +146,109 @@ function canonicalizePayload(hash, timestamp, metadata) {
  * @returns {Promise<Response>}
  */
 export async function handleCertifyRequest(request, env, corsOrigin) {
-    if (request.method !== 'POST') {
-        return jsonResponse({ error: 'Method Not Allowed' }, 405, corsOrigin);
-    }
+  if (request.method !== "POST") {
+    return jsonResponse({ error: "Method Not Allowed" }, 405, corsOrigin);
+  }
 
+  try {
+    let body;
     try {
-        let body;
-        try {
-            body = await request.json();
-        } catch {
-            return jsonResponse({ error: 'Invalid JSON body' }, 400, corsOrigin);
-        }
-
-        const validation = validatePayload(body);
-        if (!validation.valid) {
-            return jsonResponse({ error: validation.error }, 400, corsOrigin);
-        }
-
-        const privateKeyJwkStr = env.SIGNING_PRIVATE_KEY;
-        if (!privateKeyJwkStr) {
-            return jsonResponse({ error: 'Edge signing key not configured' }, 500, corsOrigin);
-        }
-
-        // Parse the JWK private key string
-        let privateKeyJwk;
-        try {
-            privateKeyJwk = typeof privateKeyJwkStr === 'string'
-                ? JSON.parse(privateKeyJwkStr)
-                : privateKeyJwkStr;
-        } catch {
-            return jsonResponse({ error: 'Edge signing key is malformed' }, 500, corsOrigin);
-        }
-
-        // Import the key into WebCrypto for this request cycle only.
-        // extractable=true so we can export the public components for key ID derivation.
-        const privateKey = await crypto.subtle.importKey(
-            'jwk',
-            privateKeyJwk,
-            { name: 'ECDSA', namedCurve: 'P-256' },
-            true,
-            ['sign']
-        );
-
-        // Build the canonical message and sign it
-        const canonicalMessage = canonicalizePayload(validation.hash, validation.timestamp, validation.metadata);
-        const messageBuffer = new TextEncoder().encode(canonicalMessage);
-
-        const signatureBuffer = await crypto.subtle.sign(
-            { name: 'ECDSA', hash: { name: 'SHA-256' } },
-            privateKey,
-            messageBuffer
-        );
-
-        const signatureHex = bytesToHex(new Uint8Array(signatureBuffer));
-
-        // Derive the key ID from the public key counterpart for traceability.
-        // ECDSA private keys in WebCrypto can be exported as JWK (which includes x, y, d).
-        // We extract the public components (x, y) to compute the thumbprint.
-        let keyId = 'unknown';
-        try {
-            const exportedJwk = await crypto.subtle.exportKey('jwk', privateKey);
-            const publicJwk = { kty: exportedJwk.kty, crv: exportedJwk.crv, x: exportedJwk.x, y: exportedJwk.y };
-            keyId = 'sb-edge-' + (await computeJwkThumbprint(publicJwk)).slice(0, 16);
-        } catch {
-            // If key ID derivation fails, the signature is still valid
-        }
-
-        return jsonResponse({
-            success: true,
-            signature: signatureHex,
-            algorithm: 'ECDSA-P256-SHA256',
-            keyId,
-            issuedAt: new Date().toISOString(),
-            echo: {
-                hash: validation.hash,
-                timestamp: validation.timestamp
-            }
-        }, 200, corsOrigin);
-
-    } catch (error) {
-        // Never leak stack traces or internal details to the client
-        return jsonResponse({ error: 'Internal signing error' }, 500, corsOrigin);
+      body = await request.json();
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400, corsOrigin);
     }
+
+    const validation = validatePayload(body);
+    if (!validation.valid) {
+      return jsonResponse({ error: validation.error }, 400, corsOrigin);
+    }
+
+    const privateKeyJwkStr = env.SIGNING_PRIVATE_KEY;
+    if (!privateKeyJwkStr) {
+      return jsonResponse(
+        { error: "Edge signing key not configured" },
+        500,
+        corsOrigin,
+      );
+    }
+
+    // Parse the JWK private key string
+    let privateKeyJwk;
+    try {
+      privateKeyJwk =
+        typeof privateKeyJwkStr === "string"
+          ? JSON.parse(privateKeyJwkStr)
+          : privateKeyJwkStr;
+    } catch {
+      return jsonResponse(
+        { error: "Edge signing key is malformed" },
+        500,
+        corsOrigin,
+      );
+    }
+
+    // Import the key into WebCrypto for this request cycle only.
+    // extractable=true so we can export the public components for key ID derivation.
+    const privateKey = await crypto.subtle.importKey(
+      "jwk",
+      privateKeyJwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign"],
+    );
+
+    // Build the canonical message and sign it
+    const canonicalMessage = canonicalizePayload(
+      validation.hash,
+      validation.timestamp,
+      validation.metadata,
+    );
+    const messageBuffer = new TextEncoder().encode(canonicalMessage);
+
+    const signatureBuffer = await crypto.subtle.sign(
+      { name: "ECDSA", hash: { name: "SHA-256" } },
+      privateKey,
+      messageBuffer,
+    );
+
+    const signatureHex = bytesToHex(new Uint8Array(signatureBuffer));
+
+    // Derive the key ID from the public key counterpart for traceability.
+    // ECDSA private keys in WebCrypto can be exported as JWK (which includes x, y, d).
+    // We extract the public components (x, y) to compute the thumbprint.
+    let keyId = "unknown";
+    try {
+      const exportedJwk = await crypto.subtle.exportKey("jwk", privateKey);
+      const publicJwk = {
+        kty: exportedJwk.kty,
+        crv: exportedJwk.crv,
+        x: exportedJwk.x,
+        y: exportedJwk.y,
+      };
+      keyId = "sb-edge-" + (await computeJwkThumbprint(publicJwk)).slice(0, 16);
+    } catch {
+      // If key ID derivation fails, the signature is still valid
+    }
+
+    return jsonResponse(
+      {
+        success: true,
+        signature: signatureHex,
+        algorithm: "ECDSA-P256-SHA256",
+        keyId,
+        issuedAt: new Date().toISOString(),
+        echo: {
+          hash: validation.hash,
+          timestamp: validation.timestamp,
+        },
+      },
+      200,
+      corsOrigin,
+    );
+  } catch (error) {
+    // Never leak stack traces or internal details to the client
+    return jsonResponse({ error: "Internal signing error" }, 500, corsOrigin);
+  }
 }
 
 /**
@@ -206,15 +258,18 @@ export async function handleCertifyRequest(request, env, corsOrigin) {
  * @returns {Promise<string>} Hex-encoded SHA-256 thumbprint
  */
 async function computeJwkThumbprint(jwk) {
-    // RFC 7638: canonical JSON with keys in lexicographic order
-    const canonical = JSON.stringify({
-        crv: jwk.crv,
-        kty: jwk.kty,
-        x: jwk.x,
-        y: jwk.y
-    });
-    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
-    return bytesToHex(new Uint8Array(hashBuffer));
+  // RFC 7638: canonical JSON with keys in lexicographic order
+  const canonical = JSON.stringify({
+    crv: jwk.crv,
+    kty: jwk.kty,
+    x: jwk.x,
+    y: jwk.y,
+  });
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(canonical),
+  );
+  return bytesToHex(new Uint8Array(hashBuffer));
 }
 
 /**
@@ -225,26 +280,35 @@ async function computeJwkThumbprint(jwk) {
  * @returns {Promise<Response>}
  */
 export async function handlePublicKeyRequest(env, corsOrigin) {
-    const publicKeyJwkStr = env.SIGNING_PUBLIC_KEY;
-    if (!publicKeyJwkStr) {
-        return jsonResponse({ error: 'Public key not configured' }, 404, corsOrigin);
-    }
+  const publicKeyJwkStr = env.SIGNING_PUBLIC_KEY;
+  if (!publicKeyJwkStr) {
+    return jsonResponse(
+      { error: "Public key not configured" },
+      404,
+      corsOrigin,
+    );
+  }
 
-    try {
-        // Return the JWK as-is (it's already a JSON object/string)
-        const jwk = typeof publicKeyJwkStr === 'string'
-            ? JSON.parse(publicKeyJwkStr)
-            : publicKeyJwkStr;
+  try {
+    // Return the JWK as-is (it's already a JSON object/string)
+    const jwk =
+      typeof publicKeyJwkStr === "string"
+        ? JSON.parse(publicKeyJwkStr)
+        : publicKeyJwkStr;
 
-        // Derive a deterministic key ID from the JWK thumbprint (RFC 7638)
-        const keyId = await computeJwkThumbprint(jwk);
+    // Derive a deterministic key ID from the JWK thumbprint (RFC 7638)
+    const keyId = await computeJwkThumbprint(jwk);
 
-        return jsonResponse({
-            keyId: 'sb-edge-' + keyId.slice(0, 16),
-            algorithm: 'ECDSA-P256-SHA256',
-            publicKey: jwk
-        }, 200, corsOrigin);
-    } catch {
-        return jsonResponse({ error: 'Public key is malformed' }, 500, corsOrigin);
-    }
+    return jsonResponse(
+      {
+        keyId: "sb-edge-" + keyId.slice(0, 16),
+        algorithm: "ECDSA-P256-SHA256",
+        publicKey: jwk,
+      },
+      200,
+      corsOrigin,
+    );
+  } catch {
+    return jsonResponse({ error: "Public key is malformed" }, 500, corsOrigin);
+  }
 }

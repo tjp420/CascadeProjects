@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 44: Confidential token issuer.
@@ -10,8 +10,8 @@
  * @module hsm-adapter/confidential-token-issuer
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ConfidentialTokenIssuer {
   /**
@@ -39,18 +39,30 @@ class ConfidentialTokenIssuer {
     if (this.policy.requireMintingAttestation && this._attestationClient) {
       const result = this._attestationClient.verify(attestation);
       if (!result.verified) {
-        throw new HsmAdapterError('ISSUANCE_ATTESTATION_INVALID', 'minting attestation is not valid');
+        throw new HsmAdapterError(
+          "ISSUANCE_ATTESTATION_INVALID",
+          "minting attestation is not valid",
+        );
       }
     }
     if (amount < 0n) {
-      throw new HsmAdapterError('ISSUANCE_AMOUNT_INVALID', 'token amount must be non-negative');
+      throw new HsmAdapterError(
+        "ISSUANCE_AMOUNT_INVALID",
+        "token amount must be non-negative",
+      );
     }
     const bitLength = amount.toString(2).length;
     if (bitLength < this.policy.minTokenBitLength) {
-      throw new HsmAdapterError('ISSUANCE_AMOUNT_TOO_SMALL', `token bit length ${bitLength} below policy minimum ${this.policy.minTokenBitLength}`);
+      throw new HsmAdapterError(
+        "ISSUANCE_AMOUNT_TOO_SMALL",
+        `token bit length ${bitLength} below policy minimum ${this.policy.minTokenBitLength}`,
+      );
     }
     if (approvals.length < (this.policy.minIssuanceQuorum || 2)) {
-      throw new HsmAdapterError('ISSUANCE_QUORUM_INSUFFICIENT', `approvals ${approvals.length} below minimum ${this.policy.minIssuanceQuorum}`);
+      throw new HsmAdapterError(
+        "ISSUANCE_QUORUM_INSUFFICIENT",
+        `approvals ${approvals.length} below minimum ${this.policy.minIssuanceQuorum}`,
+      );
     }
     const blinding = _randomBlinding(32);
     const commitment = _pedersenCommitment(amount, blinding);
@@ -60,18 +72,24 @@ class ConfidentialTokenIssuer {
       commitment,
       proof,
       timestamp: now,
-      blindingScheme: 'pedersen',
-      commitmentCurve: this.policy.allowedCommitmentCurves ? this.policy.allowedCommitmentCurves[0] : 'secp256k1',
+      blindingScheme: "pedersen",
+      commitmentCurve: this.policy.allowedCommitmentCurves
+        ? this.policy.allowedCommitmentCurves[0]
+        : "secp256k1",
     };
     if (this._audit) {
-      this._audit('CONFIDENTIAL_TOKEN_MINTED', { assetId, commitment, timestamp: now });
+      this._audit("CONFIDENTIAL_TOKEN_MINTED", {
+        assetId,
+        commitment,
+        timestamp: now,
+      });
     }
     return { token, commitment, amount, blinding };
   }
 }
 
 function _randomBlinding(bytes) {
-  return BigInt('0x' + crypto.randomBytes(bytes).toString('hex'));
+  return BigInt("0x" + crypto.randomBytes(bytes).toString("hex"));
 }
 
 function _pedersenCommitment(amount, blinding) {
@@ -82,7 +100,7 @@ function _pedersenCommitment(amount, blinding) {
 
 function _simulateZkSnarkProof(assetId, amount, blinding) {
   const input = `${assetId}:${amount.toString()}:${blinding.toString()}`;
-  return crypto.createHash('sha256').update(input).digest('hex');
+  return crypto.createHash("sha256").update(input).digest("hex");
 }
 
 module.exports = { ConfidentialTokenIssuer };

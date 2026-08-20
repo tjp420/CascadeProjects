@@ -1,15 +1,15 @@
 // simplebeacon-ignore memory-leak
-'use strict';
+"use strict";
 
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const createError = require('http-errors');
-const { jwtConfig } = require('../jwt-config.cjs');
-const constants = require('../../config/constants.cjs');
-const { trustLevels } = require('./trust-levels.cjs');
-const { isAccessTokenBlacklisted } = require('../token-service.cjs');
-const logger = require('../app-logger.cjs');
-const { withZeroizedBuffer } = require('../crypto/zeroize.cjs');
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const createError = require("http-errors");
+const { jwtConfig } = require("../jwt-config.cjs");
+const constants = require("../../config/constants.cjs");
+const { trustLevels } = require("./trust-levels.cjs");
+const { isAccessTokenBlacklisted } = require("../token-service.cjs");
+const logger = require("../app-logger.cjs");
+const { withZeroizedBuffer } = require("../crypto/zeroize.cjs");
 
 const TOKEN_LIFETIME_MS = 24 * 60 * constants.ONE_MINUTE_MS;
 
@@ -48,10 +48,10 @@ setInterval(() => {
 
 // Generate JWT token
 function generateToken(user, options = {}) {
-  if (!user || typeof user !== 'object') {
-    throw new TypeError('generateToken requires a valid user object');
+  if (!user || typeof user !== "object") {
+    throw new TypeError("generateToken requires a valid user object");
   }
-  const levelKey = user.trustLevel || 'bronze';
+  const levelKey = user.trustLevel || "bronze";
   const levelConfig = trustLevels[levelKey] || trustLevels.bronze;
   const payload = {
     sub: user.id,
@@ -59,18 +59,21 @@ function generateToken(user, options = {}) {
     name: user.name,
     trustLevel: levelKey,
     permissions: levelConfig.permissions,
-    role: user.role || '',
+    role: user.role || "",
     features: Array.isArray(user.features) ? user.features : [],
-    tier: user.tier || user.plan || '',
+    tier: user.tier || user.plan || "",
     iat: Math.floor(Date.now() / constants.MS_PER_SECOND),
-    jti: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex'))
+    jti:
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : crypto.randomBytes(16).toString("hex"),
   };
 
   return jwt.sign(payload, jwtConfig.secret, {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
-    expiresIn: options.expiresIn || jwtConfig.expiresIn
+    expiresIn: options.expiresIn || jwtConfig.expiresIn,
   });
 }
 
@@ -80,37 +83,41 @@ async function verifyToken(token) {
   // Create a buffer copy of the token for zeroization after use.
   // jwt.verify() requires a string, so we pass the original but track
   // a buffer copy for scrubbing.
-  const tokenBuf = Buffer.from(String(token), 'utf8');
+  const tokenBuf = Buffer.from(String(token), "utf8");
   try {
     const blacklisted = await isAccessTokenBlacklisted(token);
     if (blacklisted) {
-      throw createError(401, 'Token has been revoked');
+      throw createError(401, "Token has been revoked");
     }
     return jwt.verify(token, jwtConfig.secret, {
       algorithms: [jwtConfig.algorithm],
       issuer: jwtConfig.issuer,
-      audience: jwtConfig.audience
+      audience: jwtConfig.audience,
     });
   } catch (err) {
     if (err.status) throw err;
-    throw createError(401, 'Invalid or expired token');
+    throw createError(401, "Invalid or expired token");
   } finally {
     // Zeroize the token buffer copy immediately after verification
     tokenBuf.fill(0);
   }
 }
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   const secretFromEnv = Boolean(process.env.JWT_SECRET);
-  logger.info('[token-service] JWT configuration loaded:', {
+  logger.info("[token-service] JWT configuration loaded:", {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
     expiresIn: jwtConfig.expiresIn,
     hasSecret: Boolean(jwtConfig.secret),
-    secretSource: secretFromEnv ? 'env' : (jwtConfig.secret ? 'ephemeral' : 'none'),
+    secretSource: secretFromEnv
+      ? "env"
+      : jwtConfig.secret
+        ? "ephemeral"
+        : "none",
     secretLength: jwtConfig.secret ? jwtConfig.secret.length : 0,
-    secretFromEnv
+    secretFromEnv,
   });
 }
 
@@ -120,5 +127,5 @@ module.exports = {
   recordTokenFirstUse,
   isTokenExpiredByFirstUse,
   invalidateToken,
-  TOKEN_LIFETIME_MS
+  TOKEN_LIFETIME_MS,
 };

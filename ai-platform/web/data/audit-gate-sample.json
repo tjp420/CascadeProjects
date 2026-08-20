@@ -4,9 +4,7 @@
     "gatePass": true,
     "qualityScore": 85
   },
-  "layers": [
-    {}
-  ],
+  "layers": [{}],
   "npmAudit": {
     "vulnerabilities": 0,
     "score": 100

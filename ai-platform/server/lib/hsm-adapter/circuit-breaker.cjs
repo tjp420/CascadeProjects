@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Stage 3: Adaptive circuit breaker for HSM adapter operations.
@@ -21,12 +21,12 @@
  * @module hsm-adapter/circuit-breaker
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const STATES = {
-  CLOSED: 'closed',
-  OPEN: 'open',
-  HALF_OPEN: 'half-open',
+  CLOSED: "closed",
+  OPEN: "open",
+  HALF_OPEN: "half-open",
 };
 
 const DEFAULT_THRESHOLD = 5;
@@ -47,7 +47,7 @@ class CircuitBreaker {
     this.threshold = options.threshold || DEFAULT_THRESHOLD;
     this.cooldownMs = options.cooldownMs || DEFAULT_COOLDOWN_MS;
     this.onTransition = options.onTransition || null;
-    this.name = options.name || 'hsm';
+    this.name = options.name || "hsm";
 
     this._state = STATES.CLOSED;
     this._failures = 0;
@@ -116,9 +116,18 @@ class CircuitBreaker {
 
     if (this._state === STATES.HALF_OPEN) {
       // Probe failed — reopen circuit
-      this._transition(STATES.OPEN, { reason: 'probe_failed', error: err && err.message });
-    } else if (this._failures >= this.threshold && this._state === STATES.CLOSED) {
-      this._transition(STATES.OPEN, { reason: 'threshold_exceeded', failures: this._failures });
+      this._transition(STATES.OPEN, {
+        reason: "probe_failed",
+        error: err && err.message,
+      });
+    } else if (
+      this._failures >= this.threshold &&
+      this._state === STATES.CLOSED
+    ) {
+      this._transition(STATES.OPEN, {
+        reason: "threshold_exceeded",
+        failures: this._failures,
+      });
     }
   }
 
@@ -127,7 +136,7 @@ class CircuitBreaker {
    * Primarily for testing or manual intervention.
    */
   reset() {
-    this._transition(STATES.CLOSED, { reason: 'manual_reset' });
+    this._transition(STATES.CLOSED, { reason: "manual_reset" });
     this._failures = 0;
     this._probePending = false;
   }

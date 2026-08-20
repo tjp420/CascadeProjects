@@ -19,8 +19,7 @@ export function normalizeSlashes(path, opts = {}) {
  * @returns {string}
  */
 export function redactPathForDisplay(projectPath) {
-    if (typeof projectPath !== 'string' || !projectPath)
-        return '';
+    if (typeof projectPath !== 'string' || !projectPath) return '';
     const normalized = normalizeSlashes(projectPath);
     const ellipsisUser = normalized.match(/^(?:…|\.\.\.)\/[^/]+(\/.+)?$/);
     if (ellipsisUser) {
@@ -38,7 +37,9 @@ export function redactPathForDisplay(projectPath) {
     if (unixHome2) {
         return unixHome2[1] ? `…${unixHome2[1]}` : '…';
     }
-    const unixLikeUserRoot = normalized.match(/^\/(?!usr\/|var\/|etc\/|opt\/|bin\/|sbin\/|tmp\/|dev\/|mnt\/|proc\/|sys\/|run\/)([^/]+)(\/.+)$/i);
+    const unixLikeUserRoot = normalized.match(
+        /^\/(?!usr\/|var\/|etc\/|opt\/|bin\/|sbin\/|tmp\/|dev\/|mnt\/|proc\/|sys\/|run\/)([^/]+)(\/.+)$/i
+    );
     if (unixLikeUserRoot) {
         return `…${unixLikeUserRoot[2]}`;
     }
@@ -54,13 +55,10 @@ export function redactPathForDisplay(projectPath) {
  * @returns {boolean}
  */
 export function isRedactedPathDisplay(displayPath) {
-    if (displayPath == null || displayPath === '')
-        return false;
+    if (displayPath == null || displayPath === '') return false;
     const normalized = normalizeSlashes(displayPath).trim();
-    if (/^(?:…|\.\.\.)(?:\/|$)/.test(normalized))
-        return true;
-    if (/(?:^|\/)(?:…|\.\.\.)\//.test(normalized))
-        return true;
+    if (/^(?:…|\.\.\.)(?:\/|$)/.test(normalized)) return true;
+    if (/(?:^|\/)(?:…|\.\.\.)\//.test(normalized)) return true;
     return false;
 }
 
@@ -70,8 +68,7 @@ export function isRedactedPathDisplay(displayPath) {
  * @returns {string}
  */
 export function formatPathInputValue(projectPath) {
-    if (typeof projectPath !== 'string' || !projectPath)
-        return '';
+    if (typeof projectPath !== 'string' || !projectPath) return '';
     return normalizeSlashes(projectPath);
 }
 
@@ -82,8 +79,7 @@ export function formatPathInputValue(projectPath) {
  * @returns {string}
  */
 export function formatScanPathForDisplay(scanPath, projectRoot) {
-    if (typeof scanPath !== 'string' || !scanPath)
-        return '';
+    if (typeof scanPath !== 'string' || !scanPath) return '';
     const normalized = normalizeSlashes(scanPath);
     const rawRoot = normalizeSlashes(projectRoot);
     const root = rawRoot === '/' ? rawRoot : rawRoot.replace(/\/$/, '');
@@ -106,11 +102,14 @@ export function formatScanPathForDisplay(scanPath, projectRoot) {
  */
 export function formatPathLabel(projectPath) {
     if (typeof projectPath !== 'string') {
-        try { return String(projectPath ?? ''); } catch { return ''; }
+        try {
+            return String(projectPath ?? '');
+        } catch {
+            return '';
+        }
     }
     const redacted = redactPathForDisplay(projectPath);
-    if (redacted && redacted !== projectPath)
-        return redacted;
+    if (redacted && redacted !== projectPath) return redacted;
     const normalized = normalizeSlashes(projectPath);
     const parts = normalized.split('/').filter(Boolean);
     if (parts.length <= 2 && /^[a-zA-Z]:$/.test(parts[0])) {

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Real-Time Token-Throttling Backpressure Mesh
@@ -11,12 +11,14 @@
  * @module token-throttle-mesh
  */
 
-const logger = require('./app-logger.cjs');
+const logger = require("./app-logger.cjs");
 
-const WINDOW_MS = parseInt(process.env.TOKEN_THROTTLE_WINDOW_MS, 10) || 60 * 1000;
+const WINDOW_MS =
+  parseInt(process.env.TOKEN_THROTTLE_WINDOW_MS, 10) || 60 * 1000;
 const DEFAULT_RPM = parseInt(process.env.DEFAULT_LLM_RPM, 10) || 0;
 const DEFAULT_TPM = parseInt(process.env.DEFAULT_LLM_TPM, 10) || 0;
-const MAX_BACKPRESSURE_MS = parseInt(process.env.MAX_BACKPRESSURE_MS, 10) || 30 * 1000;
+const MAX_BACKPRESSURE_MS =
+  parseInt(process.env.MAX_BACKPRESSURE_MS, 10) || 30 * 1000;
 
 const state = new Map();
 
@@ -61,16 +63,17 @@ function canProceed(s, estimatedTokens) {
   cleanWindow(s);
 
   const rpmOk = s.rpm <= 0 || s.requestTimestamps.length < s.rpm;
-  const tpmOk = s.tpm <= 0 || (tokenCount(s) + estimatedTokens) <= s.tpm;
+  const tpmOk = s.tpm <= 0 || tokenCount(s) + estimatedTokens <= s.tpm;
 
   if (rpmOk && tpmOk) return { allowed: true, retryAfterMs: 0 };
 
   // Calculate when the earliest item in the combined window will expire
   const oldest = Math.min(
     s.requestTimestamps[0] || Number.MAX_SAFE_INTEGER,
-    (s.tokenTimestamps[0] && s.tokenTimestamps[0].ts) || Number.MAX_SAFE_INTEGER,
+    (s.tokenTimestamps[0] && s.tokenTimestamps[0].ts) ||
+      Number.MAX_SAFE_INTEGER,
   );
-  const retryAfterMs = Math.max(0, (oldest + WINDOW_MS) - now());
+  const retryAfterMs = Math.max(0, oldest + WINDOW_MS - now());
   return { allowed: false, retryAfterMs };
 }
 
@@ -82,8 +85,10 @@ function recordUsage(s, estimatedTokens) {
 
 function setLimits(orgId, provider, limits) {
   const s = getOrCreateState(orgId, provider);
-  if (typeof limits.rpm === 'number' && Number.isFinite(limits.rpm)) s.rpm = limits.rpm;
-  if (typeof limits.tpm === 'number' && Number.isFinite(limits.tpm)) s.tpm = limits.tpm;
+  if (typeof limits.rpm === "number" && Number.isFinite(limits.rpm))
+    s.rpm = limits.rpm;
+  if (typeof limits.tpm === "number" && Number.isFinite(limits.tpm))
+    s.tpm = limits.tpm;
   if (!s.pumping) pumpQueue(s);
   return { orgId, provider, rpm: s.rpm, tpm: s.tpm };
 }
@@ -111,7 +116,7 @@ function reset(orgId, provider) {
   s.tokenTimestamps = [];
   s.rpm = 0;
   s.tpm = 0;
-  s.queue.forEach((item) => item.reject(new Error('Throttling state reset')));
+  s.queue.forEach((item) => item.reject(new Error("Throttling state reset")));
   s.queue = [];
   return { orgId, provider, cleared: true };
 }
@@ -122,8 +127,10 @@ async function pumpQueue(s) {
 
   while (s.queue.length > 0) {
     const next = s.queue[0];
-    const estimated = typeof next.estimatedTokens === 'number' && next.estimatedTokens > 0
-      ? next.estimatedTokens : 1;
+    const estimated =
+      typeof next.estimatedTokens === "number" && next.estimatedTokens > 0
+        ? next.estimatedTokens
+        : 1;
     const { allowed, retryAfterMs } = canProceed(s, estimated);
 
     if (allowed) {
@@ -144,14 +151,16 @@ async function pumpQueue(s) {
     const totalWait = now() - next.enqueuedAt;
     if (totalWait + retryAfterMs > next.timeoutMs) {
       s.queue.shift();
-      next.reject(new Error(`Throttling timeout; retry after ${retryAfterMs}ms`));
+      next.reject(
+        new Error(`Throttling timeout; retry after ${retryAfterMs}ms`),
+      );
       continue;
     }
 
     if (retryAfterMs <= 0) {
       // No headroom at all — remove head and reject
       s.queue.shift();
-      next.reject(new Error('Throttling limits exceeded'));
+      next.reject(new Error("Throttling limits exceeded"));
       continue;
     }
 
@@ -167,7 +176,13 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function throttleRequest({ orgId, provider, estimatedTokens, timeoutMs = MAX_BACKPRESSURE_MS, fn }) {
+function throttleRequest({
+  orgId,
+  provider,
+  estimatedTokens,
+  timeoutMs = MAX_BACKPRESSURE_MS,
+  fn,
+}) {
   return new Promise((resolve, reject) => {
     const s = getOrCreateState(orgId, provider);
     s.queue.push({
@@ -180,8 +195,15 @@ function throttleRequest({ orgId, provider, estimatedTokens, timeoutMs = MAX_BAC
       reject,
       enqueuedAt: now(),
     });
-    logger.info('[TokenThrottle] queued', { orgId, provider, estimatedTokens, queueDepth: s.queue.length });
-    pumpQueue(s).catch((err) => logger.error('[TokenThrottle] pumpQueue error', err));
+    logger.info("[TokenThrottle] queued", {
+      orgId,
+      provider,
+      estimatedTokens,
+      queueDepth: s.queue.length,
+    });
+    pumpQueue(s).catch((err) =>
+      logger.error("[TokenThrottle] pumpQueue error", err),
+    );
   });
 }
 

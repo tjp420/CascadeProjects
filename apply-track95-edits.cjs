@@ -1,11 +1,14 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const ROOT = 'C:\\Users\\user\\CascadeProjects';
+const ROOT = "C:\\Users\\user\\CascadeProjects";
 
 // 1. crypto-policy-engine.cjs — 4 edits
-const enginePath = path.join(ROOT, 'ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs');
-let engine = fs.readFileSync(enginePath, 'utf8');
+const enginePath = path.join(
+  ROOT,
+  "ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs",
+);
+let engine = fs.readFileSync(enginePath, "utf8");
 
 // 1a. DEFAULT_POLICY stanza
 engine = engine.replace(
@@ -43,7 +46,7 @@ engine = engine.replace(
     banMalformedOrOutOfOrderExtractionClaims: true,
     requireCanonicalPayloadLayout: true,
   },
-  bftShardSync: {`
+  bftShardSync: {`,
 );
 
 // 1b. Tenant merge
@@ -63,7 +66,7 @@ engine = engine.replace(
       ...(tenantPolicy.pqSeabedGating || {}),
     },
   };
-}`
+}`,
 );
 
 // 1c. Validation method (after _validatePqFisheriesGating, before _validateFips)
@@ -110,7 +113,7 @@ engine = engine.replace(
     }
   }
 
-  _validateFips(tenantPolicy, config) {`
+  _validateFips(tenantPolicy, config) {`,
 );
 
 // 1d. Operation dispatch
@@ -131,15 +134,18 @@ engine = engine.replace(
       return true;
     }
 
-    if (operation === 'time') {`
+    if (operation === 'time') {`,
 );
 
 fs.writeFileSync(enginePath, engine);
-console.log('1. crypto-policy-engine.cjs: OK');
+console.log("1. crypto-policy-engine.cjs: OK");
 
 // 2. crypto-policy-schema.json
-const schemaPath = path.join(ROOT, 'ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json');
-let schema = fs.readFileSync(schemaPath, 'utf8');
+const schemaPath = path.join(
+  ROOT,
+  "ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json",
+);
+let schema = fs.readFileSync(schemaPath, "utf8");
 schema = schema.replace(
   `    "pqFisheriesGating": {
       "minMaritimeQuorum": 5,
@@ -179,15 +185,18 @@ schema = schema.replace(
     }
   },
   "tenants": {}
-}`
+}`,
 );
 fs.writeFileSync(schemaPath, schema);
 JSON.parse(schema); // verify
-console.log('2. crypto-policy-schema.json: OK');
+console.log("2. crypto-policy-schema.json: OK");
 
 // 3. base-adapter.cjs
-const baseAdapterPath = path.join(ROOT, 'ai-platform/server/lib/hsm-adapter/base-adapter.cjs');
-let baseAdapter = fs.readFileSync(baseAdapterPath, 'utf8');
+const baseAdapterPath = path.join(
+  ROOT,
+  "ai-platform/server/lib/hsm-adapter/base-adapter.cjs",
+);
+let baseAdapter = fs.readFileSync(baseAdapterPath, "utf8");
 baseAdapter = baseAdapter.replace(
   `  emitQuotaAccreditationCompleted(info = {}) {
     this._ensureInitialized();
@@ -232,14 +241,17 @@ baseAdapter = baseAdapter.replace(
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_lease_accreditation_completed_total'); } catch { }
   }
 
-  // ── Track 33 recovery sync telemetry hooks ─────────────────────────`
+  // ── Track 33 recovery sync telemetry hooks ─────────────────────────`,
 );
 fs.writeFileSync(baseAdapterPath, baseAdapter);
-console.log('3. base-adapter.cjs: OK');
+console.log("3. base-adapter.cjs: OK");
 
 // 4. hsm-metrics.cjs
-const metricsPath = path.join(ROOT, 'ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs');
-let metrics = fs.readFileSync(metricsPath, 'utf8');
+const metricsPath = path.join(
+  ROOT,
+  "ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs",
+);
+let metrics = fs.readFileSync(metricsPath, "utf8");
 metrics = metrics.replace(
   `  hsm_fisheries_gating_pool_initialized_total: 0,
   hsm_zk_catch_claim_verified_total: 0,
@@ -252,22 +264,25 @@ metrics = metrics.replace(
   hsm_seabed_gating_pool_initialized_total: 0,
   hsm_zk_extraction_claim_verified_total: 0,
   hsm_lease_accreditation_completed_total: 0,
-};`
+};`,
 );
 fs.writeFileSync(metricsPath, metrics);
-console.log('4. hsm-metrics.cjs: OK');
+console.log("4. hsm-metrics.cjs: OK");
 
 // 5. run-all-tracks.cjs
-const runnerPath = path.join(ROOT, 'ai-platform/server/lib/hsm-adapter/__tests__/run-all-tracks.cjs');
-let runner = fs.readFileSync(runnerPath, 'utf8');
+const runnerPath = path.join(
+  ROOT,
+  "ai-platform/server/lib/hsm-adapter/__tests__/run-all-tracks.cjs",
+);
+let runner = fs.readFileSync(runnerPath, "utf8");
 runner = runner.replace(
   `  'pq-ocean-fisheries-allocation-gating',
 ];`,
   `  'pq-ocean-fisheries-allocation-gating',
   'pq-deep-sea-mineral-rights-gating',
-];`
+];`,
 );
 fs.writeFileSync(runnerPath, runner);
-console.log('5. run-all-tracks.cjs: OK');
+console.log("5. run-all-tracks.cjs: OK");
 
-console.log('\nAll 5 tracked files edited successfully.');
+console.log("\nAll 5 tracked files edited successfully.");

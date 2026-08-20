@@ -3,19 +3,9 @@
   "overview": {
     "totalRevenue": 15000
   },
-  "subscriptions": [
-    {}
-  ],
-  "recentTransactions": [
-    {}
-  ],
-  "invoices": [
-    {}
-  ],
-  "metrics": [
-    {}
-  ],
-  "alerts": [
-    {}
-  ]
+  "subscriptions": [{}],
+  "recentTransactions": [{}],
+  "invoices": [{}],
+  "metrics": [{}],
+  "alerts": [{}]
 }

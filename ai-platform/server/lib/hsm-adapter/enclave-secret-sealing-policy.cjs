@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 42: Enclave Secret-Sealing and Attestation Policy Engine.
@@ -13,11 +13,11 @@
  * @module hsm-adapter/enclave-secret-sealing-policy
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_SEALING_POLICY = {
-  allowedSealingCiphers: ['aes-256-gcm', 'aes-128-gcm'],
+  allowedSealingCiphers: ["aes-256-gcm", "aes-128-gcm"],
   minSealingKeyBits: 128,
   maxSealingKeyAgeMs: 86400000, // 24 hours
   requireKeyRotation: true,
@@ -33,7 +33,7 @@ const DEFAULT_SEALING_POLICY = {
     maxAgeSeconds: 60,
   },
   keyProvisioning: {
-    allowedKeyTypes: ['kek', 'kek-fragment', 'wrap-key', 'signing-key'],
+    allowedKeyTypes: ["kek", "kek-fragment", "wrap-key", "signing-key"],
     maxKeyAgeMs: 604800000, // 7 days
     requireAttestationBeforeProvision: true,
     maxProvisionedKeys: 100,
@@ -65,35 +65,54 @@ class EnclaveSecretSealingPolicy {
    * @returns {object} Validation result
    */
   validateSeal(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'seal config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        "seal config is required",
+      );
     }
     const cipher = config.cipher;
-    if (typeof cipher !== 'string' || !this.policy.allowedSealingCiphers.includes(cipher)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        `sealing cipher ${cipher} is not allowed; permitted: ${this.policy.allowedSealingCiphers.join(', ')}`);
+    if (
+      typeof cipher !== "string" ||
+      !this.policy.allowedSealingCiphers.includes(cipher)
+    ) {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        `sealing cipher ${cipher} is not allowed; permitted: ${this.policy.allowedSealingCiphers.join(", ")}`,
+      );
     }
     const keyBits = Number(config.keyBits);
     if (!Number.isFinite(keyBits) || keyBits < this.policy.minSealingKeyBits) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        `sealing key size ${keyBits} is below minimum ${this.policy.minSealingKeyBits} bits`);
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        `sealing key size ${keyBits} is below minimum ${this.policy.minSealingKeyBits} bits`,
+      );
     }
-    if (typeof config.dataSizeBytes === 'number' && config.dataSizeBytes > this.policy.maxSealedDataSizeBytes) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        `sealed data size ${config.dataSizeBytes} exceeds maximum ${this.policy.maxSealedDataSizeBytes} bytes`);
+    if (
+      typeof config.dataSizeBytes === "number" &&
+      config.dataSizeBytes > this.policy.maxSealedDataSizeBytes
+    ) {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        `sealed data size ${config.dataSizeBytes} exceeds maximum ${this.policy.maxSealedDataSizeBytes} bytes`,
+      );
     }
-    if (this.policy.requireKeyRotation && typeof config.keyAgeMs === 'number') {
+    if (this.policy.requireKeyRotation && typeof config.keyAgeMs === "number") {
       if (config.keyAgeMs > this.policy.keyRotationIntervalMs) {
-        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-          `sealing key age ${config.keyAgeMs}ms exceeds rotation interval ${this.policy.keyRotationIntervalMs}ms`);
+        throw new HsmAdapterError(
+          "POLICY_VIOLATION_BLOCKED",
+          `sealing key age ${config.keyAgeMs}ms exceeds rotation interval ${this.policy.keyRotationIntervalMs}ms`,
+        );
       }
       if (config.keyAgeMs > this.policy.maxSealingKeyAgeMs) {
-        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-          `sealing key age ${config.keyAgeMs}ms exceeds maximum ${this.policy.maxSealingKeyAgeMs}ms`);
+        throw new HsmAdapterError(
+          "POLICY_VIOLATION_BLOCKED",
+          `sealing key age ${config.keyAgeMs}ms exceeds maximum ${this.policy.maxSealingKeyAgeMs}ms`,
+        );
       }
     }
-    if (typeof this._audit === 'function') {
-      this._audit('SEALING_POLICY_VALIDATED', { cipher, keyBits });
+    if (typeof this._audit === "function") {
+      this._audit("SEALING_POLICY_VALIDATED", { cipher, keyBits });
     }
     return { valid: true, cipher, keyBits };
   }
@@ -105,15 +124,25 @@ class EnclaveSecretSealingPolicy {
    * @returns {object} Validation result
    */
   validateUnseal(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'unseal config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        "unseal config is required",
+      );
     }
-    if (!this.policy.allowUnsealOutsideEnclave && config.insideEnclave === false) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        'unseal outside enclave boundary is not allowed');
+    if (
+      !this.policy.allowUnsealOutsideEnclave &&
+      config.insideEnclave === false
+    ) {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        "unseal outside enclave boundary is not allowed",
+      );
     }
-    if (typeof this._audit === 'function') {
-      this._audit('UNSEAL_POLICY_VALIDATED', { insideEnclave: config.insideEnclave !== false });
+    if (typeof this._audit === "function") {
+      this._audit("UNSEAL_POLICY_VALIDATED", {
+        insideEnclave: config.insideEnclave !== false,
+      });
     }
     return { valid: true };
   }
@@ -124,10 +153,13 @@ class EnclaveSecretSealingPolicy {
    */
   generateChallenge() {
     const nonceBytes = this.policy.attestation.challengeNonceBytes;
-    const nonce = crypto.randomBytes(nonceBytes).toString('hex');
+    const nonce = crypto.randomBytes(nonceBytes).toString("hex");
     const expiresAt = Date.now() + this.policy.attestation.maxChallengeAgeMs;
-    if (typeof this._audit === 'function') {
-      this._audit('ATTESTATION_CHALLENGE_ISSUED', { nonce: nonce.substring(0, 8) + '...', expiresAt });
+    if (typeof this._audit === "function") {
+      this._audit("ATTESTATION_CHALLENGE_ISSUED", {
+        nonce: nonce.substring(0, 8) + "...",
+        expiresAt,
+      });
     }
     return { nonce, expiresAt };
   }
@@ -142,13 +174,19 @@ class EnclaveSecretSealingPolicy {
    * @returns {object} Validation result
    */
   validateAttestation(attestation) {
-    if (!attestation || typeof attestation !== 'object') {
-      throw new HsmAdapterError('ATTESTATION_INVALID_DOCUMENT', 'attestation is required');
+    if (!attestation || typeof attestation !== "object") {
+      throw new HsmAdapterError(
+        "ATTESTATION_INVALID_DOCUMENT",
+        "attestation is required",
+      );
     }
     // Check challenge-response if required
     if (this.policy.attestation.requireChallengeResponse) {
       if (!attestation.nonce) {
-        throw new HsmAdapterError('ATTESTATION_CHALLENGE_MISSING', 'challenge nonce is required');
+        throw new HsmAdapterError(
+          "ATTESTATION_CHALLENGE_MISSING",
+          "challenge nonce is required",
+        );
       }
       // Replay protection
       const now = Date.now();
@@ -158,26 +196,36 @@ class EnclaveSecretSealingPolicy {
         if (now - ts > replayWindow) this._usedNonces.delete(usedNonce);
       }
       if (this._usedNonces.has(attestation.nonce)) {
-        throw new HsmAdapterError('ATTESTATION_REPLAY_DETECTED',
-          'attestation nonce has already been used');
+        throw new HsmAdapterError(
+          "ATTESTATION_REPLAY_DETECTED",
+          "attestation nonce has already been used",
+        );
       }
       this._usedNonces.set(attestation.nonce, now);
     }
     // Check attestation age
-    const age = typeof attestation.attestationAgeSeconds === 'number'
-      ? attestation.attestationAgeSeconds
-      : (Date.now() / 1000 - (attestation.timestamp || 0));
+    const age =
+      typeof attestation.attestationAgeSeconds === "number"
+        ? attestation.attestationAgeSeconds
+        : Date.now() / 1000 - (attestation.timestamp || 0);
     if (age > this.policy.attestation.maxAgeSeconds) {
-      throw new HsmAdapterError('ATTESTATION_EXPIRED',
-        `attestation age ${age}s exceeds maximum ${this.policy.attestation.maxAgeSeconds}s`);
+      throw new HsmAdapterError(
+        "ATTESTATION_EXPIRED",
+        `attestation age ${age}s exceeds maximum ${this.policy.attestation.maxAgeSeconds}s`,
+      );
     }
     // Check minimum TTL
-    if (typeof attestation.ttlSeconds === 'number' && attestation.ttlSeconds < this.policy.attestation.minTtlSeconds) {
-      throw new HsmAdapterError('ATTESTATION_TTL_TOO_SHORT',
-        `attestation TTL ${attestation.ttlSeconds}s is below minimum ${this.policy.attestation.minTtlSeconds}s`);
+    if (
+      typeof attestation.ttlSeconds === "number" &&
+      attestation.ttlSeconds < this.policy.attestation.minTtlSeconds
+    ) {
+      throw new HsmAdapterError(
+        "ATTESTATION_TTL_TOO_SHORT",
+        `attestation TTL ${attestation.ttlSeconds}s is below minimum ${this.policy.attestation.minTtlSeconds}s`,
+      );
     }
-    if (typeof this._audit === 'function') {
-      this._audit('ATTESTATION_POLICY_VALIDATED', {
+    if (typeof this._audit === "function") {
+      this._audit("ATTESTATION_POLICY_VALIDATED", {
         measurement: attestation.measurement,
         age,
       });
@@ -194,29 +242,48 @@ class EnclaveSecretSealingPolicy {
    * @returns {object} Validation result
    */
   validateKeyProvisioning(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'provisioning config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        "provisioning config is required",
+      );
     }
     const kp = this.policy.keyProvisioning;
-    if (typeof config.keyType !== 'string' || !kp.allowedKeyTypes.includes(config.keyType)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        `key type ${config.keyType} is not allowed; permitted: ${kp.allowedKeyTypes.join(', ')}`);
+    if (
+      typeof config.keyType !== "string" ||
+      !kp.allowedKeyTypes.includes(config.keyType)
+    ) {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        `key type ${config.keyType} is not allowed; permitted: ${kp.allowedKeyTypes.join(", ")}`,
+      );
     }
     if (kp.requireAttestationBeforeProvision && !config.attestationVerified) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        'key provisioning requires attestation to be verified first');
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        "key provisioning requires attestation to be verified first",
+      );
     }
-    if (typeof config.keyAgeMs === 'number' && config.keyAgeMs > kp.maxKeyAgeMs) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        `key age ${config.keyAgeMs}ms exceeds maximum ${kp.maxKeyAgeMs}ms`);
+    if (
+      typeof config.keyAgeMs === "number" &&
+      config.keyAgeMs > kp.maxKeyAgeMs
+    ) {
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        `key age ${config.keyAgeMs}ms exceeds maximum ${kp.maxKeyAgeMs}ms`,
+      );
     }
     if (this._provisionedKeyCount >= kp.maxProvisionedKeys) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED',
-        `maximum provisioned keys (${kp.maxProvisionedKeys}) reached`);
+      throw new HsmAdapterError(
+        "POLICY_VIOLATION_BLOCKED",
+        `maximum provisioned keys (${kp.maxProvisionedKeys}) reached`,
+      );
     }
     this._provisionedKeyCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('KEY_PROVISIONING_POLICY_VALIDATED', { keyType: config.keyType });
+    if (typeof this._audit === "function") {
+      this._audit("KEY_PROVISIONING_POLICY_VALIDATED", {
+        keyType: config.keyType,
+      });
     }
     return { valid: true, keyType: config.keyType };
   }
@@ -269,7 +336,13 @@ class EnclaveSecretSealingPolicy {
 function _deepMerge(target, source) {
   const result = { ...target };
   for (const [key, value] of Object.entries(source)) {
-    if (value && typeof value === 'object' && !Array.isArray(value) && target[key] && typeof target[key] === 'object') {
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      target[key] &&
+      typeof target[key] === "object"
+    ) {
       result[key] = _deepMerge(target[key], value);
     } else {
       result[key] = value;

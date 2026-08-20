@@ -157,12 +157,8 @@ describe('ContextGuard', () => {
       mockConfig.contextGuardMaxChars = 600;
       const content = 'x'.repeat(2500);
       applyContextGuard(content, 'bigfile.js');
-      expect(mockShowInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('bigfile.js'),
-      );
-      expect(mockShowInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('truncated'),
-      );
+      expect(mockShowInformationMessage).toHaveBeenCalledWith(expect.stringContaining('bigfile.js'));
+      expect(mockShowInformationMessage).toHaveBeenCalledWith(expect.stringContaining('truncated'));
     });
 
     test('toast message mentions the threshold', () => {
@@ -170,9 +166,7 @@ describe('ContextGuard', () => {
       mockConfig.contextGuardMaxChars = 4000;
       const content = 'x'.repeat(5000);
       applyContextGuard(content, 'test.js');
-      expect(mockShowInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('4,000'),
-      );
+      expect(mockShowInformationMessage).toHaveBeenCalledWith(expect.stringContaining('4,000'));
     });
   });
 

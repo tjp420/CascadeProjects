@@ -15,10 +15,10 @@
  * Backward compatible: all previous exports are re-exported.
  */
 
-const { toClientError } = require('../../shared-utils/index.cjs');
-const createError = require('http-errors');
-const { jwtConfig } = require('../lib/jwt-config.cjs');
-const { recordActivity } = require('../lib/session-activity.cjs');
+const { toClientError } = require("../../shared-utils/index.cjs");
+const createError = require("http-errors");
+const { jwtConfig } = require("../lib/jwt-config.cjs");
+const { recordActivity } = require("../lib/session-activity.cjs");
 
 const {
   trustLevels,
@@ -28,57 +28,57 @@ const {
   requireTrustLevel,
   canAccessDashboardWrite,
   requireOwnership,
-  requirePrivateAnalysis
-} = require('../lib/auth/trust-levels.cjs');
+  requirePrivateAnalysis,
+} = require("../lib/auth/trust-levels.cjs");
 
 const {
   generateToken,
   verifyToken,
   recordTokenFirstUse,
   isTokenExpiredByFirstUse,
-  invalidateToken
-} = require('../lib/auth/token-service.cjs');
+  invalidateToken,
+} = require("../lib/auth/token-service.cjs");
 
 const {
   isSandboxToken,
   recordSandboxRequest,
-  getSandboxLimitHeaders
-} = require('../lib/auth/sandbox-service.cjs');
+  getSandboxLimitHeaders,
+} = require("../lib/auth/sandbox-service.cjs");
 
 const {
   verifyMFA,
   generateMFASecret,
-  verifyMFAToken
-} = require('../lib/auth/mfa-service.cjs');
+  verifyMFAToken,
+} = require("../lib/auth/mfa-service.cjs");
 
 const {
   generateDeviceFingerprint,
   trustDevice,
-  verifyDeviceTrust
-} = require('../lib/auth/device-service.cjs');
+  verifyDeviceTrust,
+} = require("../lib/auth/device-service.cjs");
 
 const {
   isAuthDebugEnabled,
   authLog,
   authWarn,
   shouldWriteAuditEvents,
-  auditAuth
-} = require('../lib/auth/audit-service.cjs');
+  auditAuth,
+} = require("../lib/auth/audit-service.cjs");
 
 const {
   hashPassword,
-  verifyPassword
-} = require('../lib/auth/password-service.cjs');
+  verifyPassword,
+} = require("../lib/auth/password-service.cjs");
 
 const {
   applyVaultOperatorUser,
-  vaultOperatorSessionActive
-} = require('../lib/auth/vault-operator.cjs');
+  vaultOperatorSessionActive,
+} = require("../lib/auth/vault-operator.cjs");
 
 const {
   handleLogin,
-  handleTokenRefresh
-} = require('../lib/auth/login-service.cjs');
+  handleTokenRefresh,
+} = require("../lib/auth/login-service.cjs");
 
 /**
  * Resolve authentication for a request.
@@ -87,17 +87,18 @@ const {
  * @returns {{ user?: object, error?: Error, sandbox?: boolean }}
  */
 function parseCookieHeader(req) {
-  if (req.cookies && typeof req.cookies === 'object') {
+  if (req.cookies && typeof req.cookies === "object") {
     return req.cookies;
   }
   const raw = req.headers?.cookie;
-  if (!raw || typeof raw !== 'string') return {};
+  if (!raw || typeof raw !== "string") return {};
   const cookies = {};
-  for (const pair of raw.split(';')) {
-    const [rawName, ...rawValue] = pair.split('=');
+  for (const pair of raw.split(";")) {
+    const [rawName, ...rawValue] = pair.split("=");
     if (!rawName) continue;
     const name = decodeURIComponent(rawName.trim());
-    const value = rawValue.length > 0 ? decodeURIComponent(rawValue.join('=').trim()) : '';
+    const value =
+      rawValue.length > 0 ? decodeURIComponent(rawValue.join("=").trim()) : "";
     cookies[name] = value;
   }
   return cookies;
@@ -106,13 +107,13 @@ function parseCookieHeader(req) {
 function extractTokenFromCookies(req) {
   const cookies = parseCookieHeader(req);
   const rawCookie = cookies.cascadeAuthToken;
-  if (rawCookie && typeof rawCookie === 'string') return rawCookie;
+  if (rawCookie && typeof rawCookie === "string") return rawCookie;
   const accessTokenCookie = cookies.access_token;
-  if (accessTokenCookie && typeof accessTokenCookie === 'string') {
+  if (accessTokenCookie && typeof accessTokenCookie === "string") {
     try {
       const decoded = decodeURIComponent(accessTokenCookie);
       const parsed = JSON.parse(decoded);
-      if (parsed && typeof parsed.token === 'string') return parsed.token;
+      if (parsed && typeof parsed.token === "string") return parsed.token;
     } catch {
       // ignore malformed cookie
     }
@@ -122,14 +123,14 @@ function extractTokenFromCookies(req) {
 
 async function tryToken(token, res) {
   if (!token) {
-    return { error: createError(401, 'Token required') };
+    return { error: createError(401, "Token required") };
   }
   const decoded = await verifyToken(token);
 
   recordTokenFirstUse(decoded.jti);
   if (isTokenExpiredByFirstUse(decoded.jti)) {
     invalidateToken(decoded.jti);
-    return { error: createError(401, 'Token expired') };
+    return { error: createError(401, "Token expired") };
   }
 
   const sandbox = isSandboxToken(decoded);
@@ -138,7 +139,7 @@ async function tryToken(token, res) {
     const headers = getSandboxLimitHeaders(decoded.jti);
     Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
     if (!allowed) {
-      return { error: createError(429, 'Sandbox daily limit reached') };
+      return { error: createError(429, "Sandbox daily limit reached") };
     }
   }
 
@@ -148,28 +149,31 @@ async function tryToken(token, res) {
     name: decoded.name,
     trustLevel: decoded.trustLevel,
     permissions: decoded.permissions,
-    role: decoded.role || '',
+    role: decoded.role || "",
     features: Array.isArray(decoded.features) ? decoded.features : [],
     tokenId: decoded.jti,
     sessionId: decoded.sessionId,
     isSandbox: sandbox,
-    tier: decoded.tier || decoded.plan || ''
+    tier: decoded.tier || decoded.plan || "",
   };
 
   return { user, sandbox };
 }
 
 async function resolveAuth(req, res) {
-  if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_BYPASS === '1') {
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.DEV_AUTH_BYPASS === "1"
+  ) {
     return {
       user: {
-        id: 'dev-user-01',
-        email: 'dev@localhost',
-        name: 'Local Developer',
-        role: 'admin',
-        trustLevel: 'platinum',
-        permissions: ['read:all', 'write:all', 'admin:all']
-      }
+        id: "dev-user-01",
+        email: "dev@localhost",
+        name: "Local Developer",
+        role: "admin",
+        trustLevel: "platinum",
+        permissions: ["read:all", "write:all", "admin:all"],
+      },
     };
   }
 
@@ -178,14 +182,16 @@ async function resolveAuth(req, res) {
     return { user: req.user };
   }
 
-  const headerToken = typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ')
-    ? req.headers.authorization.substring(7)
-    : '';
+  const headerToken =
+    typeof req.headers.authorization === "string" &&
+    req.headers.authorization.startsWith("Bearer ")
+      ? req.headers.authorization.substring(7)
+      : "";
   const cookieToken = extractTokenFromCookies(req);
 
   const attempts = [];
-  if (headerToken) attempts.push({ label: 'bearer', token: headerToken });
-  if (cookieToken) attempts.push({ label: 'cookie', token: cookieToken });
+  if (headerToken) attempts.push({ label: "bearer", token: headerToken });
+  if (cookieToken) attempts.push({ label: "cookie", token: cookieToken });
 
   const errors = [];
   for (const { label, token } of attempts) {
@@ -194,14 +200,16 @@ async function resolveAuth(req, res) {
       if (!result.error) return result;
       errors.push(`${label}: ${result.error.message}`);
     } catch (err) {
-      errors.push(`${label}: ${err.message || 'token error'}`);
+      errors.push(`${label}: ${err.message || "token error"}`);
     }
   }
 
   if (attempts.length === 0) {
-    return { error: createError(401, 'Authorization required') };
+    return { error: createError(401, "Authorization required") };
   }
-  return { error: createError(401, errors.join('; ') || 'Invalid or expired token') };
+  return {
+    error: createError(401, errors.join("; ") || "Invalid or expired token"),
+  };
 }
 
 // Primary authentication middleware — kept in the middleware layer
@@ -212,7 +220,7 @@ const authenticate = async (req, res, next) => {
 
     req.user = user;
     recordActivity(user.id, user.email, user.name);
-    authLog('[AUTH] User authenticated');
+    authLog("[AUTH] User authenticated");
     next();
   } catch (error) {
     authWarn(`[AUTH] Authentication failed - ${req.method} ${req.originalUrl}`);
@@ -228,14 +236,17 @@ const authenticate = async (req, res, next) => {
  */
 function requireDashboardWrite(req, res, next) {
   if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+    return res
+      .status(401)
+      .json({ error: "Unauthorized", message: "Authentication required" });
   }
   if (!canAccessDashboardWrite(req.user)) {
     return res.status(403).json({
-      error: 'Forbidden',
-      message: 'Paid or team dashboard access required',
-      requiredTier: 'silver',
-      current: req.user.tier || req.user.plan || req.user.trustLevel || 'community'
+      error: "Forbidden",
+      message: "Paid or team dashboard access required",
+      requiredTier: "silver",
+      current:
+        req.user.tier || req.user.plan || req.user.trustLevel || "community",
     });
   }
   next();
@@ -249,11 +260,15 @@ const optionalAuthenticate = async (req, res, next) => {
       recordActivity(user.id, user.email, user.name);
     } else {
       req.authError = error;
-      authWarn(`[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`);
+      authWarn(
+        `[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`,
+      );
     }
   } catch (error) {
     req.authError = error;
-    authWarn(`[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`);
+    authWarn(
+      `[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`,
+    );
   }
   return next();
 };
@@ -289,5 +304,5 @@ module.exports = Object.freeze({
   jwtConfig,
   isSandboxToken,
   recordSandboxRequest,
-  getSandboxLimitHeaders
+  getSandboxLimitHeaders,
 });

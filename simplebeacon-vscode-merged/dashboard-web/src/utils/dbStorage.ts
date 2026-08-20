@@ -81,7 +81,7 @@ export async function getLargeItem<T = unknown>(key: string): Promise<T | null> 
     // Fallback to localStorage
     try {
       const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) as T : null;
+      return raw ? (JSON.parse(raw) as T) : null;
     } catch {
       return null;
     }

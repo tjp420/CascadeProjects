@@ -34,9 +34,9 @@ const ONE_WEEK_SECONDS = 7 * ONE_DAY_SECONDS;
 const COOKIE_MAX_AGE = 3600000;
 
 // Cache TTLs (ms)
-const CACHE_TTL_SHORT = 60_000;     // 1 minute
-const CACHE_TTL_MEDIUM = 300_000;   // 5 minutes
-const CACHE_TTL_LONG = 3_600_000;   // 1 hour
+const CACHE_TTL_SHORT = 60_000; // 1 minute
+const CACHE_TTL_MEDIUM = 300_000; // 5 minutes
+const CACHE_TTL_LONG = 3_600_000; // 1 hour
 const CACHE_TTL_PERSISTENT = ONE_DAY_MS;
 
 module.exports = Object.freeze({
@@ -70,5 +70,5 @@ module.exports = Object.freeze({
   CACHE_TTL_SHORT,
   CACHE_TTL_MEDIUM,
   CACHE_TTL_LONG,
-  CACHE_TTL_PERSISTENT
+  CACHE_TTL_PERSISTENT,
 });

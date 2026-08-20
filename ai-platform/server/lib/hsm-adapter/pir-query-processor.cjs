@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 24: Homomorphic Private Information Retrieval (PIR) query processor.
@@ -11,8 +11,8 @@
  * @module hsm-adapter/pir-query-processor
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 function _mod(a, m) {
   let r = a % m;
@@ -34,8 +34,10 @@ class ModularHomomorphicEngine {
    * @param {BigInt} options.modulus
    */
   constructor(options = {}) {
-    this._modulus = options.modulus || (2n ** 256n);
-    this._secret = options.secret || _mod(_bufToBigInt(crypto.randomBytes(32)), this._modulus);
+    this._modulus = options.modulus || 2n ** 256n;
+    this._secret =
+      options.secret ||
+      _mod(_bufToBigInt(crypto.randomBytes(32)), this._modulus);
   }
 
   encrypt(plaintext) {
@@ -64,7 +66,7 @@ class ModularHomomorphicEngine {
 }
 
 function _bufToBigInt(buf) {
-  return BigInt('0x' + buf.toString('hex'));
+  return BigInt("0x" + buf.toString("hex"));
 }
 
 class PirQueryProcessor {
@@ -84,7 +86,7 @@ class PirQueryProcessor {
 
   _emitAudit(extra = {}) {
     if (this._audit) {
-      this._audit('PIR_QUERY_EXECUTED', {
+      this._audit("PIR_QUERY_EXECUTED", {
         tenantId: this._tenantId,
         timestamp: Date.now(),
         ...extra,
@@ -96,11 +98,11 @@ class PirQueryProcessor {
     if (!this._policyEngine || !this._tenantId) {
       return;
     }
-    this._policyEngine.validate(this._tenantId, 'pir', {
+    this._policyEngine.validate(this._tenantId, "pir", {
       rows,
       columns,
       querySizeBytes: bytes,
-      scheme: 'modular',
+      scheme: "modular",
     });
   }
 
@@ -112,10 +114,16 @@ class PirQueryProcessor {
    */
   process(queryVector, dataMatrix) {
     if (!Array.isArray(queryVector) || !Array.isArray(dataMatrix)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'queryVector and dataMatrix must be arrays');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "queryVector and dataMatrix must be arrays",
+      );
     }
     if (queryVector.length !== dataMatrix.length) {
-      throw new HsmAdapterError('INVALID_INPUT', 'queryVector length must match dataMatrix row count');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "queryVector length must match dataMatrix row count",
+      );
     }
     if (queryVector.length === 0) {
       return [];
@@ -131,14 +139,20 @@ class PirQueryProcessor {
     for (let col = 0; col < colCount; col += 1) {
       let acc = this._engine.zero();
       for (let row = 0; row < dataMatrix.length; row += 1) {
-        const value = Array.isArray(dataMatrix[row]) ? dataMatrix[row][col] : dataMatrix[row];
+        const value = Array.isArray(dataMatrix[row])
+          ? dataMatrix[row][col]
+          : dataMatrix[row];
         const product = this._engine.mulScalar(queryVector[row], value);
         acc = this._engine.add(acc, product);
       }
       result.push(acc);
     }
 
-    this._emitAudit({ rows: dataMatrix.length, columns: colCount, querySizeBytes: bytes });
+    this._emitAudit({
+      rows: dataMatrix.length,
+      columns: colCount,
+      querySizeBytes: bytes,
+    });
     return result;
   }
 }

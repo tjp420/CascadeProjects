@@ -20,13 +20,12 @@ function isAbsolutePath(filePath) {
  */
 export function resolveAbsoluteFilePath(filePath, projectRoot) {
     let raw = String(filePath || '').trim();
-    if (!raw)
-        return '';
-    if (isAbsolutePath(raw))
-        return raw;
-    const root = String(projectRoot || '').trim().replace(/[\\/]+$/, '');
-    if (!root)
-        return raw;
+    if (!raw) return '';
+    if (isAbsolutePath(raw)) return raw;
+    const root = String(projectRoot || '')
+        .trim()
+        .replace(/[\\/]+$/, '');
+    if (!root) return raw;
     // If the provided filePath already begins with the project root folder name
     // (e.g., "CascadeProjects/ai-platform/..."), strip the duplicated root
     // segment so the joined path doesn't become ".../CascadeProjects/CascadeProjects/...".
@@ -36,8 +35,9 @@ export function resolveAbsoluteFilePath(filePath, projectRoot) {
             // remove the leading rootName and any following slash
             raw = raw.slice(rootName.length).replace(/^[/\\]+/, '');
         }
+    } catch (_e) {
+        /* ignore and fallback to normal join */
     }
-    catch (_e) { /* ignore and fallback to normal join */ }
     const sep = root.includes('\\') ? '\\' : '/';
     const rel = raw.replace(/^[/\\]+/, '').replace(/\//g, sep);
     return `${root}${sep}${rel}`;
@@ -51,9 +51,10 @@ export function resolveAbsoluteFilePath(filePath, projectRoot) {
  */
 export function buildIdeFileUrl(filePath, line = 1, options = {}) {
     const absolute = resolveAbsoluteFilePath(filePath, options.projectRoot);
-    if (!absolute || !isAbsolutePath(absolute))
-        return null;
-    const scheme = options.scheme || (typeof navigator !== 'undefined' && /Cursor/i.test(navigator.userAgent || '') ? 'cursor' : 'vscode');
+    if (!absolute || !isAbsolutePath(absolute)) return null;
+    const scheme =
+        options.scheme ||
+        (typeof navigator !== 'undefined' && /Cursor/i.test(navigator.userAgent || '') ? 'cursor' : 'vscode');
     const normalized = normalizeSlashes(absolute);
     const lineNum = Math.max(1, Number(line) || 1);
     if (/^\/\//.test(normalized) || /^[A-Za-z]:\//.test(normalized)) {
@@ -71,8 +72,7 @@ export function buildIdeFileUrl(filePath, line = 1, options = {}) {
  */
 export function openInIde(filePath, line = 1, options = {}) {
     const absolute = resolveAbsoluteFilePath(filePath, options.projectRoot);
-    if (!absolute)
-        return false;
+    if (!absolute) return false;
     const lineNum = Math.max(1, Number(line) || 1);
     const payload = { command: 'openFile', file: absolute, path: absolute, line: lineNum };
 
@@ -82,16 +82,18 @@ export function openInIde(filePath, line = 1, options = {}) {
         try {
             vscode.postMessage(payload);
             return true;
+        } catch (_a) {
+            /* fall through */
         }
-        catch (_a) { /* fall through */ }
     }
 
     if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
         try {
             window.parent.postMessage(payload, '*');
             return true;
+        } catch (_b) {
+            /* fall through */
         }
-        catch (_b) { /* fall through */ }
     }
 
     const url = buildIdeFileUrl(absolute, lineNum, options);
@@ -102,8 +104,9 @@ export function openInIde(filePath, line = 1, options = {}) {
             anchor.rel = 'noopener';
             anchor.click();
             return true;
+        } catch (_c) {
+            /* ignore */
         }
-        catch (_c) { /* ignore */ }
     }
     return false;
 }
@@ -126,14 +129,13 @@ export function renderIdeFileLink(filePath, line = 1, options = {}) {
         btn.className = 'ide-file-link-btn btn-link text-xs';
         btn.textContent = line > 1 ? `${label}:${line}` : label;
         btn.title = `Open ${filePath}${line > 1 ? `:${line}` : ''} in editor`;
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', e => {
             e.preventDefault();
             e.stopPropagation();
             openInIde(filePath, line, options);
         });
         wrap.appendChild(btn);
-    }
-    else {
+    } else {
         const code = document.createElement('code');
         code.textContent = label;
         wrap.appendChild(code);
@@ -147,11 +149,20 @@ export function renderIdeFileLink(filePath, line = 1, options = {}) {
  */
 export function resolveProjectRootFromApp(app) {
     var _a, _b, _c, _d;
-    const report = (_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0 ? void 0 : _a.report;
-    return String((report === null || report === void 0 ? void 0 : report.projectRoot)
-        || (report === null || report === void 0 ? void 0 : report.projectPath)
-        || ((_b = app === null || app === void 0 ? void 0 : app.state) === null || _b === void 0 ? void 0 : _b.lastProjectPath)
-        || ((_c = app === null || app === void 0 ? void 0 : app.state) === null || _c === void 0 ? void 0 : _c.defaultProjectPath)
-        || ((_d = app === null || app === void 0 ? void 0 : app.state) === null || _d === void 0 ? void 0 : _d.pathInputDraft)
-        || '');
+    const report =
+        (_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0 ? void 0 : _a.report;
+    return String(
+        (report === null || report === void 0 ? void 0 : report.projectRoot) ||
+            (report === null || report === void 0 ? void 0 : report.projectPath) ||
+            ((_b = app === null || app === void 0 ? void 0 : app.state) === null || _b === void 0
+                ? void 0
+                : _b.lastProjectPath) ||
+            ((_c = app === null || app === void 0 ? void 0 : app.state) === null || _c === void 0
+                ? void 0
+                : _c.defaultProjectPath) ||
+            ((_d = app === null || app === void 0 ? void 0 : app.state) === null || _d === void 0
+                ? void 0
+                : _d.pathInputDraft) ||
+            ''
+    );
 }

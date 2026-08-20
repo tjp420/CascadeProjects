@@ -24,14 +24,20 @@ export class TrendChart {
         const primary = styles.getPropertyValue('--primary').trim() || '#6366f1';
         const success = styles.getPropertyValue('--success').trim() || '#10b981';
         this.ctx.clearRect(0, 0, w, h);
-        const maxIssues = Math.max(1, ...data.map((d) => { var _a; return (_a = d.issueCount) !== null && _a !== void 0 ? _a : 0; }));
+        const maxIssues = Math.max(
+            1,
+            ...data.map(d => {
+                var _a;
+                return (_a = d.issueCount) !== null && _a !== void 0 ? _a : 0;
+            })
+        );
         const points = data.map((d, i) => {
             var _a;
-            return ({
+            return {
                 x: pad.left + (i / Math.max(data.length - 1, 1)) * chartW,
                 y: pad.top + chartH - (((_a = d.issueCount) !== null && _a !== void 0 ? _a : 0) / maxIssues) * chartH,
                 label: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
-            });
+            };
         });
         // Grid lines
         this.ctx.strokeStyle = border;
@@ -51,7 +57,7 @@ export class TrendChart {
             this.ctx.fillStyle = grad;
             this.ctx.beginPath();
             this.ctx.moveTo(points[0].x, pad.top + chartH);
-            points.forEach((p) => this.ctx.lineTo(p.x, p.y));
+            points.forEach(p => this.ctx.lineTo(p.x, p.y));
             this.ctx.lineTo(points[points.length - 1].x, pad.top + chartH);
             this.ctx.closePath();
             this.ctx.fill();
@@ -61,16 +67,17 @@ export class TrendChart {
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         points.forEach((p, i) => {
-            if (i === 0)
-                this.ctx.moveTo(p.x, p.y);
-            else
-                this.ctx.lineTo(p.x, p.y);
+            if (i === 0) this.ctx.moveTo(p.x, p.y);
+            else this.ctx.lineTo(p.x, p.y);
         });
         this.ctx.stroke();
         // Dots
-        points.forEach((p) => {
+        points.forEach(p => {
             var _a;
-            this.ctx.fillStyle = data.length === 1 && ((_a = data[0].issueCount) !== null && _a !== void 0 ? _a : 0) === 0 ? success : primary;
+            this.ctx.fillStyle =
+                data.length === 1 && ((_a = data[0].issueCount) !== null && _a !== void 0 ? _a : 0) === 0
+                    ? success
+                    : primary;
             this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
             this.ctx.fill();
@@ -79,7 +86,7 @@ export class TrendChart {
         this.ctx.fillStyle = text;
         this.ctx.font = '11px system-ui, sans-serif';
         const labelIdx = [0, Math.floor(points.length / 2), points.length - 1].filter((v, i, a) => a.indexOf(v) === i);
-        labelIdx.forEach((i) => {
+        labelIdx.forEach(i => {
             var _a;
             if ((_a = points[i]) === null || _a === void 0 ? void 0 : _a.label) {
                 this.ctx.fillText(points[i].label, points[i].x - 16, h - 8);
@@ -129,8 +136,7 @@ export function renderTrendSection(history) {
  */
 export function mountTrendChart(container, history) {
     const canvas = container.querySelector('#trend-canvas');
-    if (!canvas)
-        return null;
+    if (!canvas) return null;
     const chart = new TrendChart(canvas);
     chart.render(history);
     /**

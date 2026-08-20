@@ -12,8 +12,7 @@ export function isBlank(value) {
  * @returns {boolean}
  */
 export function isEmail(str) {
-    if (typeof str !== 'string')
-        return false;
+    if (typeof str !== 'string') return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim());
 }
 /**
@@ -22,10 +21,8 @@ export function isEmail(str) {
  * @returns {boolean}
  */
 export function isNumeric(value) {
-    if (typeof value === 'number')
-        return Number.isFinite(value);
-    if (typeof value !== 'string')
-        return false;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value !== 'string') return false;
     const n = Number(value.trim());
     return Number.isFinite(n) && !/^\s*$/.test(value);
 }
@@ -35,10 +32,8 @@ export function isNumeric(value) {
  * @returns {boolean}
  */
 export function isInteger(value) {
-    if (typeof value === 'number')
-        return Number.isInteger(value);
-    if (typeof value !== 'string')
-        return false;
+    if (typeof value === 'number') return Number.isInteger(value);
+    if (typeof value !== 'string') return false;
     const n = Number(value.trim());
     return Number.isSafeInteger(n);
 }
@@ -48,13 +43,11 @@ export function isInteger(value) {
  * @returns {boolean}
  */
 export function isUrl(str) {
-    if (typeof str !== 'string')
-        return false;
+    if (typeof str !== 'string') return false;
     try {
         const url = new URL(str);
         return url.protocol === 'http:' || url.protocol === 'https:';
-    }
-    catch (_a) {
+    } catch (_a) {
         return false;
     }
 }
@@ -72,21 +65,17 @@ export function isHexColor(str) {
  * @returns {boolean}
  */
 export function isEmpty(value) {
-    if (value == null)
-        return true;
-    if (typeof value === 'string')
-        return value.trim().length === 0;
-    if (Array.isArray(value))
-        return value.length === 0;
-    if (typeof value === 'object')
-        return Object.keys(value).length === 0;
+    if (value == null) return true;
+    if (typeof value === 'string') return value.trim().length === 0;
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === 'object') return Object.keys(value).length === 0;
     return false;
 }
 /**
  * No-op function. Useful as a default for optional callbacks.
  * @returns {void}
  */
-export function noop() { }
+export function noop() {}
 /**
  * Type guard: returns true if the value is neither null nor undefined.
  * @template T
@@ -103,12 +92,16 @@ export function isDefined(value) {
  * @returns {never}
  */
 export function assertNever(value, message = 'Unexpected value') {
-    const display = typeof value === 'string' ? value : (() => { try {
-        return JSON.stringify(value);
-    }
-    catch (_a) {
-        return String(value);
-    } })();
+    const display =
+        typeof value === 'string'
+            ? value
+            : (() => {
+                  try {
+                      return JSON.stringify(value);
+                  } catch (_a) {
+                      return String(value);
+                  }
+              })();
     throw new Error(`${message}: ${display}`);
 }
 /**
@@ -119,12 +112,10 @@ export function assertNever(value, message = 'Unexpected value') {
  * @returns {T}
  */
 export function parseJsonSafe(text, fallback = null) {
-    if (text == null)
-        return fallback;
+    if (text == null) return fallback;
     try {
         return JSON.parse(String(text));
-    }
-    catch (_a) {
+    } catch (_a) {
         return fallback;
     }
 }
@@ -136,16 +127,15 @@ export function parseJsonSafe(text, fallback = null) {
  */
 export async function parseResponseJson(res, fallback = null) {
     var _a;
-    const contentType = String(((_a = res.headers) === null || _a === void 0 ? void 0 : _a.get('content-type')) || '').toLowerCase();
-    if (!contentType.includes('application/json'))
-        return fallback !== null && fallback !== void 0 ? fallback : {};
+    const contentType = String(
+        ((_a = res.headers) === null || _a === void 0 ? void 0 : _a.get('content-type')) || ''
+    ).toLowerCase();
+    if (!contentType.includes('application/json')) return fallback !== null && fallback !== void 0 ? fallback : {};
     const text = await res.text();
-    if (!text)
-        return fallback !== null && fallback !== void 0 ? fallback : {};
+    if (!text) return fallback !== null && fallback !== void 0 ? fallback : {};
     try {
         return JSON.parse(text);
-    }
-    catch (_b) {
+    } catch (_b) {
         return fallback !== null && fallback !== void 0 ? fallback : {};
     }
 }
@@ -178,8 +168,7 @@ export function getVSCodeApi() {
     if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
         try {
             return window.acquireVsCodeApi();
-        }
-        catch (_a) {
+        } catch (_a) {
             return null;
         }
     }
@@ -191,10 +180,8 @@ export function getNonce() {
     const arr = new Uint8Array(16);
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
         crypto.getRandomValues(arr);
-    }
-    else {
-        for (let i = 0; i < arr.length; i++)
-            arr[i] = Math.floor(Math.random() * 256);
+    } else {
+        for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
     }
     return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
 }

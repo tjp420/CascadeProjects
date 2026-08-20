@@ -1,41 +1,51 @@
 "use strict";
 
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
 
-const storageBase = path.join(process.cwd(), '.data', 'ratchet');
+const storageBase = path.join(process.cwd(), ".data", "ratchet");
 
-function ensureDir(p){ try { fs.mkdirSync(p, { recursive: true }); } catch(e){} }
+function ensureDir(p) {
+  try {
+    fs.mkdirSync(p, { recursive: true });
+  } catch (e) {}
+}
 
 module.exports = {
-  bootstrapSession: function(opts = {}){
+  bootstrapSession: function (opts = {}) {
     // opts: { tenant, peerPkSig, peerPkKem, localSkSig }
     // TODO: implement hybrid KEM + signature bootstrap
-    const sessionId = 'ratchet-' + Date.now();
-    const dir = path.join(storageBase, opts.tenant || 'default', sessionId);
+    const sessionId = "ratchet-" + Date.now();
+    const dir = path.join(storageBase, opts.tenant || "default", sessionId);
     ensureDir(dir);
-    fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ createdAt: Date.now(), tenant: opts.tenant }));
-    return { sessionId, publicMetadata: { pk_sig: null, pk_kem: null, version: '0.1.0' } };
+    fs.writeFileSync(
+      path.join(dir, "meta.json"),
+      JSON.stringify({ createdAt: Date.now(), tenant: opts.tenant }),
+    );
+    return {
+      sessionId,
+      publicMetadata: { pk_sig: null, pk_kem: null, version: "0.1.0" },
+    };
   },
 
-  processBootstrap: function(envelope){
+  processBootstrap: function (envelope) {
     // envelope: { sessionId, envelope, signature }
     // TODO: verify signature, decapsulate KEM, derive session keys
-    return { ok: false, reason: 'not_implemented' };
+    return { ok: false, reason: "not_implemented" };
   },
 
-  rotate: function(sessionId){
+  rotate: function (sessionId) {
     // TODO: create rotation envelope and sign it
-    return { ok: false, reason: 'not_implemented' };
+    return { ok: false, reason: "not_implemented" };
   },
 
-  verifyRotation: function(sessionId, envelope){
+  verifyRotation: function (sessionId, envelope) {
     // TODO: verify rotation and update session state
-    return { ok: false, reason: 'not_implemented' };
+    return { ok: false, reason: "not_implemented" };
   },
 
-  exportPublicMetadata: function(sessionId){
+  exportPublicMetadata: function (sessionId) {
     // TODO: load session metadata
-    return { pk_sig: null, pk_kem: null, version: '0.1.0' };
-  }
+    return { pk_sig: null, pk_kem: null, version: "0.1.0" };
+  },
 };

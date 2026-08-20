@@ -3,22 +3,10 @@
   "overview": {
     "totalDocs": 32
   },
-  "quickLinks": [
-    {}
-  ],
-  "documentation": [
-    {}
-  ],
-  "tutorials": [
-    {}
-  ],
-  "faq": [
-    {}
-  ],
-  "popularContent": [
-    {}
-  ],
-  "recentUpdates": [
-    {}
-  ]
+  "quickLinks": [{}],
+  "documentation": [{}],
+  "tutorials": [{}],
+  "faq": [{}],
+  "popularContent": [{}],
+  "recentUpdates": [{}]
 }

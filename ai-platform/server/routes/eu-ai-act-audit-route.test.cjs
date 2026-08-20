@@ -1,15 +1,15 @@
-const { describe, it } = require('node:test');
-const assert = require('node:assert');
-const mod = require('./eu-ai-act-audit-route.cjs');
+const { describe, it } = require("node:test");
+const assert = require("node:assert");
+const mod = require("./eu-ai-act-audit-route.cjs");
 
-describe('eu-ai-act-audit-route', () => {
-  it('exports without throwing', () => {
-    assert.ok(mod, 'module should export something');
+describe("eu-ai-act-audit-route", () => {
+  it("exports without throwing", () => {
+    assert.ok(mod, "module should export something");
   });
 
-  it('has expected exports', () => {
+  it("has expected exports", () => {
     const keys = Object.keys(mod || {});
     // Add assertions for expected named exports here
-    assert.ok(Array.isArray(keys), 'should have enumerable exports');
+    assert.ok(Array.isArray(keys), "should have enumerable exports");
   });
 });

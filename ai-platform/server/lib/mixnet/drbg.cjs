@@ -1,11 +1,11 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 function createDRBG(seed) {
-  if (!seed) seed = 'mixnet-seed';
+  if (!seed) seed = "mixnet-seed";
   let counter = 0;
 
   function hmac(data) {
-    const m = crypto.createHmac('sha256', Buffer.from(seed));
+    const m = crypto.createHmac("sha256", Buffer.from(seed));
     m.update(data);
     return m.digest();
   }
@@ -38,7 +38,7 @@ function createDRBG(seed) {
         array[j] = tmp;
       }
       return array;
-    }
+    },
   };
 }
 

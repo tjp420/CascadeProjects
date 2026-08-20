@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 57: Zero-Knowledge Succinct Non-Interactive Arguments of
@@ -22,8 +22,8 @@
  * @module hsm-adapter/zk-snark-verifier-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   fieldPrime: (1n << 256n) - 189n,
@@ -37,25 +37,25 @@ const DEFAULT_OPTIONS = {
 };
 
 const CIRCUIT_STATUS = {
-  DRAFT: 'draft',
-  COMPILED: 'compiled',
-  VERIFIED: 'verified',
-  DEPRECATED: 'deprecated',
+  DRAFT: "draft",
+  COMPILED: "compiled",
+  VERIFIED: "verified",
+  DEPRECATED: "deprecated",
 };
 
 const PROOF_STATUS = {
-  PENDING: 'pending',
-  GENERATED: 'generated',
-  VERIFIED: 'verified',
-  INVALID: 'invalid',
-  EXPIRED: 'expired',
+  PENDING: "pending",
+  GENERATED: "generated",
+  VERIFIED: "verified",
+  INVALID: "invalid",
+  EXPIRED: "expired",
 };
 
 const SETUP_STATUS = {
-  PENDING: 'pending',
-  READY: 'ready',
-  CORRUPTED: 'corrupted',
-  DESTROYED: 'destroyed',
+  PENDING: "pending",
+  READY: "ready",
+  CORRUPTED: "corrupted",
+  DESTROYED: "destroyed",
 };
 
 /**
@@ -97,32 +97,48 @@ class ZkSnarkVerifierEngine {
    * @returns {object} Compiled circuit
    */
   compileCircuit(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'circuit config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "circuit config is required");
     }
-    if (!config.circuitId || typeof config.circuitId !== 'string') {
-      throw new HsmAdapterError('INVALID_CIRCUIT_ID', 'circuitId must be a non-empty string');
+    if (!config.circuitId || typeof config.circuitId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_CIRCUIT_ID",
+        "circuitId must be a non-empty string",
+      );
     }
     if (this._circuits.has(config.circuitId)) {
-      throw new HsmAdapterError('CIRCUIT_ALREADY_EXISTS',
-        `circuit ${config.circuitId} already exists`);
+      throw new HsmAdapterError(
+        "CIRCUIT_ALREADY_EXISTS",
+        `circuit ${config.circuitId} already exists`,
+      );
     }
     if (!Array.isArray(config.constraints) || config.constraints.length === 0) {
-      throw new HsmAdapterError('INVALID_CONSTRAINTS', 'constraints must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_CONSTRAINTS",
+        "constraints must be a non-empty array",
+      );
     }
     if (config.constraints.length > this.maxConstraints) {
-      throw new HsmAdapterError('TOO_MANY_CONSTRAINTS',
-        `${config.constraints.length} exceeds max ${this.maxConstraints}`);
+      throw new HsmAdapterError(
+        "TOO_MANY_CONSTRAINTS",
+        `${config.constraints.length} exceeds max ${this.maxConstraints}`,
+      );
     }
     const publicInputs = config.publicInputs || [];
     const privateInputs = config.privateInputs || [];
     if (!Array.isArray(publicInputs) || !Array.isArray(privateInputs)) {
-      throw new HsmAdapterError('INVALID_INPUTS', 'publicInputs and privateInputs must be arrays');
+      throw new HsmAdapterError(
+        "INVALID_INPUTS",
+        "publicInputs and privateInputs must be arrays",
+      );
     }
     // Validate constraints structure
     for (const c of config.constraints) {
-      if (!c || typeof c !== 'object' || !c.type) {
-        throw new HsmAdapterError('INVALID_CONSTRAINT', 'each constraint must have a type');
+      if (!c || typeof c !== "object" || !c.type) {
+        throw new HsmAdapterError(
+          "INVALID_CONSTRAINT",
+          "each constraint must have a type",
+        );
       }
     }
     const now = Date.now();
@@ -140,8 +156,8 @@ class ZkSnarkVerifierEngine {
       hash: this._hashCircuit(config.constraints, publicInputs, privateInputs),
     };
     this._circuits.set(config.circuitId, circuit);
-    if (typeof this._audit === 'function') {
-      this._audit('CIRCUIT_COMPILED', {
+    if (typeof this._audit === "function") {
+      this._audit("CIRCUIT_COMPILED", {
         circuitId: config.circuitId,
         constraintCount: circuit.constraintCount,
       });
@@ -166,15 +182,26 @@ class ZkSnarkVerifierEngine {
   generateTrustedSetup(circuitId, options = {}) {
     const circuit = this._circuits.get(circuitId);
     if (!circuit) {
-      throw new HsmAdapterError('CIRCUIT_NOT_FOUND', `circuit ${circuitId} not found`);
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_FOUND",
+        `circuit ${circuitId} not found`,
+      );
     }
-    if (circuit.status !== CIRCUIT_STATUS.COMPILED && circuit.status !== CIRCUIT_STATUS.VERIFIED) {
-      throw new HsmAdapterError('CIRCUIT_NOT_COMPILED',
-        `circuit ${circuitId} is in status ${circuit.status}`);
+    if (
+      circuit.status !== CIRCUIT_STATUS.COMPILED &&
+      circuit.status !== CIRCUIT_STATUS.VERIFIED
+    ) {
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_COMPILED",
+        `circuit ${circuitId} is in status ${circuit.status}`,
+      );
     }
     const setupId = options.setupId || `setup-${circuitId}-${Date.now()}`;
     if (this._setups.has(setupId)) {
-      throw new HsmAdapterError('SETUP_ALREADY_EXISTS', `setup ${setupId} already exists`);
+      throw new HsmAdapterError(
+        "SETUP_ALREADY_EXISTS",
+        `setup ${setupId} already exists`,
+      );
     }
     // Simulate trusted setup ceremony
     const toxicWaste = _randomFieldElement(this.fieldPrime);
@@ -191,8 +218,8 @@ class ZkSnarkVerifierEngine {
       proofCount: 0,
     };
     this._setups.set(setupId, setup);
-    if (typeof this._audit === 'function') {
-      this._audit('TRUSTED_SETUP_GENERATED', { setupId, circuitId });
+    if (typeof this._audit === "function") {
+      this._audit("TRUSTED_SETUP_GENERATED", { setupId, circuitId });
     }
     return {
       setupId,
@@ -215,59 +242,101 @@ class ZkSnarkVerifierEngine {
    * @returns {object} Proof result
    */
   generateProof(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'proof config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "proof config is required");
     }
-    if (!config.proofId || typeof config.proofId !== 'string') {
-      throw new HsmAdapterError('INVALID_PROOF_ID', 'proofId must be a non-empty string');
+    if (!config.proofId || typeof config.proofId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_PROOF_ID",
+        "proofId must be a non-empty string",
+      );
     }
     if (this._proofs.has(config.proofId)) {
-      throw new HsmAdapterError('PROOF_ALREADY_EXISTS', `proof ${config.proofId} already exists`);
+      throw new HsmAdapterError(
+        "PROOF_ALREADY_EXISTS",
+        `proof ${config.proofId} already exists`,
+      );
     }
     const circuit = this._circuits.get(config.circuitId);
     if (!circuit) {
-      throw new HsmAdapterError('CIRCUIT_NOT_FOUND', `circuit ${config.circuitId} not found`);
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_FOUND",
+        `circuit ${config.circuitId} not found`,
+      );
     }
     const setup = this._setups.get(config.setupId);
     if (!setup) {
-      throw new HsmAdapterError('SETUP_NOT_FOUND', `setup ${config.setupId} not found`);
+      throw new HsmAdapterError(
+        "SETUP_NOT_FOUND",
+        `setup ${config.setupId} not found`,
+      );
     }
     if (setup.status !== SETUP_STATUS.READY) {
-      throw new HsmAdapterError('SETUP_NOT_READY', `setup ${config.setupId} is ${setup.status}`);
+      throw new HsmAdapterError(
+        "SETUP_NOT_READY",
+        `setup ${config.setupId} is ${setup.status}`,
+      );
     }
     if (setup.circuitId !== config.circuitId) {
-      throw new HsmAdapterError('SETUP_CIRCUIT_MISMATCH',
-        `setup is for circuit ${setup.circuitId}, not ${config.circuitId}`);
+      throw new HsmAdapterError(
+        "SETUP_CIRCUIT_MISMATCH",
+        `setup is for circuit ${setup.circuitId}, not ${config.circuitId}`,
+      );
     }
     // Validate public inputs
-    if (!config.publicInputs || typeof config.publicInputs !== 'object') {
-      throw new HsmAdapterError('INVALID_PUBLIC_INPUTS', 'publicInputs must be an object');
+    if (!config.publicInputs || typeof config.publicInputs !== "object") {
+      throw new HsmAdapterError(
+        "INVALID_PUBLIC_INPUTS",
+        "publicInputs must be an object",
+      );
     }
     for (const name of circuit.publicInputs) {
       if (!(name in config.publicInputs)) {
-        throw new HsmAdapterError('MISSING_PUBLIC_INPUT', `missing public input: ${name}`);
+        throw new HsmAdapterError(
+          "MISSING_PUBLIC_INPUT",
+          `missing public input: ${name}`,
+        );
       }
     }
     // Validate private inputs
-    if (!config.privateInputs || typeof config.privateInputs !== 'object') {
-      throw new HsmAdapterError('INVALID_PRIVATE_INPUTS', 'privateInputs must be an object');
+    if (!config.privateInputs || typeof config.privateInputs !== "object") {
+      throw new HsmAdapterError(
+        "INVALID_PRIVATE_INPUTS",
+        "privateInputs must be an object",
+      );
     }
     for (const name of circuit.privateInputs) {
       if (!(name in config.privateInputs)) {
-        throw new HsmAdapterError('MISSING_PRIVATE_INPUT', `missing private input: ${name}`);
+        throw new HsmAdapterError(
+          "MISSING_PRIVATE_INPUT",
+          `missing private input: ${name}`,
+        );
       }
     }
     // Generate witness
-    const witness = this._generateWitness(circuit, config.publicInputs, config.privateInputs);
+    const witness = this._generateWitness(
+      circuit,
+      config.publicInputs,
+      config.privateInputs,
+    );
     if (witness.length > this.maxWitnessSize) {
-      throw new HsmAdapterError('WITNESS_TOO_LARGE',
-        `${witness.length} exceeds max ${this.maxWitnessSize}`);
+      throw new HsmAdapterError(
+        "WITNESS_TOO_LARGE",
+        `${witness.length} exceeds max ${this.maxWitnessSize}`,
+      );
     }
     // Generate proof
-    const proofData = this._generateProofData(circuit, setup, witness, config.enclaveAttestation);
+    const proofData = this._generateProofData(
+      circuit,
+      setup,
+      witness,
+      config.enclaveAttestation,
+    );
     if (proofData.length > this.maxProofSize) {
-      throw new HsmAdapterError('PROOF_TOO_LARGE',
-        `${proofData.length} exceeds max ${this.maxProofSize}`);
+      throw new HsmAdapterError(
+        "PROOF_TOO_LARGE",
+        `${proofData.length} exceeds max ${this.maxProofSize}`,
+      );
     }
     const now = Date.now();
     const proof = {
@@ -285,8 +354,8 @@ class ZkSnarkVerifierEngine {
     this._proofs.set(config.proofId, proof);
     setup.proofCount++;
     this._proofCounter++;
-    if (typeof this._audit === 'function') {
-      this._audit('PROOF_GENERATED', {
+    if (typeof this._audit === "function") {
+      this._audit("PROOF_GENERATED", {
         proofId: config.proofId,
         circuitId: config.circuitId,
       });
@@ -309,21 +378,36 @@ class ZkSnarkVerifierEngine {
   verifyProof(proofId, publicInputs) {
     const proof = this._proofs.get(proofId);
     if (!proof) {
-      throw new HsmAdapterError('PROOF_NOT_FOUND', `proof ${proofId} not found`);
+      throw new HsmAdapterError(
+        "PROOF_NOT_FOUND",
+        `proof ${proofId} not found`,
+      );
     }
     if (proof.status === PROOF_STATUS.EXPIRED) {
-      throw new HsmAdapterError('PROOF_EXPIRED', `proof ${proofId} has expired`);
+      throw new HsmAdapterError(
+        "PROOF_EXPIRED",
+        `proof ${proofId} has expired`,
+      );
     }
     const circuit = this._circuits.get(proof.circuitId);
     if (!circuit) {
-      throw new HsmAdapterError('CIRCUIT_NOT_FOUND', `circuit ${proof.circuitId} not found`);
+      throw new HsmAdapterError(
+        "CIRCUIT_NOT_FOUND",
+        `circuit ${proof.circuitId} not found`,
+      );
     }
     const setup = this._setups.get(proof.setupId);
     if (!setup) {
-      throw new HsmAdapterError('SETUP_NOT_FOUND', `setup ${proof.setupId} not found`);
+      throw new HsmAdapterError(
+        "SETUP_NOT_FOUND",
+        `setup ${proof.setupId} not found`,
+      );
     }
     if (setup.status !== SETUP_STATUS.READY) {
-      throw new HsmAdapterError('SETUP_NOT_READY', `setup ${proof.setupId} is ${setup.status}`);
+      throw new HsmAdapterError(
+        "SETUP_NOT_READY",
+        `setup ${proof.setupId} is ${setup.status}`,
+      );
     }
     const inputs = publicInputs || proof.publicInputs;
     // Verify proof data against verification key
@@ -346,8 +430,8 @@ class ZkSnarkVerifierEngine {
     if (this._completedProofs.length > this._maxHistory) {
       this._completedProofs.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('PROOF_VERIFIED', { proofId, verified });
+    if (typeof this._audit === "function") {
+      this._audit("PROOF_VERIFIED", { proofId, verified });
     }
     return {
       proofId,
@@ -364,32 +448,42 @@ class ZkSnarkVerifierEngine {
    */
   aggregateProofs(proofIds) {
     if (!this.enableProofAggregation) {
-      throw new HsmAdapterError('AGGREGATION_DISABLED', 'proof aggregation is disabled');
+      throw new HsmAdapterError(
+        "AGGREGATION_DISABLED",
+        "proof aggregation is disabled",
+      );
     }
     if (!Array.isArray(proofIds) || proofIds.length < 2) {
-      throw new HsmAdapterError('INSUFFICIENT_PROOFS',
-        'need at least 2 proofs to aggregate');
+      throw new HsmAdapterError(
+        "INSUFFICIENT_PROOFS",
+        "need at least 2 proofs to aggregate",
+      );
     }
     if (proofIds.length > this.maxAggregatedProofs) {
-      throw new HsmAdapterError('TOO_MANY_PROOFS',
-        `${proofIds.length} exceeds max ${this.maxAggregatedProofs}`);
+      throw new HsmAdapterError(
+        "TOO_MANY_PROOFS",
+        `${proofIds.length} exceeds max ${this.maxAggregatedProofs}`,
+      );
     }
     const proofs = [];
     for (const id of proofIds) {
       const proof = this._proofs.get(id);
       if (!proof) {
-        throw new HsmAdapterError('PROOF_NOT_FOUND', `proof ${id} not found`);
+        throw new HsmAdapterError("PROOF_NOT_FOUND", `proof ${id} not found`);
       }
       if (proof.status !== PROOF_STATUS.VERIFIED) {
-        throw new HsmAdapterError('PROOF_NOT_VERIFIED',
-          `proof ${id} must be verified before aggregation`);
+        throw new HsmAdapterError(
+          "PROOF_NOT_VERIFIED",
+          `proof ${id} must be verified before aggregation`,
+        );
       }
       proofs.push(proof);
     }
     const aggId = `agg-${Date.now()}-${crypto.randomInt(0, 1000000)}`;
     // Simulate proof aggregation
-    const aggregatedData = crypto.createHash('sha256')
-      .update(proofs.map(p => p.proofData.toString('hex')).join(':'))
+    const aggregatedData = crypto
+      .createHash("sha256")
+      .update(proofs.map((p) => p.proofData.toString("hex")).join(":"))
       .digest();
     const aggregated = {
       aggId,
@@ -399,8 +493,8 @@ class ZkSnarkVerifierEngine {
       createdAt: Date.now(),
     };
     this._aggregatedProofs.set(aggId, aggregated);
-    if (typeof this._audit === 'function') {
-      this._audit('PROOFS_AGGREGATED', { aggId, count: proofs.length });
+    if (typeof this._audit === "function") {
+      this._audit("PROOFS_AGGREGATED", { aggId, count: proofs.length });
     }
     return {
       aggId,
@@ -418,7 +512,10 @@ class ZkSnarkVerifierEngine {
   verifyAggregatedProof(aggId) {
     const agg = this._aggregatedProofs.get(aggId);
     if (!agg) {
-      throw new HsmAdapterError('AGGREGATED_PROOF_NOT_FOUND', `aggregated proof ${aggId} not found`);
+      throw new HsmAdapterError(
+        "AGGREGATED_PROOF_NOT_FOUND",
+        `aggregated proof ${aggId} not found`,
+      );
     }
     // Verify all underlying proofs are still valid
     let allValid = true;
@@ -429,8 +526,8 @@ class ZkSnarkVerifierEngine {
         break;
       }
     }
-    if (typeof this._audit === 'function') {
-      this._audit('AGGREGATED_PROOF_VERIFIED', { aggId, valid: allValid });
+    if (typeof this._audit === "function") {
+      this._audit("AGGREGATED_PROOF_VERIFIED", { aggId, valid: allValid });
     }
     return {
       aggId,
@@ -446,14 +543,17 @@ class ZkSnarkVerifierEngine {
   destroySetup(setupId) {
     const setup = this._setups.get(setupId);
     if (!setup) {
-      throw new HsmAdapterError('SETUP_NOT_FOUND', `setup ${setupId} not found`);
+      throw new HsmAdapterError(
+        "SETUP_NOT_FOUND",
+        `setup ${setupId} not found`,
+      );
     }
     // Zeroize keys
     setup.provingKey = Buffer.alloc(0);
     setup.verificationKey = Buffer.alloc(0);
     setup.status = SETUP_STATUS.DESTROYED;
-    if (typeof this._audit === 'function') {
-      this._audit('SETUP_DESTROYED', { setupId });
+    if (typeof this._audit === "function") {
+      this._audit("SETUP_DESTROYED", { setupId });
     }
     return { setupId, destroyed: true };
   }
@@ -485,7 +585,7 @@ class ZkSnarkVerifierEngine {
    * @returns {object[]}
    */
   getCircuits() {
-    return Array.from(this._circuits.values()).map(c => ({
+    return Array.from(this._circuits.values()).map((c) => ({
       circuitId: c.circuitId,
       name: c.name,
       status: c.status,
@@ -538,7 +638,7 @@ class ZkSnarkVerifierEngine {
    * @returns {object[]}
    */
   getCompletedProofs(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedProofs.slice(-n);
   }
 
@@ -602,7 +702,7 @@ class ZkSnarkVerifierEngine {
    */
   _hashCircuit(constraints, publicInputs, privateInputs) {
     const data = JSON.stringify({ constraints, publicInputs, privateInputs });
-    return crypto.createHash('sha256').update(data).digest('hex');
+    return crypto.createHash("sha256").update(data).digest("hex");
   }
 
   /**
@@ -611,7 +711,7 @@ class ZkSnarkVerifierEngine {
    */
   _generateProvingKey(circuit, toxicWaste) {
     const data = `pk:${circuit.hash}:${toxicWaste.toString(16)}:${circuit.constraintCount}`;
-    return crypto.createHash('sha512').update(data).digest();
+    return crypto.createHash("sha512").update(data).digest();
   }
 
   /**
@@ -620,7 +720,7 @@ class ZkSnarkVerifierEngine {
    */
   _generateVerificationKey(circuit, toxicWaste) {
     const data = `vk:${circuit.hash}:${toxicWaste.toString(16)}:${circuit.constraintCount}`;
-    return crypto.createHash('sha256').update(data).digest();
+    return crypto.createHash("sha256").update(data).digest();
   }
 
   /**
@@ -655,20 +755,20 @@ class ZkSnarkVerifierEngine {
    */
   _evaluateConstraint(constraint, witness) {
     const type = constraint.type;
-    if (type === 'mul') {
+    if (type === "mul") {
       const a = witness[constraint.a] || 0n;
       const b = witness[constraint.b] || 0n;
       return (a * b) % this.fieldPrime;
     }
-    if (type === 'add') {
+    if (type === "add") {
       const a = witness[constraint.a] || 0n;
       const b = witness[constraint.b] || 0n;
       return (a + b) % this.fieldPrime;
     }
-    if (type === 'const') {
+    if (type === "const") {
       return _toFieldElement(this.fieldPrime, constraint.value);
     }
-    if (type === 'eq') {
+    if (type === "eq") {
       const a = witness[constraint.a] || 0n;
       const b = witness[constraint.b] || 0n;
       return a === b ? 1n : 0n;
@@ -683,14 +783,16 @@ class ZkSnarkVerifierEngine {
    * @private
    */
   _generateProofData(circuit, setup, witness, attestation) {
-    const witnessCommitment = _hashToField(this.fieldPrime, witness).toString(16);
+    const witnessCommitment = _hashToField(this.fieldPrime, witness).toString(
+      16,
+    );
     const parts = [
-      setup.verificationKey.toString('hex'),
+      setup.verificationKey.toString("hex"),
       witnessCommitment,
       circuit.hash,
-      attestation || 'no-attestation',
+      attestation || "no-attestation",
     ];
-    return crypto.createHash('sha384').update(parts.join('|')).digest();
+    return crypto.createHash("sha384").update(parts.join("|")).digest();
   }
 
   /**
@@ -701,12 +803,15 @@ class ZkSnarkVerifierEngine {
   _verifyProofData(circuit, setup, proof, publicInputs) {
     // Recompute expected proof data using the stored witness commitment
     const parts = [
-      setup.verificationKey.toString('hex'),
+      setup.verificationKey.toString("hex"),
       proof.witnessHash.toString(16),
       circuit.hash,
-      proof.enclaveAttestation || 'no-attestation',
+      proof.enclaveAttestation || "no-attestation",
     ];
-    const expectedData = crypto.createHash('sha384').update(parts.join('|')).digest();
+    const expectedData = crypto
+      .createHash("sha384")
+      .update(parts.join("|"))
+      .digest();
     // Constant-time comparison
     return _constantTimeBufferCompare(proof.proofData, expectedData);
   }
@@ -720,9 +825,9 @@ class ZkSnarkVerifierEngine {
  * @private
  */
 function _toFieldElement(fieldPrime, val) {
-  if (typeof val === 'bigint') return val % fieldPrime;
-  if (typeof val === 'number') return BigInt(val) % fieldPrime;
-  if (typeof val === 'string') {
+  if (typeof val === "bigint") return val % fieldPrime;
+  if (typeof val === "number") return BigInt(val) % fieldPrime;
+  if (typeof val === "string") {
     try {
       return BigInt(val) % fieldPrime;
     } catch {
@@ -762,8 +867,8 @@ function _randomFieldElement(fieldPrime) {
  * @private
  */
 function _hashToField(fieldPrime, witness) {
-  const data = witness.map(w => w.toString(16)).join(':');
-  const hash = crypto.createHash('sha256').update(data).digest();
+  const data = witness.map((w) => w.toString(16)).join(":");
+  const hash = crypto.createHash("sha256").update(data).digest();
   let result = 0n;
   for (const b of hash) {
     result = (result << 8n) | BigInt(b);

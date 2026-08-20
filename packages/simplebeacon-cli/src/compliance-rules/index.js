@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-'use strict';
+"use strict";
 
 /**
  * @module compliance-rules
@@ -30,19 +30,21 @@
  * @file packages/simplebeacon-cli/src/compliance-rules/index.js
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 /** Discover and load all rule modules from the current directory. */
 function loadRuleRegistry() {
-    const registry = {};
-    const dir = __dirname;
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.js') && f !== 'index.js');
-    for (const file of files) {
-        const id = path.basename(file, '.js');
-        registry[id] = require(path.join(dir, file));
-    }
-    return registry;
+  const registry = {};
+  const dir = __dirname;
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".js") && f !== "index.js");
+  for (const file of files) {
+    const id = path.basename(file, ".js");
+    registry[id] = require(path.join(dir, file));
+  }
+  return registry;
 }
 
 const registry = loadRuleRegistry();
@@ -64,19 +66,19 @@ const registry = loadRuleRegistry();
  * // { status: 'pass', evidence: 'Gate pass — no blocking issues at configured severities', ... }
  */
 function evaluateRule(rule, context) {
-    const evaluator = registry[rule.check];
-    if (!evaluator) {
-        return {
-            id: rule.id,
-            title: rule.title,
-            category: rule.category,
-            severity: rule.severity,
-            remediation: rule.remediation || null,
-            status: 'skip',
-            evidence: `Unknown check: ${rule.check}`
-        };
-    }
-    return evaluator(rule, context);
+  const evaluator = registry[rule.check];
+  if (!evaluator) {
+    return {
+      id: rule.id,
+      title: rule.title,
+      category: rule.category,
+      severity: rule.severity,
+      remediation: rule.remediation || null,
+      status: "skip",
+      evidence: `Unknown check: ${rule.check}`,
+    };
+  }
+  return evaluator(rule, context);
 }
 
 /**
@@ -94,16 +96,16 @@ function evaluateRule(rule, context) {
  * }));
  */
 function registerRule(checkName, evaluatorFn) {
-    registry[checkName] = evaluatorFn;
+  registry[checkName] = evaluatorFn;
 }
 
 /** Return a frozen snapshot of the current registry. */
 function getRegistry() {
-    return Object.freeze({ ...registry });
+  return Object.freeze({ ...registry });
 }
 
 module.exports = Object.freeze({
   evaluateRule,
   registerRule,
-  getRegistry
+  getRegistry,
 });

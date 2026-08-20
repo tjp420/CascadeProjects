@@ -2,11 +2,7 @@
   "schemaVersion": 38,
   "title": "STEK Lifecycle",
   "uid": "stek-lifecycle",
-  "tags": [
-    "stek",
-    "key-rotation",
-    "cluster-keyring-sync"
-  ],
+  "tags": ["stek", "key-rotation", "cluster-keyring-sync"],
   "timezone": "browser",
   "time": {
     "from": "now-6h",

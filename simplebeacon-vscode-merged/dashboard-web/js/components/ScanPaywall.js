@@ -1,7 +1,7 @@
 // simplebeacon-ignore documentation
 import { escapeHtml, formatNumber } from '../utils.js';
 
-const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+const DEFAULT_CHECKOUT = 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
 /**
  * Build preview findings from scan result.
@@ -10,14 +10,9 @@ const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Laun
  * @returns {any}
  */
 function buildPreviewFindings(lastResult) {
-  const simplebeacon = lastResult?.steps?.find((s) => s.id === 'simplebeacon')?.report
-    || lastResult?.report;
-  const codebase = lastResult?.steps?.find((s) => s.id === 'codebase')?.scan
-    || lastResult?.scan;
-  const issues = [
-    ...(simplebeacon?.rawIssues || simplebeacon?.detectedIssues || []),
-    ...(codebase?.findings || [])
-  ];
+  const simplebeacon = lastResult?.steps?.find((s) => s.id === 'simplebeacon')?.report || lastResult?.report;
+  const codebase = lastResult?.steps?.find((s) => s.id === 'codebase')?.scan || lastResult?.scan;
+  const issues = [...(simplebeacon?.rawIssues || simplebeacon?.detectedIssues || []), ...(codebase?.findings || [])];
 
   // Group by type + severity, count occurrences
   const grouped = issues.reduce((acc, issue) => {
@@ -47,10 +42,8 @@ function buildTrustSignals(lastResult) {
   const simplebeacon = steps.find((s) => s.id === 'simplebeacon')?.report;
   const codebase = steps.find((s) => s.id === 'codebase')?.scan;
   const repoInv = lastResult?.repositoryInventory;
-  const filesScanned = repoInv?.totalFiles
-    ?? codebase?.summary?.codeFilesAnalyzed
-    ?? simplebeacon?.ruleScopedFilesAnalyzed
-    ?? null;
+  const filesScanned =
+    repoInv?.totalFiles ?? codebase?.summary?.codeFilesAnalyzed ?? simplebeacon?.ruleScopedFilesAnalyzed ?? null;
   const enginesRun = steps.filter((s) => s.status === 'done' || s.status === 'running').length;
   return { filesScanned, enginesRun: enginesRun || steps.length };
 }
@@ -62,20 +55,18 @@ function buildTrustSignals(lastResult) {
  */
 export function buildPublicSummaryFromScan(lastResult) {
   if (lastResult?.publicSummary) return lastResult.publicSummary;
-  const simplebeacon = lastResult?.steps?.find((s) => s.id === 'simplebeacon')?.report
-    || lastResult?.report;
-  const codebase = lastResult?.steps?.find((s) => s.id === 'codebase')?.scan
-    || lastResult?.scan;
-  const issues = [
-    ...(simplebeacon?.rawIssues || simplebeacon?.detectedIssues || []),
-    ...(codebase?.findings || [])
-  ];
-  const severityCounts = issues.reduce((acc, issue) => {
-    const band = String(issue.severity || 'low').toLowerCase();
-    if (acc[band] != null) acc[band] += issue.count || 1;
-    else acc.low += issue.count || 1;
-    return acc;
-  }, { critical: 0, high: 0, medium: 0, low: 0 });
+  const simplebeacon = lastResult?.steps?.find((s) => s.id === 'simplebeacon')?.report || lastResult?.report;
+  const codebase = lastResult?.steps?.find((s) => s.id === 'codebase')?.scan || lastResult?.scan;
+  const issues = [...(simplebeacon?.rawIssues || simplebeacon?.detectedIssues || []), ...(codebase?.findings || [])];
+  const severityCounts = issues.reduce(
+    (acc, issue) => {
+      const band = String(issue.severity || 'low').toLowerCase();
+      if (acc[band] != null) acc[band] += issue.count || 1;
+      else acc.low += issue.count || 1;
+      return acc;
+    },
+    { critical: 0, high: 0, medium: 0, low: 0 }
+  );
   const gatePass = simplebeacon?.gate?.pass;
   return {
     summary: {
@@ -84,12 +75,12 @@ export function buildPublicSummaryFromScan(lastResult) {
       totalIssuesFound: issues.length,
       gatePass: gatePass ?? null,
       qualityScore: simplebeacon?.qualityScore ?? null,
-      codeHealth: codebase?.summary?.healthScore ?? null
+      codeHealth: codebase?.summary?.healthScore ?? null,
     },
     severityCounts,
     publicGateLocked: true,
     previewFindings: buildPreviewFindings(lastResult),
-    trustSignals: buildTrustSignals(lastResult)
+    trustSignals: buildTrustSignals(lastResult),
   };
 }
 
@@ -142,7 +133,9 @@ export function renderScanPaywall(publicSummary, options = {}) {
       : '';
 
   const previewCards = previewFindings.length
-    ? previewFindings.map((f) => `
+    ? previewFindings
+        .map(
+          (f) => `
       <div class="paywall-preview-card paywall-preview-${escapeHtml(f.severity)}">
         <div class="paywall-preview-meta">
           <span class="pill ${escapeHtml(f.severity)}">${escapeHtml(f.severity)}</span>
@@ -151,16 +144,19 @@ export function renderScanPaywall(publicSummary, options = {}) {
         <div class="paywall-preview-type">${escapeHtml(f.type)}</div>
         <div class="paywall-preview-files">${formatNumber(f.instances)} file${f.instances === 1 ? '' : 's'} affected</div>
       </div>
-    `).join('')
+    `
+        )
+        .join('')
     : '';
 
-  const trustBar = trust.filesScanned != null
-    ? `<div class="paywall-trust-bar">
+  const trustBar =
+    trust.filesScanned != null
+      ? `<div class="paywall-trust-bar">
         <span class="paywall-trust-item">📁 ${formatNumber(trust.filesScanned)} files analyzed</span>
         <span class="paywall-trust-item">⚙️ ${trust.enginesRun} scan engines</span>
         <span class="paywall-trust-item">🔒 SHA-256 signed report</span>
       </div>`
-    : '';
+      : '';
 
   return `
     <div class="scan-results-container">
@@ -180,7 +176,9 @@ export function renderScanPaywall(publicSummary, options = {}) {
       </div>
 
       <!-- Preview findings -->
-      ${previewCards ? `
+      ${
+        previewCards
+          ? `
         <div class="card mb-4">
           <div class="paywall-section-header">
             <h3>Top findings preview</h3>
@@ -190,7 +188,9 @@ export function renderScanPaywall(publicSummary, options = {}) {
             ${previewCards}
           </div>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <!-- What's locked -->
       <div class="card mb-4">

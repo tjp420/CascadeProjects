@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Azure credential provider for the Key Vault HSM adapter.
@@ -22,10 +22,10 @@ async function createCredential() {
   }
   let identity;
   try {
-    identity = await import('@azure/identity');
+    identity = await import("@azure/identity");
   } catch (e) {
     throw new Error(
-      `@azure/identity is not installed. Install it with: npm install @azure/identity. Original error: ${e.message}`
+      `@azure/identity is not installed. Install it with: npm install @azure/identity. Original error: ${e.message}`,
     );
   }
   _cachedCredential = new identity.DefaultAzureCredential();

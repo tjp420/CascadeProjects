@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Identity federation routes — SAML/OIDC federation metadata, config, and sync history.
@@ -9,14 +9,14 @@
  *   GET /api/identity-federation/history  — Recent sync events
  */
 
-const express = require('express');
-const { authenticate } = require('../middleware/auth.cjs');
+const express = require("express");
+const { authenticate } = require("../middleware/auth.cjs");
 
 const router = express.Router();
 
 router.use(authenticate);
 
-router.get('/stats', function (req, res) {
+router.get("/stats", function (req, res) {
   res.json({
     success: true,
     stats: {
@@ -28,7 +28,7 @@ router.get('/stats', function (req, res) {
   });
 });
 
-router.get('/config', function (req, res) {
+router.get("/config", function (req, res) {
   res.json({
     success: true,
     config: {
@@ -39,7 +39,7 @@ router.get('/config', function (req, res) {
   });
 });
 
-router.get('/history', function (req, res) {
+router.get("/history", function (req, res) {
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
   res.json({
     success: true,

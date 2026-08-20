@@ -13,20 +13,25 @@ const {
     getReferrerById
 } = require('./db.cjs');
 const { parseReferralCookie } = require('./referral-tracking.cjs');
-const {
-    sendReferralConversionEmail,
-    sendRefereeWelcomeEmail
-} = require('./referral-email.cjs');
+const { sendReferralConversionEmail, sendRefereeWelcomeEmail } = require('./referral-email.cjs');
 
 const DEFAULT_CERT_CREDIT_CENTS = 4900;
 
 const logger = {
-    info: (...a) => { const c = globalThis.console; c.info(...a); },
-    warn: (...a) => { const c = globalThis.console; c.warn(...a); }
+    info: (...a) => {
+        const c = globalThis.console;
+        c.info(...a);
+    },
+    warn: (...a) => {
+        const c = globalThis.console;
+        c.warn(...a);
+    }
 };
 
 function normalizeEmail(value) {
-    return String(value || '').trim().toLowerCase();
+    return String(value || '')
+        .trim()
+        .toLowerCase();
 }
 
 function resolveReferralAttributionFromSession(session) {
@@ -38,12 +43,7 @@ function resolveReferralAttributionFromSession(session) {
     }
 
     const slug = meta.referral_slug || meta.sb_ref || meta.ref || '';
-    const email = normalizeEmail(
-        meta.email ||
-        session.customer_details?.email ||
-        session.customer_email ||
-        ''
-    );
+    const email = normalizeEmail(meta.email || session.customer_details?.email || session.customer_email || '');
     if (slug) {
         return getLatestOpenReferralAttribution(slug, email || null);
     }
@@ -55,11 +55,7 @@ function resolveReferralAttributionFromSession(session) {
  */
 function buildReferralCheckoutMetadata(req, body) {
     const slug = String(
-        body?.referralSlug ||
-        body?.referral_slug ||
-        body?.sb_ref ||
-        parseReferralCookie(req) ||
-        ''
+        body?.referralSlug || body?.referral_slug || body?.sb_ref || parseReferralCookie(req) || ''
     ).trim();
     if (!slug) return {};
 
@@ -89,7 +85,7 @@ function processReferralSignup(req, email) {
     markReferralAttributionSignedUp(attribution.id, normalizedEmail);
     logger.info(`[Referral] Signed up attribution=${attribution.id} slug=${slug}`);
 
-    sendRefereeWelcomeEmail({ to: normalizedEmail }).catch((err) => {
+    sendRefereeWelcomeEmail({ to: normalizedEmail }).catch(err => {
         logger.warn('[Referral] Referee welcome email failed:', err.message);
     });
 
@@ -104,10 +100,7 @@ function processStripeReferralAttribution(session, options = {}) {
     const rewardValue = Number(options.rewardValue) || DEFAULT_CERT_CREDIT_CENTS;
     const rewardType = options.rewardType || 'cert_credit';
     const refereeEmail = normalizeEmail(
-        session?.metadata?.email ||
-        session?.customer_details?.email ||
-        session?.customer_email ||
-        ''
+        session?.metadata?.email || session?.customer_details?.email || session?.customer_email || ''
     );
 
     const attribution = resolveReferralAttributionFromSession(session);
@@ -139,7 +132,7 @@ function processStripeReferralAttribution(session, options = {}) {
             referrerEmail: referrer.user_email,
             refereeEmail: refereeEmail || null,
             rewardValueCents: rewardValue
-        }).catch((err) => {
+        }).catch(err => {
             logger.warn('[Referral] Conversion email failed:', err.message);
         });
     }

@@ -4,7 +4,5 @@
   "failed": 3,
   "total": 25,
   "decision": "GO",
-  "checks": [
-    {}
-  ]
+  "checks": [{}]
 }

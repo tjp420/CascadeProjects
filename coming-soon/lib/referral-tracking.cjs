@@ -32,13 +32,15 @@ function buildReferralCookieValue(trackingCode, req) {
     const expirationDate = new Date();
     expirationDate.setDate(expirationDate.getDate() + ATTRIBUTION_WINDOW_DAYS);
     const secureFlag = isSecureRequest(req) ? '; Secure' : '';
-    return [
-        `${REFERRAL_COOKIE}=${encodeURIComponent(String(trackingCode))}`,
-        'Path=/',
-        `Expires=${expirationDate.toUTCString()}`,
-        'HttpOnly',
-        'SameSite=Lax'
-    ].join('; ') + secureFlag;
+    return (
+        [
+            `${REFERRAL_COOKIE}=${encodeURIComponent(String(trackingCode))}`,
+            'Path=/',
+            `Expires=${expirationDate.toUTCString()}`,
+            'HttpOnly',
+            'SameSite=Lax'
+        ].join('; ') + secureFlag
+    );
 }
 
 function parseReferralCookie(req) {

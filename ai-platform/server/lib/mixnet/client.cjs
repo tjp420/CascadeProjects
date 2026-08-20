@@ -1,8 +1,8 @@
-const crypto = require('crypto');
-const { wrapLayer } = require('./crypto.cjs');
+const crypto = require("crypto");
+const { wrapLayer } = require("./crypto.cjs");
 
 function deriveNodeKey(seed) {
-  return crypto.createHash('sha256').update(String(seed)).digest();
+  return crypto.createHash("sha256").update(String(seed)).digest();
 }
 
 /**
@@ -16,7 +16,9 @@ function deriveNodeKey(seed) {
  */
 function wrapOnionPayload(plaintext, routeNodes, options = {}) {
   const outerSize = options.outerSize || options.paddingSize || 1024;
-  const pt = Buffer.isBuffer(plaintext) ? plaintext : Buffer.from(String(plaintext), 'utf8');
+  const pt = Buffer.isBuffer(plaintext)
+    ? plaintext
+    : Buffer.from(String(plaintext), "utf8");
   // overhead estimate: nonce(12) + nextLen(2) + maxNext(64) + tag(16)
   const overhead = 12 + 2 + 64 + 16;
   const innerSize = Math.max(pt.length + 4, outerSize - overhead);
@@ -26,7 +28,10 @@ function wrapOnionPayload(plaintext, routeNodes, options = {}) {
   origLenBuf.writeUInt32BE(pt.length, 0);
   let padded = Buffer.concat([origLenBuf, pt]);
   if (padded.length < innerSize) {
-    padded = Buffer.concat([padded, Buffer.alloc(innerSize - padded.length, 0)]);
+    padded = Buffer.concat([
+      padded,
+      Buffer.alloc(innerSize - padded.length, 0),
+    ]);
   }
 
   let inner = padded;
@@ -35,7 +40,7 @@ function wrapOnionPayload(plaintext, routeNodes, options = {}) {
   for (let i = routeNodes.length - 1; i >= 0; i--) {
     const node = routeNodes[i];
     const nextNode = routeNodes[i + 1];
-    const next = nextNode ? nextNode.id : '';
+    const next = nextNode ? nextNode.id : "";
     const nodeKey = deriveNodeKey(node.seed || node.id || `node-${i}`);
     inner = wrapLayer(next, inner, nodeKey);
   }

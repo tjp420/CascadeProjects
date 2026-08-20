@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 36: ZK Proof-of-Assets.
@@ -19,16 +19,16 @@
  * @module hsm-adapter/zk-proof-of-assets-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 // ── Proof states ─────────────────────────────────────────────────
 const PROOF_STATE = {
-  DRAFT: 'draft',
-  COMMITTED: 'committed',
-  PROVEN: 'proven',
-  VERIFIED: 'verified',
-  INVALID: 'invalid',
+  DRAFT: "draft",
+  COMMITTED: "committed",
+  PROVEN: "proven",
+  VERIFIED: "verified",
+  INVALID: "invalid",
 };
 
 // ── Valid state transitions ──────────────────────────────────────
@@ -53,24 +53,31 @@ class AssetCommitment {
    * @param {string} [blinding] — random blinding factor (auto-generated if omitted)
    */
   constructor(assetId, amount, blinding) {
-    if (!assetId || typeof assetId !== 'string') {
-      throw new HsmAdapterError('INVALID_INPUT', 'assetId must be a non-empty string');
+    if (!assetId || typeof assetId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "assetId must be a non-empty string",
+      );
     }
-    if (typeof amount !== 'number' || amount <= 0 || !Number.isFinite(amount)) {
-      throw new HsmAdapterError('INVALID_INPUT', `amount must be a positive finite number, got ${amount}`);
+    if (typeof amount !== "number" || amount <= 0 || !Number.isFinite(amount)) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        `amount must be a positive finite number, got ${amount}`,
+      );
     }
     this.assetId = assetId;
     this.amount = amount;
-    this.blinding = blinding || crypto.randomBytes(32).toString('hex');
+    this.blinding = blinding || crypto.randomBytes(32).toString("hex");
     this.commitment = this._compute();
   }
 
   _compute() {
-    return crypto.createHash('sha256')
+    return crypto
+      .createHash("sha256")
       .update(this.assetId)
       .update(this.amount.toString())
       .update(this.blinding)
-      .digest('hex');
+      .digest("hex");
   }
 
   /**
@@ -81,11 +88,12 @@ class AssetCommitment {
    * @returns {boolean}
    */
   verify(assetId, amount, blinding) {
-    const expected = crypto.createHash('sha256')
+    const expected = crypto
+      .createHash("sha256")
       .update(assetId)
       .update(amount.toString())
       .update(blinding)
-      .digest('hex');
+      .digest("hex");
     return expected === this.commitment;
   }
 }
@@ -102,7 +110,10 @@ class MerkleCommitmentTree {
    */
   constructor(commitments) {
     if (!Array.isArray(commitments) || commitments.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'commitments must be a non-empty array');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "commitments must be a non-empty array",
+      );
     }
     this.commitments = commitments;
     this.leaves = commitments.map((c) => c.commitment);
@@ -116,7 +127,9 @@ class MerkleCommitmentTree {
     for (let i = 0; i < leaves.length; i += 2) {
       const left = leaves[i];
       const right = i + 1 < leaves.length ? leaves[i + 1] : leaves[i];
-      nextLevel.push(crypto.createHash('sha256').update(left).update(right).digest('hex'));
+      nextLevel.push(
+        crypto.createHash("sha256").update(left).update(right).digest("hex"),
+      );
     }
     return this._computeRoot(nextLevel);
   }
@@ -129,7 +142,9 @@ class MerkleCommitmentTree {
       for (let i = 0; i < current.length; i += 2) {
         const left = current[i];
         const right = i + 1 < current.length ? current[i + 1] : current[i];
-        nextLevel.push(crypto.createHash('sha256').update(left).update(right).digest('hex'));
+        nextLevel.push(
+          crypto.createHash("sha256").update(left).update(right).digest("hex"),
+        );
       }
       tree.push(nextLevel);
       current = nextLevel;
@@ -187,13 +202,22 @@ class ZkProofOfAssetsEngine {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    if (!Array.isArray(options.validatorNodes) || options.validatorNodes.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'validatorNodes must be a non-empty array');
+    if (
+      !Array.isArray(options.validatorNodes) ||
+      options.validatorNodes.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "validatorNodes must be a non-empty array",
+      );
     }
     this.validatorNodes = new Set(options.validatorNodes);
-    this.minQuorumNodes = options.minQuorumNodes || Math.floor(options.validatorNodes.length / 2) + 1;
+    this.minQuorumNodes =
+      options.minQuorumNodes ||
+      Math.floor(options.validatorNodes.length / 2) + 1;
     this.maxAssetsPerProof = options.maxAssetsPerProof || 256;
-    this.requireQuorumFinalization = options.requireQuorumFinalization !== false;
+    this.requireQuorumFinalization =
+      options.requireQuorumFinalization !== false;
     this._audit = options.audit || null;
 
     // Per-tenant state
@@ -219,21 +243,28 @@ class ZkProofOfAssetsEngine {
       const existingTenant = this._globalAssetRegistry.get(assetId);
       if (existingTenant !== tenantId) {
         throw new HsmAdapterError(
-          'ASSET_DOUBLE_COUNTED',
+          "ASSET_DOUBLE_COUNTED",
           `asset ${assetId} is already registered by tenant ${existingTenant}`,
         );
       }
     }
 
     if (!this._tenants.has(tenantId)) {
-      this._tenants.set(tenantId, { assets: new Map(), usedAssetIds: new Set() });
+      this._tenants.set(tenantId, {
+        assets: new Map(),
+        usedAssetIds: new Set(),
+      });
     }
     const tenant = this._tenants.get(tenantId);
     const commitment = new AssetCommitment(assetId, amount, blinding);
     tenant.assets.set(assetId, commitment);
     this._globalAssetRegistry.set(assetId, tenantId);
 
-    this._emitAudit('ASSET_REGISTERED', { tenantId, assetId, commitment: commitment.commitment });
+    this._emitAudit("ASSET_REGISTERED", {
+      tenantId,
+      assetId,
+      commitment: commitment.commitment,
+    });
     return commitment;
   }
 
@@ -246,14 +277,20 @@ class ZkProofOfAssetsEngine {
   createProof(tenantId, claimedBacking) {
     const tenant = this._tenants.get(tenantId);
     if (!tenant || tenant.assets.size === 0) {
-      throw new HsmAdapterError('TENANT_NO_ASSETS', `tenant ${tenantId} has no registered assets`);
+      throw new HsmAdapterError(
+        "TENANT_NO_ASSETS",
+        `tenant ${tenantId} has no registered assets`,
+      );
     }
-    if (typeof claimedBacking !== 'number' || claimedBacking <= 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'claimedBacking must be a positive number');
+    if (typeof claimedBacking !== "number" || claimedBacking <= 0) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "claimedBacking must be a positive number",
+      );
     }
     if (tenant.assets.size > this.maxAssetsPerProof) {
       throw new HsmAdapterError(
-        'ASSET_LIMIT_EXCEEDED',
+        "ASSET_LIMIT_EXCEEDED",
         `tenant ${tenantId} has ${tenant.assets.size} assets, max is ${this.maxAssetsPerProof}`,
       );
     }
@@ -267,7 +304,7 @@ class ZkProofOfAssetsEngine {
     // Verify that aggregate backing >= claimed backing
     if (aggregateBacking < claimedBacking) {
       throw new HsmAdapterError(
-        'BACKING_INSUFFICIENT',
+        "BACKING_INSUFFICIENT",
         `aggregate backing ${aggregateBacking} < claimed backing ${claimedBacking}`,
       );
     }
@@ -284,7 +321,10 @@ class ZkProofOfAssetsEngine {
       aggregateBacking,
       assetCount: commitments.length,
     });
-    const proofHash = crypto.createHash('sha256').update(proofPayload).digest('hex');
+    const proofHash = crypto
+      .createHash("sha256")
+      .update(proofPayload)
+      .digest("hex");
 
     this._proofs.set(proofId, {
       proofId,
@@ -298,8 +338,21 @@ class ZkProofOfAssetsEngine {
       proofHash,
     });
 
-    this._emitAudit('PROOF_DRAFT_CREATED', { proofId, tenantId, claimedBacking, aggregateBacking, assetCount: commitments.length });
-    return { proofId, tenantId, merkleRoot: merkleTree.getRoot(), claimedBacking, aggregateBacking, state: PROOF_STATE.DRAFT };
+    this._emitAudit("PROOF_DRAFT_CREATED", {
+      proofId,
+      tenantId,
+      claimedBacking,
+      aggregateBacking,
+      assetCount: commitments.length,
+    });
+    return {
+      proofId,
+      tenantId,
+      merkleRoot: merkleTree.getRoot(),
+      claimedBacking,
+      aggregateBacking,
+      state: PROOF_STATE.DRAFT,
+    };
   }
 
   /**
@@ -309,7 +362,7 @@ class ZkProofOfAssetsEngine {
   commitProof(proofId) {
     const proof = this._getProof(proofId);
     this._transition(proofId, PROOF_STATE.COMMITTED);
-    this._emitAudit('PROOF_COMMITTED', { proofId, tenantId: proof.tenantId });
+    this._emitAudit("PROOF_COMMITTED", { proofId, tenantId: proof.tenantId });
     return { proofId, state: PROOF_STATE.COMMITTED };
   }
 
@@ -332,13 +385,14 @@ class ZkProofOfAssetsEngine {
       proofHash: proof.proofHash,
       // The ZK proof itself: a signature over the proof payload
       // In production this would be a zk-SNARK; here we use a deterministic hash
-      zkProof: crypto.createHash('sha256')
+      zkProof: crypto
+        .createHash("sha256")
         .update(proof.proofHash)
-        .update('zk-proof-of-assets')
-        .digest('hex'),
+        .update("zk-proof-of-assets")
+        .digest("hex"),
     };
 
-    this._emitAudit('PROOF_GENERATED', { proofId, tenantId: proof.tenantId });
+    this._emitAudit("PROOF_GENERATED", { proofId, tenantId: proof.tenantId });
     return proofBundle;
   }
 
@@ -350,41 +404,64 @@ class ZkProofOfAssetsEngine {
   verifyProof(proofBundle) {
     const proof = this._getProof(proofBundle.proofId);
     if (proof.state !== PROOF_STATE.PROVEN) {
-      throw new HsmAdapterError('PROOF_NOT_PROVEN', `proof ${proofBundle.proofId} is in state ${proof.state}, must be proven`);
+      throw new HsmAdapterError(
+        "PROOF_NOT_PROVEN",
+        `proof ${proofBundle.proofId} is in state ${proof.state}, must be proven`,
+      );
     }
 
     // Verify proof hash integrity
     const expectedHash = proof.proofHash;
     if (proofBundle.proofHash !== expectedHash) {
       this._transition(proofBundle.proofId, PROOF_STATE.INVALID);
-      throw new HsmAdapterError('PROOF_HASH_MISMATCH', 'proof hash does not match — tampering detected');
+      throw new HsmAdapterError(
+        "PROOF_HASH_MISMATCH",
+        "proof hash does not match — tampering detected",
+      );
     }
 
     // Verify Merkle root
     if (proofBundle.merkleRoot !== proof.merkleTree.getRoot()) {
       this._transition(proofBundle.proofId, PROOF_STATE.INVALID);
-      throw new HsmAdapterError('MERKLE_ROOT_MISMATCH', 'Merkle root does not match');
+      throw new HsmAdapterError(
+        "MERKLE_ROOT_MISMATCH",
+        "Merkle root does not match",
+      );
     }
 
     // Verify aggregate backing >= claimed backing
     if (proofBundle.aggregateBacking < proofBundle.claimedBacking) {
       this._transition(proofBundle.proofId, PROOF_STATE.INVALID);
-      throw new HsmAdapterError('BACKING_INSUFFICIENT', 'aggregate backing < claimed backing');
+      throw new HsmAdapterError(
+        "BACKING_INSUFFICIENT",
+        "aggregate backing < claimed backing",
+      );
     }
 
     // Verify ZK proof
-    const expectedZkProof = crypto.createHash('sha256')
+    const expectedZkProof = crypto
+      .createHash("sha256")
       .update(expectedHash)
-      .update('zk-proof-of-assets')
-      .digest('hex');
+      .update("zk-proof-of-assets")
+      .digest("hex");
     if (proofBundle.zkProof !== expectedZkProof) {
       this._transition(proofBundle.proofId, PROOF_STATE.INVALID);
-      throw new HsmAdapterError('ZK_PROOF_INVALID', 'ZK proof verification failed');
+      throw new HsmAdapterError(
+        "ZK_PROOF_INVALID",
+        "ZK proof verification failed",
+      );
     }
 
     this._transition(proofBundle.proofId, PROOF_STATE.VERIFIED);
-    this._emitAudit('PROOF_VERIFIED', { proofId: proofBundle.proofId, tenantId: proof.tenantId });
-    return { verified: true, proofId: proofBundle.proofId, state: PROOF_STATE.VERIFIED };
+    this._emitAudit("PROOF_VERIFIED", {
+      proofId: proofBundle.proofId,
+      tenantId: proof.tenantId,
+    });
+    return {
+      verified: true,
+      proofId: proofBundle.proofId,
+      state: PROOF_STATE.VERIFIED,
+    };
   }
 
   /**
@@ -397,11 +474,23 @@ class ZkProofOfAssetsEngine {
     this._validateNode(nodeId);
     const proof = this._getProof(proofId);
     if (proof.state !== PROOF_STATE.VERIFIED) {
-      throw new HsmAdapterError('PROOF_NOT_VERIFIED', `proof ${proofId} must be verified before signing`);
+      throw new HsmAdapterError(
+        "PROOF_NOT_VERIFIED",
+        `proof ${proofId} must be verified before signing`,
+      );
     }
     proof.signatures.set(nodeId, signature);
-    this._emitAudit('PROOF_SIGNED', { proofId, nodeId, totalSignatures: proof.signatures.size });
-    return { proofId, nodeId, totalSignatures: proof.signatures.size, quorumReached: proof.signatures.size >= this.minQuorumNodes };
+    this._emitAudit("PROOF_SIGNED", {
+      proofId,
+      nodeId,
+      totalSignatures: proof.signatures.size,
+    });
+    return {
+      proofId,
+      nodeId,
+      totalSignatures: proof.signatures.size,
+      quorumReached: proof.signatures.size >= this.minQuorumNodes,
+    };
   }
 
   /**
@@ -411,7 +500,10 @@ class ZkProofOfAssetsEngine {
    */
   isFinalized(proofId) {
     const proof = this._getProof(proofId);
-    return proof.state === PROOF_STATE.VERIFIED && proof.signatures.size >= this.minQuorumNodes;
+    return (
+      proof.state === PROOF_STATE.VERIFIED &&
+      proof.signatures.size >= this.minQuorumNodes
+    );
   }
 
   /**
@@ -468,7 +560,10 @@ class ZkProofOfAssetsEngine {
   _getProof(proofId) {
     const proof = this._proofs.get(proofId);
     if (!proof) {
-      throw new HsmAdapterError('PROOF_NOT_FOUND', `proof ${proofId} not found`);
+      throw new HsmAdapterError(
+        "PROOF_NOT_FOUND",
+        `proof ${proofId} not found`,
+      );
     }
     return proof;
   }
@@ -479,7 +574,10 @@ class ZkProofOfAssetsEngine {
    */
   _validateNode(nodeId) {
     if (!this.validatorNodes.has(nodeId)) {
-      throw new HsmAdapterError('VALIDATOR_UNKNOWN', `node ${nodeId} is not a validator`);
+      throw new HsmAdapterError(
+        "VALIDATOR_UNKNOWN",
+        `node ${nodeId} is not a validator`,
+      );
     }
   }
 
@@ -493,7 +591,7 @@ class ZkProofOfAssetsEngine {
     const allowed = VALID_TRANSITIONS[proof.state] || [];
     if (!allowed.includes(newState)) {
       throw new HsmAdapterError(
-        'PROOF_INVALID_TRANSITION',
+        "PROOF_INVALID_TRANSITION",
         `cannot transition proof ${proofId} from ${proof.state} to ${newState}`,
       );
     }

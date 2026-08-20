@@ -1,4 +1,8 @@
-import { fetchAnalyzeProviders, normalizeProjectPath, shouldClearHostedServerDefaultPath } from '../services/analyzeService.js?v=20260726sevfix1';
+import {
+    fetchAnalyzeProviders,
+    normalizeProjectPath,
+    shouldClearHostedServerDefaultPath
+} from '../services/analyzeService.js?v=20260726sevfix1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 import { escapeHtml } from '../utils.js?v=20260731audit1';
 /**
@@ -9,23 +13,20 @@ import { escapeHtml } from '../utils.js?v=20260731audit1';
  */
 export function isPathWithinAllowedRoots(projectPath, allowedRoots = []) {
     let target = normalizeProjectPath(projectPath);
-    if (!target || isRemoteRepoUrl(projectPath))
-        return true;
+    if (!target || isRemoteRepoUrl(projectPath)) return true;
     // Resolve bare directory names against each allowed root
     const roots = allowedRoots || [];
     if (!target.includes('/') && roots.length > 0) {
-        return roots.some((root) => {
+        return roots.some(root => {
             const rootKey = normalizeProjectPath(root);
-            if (!rootKey)
-                return false;
+            if (!rootKey) return false;
             const resolved = normalizeProjectPath(`${root}/${target}`);
             return resolved === rootKey || resolved.startsWith(`${rootKey}/`);
         });
     }
-    return roots.some((root) => {
+    return roots.some(root => {
         const rootKey = normalizeProjectPath(root);
-        if (!rootKey)
-            return false;
+        if (!rootKey) return false;
         return target === rootKey || target.startsWith(`${rootKey}/`);
     });
 }
@@ -37,12 +38,18 @@ export function isPathWithinAllowedRoots(projectPath, allowedRoots = []) {
  * @returns {any}
  */
 export function pathAllowlistMessage(projectPath, allowedRoots, summary) {
-    const rootsText = summary
-        || (allowedRoots || []).slice(0, 4).map((entry) => String(entry).replace(/\\/g, '/')).join('; ');
+    const rootsText =
+        summary ||
+        (allowedRoots || [])
+            .slice(0, 4)
+            .map(entry => String(entry).replace(/\\/g, '/'))
+            .join('; ');
     const requested = String(projectPath || '').replace(/\\/g, '/');
-    return (`Path is outside allowed analysis roots. Requested: ${requested}. `
-        + `Allowed: ${rootsText || '(none)'}. `
-        + 'Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard.');
+    return (
+        `Path is outside allowed analysis roots. Requested: ${requested}. ` +
+        `Allowed: ${rootsText || '(none)'}. ` +
+        'Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard.'
+    );
 }
 /**
  * Ensure allowed analysis roots.
@@ -51,7 +58,14 @@ export function pathAllowlistMessage(projectPath, allowedRoots, summary) {
  */
 export async function ensureAllowedAnalysisRoots(app) {
     var _a, _b, _c;
-    if ((_b = (_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0 ? void 0 : _a.allowedAnalysisRoots) === null || _b === void 0 ? void 0 : _b.length) {
+    if (
+        (_b =
+            (_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0
+                ? void 0
+                : _a.allowedAnalysisRoots) === null || _b === void 0
+            ? void 0
+            : _b.length
+    ) {
         return app.state.allowedAnalysisRoots;
     }
     try {
@@ -59,14 +73,21 @@ export async function ensureAllowedAnalysisRoots(app) {
         if (app === null || app === void 0 ? void 0 : app.state) {
             app.state.allowedAnalysisRoots = info.allowedAnalysisRoots || [];
             app.state.allowedAnalysisRootsSummary = info.allowedAnalysisRootsSummary || '';
-            if (info.defaultProjectPath && !app.state.defaultProjectPath && !shouldClearHostedServerDefaultPath(info.defaultProjectPath)) {
+            if (
+                info.defaultProjectPath &&
+                !app.state.defaultProjectPath &&
+                !shouldClearHostedServerDefaultPath(info.defaultProjectPath)
+            ) {
                 app.state.defaultProjectPath = info.defaultProjectPath;
             }
         }
         return info.allowedAnalysisRoots || [];
-    }
-    catch (_d) {
-        return ((_c = app === null || app === void 0 ? void 0 : app.state) === null || _c === void 0 ? void 0 : _c.allowedAnalysisRoots) || [];
+    } catch (_d) {
+        return (
+            ((_c = app === null || app === void 0 ? void 0 : app.state) === null || _c === void 0
+                ? void 0
+                : _c.allowedAnalysisRoots) || []
+        );
     }
 }
 /**
@@ -79,13 +100,27 @@ export async function validateProjectPathAllowlist(projectPath, app) {
     var _a, _b;
     const path = String(projectPath || '').trim();
     if (!path || isRemoteRepoUrl(path)) {
-        return { allowed: true, path, message: null, roots: ((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0 ? void 0 : _a.allowedAnalysisRoots) || [] };
+        return {
+            allowed: true,
+            path,
+            message: null,
+            roots:
+                ((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0
+                    ? void 0
+                    : _a.allowedAnalysisRoots) || []
+        };
     }
     const roots = await ensureAllowedAnalysisRoots(app);
     const allowed = isPathWithinAllowedRoots(path, roots);
     const message = allowed
         ? null
-        : pathAllowlistMessage(path, roots, (_b = app === null || app === void 0 ? void 0 : app.state) === null || _b === void 0 ? void 0 : _b.allowedAnalysisRootsSummary);
+        : pathAllowlistMessage(
+              path,
+              roots,
+              (_b = app === null || app === void 0 ? void 0 : app.state) === null || _b === void 0
+                  ? void 0
+                  : _b.allowedAnalysisRootsSummary
+          );
     if (app === null || app === void 0 ? void 0 : app.state) {
         app.state.pathAllowlistError = message;
     }
@@ -97,8 +132,7 @@ export async function validateProjectPathAllowlist(projectPath, app) {
  * @returns {any}
  */
 export function renderPathAllowlistWarning(message) {
-    if (!message)
-        return '';
+    if (!message) return '';
     return `
     <div class="analyze-info-callout mb-4 analyze-path-allowlist-warning" data-path-allowlist-warning style="border-color: var(--color-warning, #f59e0b);">
       ${escapeHtml(message)}
@@ -113,13 +147,11 @@ export function renderPathAllowlistWarning(message) {
  * @returns {any}
  */
 export async function updatePathAllowlistWarningDom(container, app, projectPath) {
-    if (!container)
-        return;
+    if (!container) return;
     const slot = container.querySelector('[data-path-allowlist-warning]');
     const path = String(projectPath || '').trim();
     if (!path) {
-        if (app === null || app === void 0 ? void 0 : app.state)
-            app.state.pathAllowlistError = null;
+        if (app === null || app === void 0 ? void 0 : app.state) app.state.pathAllowlistError = null;
         slot === null || slot === void 0 ? void 0 : slot.remove();
         return;
     }

@@ -1,8 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { escapeHtml, setHtml } from '../utils.js';
+import { escapeHtml, setHtml } from "../utils.js";
 // simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page
-const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
-const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
+const GITHUB_REPO = "https://github.com/tjp420/simplebeacon";
+const MANIFESTO =
+  "https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md";
 // Transparency note: This dashboard view displays documentation about pattern-matching tools.
 const CODE_SAMPLE = `// Example credential pattern sample (documentation only)
 const CREDENTIAL_PATTERNS = [
@@ -23,7 +24,9 @@ export class AboutView {
   }
 
   mount(container) {
-    setHtml(container, `
+    setHtml(
+      container,
+      `
       <div class="analyze-hero">
         <h1 class="page-title">About</h1>
         <p class="text-muted analyze-hero-sub">Free · local · zero runtime dependencies</p>
@@ -113,16 +116,19 @@ export class AboutView {
         <p><a href="${GITHUB_REPO}" target="_blank" rel="noopener noreferrer">${escapeHtml(GITHUB_REPO)}</a></p>
         <p class="text-muted">Found a bug or want a new pattern? Open a PR — I review contributions regularly.</p>
       </section>
-    `);
+    `,
+    );
 
-    this._aboutClickHandler = () => this.app.navigate('dashboard');
-    container.querySelector('#about-open-dashboard')?.addEventListener('click', this._aboutClickHandler);
+    this._aboutClickHandler = () => this.app.navigate("dashboard");
+    container
+      .querySelector("#about-open-dashboard")
+      ?.addEventListener("click", this._aboutClickHandler);
   }
 
   destroy() {
-    const el = document.getElementById('about-open-dashboard');
+    const el = document.getElementById("about-open-dashboard");
     if (el && this._aboutClickHandler) {
-      el.removeEventListener('click', this._aboutClickHandler);
+      el.removeEventListener("click", this._aboutClickHandler);
     }
   }
 }

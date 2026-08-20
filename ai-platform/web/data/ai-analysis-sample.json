@@ -7,9 +7,7 @@
   "security": {},
   "performance": {},
   "severityBreakdown": [],
-  "categories": [
-    { "name": "code-quality", "count": 0 }
-  ],
+  "categories": [{ "name": "code-quality", "count": 0 }],
   "issues": [],
   "recommendations": [
     { "id": "sample-rec", "title": "Sample recommendation", "priority": "low" }
