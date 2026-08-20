@@ -94,7 +94,7 @@ function validatePhase2LoginRequest(req, res, next) {
  */
 async function ensurePhase2Schema(db) {
     const schemaDir = path.join(__dirname, '..', 'db');
-    for (const file of ['schema-phase2.sql', 'schema-subscription.sql']) {
+    for (const file of ['schema-phase2.sql', 'schema-subscription.sql', 'migrations/001_init_licensing.sql', 'migrations/002-audit-bookings.sql']) {
         const schemaPath = path.join(schemaDir, file);
         if (!fs.existsSync(schemaPath)) continue; // simplebeacon-ignore sync-io — existence check before async DB query
         const sql = readTextFileCached(schemaPath);

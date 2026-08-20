@@ -3,8 +3,9 @@
  * CCO-Grade Executive Risk Certificate Generator
  *
  * Converts raw technical scan findings into a board-ready compliance artifact.
- * Maps the 4 Core Compliance Pillars to financial liability, risk tiers, and
- * plain-language remediation for Chief Compliance Officers.
+ * Maps the 4 Core Compliance Pillars to illustrative risk estimates, risk tiers,
+ * and plain-language remediation for Chief Compliance Officers. Financial
+ * figures are not legal advice, regulatory predictions, or sourced fine averages.
  *
  * Usage:
  *   npx simplebeacon pdf --report .simplebeacon/report.json --output ./risk-certificate.html
@@ -191,7 +192,7 @@ function buildExecutiveHtml(report, licenseClaims) {
             <p class="pillar-pitch">${pillar.businessPitch}</p>
             <div class="pillar-meta">
                 <span>Regulatory exposure: ${pillar.regulatoryFrameworks.join(', ')}</span>
-                <span>Avg fine per incident: $${pillar.avgFinePerIncident.toLocaleString()}</span>
+                <span>Illustrative risk basis per incident: $${pillar.avgFinePerIncident.toLocaleString()}</span>
             </div>
             ${data.issues.length > 0 ? '<ul class="pillar-actions">' + data.issues.slice(0,3).map(i =>
                 `<li><strong>${i.severity?.toUpperCase()}</strong> — ${(i.recommendedAction || i.recommendation || 'Review').slice(0,100)}</li>`

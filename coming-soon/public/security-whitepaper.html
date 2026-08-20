@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Technical Whitepaper: Zero-Upload Architecture — SimpleBeacon</title>
-  <meta name="description" content="SimpleBeacon Technical Whitepaper for enterprise security auditors: zero-upload architecture, network audit methodology, CSP enforcement, and air-gapped verification.">
+  <title>Technical Whitepaper: Zero-Source-Upload Architecture — SimpleBeacon</title>
+  <meta name="description" content="SimpleBeacon Technical Whitepaper for enterprise security auditors: zero-source-upload design, network audit methodology, CSP enforcement, and air-gapped verification.">
   <link rel="canonical" href="https://simplebeacon.ai/security-whitepaper">
   <meta name="robots" content="index, follow">
-  <meta property="og:title" content="Technical Whitepaper: Zero-Upload Architecture — SimpleBeacon">
-  <meta property="og:description" content="Independent verification methodology for SimpleBeacon's zero-upload, privacy-first scanning architecture.">
+  <meta property="og:title" content="Technical Whitepaper: Zero-Source-Upload Design — SimpleBeacon">
+  <meta property="og:description" content="Independent verification methodology for SimpleBeacon's zero-source-upload, privacy-first scanning architecture.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://simplebeacon.ai/security-whitepaper">
   <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
@@ -41,7 +41,7 @@
   </style>
 </head>
 <body>
-  <h1>Technical Whitepaper: Zero-Upload Architecture</h1>
+  <h1>Technical Whitepaper: Zero-Source-Upload Architecture</h1>
   <p style="color:#9CA3AF;">SimpleBeacon &mdash; July 2026</p>
 
   <div class="meta-box">
@@ -94,11 +94,11 @@
 
   <h2 id="cli">3. CLI Scanner Architecture</h2>
   <h3>Network Behavior</h3>
-  <p>The CLI scanner (<code>simplebeacon scan</code>) is designed with a strict zero-network-default policy:</p>
+  <p>The CLI scanner (<code>simplebeacon scan</code>) is designed to avoid source-code upload. Use offline or air-gapped mode when zero network activity is required:</p>
   <ul>
-    <li><strong>Default mode:</strong> Zero network requests. All file I/O is local filesystem reads.</li>
+    <li><strong>Offline mode:</strong> Zero network requests. All file I/O is local filesystem reads.</li>
     <li><strong>License validation:</strong> Performed locally using HMAC-SHA256 token verification. No license server contact required.</li>
-    <li><strong>Optional upload (<code>--upload</code>):</strong> Only when the user explicitly passes this flag, a scan report (not source code) is uploaded to generate a cryptographic certificate. The upload contains the JSON report output, never the original source files.</li>
+    <li><strong>Online paid CI telemetry:</strong> Aggregate scan metrics may be sent for team dashboards. No source files, paths, or snippets are included. Use <code>--offline</code> or <code>--air-gapped</code> to disable network activity.</li>
   </ul>
 
   <h3>Dependency Analysis</h3>
@@ -215,7 +215,7 @@ echo -n "REPORT_JSON" | openssl dgst -sha256 -hmac "LICENSE_SECRET"</code></pre>
   <h2 id="compliance">9. Compliance Framework Alignment</h2>
   <h3>SOC 2 Type II</h3>
   <ul>
-    <li>SimpleBeacon's zero-upload architecture directly supports SOC 2 Trust Services Criteria for Security and Confidentiality.</li>
+    <li>SimpleBeacon's zero-source-upload design can support security and confidentiality controls when deployed and configured appropriately; it is not a SOC 2 certification.</li>
     <li>Since source code never enters SimpleBeacon's infrastructure, there is no attack surface for source code exfiltration.</li>
     <li>Annual SOC 2 Type II reports are available for enterprise clients under NDA.</li>
   </ul>
