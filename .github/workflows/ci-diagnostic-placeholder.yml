@@ -1,0 +1,33 @@
+name: CI Diagnostic Placeholder
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+  workflow_dispatch: {}
+
+jobs:
+  early-diagnostics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create diagnostics file
+        run: |
+          mkdir -p tmp/diag
+          echo "ci started at $(date -u)" > tmp/diag/ci-started.txt
+          echo "branch: ${{ github.ref }}" >> tmp/diag/ci-started.txt
+
+      - name: List working directory for debugging
+        run: |
+          echo "Workspace listing:"; ls -la
+
+      - name: Upload diagnostic artifact (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-diagnostic-placeholder
+          path: tmp/diag/**
+          retention-days: 3

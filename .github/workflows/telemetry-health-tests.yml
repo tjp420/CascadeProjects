@@ -19,7 +19,7 @@ jobs:
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: ai-platform/package.json
 
@@ -55,10 +55,11 @@ jobs:
           cat ai-platform/test-results/ci-test-metrics.prom || true
 
       - name: Upload CI test metrics artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ci-test-metrics
-          path: ai-platform/test-results/
+          path: ai-platform/test-results/**
           retention-days: 7
 
       - name: Post PR telemetry delta (only on PRs)

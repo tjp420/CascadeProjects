@@ -29,10 +29,11 @@ jobs:
           echo "ci started at $(date -u)" > ai-platform/web/simplebeacon-dashboard/playwright-report/ci-started.txt
 
       - name: Upload early diagnostics placeholder
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: early-playwright-report
-          path: ai-platform/web/simplebeacon-dashboard/playwright-report/ci-started.txt
+          path: ai-platform/web/simplebeacon-dashboard/playwright-report/**
           retention-days: 7
 
       - name: Initialize Node.js Environment
@@ -74,7 +75,7 @@ jobs:
         run: |
           cat > tmp-mock-api.js <<'NODE'
           const http = require('http');
-          const port = 53900;
+          const port = 58000;
           const server = http.createServer((req, res) => {
             if (req.url === '/api/health') {
               res.writeHead(200, {'Content-Type':'application/json'});
